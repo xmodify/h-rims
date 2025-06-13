@@ -1,0 +1,8 @@
+1.Navigate to your Laravel project folder
+	cd c/xampp/htdocs/h-rims
+2.Pull the latest changes
+	git pull origin main
+3.Install updated dependencies (if needed)
+	composer install
+	npm install
+4.Run database migrations (if needed)

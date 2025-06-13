@@ -4,17 +4,10 @@
 2.Pull latest changes (if already cloned)
 	git pull origin main
 3.Install PHP dependencies
-	composer install
-	npm install
-	npm run dev
-	npm run build
-4.Copy the .env file
-	cp .env.example .env
-5.Generate the application key
-	php artisan key:generate
-6.Run migrations (if needed)
-	php artisan migrate
-7.Serve the project
+	composer update
+4.Edit the .env file
+	nano .env
+5.Serve the project
 	php artisan serve
 
 -----------------------------------------------------------------------

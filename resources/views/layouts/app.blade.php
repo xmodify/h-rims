@@ -33,15 +33,24 @@
                     @guest
                         @else 
                         <li class="nav-item dropdown">
-                            <a id="navbarDropdown" class="nav-link btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
+                            <a id="navbarDropdown" class="btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
                                 นำเข้าข้อมูล
                             </a>
                             <div class=" btn btn-outline-success dropdown-menu dropdown-menu-end">                                       
                                 <a class="dropdown-item bg-info text-white " href="{{ url('/import/stm_ucs') }}" >
                                     - Statement UCS
                                 </a> 
+                                <a class="dropdown-item bg-info text-white " href="#" >
+                                    - Statement OFC
+                                </a> 
+                                <a class="dropdown-item bg-info text-white " href="#" >
+                                    - Statement LGO
+                                </a> 
                             </div>                 
                         </li> 
+                        <a class="btn btn-outline-info text-white" href="#" >
+                            D/C Summary
+                        </a>
                     @endguest
                     </ul>
 

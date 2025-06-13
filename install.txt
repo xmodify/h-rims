@@ -1,0 +1,23 @@
+- git clone 'https://github.com/xmodify/h-rims'
+- cd h-rims
+- composer install
+- cp .env.example .env
+- php artisan key:generate
+- npm install
+- npm run dev
+- php artisan serve
+ติดตั้งฐานข้อมูล h-rims/db แก้ไข .env
+
+     DB_CONNECTION=mysql
+     DB_HOST=127.0.0.1
+     DB_PORT=3306
+     DB_DATABASE=hrims
+     DB_USERNAME=hrims
+     DB_PASSWORD=hrims
+
+     DB_CONNECTION_2=mysql
+     DB_HOST_2=127.0.0.1
+     DB_PORT_2=3306
+     DB_DATABASE_2=hosxe
+     DB_USERNAME_2=hrims
+     DB_PASSWORD_2=hrims

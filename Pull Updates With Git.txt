@@ -1,8 +1,11 @@
-1.Navigate to your Laravel project folder
-	cd c/xampp/htdocs/h-rims
-2.Pull the latest changes
+1.Check current remotes
+	git remote -v
+2.Add a new remote (if none exists)
+	git remote add origin https://github.com/xmodify/h-rims-update.git
+3.Update existing remote URL
+	git remote set-url origin https://github.com/xmodify/h-rims-update.git
+4.Verify it's updated
+	git remote -v
+5.Pull the latest changes
 	git pull origin main
-3.Install updated dependencies (if needed)
-	composer install
-	npm install
-4.Run database migrations (if needed)
+

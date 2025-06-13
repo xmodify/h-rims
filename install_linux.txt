@@ -1,11 +1,31 @@
-sudo apt update && sudo apt install php php-mbstring php-xml php-bcmath php-curl php-zip php-mysql unzip git curl composer npm nodejs 
+1.Install Git (if not installed)
+	sudo apt update
+	sudo apt install git
+2.Install PHP, and required extensions
+	sudo apt install php php-mbstring php-xml php-bcmath php-curl php-zip unzip curl
+3.Install Composer
+	curl -sS https://getcomposer.org/installer | php
+	sudo mv composer.phar /usr/local/bin/composer
+4.Clone the Laravel project
+	git clone https://github.com/xmodify/h-rims.git
+	cd h-rims
+5.Install dependencies
+	composer install
+6.If you're using Node.js for frontend:
+	sudo apt install nodejs npm
+	npm install
+	npm run dev
+	npm run build
+7.Set up your .env file
+	cp .env.example .env
+	nano .env
+8.Generate the Laravel app key
+	php artisan key:generate
+9.Set folder permissions
+	sudo chmod -R 775 storage
+	sudo chmod -R 775 bootstrap/cache
+10.Run database migrations (if needed)
+	php artisan migrate
+11.Serve the application (for dev use)
+	php artisan serve
 
-- git clone 'https://github.com/xmodify/h-rims'
-- cd h-rims
-- composer install
-- curl -sS https://getcomposer.org/installer | php
-- sudo mv composer.phar /usr/local/bin/composer
-- cp .env.example .env
-- php artisan key:generate
-- npm install
-- npm run dev

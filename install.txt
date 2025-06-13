@@ -1,10 +1,13 @@
 1.Clone the repository (first time only)
-	git clone 'https://github.com/xmodify/h-rims'
+	git clone https://github.com/xmodify/h-rims.git
 	cd h-rims
 2.Pull latest changes (if already cloned)
 	git pull origin main
 3.Install PHP dependencies
 	composer install
+	npm install
+	npm run dev
+	npm run build
 4.Copy the .env file
 	cp .env.example .env
 5.Generate the application key
@@ -14,42 +17,22 @@
 7.Serve the project
 	php artisan serve
 
-- npm install
-- npm run dev
-- npm run build
-
-ติดตั้งฐานข้อมูล h-rims/db แก้ไข .env
-
-     DB_CONNECTION=mysql
-     DB_HOST=127.0.0.1
-     DB_PORT=3306
-     DB_DATABASE=hrims
-     DB_USERNAME=hrims
-     DB_PASSWORD=hrims
-
-     DB_CONNECTION_2=mysql
-     DB_HOST_2=127.0.0.1
-     DB_PORT_2=3306
-     DB_DATABASE_2=hosxe
-     DB_USERNAME_2=hrims
-     DB_PASSWORD_2=hrims
-
 -----------------------------------------------------------------------
-1. Initialize Git (if not already done)
+1.Initialize Git (if not already done)
 	git init
-2. Create a .gitignore file
+2.Create a .gitignore file
 	/vendor
 	/node_modules
 	.env
 	/storage/*.key
 	/public/storage
-3. Add your files to Git
+3.Add your files to Git
 	git add .
-4. Commit the files
+4.Commit the files
 	git commit -m "Initial commit of h-rims"
-5. Add remote repository
+5.Add remote repository
 	git remote add origin https://github.com/xmodify/h-rims
-6. Push the code
+6.Push the code
 	git branch -M main
 	git push -u origin main
 

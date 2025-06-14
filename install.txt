@@ -7,6 +7,7 @@
 	composer update
 4.Edit the .env file
 	nano .env
+    php artisan key:generate
 5.Serve the project
 	php artisan serve
 

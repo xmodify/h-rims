@@ -5,6 +5,7 @@
 	git pull origin main
 3.Install PHP dependencies
 	composer update
+    composer update --ignore-platform-reqs
 4.Edit the .env file
 	nano .env
     php artisan key:generate

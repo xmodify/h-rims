@@ -27,7 +27,9 @@
 	git commit -m "Initial commit of h-rims"
 5.Add remote repository
 	git remote add origin https://github.com/xmodify/h-rims
-6.Push the code
+6.Update existing remote URL
+	git remote set-url origin https://github.com/xmodify/h-rims-update.git
+7.Push the code
 	git branch -M main
 	git push -u origin main
 

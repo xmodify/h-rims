@@ -1,12 +1,38 @@
-1.Clone the repository (first time only)
+1.Set Laravel Public Directory as Document Root
+	C:\xampp\apache\conf\extra\httpd-vhosts.conf
+
+	<VirtualHost *:80>
+    		DocumentRoot "C:/xampp/htdocs/h-rims/public"
+    		ServerName my-laravel-app.local
+    		<Directory "C:/xampp/htdocs/h-rims/public">
+        		AllowOverride All
+        		Require all granted
+    		</Directory>
+	</VirtualHost>
+
+	# disable directory browsing 
+		C:\xampp\apache\conf\httpd.conf
+		Options All -Indexes
+
+2.Update Windows hosts File
+	C:\Windows\System32\drivers\etc\hosts
+
+127.0.0.1 my-laravel-app.local
+
+3.Enable mod_rewrite and Restart Apache
+	LoadModule rewrite_module modules/mod_rewrite.so
+
+4.Clone the repository (first time only)
 	git clone https://github.com/xmodify/h-rims.git
 	cd h-rims
-2.Pull latest changes (if already cloned)
+5.Pull latest changes (if already cloned)
 	git pull origin main
-3.Install PHP dependencies
+6.Install PHP dependencies
 	composer update
-4.Edit the .env file
+7.Edit the .env file
 	nano .env
+8.Generate Key
+	php artisan key:generate
 5.Serve the project
 	php artisan serve
 
@@ -29,3 +55,4 @@
 	git branch -M main
 	git push -u origin main
 
+--------------------------------------------------------------------------

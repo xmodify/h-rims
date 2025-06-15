@@ -40,15 +40,6 @@
                                 <a class="dropdown-item bg-info text-white " href="{{ url('/import/stm_ucs') }}" >
                                     - Statement UCS
                                 </a> 
-                                <a class="dropdown-item bg-info text-white " href="#" >
-                                    - Statement OFC
-                                </a> 
-                                <a class="dropdown-item bg-info text-white " href="#" >
-                                    - Statement LGO
-                                </a> 
-                                <a class="dropdown-item bg-info text-white " href="#" >
-                                    - Drug Catalog สปสช.
-                                </a> 
                             </div>                 
                         </li> 
                         <a class="btn btn-outline-info text-white" href="#" >

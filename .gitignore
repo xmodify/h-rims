@@ -1,7 +1,5 @@
-/node_modules
-/public/storage
-/storage/*.key
 /vendor
-install.txt
-install_linux.txt
+/node_modules
 .env
+/storage/*.key
+/public/storage

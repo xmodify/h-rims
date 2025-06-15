@@ -3,7 +3,7 @@
 
 	<VirtualHost *:80>
     		DocumentRoot "C:/xampp/htdocs/h-rims/public"
-    		ServerName my-laravel-app.local
+    		#ServerName my-laravel-app.local
     		<Directory "C:/xampp/htdocs/h-rims/public">
         		AllowOverride All
         		Require all granted

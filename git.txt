@@ -24,6 +24,9 @@
 git add .
 git commit -m "your update message"
 git push
+
+อยากรวมโค้ด GitHub เข้ามา	git pull origin main --rebase
+ไม่แคร์โค้ด GitHub ลบมันทิ้ง	git push --force origin main
 -----------------------------------------------------------------------------------------
 ✅ คำสั่งพื้นฐานสำหรับ git pull Laravel
 	cd path/to/your/laravel-project
@@ -49,3 +52,4 @@ main หรือ master = ชื่อ branch
 	php artisan migrate  # ถ้ามีการเปลี่ยนแปลงฐานข้อมูล
 	composer install     # ถ้ามีการเปลี่ยนแปลงไฟล์ composer.json
 	npm install && npm run dev  # ถ้ามีการเปลี่ยน frontend assets
+----------------------------------------------------------------------------------------------

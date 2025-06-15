@@ -1,9 +1,0 @@
-1.Check current remotes
-	git remote -v
-2.Update existing remote URL
-	git remote set-url origin https://github.com/xmodify/h-rims-update.git
-3.Verify it's updated
-	git remote -v
-4.Pull the latest changes
-	git pull origin main
-

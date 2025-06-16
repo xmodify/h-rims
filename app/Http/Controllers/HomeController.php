@@ -40,7 +40,7 @@ public function index(Request $request )
         IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND endpoint_code LIKE "EP%" THEN 1 ELSE 0 END),0) AS "ucs_endpoint",
         IFNULL(SUM(CASE WHEN hipdata_code = "OFC" THEN 1 ELSE 0 END),0) AS "ofc_all",
         IFNULL(SUM(CASE WHEN hipdata_code = "OFC" AND endpoint_code LIKE "EP%" THEN 1 ELSE 0 END),0) AS "ofc_endpoint",
-        IFNULL(SUM(CASE WHEN hipdata_code = "OFC" AND edc_approve_list_text <>"" AND edc_approve_list_text IS NOT NULL THEN 1 ELSE 0 END),0) AS "ofc_edc",
+        IFNULL(SUM(CASE WHEN hipdata_code = "OFC" AND edc_approve_list_text <>"" THEN 1 ELSE 0 END),0) AS "ofc_edc",
         IFNULL(SUM(CASE WHEN (auth_code IS NULL OR auth_code ="") AND paidst IN ("02") THEN 1 ELSE 0 END),0) AS "non_authen",
         IFNULL(SUM(CASE WHEN (hipdata_code = "UCS" OR hipdata_code ="SSS") AND (hospmain="" OR hospmain IS NULL) THEN 1 ELSE 0 END),0) AS "non_hmain",
         IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
@@ -48,25 +48,27 @@ public function index(Request $request )
         IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
             AND endpoint_code LIKE "EP%" THEN 1 ELSE 0 END),0) AS "uc_anywhere_endpoint",
         IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-            AND fdh <>"" AND fdh IS NOT NULL THEN 1 ELSE 0 END),0) AS "uc_anywhere_fdh",
+            AND fdh <>"" THEN 1 ELSE 0 END),0) AS "uc_anywhere_fdh",
         IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-            AND uc_cr_name <> "" AND uc_cr_name IS NOT NULL THEN 1 ELSE 0 END),0) AS "uc_cr",
+            AND uc_cr_name <> "" THEN 1 ELSE 0 END),0) AS "uc_cr",
         IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-            AND uc_cr_name <> "" AND uc_cr_name IS NOT NULL AND endpoint_code LIKE "EP%" THEN 1 ELSE 0 END),0) AS "uc_cr_endpoint",
+            AND uc_cr_name <> "" AND endpoint_code LIKE "EP%" THEN 1 ELSE 0 END),0) AS "uc_cr_endpoint",
         IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-            AND uc_cr_name <> "" AND uc_cr_name IS NOT NULL AND fdh <>"" AND fdh IS NOT NULL THEN 1 ELSE 0 END),0) AS "uc_cr_fdh",
-        IFNULL(SUM(CASE WHEN healthmed <> "" AND healthmed IS NOT NULL THEN 1 ELSE 0 END),0) AS "uc_healthmed",
-        IFNULL(SUM(CASE WHEN healthmed <> "" AND healthmed IS NOT NULL AND endpoint_code LIKE "EP%" THEN 1 ELSE 0 END),0) AS "uc_healthmed_endpoint",
-				IFNULL(SUM(CASE WHEN healthmed <> "" AND healthmed IS NOT NULL AND fdh <>"" AND fdh IS NOT NULL THEN 1 ELSE 0 END),0) AS "uc_healthmed_fdh",
+            AND uc_cr_name <> "" AND fdh <>"" THEN 1 ELSE 0 END),0) AS "uc_cr_fdh",
+        IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND (healthmed <> "" OR herb32_name <>"") THEN 1 ELSE 0 END),0) AS "uc_healthmed",
+        IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND (healthmed <> "" OR herb32_name <>"") 
+			AND endpoint_code LIKE "EP%" THEN 1 ELSE 0 END),0) AS "uc_healthmed_endpoint",
+		IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND (healthmed <> "" OR herb32_name <>"") AND fdh <>"" THEN 1 ELSE 0 END),0) AS "uc_healthmed_fdh",
         IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-            AND ppfs_name <> "" AND ppfs_name IS NOT NULL THEN 1 ELSE 0 END),0) AS "ppfs",
+            AND ppfs_name <> "" THEN 1 ELSE 0 END),0) AS "ppfs",
         IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-            AND ppfs_name <> "" AND ppfs_name IS NOT NULL AND endpoint_code LIKE "EP%" THEN 1 ELSE 0 END),0) AS "ppfs_endpoint",
+            AND ppfs_name <> "" AND endpoint_code LIKE "EP%" THEN 1 ELSE 0 END),0) AS "ppfs_endpoint",
         IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-            AND ppfs_name <> "" AND ppfs_name IS NOT NULL AND fdh <>"" AND fdh IS NOT NULL THEN 1 ELSE 0 END),0) AS "ppfs_fdh"
+            AND ppfs_name <> "" AND fdh <>"" THEN 1 ELSE 0 END),0) AS "ppfs_fdh"
         FROM (SELECT o.vn,o.an,vp.auth_code,os.edc_approve_list_text,IF(vp.auth_code NOT LIKE "EP%",ep.claimCode,vp.auth_code) AS endpoint_code,vp.pttype,
         vp.hospmain,p.hipdata_code,ep.sourceChannel,p.paidst,oe.moph_finance_upload_datetime AS fdh,ep.claimType,p.pttype_price_group_id,v.pdx,
-        GROUP_CONCAT(n1.`name`) AS uc_cr_name,SUM(o1.sum_price) AS uc_cr_price,GROUP_CONCAT(n2.`name`) AS ppfs_name,SUM(o2.sum_price) AS ppfs_price,hm.vn AS healthmed
+        GROUP_CONCAT(n1.`name`) AS uc_cr_name,SUM(o1.sum_price) AS uc_cr_price,GROUP_CONCAT(n2.`name`) AS ppfs_name,SUM(o2.sum_price) AS ppfs_price,
+		GROUP_CONCAT(n3.`name`) AS herb32_name,SUM(o3.sum_price) AS herb32_price,hm.vn AS healthmed
         FROM ovst o
         LEFT JOIN visit_pttype vp ON vp.vn=o.vn
         LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -77,6 +79,8 @@ public function index(Request $request )
         LEFT JOIN nondrugitems n1 ON n1.icode=o1.icode
         LEFT JOIN opitemrece o2 ON o2.vn=o.vn AND o2.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs = "Y")
         LEFT JOIN nondrugitems n2 ON n2.icode=o2.icode
+		LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE herb32 = "Y")
+        LEFT JOIN drugitems n3 ON n3.icode=o3.icode
         LEFT JOIN health_med_service hm ON hm.vn=o.vn
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate
         WHERE o.vstdate = DATE(NOW()) AND (o.an ="" OR o.an IS NULL) GROUP BY o.vn ) AS a');

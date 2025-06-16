@@ -71,7 +71,7 @@
               OFC Visit : Endpoint : EDC 
             </div>
             <div class="card-body">
-              <h1 class="card-title text-center">{{$ofc_all}} : {{$ucs_endpoint}} : {{$ofc_edc}} </h1>  
+              <h1 class="card-title text-center">{{$ofc_all}} : {{$ofc_endpoint}} : {{$ofc_edc}} </h1>  
               <p class="card-text">
                   <a href="{{ url('/opd_ofc_all') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
               </p>  

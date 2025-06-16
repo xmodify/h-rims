@@ -172,7 +172,7 @@ public function index(Request $request )
     $month = array_column($ipd_byear,'month');  
     $bed_occupancy = array_column($ipd_byear,'bed_occupancy');
 
-    return view('home',compact('budget_year','opd_total','endpoint_all','ucs_all','ucs_endpoint','ofc_all','ofc_edc','non_authen','non_hmain',
+    return view('home',compact('budget_year','opd_total','endpoint_all','ucs_all','ucs_endpoint','ofc_all','ofc_endpoint','ofc_edc','non_authen','non_hmain',
         'uc_anywhere','uc_anywhere_endpoint','uc_anywhere_fdh','uc_cr','uc_cr_endpoint','uc_cr_fdh','uc_healthmed','uc_healthmed_endpoint',
         'uc_healthmed_fdh','ppfs','ppfs_endpoint','ppfs_fdh','admit_homeward','admit_homeward_endpoint','non_diagtext','non_icd10','not_transfer',
         'wait_paid_money','sum_wait_paid_money','ipd_byear','month','bed_occupancy'));

@@ -31,7 +31,11 @@
 	composer update
 7.Setup DB /h-rims/db
 8.Setup your .env file
+<<<<<<< HEAD
     	cp .env.example .env
+=======
+    cp .env.example .env
+>>>>>>> 98fb3c13f3fa8504c4035370bef7e7d9e4677185
 	nano .env
 9.Generate Key
 	php artisan key:generate

@@ -22,7 +22,7 @@
 
 แก้ไข push หลังจากมีการเปลี่ยนแปลงใหม่:
 git add .
-git commit -m "your update message"
+git commit -m "update"
 git push
 
 อยากรวมโค้ด GitHub เข้ามา	git pull origin main --rebase

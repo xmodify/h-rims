@@ -42,9 +42,16 @@
                                 </a> 
                             </div>                 
                         </li> 
-                        <a class="btn btn-outline-info text-white" href="#" >
-                            D/C Summary
-                        </a>
+                        <li class="nav-item dropdown">
+                            <a id="navbarDropdown" class="btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
+                                ผู้ป่วยใน
+                            </a>
+                            <div class=" btn btn-outline-success dropdown-menu dropdown-menu-end">                                       
+                                <a class="dropdown-item bg-info text-white " href="{{ url('/ipd/dchsummary') }}" >
+                                    - D/C Summary
+                                </a> 
+                            </div>                 
+                        </li> 
                     @endguest
                     </ul>
 

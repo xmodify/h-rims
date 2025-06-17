@@ -25,40 +25,18 @@
 4.Clone the repository (first time only)
 	git clone https://github.com/xmodify/h-rims.git
 	cd h-rims
+
 5.Pull latest changes (if already cloned)
 	git pull origin main
+
 6.Install PHP dependencies
 	composer update
+
 7.Setup DB /h-rims/db
+
 8.Setup your .env file
-<<<<<<< HEAD
-    	cp .env.example .env
-=======
     cp .env.example .env
->>>>>>> 98fb3c13f3fa8504c4035370bef7e7d9e4677185
 	nano .env
+	
 9.Generate Key
 	php artisan key:generate
-10.Serve the project
-	php artisan serve
-
------------------------------------------------------------------------
-1.Initialize Git (if not already done)
-	git init
-2.Create a .gitignore file
-	/vendor
-	/node_modules
-	.env
-	/storage/*.key
-	/public/storage
-3.Add your files to Git
-	git add .
-4.Commit the files
-	git commit -m "Initial commit of h-rims"
-5.Add remote repository
-	git remote add origin https://github.com/xmodify/h-rims
-6.Push the code
-	git branch -M main
-	git push -u origin main
-
---------------------------------------------------------------------------

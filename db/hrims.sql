@@ -11,7 +11,7 @@
  Target Server Version : 100017
  File Encoding         : 65001
 
- Date: 11/06/2025 10:29:04
+ Date: 17/06/2025 23:21:10
 */
 
 SET NAMES utf8mb4;
@@ -505,8 +505,8 @@ DROP TABLE IF EXISTS `lookup_ward`;
 CREATE TABLE `lookup_ward`  (
   `ward` varchar(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `ward_name` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
-  `ward_all` varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
-  `ward_normal` varchar(1) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `ward_m` varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `ward_f` varchar(1) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
   `ward_vip` varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `ward_lr` varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `ward_homeward` varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
@@ -881,7 +881,8 @@ CREATE TABLE `users`  (
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `password` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
-  `active` varchar(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `active` varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `status` varchar(10) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `created_at` timestamp(0) NULL DEFAULT NULL,
   `updated_at` timestamp(0) NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
@@ -890,6 +891,6 @@ CREATE TABLE `users`  (
 -- ----------------------------
 -- Records of users
 -- ----------------------------
-INSERT INTO `users` VALUES (1, 'Admin H-RiMS', 'admin@gmail.com', '$2y$10$Cxdkrfs.MtyRKCDBJhgnPO7WSumIihGVncBRfA9ZaiG9LojoqHMsO', 'Y', '2025-05-01 16:02:36', '2025-05-01 16:02:36');
+INSERT INTO `users` VALUES (1, 'Admin H-RiMS', 'admin@gmail.com', '$2y$10$Cxdkrfs.MtyRKCDBJhgnPO7WSumIihGVncBRfA9ZaiG9LojoqHMsO', 'Y', 'Admin', '2025-05-01 16:02:36', '2025-05-01 16:02:36');
 
 SET FOREIGN_KEY_CHECKS = 1;

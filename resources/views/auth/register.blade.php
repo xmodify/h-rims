@@ -18,8 +18,10 @@
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 
     <!-- Styles -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 </head>
+
 <div class="container my-5">
     <div class="row justify-content-center">
         <div class="col-md-8">
@@ -29,13 +31,13 @@
                 <div class="card-body">
                     <form method="POST" action="{{ route('register') }}">
                         @csrf
-
+                        <input type="hidden" name="status" value="User" required autocomplete="status">
                         <div class="row mb-3">
                             <label for="name" class="col-md-4 col-form-label text-md-end">{{ __('Name') }}</label>
 
                             <div class="col-md-6">
                                 <input id="name" type="text" class="form-control @error('name') is-invalid @enderror" name="name" value="{{ old('name') }}" required autocomplete="name" autofocus>
-
+                                
                                 @error('name')
                                     <span class="invalid-feedback" role="alert">
                                         <strong>{{ $message }}</strong>
@@ -93,3 +95,4 @@
         </div>
     </div>
 </div>
+

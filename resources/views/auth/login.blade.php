@@ -22,6 +22,8 @@
         a{color:inherit;text-decoration:inherit}
     </style>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
 </head>
 <div class="container my-5">
     <div class="row justify-content-center">
@@ -32,11 +34,11 @@
                         <div class="col-md-6" align="left"> 
                         {{ __('H-RiMS') }}
                         </div>
-                        {{-- <div class="col-md-6" align="right"> 
+                        <div class="col-md-6" align="right"> 
                        
-                                <a href="{{ route('register') }}" target="blank"> {{ __('Register') }}</a>
+                                <a href="{{ route('register') }}"> {{ __('Register') }}</a>
                         
-                        </div> --}}
+                        </div>
                     </div>
                 </div>
 
@@ -85,3 +87,13 @@
     </div>
 </div>
 
+@if (session('register_success'))
+<script>
+Swal.fire({
+    icon: 'success',
+    title: 'ลงทะเบียนสำเร็จ',
+    text: '{{ session('register_success') }}',
+    confirmButtonText: 'ตกลง'
+});
+</script>
+@endif

@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Foundation\Auth\RegistersUsers;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\Request;
+
 
 class RegisterController extends Controller
 {
@@ -28,7 +31,9 @@ class RegisterController extends Controller
      *
      * @var string
      */
-    protected $redirectTo = '/home';
+
+    // protected $redirectTo = '/login';
+
 
     /**
      * Create a new controller instance.
@@ -51,7 +56,7 @@ class RegisterController extends Controller
         return Validator::make($data, [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', 'min:6', 'confirmed'],            
         ]);
     }
 
@@ -66,8 +71,19 @@ class RegisterController extends Controller
         return User::create([
             'name' => $data['name'],
             'email' => $data['email'],
+            'status' => $data['status'],
             'password' => Hash::make($data['password']),
-        ]);
-
+        ]);               
     }
+
+    protected function registered(Request $request, $user)
+    {
+        // logout ถ้าไม่ต้องการ login หลัง register
+        Auth::logout();
+
+        // ส่ง session flash
+        return redirect('/login')->with('register_success', 'รอ Admin ดำเนินการ');
+     
+    }
+
 }

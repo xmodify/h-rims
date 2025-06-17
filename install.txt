@@ -37,6 +37,9 @@
 8.Setup your .env file
     cp .env.example .env
 	nano .env
-	
+
 9.Generate Key
 	php artisan key:generate
+
+10.ตั้ง remote เป็น invalid
+	git remote set-url origin no_push://github.com/xmodify/h-rims.git

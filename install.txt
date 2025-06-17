@@ -41,5 +41,5 @@
 9.Generate Key
 	php artisan key:generate
 
-10.ตั้ง remote เป็น invalid
-	git remote set-url origin no_push://github.com/xmodify/h-rims.git
+10.ตั้ง remote เป็น read-only
+	git remote set-url origin https://github.com/xmodify/h-rims.git

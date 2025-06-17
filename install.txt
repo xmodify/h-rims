@@ -43,3 +43,12 @@
 
 10.ตั้ง remote เป็น read-only
 	git remote set-url origin https://github.com/xmodify/h-rims.git
+
+11.ปิดการใช้งาน push ด้วย Git hook (เฉพาะเครื่อง)
+	11.1 สร้างไฟล์ pre-push ที่โฟลเดอร์ .git/hooks/:
+			touch .git/hooks/pre-push
+			chmod +x .git/hooks/pre-push
+	11.2 ใส่โค้ดใน pre-push เพื่อบล็อกทุกการ push:
+			#!/bin/sh
+			echo "❌ git push ถูกบล็อกไว้ ห้าม push ไปยัง GitHub"
+			exit 1

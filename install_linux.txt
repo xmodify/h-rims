@@ -1,31 +1,70 @@
 1.Install Git (if not installed)
 	sudo apt update
 	sudo apt install git
-2.Install PHP, and required extensions
-	sudo apt install php php-mbstring php-xml php-bcmath php-curl php-zip unzip curl
+
+2.Install PHP 8.1, and required extensions
+	sudo dnf install -y epel-release
+	sudo dnf install -y https://rpms.remirepo.net/enterprise/remi-release-9.rpm
+	sudo dnf module enable -y php:remi-8.1
+	sudo dnf install -y php php-cli php-common php-mbstring php-xml php-bcmath php-curl php-zip php-mysqlnd php-pdo php-tokenizer php-opcache unzip git curl
+
 3.Install Composer
 	curl -sS https://getcomposer.org/installer | php
 	sudo mv composer.phar /usr/local/bin/composer
+	composer --version
+
 4.Clone the Laravel project
+	cd /var/www
 	git clone https://github.com/xmodify/h-rims.git
 	cd h-rims
+
 5.Install dependencies
 	composer install
+
 6.If you're using Node.js for frontend:
 	sudo apt install nodejs npm
 	npm install
-	npm run dev
-	npm run build
+
 7.Set up your .env file
 	cp .env.example .env
 	nano .env
+
 8.Generate the Laravel app key
 	php artisan key:generate
+
 9.Set folder permissions
+	sudo chown -R apache:apache .
 	sudo chmod -R 775 storage
 	sudo chmod -R 775 bootstrap/cache
-10.Run database migrations (if needed)
-	php artisan migrate
-11.Serve the application (for dev use)
-	php artisan serve
+
+10.ตั้งค่า Apache หรือ Nginx ให้ชี้มาที่ public/
+	sudo dnf install -y httpd
+	sudo systemctl enable httpd
+	sudo systemctl start httpd
+
+	ตัวอย่างไฟล์ VirtualHost (เช่น /etc/httpd/conf.d/laravel.conf)
+		<VirtualHost *:80>
+    			ServerName yourdomain.com
+    			DocumentRoot /var/www/your-laravel-project/public
+
+    			<Directory /var/www/your-laravel-project>
+        			AllowOverride All
+        			Require all granted
+    			</Directory>
+
+    			<Directory /var/www/your-laravel-project/public>
+        			Options Indexes FollowSymLinks
+        			AllowOverride All
+        			Require all granted
+    			</Directory>
+		</VirtualHost>
+	จากนั้น:
+		sudo systemctl restart httpd
+	เปิด firewall (ถ้ายังไม่ได้เปิด):
+		sudo firewall-cmd --permanent --add-service=http
+		sudo firewall-cmd --reload
+	ตรวจสอบว่า SELinux ไม่ block ไฟล์ Laravel:
+		sudo setsebool -P httpd_can_network_connect 1
+
+
 

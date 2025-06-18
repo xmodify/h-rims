@@ -15,6 +15,10 @@
 
     <!-- Scripts -->
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
+
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 </head>
 <body>
     <div id="app">
@@ -77,16 +81,23 @@
                                 </a>
 
                                 <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                    <!-- Admin -->
+                                    @auth
+                                        @if(auth()->user()->status === 'admin')
+                                            <a class="dropdown-item" href="{{ route('admin.users.index') }}">Manage Users</a>
+                                        @endif
+                                    @endauth
+                                    <!-- Admin -->
                                     <a class="dropdown-item" href="{{ route('logout') }}"
                                        onclick="event.preventDefault();
                                                      document.getElementById('logout-form').submit();">
                                         {{ __('Logout') }}
                                     </a>
-
                                     <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
                                         @csrf
                                     </form>
-                                </div>
+
+                                </div> 
                             </li>
                         @endguest
                     </ul>
@@ -95,7 +106,7 @@
         </nav>
 
         <main class="py-4">
-            @yield('content')
+            @yield('content')    
         </main>
     </div>
 </body>

@@ -15,6 +15,7 @@
             <tr>
                 <th>Name</th>
                 <th>Email</th>
+                <th>Active</th>
                 <th>Status</th>
                 <th>Actions</th>
             </tr>
@@ -24,6 +25,7 @@
                 <tr>
                     <td>{{ $user->name }}</td>
                     <td>{{ $user->email }}</td>
+                    <td>{{ $user->active }}</td>
                     <td>{{ $user->status }}</td>
                     <td>
                         <!-- ปุ่ม Edit -->
@@ -31,6 +33,7 @@
                             data-id="{{ $user->id }}"
                             data-name="{{ $user->name }}"
                             data-email="{{ $user->email }}"
+                            data-active="{{ $user->active }}"
                             data-status="{{ $user->status }}"
                             data-bs-toggle="modal"
                             data-bs-target="#editModal">
@@ -61,6 +64,13 @@
                     <input name="name" type="text" class="form-control mb-2" placeholder="Name" required>
                     <input name="email" type="email" class="form-control mb-2" placeholder="Email" required>                  
                     <input name="password" type="password" class="form-control mb-2" placeholder="Password" required>
+                    <br>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" value="Y" id="active" name="active" {{ $user->status ? 'checked' : '' }}>
+                        <label class="form-check-label" for="editactive">
+                            เปิดใช้งาน (Active)
+                        </label>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-primary">Save</button>
@@ -81,11 +91,19 @@
                 <div class="modal-body">
                     <input name="name" type="text" id="editName" class="form-control mb-2" required>
                     <input name="email" type="email" id="editEmail" class="form-control mb-2" required>
-                    <select class="form-select" name="status" aria-label="Default select example">
+                    <select class="form-select" id="editstatus" name="status" aria-label="Default select example">
                         <option value="user">User</option>
                         <option value="admin">Admin</option>
                     </select>
+                    <br>
+                    <div class="form-check mb-2">
+                        <input class="form-check-input" type="checkbox" value="Y" id="editactive" name="active" {{ $user->active ? 'checked' : '' }}>
+                        <label class="form-check-label" for="editactive">
+                            เปิดใช้งาน (Active)
+                        </label>
+                    </div>
                 </div>
+  
                 <div class="modal-footer">
                     <button class="btn btn-primary">Update</button>
                 </div>
@@ -113,10 +131,12 @@
             button.addEventListener('click', function () {
                 const id = this.dataset.id;
                 const name = this.dataset.name;
-                const email = this.dataset.email;
+                const email = this.dataset.email;   
+                const status = this.dataset.status;
 
                 document.getElementById('editName').value = name;
-                document.getElementById('editEmail').value = email;
+                document.getElementById('editEmail').value = email;  
+                document.getElementById('editstatus').value = status;
                 document.getElementById('editForm').action = `/admin/users/${id}`;
             });
         });

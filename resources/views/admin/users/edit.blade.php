@@ -20,6 +20,11 @@
         </div>
 
         <div class="mb-3">
+            <label>Active</label>
+            <input type="active" name="active" class="form-control" value="{{ old('email', $user->active ?? '') }}" required>
+        </div>
+
+        <div class="mb-3">
             <label>Status</label>            
             <select name="status" class="form-select" aria-label="Default select example">              
                 <option value="user">User</option>

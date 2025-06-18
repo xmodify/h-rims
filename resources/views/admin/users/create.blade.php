@@ -17,9 +17,13 @@
         <div class="mb-3">
             <label>Email</label>
             <input type="email" name="email" class="form-control" value="{{ old('email', $user->email ?? '') }}" required>
-            <input type="hidden" name="status" class="form-control" value="User" required>
+            <input type="hidden" name="status" class="form-control" value="user" required>
         </div>
-
+        
+        <div class="mb-3">
+            <label>Active</label>
+            <input type="active" name="active" class="form-control" value="{{ old('email', $user->active ?? '') }}" required>
+        </div>
 
         @if (!isset($user))
         <div class="mb-3">

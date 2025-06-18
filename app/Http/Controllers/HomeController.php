@@ -149,7 +149,7 @@ public function index(Request $request )
         $wait_paid_money=$row->wait_paid_money;
         $sum_wait_paid_money=$row->sum_wait_paid_money;
     }
-
+    $bed_qty = DB::table('main_setting')->where('name','bed_qty')->value('value'); 
     $ipd_byear = DB::connection('hosxp')->select('
         SELECT CASE WHEN MONTH(i.dchdate)="10" THEN CONCAT("ต.ค. ",YEAR(i.dchdate)+543)
         WHEN MONTH(i.dchdate)="11" THEN CONCAT("พ.ย. ",YEAR(i.dchdate)+543)
@@ -164,8 +164,8 @@ public function index(Request $request )
         WHEN MONTH(i.dchdate)="8" THEN CONCAT("ส.ค. ",YEAR(i.dchdate)+543)
         WHEN MONTH(i.dchdate)="9" THEN CONCAT("ก.ย. ",YEAR(i.dchdate)+543)
         END AS "month",COUNT(DISTINCT i.an) AS an ,sum(a.admdate) AS admdate,        
-        ROUND((SUM(a.admdate)*100)/(60*DAY(LAST_DAY(i.dchdate))),2) AS "bed_occupancy",
-        ROUND(((SUM(a.admdate)*100)/(60*DAY(LAST_DAY(a.dchdate)))*60)/100,2) AS "active_bed",
+        ROUND((SUM(a.admdate)*100)/("'.$bed_qty.'"*DAY(LAST_DAY(i.dchdate))),2) AS "bed_occupancy",
+        ROUND(((SUM(a.admdate)*100)/("'.$bed_qty.'"*DAY(LAST_DAY(a.dchdate)))*"'.$bed_qty.'")/100,2) AS "active_bed",
 		ROUND(SUM(i.adjrw)/COUNT(DISTINCT i.an),2) AS cmi,
         ROUND(SUM(i.adjrw),2) AS adjrw ,SUM(a.income-a.rcpt_money)/SUM(i.adjrw) AS "income_rw"  
         FROM an_stat a INNER JOIN ipt i ON a.an=i.an

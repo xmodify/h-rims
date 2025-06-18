@@ -15,10 +15,10 @@ class UserController extends Controller
         return view('admin.users.index', compact('users'));
     }
 
-    public function create()
-    {
-        return view('admin.users.create');
-    }
+    // public function create()
+    // {
+    //     return view('admin.users.create');
+    // }
 
     public function store(Request $request)
     {
@@ -39,24 +39,32 @@ class UserController extends Controller
         return redirect()->route('admin.users.index')->with('success', 'User created successfully.');
     }
 
-    public function edit(User $user)
-    {
-        return view('admin.users.edit', compact('user'));
-    }
+    // public function edit(User $user)
+    // {
+    //     return view('admin.users.edit', compact('user'));
+    // }
 
     public function update(Request $request, User $user)
     {
-        $request->validate([
-            'name' => 'required',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+        $validated = $request->validate([
+        'name' => 'required',
+        'email' => 'required|email',
+        'password' => 'nullable|min:6'
         ]);
 
-        $user->update([
+        $data = [
             'name' => $request->name,
             'email' => $request->email,
-            'active' => $request->active,
+            'active' => $request->has('active') ? 'Y' : 'N',
             'status' => $request->status,
-        ]);
+        ];
+
+        // ถ้ามีการกรอก password ใหม่ ให้ hash แล้วอัปเดต
+        if ($request->filled('password')) {
+            $data['password'] = Hash::make($request->password);
+        }
+
+        $user->update($data);
 
         return redirect()->route('admin.users.index')->with('success', 'User updated successfully.');
     }

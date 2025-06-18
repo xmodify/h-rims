@@ -11,7 +11,7 @@
  Target Server Version : 100017
  File Encoding         : 65001
 
- Date: 17/06/2025 23:21:10
+ Date: 19/06/2025 00:05:52
 */
 
 SET NAMES utf8mb4;
@@ -514,27 +514,22 @@ CREATE TABLE `lookup_ward`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
 
 -- ----------------------------
--- Records of lookup_ward
--- ----------------------------
-INSERT INTO `lookup_ward` VALUES ('01', 'ผู้ป่วยใน สามัญ', 'Y', 'Y', NULL, NULL, NULL);
-INSERT INTO `lookup_ward` VALUES ('02', 'ห้องคลอด', 'Y', NULL, NULL, 'Y', NULL);
-INSERT INTO `lookup_ward` VALUES ('03', 'ผู้ป่วยใน VIP', 'Y', NULL, NULL, NULL, NULL);
-INSERT INTO `lookup_ward` VALUES ('06', 'HomeWard', NULL, NULL, NULL, NULL, 'Y');
-
--- ----------------------------
 -- Table structure for main_setting
 -- ----------------------------
 DROP TABLE IF EXISTS `main_setting`;
 CREATE TABLE `main_setting`  (
-  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name_th` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `value` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
-  PRIMARY KEY (`name`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
 
 -- ----------------------------
 -- Records of main_setting
 -- ----------------------------
-INSERT INTO `main_setting` VALUES ('token_authen_kiosk_nhso', '');
+INSERT INTO `main_setting` VALUES (1, 'จำนวนเตียง', 'bed_qty', '30');
+INSERT INTO `main_setting` VALUES (2, 'Token Authen Kiosk สปสช.', 'token_authen_kiosk_nhso', '');
 
 -- ----------------------------
 -- Table structure for nhso_endpoint

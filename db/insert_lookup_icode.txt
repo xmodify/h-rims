@@ -15,4 +15,4 @@ AND nhso_adp_code IN ("12003","12004","13001","14001","15001","30008","30009","3
 INSERT INTO lookup_icode (icode,name,herb32)
 SELECT icode,CONCAT(`name`,strength) AS name,"Y" AS herb32 FROM hosxe.drugitems 
 WHERE icode NOT IN (SELECT icode FROM lookup_icode)
-AND icode IN (SELECT icode FROM hosxe.drugitems_property_list WHERE drugitems_property_id = "12")
+AND (ttmt_code <>"" OR ttmt_code IS NOT NULL)

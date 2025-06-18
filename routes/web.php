@@ -5,6 +5,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\IpdController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\MainSettingController;
 
 /*
 |--------------------------------------------------------------------------
@@ -18,6 +19,8 @@ use App\Http\Controllers\Admin\UserController;
 */
 Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(function () {
     Route::resource('users', UserController::class);
+    Route::get('/main_setting', [MainSettingController::class, 'index'])->name('main_setting');
+    Route::put('/main_setting/{id}', [MainSettingController::class, 'update']);
 });
 
 #################################################################################################

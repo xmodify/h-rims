@@ -83,8 +83,9 @@
                                 <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                                     <!-- Admin -->
                                     @auth
-                                        @if(auth()->user()->status === 'admin')
-                                            <a class="dropdown-item" href="{{ route('admin.users.index') }}">Manage Users</a>
+                                        @if(auth()->user()->status === 'admin')                                            
+                                            <a class="dropdown-item" href="{{ route('admin.main_setting') }}">Main Setting</a>
+                                            <a class="dropdown-item" href="{{ route('admin.users.index') }}">Manage User</a>
                                         @endif
                                     @endauth
                                     <!-- Admin -->

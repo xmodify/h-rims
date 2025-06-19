@@ -16,6 +16,7 @@ class LookupIcode extends Model
     protected $fillable = [
         'icode',
         'name',
+        'nhso_adp_code',
         'uc_cr',
         'ppfs',
         'herb32',

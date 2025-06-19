@@ -11,7 +11,7 @@
  Target Server Version : 100017
  File Encoding         : 65001
 
- Date: 19/06/2025 00:05:52
+ Date: 19/06/2025 14:37:36
 */
 
 SET NAMES utf8mb4;
@@ -491,9 +491,12 @@ DROP TABLE IF EXISTS `lookup_icode`;
 CREATE TABLE `lookup_icode`  (
   `icode` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `name` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `nhso_adp_code` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
   `uc_cr` varchar(15) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
   `ppfs` varchar(15) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
   `herb32` varchar(15) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  `created_at` timestamp(0) NULL DEFAULT NULL,
+  `updated_at` timestamp(0) NULL DEFAULT NULL,
   PRIMARY KEY (`icode`) USING BTREE,
   INDEX `icode`(`icode`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;

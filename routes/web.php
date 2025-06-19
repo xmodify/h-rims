@@ -6,6 +6,7 @@ use App\Http\Controllers\ImportController;
 use App\Http\Controllers\IpdController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\MainSettingController;
+use App\Http\Controllers\Admin\LookupIcodeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -19,8 +20,9 @@ use App\Http\Controllers\Admin\MainSettingController;
 */
 Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(function () {
     Route::resource('users', UserController::class);
-    Route::get('/main_setting', [MainSettingController::class, 'index'])->name('main_setting');
-    Route::put('/main_setting/{id}', [MainSettingController::class, 'update']);
+    Route::get('main_setting', [MainSettingController::class, 'index'])->name('main_setting');
+    Route::put('main_setting/{id}', [MainSettingController::class, 'update']);
+    Route::resource('lookup_icode', LookupIcodeController::class)->parameters(['lookup_icode' => 'icode']);
 });
 
 #################################################################################################

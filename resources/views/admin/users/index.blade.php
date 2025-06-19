@@ -1,7 +1,9 @@
 @extends('layouts.app')
+<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.2.0/css/bootstrap.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.1/css/dataTables.bootstrap5.min.css">
 
 @section('content')
-<div class="container mt-4">
+<div class="container">
 
     <h3 class="text-primary">User Management</h3>
     <!-- ปุ่มเปิด Modal เพิ่ม -->
@@ -10,14 +12,14 @@
     </button>
 
     <!-- ตารางผู้ใช้ -->
-    <table class="table table-bordered">
+    <table class="table table-bordered" id ="data">
         <thead class="table-primary">
             <tr>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Active</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th class="text-center" width = "5%">Active</th>
+                <th class="text-center" width = "10%">Status</th>
+                <th class="text-center" width = "20%">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -25,8 +27,8 @@
                 <tr>
                     <td>{{ $user->name }}</td>
                     <td>{{ $user->email }}</td>
-                    <td>{{ $user->active }}</td>
-                    <td>{{ $user->status }}</td>
+                    <td class="text-center">{{ $user->active }}</td>
+                    <td class="text-center">{{ $user->status }}</td>
                     <td>
                         <!-- ปุ่ม Edit -->
                         <button class="btn btn-warning btn-sm btn-edit" 
@@ -51,9 +53,6 @@
         </tbody>
     </table>
 
- <div class="d-flex justify-content-start mt-3">
-    {{ $users->links() }}
-</div>
     <!-- Modal Create -->
     <div class="modal fade" id="createModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
@@ -160,3 +159,17 @@
 
 </div>
 @endsection
+
+<script type="text/javascript" language="javascript" src="https://code.jquery.com/jquery-3.5.1.js"></script>
+<script type="text/javascript" language="javascript" src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" language="javascript" src="https://cdn.datatables.net/1.13.1/js/dataTables.bootstrap5.min.js"></script>
+<script type="text/javascript" class="init">
+    $(document).ready(function () {
+        $('#stm_ucs').DataTable();
+    });
+</script>
+<script type="text/javascript" class="init">
+    $(document).ready(function () {
+        $('#data').DataTable();
+    });
+</script>

@@ -24,7 +24,7 @@ class MainSettingController extends Controller
         $setting->value = $request->value;
         $setting->save();
 
-return redirect()->back()->with('success', 'User updated successfully.');
+return redirect()->back()->with('success', 'แก้ไขข้อมูลสำเร็จ');
     }
     
 }

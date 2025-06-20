@@ -11,7 +11,7 @@
  Target Server Version : 100017
  File Encoding         : 65001
 
- Date: 19/06/2025 14:37:36
+ Date: 20/06/2025 23:16:10
 */
 
 SET NAMES utf8mb4;
@@ -889,6 +889,6 @@ CREATE TABLE `users`  (
 -- ----------------------------
 -- Records of users
 -- ----------------------------
-INSERT INTO `users` VALUES (1, 'Admin H-RiMS', 'admin@gmail.com', '$2y$10$Cxdkrfs.MtyRKCDBJhgnPO7WSumIihGVncBRfA9ZaiG9LojoqHMsO', 'Y', 'Admin', '2025-05-01 16:02:36', '2025-05-01 16:02:36');
+INSERT INTO `users` VALUES (1, 'Admin H-RiMS', 'admin@gmail.com', '$2y$10$Cxdkrfs.MtyRKCDBJhgnPO7WSumIihGVncBRfA9ZaiG9LojoqHMsO', 'Y', 'admin', '2025-05-01 16:02:36', '2025-05-01 16:02:36');
 
 SET FOREIGN_KEY_CHECKS = 1;

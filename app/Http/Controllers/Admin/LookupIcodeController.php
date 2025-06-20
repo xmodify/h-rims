@@ -74,9 +74,9 @@ class LookupIcodeController extends Controller
 
     public function insert_lookup_inst(Request $request)
     {
-        $hosxp_data = DB::select('
-            SELECT icode,`name`,nhso_adp_code,"Y" AS uc_cr FROM hosxe.nondrugitems 
-            WHERE icode NOT IN (SELECT icode FROM lookup_icode)
+        $hosxp_data = DB::connection('hosxp')->select('
+            SELECT icode,`name`,nhso_adp_code,"Y" AS uc_cr FROM nondrugitems 
+            WHERE icode NOT IN (SELECT icode FROM hrims.lookup_icode)
             AND nhso_adp_type_id = "02" AND istatus = "Y"');
         
         foreach ($hosxp_data as $row) {
@@ -94,9 +94,9 @@ class LookupIcodeController extends Controller
 
     public function insert_lookup_ppfs(Request $request)
     {
-        $hosxp_data = DB::select('
-            SELECT icode,`name`,nhso_adp_code,"Y" AS ppfs FROM hosxe.nondrugitems 
-            WHERE icode NOT IN (SELECT icode FROM lookup_icode)
+        $hosxp_data = DB::connection('hosxp')->select('
+            SELECT icode,`name`,nhso_adp_code,"Y" AS ppfs FROM nondrugitems 
+            WHERE icode NOT IN (SELECT icode FROM hrims.lookup_icode)
             AND istatus = "Y" AND nhso_adp_code IN ("12003","12004","13001","14001","15001"
             ,"30008","30009","30010","30011","30012","30013","30014","30015","30016","90005")');
         
@@ -114,11 +114,11 @@ class LookupIcodeController extends Controller
     }
     public function insert_lookup_herb32(Request $request)
     {
-        $hosxp_data = DB::select('
+        $hosxp_data = DB::connection('hosxp')->select('
             SELECT icode,CONCAT(`name`,strength) AS name,nhso_adp_code,"Y" AS herb32 
-            FROM hosxe.drugitems 
-            WHERE icode NOT IN (SELECT icode FROM lookup_icode)
-            AND (ttmt_code <>"" OR ttmt_code IS NOT NULL)');
+            FROM drugitems 
+            WHERE icode NOT IN (SELECT icode FROM hrims.lookup_icode)
+            AND (ttmt_code <>"" OR ttmt_code IS NOT NULL) ');
         
         foreach ($hosxp_data as $row) {
             DB::table('lookup_icode')->insert([

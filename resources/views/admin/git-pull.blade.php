@@ -1,10 +1,7 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Git Pull</title>
-</head>
-<body>
+@extends('layouts.app')
+
+@section('content')
+<div class="container mt-4">
 
     <button id="gitPullBtn">Git Pull</button>
 
@@ -33,6 +30,6 @@
             });
         });
     </script>
-
-</body>
-</html>
+    
+</div>
+@endsection

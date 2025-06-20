@@ -19,6 +19,12 @@ use App\Http\Controllers\Admin\LookupIcodeController;
 |
 */
 Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(function () {
+    Route::get('/git-pull-view', function () {
+        return view('admin.git-pull');  })->name('git.pull.view');
+    Route::post('/git-pull', function () {
+        try { $output = shell_exec('cd ' . base_path() . ' && git pull 2>&1');
+            return response()->json(['output' => $output]);
+        } catch (\Exception $e) { return response()->json(['error' => $e->getMessage()], 500);}})->name('git.pull');
     Route::resource('users', UserController::class);
     Route::get('main_setting', [MainSettingController::class, 'index'])->name('main_setting');
     Route::put('main_setting/{id}', [MainSettingController::class, 'update']);

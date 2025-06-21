@@ -10,9 +10,9 @@
         <button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#createModal">
             ➕ Add Lookup iCode
         </button>
-        <form method="POST" action="{{ route('admin.insert_lookup_inst') }}" style="display: inline;">
+        <form method="POST" action="{{ route('admin.insert_lookup_uc_cr') }}" style="display: inline;">
             @csrf
-            <button type="submit" class="btn btn-primary mb-3">นำเข้า INST</button>
+            <button type="submit" class="btn btn-primary mb-3">นำเข้า UC_CR</button>
         </form>
         <form method="POST" action="{{ route('admin.insert_lookup_ppfs') }}" style="display: inline;">
             @csrf

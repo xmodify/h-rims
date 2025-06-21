@@ -72,12 +72,20 @@ class LookupIcodeController extends Controller
         return redirect()->route('admin.lookup_icode.index')->with('success', 'ลบข้อมูลเรียบร้อย');
     }
 
-    public function insert_lookup_inst(Request $request)
+    public function insert_lookup_uc_cr(Request $request)
     {
         $hosxp_data = DB::connection('hosxp')->select('
-            SELECT icode,`name`,nhso_adp_code,"Y" AS uc_cr FROM nondrugitems 
-            WHERE icode NOT IN (SELECT icode FROM hrims.lookup_icode)
-            AND nhso_adp_type_id = "02" AND istatus = "Y"');
+            SELECT n.icode,n.`name`,n.nhso_adp_code,"Y" AS uc_cr 
+            FROM nondrugitems n
+            WHERE n.icode NOT IN (SELECT icode FROM hrims.lookup_icode)
+            AND n.nhso_adp_type_id = "02" AND n.istatus = "Y"
+            OR n.nhso_adp_code IN ("TELMED","DRUGP","Cons01","Eva001","30001","80001","80002","80003",
+            "80004","80005","80006","80007","80008","80015","80024","80025","80026","80027","80028")
+            UNION
+            SELECT d.icode,d.`name`,d.nhso_adp_code,"Y" AS uc_cr
+            FROM drugitems d
+            WHERE d.icode NOT IN (SELECT icode FROM hrims.lookup_icode)
+            AND d.nhso_adp_code IN ("STEMI1")');
         
         foreach ($hosxp_data as $row) {
             DB::table('lookup_icode')->insert([
@@ -95,10 +103,16 @@ class LookupIcodeController extends Controller
     public function insert_lookup_ppfs(Request $request)
     {
         $hosxp_data = DB::connection('hosxp')->select('
-            SELECT icode,`name`,nhso_adp_code,"Y" AS ppfs FROM nondrugitems 
-            WHERE icode NOT IN (SELECT icode FROM hrims.lookup_icode)
-            AND istatus = "Y" AND nhso_adp_code IN ("12003","12004","13001","14001","15001"
-            ,"30008","30009","30010","30011","30012","30013","30014","30015","30016","90005")');
+            SELECT n.icode,n.`name`,n.nhso_adp_code,"Y" AS ppfs 
+            FROM nondrugitems n
+            WHERE n.icode NOT IN (SELECT icode FROM hrims.lookup_icode)
+            AND n.istatus = "Y" AND n.nhso_adp_code IN ("12003","12004","13001","14001","15001"
+            ,"30008","30009","30010","30011","30012","30013","30014","30015","30016","90005")
+            UNION
+            SELECT d.icode,d.`name`,d.nhso_adp_code,"Y" AS ppfs
+            FROM drugitems d
+            WHERE d.icode NOT IN (SELECT icode FROM hrims.lookup_icode)
+            AND d.nhso_adp_code IN ("FP002_1","FP003_1","FP003_2")');
         
         foreach ($hosxp_data as $row) {
             DB::table('lookup_icode')->insert([

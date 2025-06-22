@@ -21,7 +21,6 @@ use App\Http\Controllers\Admin\LookupHospcodeController;
 |
 */
 Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(function () {
-    Route::get('/git', function () { return view('admin.git-pull'); });
     Route::post('/git-pull', function () {
         try { $output = shell_exec('cd ' . base_path() . ' && git pull origin main 2>&1');
             return response()->json(['output' => $output]);

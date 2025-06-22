@@ -88,14 +88,27 @@ class LookupIcodeController extends Controller
             AND d.nhso_adp_code IN ("STEMI1")');
         
         foreach ($hosxp_data as $row) {
-            DB::table('lookup_icode')->insert([
-                'icode' => $row->icode,
-                'name' => $row->name,
-                'nhso_adp_code' => $row->nhso_adp_code,
-                'uc_cr' => "Y",
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            $check = LookupIcode::where('icode', $row->icode)->count();
+            if ($check > 0) {
+                DB::table('lookup_icode')
+                ->where('icode', $row->icode) // เพิ่มบรรทัดนี้เพื่อ update เฉพาะ record
+                ->update([
+                    'name' => $row->name,
+                    'nhso_adp_code' => $row->nhso_adp_code,  
+                    'uc_cr' => "Y", 
+                    'updated_at' => now(),
+                ]);
+            } else {
+                DB::table('lookup_icode')
+                ->insert([
+                    'icode' => $row->icode,
+                    'name' => $row->name,
+                    'nhso_adp_code' => $row->nhso_adp_code,
+                    'uc_cr' => "Y",
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
         return redirect()->route('admin.lookup_icode.index')->with('success', 'นำเข้าข้อมูลสำเร็จ'); 
     }
@@ -115,14 +128,27 @@ class LookupIcodeController extends Controller
             AND d.nhso_adp_code IN ("FP002_1","FP003_1","FP003_2")');
         
         foreach ($hosxp_data as $row) {
-            DB::table('lookup_icode')->insert([
-                'icode' => $row->icode,
-                'name' => $row->name,
-                'nhso_adp_code' => $row->nhso_adp_code,
-                'ppfs' => "Y",
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            $check = LookupIcode::where('icode', $row->icode)->count();
+            if ($check > 0) {
+                DB::table('lookup_icode')
+                ->where('icode', $row->icode) // เพิ่มบรรทัดนี้เพื่อ update เฉพาะ record
+                ->update([
+                    'name' => $row->name,
+                    'nhso_adp_code' => $row->nhso_adp_code, 
+                    'ppfs' => "Y",  
+                    'updated_at' => now(),
+                ]);
+            } else {
+                DB::table('lookup_icode')
+                ->insert([
+                    'icode' => $row->icode,
+                    'name' => $row->name,
+                    'nhso_adp_code' => $row->nhso_adp_code,
+                    'ppfs' => "Y",
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
         return redirect()->route('admin.lookup_icode.index')->with('success', 'นำเข้าข้อมูลสำเร็จ'); 
     }
@@ -135,14 +161,27 @@ class LookupIcodeController extends Controller
             AND (ttmt_code <>"" OR ttmt_code IS NOT NULL) ');
         
         foreach ($hosxp_data as $row) {
-            DB::table('lookup_icode')->insert([
-                'icode' => $row->icode,
-                'name' => $row->name,
-                'nhso_adp_code' => $row->nhso_adp_code,
-                'herb32' => "Y",
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            $check = LookupIcode::where('icode', $row->icode)->count();
+            if ($check > 0) {
+                DB::table('lookup_icode')
+                ->where('icode', $row->icode) // เพิ่มบรรทัดนี้เพื่อ update เฉพาะ record
+                ->update([
+                    'name' => $row->name,
+                    'nhso_adp_code' => $row->nhso_adp_code, 
+                    'herb32' => "Y",  
+                    'updated_at' => now(),
+                ]);
+            } else {
+                DB::table('lookup_icode')
+                ->insert([
+                    'icode' => $row->icode,
+                    'name' => $row->name,
+                    'nhso_adp_code' => $row->nhso_adp_code,
+                    'herb32' => "Y",
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
         }
         return redirect()->route('admin.lookup_icode.index')->with('success', 'นำเข้าข้อมูลสำเร็จ'); 
     }

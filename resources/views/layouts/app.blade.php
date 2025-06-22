@@ -87,8 +87,8 @@
                                             <a class="dropdown-item" href="{{ route('admin.main_setting') }}">Main Setting</a>
                                             <a class="dropdown-item" href="{{ route('admin.users.index') }}">Manage User</a>                                            
                                             <a class="dropdown-item" href="{{ route('admin.lookup_icode.index') }}">Lookup icode</a>
-                                            <a class="dropdown-item" href="#">Lookup ward</a>
-                                            <a class="dropdown-item" href="#">Lookup hospcode</a>
+                                            <a class="dropdown-item" href="{{ route('admin.lookup_ward.index') }}">Lookup ward</a>
+                                            <a class="dropdown-item" href="{{ route('admin.lookup_hospcode.index') }}">Lookup hospcode</a>
                                         @endif
                                     @endauth
                                     <!-- Admin -->

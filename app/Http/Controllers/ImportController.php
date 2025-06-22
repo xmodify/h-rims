@@ -239,7 +239,8 @@ public function stm_ucs_save(Request $request)
             }                
                 Stm_ucsexcel::truncate(); 
             
-        return redirect()->route('stm_ucs')->with('success',$file_name);
+        return redirect()->route('stm_ucs')->with('success',$file_name); 
+        
     }
 
 }

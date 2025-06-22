@@ -165,11 +165,6 @@
 <script type="text/javascript" language="javascript" src="https://cdn.datatables.net/1.13.1/js/dataTables.bootstrap5.min.js"></script>
 <script type="text/javascript" class="init">
     $(document).ready(function () {
-        $('#stm_ucs').DataTable();
-    });
-</script>
-<script type="text/javascript" class="init">
-    $(document).ready(function () {
         $('#data').DataTable();
     });
 </script>

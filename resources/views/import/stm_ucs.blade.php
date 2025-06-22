@@ -31,16 +31,13 @@
             <div class="col"></div>
         </div>
         <div class="row mb-2">            
-            <div align="center">
-                <button type="submit"
+            <div align="center">             
+                <button type="submit" onclick="simulateProcess()"
                     class="mb-3 me-2 btn-icon btn-shadow btn-dashed btn btn-outline-primary">
                     <i class="fa-solid fa-cloud-arrow-up me-2" data-bs-toggle="tooltip"
                     data-bs-placement="top" title="UP STM"></i>
-                    UPLOAD STM
+                    นำเข้า STM
                 </button> 
-                @if ($message = Session::get('success'))
-                <div class="text-success text-center"><strong>Import File {{ $message }} Success</strong></div>
-                @endif 
             </div>
         </div>
     </form>
@@ -76,6 +73,18 @@
     </div>                
  
 </div> 
+
+@if (session('success'))
+<script>
+    Swal.fire({
+        title: 'นำเข้าสำเร็จ!',
+        text: '{{ session('success') }}',
+        icon: 'success',
+        confirmButtonText: 'ตกลง'
+    });
+</script>
+@endif
+
 @endsection
 <script type="text/javascript" language="javascript" src="https://code.jquery.com/jquery-3.5.1.js"></script>
 <script type="text/javascript" language="javascript" src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
@@ -90,3 +99,35 @@
         $('#stm_ucs_list').DataTable();
     });
 </script>
+
+<script>
+    function showLoadingAlert() {
+        Swal.fire({
+            title: 'กำลังนำเข้าข้อมูล...',
+            text: 'กรุณารอสักครู่',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading()
+            }
+        });
+    }
+
+    function simulateProcess() {
+        const fileInput = document.querySelector('input[type="file"]');
+                // ตรวจสอบว่าไม่ได้เลือกไฟล์
+        if (!fileInput.files || fileInput.files.length === 0) {
+            Swal.fire({
+                title: 'แจ้งเตือน',
+                text: 'กรุณาเลือกไฟล์ก่อนนำเข้า',
+                icon: 'warning',
+                confirmButtonText: 'ตกลง'
+            });
+            return; // ❌ หยุดการทำงาน ไม่ส่งฟอร์ม
+        }
+
+        showLoadingAlert();
+        document.getElementById('importForm').submit();
+    }
+
+</script>
+

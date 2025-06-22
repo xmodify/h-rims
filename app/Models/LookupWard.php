@@ -5,21 +5,22 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class LookupIcode extends Model
+class LookupWard extends Model
 {
     use HasFactory;
 
-    protected $table = 'lookup_icode'; 
-    protected $primaryKey = 'icode';
+    protected $table = 'lookup_ward'; 
+    protected $primaryKey = 'ward';
     public $incrementing = false; // เพราะ icode ไม่ใช่ auto-increment
     protected $keyType = 'string';
     protected $fillable = [
-        'icode',
-        'name',
-        'nhso_adp_code',
-        'uc_cr',
-        'ppfs',
-        'herb32',
+        'ward',
+        'ward_name',
+        'ward_m',
+        'ward_f',
+        'ward_vip',
+        'ward_lr',
+        'ward_homeward',
     ];
-    
+
 }

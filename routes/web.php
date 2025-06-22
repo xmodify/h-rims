@@ -7,6 +7,8 @@ use App\Http\Controllers\IpdController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\MainSettingController;
 use App\Http\Controllers\Admin\LookupIcodeController;
+use App\Http\Controllers\Admin\LookupWardController;
+use App\Http\Controllers\Admin\LookupHospcodeController;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,6 +33,9 @@ Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(
     Route::post('insert_lookup_uc_cr', [LookupIcodeController::class, 'insert_lookup_uc_cr'])->name('insert_lookup_uc_cr');
     Route::post('insert_lookup_ppfs', [LookupIcodeController::class, 'insert_lookup_ppfs'])->name('insert_lookup_ppfs');
     Route::post('insert_lookup_herb32', [LookupIcodeController::class, 'insert_lookup_herb32'])->name('insert_lookup_herb32');
+    Route::resource('lookup_ward', LookupWardController::class)->parameters(['lookup_ward' => 'ward']);
+    Route::post('insert_lookup_ward', [LookupWardController::class, 'insert_lookup_ward'])->name('insert_lookup_ward');
+    Route::resource('lookup_hospcode', LookupHospcodeController::class)->parameters(['lookup_hospcode' => 'hospcode']);
 });
 
 #################################################################################################

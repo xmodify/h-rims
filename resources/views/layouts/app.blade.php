@@ -41,21 +41,117 @@
                                 นำเข้าข้อมูล
                             </a>
                             <div class=" btn btn-outline-success dropdown-menu dropdown-menu-end">                                       
-                                <a class="dropdown-item bg-info text-white " href="{{ url('/import/stm_ucs') }}" >
+                                <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_ucs') }}" >
                                     - Statement UCS
+                                </a> 
+                            </div>                 
+                        </li>  
+                        <li class="nav-item dropdown">
+                            <a id="navbarDropdown" class="btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
+                                งานเวชระเบียน
+                            </a>
+                            <div class=" btn btn-outline-success dropdown-menu dropdown-menu-end">                                       
+                                <a class="dropdown-item link-primary text-white " href="{{ url('/ipd/dchsummary') }}" >
+                                    IPD-D/C Summary
                                 </a> 
                             </div>                 
                         </li> 
                         <li class="nav-item dropdown">
                             <a id="navbarDropdown" class="btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
-                                ผู้ป่วยใน
+                                ประกันสุขภาพ UCS
                             </a>
                             <div class=" btn btn-outline-success dropdown-menu dropdown-menu-end">                                       
-                                <a class="dropdown-item bg-info text-white " href="{{ url('/ipd/dchsummary') }}" >
-                                    - D/C Summary
+                                <a class="dropdown-item link-primary text-white " href="#" >
+                                    UC-OP ใน CUP
                                 </a> 
-                            </div>                 
+                                <a class="dropdown-item link-primary text-white " href="#" >
+                                    UC-OP ในจังหวัด
+                                </a> 
+                                <a class="dropdown-item link-primary text-white " href="#" >
+                                    UC-OP ต่างจังหวัด
+                                </a>   
+                                <a class="dropdown-item link-primary text-white " href="#" >
+                                    UC-IP
+                                </a>      
+                                <a class="dropdown-item link-primary text-white " href="#" >
+                                    STP-OP
+                                </a>    
+                                <a class="dropdown-item link-primary text-white " href="#" >
+                                    STP-IP
+                                </a>                                
+                            </div> 
                         </li> 
+                        <li class="nav-item dropdown">
+                            <a id="navbarDropdown" class="btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
+                                กรมบัญชีกลาง OFC
+                            </a>
+                            <div class=" btn btn-outline-success dropdown-menu dropdown-menu-end">                                       
+                                <a class="dropdown-item link-primary text-white " href="#" >
+                                    OFC-OP
+                                </a>    
+                                <a class="dropdown-item link-primary text-white " href="#" >
+                                    OFC-IP
+                                </a>                         
+                            </div> 
+                        </li> 
+                        <li class="nav-item dropdown">
+                            <a id="navbarDropdown" class="btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
+                                อปท. LGO
+                            </a>
+                            <div class=" btn btn-outline-success dropdown-menu dropdown-menu-end">                                       
+                                <a class="dropdown-item link-primary text-white " href="#" >
+                                    LGO-OP
+                                </a>    
+                                <a class="dropdown-item link-primary text-white " href="#" >
+                                    LGO-IP
+                                </a>                                    
+                            </div> 
+                        </li> 
+                        <li class="nav-item dropdown">
+                            <a id="navbarDropdown" class="btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
+                                อปท. รูปแบบพิเศษ
+                            </a>
+                            <div class=" btn btn-outline-success dropdown-menu dropdown-menu-end">                                       
+                                <a class="dropdown-item link-primary text-white " href="#" >
+                                    BKK-OP
+                                </a>    
+                                <a class="dropdown-item link-primary text-white " href="#" >
+                                    BKK-IP
+                                </a>   
+                                <a class="dropdown-item link-primary text-white " href="#" >
+                                    BMT-OP
+                                </a>  
+                                <a class="dropdown-item link-primary text-white " href="#" >
+                                    BMT-IP
+                                </a>                                   
+                            </div> 
+                        </li> 
+                        <li class="nav-item dropdown">
+                            <a id="navbarDropdown" class="btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
+                                ประกันสังคม SSS
+                            </a>
+                            <div class=" btn btn-outline-success dropdown-menu dropdown-menu-end">                                       
+                                <a class="dropdown-item link-primary text-white " href="#" >
+                                    SS-OP
+                                </a>    
+                                <a class="dropdown-item link-primary text-white " href="#" >
+                                    SS-IP
+                                </a>                                    
+                            </div> 
+                        </li>       
+                        <li class="nav-item dropdown">
+                            <a id="navbarDropdown" class="btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
+                               ชำระเงิน
+                            </a>
+                            <div class=" btn btn-outline-success dropdown-menu dropdown-menu-end">                                       
+                                <a class="dropdown-item link-primary text-white " href="#" >
+                                    ชำระเงิน-OP
+                                </a>    
+                                <a class="dropdown-item link-primary text-white " href="#" >
+                                    ชำระเงิน-IP
+                                </a>                                    
+                            </div> 
+                        </li>                          
                     @endguest
                     </ul>
 

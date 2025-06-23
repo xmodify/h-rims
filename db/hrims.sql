@@ -11,7 +11,7 @@
  Target Server Version : 100017
  File Encoding         : 65001
 
- Date: 20/06/2025 23:16:10
+ Date: 22/06/2025 23:32:54
 */
 
 SET NAMES utf8mb4;
@@ -121,6 +121,8 @@ CREATE TABLE `lookup_hospcode`  (
   `hmain_ucs` varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `hmain_sss` varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `in_province` varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `created_at` timestamp(0) NULL DEFAULT NULL,
+  `updated_at` timestamp(0) NULL DEFAULT NULL,
   PRIMARY KEY (`hospcode`) USING BTREE,
   INDEX `hospcode`(`hospcode`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
@@ -128,13 +130,13 @@ CREATE TABLE `lookup_hospcode`  (
 -- ----------------------------
 -- Records of lookup_hospcode
 -- ----------------------------
-INSERT INTO `lookup_hospcode` VALUES ('10703', 'โรงพยาบาลอำนาจเจริญ', NULL, 'Y', 'Y');
-INSERT INTO `lookup_hospcode` VALUES ('10985', 'โรงพยาบาลชานุมาน', NULL, NULL, 'Y');
-INSERT INTO `lookup_hospcode` VALUES ('10986', 'โรงพยาบาลปทุมราชวงศา', NULL, NULL, 'Y');
-INSERT INTO `lookup_hospcode` VALUES ('10987', 'โรงพยาบาลพนา', NULL, NULL, 'Y');
-INSERT INTO `lookup_hospcode` VALUES ('10988', 'โรงพยาบาลเสนางคนิคม', NULL, NULL, 'Y');
-INSERT INTO `lookup_hospcode` VALUES ('10989', 'โรงพยาบาลหัวตะพาน', 'Y', NULL, 'Y');
-INSERT INTO `lookup_hospcode` VALUES ('10990', 'โรงพยาบาลลืออำนาจ', NULL, NULL, 'Y');
+INSERT INTO `lookup_hospcode` VALUES ('10703', 'โรงพยาบาลอำนาจเจริญ', NULL, 'Y', 'Y', NULL, NULL);
+INSERT INTO `lookup_hospcode` VALUES ('10985', 'โรงพยาบาลชานุมาน', NULL, NULL, 'Y', NULL, NULL);
+INSERT INTO `lookup_hospcode` VALUES ('10986', 'โรงพยาบาลปทุมราชวงศา', NULL, NULL, 'Y', NULL, NULL);
+INSERT INTO `lookup_hospcode` VALUES ('10987', 'โรงพยาบาลพนา', NULL, NULL, 'Y', NULL, NULL);
+INSERT INTO `lookup_hospcode` VALUES ('10988', 'โรงพยาบาลเสนางคนิคม', NULL, NULL, 'Y', NULL, NULL);
+INSERT INTO `lookup_hospcode` VALUES ('10989', 'โรงพยาบาลหัวตะพาน', 'Y', NULL, 'Y', NULL, NULL);
+INSERT INTO `lookup_hospcode` VALUES ('10990', 'โรงพยาบาลลืออำนาจ', NULL, NULL, 'Y', NULL, NULL);
 
 -- ----------------------------
 -- Table structure for lookup_icd10
@@ -513,6 +515,8 @@ CREATE TABLE `lookup_ward`  (
   `ward_vip` varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `ward_lr` varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `ward_homeward` varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `created_at` timestamp(0) NULL DEFAULT NULL,
+  `updated_at` timestamp(0) NULL DEFAULT NULL,
   PRIMARY KEY (`ward`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
 

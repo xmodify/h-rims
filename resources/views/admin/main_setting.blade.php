@@ -55,7 +55,7 @@
     </div>
 <br>
 <hr>
-<br>
+
     <button class="btn btn-danger" id="gitPullBtn">Git Pull</button>
 
     <pre id="gitOutput" style="background: #eeee; padding: 1rem; margin-top: 1rem;"></pre>

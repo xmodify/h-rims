@@ -17,9 +17,11 @@
 	cd /var/www
 	git clone https://github.com/xmodify/h-rims.git
 	cd h-rims
+	sudo chown -R User:User /var/www/html/h-rims
+	git pull origin main
 
 5.Install dependencies
-	composer install
+	composer install/update
 
 6.If you're using Node.js for frontend:
 	sudo apt install nodejs npm

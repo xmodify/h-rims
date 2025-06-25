@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\NotifyController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\IpdController;
@@ -28,6 +29,7 @@ Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(
     Route::resource('users', UserController::class);
     Route::get('main_setting', [MainSettingController::class, 'index'])->name('main_setting');
     Route::put('main_setting/{id}', [MainSettingController::class, 'update']);
+    Route::post('main_setting/up_structure', [MainSettingController::class, 'up_structure'])->name('up_structure');;
     Route::resource('lookup_icode', LookupIcodeController::class)->parameters(['lookup_icode' => 'icode']);
     Route::post('insert_lookup_uc_cr', [LookupIcodeController::class, 'insert_lookup_uc_cr'])->name('insert_lookup_uc_cr');
     Route::post('insert_lookup_ppfs', [LookupIcodeController::class, 'insert_lookup_ppfs'])->name('insert_lookup_ppfs');
@@ -71,6 +73,9 @@ Route::match(['get','post'],'ipd/wait_doctor_dchsummary',[IpdController::class,'
 Route::match(['get','post'],'ipd/wait_icd_coder',[IpdController::class,'wait_icd_coder']);
 Route::match(['get','post'],'ipd/dchsummary',[IpdController::class,'dchsummary']);
 Route::match(['get','post'],'ipd/dchsummary_audit',[IpdController::class,'dchsummary_audit']);
+
+//Notify
+Route::get('notify_summary',[NotifyController::class,'notify_summary']);
 
 // Clear-cache
 Route::get('/clear-cache', function() {

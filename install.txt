@@ -2,8 +2,7 @@
 	C:\xampp\apache\conf\extra\httpd-vhosts.conf
 
 	<VirtualHost *:8888>
-    		DocumentRoot "C:/xampp/htdocs/h-rims/public"
-    		#ServerName my-laravel-app.local
+    		DocumentRoot "C:/xampp/htdocs/h-rims/public" 
     		<Directory "C:/xampp/htdocs/h-rims/public">
         		AllowOverride All
         		Require all granted

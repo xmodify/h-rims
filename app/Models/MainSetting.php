@@ -16,6 +16,7 @@ class MainSetting extends Authenticatable
     protected $primaryKey = 'id';
     protected $fillable = [
         'name',
+        'name_th',
         'value',
     ];
     public $timestamps = false;   

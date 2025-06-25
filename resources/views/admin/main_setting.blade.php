@@ -3,7 +3,7 @@
 @section('content')
 <div class="container mt-4">
 
-    <h3 class="text-primary">Main Setting</h3>
+    <h3 class="text-primary">Main Setting</h3>    
 
     <!-- ตาราง -->
     <table class="table table-bordered">
@@ -56,7 +56,11 @@
 <br>
 <hr>
 
-    <button class="btn btn-danger" id="gitPullBtn">Git Pull</button>
+    <button class="btn btn-danger" id="gitPullBtn" style="display: inline;">Git Pull</button>   
+    <form method="POST" action="{{ route('admin.up_structure') }}" style="display: inline;">
+        @csrf
+        <button type="submit" class="btn btn-primary">ปรับโครงสร้าง</button>
+    </form>
 
     <pre id="gitOutput" style="background: #eeee; padding: 1rem; margin-top: 1rem;"></pre>
 

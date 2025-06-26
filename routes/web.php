@@ -50,7 +50,7 @@ Auth::routes();
 
 //home
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
-Route::match(['get','post'],'nhso_endpoint_pull{vstdate}/{cid}',[HomeController::class,'nhso_endpoint_pull']);
+Route::post('nhso_endpoint_pull', [HomeController::class, 'nhso_endpoint_pull']);
 Route::match(['get','post'],'opd_ucs_all',[HomeController::class,'opd_ucs_all']);
 Route::match(['get','post'],'opd_ofc_all',[HomeController::class,'opd_ofc_all']);
 Route::match(['get','post'],'opd_non_authen',[HomeController::class,'opd_non_authen']);

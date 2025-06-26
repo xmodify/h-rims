@@ -1,17 +1,4 @@
 @extends('layouts.app')
-<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.2.0/css/bootstrap.min.css">
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.1/css/dataTables.bootstrap5.min.css">
-<style>
-    table {
-    border-collapse: collapse;
-    border-spacing: 0;
-    width: 100%;
-    border: 1px solid #ddd;
-    }
-    th, td {
-    padding: 8px;
-    }
-</style> 
 
 @section('content')
 
@@ -43,7 +30,6 @@
               <tr class="table-primary">
                 <th class="text-center">ลำดับ</th>
                 <th class="text-center">AuthenCode</th>
-                <th class="text-center">Action</th>
                 <th class="text-center">วัน-เวลาที่รับบริการ</th>
                 <th class="text-center">Q</th>
                 <th class="text-center">HN</th>
@@ -61,8 +47,7 @@
               @foreach($sql as $row) 
               <tr>
                 <td align="center">{{ $count }}</td> 
-                <td align="center">{{ $row->claimCode }}</td> 
-                <td align="center"><a class="btn btn-outline-info btn-sm" href="{{ url('nhso_endpoint_pull'.$row->vstdate,$row->cid) }}" >Pull Authen</a></td> 
+                <td align="center">{{ $row->claimCode }}</td>     
                 <td align="center">{{ DateThai($row->vstdate) }} เวลา {{ $row->vsttime }}</td>
                 <td align="center">{{ $row->oqueue }}</td>
                 <td align="center">{{ $row->hn }}</td>
@@ -86,13 +71,38 @@
 
 @endsection
 
-<script type="text/javascript" language="javascript" src="https://code.jquery.com/jquery-3.5.1.js"></script>
-<script type="text/javascript" language="javascript" src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
-<script type="text/javascript" language="javascript" src="https://cdn.datatables.net/1.13.1/js/dataTables.bootstrap5.min.js"></script>
-<script type="text/javascript" class="init">
-    $(document).ready(function () {
-        $('#list').DataTable();
-    });
-</script>
 
-</html>
+@push('scripts')
+  <script>
+    $(document).ready(function () {
+      $('#list').DataTable({
+        dom: '<"row mb-3"' +
+                '<"col-md-6"l>' + // Show รายการ
+                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
+              '>' +
+              'rt' +
+              '<"row mt-3"' +
+                '<"col-md-6"i>' + // Info
+                '<"col-md-6"p>' + // Pagination
+              '>',
+        buttons: [
+            {
+              extend: 'excelHtml5',
+              text: 'Excel',
+              className: 'btn btn-success',
+              title: 'รายชื่อผู้มารับบริการ Admit Homeward วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+            }
+        ],
+        language: {
+            search: "ค้นหา:",
+            lengthMenu: "แสดง _MENU_ รายการ",
+            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+            paginate: {
+              previous: "ก่อนหน้า",
+              next: "ถัดไป"
+            }
+        }
+      });
+    });
+  </script>  
+@endpush

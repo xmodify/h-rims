@@ -39,8 +39,7 @@
               <tr class="table-primary"> 
                 <th class="text-center">ลำดับ</th>
                 <th class="text-center">Authen</th>
-                <th class="text-center">ปิดสิทธิ</th>
-                <th class="text-center">Action</th>                
+                <th class="text-center">ปิดสิทธิ</th>           
                 <th class="text-center">Q</th>              
                 <th class="text-center">ชื่อ-สกุล</th>
                 <th class="text-center">CID</th>
@@ -70,7 +69,6 @@
                 <td align="center" @if($row->endpoint == 'Y') style="color:green"
                   @elseif($row->endpoint == 'N') style="color:red" @endif>
                   <strong>{{ $row->endpoint }}</strong></td> 
-                <td align="center"><a class="btn btn-outline-info btn-sm" href="{{ url('nhso_endpoint_pull'.$row->vstdate,$row->cid) }}" >Pull Endpoint</a></td> 
                 <td align="center">{{ $row->oqueue }}</td>                
                 <td align="left">{{ $row->ptname }}</td>
                 <td align="center">{{ $row->cid }}</td>

@@ -3,7 +3,7 @@
 @section('content')
 
 <div class="container-fluid"> 
-  <form method="POST" enctype="multipart/form-data">
+  <form  method="POST" enctype="multipart/form-data">
       @csrf            
       <div class="row" >
               <label class="col-md-3 col-form-label text-md-end my-1">{{ __('วันที่') }}</label>
@@ -15,7 +15,7 @@
               <input type="date" name="end_date" class="form-control my-1" placeholder="Date" value="{{ $end_date }}" > 
           </div>                     
           <div class="col-md-1" >                            
-              <button type="submit" class="btn btn-primary my-1 ">{{ __('ค้นหา') }}</button>
+              <button type="submit" class="btn btn-primary my-1">{{ __('ค้นหา') }}</button>
           </div>
       </div>
   </form> 

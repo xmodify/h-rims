@@ -410,13 +410,14 @@ public function opd_ucs_anywhere(Request $request )
         LEFT JOIN kskdepartment k ON k.depcode = o.cur_dep
         LEFT JOIN vn_stat v ON v.vn = o.vn
         LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
+        LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
 		LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate       
         WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
         AND p.hipdata_code = "UCS" AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
-        AND oe.moph_finance_upload_datetime IS NULL 
+        AND oe.moph_finance_upload_datetime IS NULL AND rep.vn IS NULL
         GROUP BY o.vn ORDER BY ep.sourceChannel,o.vstdate,o.vsttime');
 
-    $claim_fdh=DB::connection('hosxp')->select('
+    $claim=DB::connection('hosxp')->select('
         SELECT o.oqueue,o.vstdate,o.vsttime,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.informtel,p.`name` AS pttype,
         vp.hospmain,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,vp.confirm_and_locked,vp.request_funds,
@@ -442,7 +443,7 @@ public function opd_ucs_anywhere(Request $request )
         AND (oe.moph_finance_upload_datetime IS NOT NULL OR rep.vn IS NOT NULL)
         GROUP BY o.vn ORDER BY ep.sourceChannel,o.vstdate,o.vsttime');
 
-    return view('home_detail.opd_ucs_anywhere',compact('start_date','end_date','search','claim_fdh'));
+    return view('home_detail.opd_ucs_anywhere',compact('start_date','end_date','search','claim'));
 }
 ##############################################################################################
 public function opd_ucs_cr(Request $request )
@@ -472,15 +473,16 @@ public function opd_ucs_cr(Request $request )
         LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE uc_cr = "Y")
         LEFT JOIN s_drugitems s ON s.icode = o1.icode		
         LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn	
+        LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
         LEFT JOIN kskdepartment k ON k.depcode = o.cur_dep
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate        
         WHERE p1.hipdata_code = "UCS" AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
         AND (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL 
-        AND oe.moph_finance_upload_datetime IS NULL
+        AND oe.moph_finance_upload_datetime IS NULL AND rep.vn IS NULL
         AND o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
         GROUP BY o.vn ORDER BY o.vstdate,o.oqueue');
 
-    $claim_fdh=DB::connection('hosxp')->select('
+    $claim=DB::connection('hosxp')->select('
         SELECT o.vstdate,o.vsttime,o.oqueue,o.vn,o.hn,p.cid,CONCAT(p.pname,p.fname,SPACE(1),p.lname) AS ptname,
         IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,v.income-v.paid_money AS debtor,
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,p1.`name` AS pttype,vp.hospmain,		
@@ -510,7 +512,7 @@ public function opd_ucs_cr(Request $request )
         AND o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
         GROUP BY o.vn ORDER BY o.vstdate,o.oqueue');
 
-    return view('home_detail.opd_ucs_cr',compact('start_date','end_date','search','claim_fdh'));
+    return view('home_detail.opd_ucs_cr',compact('start_date','end_date','search','claim'));
 }
 ##############################################################################################
 public function opd_ucs_healthmed(Request $request )
@@ -541,6 +543,7 @@ public function opd_ucs_healthmed(Request $request )
         LEFT JOIN kskdepartment k ON k.depcode = o.cur_dep
         LEFT JOIN vn_stat v ON v.vn = o.vn
 		LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn	
+        LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn	
 		LEFT JOIN (SELECT h.vn,CONCAT(h2.health_med_operation_item_name," [",h2.icd10tm,"]") AS health_med_operation 
 			FROM health_med_service h
 			LEFT JOIN health_med_service_operation h1 ON h1.health_med_service_id=h.health_med_service_id
@@ -550,10 +553,10 @@ public function opd_ucs_healthmed(Request $request )
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate         
 		WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'" AND p.hipdata_code = "UCS"
         AND (o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE herb32 = "Y") OR hm.vn IS NOT NULL OR hm.vn <>"")
-        AND oe.moph_finance_upload_datetime IS NULL
+        AND oe.moph_finance_upload_datetime IS NULL AND rep.vn IS NULL
         GROUP BY o.vn ORDER BY ep.sourceChannel,hm.health_med_operation DESC,o.vstdate,o.vsttime');
 
-    $claim_fdh=DB::connection('hosxp')->select('
+    $claim=DB::connection('hosxp')->select('
         SELECT o.oqueue,IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,v.pdx,
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,o.vstdate,o.vsttime,
         CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,vp.hospmain,pt.cid,pt.informtel,p.`name` AS pttype,
@@ -587,7 +590,7 @@ public function opd_ucs_healthmed(Request $request )
         AND (oe.moph_finance_upload_datetime IS NOT NULL OR rep.vn IS NOT NULL)
         GROUP BY o.vn ORDER BY ep.sourceChannel,hm.health_med_operation DESC,o.vstdate,o.vsttime');
 
-    return view('home_detail.opd_ucs_healthmed',compact('start_date','end_date','search','claim_fdh'));
+    return view('home_detail.opd_ucs_healthmed',compact('start_date','end_date','search','claim'));
 }
 ##############################################################################################
 public function opd_ppfs(Request $request )
@@ -617,14 +620,15 @@ public function opd_ppfs(Request $request )
         LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs = "Y")
         LEFT JOIN s_drugitems s ON s.icode = o1.icode		
         LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn	
+        LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn	
         LEFT JOIN kskdepartment k ON k.depcode = o.cur_dep
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate 
         WHERE vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
         AND (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL AND o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
-        AND oe.moph_finance_upload_datetime IS NULL
+        AND oe.moph_finance_upload_datetime IS NULL AND rep.vn IS NULL
         GROUP BY o.vn ORDER BY o.vstdate,o.oqueue');
 
-    $claim_fdh=DB::connection('hosxp')->select('
+    $claim=DB::connection('hosxp')->select('
         SELECT o.vstdate,o.vsttime,o.oqueue,o.vn,o.hn,p.cid,CONCAT(p.pname,p.fname,SPACE(1),p.lname) AS ptname,
         IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,v.income-v.paid_money AS debtor,
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,p1.`name` AS pttype,		
@@ -652,7 +656,7 @@ public function opd_ppfs(Request $request )
         AND (oe.moph_finance_upload_datetime IS NOT NULL OR rep.vn IS NOT NULL)
         GROUP BY o.vn ORDER BY o.vstdate,o.oqueue');
 
-    return view('home_detail.opd_ppfs',compact('start_date','end_date','search','claim_fdh'));
+    return view('home_detail.opd_ppfs',compact('start_date','end_date','search','claim'));
 }
 
 ##############################################################################################

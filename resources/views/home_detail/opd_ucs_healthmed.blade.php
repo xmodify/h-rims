@@ -28,7 +28,7 @@
             <button class="nav-link active" id="search-tab" data-bs-toggle="pill" data-bs-target="#search" type="button" role="tab" aria-controls="search" aria-selected="false">รอส่ง Claim</button>
         </li>       
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="claim_fdh-tab" data-bs-toggle="pill" data-bs-target="#claim_fdh" type="button" role="tab" aria-controls="claim_fdh" aria-selected="false">ส่ง FDH</button>
+            <button class="nav-link" id="claim-tab" data-bs-toggle="pill" data-bs-target="#claim" type="button" role="tab" aria-controls="claim" aria-selected="false">ส่ง Claim</button>
         </li>
     </ul>
     <div class="tab-content pt-2" id="myTabContent">
@@ -96,9 +96,9 @@
           </table>   
         </div>          
       </div>      
-      <div class="tab-pane fade" id="claim_fdh" role="tabpanel" aria-labelledby="claim_fdh-tab">
+      <div class="tab-pane fade" id="claim" role="tabpanel" aria-labelledby="claim-tab">
         <div style="overflow-x:auto;">            
-            <table id="t_claim_fdh" class="table table-striped table-bordered" width = "100%">
+            <table id="t_claim" class="table table-striped table-bordered" width = "100%">
               <thead>
                 <tr class="table-primary">
                     <th class="text-center">ลำดับ</th>
@@ -129,7 +129,7 @@
               </thead> 
               <tbody> 
                 <?php $count = 1 ; ?>
-                @foreach($claim_fdh as $row) 
+                @foreach($claim as $row) 
                 <tr>
                   <td align="center">{{ $count }}</td>
                   <td align="center" @if($row->auth_code == 'Y') style="color:green"
@@ -215,7 +215,7 @@
   </script>
   <script>
     $(document).ready(function () {
-      $('#t_claim_fdh').DataTable({
+      $('#t_claim').DataTable({
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + // Show รายการ
                 '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export

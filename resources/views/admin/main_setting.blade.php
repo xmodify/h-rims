@@ -31,9 +31,12 @@
                     </td>
                 </tr>
             @endforeach
+
         </tbody>
     </table>
-   
+    <div class="text-primary">NonifyTelegram เรียกผ่าน Task Scheduler Windows <br>
+        (Program/script: powershell.exe) <br>
+        แจ้งเตือน Summary | Add argumenta: -Command "Invoke-WebRequest {{$notify_summary}}"</div>
     <!-- Modal Edit -->
     <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">

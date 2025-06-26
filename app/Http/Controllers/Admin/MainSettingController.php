@@ -11,8 +11,9 @@ class MainSettingController extends Controller
 {
     public function index()
     {
+        $notify_summary=route('notify_summary');
         $data = MainSetting::all();
-        return view('admin.main_setting', compact('data'));
+        return view('admin.main_setting', compact('data','notify_summary'));
     }
 
     public function update(Request $request, $id)

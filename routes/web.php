@@ -75,7 +75,7 @@ Route::match(['get','post'],'ipd/dchsummary',[IpdController::class,'dchsummary']
 Route::match(['get','post'],'ipd/dchsummary_audit',[IpdController::class,'dchsummary_audit']);
 
 //Notify
-Route::get('notify_summary',[NotifyController::class,'notify_summary']);
+Route::get('notify_summary',[NotifyController::class,'notify_summary'])->name('notify_summary');
 
 // Clear-cache
 Route::get('/clear-cache', function() {

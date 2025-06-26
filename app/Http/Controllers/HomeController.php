@@ -439,7 +439,7 @@ public function opd_ucs_anywhere(Request $request )
         LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND DATE(stm.datetimeadm) = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
         WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
         AND p.hipdata_code = "UCS" AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
-        AND oe.moph_finance_upload_datetime IS NOT NULL 
+        AND (oe.moph_finance_upload_datetime IS NOT NULL OR rep.vn IS NOT NULL)
         GROUP BY o.vn ORDER BY ep.sourceChannel,o.vstdate,o.vsttime');
 
     return view('home_detail.opd_ucs_anywhere',compact('start_date','end_date','search','claim_fdh'));
@@ -506,7 +506,7 @@ public function opd_ucs_cr(Request $request )
         LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND DATE(stm.datetimeadm) = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
         WHERE p1.hipdata_code = "UCS" AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
         AND (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL 
-        AND oe.moph_finance_upload_datetime IS NOT NULL
+        AND (oe.moph_finance_upload_datetime IS NOT NULL OR rep.vn IS NOT NULL)
         AND o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
         GROUP BY o.vn ORDER BY o.vstdate,o.oqueue');
 
@@ -584,7 +584,7 @@ public function opd_ucs_healthmed(Request $request )
         LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND DATE(stm.datetimeadm) = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)       
 		WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'" AND p.hipdata_code = "UCS"
         AND (o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE herb32 = "Y") OR hm.vn IS NOT NULL OR hm.vn <>"")
-        AND oe.moph_finance_upload_datetime IS NOT NULL
+        AND (oe.moph_finance_upload_datetime IS NOT NULL OR rep.vn IS NOT NULL)
         GROUP BY o.vn ORDER BY ep.sourceChannel,hm.health_med_operation DESC,o.vstdate,o.vsttime');
 
     return view('home_detail.opd_ucs_healthmed',compact('start_date','end_date','search','claim_fdh'));
@@ -649,7 +649,7 @@ public function opd_ppfs(Request $request )
          LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND DATE(stm.datetimeadm) = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)       
         WHERE vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
         AND (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL AND o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
-        AND oe.moph_finance_upload_datetime IS NOT NULL
+        AND (oe.moph_finance_upload_datetime IS NOT NULL OR rep.vn IS NOT NULL)
         GROUP BY o.vn ORDER BY o.vstdate,o.oqueue');
 
     return view('home_detail.opd_ppfs',compact('start_date','end_date','search','claim_fdh'));

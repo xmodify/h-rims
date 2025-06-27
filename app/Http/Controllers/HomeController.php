@@ -41,7 +41,7 @@ public function index(Request $request )
         IFNULL(SUM(CASE WHEN hipdata_code = "OFC" THEN 1 ELSE 0 END),0) AS "ofc_all",
         IFNULL(SUM(CASE WHEN hipdata_code = "OFC" AND endpoint_code LIKE "EP%" THEN 1 ELSE 0 END),0) AS "ofc_endpoint",
         IFNULL(SUM(CASE WHEN hipdata_code = "OFC" AND edc_approve_list_text <>"" THEN 1 ELSE 0 END),0) AS "ofc_edc",
-        IFNULL(SUM(CASE WHEN (auth_code IS NULL OR auth_code ="") AND paidst IN ("02") THEN 1 ELSE 0 END),0) AS "non_authen",
+        IFNULL(SUM(CASE WHEN (auth_code IS NULL OR auth_code ="") AND nationality ="99" THEN 1 ELSE 0 END),0) AS "non_authen",
         IFNULL(SUM(CASE WHEN (hipdata_code = "UCS" OR hipdata_code ="SSS") AND (hospmain="" OR hospmain IS NULL) THEN 1 ELSE 0 END),0) AS "non_hmain",
         IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
             THEN 1 ELSE 0 END),0) AS "uc_anywhere",
@@ -65,13 +65,14 @@ public function index(Request $request )
             AND ppfs_name <> "" AND endpoint_code LIKE "EP%" THEN 1 ELSE 0 END),0) AS "ppfs_endpoint",
         IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
             AND ppfs_name <> "" AND fdh <>"" THEN 1 ELSE 0 END),0) AS "ppfs_fdh"
-        FROM (SELECT o.vn,o.an,vp.auth_code,os.edc_approve_list_text,IF(vp.auth_code NOT LIKE "EP%",ep.claimCode,vp.auth_code) AS endpoint_code,vp.pttype,
-        vp.hospmain,p.hipdata_code,ep.sourceChannel,p.paidst,oe.moph_finance_upload_datetime AS fdh,ep.claimType,p.pttype_price_group_id,v.pdx,
+        FROM (SELECT o.vn,o.an,pt.nationality,vp.auth_code,os.edc_approve_list_text,IF(vp.auth_code NOT LIKE "EP%",ep.claimCode,vp.auth_code) AS endpoint_code,
+        vp.pttype,vp.hospmain,p.hipdata_code,ep.sourceChannel,p.paidst,oe.moph_finance_upload_datetime AS fdh,ep.claimType,p.pttype_price_group_id,v.pdx,
         GROUP_CONCAT(n1.`name`) AS uc_cr_name,SUM(o1.sum_price) AS uc_cr_price,GROUP_CONCAT(n2.`name`) AS ppfs_name,SUM(o2.sum_price) AS ppfs_price,
 		GROUP_CONCAT(n3.`name`) AS herb32_name,SUM(o3.sum_price) AS herb32_price,hm.vn AS healthmed
         FROM ovst o
         LEFT JOIN visit_pttype vp ON vp.vn=o.vn
         LEFT JOIN pttype p ON p.pttype=vp.pttype
+        LEFT JOIN patient pt ON pt.hn=o.hn
         LEFT JOIN vn_stat v ON v.vn=o.vn
         LEFT JOIN ovst_seq os ON os.vn=o.vn
         LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
@@ -347,7 +348,7 @@ public function opd_non_authen(Request $request )
         LEFT JOIN pttype p1 ON p1.pttype=vp.pttype
         LEFT JOIN kskdepartment k ON k.depcode=o.main_dep
         WHERE o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
-        AND (vp.auth_code IS NULL OR vp.auth_code ="")           
+        AND (vp.auth_code IS NULL OR vp.auth_code ="") AND p.nationality ="99"         
         GROUP BY o.vn ORDER BY o.vsttime');
 
     return view('home_detail.opd_non_authen',compact('start_date','end_date','sql'));

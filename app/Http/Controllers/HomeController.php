@@ -347,7 +347,6 @@ public function opd_non_authen(Request $request )
         LEFT JOIN pttype p1 ON p1.pttype=vp.pttype
         LEFT JOIN kskdepartment k ON k.depcode=o.main_dep
         WHERE o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
-        AND vp.pttype NOT IN ("10","11","12","13")
         AND (vp.auth_code IS NULL OR vp.auth_code ="")           
         GROUP BY o.vn ORDER BY o.vsttime');
 

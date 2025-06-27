@@ -114,10 +114,10 @@
                     <div class="card text-white mb-3" style="max-width: 18rem; background-color: #ffc107" >
                         <div class="card-header">
                             <ion-icon name="people-outline"></ion-icon>
-                            รายได้พึงรับ (*8,350)
+                            รายได้พึงรับ {{number_format($base_rate)}}*{{$k_value}}
                         </div>
                         <div class="card-body">
-                            <h1 class="card-title text-center">{{number_format($sum_rw,2)}} Rw. {{number_format($rw_recive,2)}}</h1>
+                            <h1 class="card-title text-center">{{number_format($sum_rw,2)}} Rw. <font style="color: green;" >{{number_format($rw_recive,2)}}</font></h1>
   
                         </div>
                     </div>

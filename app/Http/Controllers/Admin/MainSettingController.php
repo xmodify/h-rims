@@ -35,7 +35,9 @@ class MainSettingController extends Controller
             ['id' => 1, 'name_th' => 'จำนวนเตียง', 'name' => 'bed_qty', 'value' => ''],
             ['id' => 2, 'name_th' => 'Token Authen Kiosk สปสช.', 'name' => 'token_authen_kiosk_nhso', 'value' => ''],
             ['id' => 3, 'name_th' => 'Telegram Token', 'name' => 'telegram_token', 'value' => ''],
-            ['id' => 4, 'name_th' => 'Telegram Chat ID', 'name' => 'telegram_chat_id', 'value' => ''],  
+            ['id' => 4, 'name_th' => 'Telegram Chat ID Notify_Summary', 'name' => 'telegram_chat_id', 'value' => ''], 
+            ['id' => 5, 'name_th' => 'ค่า K ', 'name' => 'k_value', 'value' => '1'],   
+            ['id' => 6, 'name_th' => 'Base Rate', 'name' => 'base_rate', 'value' => '8350'],  
         ];
         
         foreach ($structure as $row) {

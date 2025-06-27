@@ -73,6 +73,9 @@ public function wait_icd_coder(Request $request)
         if($end_date == '' || $end_date == null)
         {$end_date = Session::get('end_date');}else{$end_date =$request->end_date;}
 
+        $k_value = DB::table('main_setting')->where('name','k_value')->value('value'); 
+        $base_rate = DB::table('main_setting')->where('name','base_rate')->value('value');
+
         $sql=DB::connection('hosxp')->select('
                 SELECT COUNT(an) AS sum_discharge,
                 SUM(CASE WHEN (dx1 IS NULL OR dx1 ="") THEN 1 ELSE 0 END) AS sum_wait_dchsummary,
@@ -81,7 +84,7 @@ public function wait_icd_coder(Request $request)
                     OR dx4 IS NOT NULL OR dx4 <>"" OR dx5 IS NOT NULL OR dx5 <>"") AND pdx <>"" AND pdx IS NOT NULL THEN 1 ELSE 0 END) AS sum_dchsummary,
                 SUM(CASE WHEN (dx1_audit IS NOT NULL OR dx1_audit <>"" OR dx2_audit IS NOT NULL OR dx2_audit <>"" OR dx3_audit IS NOT NULL OR dx3_audit <>""
                     OR dx4_audit IS NOT NULL OR dx4_audit <>"" OR dx5_audit IS NOT NULL OR dx5_audit <>"") THEN 1 ELSE 0 END) AS sum_dchsummary_audit,
-                    SUM(rw) AS sum_rw,IFNULL((SUM(rw)*8350),0) AS rw_recive
+                    SUM(rw) AS sum_rw,IFNULL((SUM(rw)*"'.$k_value.'"*"'.$base_rate.'"),0) AS rw_recive
                 FROM (SELECT i.an,i.regdate,i.dchdate,id1.diag_text AS dx1,id2.diag_text AS dx2,id3.diag_text AS dx3,id4.diag_text AS dx4,id5.diag_text AS dx5,
                 id1.audit_diag_text AS dx1_audit,id2.audit_diag_text AS dx2_audit,id3.audit_diag_text AS dx3_audit,id4.audit_diag_text AS dx4_audit,
                 id5.audit_diag_text AS dx5_audit,a.pdx,a.rw
@@ -152,7 +155,7 @@ public function wait_icd_coder(Request $request)
         $request->session()->save();
         
         return view('ipd.dchsummary',compact('start_date','end_date','sum_discharge','sum_wait_dchsummary',
-            'sum_wait_icd_coder','sum_dchsummary','sum_dchsummary_audit','sum_rw','rw_recive','data'));        
+            'sum_wait_icd_coder','sum_dchsummary','sum_dchsummary_audit','sum_rw','rw_recive','k_value','base_rate','data'));        
     }
 
 //Create dchsummary
@@ -165,6 +168,9 @@ public function dchsummary(Request $request)
         if($end_date == '' || $end_date == null)
         {$end_date = Session::get('end_date');}else{$end_date =$request->end_date;}
 
+        $k_value = DB::table('main_setting')->where('name','k_value')->value('value'); 
+        $base_rate = DB::table('main_setting')->where('name','base_rate')->value('value');
+
         $sql=DB::connection('hosxp')->select('
                 SELECT COUNT(an) AS sum_discharge,
                 SUM(CASE WHEN (dx1 IS NULL OR dx1 ="") THEN 1 ELSE 0 END) AS sum_wait_dchsummary,
@@ -173,7 +179,7 @@ public function dchsummary(Request $request)
                     OR dx4 IS NOT NULL OR dx4 <>"" OR dx5 IS NOT NULL OR dx5 <>"") AND pdx <>"" AND pdx IS NOT NULL THEN 1 ELSE 0 END) AS sum_dchsummary,
                 SUM(CASE WHEN (dx1_audit IS NOT NULL OR dx1_audit <>"" OR dx2_audit IS NOT NULL OR dx2_audit <>"" OR dx3_audit IS NOT NULL OR dx3_audit <>""
                     OR dx4_audit IS NOT NULL OR dx4_audit <>"" OR dx5_audit IS NOT NULL OR dx5_audit <>"") THEN 1 ELSE 0 END) AS sum_dchsummary_audit,
-                    SUM(rw) AS sum_rw,IFNULL((SUM(rw)*8350),0) AS rw_recive
+                    SUM(rw) AS sum_rw,IFNULL((SUM(rw)*"'.$k_value.'"*"'.$base_rate.'"),0) AS rw_recive
                 FROM (SELECT i.an,i.regdate,i.dchdate,id1.diag_text AS dx1,id2.diag_text AS dx2,id3.diag_text AS dx3,id4.diag_text AS dx4,id5.diag_text AS dx5,
                 id1.audit_diag_text AS dx1_audit,id2.audit_diag_text AS dx2_audit,id3.audit_diag_text AS dx3_audit,id4.audit_diag_text AS dx4_audit,
                 id5.audit_diag_text AS dx5_audit,a.pdx,a.rw 
@@ -244,7 +250,7 @@ public function dchsummary(Request $request)
         $request->session()->save();
         
         return view('ipd.dchsummary',compact('start_date','end_date','sum_discharge','sum_wait_dchsummary',
-            'sum_wait_icd_coder','sum_dchsummary','sum_dchsummary_audit','sum_rw','rw_recive','data'));        
+            'sum_wait_icd_coder','sum_dchsummary','sum_dchsummary_audit','sum_rw','rw_recive','k_value','base_rate','data'));        
     }
 //Create dchsummary
 public function dchsummary_audit(Request $request)
@@ -256,6 +262,9 @@ public function dchsummary_audit(Request $request)
         if($end_date == '' || $end_date == null)
         {$end_date = Session::get('end_date');}else{$end_date =$request->end_date;}
 
+        $k_value = DB::table('main_setting')->where('name','k_value')->value('value'); 
+        $base_rate = DB::table('main_setting')->where('name','base_rate')->value('value');
+
         $sql=DB::connection('hosxp')->select('
                 SELECT COUNT(an) AS sum_discharge,
                 SUM(CASE WHEN (dx1 IS NULL OR dx1 ="") THEN 1 ELSE 0 END) AS sum_wait_dchsummary,
@@ -264,7 +273,7 @@ public function dchsummary_audit(Request $request)
                     OR dx4 IS NOT NULL OR dx4 <>"" OR dx5 IS NOT NULL OR dx5 <>"") AND pdx <>"" AND pdx IS NOT NULL THEN 1 ELSE 0 END) AS sum_dchsummary,
                 SUM(CASE WHEN (dx1_audit IS NOT NULL OR dx1_audit <>"" OR dx2_audit IS NOT NULL OR dx2_audit <>"" OR dx3_audit IS NOT NULL OR dx3_audit <>""
                     OR dx4_audit IS NOT NULL OR dx4_audit <>"" OR dx5_audit IS NOT NULL OR dx5_audit <>"") THEN 1 ELSE 0 END) AS sum_dchsummary_audit,
-                    SUM(rw) AS sum_rw,IFNULL((SUM(rw)*8350),0) AS rw_recive
+                    SUM(rw) AS sum_rw,IFNULL((SUM(rw)*"'.$k_value.'"*"'.$base_rate.'"),0) AS rw_recive
                 FROM (SELECT i.an,i.regdate,i.dchdate,id1.diag_text AS dx1,id2.diag_text AS dx2,id3.diag_text AS dx3,id4.diag_text AS dx4,id5.diag_text AS dx5,
                 id1.audit_diag_text AS dx1_audit,id2.audit_diag_text AS dx2_audit,id3.audit_diag_text AS dx3_audit,id4.audit_diag_text AS dx4_audit,
                 id5.audit_diag_text AS dx5_audit,a.pdx,a.rw 
@@ -339,7 +348,7 @@ public function dchsummary_audit(Request $request)
         $request->session()->save();
         
         return view('ipd.dchsummary',compact('start_date','end_date','sum_discharge','sum_wait_dchsummary',
-            'sum_wait_icd_coder','sum_dchsummary','sum_dchsummary_audit','sum_rw','rw_recive','data'));        
+            'sum_wait_icd_coder','sum_dchsummary','sum_dchsummary_audit','sum_rw','rw_recive','k_value','base_rate','data'));        
     }
 
 }

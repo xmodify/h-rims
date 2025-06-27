@@ -52,7 +52,7 @@
         {{-- <a class="btn btn-outline-danger btn-sm" href="{{ url('nhso_endpoint_pull') }}">Pull Endpoint</a> --}}
         <!-- ปุ่มเรียก Modal -->
         <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#nhsoModal">
-          Pull Endpoint
+          ดึงปิดสิทธิ สปสช.
         </button>
       </h5>
       <div class="col-sm-3">

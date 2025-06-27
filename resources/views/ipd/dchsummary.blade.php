@@ -114,12 +114,11 @@
                     <div class="card text-white mb-3" style="max-width: 18rem; background-color: #ffc107" >
                         <div class="card-header">
                             <ion-icon name="people-outline"></ion-icon>
-                            AdjRW
+                            รายได้พึงรับ (*8350)
                         </div>
                         <div class="card-body">
-                            <h1 class="card-title text-center">{{number_format($sum_rw,2)}}</h1>
-                            <p class="card-text">RW
-                            </p>      
+                            <h1 class="card-title text-center">{{number_format($sum_rw,2)}} Rw. {{number_format($rw_recive,2)}}</h1>
+  
                         </div>
                     </div>
                 </div>

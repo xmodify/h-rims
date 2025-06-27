@@ -59,7 +59,7 @@
           <div class="card text-white bg-1 mb-3" style="max-width: 18rem;" >
             <div class="card-header">
               <ion-icon name="people-outline"></ion-icon>
-              UCS Visit : Endpoint
+              UCS Visit : ปิดสิทธิ
             </div>
             <div class="card-body">
               <h1 class="card-title text-center">{{$ucs_all}} : {{$ucs_endpoint}}</h1> 
@@ -73,7 +73,7 @@
           <div class="card text-white bg-2 mb-3" style="max-width: 18rem;">
             <div class="card-header">
               <ion-icon name="people-outline"></ion-icon>
-              OFC Visit : Endpoint : EDC 
+              OFC Visit : ปิดสิทธิ : รูดบัตร 
             </div>
             <div class="card-body">
               <h1 class="card-title text-center">{{$ofc_all}} : {{$ofc_endpoint}} : {{$ofc_edc}} </h1>  
@@ -115,7 +115,7 @@
         <div class="card text-white bg-5 mb-3" style="max-width: 18rem;">
           <div class="card-header">
             <ion-icon name="people-outline"></ion-icon>
-            UC Anywhere : Endpoint : FDH
+            UC Anywhere : ปิดสิทธิ : FDH
           </div>
           <div class="card-body">
             <h1 class="card-title text-center">{{$uc_anywhere}} : {{$uc_anywhere_endpoint}} : {{$uc_anywhere_fdh}}</h1>  
@@ -129,7 +129,7 @@
         <div class="card text-white bg-6 mb-3" style="max-width: 18rem;">
           <div class="card-header">
             <ion-icon name="people-outline"></ion-icon>
-            UC บริการเฉพาะ : Endpoint : FDH
+            UC บริการเฉพาะ : ปิดสิทธิ : FDH
           </div>
           <div class="card-body">
             <h1 class="card-title text-center">{{$uc_cr}} : {{$uc_cr_endpoint}} : {{$uc_cr_fdh}}</h1>
@@ -143,7 +143,7 @@
         <div class="card text-white bg-7 mb-3" style="max-width: 18rem;">
           <div class="card-header">
             <ion-icon name="people-outline"></ion-icon>
-            UC แพทย์แผนไทย : Endpoint : FDH 
+            UC แพทย์แผนไทย : ปิดสิทธิ : FDH 
           </div>
           <div class="card-body">
             <h1 class="card-title text-center">{{$uc_healthmed}} : {{$uc_healthmed_endpoint}} : {{$uc_healthmed_fdh}}</h1>  
@@ -157,7 +157,7 @@
         <div class="card text-white bg-8 mb-3" style="max-width: 18rem;" >
           <div class="card-header">
             <ion-icon name="people-outline"></ion-icon>
-            PPFS : Endpoint : FDH
+            PPFS : ปิดสิทธิ : FDH
           </div>
           <div class="card-body">
             <h1 class="card-title text-center">{{$ppfs}} : {{$ppfs_endpoint}} : {{$ppfs_fdh}}</h1> 

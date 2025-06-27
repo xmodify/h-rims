@@ -84,6 +84,12 @@
             .then(response => response.json())
             .then(data => {
                 outputBox.textContent = data.output || data.error || 'ไม่มีข้อมูล';
+                // ตรวจสอบว่า git pull สำเร็จหรือไม่
+                if (data.output && data.output.includes('Updating') || data.output.includes('Already up to date')) {
+                    setTimeout(() => {
+                        window.location.href = "{{ route('admin.main_setting') }}"; // เปลี่ยนเป็น route ที่คุณต้องการ redirect ไป
+                    }, 3000); // รอ 3 วินาทีก่อน redirect
+                }
             })
             .catch(error => {
                 outputBox.textContent = "เกิดข้อผิดพลาด: " + error;

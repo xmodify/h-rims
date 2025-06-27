@@ -93,7 +93,7 @@ class NotifyController extends Controller
         ."PPFS: " .$ppfs ." visit" ."\n"
         ."สิทธิ OFC|รูดบัตร: " .$ofc_all ."|" .$ofc_edc ." visit" ."\n"
         ."ไม่ขอ Authen: " .$non_authen ." visit" ."\n" 
-        ."ไม่บันทึก Hmain: " .$non_authen ." Visit" ."\n" 
+        ."ไม่บันทึก Hmain: " .$non_hmain ." Visit" ."\n" 
         ."---------------------------------"  ."\n" 
         ."Chart รอลงรหัสโรค: " .$non_icd10 ." AN" ."\n"
         ."Chart รอแพทย์สรุป: " .$non_diagtext ." AN" ."\n" 

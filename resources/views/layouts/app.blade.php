@@ -25,6 +25,14 @@
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+    <style>
+        .dropdown-menu .dropend:hover > .dropdown-menu {
+        display: block;
+        top: 0;
+        left: 100%;
+        margin-top: -1px;
+        }
+    </style>
 </head>
 <body>
     <div id="app">
@@ -56,11 +64,26 @@
                             <a id="navbarDropdown" class="btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
                                 งานเวชระเบียน
                             </a>
-                            <div class=" btn btn-outline-success dropdown-menu dropdown-menu-end">                                       
-                                <a class="dropdown-item link-primary text-white " href="{{ url('/ipd/dchsummary') }}" >
-                                    IP-D/C Summary
-                                </a> 
-                            </div>                 
+                            <ul class="bg-success dropdown-menu dropdown-menu-end">   
+                                <!-- เมนูอื่น -->
+                                <li>
+                                    <a class="link-primary dropdown-item text-white" href="{{ url('/ipd/dchsummary') }}">
+                                        IP-D/C Summary
+                                    </a>
+                                </li>
+                                <!-- ชี้ขวา -->
+                                <li class="dropend">
+                                    <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
+                                        รายโรคสำคัญ
+                                    </a>
+                                    <ul class="bg-success dropdown-menu">
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/diag/sepsis') }}">Sepsis</a></li>
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/diag/stroke') }}">Stroke</a></li>
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/diag/stemi') }}">Stemi</a></li>
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/diag/pneumonia') }}">Pneumonia</a></li>
+                                    </ul>
+                                </li>
+                            </ul>
                         </li> 
                         <li class="nav-item dropdown">
                             <a id="navbarDropdown" class="btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
@@ -205,6 +228,7 @@
 
     <!-- Stack for per-page script -->
     @stack('scripts')
+    
 
 </body>
 </html>

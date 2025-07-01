@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NotifyController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ImportController;
+use App\Http\Controllers\Controller;
+use App\Http\Controllers\DiagController;
 use App\Http\Controllers\IpdController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\MainSettingController;
@@ -67,6 +69,12 @@ Route::match(['get','post'],'ipd_finance_chk_wait_rcpt_money',[HomeController::c
 //Import
 Route::match(['get','post'],'import/stm_ucs',[ImportController::class,'stm_ucs'])->name('stm_ucs');
 Route::post('import/stm_ucs_save',[ImportController::class,'stm_ucs_save']);
+
+//Diage
+Route::match(['get','post'],'diag/sepsis',[DiagController::class,'sepsis']);
+Route::match(['get','post'],'diag/stroke',[DiagController::class,'stroke']);
+Route::match(['get','post'],'diag/stemi',[DiagController::class,'stemi']);
+Route::match(['get','post'],'diag/pneumonia',[DiagController::class,'pneumonia']);
 
 //Ipd
 Route::match(['get','post'],'ipd/wait_doctor_dchsummary',[IpdController::class,'wait_doctor_dchsummary']);

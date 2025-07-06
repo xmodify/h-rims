@@ -73,7 +73,7 @@
                 <td align="center">{{$row->cid}}</td> 
                 <td align="left">{{ DateThai($row->vstdate) }}</td>             
                 <td align="rigth">{{$row->vsttime}}</td>                
-                <td align="center">{{$row->informtel}}</td>
+                <td align="center">{{$row->mobile_phone_number}}</td>
                 <td align="left">{{$row->pttype}} [{{$row->hospmain}}]</td> 
                 <td align="right">{{ $row->pdx }}</td>
                 <td align="center">{{$row->ucae}}</td>     

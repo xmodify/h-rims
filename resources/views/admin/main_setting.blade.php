@@ -88,7 +88,7 @@
                 if (data.output && data.output.includes('Updating') || data.output.includes('Already up to date')) {
                     setTimeout(() => {
                         window.location.href = "{{ route('admin.main_setting') }}"; // เปลี่ยนเป็น route ที่คุณต้องการ redirect ไป
-                    }, 2000); // รอ 2 วินาทีก่อน redirect
+                    }, 5000); // รอ 5 วินาทีก่อน redirect
                 }
             })
             .catch(error => {

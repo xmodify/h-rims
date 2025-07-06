@@ -51,6 +51,7 @@
                     <th class="text-center">Ward</th>  
                     <th class="text-center">เตียง</th>
                     <th class="text-center">AN</th>
+                    <th class="text-center">Admit</th>
                     <th class="text-center">สิทธิการรักษา</th>   
                     <th class="text-center">โอนค่ารักษา</th> 
                     <th class="text-center">รอโอนจาก OPD</th>    
@@ -69,6 +70,7 @@
                   <td align="left">{{$row->ward}}</td>             
                   <td align="rigth">{{$row->bedno}}</td>
                   <td align="center">{{$row->an}}</td> 
+                   <td align="center">{{DateThai($row->regdate)}}</td> 
                   <td align="left">{{$row->pttype}} [{{$row->hospmain}}]</td> 
                   <td align="center">{{$row->finance_transfer}}</td> 
                   <td align="right">{{ number_format($row->opd_wait_money,2) }}</td>

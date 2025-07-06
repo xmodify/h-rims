@@ -84,7 +84,7 @@ public function wait_icd_coder(Request $request)
                     OR dx4 IS NOT NULL OR dx4 <>"" OR dx5 IS NOT NULL OR dx5 <>"") AND pdx <>"" AND pdx IS NOT NULL THEN 1 ELSE 0 END) AS sum_dchsummary,
                 SUM(CASE WHEN (dx1_audit IS NOT NULL OR dx1_audit <>"" OR dx2_audit IS NOT NULL OR dx2_audit <>"" OR dx3_audit IS NOT NULL OR dx3_audit <>""
                     OR dx4_audit IS NOT NULL OR dx4_audit <>"" OR dx5_audit IS NOT NULL OR dx5_audit <>"") THEN 1 ELSE 0 END) AS sum_dchsummary_audit,
-                    SUM(rw) AS sum_rw,IFNULL((SUM(rw)*"'.$k_value.'"*"'.$base_rate.'"),0) AS rw_recive
+                SUM(rw) AS sum_rw,IFNULL((SUM(rw)*"'.$k_value.'"*"'.$base_rate.'"),0) AS rw_recive
                 FROM (SELECT i.an,i.regdate,i.dchdate,id1.diag_text AS dx1,id2.diag_text AS dx2,id3.diag_text AS dx3,id4.diag_text AS dx4,id5.diag_text AS dx5,
                 id1.audit_diag_text AS dx1_audit,id2.audit_diag_text AS dx2_audit,id3.audit_diag_text AS dx3_audit,id4.audit_diag_text AS dx4_audit,
                 id5.audit_diag_text AS dx5_audit,a.pdx,a.rw

@@ -26,6 +26,7 @@ git commit -m "update"
 git push
 
 อยากรวมโค้ด GitHub เข้ามา	git pull origin main --rebase
+ไม่แคร์โค้ดที่ เครื่อง  git reset --hard && git pull origin main
 ไม่แคร์โค้ด GitHub ลบมันทิ้ง	git push --force origin main
 -----------------------------------------------------------------------------------------
 ✅ คำสั่งพื้นฐานสำหรับ git pull Laravel

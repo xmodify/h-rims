@@ -280,7 +280,7 @@ public function opd_ucs_all(Request $request )
 
     $sql=DB::connection('hosxp')->select('
         SELECT o.vstdate,o.vsttime,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-        pt.cid,pt.informtel,p.`name` AS pttype,vp.hospmain,v.income-v.paid_money AS debtor,
+        pt.cid,pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,v.income-v.paid_money AS debtor,
         v.pdx,IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
         vp.confirm_and_locked,vp.request_funds,oe.moph_finance_upload_datetime AS fdh
@@ -310,7 +310,7 @@ public function opd_ofc_all(Request $request )
 
     $sql=DB::connection('hosxp')->select('
         SELECT o.vstdate,o.vsttime,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-        pt.cid,pt.informtel,p.`name` AS pttype,vp.hospmain,v.income-v.paid_money AS debtor,
+        pt.cid,pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,v.income-v.paid_money AS debtor,
         v.pdx,IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
         IFNULL(vp.Claim_Code,os.edc_approve_list_text) AS edc
@@ -365,7 +365,7 @@ public function opd_non_hospmain(Request $request )
 
     $sql=DB::connection('hosxp')->select('
         SELECT o.vstdate,o.vsttime,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-        pt.cid,pt.informtel,p.`name` AS pttype,vp.hospmain,v.income-v.paid_money AS debtor,
+        pt.cid,pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,v.income-v.paid_money AS debtor,
         IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint
         FROM ovst o
@@ -393,7 +393,7 @@ public function opd_ucs_anywhere(Request $request )
 
     $search=DB::connection('hosxp')->select('
         SELECT o.oqueue,o.vstdate,o.vsttime,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-        pt.cid,pt.informtel,p.`name` AS pttype,vp.hospmain,v.income-v.paid_money AS debtor,
+        pt.cid,pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,v.income-v.paid_money AS debtor,
         IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,v.pdx,et.ucae,
         GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,vp.confirm_and_locked,vp.request_funds,
@@ -418,7 +418,7 @@ public function opd_ucs_anywhere(Request $request )
         GROUP BY o.vn ORDER BY ep.sourceChannel,o.vstdate,o.vsttime');
 
     $claim=DB::connection('hosxp')->select('
-        SELECT o.oqueue,o.vstdate,o.vsttime,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.informtel,p.`name` AS pttype,
+        SELECT o.oqueue,o.vstdate,o.vsttime,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,p.`name` AS pttype,
         vp.hospmain,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,vp.confirm_and_locked,vp.request_funds,
         GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,oe.moph_finance_upload_datetime AS fdh,v.pdx,et.ucae,vp.nhso_ucae_type_code,
@@ -461,7 +461,7 @@ public function opd_ucs_cr(Request $request )
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,p1.`name` AS pttype,		
         vp.hospmain,p1.hipdata_code,v.pdx,v.income,v.rcpt_money,v.income-v.rcpt_money-IFNULL(SUM(o1.sum_price),0) AS other,
         IFNULL(SUM(o1.sum_price),0) AS debtor1,GROUP_CONCAT(DISTINCT s.`name`) AS other_list,GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
-        vp.confirm_and_locked,vp.request_funds,oe.moph_finance_upload_datetime AS fdh,p.informtel,k.department,vp.nhso_ucae_type_code
+        vp.confirm_and_locked,vp.request_funds,oe.moph_finance_upload_datetime AS fdh,p.mobile_phone_number,k.department,vp.nhso_ucae_type_code
         FROM ovst o    
         LEFT JOIN patient p ON p.hn=o.hn
         LEFT JOIN vn_stat v ON v.vn=o.vn
@@ -488,7 +488,7 @@ public function opd_ucs_cr(Request $request )
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,p1.`name` AS pttype,vp.hospmain,		
         p1.hipdata_code,v.pdx,v.income,v.rcpt_money,v.income-v.rcpt_money-IFNULL(SUM(o1.sum_price),0) AS other,
         IFNULL(SUM(o1.sum_price),0) AS debtor1,GROUP_CONCAT(DISTINCT s.`name`) AS other_list,GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
-        vp.confirm_and_locked,vp.request_funds,oe.moph_finance_upload_datetime AS fdh,p.informtel,k.department,vp.nhso_ucae_type_code,
+        vp.confirm_and_locked,vp.request_funds,oe.moph_finance_upload_datetime AS fdh,p.mobile_phone_number,k.department,vp.nhso_ucae_type_code,
         rep.rep_eclaim_detail_nhso AS rep_nhso,rep.rep_eclaim_detail_error_code AS rep_error, stm.receive_inst+stm.receive_op+stm.receive_palliative
             +stm.receive_dmis_drug+stm.receive_hc_drug+stm.receive_hc_hc AS receive_total,stm.repno
         FROM ovst o    
@@ -527,7 +527,7 @@ public function opd_ucs_healthmed(Request $request )
     $search=DB::connection('hosxp')->select('
         SELECT o.oqueue,IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,v.pdx,o.vstdate,o.vsttime,
-        CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,vp.hospmain,pt.cid,pt.informtel,p.`name` AS pttype,
+        CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,vp.hospmain,pt.cid,pt.mobile_phone_number,p.`name` AS pttype,
         v.income-v.paid_money AS debtor,GROUP_CONCAT(DISTINCT d.`name`) AS drug ,k.department,vp.confirm_and_locked,
 		GROUP_CONCAT(DISTINCT hm.health_med_operation) AS operation,GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
         vp.request_funds,oe.moph_finance_upload_datetime AS fdh,vp.nhso_ucae_type_code			
@@ -559,7 +559,7 @@ public function opd_ucs_healthmed(Request $request )
     $claim=DB::connection('hosxp')->select('
         SELECT o.oqueue,IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,v.pdx,
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,o.vstdate,o.vsttime,
-        CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,vp.hospmain,pt.cid,pt.informtel,p.`name` AS pttype,
+        CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,vp.hospmain,pt.cid,pt.mobile_phone_number,p.`name` AS pttype,
         v.income-v.paid_money AS debtor,GROUP_CONCAT(DISTINCT d.`name`) AS drug,GROUP_CONCAT(DISTINCT hm.health_med_operation) AS operation,
 		k.department,vp.confirm_and_locked,vp.request_funds,oe.moph_finance_upload_datetime AS fdh,vp.nhso_ucae_type_code,
         rep.rep_eclaim_detail_nhso AS rep_nhso,rep.rep_eclaim_detail_error_code AS rep_error,GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
@@ -608,7 +608,7 @@ public function opd_ppfs(Request $request )
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,p1.`name` AS pttype,vp.nhso_ucae_type_code,		
         vp.hospmain,p1.hipdata_code,v.pdx,v.income,v.rcpt_money,v.income-v.rcpt_money-IFNULL(SUM(o1.sum_price),0) AS other,
         IFNULL(SUM(o1.sum_price),0) AS debtor1,GROUP_CONCAT(DISTINCT s.`name`) AS other_list,GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
-        vp.confirm_and_locked,vp.request_funds,oe.moph_finance_upload_datetime AS fdh,p.informtel,k.department
+        vp.confirm_and_locked,vp.request_funds,oe.moph_finance_upload_datetime AS fdh,p.mobile_phone_number,k.department
         FROM ovst o    
         LEFT JOIN patient p ON p.hn=o.hn
         LEFT JOIN vn_stat v ON v.vn=o.vn
@@ -634,7 +634,7 @@ public function opd_ppfs(Request $request )
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,p1.`name` AS pttype,		
         vp.hospmain,p1.hipdata_code,v.pdx,v.income,v.rcpt_money,v.income-v.rcpt_money-IFNULL(SUM(o1.sum_price),0) AS other,
         IFNULL(SUM(o1.sum_price),0) AS debtor1,GROUP_CONCAT(DISTINCT s.`name`) AS other_list,GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
-        vp.confirm_and_locked,vp.request_funds,oe.moph_finance_upload_datetime AS fdh,p.informtel,k.department,vp.nhso_ucae_type_code,
+        vp.confirm_and_locked,vp.request_funds,oe.moph_finance_upload_datetime AS fdh,p.mobile_phone_number,k.department,vp.nhso_ucae_type_code,
         rep.rep_eclaim_detail_nhso AS rep_nhso,rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_pp AS receive_total,stm.repno
         FROM ovst o    
         LEFT JOIN patient p ON p.hn=o.hn
@@ -731,8 +731,8 @@ public function ipd_non_dchsummary(Request $request )
 public function ipd_finance_chk_opd_wait_transfer(Request $request)
 {      
     $finance_chk=DB::connection('hosxp')->select('
-        SELECT w.`name` AS ward,i1.bedno,i.hn,i.an,p.`name` AS pttype,i2.hospmain,i.finance_transfer,
-        a.opd_wait_money,a.item_money,a.uc_money-a.debt_money AS wait_debt_money,
+        SELECT w.`name` AS ward,i1.bedno,i.hn,i.an,i.regdate,p.`name` AS pttype,i2.hospmain,
+        i.finance_transfer, a.opd_wait_money,a.item_money,a.uc_money-a.debt_money AS wait_debt_money,
         a.paid_money,a.rcpt_money,a.paid_money-a.rcpt_money AS wait_paid_money
         FROM ipt i
         LEFT JOIN ward w ON w.ward=i.ward
@@ -749,8 +749,8 @@ public function ipd_finance_chk_opd_wait_transfer(Request $request)
 public function ipd_finance_chk_wait_rcpt_money(Request $request)
 {      
     $finance_chk=DB::connection('hosxp')->select('
-        SELECT w.`name` AS ward,i1.bedno,i.hn,i.an,p.`name` AS pttype,i2.hospmain,i.finance_transfer,
-        a.opd_wait_money,a.item_money,a.uc_money-a.debt_money AS wait_debt_money,
+        SELECT w.`name` AS ward,i1.bedno,i.hn,i.an,i.regdate,p.`name` AS pttype,i2.hospmain,
+        i.finance_transfer,a.opd_wait_money,a.item_money,a.uc_money-a.debt_money AS wait_debt_money,
         a.paid_money,a.rcpt_money,a.paid_money-a.rcpt_money AS wait_paid_money
         FROM ipt i
         LEFT JOIN ward w ON w.ward=i.ward

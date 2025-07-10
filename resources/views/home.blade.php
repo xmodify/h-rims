@@ -44,17 +44,16 @@
   }
 </style>
 <div class="container">
-    <div class="row" align="center">
-      <h5 class="text-primary" align="left">
-        ข้อมูลผู้ป่วยนอก ณ วันที่ <font style="color:red;">{{DatetimeThai(date('Y-m-d h:i:sa'))}}</font> 
-        ทั้งหมด : <font style="color:red;">{{$opd_total}}</font> Visit | 
-        ปิดสิทธิ สปสช : <font style="color:red;">{{$endpoint_all}}</font> Visit
-        {{-- <a class="btn btn-outline-danger btn-sm" href="{{ url('nhso_endpoint_pull') }}">Pull Endpoint</a> --}}
-        <!-- ปุ่มเรียก Modal -->
-        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#nhsoModal">
-          ดึงปิดสิทธิ สปสช.
-        </button>
-      </h5>
+    <div class="row" align="center">      
+        <h5 class="alert alert-primary text-primary" align="left">
+          ข้อมูลผู้ป่วยนอก ณ วันที่ <font style="color:red;">{{DateThai(date('Y-m-d'))}}</font> เวลา: <font style="color:red;"><span id="realtime-clock"></span></font>  
+          ทั้งหมด : <font style="color:red;">{{$opd_total}}</font> Visit | 
+          ปิดสิทธิ สปสช : <font style="color:red;">{{$endpoint_all}}</font> Visit
+          <!-- ปุ่มเรียก Modal -->
+          <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#nhsoModal">
+            ดึงปิดสิทธิ สปสช.
+          </button>
+        </h5> 
       <div class="col-sm-3">
           <div class="card text-white bg-1 mb-3" style="max-width: 18rem;" >
             <div class="card-header">
@@ -167,8 +166,10 @@
           </div>
         </div>
       </div>
-      <hr>
-      <h5 class="text-primary" align="left">ข้อมูลผู้ป่วยใน ณ วันที่ <font style="color:red;">{{DatetimeThai(date('Y-m-d h:i:sa'))}}</font> </h5>
+      <h5 class="alert alert-primary text-primary" align="left">
+        ข้อมูลผู้ป่วยใน ณ วันที่ <font style="color:red;">{{DateThai(date('Y-m-d'))}}</font> </font> เวลา: <font style="color:red;"><span id="realtime-clock_ipd"></span></font> 
+        Admit ปัจจุบัน: <font style="color:red;">{{$admit_now}}</font> AN
+      </h5>
       <div class="col-sm-3">
         <div class="card text-white bg-9 mb-3" style="max-width: 18rem;" >
           <div class="card-header">
@@ -229,6 +230,7 @@
       <div id="bed_occupancy" style="width: 100%; height: 200px"><font color="#4154f1"><strong>อัตราครองเตียง ปีงบประมาณ {{$budget_year}}</strong></font></div>
       <div class="col-sm-12">        
       <br>
+      <h6 class="text-success" align="left"><strong>ข้อมูลผู้ปวยในรวม Homeward</strong></h6>
         <div style="overflow-x:auto;">          
           <table class="table table-bordered table-striped">
               <thead>
@@ -242,7 +244,7 @@
                   <th class="text-center">RW</th>             
               </tr>
               </thead>        
-              @foreach($ipd_byear as $row)
+              @foreach($ip_all as $row)
               <tr>
                   <td align="center">{{ $row->month }}</td>
                   <td align="right">{{ number_format($row->an) }}</td>
@@ -257,6 +259,67 @@
         </div> 
       </div> 
     </div><!-- //row -->
+    <hr>
+    <div class="row" align="center">  
+      <div class="col-sm-6">
+        <h6 class="text-danger" align="left"><strong>ข้อมูลผู้ปวยใน ไม่รวม Homeward</strong></h6>     
+        <div style="overflow-x:auto;">          
+          <table class="table table-bordered table-striped">
+              <thead>
+              <tr class="table-danger">
+                  <th class="text-center">เดือน</th>
+                  <th class="text-center">AN</th>
+                  <th class="text-center">วันนอนรวม</th>
+                  <th class="text-center">อัตราครองเตียง</th>
+                  <th class="text-center">ActiveBase</th>
+                  <th class="text-center">CMI</th>
+                  <th class="text-center">RW</th>                 
+              </tr>
+              </thead>        
+              @foreach($ip_normal as $row)
+              <tr>
+                  <td align="center">{{ $row->month }}</td>
+                  <td align="right">{{ number_format($row->an) }}</td>
+                  <td align="right">{{ number_format($row->admdate) }}</td>
+                  <td align="right">{{ $row->bed_occupancy }}</td>
+                  <td align="right">{{ $row->active_bed }}</td>
+                  <td align="right">{{ $row->cmi }}</td>
+                  <td align="right">{{ $row->adjrw }}</td>               
+              </tr>            
+              @endforeach              
+          </table>
+        </div> 
+      </div>  
+      <div class="col-sm-6">
+        <h6 class="text-primary" align="left"><strong>ข้อมูลผู้ปวย Homeward</strong></h6>     
+        <div style="overflow-x:auto;">          
+          <table class="table table-bordered table-striped">
+              <thead>
+              <tr class="table-primary">
+                  <th class="text-center">เดือน</th>
+                  <th class="text-center">AN</th>
+                  <th class="text-center">วันนอนรวม</th>
+                  <th class="text-center">อัตราครองเตียง</th>
+                  <th class="text-center">ActiveBase</th>
+                  <th class="text-center">CMI</th>
+                  <th class="text-center">RW</th>            
+              </tr>
+              </thead>        
+              @foreach($ip_homeward as $row)
+              <tr>
+                  <td align="center">{{ $row->month }}</td>
+                  <td align="right">{{ number_format($row->an) }}</td>
+                  <td align="right">{{ number_format($row->admdate) }}</td>
+                  <td align="right">{{ $row->bed_occupancy }}</td>
+                  <td align="right">{{ $row->active_bed }}</td>
+                  <td align="right">{{ $row->cmi }}</td>
+                  <td align="right">{{ $row->adjrw }}</td>               
+              </tr>            
+              @endforeach              
+          </table>
+        </div> 
+      </div>     
+    </div> <!-- //row -->
 
 </div>
 
@@ -295,6 +358,28 @@
 <!-- ionicon -->
 <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
 <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+
+<script>
+    // ฟังก์ชันแสดงเวลาปัจจุบัน
+    function updateClock() {
+        const now = new Date();
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+        const time = `${hours}:${minutes}:${seconds}`;
+        document.getElementById('realtime-clock').textContent = time;
+        document.getElementById('realtime-clock_ipd').textContent = time;
+    }
+
+    // อัปเดตทุกวินาที
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // รีโหลดหน้าทุก 1 นาที (60000 ms)
+    setTimeout(function() {
+        location.reload();
+    }, 60000);
+</script>
 
 @endsection
 

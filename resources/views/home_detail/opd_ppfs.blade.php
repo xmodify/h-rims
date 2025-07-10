@@ -38,6 +38,7 @@
             <thead>
               <tr class="table-primary"> 
                 <th class="text-center">ลำดับ</th>
+                <th class="text-center" width="6%">Action</th>
                 <th class="text-center">Authen</th>
                 <th class="text-center">ปิดสิทธิ</th>           
                 <th class="text-center">Q</th>              
@@ -63,6 +64,11 @@
               @foreach($search as $row) 
               <tr>                
                 <td align="center">{{ $count }}</td> 
+                <td align="center" width="6%">                  
+                  <button onclick="pullNhsoData('{{ $row->vstdate }}', '{{ $row->cid }}')" class="btn btn-outline-info btn-sm w-100">
+                      ดึงปิดสิทธิ
+                  </button>
+                </td>   
                 <td align="center" @if($row->auth_code == 'Y') style="color:green"
                   @elseif($row->auth_code == 'N') style="color:red" @endif>
                   <strong>{{ $row->auth_code }}</strong></td> 
@@ -173,6 +179,46 @@
     <!-- Pills Tabs -->
   </div> 
 </div>   
+
+<script>
+function pullNhsoData(vstdate, cid) {
+    Swal.fire({
+        title: 'กำลังดึงข้อมูล...',
+        text: 'กรุณารอสักครู่',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading()
+        }
+    });
+    
+    fetch("{{ url('nhso_endpoint_pull') }}/" + vstdate + "/" + cid)
+        .then(async response => {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล');
+            }
+            return data;
+        })
+        .then(data => {
+            Swal.fire({
+                icon: 'success',
+                title: 'ดึงข้อมูลสำเร็จ',
+                text: data.message || 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        })
+        .catch(error => {
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: error.message || 'ไม่สามารถเชื่อมต่อกับระบบได้',
+            });
+        });
+}
+</script>
 
 @endsection
 

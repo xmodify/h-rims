@@ -83,7 +83,7 @@ public function index(Request $request )
 		LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE herb32 = "Y")
         LEFT JOIN drugitems n3 ON n3.icode=o3.icode
         LEFT JOIN health_med_service hm ON hm.vn=o.vn
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate
+        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%" 
         WHERE o.vstdate = DATE(NOW()) AND (o.an ="" OR o.an IS NULL) GROUP BY o.vn ) AS a');
         foreach ($opd_monitor as $row){
             $opd_total = $row->total;

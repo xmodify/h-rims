@@ -15,9 +15,7 @@
     <link href="https://fonts.bunny.net/css?family=Nunito" rel="stylesheet">
 
     <!-- Scripts -->
-    @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
-        @vite(['resources/sass/app.scss', 'resources/js/app.js'])
-    @endif
+    @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 
     <!-- Styles -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

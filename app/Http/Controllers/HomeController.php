@@ -145,13 +145,15 @@ public function index(Request $request )
         } 
 
     $ipd_dchsummary = DB::connection('hosxp')->select('
-        SELECT SUM(CASE WHEN (id1.diag_text ="" OR id1.diag_text IS NULL) THEN 1 ELSE 0 END) AS non_diagtext,
-        SUM(CASE WHEN (id.icd10 ="" OR id.icd10 IS NULL) AND id1.diag_text <>"" AND id1.diag_text IS NOT NULL THEN 1 ELSE 0 END) AS non_icd10
+        SELECT SUM(CASE WHEN (a.diag_text_list ="" OR a.diag_text_list IS NULL ) THEN 1 ELSE 0 END) AS non_diagtext,
+        SUM(CASE WHEN (id.icd10 ="" OR id.icd10 IS NULL OR a.pdx = "" OR a.pdx IS NULL) THEN 1 ELSE 0 END) AS non_icd10
         FROM ipt i
         LEFT JOIN iptdiag id ON id.an = i.an AND id.diagtype = 1
-        LEFT JOIN ipt_doctor_diag id1 ON id1.an = i.an	AND id1.diagtype = 1 
+		LEFT JOIN an_stat a ON a.an=i.an
         WHERE i.dchdate >= "'.$start_date.'" AND  i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y") 
-        AND (id.icd10 ="" OR id.icd10 IS NULL OR id1.diag_text ="" OR id1.diag_text IS NULL)');        
+        AND (a.diag_text_list ="" OR a.diag_text_list IS NULL 				
+		OR id.icd10 ="" OR id.icd10 IS NULL
+		OR a.pdx = "" OR a.pdx IS NULL)');        
         foreach ($ipd_dchsummary as $row){ 
             $non_diagtext=$row->non_diagtext;
             $non_icd10=$row->non_icd10;
@@ -842,13 +844,13 @@ public function ipd_non_dchsummary(Request $request )
     $end_date = DB::table('budget_year')->where('LEAVE_YEAR_ID',$budget_year)->value('DATE_END');
 
     $non_dchsummary=DB::connection('hosxp')->select('
-        SELECT w.`name` AS ward,i.hn,i.an,iptdiag.icd10,a.diag_text_list,d.`name` AS owner_doctor_name,
+        SELECT w.`name` AS ward,i.hn,i.an,id.icd10,a.diag_text_list,d.`name` AS owner_doctor_name,
         i.dchdate,TIMESTAMPDIFF(day,i.dchdate,DATE(NOW())) AS dch_day,
         CASE WHEN (a.diag_text_list ="" OR a.diag_text_list IS NULL) THEN "รอแพทย์สรุป Chart"
-        WHEN (iptdiag.icd10 ="" OR iptdiag.icd10 IS NULL) THEN "รอลงรหัสวินิจฉัยโรค" END AS diag_status
+        WHEN (id.icd10 ="" OR id.icd10 IS NULL) THEN "รอลงรหัสวินิจฉัยโรค" END AS diag_status
         FROM ipt i
-        LEFT JOIN ward w ON w.ward=i.ward        
-        LEFT JOIN iptdiag ON iptdiag.an = i.an AND iptdiag.diagtype = "1"
+        LEFT JOIN iptdiag id ON id.an = i.an AND id.diagtype = 1
+		LEFT JOIN ipt_doctor_diag id1 ON id1.an = i.an	AND id1.diagtype = 1 
         LEFT JOIN ipt_doctor_list il ON il.an = i.an AND il.ipt_doctor_type_id = 1 AND il.active_doctor = "Y"
         LEFT JOIN doctor d ON d.`code` = il.doctor
         LEFT JOIN an_stat a ON a.an=i.an

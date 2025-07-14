@@ -72,8 +72,8 @@ class NotifyController extends Controller
             FROM ipt i
             LEFT JOIN iptdiag id ON id.an = i.an AND id.diagtype = 1
             LEFT JOIN ipt_doctor_diag id1 ON id1.an = i.an	AND id1.diagtype = 1 
-            WHERE i.dchdate >= "'.$start_date.'" AND  i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y") 
-            AND (id.icd10 ="" OR id.icd10 IS NULL OR id1.diag_text ="" OR id1.diag_text IS NULL)');        
+            WHERE i.dchdate >= ? AND  i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y") 
+            AND (id.icd10 ="" OR id.icd10 IS NULL OR id1.diag_text ="" OR id1.diag_text IS NULL)',[$start_date]);        
         foreach ($ipd_dchsummary as $row){ 
             $non_diagtext=$row->non_diagtext;
             $non_icd10=$row->non_icd10;

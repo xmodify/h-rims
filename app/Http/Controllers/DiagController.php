@@ -48,11 +48,11 @@ class DiagController extends Controller
             FROM ovst o 
             LEFT JOIN vn_stat v ON v.vn=o.vn
             LEFT JOIN referout r ON r.vn=o.vn
-            WHERE o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
+            WHERE o.vstdate BETWEEN ? AND ?
             AND v.pdx IN ("A419","R651","R572") 
             GROUP BY o.vn ) AS a
             GROUP BY MONTH(vstdate)
-            ORDER BY YEAR(vstdate),MONTH(vstdate)');
+            ORDER BY YEAR(vstdate),MONTH(vstdate)',[$start_date,$end_date]);
         $diag_m = array_column($diag_month,'month');
         $diag_visit_m = array_column($diag_month,'visit');
         $diag_hn_m = array_column($diag_month,'hn');
@@ -68,11 +68,11 @@ class DiagController extends Controller
             FROM ovst o 
             LEFT JOIN vn_stat v ON v.vn=o.vn
             LEFT JOIN referout r ON r.vn=o.vn
-            WHERE o.vstdate BETWEEN "'.$start_date_y.'" AND "'.$end_date.'"
+            WHERE o.vstdate BETWEEN ? AND ?
             AND v.pdx IN ("A419","R651","R572") 
             GROUP BY o.vn ) AS a
             GROUP BY year_bud
-            ORDER BY year_bud');
+            ORDER BY year_bud',[$start_date_y,$end_date]);
         $diag_y = array_column($diag_year,'year_bud');
         $diag_visit_y = array_column($diag_year,'visit');
         $diag_hn_y = array_column($diag_year,'hn');
@@ -94,7 +94,7 @@ class DiagController extends Controller
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN pttype p ON p.pttype=o.pttype
             LEFT JOIN doctor d ON d.`code`=v.dx_doctor
-            WHERE o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
+            WHERE o.vstdate BETWEEN ? AND ?
             AND (v.pdx IN ("A419","R651","R572") 
             OR v.dx0 IN ("A419","R651","R572") 
             OR v.dx1 IN ("A419","R651","R572")  
@@ -102,7 +102,7 @@ class DiagController extends Controller
             OR v.dx3 IN ("A419","R651","R572") 
             OR v.dx4 IN ("A419","R651","R572") 
             OR v.dx5 IN ("A419","R651","R572"))
-            GROUP BY o.vn');         
+            GROUP BY o.vn',[$start_date,$end_date]);         
 
         return view('diag.sepsis',compact('budget_year_select','budget_year','diag_m','diag_visit_m','diag_hn_m','diag_admit_m','diag_refer_m',
             'diag_y','diag_visit_y','diag_hn_y','diag_admit_y','diag_refer_y','diag_list'));            
@@ -143,11 +143,11 @@ class DiagController extends Controller
             FROM ovst o 
             LEFT JOIN vn_stat v ON v.vn=o.vn
             LEFT JOIN referout r ON r.vn=o.vn
-            WHERE o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
+            WHERE o.vstdate BETWEEN ? AND ?
             AND v.pdx IN ("I64") 
             GROUP BY o.vn ) AS a
             GROUP BY MONTH(vstdate)
-            ORDER BY YEAR(vstdate),MONTH(vstdate)');
+            ORDER BY YEAR(vstdate),MONTH(vstdate)',[$start_date,$end_date]);
         $diag_m = array_column($diag_month,'month');
         $diag_visit_m = array_column($diag_month,'visit');
         $diag_hn_m = array_column($diag_month,'hn');
@@ -163,11 +163,11 @@ class DiagController extends Controller
             FROM ovst o 
             LEFT JOIN vn_stat v ON v.vn=o.vn
             LEFT JOIN referout r ON r.vn=o.vn
-            WHERE o.vstdate BETWEEN "'.$start_date_y.'" AND "'.$end_date.'"
+            WHERE o.vstdate BETWEEN ? AND ?
             AND v.pdx IN ("I64") 
             GROUP BY o.vn ) AS a
             GROUP BY year_bud
-            ORDER BY year_bud');
+            ORDER BY year_bud',[$start_date_y,$end_date]);
         $diag_y = array_column($diag_year,'year_bud');
         $diag_visit_y = array_column($diag_year,'visit');
         $diag_hn_y = array_column($diag_year,'hn');
@@ -189,7 +189,7 @@ class DiagController extends Controller
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN pttype p ON p.pttype=o.pttype
             LEFT JOIN doctor d ON d.`code`=v.dx_doctor
-            WHERE o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
+            WHERE o.vstdate BETWEEN ? AND ?
             AND (v.pdx IN ("I64") 
             OR v.dx0 IN ("I64") 
             OR v.dx1 IN ("I64")  
@@ -197,7 +197,7 @@ class DiagController extends Controller
             OR v.dx3 IN ("I64") 
             OR v.dx4 IN ("I64") 
             OR v.dx5 IN ("I64"))
-            GROUP BY o.vn');         
+            GROUP BY o.vn',[$start_date,$end_date]);         
 
         return view('diag.stroke',compact('budget_year_select','budget_year','diag_m','diag_visit_m','diag_hn_m','diag_admit_m','diag_refer_m',
             'diag_y','diag_visit_y','diag_hn_y','diag_admit_y','diag_refer_y','diag_list'));            
@@ -238,11 +238,11 @@ class DiagController extends Controller
             FROM ovst o 
             LEFT JOIN vn_stat v ON v.vn=o.vn
             LEFT JOIN referout r ON r.vn=o.vn
-            WHERE o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
+            WHERE o.vstdate BETWEEN ? AND ?
             AND v.pdx IN ("I210","I211","I212","I213") 
             GROUP BY o.vn ) AS a
             GROUP BY MONTH(vstdate)
-            ORDER BY YEAR(vstdate),MONTH(vstdate)');
+            ORDER BY YEAR(vstdate),MONTH(vstdate)',[$start_date,$end_date]);
         $diag_m = array_column($diag_month,'month');
         $diag_visit_m = array_column($diag_month,'visit');
         $diag_hn_m = array_column($diag_month,'hn');
@@ -258,11 +258,11 @@ class DiagController extends Controller
             FROM ovst o 
             LEFT JOIN vn_stat v ON v.vn=o.vn
             LEFT JOIN referout r ON r.vn=o.vn
-            WHERE o.vstdate BETWEEN "'.$start_date_y.'" AND "'.$end_date.'"
+            WHERE o.vstdate BETWEEN ? AND ?
             AND v.pdx IN ("I210","I211","I212","I213") 
             GROUP BY o.vn ) AS a
             GROUP BY year_bud
-            ORDER BY year_bud');
+            ORDER BY year_bud',[$start_date_y,$end_date]);
         $diag_y = array_column($diag_year,'year_bud');
         $diag_visit_y = array_column($diag_year,'visit');
         $diag_hn_y = array_column($diag_year,'hn');
@@ -284,7 +284,7 @@ class DiagController extends Controller
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN pttype p ON p.pttype=o.pttype
             LEFT JOIN doctor d ON d.`code`=v.dx_doctor
-            WHERE o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
+            WHERE o.vstdate BETWEEN ? AND ?
             AND (v.pdx IN ("I21","I210","I211","I212","I213","I214","I219")
             OR v.dx0 IN ("I21","I210","I211","I212","I213","I214","I219")
             OR v.dx1 IN ("I21","I210","I211","I212","I213","I214","I219")
@@ -292,7 +292,7 @@ class DiagController extends Controller
             OR v.dx3 IN ("I21","I210","I211","I212","I213","I214","I219")
             OR v.dx4 IN ("I21","I210","I211","I212","I213","I214","I219")
             OR v.dx5 IN ("I21","I210","I211","I212","I213","I214","I219"))
-            GROUP BY o.vn');         
+            GROUP BY o.vn',[$start_date,$end_date]);         
 
         return view('diag.stemi',compact('budget_year_select','budget_year','diag_m','diag_visit_m','diag_hn_m','diag_admit_m','diag_refer_m',
             'diag_y','diag_visit_y','diag_hn_y','diag_admit_y','diag_refer_y','diag_list'));            
@@ -333,11 +333,11 @@ class DiagController extends Controller
             FROM ovst o 
             LEFT JOIN vn_stat v ON v.vn=o.vn
             LEFT JOIN referout r ON r.vn=o.vn
-            WHERE o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
+            WHERE o.vstdate BETWEEN ? AND ?
             AND v.pdx IN ("J128","J159","J188","J189")
             GROUP BY o.vn ) AS a
             GROUP BY MONTH(vstdate)
-            ORDER BY YEAR(vstdate),MONTH(vstdate)');
+            ORDER BY YEAR(vstdate),MONTH(vstdate)',[$start_date,$end_date]);
         $diag_m = array_column($diag_month,'month');
         $diag_visit_m = array_column($diag_month,'visit');
         $diag_hn_m = array_column($diag_month,'hn');
@@ -353,11 +353,11 @@ class DiagController extends Controller
             FROM ovst o 
             LEFT JOIN vn_stat v ON v.vn=o.vn
             LEFT JOIN referout r ON r.vn=o.vn
-            WHERE o.vstdate BETWEEN "'.$start_date_y.'" AND "'.$end_date.'"
+            WHERE o.vstdate BETWEEN ? AND ?
             AND v.pdx IN ("J128","J159","J188","J189")
             GROUP BY o.vn ) AS a
             GROUP BY year_bud
-            ORDER BY year_bud');
+            ORDER BY year_bud',[$start_date_y,$end_date]);
         $diag_y = array_column($diag_year,'year_bud');
         $diag_visit_y = array_column($diag_year,'visit');
         $diag_hn_y = array_column($diag_year,'hn');
@@ -379,7 +379,7 @@ class DiagController extends Controller
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN pttype p ON p.pttype=o.pttype
             LEFT JOIN doctor d ON d.`code`=v.dx_doctor
-            WHERE o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
+            WHERE o.vstdate BETWEEN ? AND ?
             AND (v.pdx IN ("J128","J159","J188","J189") 
             OR v.dx0 IN ("J128","J159","J188","J189") 
             OR v.dx1 IN ("J128","J159","J188","J189") 
@@ -387,7 +387,7 @@ class DiagController extends Controller
             OR v.dx3 IN ("J128","J159","J188","J189") 
             OR v.dx4 IN ("J128","J159","J188","J189") 
             OR v.dx5 IN ("J128","J159","J188","J189"))
-            GROUP BY o.vn');         
+            GROUP BY o.vn',[$start_date,$end_date]);         
 
         return view('diag.pneumonia',compact('budget_year_select','budget_year','diag_m','diag_visit_m','diag_hn_m','diag_admit_m','diag_refer_m',
             'diag_y','diag_visit_y','diag_hn_y','diag_admit_y','diag_refer_y','diag_list'));            

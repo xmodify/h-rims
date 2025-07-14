@@ -150,10 +150,10 @@ public function index(Request $request )
         FROM ipt i
         LEFT JOIN iptdiag id ON id.an = i.an AND id.diagtype = 1
 		LEFT JOIN an_stat a ON a.an=i.an
-        WHERE i.dchdate >= "'.$start_date.'" AND  i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y") 
+        WHERE i.dchdate >= ? AND  i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y") 
         AND (a.diag_text_list ="" OR a.diag_text_list IS NULL 				
 		OR id.icd10 ="" OR id.icd10 IS NULL
-		OR a.pdx = "" OR a.pdx IS NULL)');        
+		OR a.pdx = "" OR a.pdx IS NULL)',[$start_date]);        
         foreach ($ipd_dchsummary as $row){ 
             $non_diagtext=$row->non_diagtext;
             $non_icd10=$row->non_icd10;
@@ -190,15 +190,15 @@ public function index(Request $request )
         WHEN MONTH(i.dchdate)="8" THEN CONCAT("ส.ค. ",YEAR(i.dchdate)+543)
         WHEN MONTH(i.dchdate)="9" THEN CONCAT("ก.ย. ",YEAR(i.dchdate)+543)
         END AS "month",COUNT(DISTINCT i.an) AS an ,sum(a.admdate) AS admdate,        
-        ROUND((SUM(a.admdate)*100)/("'.$bed_qty.'"*DAY(LAST_DAY(i.dchdate))),2) AS "bed_occupancy",
-        ROUND(((SUM(a.admdate)*100)/("'.$bed_qty.'"*DAY(LAST_DAY(a.dchdate)))*"'.$bed_qty.'")/100,2) AS "active_bed",
+        ROUND((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(i.dchdate))),2) AS "bed_occupancy",
+        ROUND(((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(a.dchdate)))*?)/100,2) AS "active_bed",
 		ROUND(SUM(i.adjrw)/COUNT(DISTINCT i.an),2) AS cmi,
         ROUND(SUM(i.adjrw),2) AS adjrw ,SUM(a.income-a.rcpt_money)/SUM(i.adjrw) AS "income_rw"  
         FROM an_stat a INNER JOIN ipt i ON a.an=i.an
-        WHERE i.dchdate BETWEEN "'.$start_date.'" AND DATE(NOW())
+        WHERE i.dchdate BETWEEN ? AND DATE(NOW())
         AND a.pdx NOT IN ("Z290","Z208")
         GROUP BY MONTH(i.dchdate)
-        ORDER BY YEAR(i.dchdate) , MONTH(i.dchdate)');
+        ORDER BY YEAR(i.dchdate) , MONTH(i.dchdate)',[$bed_qty,$bed_qty,$bed_qty,$start_date]);
 
     $ip_normal = DB::connection('hosxp')->select('
         SELECT CASE WHEN MONTH(i.dchdate)="10" THEN CONCAT("ต.ค. ",YEAR(i.dchdate)+543)
@@ -214,15 +214,15 @@ public function index(Request $request )
         WHEN MONTH(i.dchdate)="8" THEN CONCAT("ส.ค. ",YEAR(i.dchdate)+543)
         WHEN MONTH(i.dchdate)="9" THEN CONCAT("ก.ย. ",YEAR(i.dchdate)+543)
         END AS "month",COUNT(DISTINCT i.an) AS an ,sum(a.admdate) AS admdate,        
-        ROUND((SUM(a.admdate)*100)/("'.$bed_qty.'"*DAY(LAST_DAY(i.dchdate))),2) AS "bed_occupancy",
-        ROUND(((SUM(a.admdate)*100)/("'.$bed_qty.'"*DAY(LAST_DAY(a.dchdate)))*"'.$bed_qty.'")/100,2) AS "active_bed",
+        ROUND((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(i.dchdate))),2) AS "bed_occupancy",
+        ROUND(((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(a.dchdate)))*?)/100,2) AS "active_bed",
 		ROUND(SUM(i.adjrw)/COUNT(DISTINCT i.an),2) AS cmi,
         ROUND(SUM(i.adjrw),2) AS adjrw ,SUM(a.income-a.rcpt_money)/SUM(i.adjrw) AS "income_rw"  
         FROM an_stat a INNER JOIN ipt i ON a.an=i.an
-        WHERE i.dchdate BETWEEN "'.$start_date.'" AND DATE(NOW())
+        WHERE i.dchdate BETWEEN ? AND DATE(NOW())
         AND a.pdx NOT IN ("Z290","Z208") AND i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")
         GROUP BY MONTH(i.dchdate)
-        ORDER BY YEAR(i.dchdate) , MONTH(i.dchdate)');
+        ORDER BY YEAR(i.dchdate) , MONTH(i.dchdate)',[$bed_qty,$bed_qty,$bed_qty,$start_date]);
 
     $ip_homeward = DB::connection('hosxp')->select('
         SELECT CASE WHEN MONTH(i.dchdate)="10" THEN CONCAT("ต.ค. ",YEAR(i.dchdate)+543)
@@ -238,15 +238,15 @@ public function index(Request $request )
         WHEN MONTH(i.dchdate)="8" THEN CONCAT("ส.ค. ",YEAR(i.dchdate)+543)
         WHEN MONTH(i.dchdate)="9" THEN CONCAT("ก.ย. ",YEAR(i.dchdate)+543)
         END AS "month",COUNT(DISTINCT i.an) AS an ,sum(a.admdate) AS admdate,        
-        ROUND((SUM(a.admdate)*100)/("'.$bed_qty.'"*DAY(LAST_DAY(i.dchdate))),2) AS "bed_occupancy",
-        ROUND(((SUM(a.admdate)*100)/("'.$bed_qty.'"*DAY(LAST_DAY(a.dchdate)))*"'.$bed_qty.'")/100,2) AS "active_bed",
+        ROUND((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(i.dchdate))),2) AS "bed_occupancy",
+        ROUND(((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(a.dchdate)))*?)/100,2) AS "active_bed",
 		ROUND(SUM(i.adjrw)/COUNT(DISTINCT i.an),2) AS cmi,
         ROUND(SUM(i.adjrw),2) AS adjrw ,SUM(a.income-a.rcpt_money)/SUM(i.adjrw) AS "income_rw"  
         FROM an_stat a INNER JOIN ipt i ON a.an=i.an
-        WHERE i.dchdate BETWEEN "'.$start_date.'" AND DATE(NOW())
+        WHERE i.dchdate BETWEEN ? AND DATE(NOW())
         AND a.pdx NOT IN ("Z290","Z208") AND i.ward IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")
         GROUP BY MONTH(i.dchdate)
-        ORDER BY YEAR(i.dchdate) , MONTH(i.dchdate)');
+        ORDER BY YEAR(i.dchdate) , MONTH(i.dchdate)',[$bed_qty,$bed_qty,$bed_qty,$start_date]);
     $month = array_column($ip_all,'month');  
     $bed_occupancy = array_column($ip_all,'bed_occupancy');
 
@@ -440,9 +440,9 @@ public function opd_ucs_all(Request $request )
         LEFT JOIN vn_stat v ON v.vn = o.vn
         LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
-        WHERE o.vstdate  BETWEEN "'.$start_date.'" AND "'.$end_date.'"
+        WHERE o.vstdate  BETWEEN ? AND ?
         AND p.hipdata_code = "UCS"
-        GROUP BY o.vn ORDER BY o.vstdate,o.vsttime');
+        GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date]);
 
     return view('home_detail.opd_ucs_all',compact('start_date','end_date','sql'));
 }
@@ -470,9 +470,9 @@ public function opd_ofc_all(Request $request )
         LEFT JOIN xray_report x ON x.vn=o.vn
         LEFT JOIN vn_stat v ON v.vn = o.vn
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
-        WHERE o.vstdate  BETWEEN "'.$start_date.'" AND "'.$end_date.'"
+        WHERE o.vstdate  BETWEEN ? AND ?
         AND p.hipdata_code = "OFC"
-        GROUP BY o.vn ORDER BY o.vstdate,o.vsttime');
+        GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date]);
 
     return view('home_detail.opd_ofc_all',compact('start_date','end_date','sql'));
 }
@@ -495,9 +495,9 @@ public function opd_non_authen(Request $request )
         LEFT JOIN visit_pttype vp ON vp.vn=o.vn
         LEFT JOIN pttype p1 ON p1.pttype=vp.pttype
         LEFT JOIN kskdepartment k ON k.depcode=o.main_dep
-        WHERE o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
+        WHERE o.vstdate BETWEEN ? AND ?
         AND (vp.auth_code IS NULL OR vp.auth_code ="") AND p.nationality ="99"         
-        GROUP BY o.vn ORDER BY o.vsttime');
+        GROUP BY o.vn ORDER BY o.vsttime',[$start_date,$end_date]);
 
     return view('home_detail.opd_non_authen',compact('start_date','end_date','sql'));
 }
@@ -523,9 +523,9 @@ public function opd_non_hospmain(Request $request )
         LEFT JOIN xray_report x ON x.vn=o.vn
         LEFT JOIN vn_stat v ON v.vn = o.vn
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate
-        WHERE o.vstdate  BETWEEN "'.$start_date.'" AND "'.$end_date.'"
+        WHERE o.vstdate  BETWEEN ? AND ?
         AND (p.hipdata_code = "UCS" OR p.hipdata_code ="SSS") AND (vp.hospmain="" OR vp.hospmain IS NULL)
-        GROUP BY o.vn ORDER BY o.vstdate,o.vsttime');
+        GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date]);
 
     return view('home_detail.opd_non_hospmain',compact('start_date','end_date','sql'));
 }
@@ -560,10 +560,10 @@ public function opd_ucs_anywhere(Request $request )
         LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
         LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
 		LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"     
-        WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
+        WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN ? AND ?
         AND p.hipdata_code = "UCS" AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
         AND oe.moph_finance_upload_datetime IS NULL AND rep.vn IS NULL
-        GROUP BY o.vn ORDER BY ep.sourceChannel,o.vstdate,o.vsttime');
+        GROUP BY o.vn ORDER BY ep.sourceChannel,o.vstdate,o.vsttime',[$start_date,$end_date]);
 
     $claim=DB::connection('hosxp')->select('
         SELECT o.oqueue,o.vstdate,o.vsttime,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,p.`name` AS pttype,
@@ -586,10 +586,10 @@ public function opd_ucs_anywhere(Request $request )
         LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
 		LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
         LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND DATE(stm.datetimeadm) = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
-        WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
+        WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN ? AND ?
         AND p.hipdata_code = "UCS" AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
         AND (oe.moph_finance_upload_datetime IS NOT NULL OR rep.vn IS NOT NULL)
-        GROUP BY o.vn ORDER BY ep.sourceChannel,o.vstdate,o.vsttime');
+        GROUP BY o.vn ORDER BY ep.sourceChannel,o.vstdate,o.vsttime',[$start_date,$end_date]);
 
     return view('home_detail.opd_ucs_anywhere',compact('start_date','end_date','search','claim'));
 }
@@ -627,8 +627,8 @@ public function opd_ucs_cr(Request $request )
         WHERE p1.hipdata_code = "UCS" AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
         AND (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL 
         AND oe.moph_finance_upload_datetime IS NULL AND rep.vn IS NULL
-        AND o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
-        GROUP BY o.vn ORDER BY o.vstdate,o.oqueue');
+        AND o.vstdate BETWEEN ? AND ?
+        GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]);
 
     $claim=DB::connection('hosxp')->select('
         SELECT o.vstdate,o.vsttime,o.oqueue,o.vn,o.hn,p.cid,CONCAT(p.pname,p.fname,SPACE(1),p.lname) AS ptname,
@@ -657,8 +657,8 @@ public function opd_ucs_cr(Request $request )
         WHERE p1.hipdata_code = "UCS" AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
         AND (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL 
         AND (oe.moph_finance_upload_datetime IS NOT NULL OR rep.vn IS NOT NULL)
-        AND o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
-        GROUP BY o.vn ORDER BY o.vstdate,o.oqueue');
+        AND o.vstdate BETWEEN ? AND ?
+        GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]);
 
     return view('home_detail.opd_ucs_cr',compact('start_date','end_date','search','claim'));
 }
@@ -696,13 +696,13 @@ public function opd_ucs_healthmed(Request $request )
 			FROM health_med_service h
 			LEFT JOIN health_med_service_operation h1 ON h1.health_med_service_id=h.health_med_service_id
 			LEFT JOIN health_med_operation_item h2 ON h2.health_med_operation_item_id=h1.health_med_operation_item_id
-			WHERE h.service_date BETWEEN "'.$start_date.'" AND "'.$end_date.'"
+			WHERE h.service_date BETWEEN ? AND ?
 			GROUP BY h1.health_med_service_id,h1.health_med_operation_item_id) hm ON hm.vn=o.vn
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"       
-		WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'" AND p.hipdata_code = "UCS"
+		WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN ? AND ? AND p.hipdata_code = "UCS"
         AND (o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE herb32 = "Y") OR hm.vn IS NOT NULL OR hm.vn <>"")
         AND oe.moph_finance_upload_datetime IS NULL AND rep.vn IS NULL
-        GROUP BY o.vn ORDER BY ep.sourceChannel,hm.health_med_operation DESC,o.vstdate,o.vsttime');
+        GROUP BY o.vn ORDER BY ep.sourceChannel,hm.health_med_operation DESC,o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
     $claim=DB::connection('hosxp')->select('
         SELECT o.oqueue,IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,v.pdx,
@@ -729,14 +729,14 @@ public function opd_ucs_healthmed(Request $request )
 			FROM health_med_service h
 			LEFT JOIN health_med_service_operation h1 ON h1.health_med_service_id=h.health_med_service_id
 			LEFT JOIN health_med_operation_item h2 ON h2.health_med_operation_item_id=h1.health_med_operation_item_id
-			WHERE h.service_date BETWEEN "'.$start_date.'" AND "'.$end_date.'"
+			WHERE h.service_date BETWEEN ? AND ?
 			GROUP BY h1.health_med_service_id,h1.health_med_operation_item_id) hm ON hm.vn=o.vn
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%" 
         LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND DATE(stm.datetimeadm) = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)       
-		WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'" AND p.hipdata_code = "UCS"
+		WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN ? AND ? AND p.hipdata_code = "UCS"
         AND (o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE herb32 = "Y") OR hm.vn IS NOT NULL OR hm.vn <>"")
         AND (oe.moph_finance_upload_datetime IS NOT NULL OR rep.vn IS NOT NULL)
-        GROUP BY o.vn ORDER BY ep.sourceChannel,hm.health_med_operation DESC,o.vstdate,o.vsttime');
+        GROUP BY o.vn ORDER BY ep.sourceChannel,hm.health_med_operation DESC,o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
     return view('home_detail.opd_ucs_healthmed',compact('start_date','end_date','search','claim'));
 }
@@ -772,9 +772,9 @@ public function opd_ppfs(Request $request )
         LEFT JOIN kskdepartment k ON k.depcode = o.cur_dep
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
         WHERE vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-        AND (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL AND o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
+        AND (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL AND o.vstdate BETWEEN ? AND ?
         AND oe.moph_finance_upload_datetime IS NULL AND rep.vn IS NULL
-        GROUP BY o.vn ORDER BY o.vstdate,o.oqueue');
+        GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]);
 
     $claim=DB::connection('hosxp')->select('
         SELECT o.vstdate,o.vsttime,o.oqueue,o.vn,o.hn,p.cid,CONCAT(p.pname,p.fname,SPACE(1),p.lname) AS ptname,
@@ -800,9 +800,9 @@ public function opd_ppfs(Request $request )
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
          LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND DATE(stm.datetimeadm) = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)       
         WHERE vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-        AND (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL AND o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
+        AND (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL AND o.vstdate BETWEEN ? AND ?
         AND (oe.moph_finance_upload_datetime IS NOT NULL OR rep.vn IS NOT NULL)
-        GROUP BY o.vn ORDER BY o.vstdate,o.oqueue');
+        GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]);
 
     return view('home_detail.opd_ppfs',compact('start_date','end_date','search','claim'));
 }
@@ -828,8 +828,8 @@ public function ipd_homeward(Request $request )
         LEFT JOIN kskdepartment k ON k.depcode=o.main_dep
 		LEFT JOIN ipt i ON i.an=o.an AND i.ward IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimType = "PG0140001"
-        WHERE (i.an IS NOT NULL OR i.an <>"") AND o.vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'"
-		GROUP BY o.vn ORDER BY o.vsttime');
+        WHERE (i.an IS NOT NULL OR i.an <>"") AND o.vstdate BETWEEN ? AND ?
+		GROUP BY o.vn ORDER BY o.vsttime',[$start_date,$end_date]);
 
     return view('home_detail.ipd_homeward',compact('start_date','end_date','sql'));
 }
@@ -855,10 +855,10 @@ public function ipd_non_dchsummary(Request $request )
         LEFT JOIN ipt_doctor_list il ON il.an = i.an AND il.ipt_doctor_type_id = 1 AND il.active_doctor = "Y"
         LEFT JOIN doctor d ON d.`code` = il.doctor
         LEFT JOIN an_stat a ON a.an=i.an
-        WHERE i.dchdate >= "'.$start_date.'" AND  i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y") 
+        WHERE i.dchdate >= ? AND  i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y") 
         AND (a.diag_text_list ="" OR a.diag_text_list IS NULL)
         GROUP BY i.an
-        ORDER BY d.`name`,dch_day DESC');  
+        ORDER BY d.`name`,dch_day DESC',[$start_date]);  
 
     $non_dchsummary_sum=DB::connection('hosxp')->select('
         SELECT d.`name` AS owner_doctor_name,COUNT(i.an) AS total
@@ -867,10 +867,10 @@ public function ipd_non_dchsummary(Request $request )
         LEFT JOIN ipt_doctor_list il ON il.an = i.an AND il.ipt_doctor_type_id = 1 AND il.active_doctor = "Y"
         LEFT JOIN doctor d ON d.`code` = il.doctor
         LEFT JOIN an_stat a ON a.an=i.an
-        WHERE i.dchdate >= "'.$start_date.'" AND  i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y") 
+        WHERE i.dchdate >= ? AND  i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y") 
         AND (a.diag_text_list ="" OR a.diag_text_list IS NULL)
         GROUP BY d.`name` 
-        ORDER BY total DESC'); 
+        ORDER BY total DESC',[$start_date]); 
     $owner_doctor_name = array_column($non_dchsummary_sum,'owner_doctor_name');
     $owner_doctor_total = array_column($non_dchsummary_sum,'total');
     

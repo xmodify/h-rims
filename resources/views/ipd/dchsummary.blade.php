@@ -1,18 +1,4 @@
 @extends('layouts.app')
-<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.2.0/css/bootstrap.min.css">
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.1/css/dataTables.bootstrap5.min.css">
-
-<style>
-    table {
-    border-collapse: collapse;
-    border-spacing: 0;
-    width: 100%;
-    border: 1px solid #ddd;
-    }
-    th, td {
-    padding: 8px;
-    }     
-</style>
 
 @section('content')
 
@@ -114,14 +100,79 @@
                     <div class="card text-white mb-3" style="max-width: 18rem; background-color: #ffc107" >
                         <div class="card-header">
                             <ion-icon name="people-outline"></ion-icon>
-                            รายได้พึงรับ {{number_format($base_rate)}}*{{$k_value}}
+                            AdjRW รวม
                         </div>
                         <div class="card-body">
-                            <h1 class="card-title text-center">{{number_format($sum_rw,2)}} Rw. <font style="color: green;" >{{number_format($rw_recive,2)}}</font></h1>
-  
+                            <h1 class="card-title text-center">{{number_format($rw_all,2)}} </h1>
+                            <p class="card-text">
+                                Rw.
+                            </p>   
                         </div>
                     </div>
                 </div>
+            </div>
+                <!-- Row-->
+            <div class="row" align="center">
+                <div class="col-sm-2">
+                    <div class="card border border-success text-primary" style="max-width: 18rem; background-color:#e1f5fe" >
+                        <div class="card-header">
+                            <ion-icon name="people-outline"></ion-icon>
+                            AdjRW UCS ในเขต
+                        </div>
+                        <div class="card-body">
+                            <h4 class="card-title text-center">{{number_format($rw_ucs,2)}} Rw.</h4>
+                            <h4 class="card-title text-center"><font style="color: green;" >{{number_format($rw_receive_ucs,2)}} บาท</font></h4>        
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-2">
+                    <div class="card border border-success text-primary" style="max-width: 18rem; background-color:#e1f5fe" >
+                        <div class="card-header">
+                            <ion-icon name="people-outline"></ion-icon>
+                            AdjRW UCS นอกเขต
+                        </div>
+                        <div class="card-body">
+                            <h4 class="card-title text-center">{{number_format($rw_ucs2,2)}} Rw.</h4>
+                            <h4 class="card-title text-center"><font style="color: green;" >{{number_format($rw_receive_ucs2,2)}} บาท</font></h4>        
+                        </div>
+                    </div>
+                </div>                
+                <div class="col-sm-2">
+                    <div class="card border border-success text-primary" style="max-width: 18rem; background-color:#e1f5fe" >
+                        <div class="card-header">
+                            <ion-icon name="people-outline"></ion-icon>
+                            AdjRW OFC
+                        </div>
+                        <div class="card-body">
+                            <h4 class="card-title text-center">{{number_format($rw_ofc,2)}} Rw.</h4>
+                            <h4 class="card-title text-center"><font style="color: green;" >{{number_format($rw_receive_ofc,2)}} บาท</font></h4>        
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-2">
+                    <div class="card border border-success text-primary" style="max-width: 18rem; background-color:#e1f5fe" >
+                        <div class="card-header">
+                            <ion-icon name="people-outline"></ion-icon>
+                            AdjRW LGO
+                        </div>
+                        <div class="card-body">
+                            <h4 class="card-title text-center">{{number_format($rw_lgo,2)}} Rw.</h4>
+                            <h4 class="card-title text-center"><font style="color: green;" >{{number_format($rw_receive_lgo,2)}} บาท</font></h4>        
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-2">
+                    <div class="card border border-success text-primary" style="max-width: 18rem; background-color:#e1f5fe" >
+                        <div class="card-header">
+                            <ion-icon name="people-outline"></ion-icon>
+                            AdjRW SSS
+                        </div>
+                        <div class="card-body">
+                            <h4 class="card-title text-center">{{number_format($rw_sss,2)}} Rw.</h4>
+                            <h4 class="card-title text-center"><font style="color: green;" >{{number_format($rw_receive_sss,2)}} บาท</font></h4>        
+                        </div>
+                    </div>
+                </div>                
             </div >
          <br>
             <div style="overflow-x:auto;">    
@@ -191,15 +242,43 @@
 </div>
 
 @endsection
+
 <!-- ionicon -->
 <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
 <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
 
-<script type="text/javascript" language="javascript" src="https://code.jquery.com/jquery-3.5.1.js"></script>
-<script type="text/javascript" language="javascript" src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
-<script type="text/javascript" language="javascript" src="https://cdn.datatables.net/1.13.1/js/dataTables.bootstrap5.min.js"></script>
-<script type="text/javascript" class="init">
+
+@push('scripts')
+  <script>
     $(document).ready(function () {
-        $('#dchsummary').DataTable();
+      $('#dchsummary').DataTable({
+        dom: '<"row mb-3"' +
+                '<"col-md-6"l>' + // Show รายการ
+                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
+              '>' +
+              'rt' +
+              '<"row mt-3"' +
+                '<"col-md-6"i>' + // Info
+                '<"col-md-6"p>' + // Pagination
+              '>',
+        buttons: [
+            {
+              extend: 'excelHtml5',
+              text: 'Excel',
+              className: 'btn btn-success',
+              title: 'ข้อมูลผู้ป่วยที่ Discharge วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+            }
+        ],
+        language: {
+            search: "ค้นหา:",
+            lengthMenu: "แสดง _MENU_ รายการ",
+            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+            paginate: {
+              previous: "ก่อนหน้า",
+              next: "ถัดไป"
+            }
+        }
+      });
     });
-</script>
+  </script>
+@endpush

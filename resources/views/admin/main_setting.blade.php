@@ -60,13 +60,14 @@
 <hr>
 
     <button class="btn btn-danger" id="gitPullBtn" style="display: inline;">Git Pull</button>   
-    <form method="POST" action="{{ route('admin.up_structure') }}" style="display: inline;">
+    <form id="structureForm" method="POST" action="{{ route('admin.up_structure') }}" style="display: inline;">
         @csrf
-        <button type="submit" class="btn btn-primary">ปรับโครงสร้าง</button>
+        <button type="submit" class="btn btn-primary" onclick="confirmAction(event)">ปรับโครงสร้าง</button>
     </form>
 
     <pre id="gitOutput" style="background: #eeee; padding: 1rem; margin-top: 1rem;"></pre>
 
+    <!-- แจ้ง Git Pull -->
     <script>
         document.getElementById('gitPullBtn').addEventListener('click', function () {
             if (!confirm("คุณแน่ใจว่าจะ Git Pull ใช่ไหม?")) return;
@@ -97,22 +98,43 @@
         });
     </script>
 
+    <!-- SweetAlert สำหรับ ปรับโครงสร้าง -->
+    <script>
+        function confirmAction(event) {
+            event.preventDefault(); // ป้องกัน submit ทันที
+
+            Swal.fire({
+                title: 'ยืนยันการดำเนินการ?',
+                text: "คุณต้องการปรับโครงสร้างหรือไม่?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'ใช่, ดำเนินการ!',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('structureForm').submit(); // submit ฟอร์ม
+                }
+            });
+        }
+    </script>
+
     <!-- SweetAlert สำหรับ Success -->
     @if(session('success'))
-    <script>
-        Swal.fire({
-            icon: 'success',
-            title: 'Success',
-            text: '{{ session('success') }}',
-            timer: 2000,
-            showConfirmButton: false
-        });
-    </script>
+        <script>
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: '{{ session('success') }}',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        </script>
     @endif
 
-    <!-- JavaScript -->
-    <script>
-        // Set ข้อมูลใน Edit Modal
+    <!-- JavaScript  Set ข้อมูลใน Edit Modal-->
+    <script>        
         document.querySelectorAll('.btn-edit').forEach(button => {
             button.addEventListener('click', function () {
                 const id = this.dataset.id;
@@ -125,4 +147,5 @@
     </script>
 
 </div>
+
 @endsection

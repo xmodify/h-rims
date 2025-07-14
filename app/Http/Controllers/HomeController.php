@@ -849,6 +849,7 @@ public function ipd_non_dchsummary(Request $request )
         CASE WHEN (a.diag_text_list ="" OR a.diag_text_list IS NULL) THEN "รอแพทย์สรุป Chart"
         WHEN (id.icd10 ="" OR id.icd10 IS NULL) THEN "รอลงรหัสวินิจฉัยโรค" END AS diag_status
         FROM ipt i
+        LEFT JOIN ward w ON w.ward=i.ward 
         LEFT JOIN iptdiag id ON id.an = i.an AND id.diagtype = 1
 		LEFT JOIN ipt_doctor_diag id1 ON id1.an = i.an	AND id1.diagtype = 1 
         LEFT JOIN ipt_doctor_list il ON il.an = i.an AND il.ipt_doctor_type_id = 1 AND il.active_doctor = "Y"

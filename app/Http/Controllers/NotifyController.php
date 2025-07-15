@@ -67,13 +67,15 @@ class NotifyController extends Controller
         }    
 
         $ipd_dchsummary = DB::connection('hosxp')->select('
-            SELECT SUM(CASE WHEN (id1.diag_text ="" OR id1.diag_text IS NULL) THEN 1 ELSE 0 END) AS non_diagtext,
-            SUM(CASE WHEN (id.icd10 ="" OR id.icd10 IS NULL) AND id1.diag_text <>"" AND id1.diag_text IS NOT NULL THEN 1 ELSE 0 END) AS non_icd10
+            SELECT SUM(CASE WHEN (a.diag_text_list ="" OR a.diag_text_list IS NULL ) THEN 1 ELSE 0 END) AS non_diagtext,
+            SUM(CASE WHEN (id.icd10 ="" OR id.icd10 IS NULL OR a.pdx = "" OR a.pdx IS NULL) THEN 1 ELSE 0 END) AS non_icd10
             FROM ipt i
             LEFT JOIN iptdiag id ON id.an = i.an AND id.diagtype = 1
-            LEFT JOIN ipt_doctor_diag id1 ON id1.an = i.an	AND id1.diagtype = 1 
+            LEFT JOIN an_stat a ON a.an=i.an
             WHERE i.dchdate >= ? AND  i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y") 
-            AND (id.icd10 ="" OR id.icd10 IS NULL OR id1.diag_text ="" OR id1.diag_text IS NULL)',[$start_date]);        
+            AND (a.diag_text_list ="" OR a.diag_text_list IS NULL 				
+            OR id.icd10 ="" OR id.icd10 IS NULL
+            OR a.pdx = "" OR a.pdx IS NULL)',[$start_date]);   
         foreach ($ipd_dchsummary as $row){ 
             $non_diagtext=$row->non_diagtext;
             $non_icd10=$row->non_icd10;
@@ -95,8 +97,8 @@ class NotifyController extends Controller
         ."ไม่ขอ Authen: " .$non_authen ." visit" ."\n" 
         ."ไม่บันทึก Hmain: " .$non_hmain ." Visit" ."\n" 
         ."---------------------------------"  ."\n" 
-        ."Chart รอลงรหัสโรค: " .$non_icd10 ." AN" ."\n"
         ."Chart รอแพทย์สรุป: " .$non_diagtext ." AN" ."\n" 
+        ."Chart รอลงรหัสโรค: " .$non_icd10 ." AN" ."\n"
         .$url_ipd_dchsummary ."\n";  
 
         $token =  DB::table('main_setting')->where('name','telegram_token')->value('value'); //Notify_Bot

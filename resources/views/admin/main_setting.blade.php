@@ -2,9 +2,14 @@
 
 @section('content')
 <div class="container mt-4">
-
-    <h3 class="text-primary">Main Setting</h3>    
-
+    <button class="btn btn-danger" id="gitPullBtn" style="display: inline;">Git Pull</button>   
+    <form id="structureForm" method="POST" action="{{ route('admin.up_structure') }}" style="display: inline;">
+        @csrf
+        <button type="submit" class="btn btn-primary" onclick="confirmAction(event)">ปรับโครงสร้าง</button>
+    </form>
+    <pre id="gitOutput" style="background: #eeee; padding: 1rem; margin-top: 1rem;"></pre>
+    
+    <h3 class="text-primary">Main Setting</h3>
     <!-- ตาราง -->
     <table class="table table-bordered">
         <thead class="table-primary">
@@ -56,17 +61,7 @@
             </form>
         </div>
     </div>
-<br>
-<hr>
-
-    <button class="btn btn-danger" id="gitPullBtn" style="display: inline;">Git Pull</button>   
-    <form id="structureForm" method="POST" action="{{ route('admin.up_structure') }}" style="display: inline;">
-        @csrf
-        <button type="submit" class="btn btn-primary" onclick="confirmAction(event)">ปรับโครงสร้าง</button>
-    </form>
-
-    <pre id="gitOutput" style="background: #eeee; padding: 1rem; margin-top: 1rem;"></pre>
-
+    <br>
     <!-- แจ้ง Git Pull -->
     <script>
         document.getElementById('gitPullBtn').addEventListener('click', function () {

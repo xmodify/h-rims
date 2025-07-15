@@ -100,7 +100,7 @@
                     <div class="card text-white mb-3" style="max-width: 18rem; background-color: #ffc107" >
                         <div class="card-header">
                             <ion-icon name="people-outline"></ion-icon>
-                            AdjRW รวม
+                            SumAdjRW รวม
                         </div>
                         <div class="card-body">
                             <h1 class="card-title text-center">{{number_format($rw_all,2)}} </h1>
@@ -117,7 +117,7 @@
                     <div class="card border border-success text-primary" style="max-width: 18rem; background-color:#e1f5fe" >
                         <div class="card-header">
                             <ion-icon name="people-outline"></ion-icon>
-                            AdjRW UCS ในเขต
+                            SumAdjRW UCS ในเขต
                         </div>
                         <div class="card-body">
                             <h4 class="card-title text-center">{{number_format($rw_ucs,2)}} Rw.</h4>
@@ -129,7 +129,7 @@
                     <div class="card border border-success text-primary" style="max-width: 18rem; background-color:#e1f5fe" >
                         <div class="card-header">
                             <ion-icon name="people-outline"></ion-icon>
-                            AdjRW UCS นอกเขต
+                            SumAdjRW UCS นอกเขต
                         </div>
                         <div class="card-body">
                             <h4 class="card-title text-center">{{number_format($rw_ucs2,2)}} Rw.</h4>
@@ -141,7 +141,7 @@
                     <div class="card border border-success text-primary" style="max-width: 18rem; background-color:#e1f5fe" >
                         <div class="card-header">
                             <ion-icon name="people-outline"></ion-icon>
-                            AdjRW OFC
+                            SumAdjRW OFC
                         </div>
                         <div class="card-body">
                             <h4 class="card-title text-center">{{number_format($rw_ofc,2)}} Rw.</h4>
@@ -153,7 +153,7 @@
                     <div class="card border border-success text-primary" style="max-width: 18rem; background-color:#e1f5fe" >
                         <div class="card-header">
                             <ion-icon name="people-outline"></ion-icon>
-                            AdjRW LGO
+                            SumAdjRW LGO
                         </div>
                         <div class="card-body">
                             <h4 class="card-title text-center">{{number_format($rw_lgo,2)}} Rw.</h4>
@@ -165,7 +165,7 @@
                     <div class="card border border-success text-primary" style="max-width: 18rem; background-color:#e1f5fe" >
                         <div class="card-header">
                             <ion-icon name="people-outline"></ion-icon>
-                            AdjRW SSS
+                            SumAdjRW SSS
                         </div>
                         <div class="card-body">
                             <h4 class="card-title text-center">{{number_format($rw_sss,2)}} Rw.</h4>

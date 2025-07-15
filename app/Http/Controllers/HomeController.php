@@ -159,14 +159,14 @@ public function index(Request $request )
             $non_icd10=$row->non_icd10;
         }
     $ipd_paid_money = DB::connection('hosxp')->select('
-        SELECT SUM(CASE WHEN (finance_transfer = "N" OR opd_wait_money <> "0") THEN 1 ELSE 0 END) AS not_transfer,
+        SELECT SUM(CASE WHEN (opd_wait_money <> "0") THEN 1 ELSE 0 END) AS not_transfer,
         SUM(CASE WHEN wait_paid_money <> "0" THEN 1 ELSE 0 END) AS wait_paid_money,
         SUM(wait_paid_money) AS sum_wait_paid_money
         FROM (SELECT i.hn,i.an,i.finance_transfer,a.opd_wait_money,a.item_money,a.uc_money-a.debt_money AS wait_debt_money,
         a.paid_money,a.rcpt_money,a.paid_money-a.rcpt_money AS wait_paid_money
         FROM ipt i 
         LEFT JOIN an_stat a ON a.an=i.an   
-        WHERE i.confirm_discharge = "N"  AND (i.finance_transfer = "N" OR a.opd_wait_money <>"0" 
+        WHERE i.confirm_discharge = "N"  AND (a.opd_wait_money <>"0" 
         OR a.paid_money-a.rcpt_money <>"0" ) GROUP BY i.an 
         ORDER BY a.opd_wait_money DESC,i.ward,wait_paid_money DESC) AS a');         
 
@@ -890,7 +890,7 @@ public function ipd_finance_chk_opd_wait_transfer(Request $request)
         LEFT JOIN pttype p ON p.pttype=i2.pttype
         LEFT JOIN an_stat a ON a.an=i.an
         WHERE i.confirm_discharge = "N" 
-        AND (i.finance_transfer = "N" OR a.opd_wait_money <>"0" ) GROUP BY i.an 
+        AND a.opd_wait_money <>"0" GROUP BY i.an 
         ORDER BY a.opd_wait_money DESC,i.ward,wait_paid_money DESC');  
 
       return view('home_detail.ipd_finance_chk',compact('finance_chk'));        

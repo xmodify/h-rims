@@ -84,39 +84,59 @@
                                 </li>
                             </ul>
                         </li> 
-                        <li class="nav-item dropdown">
+   <li class="nav-item dropdown">
                             <a id="navbarDropdown" class="btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
                                 เรียกเก็บ OP
                             </a>
-                            <div class=" btn btn-outline-success dropdown-menu dropdown-menu-end">                                       
-                                <a class="dropdown-item link-primary text-white " href="#" >
-                                    OP-UCS ประกันสุขภาพ
-                                </a> 
-                                <a class="dropdown-item link-primary text-white " href="#" >
-                                    OP-STP บุคคลที่มีปัญหาสถานะและสิทธิ 
-                                </a> 
-                                <a class="dropdown-item link-primary text-white " href="#" >
-                                    OP-OFC กรมบัญชีกลาง
-                                </a>   
-                                <a class="dropdown-item link-primary text-white " href="#" >
-                                    OP-LGO อปท.
-                                </a>       
-                                <a class="dropdown-item link-primary text-white " href="#" >
-                                    OP-BKK อปท.รูปแบบพิเศษ กทม.
-                                </a>      
-                                <a class="dropdown-item link-primary text-white " href="#" >
-                                    OP-BMT อปท.รูปแบบพิเศษ ขสมก.
-                                </a>
-                                <a class="dropdown-item link-primary text-white " href="#" >
-                                    OP-SSS ประกันสังคม
-                                </a>    
-                                <a class="dropdown-item link-primary text-white " href="#" >
-                                    OP-ชำระเงิน
-                                </a>   
-                                <a class="dropdown-item link-primary text-white " href="#" >
-                                    OP-พรบ.
-                                </a>   
-                            </div> 
+                            <ul class="bg-success dropdown-menu dropdown-menu-end"> 
+                                <!-- ชี้ขวา -->
+                                <li class="dropend">
+                                    <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
+                                        OP-UCS ประกันสุขภาพ
+                                    </a>
+                                    <ul class="bg-success dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/ucs_incup') }}"> UC-OP ใน CUP </a>
+                                        </li> 
+                                        <li>
+                                            <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/ucs_inprovince') }}"> UC-OP ในจังหวัด </a>
+                                        </li> 
+                                        <li>
+                                            <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/ucs_outprovince') }}"> UC-OP ต่างจังหวัด </a>
+                                        </li> 
+                                        <li>
+                                            <a class="dropdown-item link-primary text-white" href=""> UC-OP ฟอกไต </a>
+                                        </li> 
+                                    </ul>
+                                </li>
+                                <!-- เมนูอื่น -->
+                                <li>
+                                    <a class="dropdown-item link-primary text-white " href="#" > 
+                                        OP-STP บุคคลที่มีปัญหาสถานะและสิทธิ 
+                                    </a> 
+                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                        OP-OFC กรมบัญชีกลาง
+                                    </a>   
+                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                        OP-LGO อปท.
+                                    </a>       
+                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                        OP-BKK อปท.รูปแบบพิเศษ กทม.
+                                    </a>      
+                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                        OP-BMT อปท.รูปแบบพิเศษ ขสมก.
+                                    </a>
+                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                        OP-SSS ประกันสังคม
+                                    </a>    
+                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                        OP-ชำระเงิน
+                                    </a>   
+                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                        OP-พรบ.
+                                    </a>   
+                                </li>
+                            </ul> 
                         </li> 
                         <li class="nav-item dropdown">
                             <a id="navbarDropdown" class="btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>

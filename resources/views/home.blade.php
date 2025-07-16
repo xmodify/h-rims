@@ -75,7 +75,7 @@
               OFC Visit : ปิดสิทธิ : รูดบัตร 
             </div>
             <div class="card-body">
-              <h1 class="card-title text-center">{{$ofc_all}} : {{$ofc_endpoint}} : {{$ofc_edc}} </h1>  
+              <h1 class="card-title text-center">{{$ofc_all}} : {{$ofc_edc}} </h1>  
               <p class="card-text">
                   <a href="{{ url('/opd_ofc_all') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
               </p>  
@@ -114,10 +114,10 @@
         <div class="card text-white bg-5 mb-3" style="max-width: 18rem;">
           <div class="card-header">
             <ion-icon name="people-outline"></ion-icon>
-            UC Anywhere : ปิดสิทธิ : FDH
+            UC Anywhere : ปิดสิทธิ
           </div>
           <div class="card-body">
-            <h1 class="card-title text-center">{{$uc_anywhere}} : {{$uc_anywhere_endpoint}} : {{$uc_anywhere_fdh}}</h1>  
+            <h1 class="card-title text-center">{{$uc_anywhere}} : {{$uc_anywhere_endpoint}} </h1>  
             <p class="card-text">
                 <a href="{{ url('/opd_ucs_anywhere') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
             </p>  
@@ -128,10 +128,10 @@
         <div class="card text-white bg-6 mb-3" style="max-width: 18rem;">
           <div class="card-header">
             <ion-icon name="people-outline"></ion-icon>
-            UC บริการเฉพาะ : ปิดสิทธิ : FDH
+            UC บริการเฉพาะ : ปิดสิทธิ
           </div>
           <div class="card-body">
-            <h1 class="card-title text-center">{{$uc_cr}} : {{$uc_cr_endpoint}} : {{$uc_cr_fdh}}</h1>
+            <h1 class="card-title text-center">{{$uc_cr}} : {{$uc_cr_endpoint}} </h1>
             <p class="card-text">
                 <a href="{{ url('/opd_ucs_cr') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
             </p>  
@@ -142,12 +142,12 @@
         <div class="card text-white bg-7 mb-3" style="max-width: 18rem;">
           <div class="card-header">
             <ion-icon name="people-outline"></ion-icon>
-            UC แพทย์แผนไทย : ปิดสิทธิ : FDH 
+            UC ยาสมุนไพร : ปิดสิทธิ 
           </div>
           <div class="card-body">
-            <h1 class="card-title text-center">{{$uc_healthmed}} : {{$uc_healthmed_endpoint}} : {{$uc_healthmed_fdh}}</h1>  
+            <h1 class="card-title text-center">{{$uc_healthmed}} : {{$uc_healthmed_endpoint}}</h1>  
             <p class="card-text">
-                <a href="{{ url('/opd_ucs_healthmed') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
+                <a href="{{ url('/opd_ucs_herb') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
             </p>  
           </div>
         </div>
@@ -156,10 +156,10 @@
         <div class="card text-white bg-8 mb-3" style="max-width: 18rem;" >
           <div class="card-header">
             <ion-icon name="people-outline"></ion-icon>
-            PPFS : ปิดสิทธิ : FDH
+            PPFS : ปิดสิทธิ 
           </div>
           <div class="card-body">
-            <h1 class="card-title text-center">{{$ppfs}} : {{$ppfs_endpoint}} : {{$ppfs_fdh}}</h1> 
+            <h1 class="card-title text-center">{{$ppfs}} : {{$ppfs_endpoint}}</h1> 
             <p class="card-text">
                 <a href="{{ url('/opd_ppfs') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
             </p>           

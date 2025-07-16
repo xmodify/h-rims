@@ -1,17 +1,18 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\MainSettingController;
+use App\Http\Controllers\Admin\LookupIcodeController;
+use App\Http\Controllers\Admin\LookupWardController;
+use App\Http\Controllers\Admin\LookupHospcodeController;
 use App\Http\Controllers\NotifyController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\DiagController;
 use App\Http\Controllers\IpdController;
-use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Admin\MainSettingController;
-use App\Http\Controllers\Admin\LookupIcodeController;
-use App\Http\Controllers\Admin\LookupWardController;
-use App\Http\Controllers\Admin\LookupHospcodeController;
+use App\Http\Controllers\ClaimOpController;
 
 /*
 |--------------------------------------------------------------------------
@@ -60,7 +61,7 @@ Route::match(['get','post'],'opd_non_authen',[HomeController::class,'opd_non_aut
 Route::match(['get','post'],'opd_non_hospmain',[HomeController::class,'opd_non_hospmain']);
 Route::match(['get','post'],'opd_ucs_anywhere',[HomeController::class,'opd_ucs_anywhere']);
 Route::match(['get','post'],'opd_ucs_cr',[HomeController::class,'opd_ucs_cr']);
-Route::match(['get','post'],'opd_ucs_healthmed',[HomeController::class,'opd_ucs_healthmed']);
+Route::match(['get','post'],'opd_ucs_herb',[HomeController::class,'opd_ucs_herb']);
 Route::match(['get','post'],'opd_ppfs',[HomeController::class,'opd_ppfs']);
 Route::match(['get','post'],'ipd_homeward',[HomeController::class,'ipd_homeward']);
 Route::match(['get','post'],'ipd_non_dchsummary',[HomeController::class,'ipd_non_dchsummary']);
@@ -71,7 +72,7 @@ Route::match(['get','post'],'ipd_finance_chk_wait_rcpt_money',[HomeController::c
 Route::match(['get','post'],'import/stm_ucs',[ImportController::class,'stm_ucs'])->name('stm_ucs');
 Route::post('import/stm_ucs_save',[ImportController::class,'stm_ucs_save']);
 
-//Diage
+//Diag
 Route::match(['get','post'],'diag/sepsis',[DiagController::class,'sepsis']);
 Route::match(['get','post'],'diag/stroke',[DiagController::class,'stroke']);
 Route::match(['get','post'],'diag/stemi',[DiagController::class,'stemi']);
@@ -82,6 +83,11 @@ Route::match(['get','post'],'ipd/wait_doctor_dchsummary',[IpdController::class,'
 Route::match(['get','post'],'ipd/wait_icd_coder',[IpdController::class,'wait_icd_coder']);
 Route::match(['get','post'],'ipd/dchsummary',[IpdController::class,'dchsummary']);
 Route::match(['get','post'],'ipd/dchsummary_audit',[IpdController::class,'dchsummary_audit']);
+
+// Claim_OP -------------------------------------------------------------------------------------------------------------------------
+Route::match(['get','post'],'claim_op/ucs_incup',[ClaimOpController::class,'ucs_incup']);
+Route::match(['get','post'],'claim_op/ucs_inprovince',[ClaimOpController::class,'ucs_inprovince']);
+Route::match(['get','post'],'claim_op/ucs_outprovince',[ClaimOpController::class,'ucs_outprovince']);
 
 //Notify
 Route::get('notify_summary',[NotifyController::class,'notify_summary'])->name('notify_summary');

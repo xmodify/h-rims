@@ -42,8 +42,7 @@
                   <th class="text-center">สิทธิการรักษา</th> 
                   <th class="text-center">Hmain</th>                   
                   <th class="text-center text-success" width="4%">ประสงค์เบิก</th>
-                  <th class="text-center text-success" width="4%">พร้อมส่ง</th>
-                  <th class="text-center text-success" width="6%">Upload FDH</th>  
+                  <th class="text-center text-success" width="4%">พร้อมส่ง</th>                  
               </tr>
             </thead> 
             <tbody> 
@@ -76,8 +75,7 @@
                   <strong>{{ $row->request_funds }}</strong></td>  
                 <td align="center" @if($row->confirm_and_locked == 'Y') style="color:green"
                   @elseif($row->confirm_and_locked == 'N') style="color:red" @endif>
-                  <strong>{{ $row->confirm_and_locked }}</strong></td>  
-                <td align="center">{{ DateTimeThai($row->fdh) }}</td>                  
+                  <strong>{{ $row->confirm_and_locked }}</strong></td>                
               </tr>
               <?php $count++; ?>
               @endforeach                 

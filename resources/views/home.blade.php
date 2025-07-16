@@ -72,7 +72,7 @@
           <div class="card text-white bg-2 mb-3" style="max-width: 18rem;">
             <div class="card-header">
               <ion-icon name="people-outline"></ion-icon>
-              OFC Visit : ปิดสิทธิ : รูดบัตร 
+              OFC Visit : รูดบัตร 
             </div>
             <div class="card-body">
               <h1 class="card-title text-center">{{$ofc_all}} : {{$ofc_edc}} </h1>  

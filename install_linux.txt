@@ -40,7 +40,10 @@
 	sudo chmod -R 775 /var/www/html/h-rims/storage
 	sudo chmod -R 775 /var/www/html/h-rims/bootstrap/cache
 
-10.ตั้งค่า Apache หรือ Nginx ให้ชี้มาที่ public/
+10.git pull ผ่าน User
+	sudo -u apache git -C /var/www/html/h-rims reset --hard
+	sudo -u apache git -C /var/www/html/h-rims pull origin main
+11.ตั้งค่า Apache หรือ Nginx ให้ชี้มาที่ public/
 	sudo dnf install -y httpd
 	sudo systemctl enable httpd
 	sudo systemctl start httpd

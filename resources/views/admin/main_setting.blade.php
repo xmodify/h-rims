@@ -5,7 +5,7 @@
     <button class="btn btn-danger" id="gitPullBtn" style="display: inline;">Git Pull</button>   
     <form id="structureForm" method="POST" action="{{ route('admin.up_structure') }}" style="display: inline;">
         @csrf
-        <button type="submit" class="btn btn-primary" onclick="confirmAction(event)">ปรับโครงสร้าง</button>
+        <button type="submit" class="btn btn-primary" onclick="confirmAction(event)">Upgrade Structure</button>
     </form>
     <pre id="gitOutput" style="background: #eeee; padding: 1rem; margin-top: 1rem;"></pre>
     
@@ -100,7 +100,7 @@
 
             Swal.fire({
                 title: 'ยืนยันการดำเนินการ?',
-                text: "คุณต้องการปรับโครงสร้างหรือไม่?",
+                text: "คุณต้องการ Upgrade Structure หรือไม่?",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'ใช่, ดำเนินการ!',

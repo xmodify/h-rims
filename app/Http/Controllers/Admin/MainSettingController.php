@@ -81,7 +81,7 @@ class MainSettingController extends Controller
                 }
             }
 
-            return redirect()->route('admin.main_setting')->with('success', 'ปรับโครงสร้างสำเร็จ');
+            return redirect()->route('admin.main_setting')->with('success', 'Upgrade Structure สำเร็จ');
 
         } catch (\Exception $e) {
             return back()->with('error', 'เกิดข้อผิดพลาด: ' . $e->getMessage());

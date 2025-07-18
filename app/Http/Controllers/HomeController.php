@@ -665,9 +665,7 @@ public function opd_ppfs(Request $request )
         LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
         LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND DATE(stm.datetimeadm) = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"       
-        WHERE p.hipdata_code = "UCS" AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-        AND (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL
-        AND o.vstdate BETWEEN ? AND ?
+        WHERE (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL AND o.vstdate BETWEEN ? AND ?
         GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]);
 
     return view('home_detail.opd_ppfs',compact('start_date','end_date','search'));

@@ -48,7 +48,7 @@
         <h5 class="alert alert-primary text-primary" align="left">
           ข้อมูลผู้ป่วยนอก ณ วันที่ <font style="color:red;">{{DateThai(date('Y-m-d'))}}</font> เวลา: <font style="color:red;"><span id="realtime-clock"></span></font>  
           ทั้งหมด : <font style="color:red;">{{$opd_total}}</font> Visit | 
-          ปิดสิทธิ สปสช : <font style="color:red;">{{$endpoint_all}}</font> Visit
+          ปิดสิทธิ สปสช : <font style="color:red;">{{$endpoint}}</font> Visit
           <!-- ปุ่มเรียก Modal -->
           <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#nhsoModal">
             ดึงปิดสิทธิ สปสช.
@@ -58,12 +58,12 @@
           <div class="card text-white bg-1 mb-3" style="max-width: 18rem;" >
             <div class="card-header">
               <ion-icon name="people-outline"></ion-icon>
-              UCS Visit : ปิดสิทธิ
+              OFC Visit : รูดบัตร
             </div>
             <div class="card-body">
-              <h1 class="card-title text-center">{{$ucs_all}} : {{$ucs_endpoint}}</h1> 
+              <h1 class="card-title text-center">{{$ofc}} : {{$ofc_edc}}</h1> 
               <p class="card-text">
-                  <a href="{{ url('/opd_ucs_all') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
+                  <a href="{{ url('/opd_ofc') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
               </p>           
             </div>
           </div>
@@ -72,12 +72,12 @@
           <div class="card text-white bg-2 mb-3" style="max-width: 18rem;">
             <div class="card-header">
               <ion-icon name="people-outline"></ion-icon>
-              OFC Visit : รูดบัตร 
+              ไม่ขอ AuthenCode
             </div>
             <div class="card-body">
-              <h1 class="card-title text-center">{{$ofc_all}} : {{$ofc_edc}} </h1>  
+              <h1 class="card-title text-center">{{$non_authen}} </h1>  
               <p class="card-text">
-                  <a href="{{ url('/opd_ofc_all') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
+                  <a href="{{ url('/opd_non_authen') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
               </p>  
             </div>
           </div>
@@ -86,12 +86,12 @@
           <div class="card text-white bg-3 mb-3" style="max-width: 18rem;">
             <div class="card-header">
               <ion-icon name="people-outline"></ion-icon>
-              ไม่ขอ AuthenCode
+              ไม่บันทึกสถานพยาบาลหลัก
             </div>
             <div class="card-body">
-              <h1 class="card-title text-center">{{$non_authen}}</h1>
+              <h1 class="card-title text-center">{{$non_hmain}}</h1>
               <p class="card-text">
-                  <a href="{{ url('/opd_non_authen') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
+                  <a href="{{ url('/opd_non_hospmain') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
               </p>  
             </div>
           </div>
@@ -100,12 +100,12 @@
           <div class="card text-white bg-4 mb-3" style="max-width: 18rem;">
             <div class="card-header">
               <ion-icon name="people-outline"></ion-icon>
-              ไม่บันทึกสถานพยาบาลหลัก
+              UC Anywhere : ปิดสิทธิ
             </div>
             <div class="card-body">
-              <h1 class="card-title text-center">{{$non_hmain}}</h1>  
+              <h1 class="card-title text-center">{{$uc_anywhere}} : {{$uc_anywhere_endpoint}} </h1>  
               <p class="card-text">
-                  <a href="{{ url('/opd_non_hospmain') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
+                  <a href="{{ url('/opd_ucs_anywhere') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
               </p>  
             </div>
           </div>
@@ -114,12 +114,12 @@
         <div class="card text-white bg-5 mb-3" style="max-width: 18rem;">
           <div class="card-header">
             <ion-icon name="people-outline"></ion-icon>
-            UC Anywhere : ปิดสิทธิ
+            UC บริการเฉพาะ : ปิดสิทธิ
           </div>
           <div class="card-body">
-            <h1 class="card-title text-center">{{$uc_anywhere}} : {{$uc_anywhere_endpoint}} </h1>  
+            <h1 class="card-title text-center">{{$uc_cr}} : {{$uc_cr_endpoint}}</h1>  
             <p class="card-text">
-                <a href="{{ url('/opd_ucs_anywhere') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
+                <a href="{{ url('/opd_ucs_cr') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
             </p>  
           </div>
         </div>
@@ -128,12 +128,12 @@
         <div class="card text-white bg-6 mb-3" style="max-width: 18rem;">
           <div class="card-header">
             <ion-icon name="people-outline"></ion-icon>
-            UC บริการเฉพาะ : ปิดสิทธิ
+            UC ยาสมุนไพร : ปิดสิทธิ
           </div>
           <div class="card-body">
-            <h1 class="card-title text-center">{{$uc_cr}} : {{$uc_cr_endpoint}} </h1>
+            <h1 class="card-title text-center">{{$uc_herb}} : {{$uc_herb_endpoint}} </h1>
             <p class="card-text">
-                <a href="{{ url('/opd_ucs_cr') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
+                <a href="{{ url('/opd_ucs_herb') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
             </p>  
           </div>
         </div>
@@ -142,12 +142,12 @@
         <div class="card text-white bg-7 mb-3" style="max-width: 18rem;">
           <div class="card-header">
             <ion-icon name="people-outline"></ion-icon>
-            UC ยาสมุนไพร : ปิดสิทธิ 
+            UC แพทย์แผนไทย : ปิดสิทธิ 
           </div>
           <div class="card-body">
             <h1 class="card-title text-center">{{$uc_healthmed}} : {{$uc_healthmed_endpoint}}</h1>  
             <p class="card-text">
-                <a href="{{ url('/opd_ucs_herb') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
+                <a href="{{ url('/opd_ucs_healthmed') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
             </p>  
           </div>
         </div>

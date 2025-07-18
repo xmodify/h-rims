@@ -21,7 +21,7 @@
 	git pull origin main
 
 5.Install dependencies
-	composer install/update
+	composer install
 
 6.If you're using Node.js for frontend:
 	sudo apt install nodejs npm
@@ -35,9 +35,10 @@
 	php artisan key:generate
 
 9.Set folder permissions
-	sudo chown -R apache:apache .
-	sudo chmod -R 775 storage
-	sudo chmod -R 775 bootstrap/cache
+	sudo chown -R apache:apache /var/www/html/h-rims
+	sudo chmod -R 755 /var/www/html/h-rims
+	sudo chmod -R 775 /var/www/html/h-rims/storage
+	sudo chmod -R 775 /var/www/html/h-rims/bootstrap/cache
 
 10.ตั้งค่า Apache หรือ Nginx ให้ชี้มาที่ public/
 	sudo dnf install -y httpd
@@ -45,26 +46,32 @@
 	sudo systemctl start httpd
 
 	ตัวอย่างไฟล์ VirtualHost (เช่น /etc/httpd/conf.d/laravel.conf)
-		<VirtualHost *:80>
-    			ServerName yourdomain.com
-    			DocumentRoot /var/www/your-laravel-project/public
+		<VirtualHost *:88>
+			ServerName yourdomain.com
+			DocumentRoot /var/www/html/h-rims/public
 
-    			<Directory /var/www/your-laravel-project>
-        			AllowOverride All
-        			Require all granted
-    			</Directory>
+			<Directory /var/www/html/h-rims/public>
+				AllowOverride All
+				Require all granted
+			</Directory>
 
-    			<Directory /var/www/your-laravel-project/public>
-        			Options Indexes FollowSymLinks
-        			AllowOverride All
-        			Require all granted
-    			</Directory>
+			ErrorLog logs/h-rims-error.log
+			CustomLog logs/h-rims-access.log combined
 		</VirtualHost>
+
 	จากนั้น:
 		sudo systemctl restart httpd
+
 	เปิด firewall (ถ้ายังไม่ได้เปิด):
+		sudo systemctl start firewalld
+		sudo systemctl enable firewalld
+		sudo systemctl status firewalld
+
 		sudo firewall-cmd --permanent --add-service=http
+		sudo firewall-cmd --permanent --add-port=88/tcp
 		sudo firewall-cmd --reload
+		sudo firewall-cmd --permanent --list-all
+
 	ตรวจสอบว่า SELinux ไม่ block ไฟล์ Laravel:
 		sudo setsebool -P httpd_can_network_connect 1
 

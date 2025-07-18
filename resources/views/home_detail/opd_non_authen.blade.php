@@ -25,12 +25,12 @@
     <div class="row">        
       <div class="col-md-12"> 
         <div style="overflow-x:auto;">            
-          <table id="t_search" class="table table-striped table-bordered" width = "100%">
+          <table id="list" class="table table-striped table-bordered" width = "100%">
             <thead>
               <tr class="table-primary">
                 <th class="text-center">ลำดับ</th>
                 <th class="text-center">วัน-เวลาที่รับบริการ</th>
-                <th class="text-center">Q</th>
+                <th class="text-center">Queue</th>
                 <th class="text-center">HN</th>
                 <th class="text-center">CID</th>
                 <th class="text-center">ชื่อ-สกุล</th>                    
@@ -60,7 +60,7 @@
               <?php $count++; ?>
               @endforeach                 
             </tbody>
-          </table>   
+          </table> 
         </div>          
       </div>  
     </div> 
@@ -72,7 +72,7 @@
 @push('scripts')
   <script>
     $(document).ready(function () {
-      $('#t_search').DataTable({
+      $('#list').DataTable({
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + // Show รายการ
                 '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export

@@ -45,7 +45,7 @@ class MainSettingController extends Controller
             ['id' => 7, 'name_th' => 'Base Rate UCS นอกเขต', 'name' => 'base_rate2', 'value' => '9600'],  
             ['id' => 8, 'name_th' => 'Base Rate OFC', 'name' => 'base_rate_ofc', 'value' => '6200'],  
             ['id' => 9, 'name_th' => 'Base Rate LGO', 'name' => 'base_rate_lgo', 'value' => '6194'],  
-            ['id' => 10, 'name_th' => 'Base Rate SSS', 'name' => 'base_rate_sss', 'value' => '8350'],
+            ['id' => 10, 'name_th' => 'Base Rate SSS', 'name' => 'base_rate_sss', 'value' => '6200'],
         ];
         
         foreach ($main_setting as $row) {

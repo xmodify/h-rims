@@ -38,12 +38,12 @@ public function index(Request $request )
         SELECT COUNT(vn) AS total,IFNULL(SUM(CASE WHEN endpoint<>"" THEN 1 ELSE 0 END),0) AS "endpoint",
         IFNULL(SUM(CASE WHEN hipdata_code="OFC" THEN 1 ELSE 0 END),0) AS "ofc",
         IFNULL(SUM(CASE WHEN hipdata_code="OFC" AND edc_approve_list_text <> "" THEN 1 ELSE 0 END),0) AS "ofc_edc",
-        IFNULL(SUM(CASE WHEN auth_code="" AND cid NOT LIKE "0%" AND pttype NOT IN ("10","11","12","13") THEN 1 ELSE 0 END),0) AS "non_authen",
+        IFNULL(SUM(CASE WHEN auth_code="" AND cid NOT LIKE "0%" THEN 1 ELSE 0 END),0) AS "non_authen",
         IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","SSS","STP") AND hospmain="" THEN 1 ELSE 0 END),0) AS "non_hmain",
         IFNULL(SUM(CASE WHEN hipdata_code="UCS" AND hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
-            AND income-paid_money <> 0 THEN 1 ELSE 0 END),0) AS "uc_anywhere",
+            THEN 1 ELSE 0 END),0) AS "uc_anywhere",
         IFNULL(SUM(CASE WHEN hipdata_code="UCS" AND hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
-            AND income-paid_money <> 0 AND endpoint ="Y" THEN 1 ELSE 0 END),0) AS "uc_anywhere_endpoint",
+            AND endpoint ="Y" THEN 1 ELSE 0 END),0) AS "uc_anywhere_endpoint",
         IFNULL(SUM(CASE WHEN hipdata_code="UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
             AND uc_cr<>"" THEN 1 ELSE 0 END),0) AS "uc_cr",
         IFNULL(SUM(CASE WHEN hipdata_code="UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
@@ -70,7 +70,7 @@ public function index(Request $request )
         LEFT JOIN opitemrece herb ON herb.vn=o.vn AND herb.icode IN (SELECT icode FROM hrims.lookup_icode WHERE herb32 = "Y")
         LEFT JOIN health_med_service healthmed ON healthmed.vn=o.vn
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
-        WHERE o.vstdate = DATE(NOW()) AND o.an IS NULL GROUP BY o.vn) AS a');
+        WHERE o.vstdate = DATE(NOW()) AND (o.an ="" OR o.an IS NULL) GROUP BY o.vn) AS a');
 
     foreach ($opd_monitor as $row){
         $opd_total = $row->total;
@@ -421,7 +421,7 @@ public function opd_ofc(Request $request )
         LEFT JOIN vn_stat v ON v.vn = o.vn
 		LEFT JOIN opitemrece ppfs ON ppfs.vn=o.vn AND ppfs.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs = "Y")
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
-        WHERE o.vstdate  BETWEEN ? AND ? AND p.hipdata_code = "OFC"
+        WHERE o.vstdate  BETWEEN ? AND ? AND p.hipdata_code = "OFC" AND (o.an ="" OR o.an IS NULL)
         GROUP BY o.vn ORDER BY ep.claimCode DESC ,o.vstdate,o.vsttime',[$start_date,$end_date]);
 
     return view('home_detail.opd_ofc',compact('start_date','end_date','sql'));
@@ -548,8 +548,7 @@ public function opd_ucs_cr(Request $request )
         LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND DATE(stm.datetimeadm) = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"       
         WHERE p.hipdata_code = "UCS" AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-        AND (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL
-        AND o.vstdate BETWEEN ? AND ?
+        AND (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL AND o.vstdate BETWEEN ? AND ?
         GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]);
 
     return view('home_detail.opd_ucs_cr',compact('start_date','end_date','search'));
@@ -590,8 +589,7 @@ public function opd_ucs_herb(Request $request )
         LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND DATE(stm.datetimeadm) = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"       
         WHERE p.hipdata_code = "UCS" AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-        AND (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL
-        AND o.vstdate BETWEEN ? AND ?
+        AND (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL AND o.vstdate BETWEEN ? AND ?
         GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]);    
 
     return view('home_detail.opd_ucs_herb',compact('start_date','end_date','search'));

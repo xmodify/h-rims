@@ -104,9 +104,11 @@
                                         <li>
                                             <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/ucs_outprovince') }}"> UC-OP ต่างจังหวัด </a>
                                         </li> 
+                                        @if($hasLookupIcode_kidney)
                                         <li>
                                             <a class="dropdown-item link-primary text-white" href=""> UC-OP ฟอกไต </a>
                                         </li> 
+                                        @endif
                                     </ul>
                                 </li>
                                 <!-- เมนูอื่น -->

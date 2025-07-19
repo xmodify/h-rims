@@ -314,6 +314,7 @@ public function nhso_endpoint_pull(Request $request)
                     'subInscl' => $subInscl,
                     'subInsclName' => $subInsclName,
                     'serviceDateTime' => $serviceDateTime,
+                    'vstdate' => date('Y-m-d', strtotime($serviceDateTime)),
                     'sourceChannel' => $sourceChannel,
                     'claimCode' => $claimCode,
                     'claimType' => $claimType,
@@ -387,6 +388,7 @@ public function nhso_endpoint_pull_indiv(Request $request, $vstdate, $cid)
             $indiv->subInscl = $subInscl;
             $indiv->subInsclName = $subInsclName;
             $indiv->serviceDateTime = $serviceDateTime;
+            $indiv->vstdate = date('Y-m-d', strtotime($serviceDateTime));
             $indiv->sourceChannel = $sourceChannel;
             $indiv->claimType = $claimType;
             $indiv->save();

@@ -118,7 +118,11 @@ public function stm_ucs_save(Request $request)
                         'cid'                           =>$sheet->getCell( 'F' . $row )->getValue(),
                         'pt_name'                       =>$sheet->getCell( 'G' . $row )->getValue(),                    
                         'datetimeadm'                   =>$datetimeadm,
+                        'vstdate'                       => date('Y-m-d', strtotime($datetimeadm)),
+                        'vsttime'                       => date('H:i:s', strtotime($datetimeadm)),
                         'datetimedch'                   =>$datetimedch,
+                        'dchdate'                       => date('Y-m-d', strtotime($datetimedch)),
+                        'dchtime'                       => date('H:i:s', strtotime($datetimedch)),
                         'maininscl'                     =>$sheet->getCell( 'J' . $row )->getValue(),
                         'projcode'                      =>$sheet->getCell( 'K' . $row )->getValue(),
                         'charge'                        =>$sheet->getCell( 'L' . $row )->getValue(),
@@ -200,7 +204,11 @@ public function stm_ucs_save(Request $request)
                         $add->cid                           = $value->cid;
                         $add->pt_name                       = $value->pt_name;                   
                         $add->datetimeadm                   = $value->datetimeadm;
+                        $add->vstdate                       = $value->vstdate;
+                        $add->vsttime                       = $value->vsttime;
                         $add->datetimedch                   = $value->datetimedch;
+                        $add->dchdate                       = $value->dchdate;
+                        $add->dchtime                       = $value->dchtime;
                         $add->maininscl                     = $value->maininscl;
                         $add->projcode                      = $value->projcode;
                         $add->charge                        = $value->charge;

@@ -51,7 +51,7 @@ class ClaimOpController extends Controller
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
-            LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND DATE(stm.datetimeadm) = o.vstdate	
+            LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	
                 AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN ? AND ?
             AND p.hipdata_code = "UCS" AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
@@ -90,7 +90,7 @@ class ClaimOpController extends Controller
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
-            LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND DATE(stm.datetimeadm) = o.vstdate	
+            LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	
                 AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN ? AND ?
             AND p.hipdata_code = "UCS" AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
@@ -138,7 +138,7 @@ class ClaimOpController extends Controller
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
-            LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND DATE(stm.datetimeadm) = o.vstdate	
+            LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	
                 AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)            
             WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "UCS" AND o.vstdate BETWEEN ? AND ?             
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs =""))            
@@ -177,7 +177,7 @@ class ClaimOpController extends Controller
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
-            LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND DATE(stm.datetimeadm) = o.vstdate	
+            LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	
                 AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "UCS" AND o.vstdate BETWEEN ? AND ?            
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs ="")) 
@@ -224,7 +224,7 @@ class ClaimOpController extends Controller
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
-            LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND DATE(stm.datetimeadm) = o.vstdate	
+            LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	
                 AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "UCS" AND o.vstdate BETWEEN ? AND ?
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
@@ -257,7 +257,7 @@ class ClaimOpController extends Controller
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
-            LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND DATE(stm.datetimeadm) = o.vstdate	
+            LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	
                 AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "UCS" AND o.vstdate BETWEEN ? AND ?
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")

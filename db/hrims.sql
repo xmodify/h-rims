@@ -11,7 +11,7 @@
  Target Server Version : 100017
  File Encoding         : 65001
 
- Date: 18/07/2025 09:32:43
+ Date: 19/07/2025 22:58:53
 */
 
 SET NAMES utf8mb4;
@@ -108,7 +108,8 @@ CREATE TABLE `drugcat_nhso`  (
   `ndc24_approved` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
   `date_approved` date NULL DEFAULT NULL,
   `ised_status` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
-  `stm_filename` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL
+  `stm_filename` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
+  INDEX `hospdrugcode`(`hospdrugcode`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
 
 -- ----------------------------
@@ -519,7 +520,8 @@ CREATE TABLE `lookup_ward`  (
   `ward_homeward` varchar(1) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `created_at` timestamp(0) NULL DEFAULT NULL,
   `updated_at` timestamp(0) NULL DEFAULT NULL,
-  PRIMARY KEY (`ward`) USING BTREE
+  PRIMARY KEY (`ward`) USING BTREE,
+  INDEX `ward`(`ward`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
 
 -- ----------------------------
@@ -532,7 +534,21 @@ CREATE TABLE `main_setting`  (
   `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `value` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
+) ENGINE = InnoDB AUTO_INCREMENT = 11 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
+
+-- ----------------------------
+-- Records of main_setting
+-- ----------------------------
+INSERT INTO `main_setting` VALUES (1, 'จำนวนเตียง', 'bed_qty', '30');
+INSERT INTO `main_setting` VALUES (2, 'Token Authen Kiosk สปสช.', 'token_authen_kiosk_nhso', '');
+INSERT INTO `main_setting` VALUES (3, 'Telegram Token', 'telegram_token', '');
+INSERT INTO `main_setting` VALUES (4, 'Telegram Chat ID Notify_Summary', 'telegram_chat_id', '');
+INSERT INTO `main_setting` VALUES (5, 'ค่า K ', 'k_value', '1.25');
+INSERT INTO `main_setting` VALUES (6, 'Base Rate UCS ในเขต', 'base_rate', '8350');
+INSERT INTO `main_setting` VALUES (7, 'Base Rate UCS นอกเขต', 'base_rate2', '9600');
+INSERT INTO `main_setting` VALUES (8, 'Base Rate OFC', 'base_rate_ofc', '6200');
+INSERT INTO `main_setting` VALUES (9, 'Base Rate LGO', 'base_rate_lgo', '6194');
+INSERT INTO `main_setting` VALUES (10, 'Base Rate SSS', 'base_rate_sss', '6200');
 
 -- ----------------------------
 -- Table structure for nhso_endpoint
@@ -548,11 +564,13 @@ CREATE TABLE `nhso_endpoint`  (
   `subInscl` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
   `subInsclName` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
   `serviceDateTime` datetime(0) NULL DEFAULT NULL,
+  `vstdate` date NULL DEFAULT NULL,
   `sourceChannel` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
   `claimCode` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
   `claimType` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NULL DEFAULT NULL,
   PRIMARY KEY (`id`) USING BTREE,
-  INDEX `cid`(`cid`) USING BTREE
+  INDEX `cid`(`cid`) USING BTREE,
+  INDEX `vstdate`(`vstdate`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
 
 -- ----------------------------
@@ -633,7 +651,11 @@ CREATE TABLE `stm_ucsexcel`  (
   `cid` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `pt_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `datetimeadm` datetime(0) NULL DEFAULT NULL,
+  `vstdate` date NULL DEFAULT NULL,
+  `vsttime` time(0) NULL DEFAULT NULL,
   `datetimedch` datetime(0) NULL DEFAULT NULL,
+  `dchdate` date NULL DEFAULT NULL,
+  `dchtime` time(0) NULL DEFAULT NULL,
   `maininscl` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `projcode` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
   `charge` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,

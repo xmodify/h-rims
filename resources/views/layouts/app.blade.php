@@ -144,35 +144,49 @@
                             <a id="navbarDropdown" class="btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
                                 เรียกเก็บ IP
                             </a>
-                            <div class=" btn btn-outline-success dropdown-menu dropdown-menu-end">                                       
-                                <a class="dropdown-item link-primary text-white " href="#" >
-                                    IP-UCS ประกันสุขภาพ
-                                </a> 
-                                <a class="dropdown-item link-primary text-white " href="#" >
-                                    IP-STP บุคคลที่มีปัญหาสถานะและสิทธิ 
-                                </a> 
-                                <a class="dropdown-item link-primary text-white " href="#" >
-                                    IP-OFC กรมบัญชีกลาง
-                                </a>   
-                                <a class="dropdown-item link-primary text-white " href="#" >
-                                    IP-LGO อปท.
-                                </a>       
-                                <a class="dropdown-item link-primary text-white " href="#" >
-                                    IP-BKK อปท.รูปแบบพิเศษ กทม.
-                                </a>      
-                                <a class="dropdown-item link-primary text-white " href="#" >
-                                    IP-BMT อปท.รูปแบบพิเศษ ขสมก.
-                                </a>
-                                <a class="dropdown-item link-primary text-white " href="#" >
-                                    IP-SSS ประกันสังคม
-                                </a>    
-                                <a class="dropdown-item link-primary text-white " href="#" >
-                                    IP-ชำระเงิน
-                                </a>   
-                                <a class="dropdown-item link-primary text-white " href="#" >
-                                    IP-พรบ.
-                                </a>   
-                            </div> 
+                            <ul class="bg-success dropdown-menu dropdown-menu-end"> 
+                                <!-- ชี้ขวา -->
+                                <li class="dropend">
+                                    <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
+                                        IP-UCS ประกันสุขภาพ
+                                    </a>
+                                    <ul class="bg-success dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item link-primary text-white" href="{{ url('claim_ip/ucs_incup') }}"> UC-IP ใน CUP </a>
+                                        </li> 
+                                        <li>
+                                            <a class="dropdown-item link-primary text-white" href="{{ url('claim_ip/ucs_outcup') }}"> UC-IP นอก CUP </a>
+                                        </li> 
+                                    </ul>
+                                </li>
+                                <!-- เมนูอื่น -->
+                                <li>
+                                    <a class="dropdown-item link-primary text-white " href="#" > 
+                                        IP-STP บุคคลที่มีปัญหาสถานะและสิทธิ 
+                                    </a> 
+                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                        IP-OFC กรมบัญชีกลาง
+                                    </a>   
+                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                        IP-LGO อปท.
+                                    </a>       
+                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                        IP-BKK อปท.รูปแบบพิเศษ กทม.
+                                    </a>      
+                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                        IP-BMT อปท.รูปแบบพิเศษ ขสมก.
+                                    </a>
+                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                        IP-SSS ประกันสังคม
+                                    </a>    
+                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                        IP-ชำระเงิน
+                                    </a>   
+                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                        IP-พรบ.
+                                    </a>   
+                                </li>
+                            </ul> 
                         </li>                    
                     @endguest
                     </ul>

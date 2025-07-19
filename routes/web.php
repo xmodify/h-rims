@@ -13,6 +13,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\DiagController;
 use App\Http\Controllers\IpdController;
 use App\Http\Controllers\ClaimOpController;
+use App\Http\Controllers\ClaimIpController;
 
 /*
 |--------------------------------------------------------------------------
@@ -88,6 +89,10 @@ Route::match(['get','post'],'ipd/dchsummary_audit',[IpdController::class,'dchsum
 Route::match(['get','post'],'claim_op/ucs_incup',[ClaimOpController::class,'ucs_incup']);
 Route::match(['get','post'],'claim_op/ucs_inprovince',[ClaimOpController::class,'ucs_inprovince']);
 Route::match(['get','post'],'claim_op/ucs_outprovince',[ClaimOpController::class,'ucs_outprovince']);
+
+// Claim_IP -------------------------------------------------------------------------------------------------------------------------
+Route::match(['get','post'],'claim_ip/ucs_incup',[ClaimIpController::class,'ucs_incup']);
+Route::match(['get','post'],'claim_ip/ucs_outcup',[ClaimIpController::class,'ucs_outcup']);
 
 //Notify
 Route::get('notify_summary',[NotifyController::class,'notify_summary'])->name('notify_summary');

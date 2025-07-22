@@ -54,6 +54,7 @@
                 <th class="text-center">เรียกเก็บ</th>
                 <th class="text-center">Refer</th>  
                 <th class="text-center">AdjRW</th>
+                <th class="text-center" width = "5%">สถานะ</th>
                 <th class="text-center">Authen</th>      
                 <th class="text-center">สรุป Chart</th>
                 <th class="text-center">พร้อมส่ง</th>
@@ -83,6 +84,7 @@
                 <td align="right">{{ number_format($row->claim_price,2) }}</td> 
                 <td align="right">{{ $row->refer }}</td>
                 <td align="center">{{ $row->adjrw }}</td>
+                <td align="left" width = "5%">{{ $row->ipt_coll_status_type_name }}</td>
                 <td align="center" @if($row->auth_code == 'Y') style="color:green"
                   @elseif($row->auth_code == 'N') style="color:red" @endif>
                   <strong>{{ $row->auth_code }}</strong>
@@ -134,6 +136,7 @@
                   <th class="text-center">เรียกเก็บ</th>
                   <th class="text-center">Refer</th>  
                   <th class="text-center">AdjRW</th>
+                  <th class="text-center" width = "5%">สถานะ</th>
                   <th class="text-center">ส่ง Claim</th>
                   <th class="text-center">Error</th>
                   <th class="text-center">อัตราจ่าย/Rw</th> 
@@ -170,6 +173,7 @@
                   <td align="right">{{ number_format($row->claim_price,2) }}</td> 
                   <td align="right">{{ $row->refer }}</td>
                   <td align="center">{{ $row->adjrw }}</td>
+                  <td align="left" width = "5%">{{ $row->ipt_coll_status_type_name }}</td>
                   <td align="center">{{ DateThai($row->fdh) }}</td>
                   <td align="center">{{ $row->rep_error }}</td>
                   <td align="right">{{ number_format($row->fund_ip_payrate,2) }}</td>

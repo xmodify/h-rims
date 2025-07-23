@@ -72,6 +72,12 @@ Route::match(['get','post'],'ipd_finance_chk_wait_rcpt_money',[HomeController::c
 //Import
 Route::match(['get','post'],'import/stm_ucs',[ImportController::class,'stm_ucs'])->name('stm_ucs');
 Route::post('import/stm_ucs_save',[ImportController::class,'stm_ucs_save']);
+Route::match(['get','post'],'import/stm_ucs_kidney',[ImportController::class,'stm_ucs_kidney'])->name('stm_ucs_kidney');
+Route::post('import/stm_ucs_kidney_save',[ImportController::class,'stm_ucs_kidney_save']);
+Route::match(['get','post'],'import/stm_ofc',[ImportController::class,'stm_ofc'])->name('stm_ofc');
+Route::post('import/stm_ofc_save',[ImportController::class,'stm_ofc_save']);
+Route::match(['get','post'],'import/stm_ofc_kidney',[ImportController::class,'stm_ofc_kidney'])->name('stm_ofc_kidney');
+Route::post('import/stm_ofc_kidney_save',[ImportController::class,'stm_ofc_kidney_save']);
 
 //Diag
 Route::match(['get','post'],'diag/sepsis',[DiagController::class,'sepsis']);
@@ -92,11 +98,14 @@ Route::match(['get','post'],'claim_op/ucs_outprovince',[ClaimOpController::class
 Route::match(['get','post'],'claim_op/ucs_kidney',[ClaimOpController::class,'ucs_kidney']);
 Route::match(['get','post'],'claim_op/stp_incup',[ClaimOpController::class,'stp_incup']);
 Route::match(['get','post'],'claim_op/stp_outcup',[ClaimOpController::class,'stp_outcup']);
+Route::match(['get','post'],'claim_op/ofc',[ClaimOpController::class,'ofc']);
+Route::match(['get','post'],'claim_op/ofc_kidney',[ClaimOpController::class,'ofc_kidney']);
 
 // Claim_IP -------------------------------------------------------------------------------------------------------------------------
 Route::match(['get','post'],'claim_ip/ucs_incup',[ClaimIpController::class,'ucs_incup']);
 Route::match(['get','post'],'claim_ip/ucs_outcup',[ClaimIpController::class,'ucs_outcup']);
 Route::match(['get','post'],'claim_ip/stp',[ClaimIpController::class,'stp']);
+Route::match(['get','post'],'claim_ip/ofc',[ClaimIpController::class,'ofc']);
 
 //Notify
 Route::get('notify_summary',[NotifyController::class,'notify_summary'])->name('notify_summary');

@@ -458,4 +458,114 @@ class ClaimOpController extends Controller
 
         return view('claim_op.stp_outcup',compact('start_date','end_date','search','claim'));
     }
+//----------------------------------------------------------------------------------------------------------------------------------------
+    public function ofc(Request $request )
+    {
+        $start_date = $request->start_date;
+        $end_date = $request->end_date;
+        if($start_date == '' || $end_date == null)
+        {$start_date = date('Y-m-d');}else{$start_date =$request->start_date;}
+        if($end_date == '' || $end_date == null)
+        {$end_date = date('Y-m-d');}else{$end_date =$request->end_date;}
+
+        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+
+        $search=DB::connection('hosxp')->select('
+            SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
+            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
+            CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
+            GROUP_CONCAT(DISTINCT od.icd10) AS icd9,GROUP_CONCAT(DISTINCT s.`name`) AS ppfs_list,v.income,
+            v.rcpt_money,COALESCE(o2.claim_price, 0) AS ppfs,v.income-v.rcpt_money AS debtor
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+            LEFT JOIN pttype p ON p.pttype=vp.pttype
+            LEFT JOIN opdscreen os ON os.vn=o.vn
+            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
+            LEFT JOIN ovst_seq oq ON oq.vn=o.vn
+            LEFT JOIN opitemrece ppfs ON ppfs.vn=o.vn AND ppfs.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs = "Y")
+            LEFT JOIN s_drugitems s ON s.icode=ppfs.icode
+            LEFT JOIN opitemrece kidney ON kidney.vn=o.vn AND kidney.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney = "Y")
+            LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS claim_price	FROM opitemrece op
+            INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                WHERE op.vstdate BETWEEN ? AND ? AND li.ppfs = "Y" GROUP BY op.vn) o2 ON o2.vn=o.vn
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "OFC" AND o.vstdate BETWEEN ? AND ?
+            AND v.income <>"0" AND kidney.vn IS NULL AND oe.upload_datetime IS NULL 
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
+
+        $claim=DB::connection('hosxp')->select('
+            SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
+            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
+            CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
+            GROUP_CONCAT(DISTINCT od.icd10) AS icd9,GROUP_CONCAT(DISTINCT s.`name`) AS ppfs_list,
+            oe.upload_datetime AS ecliam,v.income,v.rcpt_money,COALESCE(o2.claim_price, 0) AS ppfs,
+            v.income-v.rcpt_money AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+            LEFT JOIN pttype p ON p.pttype=vp.pttype
+            LEFT JOIN opdscreen os ON os.vn=o.vn
+            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
+            LEFT JOIN ovst_seq oq ON oq.vn=o.vn
+            LEFT JOIN opitemrece ppfs ON ppfs.vn=o.vn AND ppfs.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs = "Y")
+            LEFT JOIN s_drugitems s ON s.icode=ppfs.icode
+            LEFT JOIN opitemrece kidney ON kidney.vn=o.vn AND kidney.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney = "Y")
+            LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS claim_price	FROM opitemrece op
+            INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                WHERE op.vstdate BETWEEN ? AND ? AND li.ppfs = "Y" GROUP BY op.vn) o2 ON o2.vn=o.vn
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.stm_ofc stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
+            LEFT JOIN hrims.stm_ucs stm_uc ON stm_uc.cid=pt.cid AND stm_uc.vstdate = o.vstdate AND LEFT(stm_uc.vsttime,5) =LEFT(o.vsttime,5)
+            WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "OFC" AND o.vstdate BETWEEN ? AND ?
+            AND v.income <>"0" AND kidney.vn IS NULL AND oe.upload_datetime IS NOT NULL
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
+
+        return view('claim_op.ofc',compact('start_date','end_date','search','claim'));
+    }
+//----------------------------------------------------------------------------------------------------------------------------------------
+    public function ofc_kidney(Request $request )
+    {
+        $start_date = $request->start_date;
+        $end_date = $request->end_date;
+        if($start_date == '' || $end_date == null)
+        {$start_date = date('Y-m-d');}else{$start_date =$request->start_date;}
+        if($end_date == '' || $end_date == null)
+        {$end_date = date('Y-m-d');}else{$end_date =$request->end_date;}
+
+        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+       
+        $claim=DB::connection('hosxp')->select('
+            SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
+            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
+            COALESCE(kidney.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+            LEFT JOIN pttype p ON p.pttype=vp.pttype
+            LEFT JOIN opdscreen os ON os.vn=o.vn
+            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn        
+            INNER JOIN opitemrece o1 ON o1.vn=o.vn
+            INNER JOIN hrims.lookup_icode li ON o1.icode = li.icode AND li.kidney = "Y"
+            LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
+            LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price	FROM opitemrece op
+            INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                WHERE op.vstdate BETWEEN ? AND ? AND li.kidney = "Y" GROUP BY op.vn) kidney ON kidney.vn=o.vn
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN (SELECT hn,vstdate,sum(amount) AS receive_total,rid AS repno FROM hrims.stm_ofc_kidney
+                WHERE vstdate BETWEEN ? AND ? GROUP BY hn,vstdate) stm ON stm.hn=pt.hn AND stm.vstdate = o.vstdate
+            WHERE p.hipdata_code = "OFC" AND o.vstdate BETWEEN ? AND ?
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);
+
+        return view('claim_op.ofc_kidney',compact('start_date','end_date','claim'));
+    }
+
 }

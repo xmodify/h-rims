@@ -55,7 +55,16 @@
                             </a>
                             <div class=" btn btn-outline-success dropdown-menu dropdown-menu-end">                                       
                                 <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_ucs') }}" >
-                                    - Statement UCS
+                                    - Statement UCS [OP-IP]
+                                </a> 
+                                <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_ucs_kidney') }}" >
+                                    - Statement UCS [ฟอกไต]
+                                </a> 
+                                <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_ofc') }}" >
+                                    - Statement OFC [OP-IP]
+                                </a> 
+                                <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_ofc_kidney') }}" >
+                                    - Statement OFC [ฟอกไต]
                                 </a> 
                             </div>                 
                         </li>  
@@ -84,7 +93,7 @@
                                 </li>
                             </ul>
                         </li> 
-   <li class="nav-item dropdown">
+                        <li class="nav-item dropdown">
                             <a id="navbarDropdown" class="btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
                                 เรียกเก็บ OP
                             </a>
@@ -106,7 +115,7 @@
                                         </li> 
                                         @if($hasLookupIcode_kidney)
                                         <li>
-                                            <a class="dropdown-item link-primary text-white" href=""> UC-OP ฟอกไต </a>
+                                            <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/ucs_kidney') }}"> UC-OP ฟอกไต </a>
                                         </li> 
                                         @endif
                                     </ul>
@@ -124,11 +133,23 @@
                                         </li>
                                     </ul>
                                 </li>
-                                <!-- เมนูอื่น -->
-                                <li>
-                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                <li class="dropend">
+                                    <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         OP-OFC กรมบัญชีกลาง
-                                    </a>   
+                                    </a>
+                                    <ul class="bg-success dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/ofc') }}"> OFC-OP กรมบัญชีกลาง</a>
+                                        </li>
+                                        @if($hasLookupIcode_kidney) 
+                                        <li>
+                                            <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/ofc_kidney') }}">OFC-OP กรมบัญชีกลาง ฟอกไต </a>
+                                        </li>
+                                        @endif
+                                    </ul>
+                                </li>
+                                <!-- เมนูอื่น -->
+                                <li> 
                                     <a class="dropdown-item link-primary text-white " href="#" >
                                         OP-LGO อปท.
                                     </a>       
@@ -174,7 +195,7 @@
                                     <a class="dropdown-item link-primary text-white " href="{{ url('claim_ip/stp') }}" > 
                                         IP-STP บุคคลที่มีปัญหาสถานะและสิทธิ 
                                     </a> 
-                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                    <a class="dropdown-item link-primary text-white " href="{{ url('claim_ip/ofc') }}" >
                                         IP-OFC กรมบัญชีกลาง
                                     </a>   
                                     <a class="dropdown-item link-primary text-white " href="#" >

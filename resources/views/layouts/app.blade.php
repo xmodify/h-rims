@@ -111,11 +111,21 @@
                                         @endif
                                     </ul>
                                 </li>
+                                <li class="dropend">
+                                    <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
+                                        OP-STP บุคคลที่มีปัญหาสถานะและสิทธิ 
+                                    </a>
+                                    <ul class="bg-success dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/stp_incup') }}"> STP-OP ใน CUP </a>
+                                        </li> 
+                                        <li>
+                                            <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/stp_outcup') }}"> STP-OP นอก CUP </a>
+                                        </li>
+                                    </ul>
+                                </li>
                                 <!-- เมนูอื่น -->
                                 <li>
-                                    <a class="dropdown-item link-primary text-white " href="#" > 
-                                        OP-STP บุคคลที่มีปัญหาสถานะและสิทธิ 
-                                    </a> 
                                     <a class="dropdown-item link-primary text-white " href="#" >
                                         OP-OFC กรมบัญชีกลาง
                                     </a>   
@@ -161,7 +171,7 @@
                                 </li>
                                 <!-- เมนูอื่น -->
                                 <li>
-                                    <a class="dropdown-item link-primary text-white " href="#" > 
+                                    <a class="dropdown-item link-primary text-white " href="{{ url('claim_ip/stp') }}" > 
                                         IP-STP บุคคลที่มีปัญหาสถานะและสิทธิ 
                                     </a> 
                                     <a class="dropdown-item link-primary text-white " href="#" >

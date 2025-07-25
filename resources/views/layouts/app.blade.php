@@ -76,17 +76,11 @@
                             <a id="navbarDropdown" class="btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
                                 งานเวชระเบียน
                             </a>
-                            <ul class="bg-success dropdown-menu dropdown-menu-end">   
-                                <!-- เมนูอื่น -->
-                                <li>
-                                    <a class="link-primary dropdown-item text-white" href="{{ url('/ipd/dchsummary') }}">
-                                        IP-D/C Summary
-                                    </a>
-                                </li>
+                            <ul class="bg-success dropdown-menu dropdown-menu-end"> 
                                 <!-- ชี้ขวา -->
                                 <li class="dropend">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
-                                        รายโรคสำคัญ
+                                        OP-รายโรคสำคัญ
                                     </a>
                                     <ul class="bg-success dropdown-menu">
                                         <li><a class="dropdown-item link-primary text-white" href="{{ url('/diag/sepsis') }}">Sepsis</a></li>
@@ -94,6 +88,12 @@
                                         <li><a class="dropdown-item link-primary text-white" href="{{ url('/diag/stemi') }}">Stemi</a></li>
                                         <li><a class="dropdown-item link-primary text-white" href="{{ url('/diag/pneumonia') }}">Pneumonia</a></li>
                                     </ul>
+                                </li>
+                                <!-- เมนูอื่น -->
+                                <li>
+                                    <a class="link-primary dropdown-item text-white" href="{{ url('/ipd/dchsummary') }}">
+                                        IP-D/C Summary
+                                    </a>
                                 </li>
                             </ul>
                         </li> 

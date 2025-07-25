@@ -9,12 +9,16 @@ class NotifyController extends Controller
 {
     public function notify_summary(Request $request )
     {
-        $budget_year_now = DB::table('budget_year')->where('DATE_END','>=',date('Y-m-d'))->where('DATE_BEGIN','<=',date('Y-m-d'))->value('LEAVE_YEAR_ID');
-        $budget_year = $request->budget_year;
-        if($budget_year == '' || $budget_year == null)
-        {$budget_year = $budget_year_now;}else{$budget_year =$request->budget_year;} 
-        $start_date =DB::table('budget_year')->where('LEAVE_YEAR_ID',$budget_year)->value('DATE_BEGIN');
-        $end_date = DB::table('budget_year')->where('LEAVE_YEAR_ID',$budget_year)->value('DATE_END');
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->first(['DATE_BEGIN', 'DATE_END']);
+        $start_date = $year->DATE_BEGIN ?? null;
+        $end_date   = $year->DATE_END ?? null;
 
         $notify = DB::connection('hosxp')->select('
             SELECT COUNT(vn) AS visit,IFNULL(SUM(CASE WHEN endpoint_code LIKE "EP%" THEN 1 ELSE 0 END),0) AS "endpoint",

@@ -13,20 +13,30 @@ class DiagController extends Controller
         $this->middleware('auth');
     }
 
-    //Create sepsis
+//Create sepsis----------------------------------------------------------------------------------------------------------------------------------------------------
     public function sepsis(Request $request)
     {
         // Set the execution time to 300 seconds (5 minutes)
         set_time_limit(300);
 
-        $budget_year_select = DB::select('select LEAVE_YEAR_ID,LEAVE_YEAR_NAME FROM budget_year ORDER BY LEAVE_YEAR_ID DESC LIMIT 7');
-        $budget_year_now = DB::table('budget_year')->where('DATE_END','>=',date('Y-m-d'))->where('DATE_BEGIN','<=',date('Y-m-d'))->value('LEAVE_YEAR_ID');
-        $budget_year = $request->budget_year;
-            if($budget_year == '' || $budget_year == null)
-            {$budget_year = $budget_year_now;}else{$budget_year =$request->budget_year;} 
-        $start_date_y =DB::table('budget_year')->where('LEAVE_YEAR_ID',$budget_year-4)->value('DATE_BEGIN');
-        $start_date =DB::table('budget_year')->where('LEAVE_YEAR_ID',$budget_year)->value('DATE_BEGIN');
-        $end_date = DB::table('budget_year')->where('LEAVE_YEAR_ID',$budget_year)->value('DATE_END');
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
+            ->orderByDesc('LEAVE_YEAR_ID')
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date   = $year_data[$budget_year]     ?? null;
+        $start_date_y = $year_data[$budget_year - 4] ?? null;
+        $end_date = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
 
         $diag_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)="10" THEN CONCAT("ต.ค. ",RIGHT(YEAR(vstdate)+543,2))
@@ -107,21 +117,30 @@ class DiagController extends Controller
         return view('diag.sepsis',compact('budget_year_select','budget_year','diag_m','diag_visit_m','diag_hn_m','diag_admit_m','diag_refer_m',
             'diag_y','diag_visit_y','diag_hn_y','diag_admit_y','diag_refer_y','diag_list'));            
     }
-
-    //Create stroke
+//Create stroke-------------------------------------------------------------------------------------------------------------------------------------------------
     public function stroke(Request $request)
     {
         // Set the execution time to 300 seconds (5 minutes)
         set_time_limit(300);
 
-        $budget_year_select = DB::select('select LEAVE_YEAR_ID,LEAVE_YEAR_NAME FROM budget_year ORDER BY LEAVE_YEAR_ID DESC LIMIT 7');
-        $budget_year_now = DB::table('budget_year')->where('DATE_END','>=',date('Y-m-d'))->where('DATE_BEGIN','<=',date('Y-m-d'))->value('LEAVE_YEAR_ID');
-        $budget_year = $request->budget_year;
-            if($budget_year == '' || $budget_year == null)
-            {$budget_year = $budget_year_now;}else{$budget_year =$request->budget_year;} 
-        $start_date_y =DB::table('budget_year')->where('LEAVE_YEAR_ID',$budget_year-4)->value('DATE_BEGIN');
-        $start_date =DB::table('budget_year')->where('LEAVE_YEAR_ID',$budget_year)->value('DATE_BEGIN');
-        $end_date = DB::table('budget_year')->where('LEAVE_YEAR_ID',$budget_year)->value('DATE_END');
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
+            ->orderByDesc('LEAVE_YEAR_ID')
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date   = $year_data[$budget_year]     ?? null;
+        $start_date_y = $year_data[$budget_year - 4] ?? null;
+        $end_date = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
 
         $diag_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)="10" THEN CONCAT("ต.ค. ",RIGHT(YEAR(vstdate)+543,2))
@@ -209,14 +228,24 @@ class DiagController extends Controller
         // Set the execution time to 300 seconds (5 minutes)
         set_time_limit(300);
 
-        $budget_year_select = DB::select('select LEAVE_YEAR_ID,LEAVE_YEAR_NAME FROM budget_year ORDER BY LEAVE_YEAR_ID DESC LIMIT 7');
-        $budget_year_now = DB::table('budget_year')->where('DATE_END','>=',date('Y-m-d'))->where('DATE_BEGIN','<=',date('Y-m-d'))->value('LEAVE_YEAR_ID');
-        $budget_year = $request->budget_year;
-            if($budget_year == '' || $budget_year == null)
-            {$budget_year = $budget_year_now;}else{$budget_year =$request->budget_year;} 
-        $start_date_y =DB::table('budget_year')->where('LEAVE_YEAR_ID',$budget_year-4)->value('DATE_BEGIN');
-        $start_date =DB::table('budget_year')->where('LEAVE_YEAR_ID',$budget_year)->value('DATE_BEGIN');
-        $end_date = DB::table('budget_year')->where('LEAVE_YEAR_ID',$budget_year)->value('DATE_END');
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
+            ->orderByDesc('LEAVE_YEAR_ID')
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date   = $year_data[$budget_year]     ?? null;
+        $start_date_y = $year_data[$budget_year - 4] ?? null;
+        $end_date = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
 
         $diag_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)="10" THEN CONCAT("ต.ค. ",RIGHT(YEAR(vstdate)+543,2))
@@ -304,14 +333,24 @@ class DiagController extends Controller
         // Set the execution time to 300 seconds (5 minutes)
         set_time_limit(300);
 
-        $budget_year_select = DB::select('select LEAVE_YEAR_ID,LEAVE_YEAR_NAME FROM budget_year ORDER BY LEAVE_YEAR_ID DESC LIMIT 7');
-        $budget_year_now = DB::table('budget_year')->where('DATE_END','>=',date('Y-m-d'))->where('DATE_BEGIN','<=',date('Y-m-d'))->value('LEAVE_YEAR_ID');
-        $budget_year = $request->budget_year;
-            if($budget_year == '' || $budget_year == null)
-            {$budget_year = $budget_year_now;}else{$budget_year =$request->budget_year;} 
-        $start_date_y =DB::table('budget_year')->where('LEAVE_YEAR_ID',$budget_year-4)->value('DATE_BEGIN');
-        $start_date =DB::table('budget_year')->where('LEAVE_YEAR_ID',$budget_year)->value('DATE_BEGIN');
-        $end_date = DB::table('budget_year')->where('LEAVE_YEAR_ID',$budget_year)->value('DATE_END');
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
+            ->orderByDesc('LEAVE_YEAR_ID')
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date   = $year_data[$budget_year]     ?? null;
+        $start_date_y = $year_data[$budget_year - 4] ?? null;
+        $end_date = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
 
         $diag_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)="10" THEN CONCAT("ต.ค. ",RIGHT(YEAR(vstdate)+543,2))

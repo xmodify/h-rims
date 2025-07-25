@@ -27,12 +27,16 @@ public function __construct()
      */
 public function index(Request $request )
 {
-    $budget_year_now = DB::table('budget_year')->where('DATE_END','>=',date('Y-m-d'))->where('DATE_BEGIN','<=',date('Y-m-d'))->value('LEAVE_YEAR_ID');
-    $budget_year = $request->budget_year;
-        if($budget_year == '' || $budget_year == null)
-        {$budget_year = $budget_year_now;}else{$budget_year =$request->budget_year;} 
-    $start_date =DB::table('budget_year')->where('LEAVE_YEAR_ID',$budget_year)->value('DATE_BEGIN');
-    $end_date = DB::table('budget_year')->where('LEAVE_YEAR_ID',$budget_year)->value('DATE_END');
+    $budget_year_now = DB::table('budget_year')
+        ->where('DATE_END', '>=', date('Y-m-d'))
+        ->where('DATE_BEGIN', '<=', date('Y-m-d'))
+        ->value('LEAVE_YEAR_ID');
+    $budget_year = $request->budget_year ?: $budget_year_now;
+    $year_data = DB::table('budget_year')
+        ->where('LEAVE_YEAR_ID', $budget_year)
+        ->first(['DATE_BEGIN', 'DATE_END']);
+    $start_date = $year_data->DATE_BEGIN ?? null;
+    $end_date   = $year_data->DATE_END ?? null;
 
     $opd_monitor = DB::connection('hosxp')->select('
         SELECT COUNT(vn) AS total,IFNULL(SUM(CASE WHEN endpoint<>"" THEN 1 ELSE 0 END),0) AS "endpoint",
@@ -402,12 +406,8 @@ public function nhso_endpoint_pull_indiv(Request $request, $vstdate, $cid)
 ##############################################################################################
 public function opd_ofc(Request $request )
 {
-    $start_date = $request->start_date;
-    $end_date = $request->end_date;
-    if($start_date == '' || $end_date == null)
-    {$start_date = date('Y-m-d');}else{$start_date =$request->start_date;}
-    if($end_date == '' || $end_date == null)
-    {$end_date = date('Y-m-d');}else{$end_date =$request->end_date;}
+    $start_date = $request->start_date ?: date('Y-m-d');
+    $end_date = $request->end_date ?: date('Y-m-d');
 
     $sql=DB::connection('hosxp')->select('
         SELECT o.vstdate,o.vsttime,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -431,12 +431,8 @@ public function opd_ofc(Request $request )
 #################################################################################################
 public function opd_non_authen(Request $request )
 {
-    $start_date = $request->start_date;
-    $end_date = $request->end_date;
-    if($start_date == '' || $end_date == null)
-    {$start_date = date('Y-m-d');}else{$start_date =$request->start_date;}
-    if($end_date == '' || $end_date == null)
-    {$end_date = date('Y-m-d');}else{$end_date =$request->end_date;}
+    $start_date = $request->start_date ?: date('Y-m-d');
+    $end_date = $request->end_date ?: date('Y-m-d');
 
     $sql=DB::connection('hosxp')->select('
         SELECT o.vstdate,o.vsttime,o.oqueue,o.hn,p.cid,p.mobile_phone_number,p.hometel,p1.`name` AS pttype,
@@ -456,12 +452,8 @@ public function opd_non_authen(Request $request )
 ##############################################################################################
 public function opd_non_hospmain(Request $request )
 {
-    $start_date = $request->start_date;
-    $end_date = $request->end_date;
-    if($start_date == '' || $end_date == null)
-    {$start_date = date('Y-m-d');}else{$start_date =$request->start_date;}
-    if($end_date == '' || $end_date == null)
-    {$end_date = date('Y-m-d');}else{$end_date =$request->end_date;}
+    $start_date = $request->start_date ?: date('Y-m-d');
+    $end_date = $request->end_date ?: date('Y-m-d');
 
     $sql=DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -480,12 +472,8 @@ public function opd_non_hospmain(Request $request )
 ##############################################################################################
 public function opd_ucs_anywhere(Request $request )
 {
-    $start_date = $request->start_date;
-    $end_date = $request->end_date;
-    if($start_date == '' || $end_date == null)
-    {$start_date = date('Y-m-d');}else{$start_date =$request->start_date;}
-    if($end_date == '' || $end_date == null)
-    {$end_date = date('Y-m-d');}else{$end_date =$request->end_date;}
+    $start_date = $request->start_date ?: date('Y-m-d');
+    $end_date = $request->end_date ?: date('Y-m-d');
 
     $search=DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -516,12 +504,8 @@ public function opd_ucs_anywhere(Request $request )
 ##############################################################################################
 public function opd_ucs_cr(Request $request )
 {
-    $start_date = $request->start_date;
-    $end_date = $request->end_date;
-    if($start_date == '' || $end_date == null)
-    {$start_date = date('Y-m-d');}else{$start_date =$request->start_date;}
-    if($end_date == '' || $end_date == null)
-    {$end_date = date('Y-m-d');}else{$end_date =$request->end_date;}
+    $start_date = $request->start_date ?: date('Y-m-d');
+    $end_date = $request->end_date ?: date('Y-m-d');
 
     $search=DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -558,12 +542,8 @@ public function opd_ucs_cr(Request $request )
 ##############################################################################################
 public function opd_ucs_herb(Request $request )
 {
-    $start_date = $request->start_date;
-    $end_date = $request->end_date;
-    if($start_date == '' || $end_date == null)
-    {$start_date = date('Y-m-d');}else{$start_date =$request->start_date;}
-    if($end_date == '' || $end_date == null)
-    {$end_date = date('Y-m-d');}else{$end_date =$request->end_date;}
+    $start_date = $request->start_date ?: date('Y-m-d');
+    $end_date = $request->end_date ?: date('Y-m-d');
 
     $search=DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -599,12 +579,8 @@ public function opd_ucs_herb(Request $request )
 ##############################################################################################
 public function opd_ucs_healthmed(Request $request )
 {
-    $start_date = $request->start_date;
-    $end_date = $request->end_date;
-    if($start_date == '' || $end_date == null)
-    {$start_date = date('Y-m-d');}else{$start_date =$request->start_date;}
-    if($end_date == '' || $end_date == null)
-    {$end_date = date('Y-m-d');}else{$end_date =$request->end_date;}
+    $start_date = $request->start_date ?: date('Y-m-d');
+    $end_date = $request->end_date ?: date('Y-m-d');
 
     $search=DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -635,12 +611,8 @@ public function opd_ucs_healthmed(Request $request )
 ##############################################################################################
 public function opd_ppfs(Request $request )
 {
-    $start_date = $request->start_date;
-    $end_date = $request->end_date;
-    if($start_date == '' || $end_date == null)
-    {$start_date = date('Y-m-d');}else{$start_date =$request->start_date;}
-    if($end_date == '' || $end_date == null)
-    {$end_date = date('Y-m-d');}else{$end_date =$request->end_date;}
+    $start_date = $request->start_date ?: date('Y-m-d');
+    $end_date = $request->end_date ?: date('Y-m-d');
 
     $search=DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -676,12 +648,8 @@ public function opd_ppfs(Request $request )
 ##############################################################################################
 public function ipd_homeward(Request $request )
 {
-    $start_date = $request->start_date;
-    $end_date = $request->end_date;
-    if($start_date == '' || $end_date == null)
-    {$start_date = date('Y-m-d');}else{$start_date =$request->start_date;}
-    if($end_date == '' || $end_date == null)
-    {$end_date = date('Y-m-d');}else{$end_date =$request->end_date;}
+    $start_date = $request->start_date ?: date('Y-m-d');
+    $end_date = $request->end_date ?: date('Y-m-d');
 
     $sql=DB::connection('hosxp')->select('
         SELECT ep.claimCode,o.vstdate,o.vsttime,o.oqueue,o.hn,p.cid,p.mobile_phone_number,
@@ -702,12 +670,16 @@ public function ipd_homeward(Request $request )
 ##############################################################################################
 public function ipd_non_dchsummary(Request $request )
 {
-    $budget_year_now = DB::table('budget_year')->where('DATE_END','>=',date('Y-m-d'))->where('DATE_BEGIN','<=',date('Y-m-d'))->value('LEAVE_YEAR_ID');
-    $budget_year = $request->budget_year;
-        if($budget_year == '' || $budget_year == null)
-        {$budget_year = $budget_year_now;}else{$budget_year =$request->budget_year;} 
-    $start_date =DB::table('budget_year')->where('LEAVE_YEAR_ID',$budget_year)->value('DATE_BEGIN');
-    $end_date = DB::table('budget_year')->where('LEAVE_YEAR_ID',$budget_year)->value('DATE_END');
+    $budget_year_now = DB::table('budget_year')
+        ->where('DATE_END', '>=', date('Y-m-d'))
+        ->where('DATE_BEGIN', '<=', date('Y-m-d'))
+        ->value('LEAVE_YEAR_ID');
+    $budget_year = $request->budget_year ?: $budget_year_now;
+    $year_data = DB::table('budget_year')
+        ->where('LEAVE_YEAR_ID', $budget_year)
+        ->first(['DATE_BEGIN', 'DATE_END']);
+    $start_date = $year_data->DATE_BEGIN ?? null;
+    $end_date   = $year_data->DATE_END ?? null;
 
     $non_dchsummary=DB::connection('hosxp')->select('
         SELECT w.`name` AS ward,i.hn,i.an,id.icd10,a.diag_text_list,d.`name` AS owner_doctor_name,

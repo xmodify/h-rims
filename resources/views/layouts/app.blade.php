@@ -57,15 +57,19 @@
                                 <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_ucs') }}" >
                                     - Statement UCS [OP-IP]
                                 </a> 
-                                <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_ucs_kidney') }}" >
-                                    - Statement UCS [ฟอกไต]
-                                </a> 
+                                @if($hasLookupIcode_kidney) 
+                                    <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_ucs_kidney') }}" >
+                                        - Statement UCS [ฟอกไต]
+                                    </a> 
+                                @endif
                                 <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_ofc') }}" >
                                     - Statement OFC [OP-IP]
                                 </a> 
-                                <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_ofc_kidney') }}" >
-                                    - Statement OFC [ฟอกไต]
-                                </a> 
+                                @if($hasLookupIcode_kidney) 
+                                    <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_ofc_kidney') }}" >
+                                        - Statement OFC [ฟอกไต]
+                                    </a> 
+                                @endif
                             </div>                 
                         </li>  
                         <li class="nav-item dropdown">
@@ -198,22 +202,25 @@
                                     <a class="dropdown-item link-primary text-white " href="{{ url('claim_ip/ofc') }}" >
                                         IP-OFC กรมบัญชีกลาง
                                     </a>   
-                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                    <a class="dropdown-item link-primary text-white " href="{{ url('claim_ip/lgo') }}" >
                                         IP-LGO อปท.
                                     </a>       
-                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                    <a class="dropdown-item link-primary text-white " href="{{ url('claim_ip/bkk') }}" >
                                         IP-BKK อปท.รูปแบบพิเศษ กทม.
                                     </a>      
-                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                    <a class="dropdown-item link-primary text-white " href="{{ url('claim_ip/bmt') }}" >
                                         IP-BMT อปท.รูปแบบพิเศษ ขสมก.
                                     </a>
-                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                    <a class="dropdown-item link-primary text-white " href="{{ url('claim_ip/sss') }}" >
                                         IP-SSS ประกันสังคม
+                                    </a>   
+                                    <a class="dropdown-item link-primary text-white " href="{{ url('claim_ip/gof') }}" >
+                                        IP-GOF หน่วยงานรัฐ
                                     </a>    
-                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                    <a class="dropdown-item link-primary text-white " href="{{ url('claim_ip/rcpt') }}" >
                                         IP-ชำระเงิน
                                     </a>   
-                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                    <a class="dropdown-item link-primary text-white " href="{{ url('claim_ip/act') }}" >
                                         IP-พรบ.
                                     </a>   
                                 </li>

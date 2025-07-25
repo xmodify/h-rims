@@ -52,7 +52,7 @@ Route::get('/', function () {
 
 Auth::routes();
 
-//home
+//home-----------------------------------------------------------------------------------------------------------------------------
 Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 Route::post('nhso_endpoint_pull', [HomeController::class, 'nhso_endpoint_pull']);
 Route::get('nhso_endpoint_pull/{vstdate}/{cid}',[HomeController::class,'nhso_endpoint_pull_indiv']);
@@ -69,7 +69,7 @@ Route::match(['get','post'],'ipd_non_dchsummary',[HomeController::class,'ipd_non
 Route::match(['get','post'],'ipd_finance_chk_opd_wait_transfer',[HomeController::class,'ipd_finance_chk_opd_wait_transfer']);
 Route::match(['get','post'],'ipd_finance_chk_wait_rcpt_money',[HomeController::class,'ipd_finance_chk_wait_rcpt_money']);
 
-//Import
+//Import---------------------------------------------------------------------------------------------------------------------------
 Route::match(['get','post'],'import/stm_ucs',[ImportController::class,'stm_ucs'])->name('stm_ucs');
 Route::post('import/stm_ucs_save',[ImportController::class,'stm_ucs_save']);
 Route::match(['get','post'],'import/stm_ucs_kidney',[ImportController::class,'stm_ucs_kidney'])->name('stm_ucs_kidney');
@@ -79,19 +79,19 @@ Route::post('import/stm_ofc_save',[ImportController::class,'stm_ofc_save']);
 Route::match(['get','post'],'import/stm_ofc_kidney',[ImportController::class,'stm_ofc_kidney'])->name('stm_ofc_kidney');
 Route::post('import/stm_ofc_kidney_save',[ImportController::class,'stm_ofc_kidney_save']);
 
-//Diag
+//Diag------------------------------------------------------------------------------------------------------------------------------
 Route::match(['get','post'],'diag/sepsis',[DiagController::class,'sepsis']);
 Route::match(['get','post'],'diag/stroke',[DiagController::class,'stroke']);
 Route::match(['get','post'],'diag/stemi',[DiagController::class,'stemi']);
 Route::match(['get','post'],'diag/pneumonia',[DiagController::class,'pneumonia']);
 
-//Ipd
+//Ipd-------------------------------------------------------------------------------------------------------------------------------
 Route::match(['get','post'],'ipd/wait_doctor_dchsummary',[IpdController::class,'wait_doctor_dchsummary']);
 Route::match(['get','post'],'ipd/wait_icd_coder',[IpdController::class,'wait_icd_coder']);
 Route::match(['get','post'],'ipd/dchsummary',[IpdController::class,'dchsummary']);
 Route::match(['get','post'],'ipd/dchsummary_audit',[IpdController::class,'dchsummary_audit']);
 
-// Claim_OP -------------------------------------------------------------------------------------------------------------------------
+//Claim_OP -------------------------------------------------------------------------------------------------------------------------
 Route::match(['get','post'],'claim_op/ucs_incup',[ClaimOpController::class,'ucs_incup']);
 Route::match(['get','post'],'claim_op/ucs_inprovince',[ClaimOpController::class,'ucs_inprovince']);
 Route::match(['get','post'],'claim_op/ucs_outprovince',[ClaimOpController::class,'ucs_outprovince']);
@@ -101,11 +101,18 @@ Route::match(['get','post'],'claim_op/stp_outcup',[ClaimOpController::class,'stp
 Route::match(['get','post'],'claim_op/ofc',[ClaimOpController::class,'ofc']);
 Route::match(['get','post'],'claim_op/ofc_kidney',[ClaimOpController::class,'ofc_kidney']);
 
-// Claim_IP -------------------------------------------------------------------------------------------------------------------------
+// Claim_IP -----------------------------------------------------------------------------------------------------------------------
 Route::match(['get','post'],'claim_ip/ucs_incup',[ClaimIpController::class,'ucs_incup']);
 Route::match(['get','post'],'claim_ip/ucs_outcup',[ClaimIpController::class,'ucs_outcup']);
 Route::match(['get','post'],'claim_ip/stp',[ClaimIpController::class,'stp']);
 Route::match(['get','post'],'claim_ip/ofc',[ClaimIpController::class,'ofc']);
+Route::match(['get','post'],'claim_ip/lgo',[ClaimIpController::class,'lgo']);
+Route::match(['get','post'],'claim_ip/bkk',[ClaimIpController::class,'bkk']);
+Route::match(['get','post'],'claim_ip/bmt',[ClaimIpController::class,'bmt']);
+Route::match(['get','post'],'claim_ip/sss',[ClaimIpController::class,'sss']);
+Route::match(['get','post'],'claim_ip/gof',[ClaimIpController::class,'gof']);
+Route::match(['get','post'],'claim_ip/rcpt',[ClaimIpController::class,'rcpt']);
+Route::match(['get','post'],'claim_ip/act',[ClaimIpController::class,'act']);
 
 //Notify
 Route::get('notify_summary',[NotifyController::class,'notify_summary'])->name('notify_summary');

@@ -18,14 +18,10 @@ public function __construct()
 //Create wait_doctor_dchsummary
 public function wait_doctor_dchsummary(Request $request)
 {      
-      $start_date = $request->start_date;
-      $end_date = $request->end_date;
-      if($start_date == '' || $end_date == null)
-      {$start_date = Session::get('start_date');}else{$start_date =$request->start_date;}
-      if($end_date == '' || $end_date == null)
-      {$end_date = Session::get('end_date');}else{$end_date =$request->end_date;}
+        $start_date = $request->start_date ?: Session::get('start_date');
+        $end_date = $request->end_date ?: Session::get('end_date');
 
-      $non_dchsummary=DB::connection('hosxp')->select('
+        $non_dchsummary=DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.hn,i.an,iptdiag.icd10,a.diag_text_list,d.`name` AS owner_doctor_name,
             i.dchdate,TIMESTAMPDIFF(day,i.dchdate,DATE(NOW())) AS dch_day,
             CASE WHEN (a.diag_text_list ="" OR a.diag_text_list IS NULL) THEN "รอแพทย์สรุป Chart"
@@ -42,7 +38,7 @@ public function wait_doctor_dchsummary(Request $request)
             GROUP BY i.an
             ORDER BY d.`name`,dch_day DESC',[$start_date,$end_date]);  
 
-      $non_dchsummary_sum=DB::connection('hosxp')->select('
+        $non_dchsummary_sum=DB::connection('hosxp')->select('
             SELECT d.`name` AS owner_doctor_name,COUNT(i.an) AS total
             FROM ipt i     
             LEFT JOIN iptdiag ON iptdiag.an = i.an AND iptdiag.diagtype = "1"
@@ -54,12 +50,12 @@ public function wait_doctor_dchsummary(Request $request)
             AND (a.diag_text_list ="" OR a.diag_text_list IS NULL)
             GROUP BY d.`name` 
             ORDER BY total DESC',[$start_date,$end_date]); 
-      $owner_doctor_name = array_column($non_dchsummary_sum,'owner_doctor_name');
-      $owner_doctor_total = array_column($non_dchsummary_sum,'total');
+        $owner_doctor_name = array_column($non_dchsummary_sum,'owner_doctor_name');
+        $owner_doctor_total = array_column($non_dchsummary_sum,'total');
 
-      $request->session()->put('start_date',$start_date);
-      $request->session()->put('end_date',$end_date);
-      $request->session()->save();
+        $request->session()->put('start_date',$start_date);
+        $request->session()->put('end_date',$end_date);
+        $request->session()->save();
       
       return view('home_detail.ipd_non_dchsummary',compact('non_dchsummary','owner_doctor_name','owner_doctor_total'));        
 }
@@ -67,12 +63,8 @@ public function wait_doctor_dchsummary(Request $request)
 //Create wait_icd_coder
 public function wait_icd_coder(Request $request)
     {      
-        $start_date = $request->start_date;
-        $end_date = $request->end_date;
-        if($start_date == '' || $end_date == null)
-        {$start_date = Session::get('start_date');}else{$start_date =$request->start_date;}
-        if($end_date == '' || $end_date == null)
-        {$end_date = Session::get('end_date');}else{$end_date =$request->end_date;}
+        $start_date = $request->start_date ?: Session::get('start_date');
+        $end_date = $request->end_date ?: Session::get('end_date');
 
         $sql=DB::connection('hosxp')->select('
                 SELECT COUNT(an) AS sum_discharge,
@@ -202,12 +194,8 @@ public function wait_icd_coder(Request $request)
 //Create dchsummary
 public function dchsummary(Request $request)
     {      
-        $start_date = $request->start_date;
-        $end_date = $request->end_date;
-        if($start_date == '' || $end_date == null)
-        {$start_date = Session::get('start_date');}else{$start_date =$request->start_date;}
-        if($end_date == '' || $end_date == null)
-        {$end_date = Session::get('end_date');}else{$end_date =$request->end_date;}
+        $start_date = $request->start_date ?: Session::get('start_date');
+        $end_date = $request->end_date ?: Session::get('end_date');
 
         $sql=DB::connection('hosxp')->select('
             SELECT COUNT(an) AS sum_discharge,
@@ -336,12 +324,8 @@ public function dchsummary(Request $request)
 //Create dchsummary
 public function dchsummary_audit(Request $request)
     {      
-        $start_date = $request->start_date;
-        $end_date = $request->end_date;
-        if($start_date == '' || $end_date == null)
-        {$start_date = Session::get('start_date');}else{$start_date =$request->start_date;}
-        if($end_date == '' || $end_date == null)
-        {$end_date = Session::get('end_date');}else{$end_date =$request->end_date;}
+        $start_date = $request->start_date ?: Session::get('start_date');
+        $end_date = $request->end_date ?: Session::get('end_date');
 
         $sql=DB::connection('hosxp')->select('
                 SELECT COUNT(an) AS sum_discharge,

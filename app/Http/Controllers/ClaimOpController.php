@@ -15,14 +15,10 @@ class ClaimOpController extends Controller
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_incup(Request $request )
     {
-        $start_date = $request->start_date;
-        $end_date = $request->end_date;
-        if($start_date == '' || $end_date == null)
-        {$start_date = date('Y-m-d');}else{$start_date =$request->start_date;}
-        if($end_date == '' || $end_date == null)
-        {$end_date = date('Y-m-d');}else{$end_date =$request->end_date;}
-
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
 
         $search=DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -102,14 +98,10 @@ class ClaimOpController extends Controller
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_inprovince(Request $request )
     {
-        $start_date = $request->start_date;
-        $end_date = $request->end_date;
-        if($start_date == '' || $end_date == null)
-        {$start_date = date('Y-m-d');}else{$start_date =$request->start_date;}
-        if($end_date == '' || $end_date == null)
-        {$end_date = date('Y-m-d');}else{$end_date =$request->end_date;}
-
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
 
         $search=DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -190,14 +182,10 @@ class ClaimOpController extends Controller
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_outprovince(Request $request )
     {
-        $start_date = $request->start_date;
-        $end_date = $request->end_date;
-        if($start_date == '' || $end_date == null)
-        {$start_date = date('Y-m-d');}else{$start_date =$request->start_date;}
-        if($end_date == '' || $end_date == null)
-        {$end_date = date('Y-m-d');}else{$end_date =$request->end_date;}
-
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
 
         $search=DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -269,14 +257,10 @@ class ClaimOpController extends Controller
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_kidney(Request $request )
     {
-        $start_date = $request->start_date;
-        $end_date = $request->end_date;
-        if($start_date == '' || $end_date == null)
-        {$start_date = date('Y-m-d');}else{$start_date =$request->start_date;}
-        if($end_date == '' || $end_date == null)
-        {$end_date = date('Y-m-d');}else{$end_date =$request->end_date;}
-
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
        
         $claim=DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
@@ -307,14 +291,10 @@ class ClaimOpController extends Controller
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function stp_incup(Request $request )
     {
-        $start_date = $request->start_date;
-        $end_date = $request->end_date;
-        if($start_date == '' || $end_date == null)
-        {$start_date = date('Y-m-d');}else{$start_date =$request->start_date;}
-        if($end_date == '' || $end_date == null)
-        {$end_date = date('Y-m-d');}else{$end_date =$request->end_date;}
-
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
 
         $search=DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -384,14 +364,10 @@ class ClaimOpController extends Controller
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function stp_outcup(Request $request )
     {
-        $start_date = $request->start_date;
-        $end_date = $request->end_date;
-        if($start_date == '' || $end_date == null)
-        {$start_date = date('Y-m-d');}else{$start_date =$request->start_date;}
-        if($end_date == '' || $end_date == null)
-        {$end_date = date('Y-m-d');}else{$end_date =$request->end_date;}
-
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
 
         $search=DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -461,14 +437,10 @@ class ClaimOpController extends Controller
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ofc(Request $request )
     {
-        $start_date = $request->start_date;
-        $end_date = $request->end_date;
-        if($start_date == '' || $end_date == null)
-        {$start_date = date('Y-m-d');}else{$start_date =$request->start_date;}
-        if($end_date == '' || $end_date == null)
-        {$end_date = date('Y-m-d');}else{$end_date =$request->end_date;}
-
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
 
         $search=DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -532,14 +504,10 @@ class ClaimOpController extends Controller
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ofc_kidney(Request $request )
     {
-        $start_date = $request->start_date;
-        $end_date = $request->end_date;
-        if($start_date == '' || $end_date == null)
-        {$start_date = date('Y-m-d');}else{$start_date =$request->start_date;}
-        if($end_date == '' || $end_date == null)
-        {$end_date = date('Y-m-d');}else{$end_date =$request->end_date;}
-
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
        
         $claim=DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,

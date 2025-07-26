@@ -51,7 +51,7 @@ class MainSettingController extends Controller
                 ['id' => 9, 'name_th' => 'IPD BaseRate LGO', 'name' => 'base_rate_lgo', 'value' => '6194'],  
                 ['id' => 10, 'name_th' => 'IPD BaseRate SSS', 'name' => 'base_rate_sss', 'value' => '6200'],
                 ['id' => 11, 'name_th' => 'สิทธิ พรบ. (รหัสสิทธิ HOSxP)', 'name' => 'pttype_act', 'value' => '29'],
-                ['id' => 12, 'name_th' => 'สิทธิ ปกส.กองทุนทดแทน (รหัสสิทธิ HOSxP)', 'name' => 'pttype_fund', 'value' => 'S6,25,31'],
+                ['id' => 12, 'name_th' => 'สิทธิ ปกส.กองทุนทดแทน (รหัสสิทธิ HOSxP)', 'name' => 'pttype_sss_fund', 'value' => 'S6,25,31'],
             ];
 
             foreach ($main_setting as $row) {

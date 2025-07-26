@@ -19,7 +19,7 @@
           </div>
       </div>
   </form> 
-  <div class="alert alert-success text-primary" role="alert"><strong>รายชื่อผู้มารับบริการ  OP-STP บุคคลที่มีปัญหาสถานะและสิทธิ นอก CUP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</strong></div>
+  <div class="alert alert-success text-primary" role="alert"><strong>รายชื่อผู้มารับบริการ STP-OP บุคคลที่มีปัญหาสถานะและสิทธิ นอก CUP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</strong></div>
   
   <div class="card-body">
     <!-- Pills Tabs -->
@@ -234,7 +234,7 @@
               extend: 'excelHtml5',
               text: 'Excel',
               className: 'btn btn-success',
-              title: 'รายชื่อผู้มารับบริการ  OP-STP บุคคลที่มีปัญหาสถานะและสิทธิ นอก CUP รอส่ง Claim วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+              title: 'รายชื่อผู้มารับบริการ STP-OP บุคคลที่มีปัญหาสถานะและสิทธิ นอก CUP รอส่ง Claim วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
             }
         ],
         language: {
@@ -266,7 +266,7 @@
               extend: 'excelHtml5',
               text: 'Excel',
               className: 'btn btn-success',
-              title: 'รายชื่อผู้มารับบริการ  OP-STP บุคคลที่มีปัญหาสถานะและสิทธิ นอก CUP ส่ง Claim วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+              title: 'รายชื่อผู้มารับบริการ STP-OP บุคคลที่มีปัญหาสถานะและสิทธิ นอก CUP ส่ง Claim วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
             }
         ],
         language: {

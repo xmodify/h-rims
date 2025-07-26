@@ -197,6 +197,9 @@
                                     </a>
                                     <ul class="bg-success dropdown-menu">
                                         <li>
+                                            <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/sss_ppfs') }}"> SS-OP ประกันสังคม PPFS</a>
+                                        </li> 
+                                        <li>
                                             <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/sss_fund') }}"> SS-OP ประกันสังคม กองทุนทดแทน</a>
                                         </li> 
                                         <li>

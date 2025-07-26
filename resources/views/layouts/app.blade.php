@@ -175,10 +175,12 @@
                                     <ul class="bg-success dropdown-menu">
                                         <li>
                                             <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/lgo') }}"> LGO-OP อปท.</a>
-                                        </li> 
+                                        </li>
+                                        @if($hasLookupIcode_kidney) 
                                         <li>
                                             <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/lgo_kidney') }}">LGO-OP อปท. ฟอกไต </a>
                                         </li>
+                                        @endif
                                     </ul>
                                 </li>
                                 <!-- เมนูอื่น -->
@@ -201,10 +203,12 @@
                                         </li> 
                                         <li>
                                             <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/sss_fund') }}"> SS-OP ประกันสังคม กองทุนทดแทน</a>
-                                        </li> 
+                                        </li>
+                                        @if($hasLookupIcode_kidney)
                                         <li>
                                             <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/sss_kidney') }}">SS-OP ประกันสังคม ฟอกไต</a>
                                         </li>
+                                        @endif
                                     </ul>
                                 </li>
                                 <!-- เมนูอื่น -->

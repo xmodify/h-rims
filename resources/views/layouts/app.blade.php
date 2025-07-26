@@ -55,19 +55,32 @@
                             </a>
                             <div class=" btn btn-outline-success dropdown-menu dropdown-menu-end">                                       
                                 <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_ucs') }}" >
-                                    - Statement UCS [OP-IP]
+                                    STM-UCS [OP-IP]
                                 </a> 
                                 @if($hasLookupIcode_kidney) 
                                     <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_ucs_kidney') }}" >
-                                        - Statement UCS [ฟอกไต]
+                                        STM-UCS [ฟอกไต]
                                     </a> 
                                 @endif
                                 <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_ofc') }}" >
-                                    - Statement OFC [OP-IP]
+                                    STM-OFC:BKK:BMT [OP-IP]
                                 </a> 
                                 @if($hasLookupIcode_kidney) 
                                     <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_ofc_kidney') }}" >
-                                        - Statement OFC [ฟอกไต]
+                                        STM-OFC [ฟอกไต]
+                                    </a> 
+                                @endif
+                                <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_lgo') }}" >
+                                    STM-LGO [OP-IP]
+                                </a> 
+                                @if($hasLookupIcode_kidney) 
+                                    <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_lgo_kidney') }}" >
+                                        STM-LGO [ฟอกไต]
+                                    </a> 
+                                @endif
+                                 @if($hasLookupIcode_kidney) 
+                                    <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_sss_kidney') }}" >
+                                        STM-SSS [ฟอกไต]
                                     </a> 
                                 @endif
                             </div>                 
@@ -124,6 +137,7 @@
                                         @endif
                                     </ul>
                                 </li>
+                                <!-- ชี้ขวา -->
                                 <li class="dropend">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         OP-STP บุคคลที่มีปัญหาสถานะและสิทธิ 
@@ -137,6 +151,7 @@
                                         </li>
                                     </ul>
                                 </li>
+                                <!-- ชี้ขวา -->
                                 <li class="dropend">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         OP-OFC กรมบัญชีกลาง
@@ -152,24 +167,49 @@
                                         @endif
                                     </ul>
                                 </li>
-                                <!-- เมนูอื่น -->
-                                <li> 
-                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                 <!-- ชี้ขวา -->
+                                <li class="dropend">
+                                    <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         OP-LGO อปท.
-                                    </a>       
-                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                    </a>
+                                    <ul class="bg-success dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/lgo') }}"> LGO-OP อปท.</a>
+                                        </li> 
+                                        <li>
+                                            <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/lgo_kidney') }}">LGO-OP อปท. ฟอกไต </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <!-- เมนูอื่น -->
+                                <li>     
+                                    <a class="dropdown-item link-primary text-white " href="{{ url('claim_op/bkk') }}" >
                                         OP-BKK อปท.รูปแบบพิเศษ กทม.
                                     </a>      
-                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                    <a class="dropdown-item link-primary text-white " href="{{ url('claim_op/bmt') }}" >
                                         OP-BMT อปท.รูปแบบพิเศษ ขสมก.
-                                    </a>
-                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                    </a>  
+                                </li>
+                                <!-- ชี้ขวา -->
+                                <li class="dropend">
+                                    <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         OP-SSS ประกันสังคม
-                                    </a>    
-                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                    </a>
+                                    <ul class="bg-success dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/sss_fund') }}"> SS-OP ประกันสังคม กองทุนทดแทน</a>
+                                        </li> 
+                                        <li>
+                                            <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/sss_kidney') }}">SS-OP ประกันสังคม ฟอกไต</a>
+                                        </li>
+                                    </ul>
+                                </li>
+                                <!-- เมนูอื่น -->
+                                <li>  
+                                    <a class="dropdown-item link-primary text-white " href="{{ url('claim_op/rcpt') }}" >
                                         OP-ชำระเงิน
                                     </a>   
-                                    <a class="dropdown-item link-primary text-white " href="#" >
+                                    <a class="dropdown-item link-primary text-white " href="{{ url('claim_op/act') }}" >
                                         OP-พรบ.
                                     </a>   
                                 </li>

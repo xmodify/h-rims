@@ -15,6 +15,11 @@ use App\Models\Stm_ucs_kidneyexcel;
 use App\Models\Stm_ofc;
 use App\Models\Stm_ofcexcel;
 use App\Models\Stm_ofc_kidney;
+use App\Models\Stm_lgo;
+use App\Models\Stm_lgoexcel;
+use App\Models\Stm_lgo_kidney;
+use App\Models\Stm_lgo_kidneyexcel;
+use App\Models\Stm_sss_kidney;
 
 class ImportController extends Controller
 {
@@ -358,6 +363,7 @@ public function stm_ucs_save(Request $request)
             
         return redirect()->route('stm_ucs_kidney')->with('success',$file_name);
     }
+
 //stm_ofc-----------------------------------------------------------------------------------------------------------------------------
     public function stm_ofc(Request $request)
     {  
@@ -514,6 +520,7 @@ public function stm_ucs_save(Request $request)
             
         return redirect()->route('stm_ofc')->with('success',$file_name);
     }
+
 //stm_ofc_kidney--------------------------------------------------------------------------------------------------------------
     public function stm_ofc_kidney(Request $request)
     {  
@@ -598,6 +605,438 @@ public function stm_ucs_save(Request $request)
                 }            
         
         return redirect()->route('stm_ofc_kidney')->with('success',@$STMdoc);
+    }
+
+//stm_lgo-----------------------------------------------------------------------------------------------------------------------------
+    public function stm_lgo(Request $request)
+    {  
+        $stm_lgo=DB::select('
+            SELECT dep,stm_filename,repno,COUNT(repno) AS count_no,SUM(adjrw) AS adjrw,SUM(payrate) AS payrate,
+            SUM(charge_treatment) AS charge_treatment,SUM(compensate_treatment) AS compensate_treatment,
+            SUM(case_iplg) AS case_iplg,SUM(case_oplg) AS case_oplg,SUM(case_palg) AS case_palg,
+            SUM(case_inslg) AS case_inslg,SUM(case_otlg) AS case_otlg,SUM(case_pp) AS case_pp,SUM(case_drug) AS case_drug
+            FROM stm_lgo GROUP BY stm_filename,repno ORDER BY dep DESC,repno');
+
+        return view('import.stm_lgo',compact('stm_lgo'));
+    }
+
+//stm_lgo_save------------------------------------------------------------------------------------------------------------------------
+    public function stm_lgo_save(Request $request)
+    {
+        // Set the execution time to 300 seconds (5 minutes)
+        set_time_limit(300);
+
+        $this->validate($request, [
+            'file' => 'required|file|mimes:xls,xlsx'
+        ]);
+        $the_file = $request->file('file');
+        $file_name = $request->file('file')->getClientOriginalName(); //ชื่อไฟล์
+
+        try{
+            $spreadsheet = IOFactory::load($the_file->getRealPath());
+            $sheet        = $spreadsheet->setActiveSheetIndex(0); //sheet
+            $row_limit    = $sheet->getHighestDataRow();
+            // $column_limit = $sheet->getHighestDataColumn();
+            $row_range    = range( '8', $row_limit );
+            $startcount = '8';
+            
+            $data = array();
+            foreach ($row_range as $row ) {
+
+                $adm = $sheet->getCell( 'I' . $row )->getValue(); 
+                $day = substr($adm, 0, 2);
+                $mo = substr($adm, 3, 2);
+                $year = substr($adm, 6, 4);     
+                $admtime = substr($adm, 11, 8);  
+                $datetimeadm = $year.'-'.$mo.'-'.$day.' '.$admtime;
+
+                $dch = $sheet->getCell( 'J' . $row )->getValue();
+                $dchday = substr($dch, 0, 2);
+                $dchmo = substr($dch, 3, 2);
+                $dchyear = substr($dch, 6, 4);
+                $dchtime = substr($dch, 11, 8);
+                $datetimedch = $dchyear.'-'.$dchmo.'-'.$dchday.' '.$dchtime;          
+
+                    $data[] = [
+                        'repno'                 =>$sheet->getCell( 'A' . $row )->getValue(),
+                        'no'                    =>$sheet->getCell( 'B' . $row )->getValue(),
+                        'tran_id'               =>$sheet->getCell( 'C' . $row )->getValue(),
+                        'hn'                    =>$sheet->getCell( 'D' . $row )->getValue(),
+                        'an'                    =>$sheet->getCell( 'E' . $row )->getValue(),
+                        'cid'                   =>$sheet->getCell( 'F' . $row )->getValue(),
+                        'pt_name'               =>$sheet->getCell( 'G' . $row )->getValue(),
+                        'dep'                   =>$sheet->getCell( 'H' . $row )->getValue(),
+                        'datetimeadm'           =>$datetimeadm,
+                        'vstdate'               => date('Y-m-d', strtotime($datetimeadm)),
+                        'vsttime'               => date('H:i:s', strtotime($datetimeadm)),
+                        'datetimedch'           =>$datetimedch,
+                        'dchdate'               => date('Y-m-d', strtotime($datetimedch)),
+                        'dchtime'               => date('H:i:s', strtotime($datetimedch)),
+                        'compensate_treatment'  =>$sheet->getCell( 'K' . $row )->getValue(),
+                        'compensate_nhso'       =>$sheet->getCell( 'L' . $row )->getValue(),
+                        'error_code'            =>$sheet->getCell( 'M' . $row )->getValue(),
+                        'fund'                  =>$sheet->getCell( 'N' . $row )->getValue(),
+                        'service_type'          =>$sheet->getCell( 'O' . $row )->getValue(),
+                        'refer'                 =>$sheet->getCell( 'P' . $row )->getValue(),
+                        'have_rights'           =>$sheet->getCell( 'Q' . $row )->getValue(),
+                        'use_rights'            =>$sheet->getCell( 'R' . $row )->getValue(),
+                        'main_rights'           =>$sheet->getCell( 'S' . $row )->getValue(),
+                        'secondary_rights'      =>$sheet->getCell( 'T' . $row )->getValue(),
+                        'href'                  =>$sheet->getCell( 'U' . $row )->getValue(),
+                        'hcode'                 =>$sheet->getCell( 'V' . $row )->getValue(),
+                        'prov1'                 =>$sheet->getCell( 'W' . $row )->getValue(),
+                        'hospcode'              =>$sheet->getCell( 'X' . $row )->getValue(),
+                        'hospname'              =>$sheet->getCell( 'Y' . $row )->getValue(),
+                        'proj'                  =>$sheet->getCell( 'Z' . $row )->getValue(),
+                        'pa'                    =>$sheet->getCell( 'AA' . $row )->getValue(),
+                        'drg'                   =>$sheet->getCell( 'AB' . $row )->getValue(),
+                        'rw'                    =>$sheet->getCell( 'AC' . $row )->getValue(),
+                        'charge_treatment'      =>$sheet->getCell( 'AD' . $row )->getValue(),
+                        'charge_pp'             =>$sheet->getCell( 'AE' . $row )->getValue(),
+                        'withdraw'              =>$sheet->getCell( 'AF' . $row )->getValue(),
+                        'non_withdraw'          =>$sheet->getCell( 'AG' . $row )->getValue(),
+                        'pay'                   =>$sheet->getCell( 'AH' . $row )->getValue(),
+                        'payrate'               =>$sheet->getCell( 'AI' . $row )->getValue(),
+                        'delay'                 =>$sheet->getCell( 'AJ' . $row )->getValue(),
+                        'delay_percent'         =>$sheet->getCell( 'AK' . $row )->getValue(),
+                        'ccuf'                  =>$sheet->getCell( 'AL' . $row )->getValue(),
+                        'adjrw'                 =>$sheet->getCell( 'AM' . $row )->getValue(),
+                        'act'                   =>$sheet->getCell( 'AN' . $row )->getValue(),
+                        'case_iplg'             =>$sheet->getCell( 'AO' . $row )->getValue(),
+                        'case_oplg'             =>$sheet->getCell( 'AP' . $row )->getValue(),
+                        'case_palg'             =>$sheet->getCell( 'AQ' . $row )->getValue(),
+                        'case_inslg'            =>$sheet->getCell( 'AR' . $row )->getValue(),
+                        'case_otlg'             =>$sheet->getCell( 'AS' . $row )->getValue(),
+                        'case_pp'               =>$sheet->getCell( 'AT' . $row )->getValue(),
+                        'case_drug'             =>$sheet->getCell( 'AU' . $row )->getValue(),
+                        'deny_iplg'             =>$sheet->getCell( 'AV' . $row )->getValue(),
+                        'deny_oplg'             =>$sheet->getCell( 'AW' . $row )->getValue(),
+                        'deny_palg'             =>$sheet->getCell( 'AX' . $row )->getValue(),
+                        'deny_inslg'            =>$sheet->getCell( 'AY' . $row )->getValue(),
+                        'deny_otlg'             =>$sheet->getCell( 'AZ' . $row )->getValue(),
+                        'ors'                   =>$sheet->getCell( 'BA' . $row )->getValue(),
+                        'va'                    =>$sheet->getCell( 'BB' . $row )->getValue(),
+                        'audit_results'         =>$sheet->getCell( 'BC' . $row )->getValue(),
+                        'stm_filename'          =>$file_name,
+                    ]; 
+                $startcount++;            
+            }
+
+            $for_insert = array_chunk($data, 1000);
+            foreach ($for_insert as $key => $data_) {
+                Stm_lgoexcel::insert($data_);                 
+            }
+        }    
+        catch (Exception $e) {
+            $error_code = $e->errorInfo[1];
+            return back()->withErrors('There was a problem uploading the data!');
+        }
+    // **************************************************************************************************
+            $stm_lgoexcel=Stm_lgoexcel::whereNotNull('charge_treatment')->get();
+                        
+            foreach ($stm_lgoexcel as $key => $value) {
+                $check = Stm_lgo::where('repno','=',$value->repno)->where('no','=',$value->no)->count();
+                if ($check > 0) {
+                    Stm_lgo::where('repno','=',$value->repno)->where('no','=',$value->no)->update([
+                            'datetimeadm'                   => $value->datetimeadm,
+                            'vstdate'                       => $value->vstdate,
+                            'vsttime'                       => $value->vsttime,
+                            'datetimedch'                   => $value->datetimedch,
+                            'dchdate'                       => $value->dchdate,
+                            'dchtime'                       => $value->dchtime,
+                            'compensate_treatment'          => $value->compensate_treatment,
+                            'compensate_nhso'               => $value->compensate_nhso,
+                            'charge_treatment'              => $value->charge_treatment,
+                            'charge_pp'                     => $value->charge_pp,
+                            'payrate'                       => $value->payrate,
+                            'case_iplg'                     => $value->case_iplg,
+                            'case_oplg'                     => $value->case_oplg,
+                            'case_palg'                     => $value->case_palg,
+                            'case_inslg'                    => $value->case_inslg,
+                            'case_otlg'                     => $value->case_otlg,
+                            'case_pp'                       => $value->case_pp,
+                            'case_drug'                     => $value->case_drug,
+                            'stm_filename'                  => $value->stm_filename
+                            ]); 
+                } else {
+                        $add = new Stm_lgo();
+                        $add->repno                 = $value->repno;
+                        $add->no                    = $value->no;
+                        $add->tran_id               = $value->tran_id;
+                        $add->hn                    = $value->hn;
+                        $add->an                    = $value->an;
+                        $add->cid                   = $value->cid;
+                        $add->pt_name               = $value->pt_name;
+                        $add->dep                   = $value->dep;
+                        $add->datetimeadm           = $value->datetimeadm;
+                        $add->vstdate               = $value->vstdate;
+                        $add->vsttime               = $value->vsttime;
+                        $add->datetimedch           = $value->datetimedch;
+                        $add->dchdate               = $value->dchdate;
+                        $add->dchtime               = $value->dchtime;
+                        $add->compensate_treatment  = $value->compensate_treatment;
+                        $add->compensate_nhso       = $value->compensate_nhso;
+                        $add->error_code            = $value->error_code;
+                        $add->fund                  = $value->fund;
+                        $add->service_type          = $value->service_type;
+                        $add->refer                 = $value->refer;
+                        $add->have_rights           = $value->have_rights;
+                        $add->use_rights            = $value->use_rights;
+                        $add->main_rights           = $value->main_rights;
+                        $add->secondary_rights      = $value->secondary_rights;
+                        $add->href                  = $value->href;
+                        $add->hcode                 = $value->hcode;
+                        $add->prov1                 = $value->prov1;
+                        $add->hospcode              = $value->hospcode;
+                        $add->hospname              = $value->hospname;
+                        $add->proj                  = $value->proj;
+                        $add->pa                    = $value->pa;
+                        $add->drg                   = $value->drg;
+                        $add->rw                    = $value->rw;
+                        $add->charge_treatment      = $value->charge_treatment;
+                        $add->charge_pp             = $value->charge_pp;
+                        $add->withdraw              = $value->withdraw;
+                        $add->non_withdraw          = $value->non_withdraw;
+                        $add->pay                   = $value->pay;
+                        $add->payrate               = $value->payrate;
+                        $add->delay                 = $value->delay;
+                        $add->delay_percent         = $value->delay_percent;
+                        $add->ccuf                  = $value->ccuf;
+                        $add->adjrw                 = $value->adjrw;
+                        $add->act                   = $value->act;
+                        $add->case_iplg             = $value->case_iplg;
+                        $add->case_oplg             = $value->case_oplg;
+                        $add->case_palg             = $value->case_palg;
+                        $add->case_inslg            = $value->case_inslg;
+                        $add->case_otlg             = $value->case_otlg;
+                        $add->case_pp               = $value->case_pp;
+                        $add->case_drug             = $value->case_drug;
+                        $add->deny_iplg             = $value->deny_iplg;
+                        $add->deny_oplg             = $value->deny_oplg;
+                        $add->deny_palg             = $value->deny_palg;
+                        $add->deny_inslg            = $value->deny_inslg;
+                        $add->deny_otlg             = $value->deny_otlg;
+                        $add->ors                   = $value->ors;
+                        $add->va                    = $value->va;
+                        $add->audit_results            = $value->audit_results;
+                        $add->stm_filename          = $value->stm_filename;
+                        $add->save(); 
+                } 
+            }                
+                Stm_lgoexcel::truncate(); 
+            
+        return redirect()->route('stm_lgo')->with('success',$file_name);
+    }
+
+//stm_lgo_kidney-------------------------------------------------------------------------------------------------------------------------
+    public function stm_lgo_kidney(Request $request)
+    {  
+        $stm_lgo_kidney=DB::select('
+            SELECT stm_filename,repno,COUNT(repno) AS count_no,	
+            SUM(compensate_kidney) AS compensate_kidney 
+            FROM stm_lgo_kidney 
+            GROUP BY stm_filename,repno 
+            ORDER BY stm_filename,repno');
+
+        return view('import.stm_lgo_kidney',compact('stm_lgo_kidney'));
+    }
+
+//stm_lgo_kidney_save---------------------------------------------------------------------------------------------------------------
+    public function stm_lgo_kidney_save(Request $request)
+    {
+        // Set the execution time to 300 seconds (5 minutes)
+        set_time_limit(300);
+
+        $this->validate($request, [
+            'file' => 'required|file|mimes:xls,xlsx'
+        ]);
+        $the_file = $request->file('file');
+        $file_name = $request->file('file')->getClientOriginalName(); //ชื่อไฟล์
+
+        try{
+            $spreadsheet = IOFactory::load($the_file->getRealPath());
+            $sheet        = $spreadsheet->setActiveSheetIndex(0); //sheet
+            $row_limit    = $sheet->getHighestDataRow();
+            // $column_limit = $sheet->getHighestDataColumn();
+            $row_range    = range( '11', $row_limit );
+            $startcount = '11';
+            
+            $data = array();
+            foreach ($row_range as $row ) {
+
+                $adm = $sheet->getCell( 'G' . $row )->getValue(); 
+                $day = substr($adm, 0, 2);
+                $mo = substr($adm, 3, 2);
+                $year = substr($adm, 6, 4);     
+                $admtime = substr($adm, 11, 8);  
+                $datetimeadm = $year.'-'.$mo.'-'.$day.' '.$admtime;     
+
+                $data[] = [
+                    'no'                    =>$sheet->getCell( 'A' . $row )->getValue(),
+                    'repno'                 =>$sheet->getCell( 'B' . $row )->getValue(),
+                    'hn'                    =>$sheet->getCell( 'C' . $row )->getValue(),
+                    'cid'                   =>$sheet->getCell( 'D' . $row )->getValue(),
+                    'pt_name'               =>$sheet->getCell( 'E' . $row )->getValue(),
+                    'dep'                   =>$sheet->getCell( 'F' . $row )->getValue(),
+                    'datetimeadm'           =>$datetimeadm,
+                    'compensate_kidney'     =>$sheet->getCell( 'H' . $row )->getValue(), 
+                    'note'                  =>$sheet->getCell( 'I' . $row )->getValue(),                    
+                    'stm_filename'          =>$file_name,
+                ]; 
+                $startcount++;            
+            }
+
+            $for_insert = array_chunk($data, 1000);
+            foreach ($for_insert as $key => $data_) {
+                Stm_lgo_kidneyexcel::insert($data_);                 
+            }
+        }    
+        catch (Exception $e) {
+            $error_code = $e->errorInfo[1];
+            return back()->withErrors('There was a problem uploading the data!');
+        }
+    // ***************************************************************************************************************************** 
+            $stm_lgo_kidneyexcel=Stm_lgo_kidneyexcel::whereNotNull('compensate_kidney')->get();
+                        
+            foreach ($stm_lgo_kidneyexcel as $key => $value) {
+                $check = Stm_lgo_kidney::where('repno','=',$value->repno)->where('no','=',$value->no)->count();
+                if ($check > 0) {
+                    Stm_lgo_kidney::where('repno','=',$value->repno)->where('no','=',$value->no)->update([
+                            'datetimeadm'               => $value->datetimeadm,
+                            'compensate_kidney'         => $value->compensate_kidney,
+                            'stm_filename'              => $value->stm_filename
+                            ]); 
+                } else {
+                        $add = new Stm_lgo_kidney();
+                        $add->no                    = $value->no;
+                        $add->repno                 = $value->repno;
+                        $add->hn                    = $value->hn;                
+                        $add->cid                   = $value->cid;
+                        $add->pt_name               = $value->pt_name;
+                        $add->dep                   = $value->dep;
+                        $add->datetimeadm           = $value->datetimeadm;                   
+                        $add->compensate_kidney     = $value->compensate_kidney;
+                        $add->note                  = $value->note;                   
+                        $add->stm_filename          = $value->stm_filename;
+                        $add->save(); 
+                } 
+            }                
+                Stm_lgo_kidneyexcel::truncate(); 
+            
+        return redirect()->route('stm_lgo_kidney')->with('success',$file_name);
+    }
+
+//stm_sss_kidney----------------------------------------------------------------------------------------------------------
+    public function stm_sss_kidney(Request $request)
+    {  
+        $stm_sss_kidney=DB::select('
+            SELECT stmdoc,station,COUNT(*) AS count_no,	
+            SUM(amount) AS amount,SUM(epopay) AS epopay,
+            SUM(epoadm) AS epoadm FROM stm_sss_kidney 
+            GROUP BY stmdoc,station ORDER BY station ,stmdoc');    
+
+        return view('import.stm_sss_kidney',compact('stm_sss_kidney'));
+    }
+//stm_sss_kidney------------------------------------------------------------------------------------------------
+    public function stm_sss_kidney_save(Request $request)
+    {  
+        // Set the execution time to 300 seconds (5 minutes)
+        set_time_limit(300);
+
+            $tar_file_ = $request->file; 
+            $file_ = $request->file('file')->getClientOriginalName(); //ชื่อไฟล์
+            $filename = pathinfo($file_, PATHINFO_FILENAME);
+            $extension = pathinfo($file_, PATHINFO_EXTENSION);  
+            $xmlString = file_get_contents(($tar_file_));
+            $xmlObject = simplexml_load_string($xmlString);
+            $json = json_encode($xmlObject); 
+            $result = json_decode($json, true); 
+        
+            // dd($result);
+
+            @$hcode     = $result['hcode'];
+            @$hname     = $result['hname'];
+            @$STMdoc    = $result['STMdoc'];    
+            @$HDBills   = $result['HDBills']['HDBill'];    
+            $bills_     = @$HDBills;       
+
+                foreach ($bills_ as $value) {  
+                    $name = $value['name']; 
+                    $cid = $value['pid'];
+                    $wkno = $value['wkno'];
+                    $TBill = $value['TBill']; 
+
+                    foreach ($TBill as $row) {   
+
+                        $hreg       = $row['hreg']; 
+                        $station    = $row['station'];
+                        $invno      = $row['invno'];
+                        $hn         = $row['hn']; 
+                        $amount     = $row['amount'];
+                        $paid       = $row['paid'];
+                        $rid        = $row['rid']; 
+                        $HDflag     = $row['HDflag']; 
+                        $dttran     = $row['dttran'];                     
+                        $dttranDate = explode("T",$row['dttran']);
+                        $dttdate    = $dttranDate[0];
+                        $dtttime    = $dttranDate[1];                 
+
+                            if (isset($row['EPOs']['EPOpay'])) {
+                                $epopay   = $row['EPOs']['EPOpay'];
+                            } else {
+                                $epopay   = '';
+                            }
+
+                            if (isset($row['EPOs']['EPOadm'])) {
+                                $epoadm   = $row['EPOs']['EPOadm'];
+                            } else {
+                                $epoadm   = '';
+                            }
+                
+                        $checkc = Stm_sss_kidney::where('cid', $cid)->where('vstdate', $dttdate)->count();
+                        if ( $checkc > 0) {
+                            Stm_sss_kidney::where('cid', $cid)->where('vstdate', $dttdate) 
+                                ->update([   
+                                    'invno'            => $invno,
+                                    'dttran'           => $dttran, 
+                                    'hn'               => $hn, 
+                                    'cid'              => $cid, 
+                                    'amount'           => $amount, 
+                                    'epopay'           => $epopay, 
+                                    'epoadm'           => $epoadm, 
+                                    'paid'             => $paid,
+                                    'rid'              => $rid, 
+                                    'HDflag'           => $HDflag,
+                                    'vstdate'          => $dttdate,
+                                    'vsttime'          => $dtttime                                
+                                ]);
+
+                        } else {
+                                Stm_sss_kidney::insert([                            
+        
+                                    'hcode'              => @$hcode, 
+                                    'hname'              => @$hname,
+                                    'stmdoc'             => @$STMdoc,
+                                    'station'            => $station, 
+                                    'hreg'               => $hreg,
+                                    'hn'                 => $hn,
+                                    'cid'                => $cid,
+                                    'invno'              => $invno,
+                                    'dttran'             => $dttran,
+                                    'vstdate'            => $dttdate,
+                                    'vsttime'            => $dtttime,
+                                    'amount'             => $amount,
+                                    'epopay'             => $epopay,
+                                    'epoadm'             => $epoadm,
+                                    'paid'               => $paid,
+                                    'rid'                => $rid,
+                                    'hdflag'             => $HDflag
+                                ]);        
+                        } 
+                    }
+                }            
+            
+        return redirect()->route('stm_sss_kidney')->with('success',@$STMdoc);
     }
 
 }

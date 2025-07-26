@@ -78,6 +78,12 @@ Route::match(['get','post'],'import/stm_ofc',[ImportController::class,'stm_ofc']
 Route::post('import/stm_ofc_save',[ImportController::class,'stm_ofc_save']);
 Route::match(['get','post'],'import/stm_ofc_kidney',[ImportController::class,'stm_ofc_kidney'])->name('stm_ofc_kidney');
 Route::post('import/stm_ofc_kidney_save',[ImportController::class,'stm_ofc_kidney_save']);
+Route::match(['get','post'],'import/stm_lgo',[ImportController::class,'stm_lgo'])->name('stm_lgo');
+Route::post('import/stm_lgo_save',[ImportController::class,'stm_lgo_save']);
+Route::match(['get','post'],'import/stm_lgo_kidney',[ImportController::class,'stm_lgo_kidney'])->name('stm_lgo_kidney');
+Route::post('import/stm_lgo_kidney_save',[ImportController::class,'stm_lgo_kidney_save']);
+Route::match(['get','post'],'import/stm_sss_kidney',[ImportController::class,'stm_sss_kidney'])->name('stm_sss_kidney');
+Route::post('import/stm_sss_kidney_save',[ImportController::class,'stm_sss_kidney_save']);
 
 //Diag------------------------------------------------------------------------------------------------------------------------------
 Route::match(['get','post'],'diag/sepsis',[DiagController::class,'sepsis']);
@@ -100,6 +106,14 @@ Route::match(['get','post'],'claim_op/stp_incup',[ClaimOpController::class,'stp_
 Route::match(['get','post'],'claim_op/stp_outcup',[ClaimOpController::class,'stp_outcup']);
 Route::match(['get','post'],'claim_op/ofc',[ClaimOpController::class,'ofc']);
 Route::match(['get','post'],'claim_op/ofc_kidney',[ClaimOpController::class,'ofc_kidney']);
+Route::match(['get','post'],'claim_op/lgo',[ClaimOpController::class,'lgo']);
+Route::match(['get','post'],'claim_op/lgo_kidney',[ClaimOpController::class,'lgo_kidney']);
+Route::match(['get','post'],'claim_op/bkk',[ClaimOpController::class,'bkk']);
+Route::match(['get','post'],'claim_op/bmt',[ClaimOpController::class,'bmt']);
+Route::match(['get','post'],'claim_op/sss_fund',[ClaimOpController::class,'sss_fund']);
+Route::match(['get','post'],'claim_op/sss_kidney',[ClaimOpController::class,'sss_kidney']);
+Route::match(['get','post'],'claim_op/rcpt',[ClaimOpController::class,'rcpt']);
+Route::match(['get','post'],'claim_op/act',[ClaimOpController::class,'act']);
 
 // Claim_IP -----------------------------------------------------------------------------------------------------------------------
 Route::match(['get','post'],'claim_ip/ucs_incup',[ClaimIpController::class,'ucs_incup']);

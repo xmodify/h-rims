@@ -278,6 +278,11 @@
 
                     <!-- Right Side Of Navbar -->
                     <ul class="navbar-nav ms-auto">
+                        <li > 
+                            <div class="btn text-info">
+                                V. 68-07-26
+                            </div>   
+                        </li>                         
                         <!-- Authentication Links -->
                         @guest
                             @if (Route::has('login'))
@@ -292,7 +297,7 @@
                                 </li>
                             @endif
                         @else
-                            <li class="nav-item dropdown">
+                            <li class="nav-item dropdown">                               
                                 <a id="navbarDropdown" class="nav-link btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
                                     {{ Auth::user()->name }}
                                 </a>

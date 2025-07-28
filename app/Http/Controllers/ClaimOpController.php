@@ -134,7 +134,7 @@ class ClaimOpController extends Controller
                 AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)            
             WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "UCS" AND o.vstdate BETWEEN ? AND ?             
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs =""))            
-            AND o1.vn IS NOT NULL AND oe.moph_finance_upload_status IS NULL AND rep.vn IS NULL AND stm.cid IS NULL AND stm_k.cid IS NULL
+            AND o1.vn IS NOT NULL AND oe.moph_finance_upload_status IS NULL AND rep.vn IS NULL AND stm.cid IS NULL 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
         $claim=DB::connection('hosxp')->select('

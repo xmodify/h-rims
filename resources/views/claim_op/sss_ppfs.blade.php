@@ -54,7 +54,6 @@
                   <th class="text-center">ชำระเอง</th>
                   <th class="text-center" width = "10%">รายการที่เรียกเก็บ</th>  
                   <th class="text-center">เรียกเก็บ</th> 
-                  <th class="text-center">Project</th> 
               </tr>
             </thead> 
             <tbody> 
@@ -88,8 +87,7 @@
                 <td align="right">{{ number_format($row->income,2) }}</td>              
                 <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
                 <td align="right" width = "10%">{{ $row->claim_list }}</td>   
-                <td align="right">{{ number_format($row->claim_price,2) }}</td> 
-                <td align="right">{{ $row->project }}</td>         
+                <td align="right">{{ number_format($row->claim_price,2) }}</td>         
               </tr>
               <?php $count++; ?>
               <?php $sum_income += $row->income ; ?>
@@ -125,7 +123,7 @@
                     <th class="text-center">ชำระเอง</th>
                     <th class="text-center" width = "10%">รายการที่เรียกเก็บ</th>
                     <th class="text-center">PPFS</th>
-                    <th class="text-center">Project</th>
+                    <th class="text-center" width = "5%">ส่ง Claim</th> 
                     <th class="text-center text-primary">Rep NHSO</th> 
                     <th class="text-center text-primary">Error</th> 
                     <th class="text-center text-primary">STM ชดเชย</th> 
@@ -155,7 +153,7 @@
                     <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
                     <td align="right" width = "10%">{{ $row->claim_list }}</td> 
                     <td align="right">{{ number_format($row->ppfs,2) }}</td> 
-                    <td align="right">{{ $row->project }}</td>  
+                    <td align="right" width = "5%">{{ DateTimeThai($row->eclaim) }}</td> 
                     <td align="right" class="text-primary">{{ number_format($row->rep_nhso,2) }}</td>
                     <td align="center">{{ $row->rep_error }}</td>
                     <td align="right" @if($row->receive_total > 0) style="color:green" 

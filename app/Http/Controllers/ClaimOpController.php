@@ -971,7 +971,7 @@ class ClaimOpController extends Controller
             WHERE p.pttype IN ('.$pttype_act.') AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date]);
 
-        return view('hrims.claim_op.act',compact('start_date','end_date','claim'));
+        return view('claim_op.act',compact('start_date','end_date','claim'));
     }
 
 }

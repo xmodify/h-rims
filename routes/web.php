@@ -14,6 +14,7 @@ use App\Http\Controllers\DiagController;
 use App\Http\Controllers\IpdController;
 use App\Http\Controllers\ClaimOpController;
 use App\Http\Controllers\ClaimIpController;
+use App\Http\Controllers\MishosController;
 
 /*
 |--------------------------------------------------------------------------
@@ -128,6 +129,27 @@ Route::match(['get','post'],'claim_ip/sss',[ClaimIpController::class,'sss']);
 Route::match(['get','post'],'claim_ip/gof',[ClaimIpController::class,'gof']);
 Route::match(['get','post'],'claim_ip/rcpt',[ClaimIpController::class,'rcpt']);
 Route::match(['get','post'],'claim_ip/act',[ClaimIpController::class,'act']);
+
+// Mishos -------------------------------------------------------------------------------------------------------------------------
+Route::match(['get','post'],'mishos/ucs_ae',[MishosController::class,'ucs_ae']);
+Route::match(['get','post'],'mishos/ucs_walkin',[MishosController::class,'ucs_walkin']);
+Route::match(['get','post'],'mishos/ucs_herb',[MishosController::class,'ucs_herb']);
+Route::match(['get','post'],'mishos/ucs_telemed',[MishosController::class,'ucs_telemed']);
+Route::match(['get','post'],'mishos/ucs_rider',[MishosController::class,'ucs_rider']);
+Route::match(['get','post'],'mishos/ucs_gdm',[MishosController::class,'ucs_gdm']);
+Route::match(['get','post'],'mishos/ucs_drug_clopidogrel',[MishosController::class,'ucs_drug_clopidogrel']);
+Route::match(['get','post'],'mishos/ucs_drug_sk',[MishosController::class,'ucs_drug_sk']);
+Route::match(['get','post'],'mishos/ucs_ins',[MishosController::class,'ucs_ins']);
+Route::match(['get','post'],'mishos/ucs_palliative',[MishosController::class,'ucs_palliative']);
+Route::match(['get','post'],'mishos/ucs_ppfs_fp',[MishosController::class,'ucs_ppfs_fp']);
+Route::match(['get','post'],'mishos/ucs_ppfs_prt',[MishosController::class,'ucs_ppfs_prt']);
+Route::match(['get','post'],'mishos/ucs_ppfs_ida',[MishosController::class,'ucs_ppfs_ida']);
+Route::match(['get','post'],'mishos/ucs_ppfs_ferrofolic',[MishosController::class,'ucs_ppfs_ferrofolic']);
+Route::match(['get','post'],'mishos/ucs_ppfs_fluoride',[MishosController::class,'ucs_ppfs_fluoride']);
+Route::match(['get','post'],'mishos/ucs_ppfs_anc',[MishosController::class,'ucs_ppfs_anc']);
+Route::match(['get','post'],'mishos/ucs_ppfs_postnatal',[MishosController::class,'ucs_ppfs_postnatal']);
+Route::match(['get','post'],'mishos/ucs_ppfs_fittest',[MishosController::class,'ucs_ppfs_fittest']);
+Route::match(['get','post'],'mishos/ucs_ppfs_scr',[MishosController::class,'ucs_ppfs_scr']);
 
 //Notify
 Route::get('notify_summary',[NotifyController::class,'notify_summary'])->name('notify_summary');

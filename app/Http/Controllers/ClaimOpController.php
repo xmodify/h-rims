@@ -178,7 +178,73 @@ class ClaimOpController extends Controller
 
         return view('claim_op.ucs_inprovince',compact('start_date','end_date','search','claim'));
     }
+//----------------------------------------------------------------------------------------------------------------------------------------
+    public function ucs_inprovince_va(Request $request )
+    {
+        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
+
+        $sum=DB::connection('hosxp')->select('
+            SELECT hospmain,COUNT(vn) AS visit,SUM(income) AS income,SUM(rcpt_money) AS rcpt_money,
+            SUM(other_price) AS other_price,SUM(claim_price) AS claim_price,
+            SUM(CASE WHEN pt_status ="อุบัติเหตุฉุกเฉิน" THEN 1 ELSE 0 END) AS er_visit,
+            SUM(CASE WHEN pt_status ="อุบัติเหตุฉุกเฉิน" THEN claim_price ELSE 0 END) AS er_price,
+            SUM(CASE WHEN pt_status ="ผู้ป่วยทั่วไป" THEN 1 ELSE 0 END) AS normal_visit,
+            SUM(CASE WHEN pt_status ="ผู้ป่วยทั่วไป" THEN claim_price ELSE 0 END) AS normal_price
+			FROM (SELECT v.vn,CONCAT(vp.hospmain," ",hc.`name`) AS hospmain,
+			    CASE WHEN er.vn IS NOT NULL AND v1.vn IS NULL THEN "อุบัติเหตุฉุกเฉิน"
+				WHEN er.vn IS NULL OR v1.vn IS NOT NULL THEN "ผู้ป่วยทั่วไป" END AS pt_status,						
+				o.vstdate,o.vsttime,p.`name` AS pttype,v.pdx,v.income,v.rcpt_money,COALESCE(o2.other_price, 0) AS other_price,
+				v.income-v.rcpt_money-COALESCE(o2.other_price,0) AS claim_price            
+                FROM ovst o
+				LEFT JOIN er_regist er ON er.vn=o.vn
+                LEFT JOIN patient pt ON pt.hn=o.hn
+                LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+				LEFT JOIN hospcode hc ON hc.hospcode=vp.hospmain
+                LEFT JOIN pttype p ON p.pttype=vp.pttype
+                LEFT JOIN vn_stat v ON v.vn = o.vn
+				LEFT JOIN vn_stat v1 ON v1.vn = o.vn AND v1.pdx IN ("Z242","Z235","Z439","Z488","Z480","Z098","Z549","Z479")
+                LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+					WHERE op.vstdate BETWEEN ? AND ?  GROUP BY op.vn) o2 ON o2.vn=o.vn            
+                WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "UCS" AND o.vstdate BETWEEN ? AND ? 
+				AND v.income-v.rcpt_money-COALESCE(o2.other_price,0) <> 0
+                AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs =""))
+                GROUP BY o.vn ORDER BY vp.hospmain,pt_status DESC,o.vstdate,o.vsttime) AS a	GROUP BY hospmain ORDER BY hospmain',[$start_date,$end_date,$start_date,$end_date]);
+
+        $search=DB::connection('hosxp')->select('
+            SELECT CONCAT(vp.hospmain," ",hc.`name`) AS hospmain,
+            CASE WHEN er.vn IS NOT NULL AND v1.vn IS NULL THEN "อุบัติเหตุฉุกเฉิน"			
+			WHEN er.vn IS NULL OR v1.vn IS NOT NULL THEN "ผู้ป่วยทั่วไป" 
+            WHEN v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y" ) THEN "ส่งเสริมป้องกันโรคPP" 
+			END AS pt_status,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+			p.`name` AS pttype,os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,
+            COALESCE(o2.other_price, 0) AS other_price,v.income-v.rcpt_money-COALESCE(o2.other_price,0) AS claim_price,
+            GROUP_CONCAT(DISTINCT sd.`name`) AS other_list
+            FROM ovst o
+			LEFT JOIN er_regist er ON er.vn=o.vn
+            LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+			LEFT JOIN hospcode hc ON hc.hospcode=vp.hospmain
+            LEFT JOIN pttype p ON p.pttype=vp.pttype
+            LEFT JOIN opdscreen os ON os.vn=o.vn
+            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+			LEFT JOIN vn_stat v1 ON v1.vn = o.vn AND v1.pdx IN ("Z242","Z235","Z439","Z488","Z480","Z098","Z549","Z479")
+            LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM hrims.lookup_icode )           
+            LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
+            LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+				WHERE op.vstdate BETWEEN ? AND ?  GROUP BY op.vn) o2 ON o2.vn=o.vn            
+            WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "UCS" AND o.vstdate BETWEEN ? AND ? 
+						AND v.income-v.rcpt_money-COALESCE(o2.other_price,0) <> 0
+            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs =""))
+            GROUP BY o.vn ORDER BY vp.hospmain,pt_status DESC,o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
+        
+        return view('claim_op.ucs_inprovince_va',compact('start_date','end_date','sum','search'));
+    }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_outprovince(Request $request )
     {

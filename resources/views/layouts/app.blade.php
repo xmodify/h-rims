@@ -128,6 +128,9 @@
                                             <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/ucs_inprovince') }}"> UC-OP ในจังหวัด </a>
                                         </li> 
                                         <li>
+                                            <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/ucs_inprovince_va') }}"> UC-OP ในจังหวัด VA</a>
+                                        </li> 
+                                        <li>
                                             <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/ucs_outprovince') }}"> UC-OP ต่างจังหวัด </a>
                                         </li> 
                                         @if($hasLookupIcode_kidney)
@@ -366,7 +369,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li > 
                             <div class="btn text-info">
-                                V. 68-08-23
+                                V. 68-08-25
                             </div>   
                         </li>                         
                         <!-- Authentication Links -->

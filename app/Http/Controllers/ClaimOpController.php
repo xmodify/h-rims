@@ -212,6 +212,7 @@ class ClaimOpController extends Controller
                 WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "UCS" AND o.vstdate BETWEEN ? AND ? 
 				AND v.income-v.rcpt_money-COALESCE(o2.other_price,0) <> 0
                 AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs =""))
+                AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10)
                 GROUP BY o.vn ORDER BY vp.hospmain,pt_status DESC,o.vstdate,o.vsttime) AS a	GROUP BY hospmain ORDER BY hospmain',[$start_date,$end_date,$start_date,$end_date]);
 
         $search=DB::connection('hosxp')->select('
@@ -239,8 +240,9 @@ class ClaimOpController extends Controller
                 INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
 				WHERE op.vstdate BETWEEN ? AND ?  GROUP BY op.vn) o2 ON o2.vn=o.vn            
             WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "UCS" AND o.vstdate BETWEEN ? AND ? 
-						AND v.income-v.rcpt_money-COALESCE(o2.other_price,0) <> 0
+			AND v.income-v.rcpt_money-COALESCE(o2.other_price,0) <> 0
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs =""))
+            AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10)
             GROUP BY o.vn ORDER BY vp.hospmain,pt_status DESC,o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
         
         return view('claim_op.ucs_inprovince_va',compact('start_date','end_date','sum','search'));

@@ -205,9 +205,9 @@ class ClaimOpController extends Controller
 				LEFT JOIN hospcode hc ON hc.hospcode=vp.hospmain
                 LEFT JOIN pttype p ON p.pttype=vp.pttype
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-				LEFT JOIN vn_stat v1 ON v1.vn = o.vn AND v1.pdx IN ("Z242","Z235","Z439","Z488","Z480","Z098","Z549","Z479")
+				LEFT JOIN vn_stat v1 ON v1.vn = o.vn AND v1.pdx IN ("Z242","Z235","Z439","Z488","Z489","Z480","Z098","Z549","Z479")
                 LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                    INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
 					WHERE op.vstdate BETWEEN ? AND ?  GROUP BY op.vn) o2 ON o2.vn=o.vn            
                 WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "UCS" AND o.vstdate BETWEEN ? AND ? 
 				AND v.income-v.rcpt_money-COALESCE(o2.other_price,0) <> 0

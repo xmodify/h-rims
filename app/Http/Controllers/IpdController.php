@@ -103,13 +103,13 @@ public function wait_icd_coder(Request $request)
         $base_rate_sss = (float) DB::table('main_setting')->where('name','base_rate_sss')->value('value');
         $adjrw=DB::connection('hosxp')->select('
             SELECT COUNT(an) AS sum_discharge,SUM(rw) AS rw_all,
-            SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y") 
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y") 
 			    THEN rw ELSE 0 END) AS rw_ucs,
-            SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
 			    THEN rw * ? * ? ELSE 0 END) AS rw_receive_ucs,
-		    SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE (hmain_ucs IS NULL OR hmain_ucs ="")) 
+		    SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE (hmain_ucs IS NULL OR hmain_ucs ="")) 
 			    THEN rw ELSE 0 END) AS rw_ucs2,
-            SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE (hmain_ucs IS NULL OR hmain_ucs =""))
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE (hmain_ucs IS NULL OR hmain_ucs =""))
 			    THEN rw * ? ELSE 0 END) AS rw_receive_ucs2,
 		    SUM(CASE WHEN hipdata_code = "OFC" THEN rw ELSE 0 END) AS rw_ofc,
             SUM(CASE WHEN hipdata_code = "OFC" THEN rw * ? ELSE 0 END) AS rw_receive_ofc,
@@ -234,13 +234,13 @@ public function dchsummary(Request $request)
         $base_rate_sss = (float) DB::table('main_setting')->where('name','base_rate_sss')->value('value');
         $adjrw=DB::connection('hosxp')->select('
             SELECT COUNT(an) AS sum_discharge,SUM(rw) AS rw_all,
-            SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y") 
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y") 
 			    THEN rw ELSE 0 END) AS rw_ucs,
-            SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
 			    THEN rw * ? * ? ELSE 0 END) AS rw_receive_ucs,
 		    SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE (hmain_ucs IS NULL OR hmain_ucs ="")) 
 			    THEN rw ELSE 0 END) AS rw_ucs2,
-            SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE (hmain_ucs IS NULL OR hmain_ucs =""))
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE (hmain_ucs IS NULL OR hmain_ucs =""))
 			    THEN rw * ? ELSE 0 END) AS rw_receive_ucs2,
 		    SUM(CASE WHEN hipdata_code = "OFC" THEN rw ELSE 0 END) AS rw_ofc,
             SUM(CASE WHEN hipdata_code = "OFC" THEN rw * ? ELSE 0 END) AS rw_receive_ofc,
@@ -364,13 +364,13 @@ public function dchsummary_audit(Request $request)
         $base_rate_sss = (float) DB::table('main_setting')->where('name','base_rate_sss')->value('value');
         $adjrw=DB::connection('hosxp')->select('
             SELECT COUNT(an) AS sum_discharge,SUM(rw) AS rw_all,
-            SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y") 
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y") 
 			    THEN rw ELSE 0 END) AS rw_ucs,
-            SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
 			    THEN rw * ? * ? ELSE 0 END) AS rw_receive_ucs,
-		    SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE (hmain_ucs IS NULL OR hmain_ucs ="")) 
+		    SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE (hmain_ucs IS NULL OR hmain_ucs ="")) 
 			    THEN rw ELSE 0 END) AS rw_ucs2,
-            SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE (hmain_ucs IS NULL OR hmain_ucs =""))
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE (hmain_ucs IS NULL OR hmain_ucs =""))
 			    THEN rw * ? ELSE 0 END) AS rw_receive_ucs2,
 		    SUM(CASE WHEN hipdata_code = "OFC" THEN rw ELSE 0 END) AS rw_ofc,
             SUM(CASE WHEN hipdata_code = "OFC" THEN rw * ? ELSE 0 END) AS rw_receive_ofc,

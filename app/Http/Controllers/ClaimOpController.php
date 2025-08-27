@@ -50,7 +50,7 @@ class ClaimOpController extends Controller
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	
                 AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN ? AND ?
-            AND p.hipdata_code = "UCS" AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
+            AND p.hipdata_code IN ("UCS","WEL") AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             AND o1.vn IS NOT NULL AND oe.moph_finance_upload_status IS NULL AND rep.vn IS NULL AND stm.cid IS NULL 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
@@ -89,7 +89,7 @@ class ClaimOpController extends Controller
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	
                 AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN ? AND ?
-            AND p.hipdata_code = "UCS" AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
+            AND p.hipdata_code IN ("UCS","WEL") AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             AND o1.vn IS NOT NULL AND (oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR stm.cid IS NOT NULL )
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);
 
@@ -132,7 +132,7 @@ class ClaimOpController extends Controller
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	
                 AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)            
-            WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "UCS" AND o.vstdate BETWEEN ? AND ?             
+            WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code IN ("UCS","WEL") AND o.vstdate BETWEEN ? AND ?             
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs =""))            
             AND o1.vn IS NOT NULL AND oe.moph_finance_upload_status IS NULL AND rep.vn IS NULL AND stm.cid IS NULL 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
@@ -171,7 +171,7 @@ class ClaimOpController extends Controller
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	
                 AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
-            WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "UCS" AND o.vstdate BETWEEN ? AND ?            
+            WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code IN ("UCS","WEL") AND o.vstdate BETWEEN ? AND ?            
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs ="")) 
             AND o1.vn IS NOT NULL AND (oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR stm.cid IS NOT NULL )
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);
@@ -209,7 +209,7 @@ class ClaimOpController extends Controller
                 LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price FROM opitemrece op
                     INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
 					WHERE op.vstdate BETWEEN ? AND ?  GROUP BY op.vn) o2 ON o2.vn=o.vn            
-                WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "UCS" AND o.vstdate BETWEEN ? AND ? 
+                WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code IN ("UCS","WEL") AND o.vstdate BETWEEN ? AND ? 
 				AND v.income-v.rcpt_money-COALESCE(o2.other_price,0) <> 0
                 AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs =""))
                 AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10)
@@ -239,7 +239,7 @@ class ClaimOpController extends Controller
             LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price FROM opitemrece op
                 INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
 				WHERE op.vstdate BETWEEN ? AND ?  GROUP BY op.vn) o2 ON o2.vn=o.vn            
-            WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "UCS" AND o.vstdate BETWEEN ? AND ? 
+            WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code IN ("UCS","WEL") AND o.vstdate BETWEEN ? AND ? 
 			AND v.income-v.rcpt_money-COALESCE(o2.other_price,0) <> 0
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs =""))
             AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10)
@@ -282,7 +282,7 @@ class ClaimOpController extends Controller
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	
                 AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
-            WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "UCS" AND o.vstdate BETWEEN ? AND ?
+            WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code IN ("UCS","WEL") AND o.vstdate BETWEEN ? AND ?
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
             AND kidney.vn IS NULL AND oe.moph_finance_upload_status IS NULL AND rep.vn IS NULL AND stm.cid IS NULL 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date]);
@@ -315,7 +315,7 @@ class ClaimOpController extends Controller
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	
                 AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
-            WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "UCS" AND o.vstdate BETWEEN ? AND ?
+            WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code IN ("UCS","WEL") AND o.vstdate BETWEEN ? AND ?
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
             AND kidney.vn IS NULL AND (oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR stm.cid IS NOT NULL )
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date]);
@@ -351,7 +351,7 @@ class ClaimOpController extends Controller
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN (SELECT cid,datetimeadm,sum(receive_total) AS receive_total,repno FROM hrims.stm_ucs_kidney
                 WHERE datetimeadm BETWEEN ? AND ? GROUP BY cid,datetimeadm) stm ON stm.cid=pt.cid AND stm.datetimeadm = o.vstdate
-            WHERE o1.vn IS NOT NULL AND p.hipdata_code = "UCS" AND o.vstdate BETWEEN ? AND ?
+            WHERE o1.vn IS NOT NULL AND p.hipdata_code IN ("UCS","WEL") AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);
 
         return view('claim_op.ucs_kidney',compact('start_date','end_date','claim'));

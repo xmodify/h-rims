@@ -22,15 +22,15 @@ class NotifyController extends Controller
 
         $notify = DB::connection('hosxp')->select('
             SELECT COUNT(vn) AS visit,IFNULL(SUM(CASE WHEN endpoint_code LIKE "EP%" THEN 1 ELSE 0 END),0) AS "endpoint",
-            IFNULL(SUM(CASE WHEN hipdata_code = "UCS" THEN 1 ELSE 0 END),0) AS "ucs_all",
-            IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND endpoint_code LIKE "EP%" THEN 1 ELSE 0 END),0) AS "ucs_endpoint",
-            IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
+            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") THEN 1 ELSE 0 END),0) AS "ucs_all",
+            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND endpoint_code LIKE "EP%" THEN 1 ELSE 0 END),0) AS "ucs_endpoint",
+            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
                 THEN 1 ELSE 0 END),0) AS "uc_anywhere",
-            IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
+            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
                 AND uc_cr_name <> "" THEN 1 ELSE 0 END),0) AS "uc_cr",
-            IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
+            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
                 AND ppfs_name <> "" THEN 1 ELSE 0 END),0) AS "ppfs",
-            IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND (healthmed <> "" OR herb32_name <>"") THEN 1 ELSE 0 END),0) AS "uc_healthmed",
+            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND (healthmed <> "" OR herb32_name <>"") THEN 1 ELSE 0 END),0) AS "uc_healthmed",
             IFNULL(SUM(CASE WHEN hipdata_code = "OFC" THEN 1 ELSE 0 END),0) AS "ofc_all",
             IFNULL(SUM(CASE WHEN hipdata_code = "OFC" AND edc_approve_list_text <>"" THEN 1 ELSE 0 END),0) AS "ofc_edc",
             IFNULL(SUM(CASE WHEN (auth_code IS NULL OR auth_code ="") AND paidst IN ("02") THEN 1 ELSE 0 END),0) AS "non_authen",

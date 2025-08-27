@@ -152,24 +152,24 @@
 
 @push('scripts')
   <script>
-  $(document).ready(function () {
-    $('#t_sum').DataTable({
-      paging: false,
-      searching: false,
-      info: false,
-      lengthChange: false,
-      dom: '<"d-flex justify-content-end mb-2"B>t',  // ปุ่ม Excel ชิดขวา
-      buttons: [
-        {
-          extend: 'excelHtml5',
-          text: 'Excel',
-          className: 'btn btn-success',
-          title: 'สรุปผู้มารับบริการ UC-OP ในจังหวัด VA แยกสถานพยาบาลหลัก วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
-        }
-      ]
+    $(document).ready(function () {
+      $('#t_sum').DataTable({
+        paging: false,
+        searching: false,
+        info: false,
+        lengthChange: false,
+        dom: '<"d-flex justify-content-end mb-2"B>t',  // ปุ่ม Excel ชิดขวา
+        buttons: [
+          {
+            extend: 'excelHtml5',
+            text: 'Excel',
+            className: 'btn btn-success',
+            title: 'สรุปผู้มารับบริการ UC-OP ในจังหวัด VA แยกสถานพยาบาลหลัก วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+          }
+        ]
+      });
     });
-  });
-</script>
+  </script>
   <script>
     $(document).ready(function () {
       $('#t_search').DataTable({

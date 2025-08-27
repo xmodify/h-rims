@@ -52,7 +52,7 @@ class MishosController extends Controller
                 WHERE (o.an ="" OR o.an IS NULL)
                     AND proj.vn IS NULL
                     AND kidney.vn IS NULL 
-                    AND p.hipdata_code = "UCS" 							
+                    AND p.hipdata_code IN ("UCS","WEL") 							
                     AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")            
                     AND o.vstdate BETWEEN ? AND ?
                 GROUP BY o.vn ) AS a
@@ -78,7 +78,7 @@ class MishosController extends Controller
             WHERE (o.an ="" OR o.an IS NULL)
 			AND proj.vn IS NULL
 			AND kidney.vn IS NULL 
-			AND p.hipdata_code = "UCS" 							
+			AND p.hipdata_code IN ("UCS","WEL") 							
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")            
 			AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date]);
@@ -125,7 +125,7 @@ class MishosController extends Controller
                 WHERE (o.an ="" OR o.an IS NULL)
                     AND proj.vn IS NOT NULL
                     AND kidney.vn IS NULL 
-                    AND p.hipdata_code = "UCS" 							
+                    AND p.hipdata_code IN ("UCS","WEL") 							
                     AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")            
                     AND o.vstdate BETWEEN ? AND ?
                 GROUP BY o.vn ) AS a
@@ -151,7 +151,7 @@ class MishosController extends Controller
             WHERE (o.an ="" OR o.an IS NULL)
 			AND proj.vn IS NOT NULL
 			AND kidney.vn IS NULL 
-			AND p.hipdata_code = "UCS" 							
+			AND p.hipdata_code IN ("UCS","WEL") 							
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")            
 			AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date]);
@@ -200,7 +200,7 @@ class MishosController extends Controller
 					WHERE op.vstdate BETWEEN ? AND ? AND li.herb32 = "Y" GROUP BY op.vn) herb ON herb.vn=o.vn						
                 LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)
-			        AND p.hipdata_code = "UCS" 	
+			        AND p.hipdata_code IN ("UCS","WEL") 	
 			        AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")            
 			        AND o.vstdate BETWEEN ? AND ?
                 GROUP BY o.vn ORDER BY o.vstdate,o.vsttime ) AS a
@@ -229,7 +229,7 @@ class MishosController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)
-                AND p.hipdata_code = "UCS" 	
+                AND p.hipdata_code IN ("UCS","WEL") 	
                 AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")            
                 AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
@@ -278,7 +278,7 @@ class MishosController extends Controller
 					AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("TELMED")) GROUP BY op.vn) tele ON tele.vn=o.vn						
                 LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)
-			        AND p.hipdata_code = "UCS" 	
+			        AND p.hipdata_code IN ("UCS","WEL") 	
 			        AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")            
 			        AND o.vstdate BETWEEN ? AND ? 
                 GROUP BY o.vn ) AS a
@@ -307,7 +307,7 @@ class MishosController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)
-                AND p.hipdata_code = "UCS" 	
+                AND p.hipdata_code IN ("UCS","WEL") 	
                 AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")            
                 AND o.vstdate BETWEEN ? AND ? 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
@@ -356,7 +356,7 @@ class MishosController extends Controller
 					AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("DRUGP")) GROUP BY op.vn) rider ON rider.vn=o.vn						
                 LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)
-			        AND p.hipdata_code = "UCS" 	
+			        AND p.hipdata_code IN ("UCS","WEL") 	
 			        AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")            
 			        AND o.vstdate BETWEEN ? AND ? 
                 GROUP BY o.vn ) AS a
@@ -385,7 +385,7 @@ class MishosController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)
-                AND p.hipdata_code = "UCS" 	
+                AND p.hipdata_code IN ("UCS","WEL") 	
                 AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")            
                 AND o.vstdate BETWEEN ? AND ? 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
@@ -435,7 +435,7 @@ class MishosController extends Controller
                     GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
                 LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)
-                AND p.hipdata_code = "UCS" 	       
+                AND p.hipdata_code IN ("UCS","WEL") 	       
 			    AND o.vstdate BETWEEN ? AND ? 
                 GROUP BY o.vn ) AS a
 				GROUP BY YEAR(vstdate), MONTH(vstdate)
@@ -465,7 +465,7 @@ class MishosController extends Controller
             GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL) 
-            AND p.hipdata_code = "UCS" 	 
+            AND p.hipdata_code IN ("UCS","WEL") 	 
 			AND (o1.vn IS NOT NULL OR ov.icd10 IS NOT NULL)
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
@@ -512,8 +512,7 @@ class MishosController extends Controller
 					WHERE op.vstdate BETWEEN ? AND ? AND op.icode = ? GROUP BY op.vn) drug ON drug.vn=o.vn						
                 LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)
-			        AND p.hipdata_code = "UCS" 	
-			        AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")            
+			        AND p.hipdata_code IN ("UCS","WEL")     
 			        AND o.vstdate BETWEEN ? AND ? 
                 GROUP BY o.vn ) AS a
 				GROUP BY YEAR(vstdate), MONTH(vstdate)
@@ -539,8 +538,7 @@ class MishosController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn						
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)
-                AND p.hipdata_code = "UCS" 	
-                AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")            
+                AND p.hipdata_code IN ("UCS","WEL")            
                 AND o.vstdate BETWEEN ? AND ? 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$drug_clopidogrel,$start_date,$end_date,$drug_clopidogrel,$start_date,$end_date]);
 
@@ -587,7 +585,7 @@ class MishosController extends Controller
 					AND op.icode IN (SELECT icode FROM drugitems WHERE nhso_adp_code IN ("STEMI1")) GROUP BY op.vn) sk ON sk.vn=o.vn						
                 LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)
-			        AND p.hipdata_code = "UCS" 	
+			        AND p.hipdata_code IN ("UCS","WEL") 	
 			        AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")            
 			        AND o.vstdate BETWEEN ? AND ? 
                 GROUP BY o.vn ) AS a
@@ -616,7 +614,7 @@ class MishosController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn						
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)
-                AND p.hipdata_code = "UCS" 	
+                AND p.hipdata_code IN ("UCS","WEL") 	
                 AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")            
                 AND o.vstdate BETWEEN ? AND ? 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
@@ -665,7 +663,7 @@ class MishosController extends Controller
                     AND nhso_adp_code NOT IN ("8901","8902","8904")) GROUP BY op.vn) ins ON ins.vn=o.vn						
                 LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)
-			        AND p.hipdata_code = "UCS" 	       
+			        AND p.hipdata_code IN ("UCS","WEL") 	       
 			        AND o.vstdate BETWEEN ? AND ? 
                 GROUP BY o.vn ) AS a
 				GROUP BY YEAR(vstdate), MONTH(vstdate)
@@ -694,7 +692,7 @@ class MishosController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn					
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)
-                AND p.hipdata_code = "UCS"       
+                AND p.hipdata_code IN ("UCS","WEL")       
                 AND o.vstdate BETWEEN ? AND ? 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
@@ -742,7 +740,7 @@ class MishosController extends Controller
                     GROUP BY op.vn) palli ON palli.vn=o.vn						
                 LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)
-			        AND p.hipdata_code = "UCS" 	       
+			        AND p.hipdata_code IN ("UCS","WEL") 	       
 			        AND o.vstdate BETWEEN ? AND ? 
                 GROUP BY o.vn ) AS a
 				GROUP BY YEAR(vstdate), MONTH(vstdate)
@@ -771,7 +769,7 @@ class MishosController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn						
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)
-                AND p.hipdata_code = "UCS"       
+                AND p.hipdata_code IN ("UCS","WEL")       
                 AND o.vstdate BETWEEN ? AND ? 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 

@@ -44,22 +44,22 @@ public function index(Request $request )
         IFNULL(SUM(CASE WHEN hipdata_code="OFC" AND edc_approve_list_text <> "" THEN 1 ELSE 0 END),0) AS "ofc_edc",
         IFNULL(SUM(CASE WHEN auth_code="" AND cid NOT LIKE "0%" THEN 1 ELSE 0 END),0) AS "non_authen",
         IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","SSS","STP") AND hospmain="" THEN 1 ELSE 0 END),0) AS "non_hmain",
-        IFNULL(SUM(CASE WHEN hipdata_code="UCS" AND hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
+        IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
             THEN 1 ELSE 0 END),0) AS "uc_anywhere",
-        IFNULL(SUM(CASE WHEN hipdata_code="UCS" AND hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
+        IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
             AND endpoint ="Y" THEN 1 ELSE 0 END),0) AS "uc_anywhere_endpoint",
-        IFNULL(SUM(CASE WHEN hipdata_code="UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
+        IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
             AND uc_cr<>"" THEN 1 ELSE 0 END),0) AS "uc_cr",
-        IFNULL(SUM(CASE WHEN hipdata_code="UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
+        IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
             AND uc_cr<>"" AND endpoint ="Y" THEN 1 ELSE 0 END),0) AS "uc_cr_endpoint",
-        IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
+        IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
             AND herb<>"" THEN 1 ELSE 0 END),0) AS "uc_herb",
-        IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
+        IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
             AND herb<>"" AND endpoint ="Y" THEN 1 ELSE 0 END),0) AS "uc_herb_endpoint",
         IFNULL(SUM(CASE WHEN ppfs<>"" THEN 1 ELSE 0 END),0) AS "ppfs",
         IFNULL(SUM(CASE WHEN ppfs<>"" AND endpoint ="Y" THEN 1 ELSE 0 END),0) AS "ppfs_endpoint",
-        IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND healthmed<>"" THEN 1 ELSE 0 END),0) AS "uc_healthmed",
-        IFNULL(SUM(CASE WHEN hipdata_code = "UCS" AND healthmed<>"" AND endpoint ="Y" THEN 1 ELSE 0 END),0) AS "uc_healthmed_endpoint"
+        IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND healthmed<>"" THEN 1 ELSE 0 END),0) AS "uc_healthmed",
+        IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND healthmed<>"" AND endpoint ="Y" THEN 1 ELSE 0 END),0) AS "uc_healthmed_endpoint"
         FROM(SELECT o.vn,pt.cid,pt.nationality,vp.auth_code,p.pttype,p.paidst,p.hipdata_code,vp.hospmain,os.edc_approve_list_text,
         uc_cr.vn AS uc_cr,herb.vn AS herb,ppfs.vn AS ppfs,healthmed.vn AS healthmed,
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,v.income,v.paid_money
@@ -496,7 +496,7 @@ public function opd_ucs_anywhere(Request $request )
         LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND DATE(stm.datetimeadm) = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"     
         WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN ? AND ?
-        AND p.hipdata_code = "UCS" AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
+        AND p.hipdata_code IN ("UCS","WEL") AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
         GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date]);    
 
     return view('home_detail.opd_ucs_anywhere',compact('start_date','end_date','search'));
@@ -533,7 +533,7 @@ public function opd_ucs_cr(Request $request )
         LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
         LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND DATE(stm.datetimeadm) = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"       
-        WHERE p.hipdata_code = "UCS" AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
+        WHERE p.hipdata_code IN ("UCS","WEL") AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
         AND (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL AND o.vstdate BETWEEN ? AND ?
         GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]);
 
@@ -570,7 +570,7 @@ public function opd_ucs_herb(Request $request )
         LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
         LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND DATE(stm.datetimeadm) = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"       
-        WHERE p.hipdata_code = "UCS" AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
+        WHERE p.hipdata_code IN ("UCS","WEL") AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
         AND (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL AND o.vstdate BETWEEN ? AND ?
         GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]);    
 
@@ -602,7 +602,7 @@ public function opd_ucs_healthmed(Request $request )
             GROUP BY h1.health_med_service_id,h1.health_med_operation_item_id) healthmed ON healthmed.vn=o.vn
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
         WHERE (o.an ="" OR o.an IS NULL) AND healthmed.vn <>"" AND o.vstdate BETWEEN ? AND ?
-        AND p.hipdata_code = "UCS" AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")          
+        AND p.hipdata_code IN ("UCS","WEL") AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")          
         GROUP BY o.vn ORDER BY ep.claimCode DESC,o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
     return view('home_detail.opd_ucs_healthmed',compact('start_date','end_date','search'));

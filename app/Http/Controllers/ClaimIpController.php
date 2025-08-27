@@ -40,7 +40,7 @@ class ClaimIpController extends Controller
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
             LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
-            AND p.hipdata_code = "UCS" AND ip.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
+            AND p.hipdata_code IN ("UCS","WEL") AND ip.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             AND i.data_exp_date IS NULL 
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
@@ -64,7 +64,7 @@ class ClaimIpController extends Controller
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
             LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
-            AND p.hipdata_code = "UCS" AND ip.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
+            AND p.hipdata_code IN ("UCS","WEL") AND ip.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             AND i.data_exp_date IS NOT NULL 
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
@@ -98,7 +98,7 @@ class ClaimIpController extends Controller
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
             LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
-            AND p.hipdata_code = "UCS" AND ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
+            AND p.hipdata_code IN ("UCS","WEL") AND ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             AND i.data_exp_date IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
@@ -122,7 +122,7 @@ class ClaimIpController extends Controller
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
             LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
-            AND p.hipdata_code = "UCS" AND ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
+            AND p.hipdata_code IN ("UCS","WEL") AND ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             AND i.data_exp_date IS NOT NULL 
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 

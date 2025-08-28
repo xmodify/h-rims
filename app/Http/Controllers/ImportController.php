@@ -31,15 +31,15 @@ public function __construct()
 
 //stm_ucs-----------------------------------------------------------------------------------------------------
 public function stm_ucs(Request $request)
-{  
-    $stm_ucs=DB::select('
-        SELECT IF(SUBSTRING(stm_filename,11) LIKE "O%","OPD","IPD") AS dep,
-        stm_filename,COUNT(DISTINCT repno) AS repno,COUNT(cid) AS count_cid,SUM(charge) AS charge,
-        SUM(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_total) AS receive_total FROM stm_ucs 
-        GROUP BY stm_filename ORDER BY stm_filename DESC');
+    {  
+        $stm_ucs=DB::select('
+            SELECT IF(SUBSTRING(stm_filename,11) LIKE "O%","OPD","IPD") AS dep,
+            stm_filename,COUNT(DISTINCT repno) AS repno,COUNT(cid) AS count_cid,SUM(charge) AS charge,
+            SUM(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_total) AS receive_total FROM stm_ucs 
+            GROUP BY stm_filename ORDER BY stm_filename DESC');
 
-    return view('import.stm_ucs',compact('stm_ucs'));
-}
+        return view('import.stm_ucs',compact('stm_ucs'));
+    }
 
 //stm_ucs_save--------------------------------------------------------------------------------------------------
 public function stm_ucs_save(Request $request)
@@ -261,12 +261,42 @@ public function stm_ucs_save(Request $request)
             }                
                 Stm_ucsexcel::truncate(); 
             
-        return redirect()->route('stm_ucs')->with('success',$file_name); 
-        
+        return redirect()->route('stm_ucs')->with('success',$file_name);         
     }
+//stm_ucs_detail---------------------------------------------------------------------------------------------------------------------
+public function stm_ucs_detail(Request $request)
+    {  
+        $start_date = $request->start_date ?: date('Y-m-d', strtotime("first day of this month"));
+        $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));
 
+        $stm_ucs_list=DB::select('
+            SELECT IF(SUBSTRING(stm_filename,11) LIKE "O%","OPD","IPD") AS dep,
+            stm_filename,repno,hn,an,pt_name,datetimeadm,datetimedch,projcode,fund_ip_adjrw,
+            charge,receive_op,receive_ip_compensate_pay,fund_ip_payrate,receive_total,
+            receive_hc_hc,receive_hc_drug,receive_ae_ae,receive_ae_drug,receive_inst,
+            receive_palliative,receive_pp,receive_fs
+            FROM stm_ucs 
+            WHERE DATE(datetimeadm) BETWEEN ? AND ?
+            AND SUBSTRING(stm_filename,11) LIKE "O%"
+            GROUP BY stm_filename,repno,hn,datetimeadm 
+            ORDER BY dep DESC,repno',[$start_date,$end_date]);
+
+        $stm_ucs_list_ip=DB::select('
+            SELECT IF(SUBSTRING(stm_filename,11) LIKE "O%","OPD","IPD") AS dep,
+            stm_filename,repno,hn,an,pt_name,datetimeadm,datetimedch,projcode,fund_ip_adjrw,
+            charge,receive_op,receive_ip_compensate_pay,fund_ip_payrate,receive_total,
+            receive_hc_hc,receive_hc_drug,receive_ae_ae,receive_ae_drug,receive_inst,
+            receive_palliative,receive_pp,receive_fs
+            FROM stm_ucs 
+            WHERE DATE(datetimedch) BETWEEN ? AND ?
+            AND SUBSTRING(stm_filename,11) LIKE "I%"
+            GROUP BY stm_filename,repno,hn,datetimedch 
+            ORDER BY dep DESC,repno',[$start_date,$end_date]);
+
+        return view('import.stm_ucs_detail',compact('start_date','end_date','stm_ucs_list','stm_ucs_list_ip'));
+    }
 //ucs_kidney------------------------------------------------------------------------------------------------------------------------
-    public function stm_ucs_kidney(Request $request)
+public function stm_ucs_kidney(Request $request)
     {  
         $stm_ucs_kidney=DB::select('
             SELECT stm_filename,repno,COUNT(cid) AS count_cid,	
@@ -278,7 +308,7 @@ public function stm_ucs_save(Request $request)
     }
 
 //ucs_kidney_save------------------------------------------------------------------------------------------------------------------
-    public function stm_ucs_kidney_save(Request $request)
+public function stm_ucs_kidney_save(Request $request)
     {
         // Set the execution time to 300 seconds (5 minutes)
         set_time_limit(300);
@@ -366,9 +396,21 @@ public function stm_ucs_save(Request $request)
             
         return redirect()->route('stm_ucs_kidney')->with('success',$file_name);
     }
+//stm_ucs_kidneydetail------------------------------------------------------------------------------------------------------------------
+public function stm_ucs_kidneydetail(Request $request)
+    {  
+        $start_date = $request->start_date ?: date('Y-m-d', strtotime("first day of this month"));
+        $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));
 
+        $stm_ucs_kidney_list=DB::select('
+            SELECT stm_filename,repno,hn,an,cid,pt_name,datetimeadm,hd_type,charge_total,receive_total,note 
+            FROM stm_ucs_kidney WHERE DATE(datetimeadm) BETWEEN ? AND ?
+            GROUP BY repno,cid,hd_type,datetimeadm ORDER BY cid,datetimeadm',[$start_date,$end_date]);
+
+        return view('import.stm_ucs_kidneydetail',compact('start_date','end_date','stm_ucs_kidney_list'));
+    }
 //stm_ofc-----------------------------------------------------------------------------------------------------------------------------
-    public function stm_ofc(Request $request)
+public function stm_ofc(Request $request)
     {  
         $stm_ofc=DB::select('
             SELECT  stm_filename,COUNT(DISTINCT repno) AS count_repno,COUNT(cid) AS count_cid,
@@ -523,7 +565,34 @@ public function stm_ucs_save(Request $request)
             
         return redirect()->route('stm_ofc')->with('success',$file_name);
     }
+//stm_ofc_detail----------------------------------------------------------------------------------------------------------------
+public function stm_ofc_detail(Request $request)
+    {  
+        $start_date = $request->start_date ?: date('Y-m-d', strtotime("first day of this month"));
+        $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));
 
+        $stm_ofc_list=DB::select('
+            SELECT IF(SUBSTRING(stm_filename,11) LIKE "O%","OPD","IPD") AS dep,stm_filename,repno,
+            hn,an,pt_name,datetimeadm,datetimedch,adjrw,charge,act,receive_room,receive_instument,
+            receive_drug,receive_treatment,receive_car,receive_waitdch,receive_other,receive_total
+            FROM stm_ofc
+            WHERE DATE(datetimeadm) BETWEEN ? AND ?
+            AND SUBSTRING(stm_filename,11) LIKE "O%"
+            GROUP BY stm_filename,repno,hn,datetimeadm 
+            ORDER BY dep DESC,repno',[$start_date,$end_date]);
+
+        $stm_ofc_list_ip=DB::select('
+            SELECT IF(SUBSTRING(stm_filename,11) LIKE "O%","OPD","IPD") AS dep,stm_filename,repno,
+            hn,an,pt_name,datetimeadm,datetimedch,adjrw,charge,act,receive_room,receive_instument,
+            receive_drug,receive_treatment,receive_car,receive_waitdch,receive_other,receive_total
+            FROM stm_ofc 
+            WHERE DATE(datetimedch) BETWEEN ? AND ?
+            AND SUBSTRING(stm_filename,11) LIKE "I%"
+            GROUP BY stm_filename,repno,hn,datetimeadm 
+            ORDER BY dep DESC,repno',[$start_date,$end_date]);
+
+        return view('import.stm_ofc_detail',compact('start_date','end_date','stm_ofc_list','stm_ofc_list_ip'));
+    }
 //stm_ofc_kidney--------------------------------------------------------------------------------------------------------------
     public function stm_ofc_kidney(Request $request)
     {  
@@ -609,7 +678,19 @@ public function stm_ucs_save(Request $request)
         
         return redirect()->route('stm_ofc_kidney')->with('success',@$STMdoc);
     }
+//stm_ofc_kidneydetail-------------------------------------------------------------------------------------------------------------------
+public function stm_ofc_kidneydetail(Request $request)
+    {  
+        $start_date = $request->start_date ?: date('Y-m-d', strtotime("first day of this month"));
+        $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));
 
+        $stm_ofc_kidney_list=DB::select('
+            SELECT hcode,hname,stmdoc,station,hreg,hn,invno,dttran,paid,rid,amount,hdflag
+            FROM stm_ofc_kidney  WHERE DATE(dttran) BETWEEN ? AND ?
+            ORDER BY station ,stmdoc',[$start_date,$end_date]);
+
+        return view('import.stm_ofc_kidneydetail',compact('start_date','end_date','stm_ofc_kidney_list'));
+    }
 //stm_lgo-----------------------------------------------------------------------------------------------------------------------------
     public function stm_lgo(Request $request)
     {  
@@ -830,7 +911,30 @@ public function stm_ucs_save(Request $request)
             
         return redirect()->route('stm_lgo')->with('success',$file_name);
     }
+//stm_lgo_detail---------------------------------------------------------------------------------------------------------------
+public function stm_lgo_detail(Request $request)
+    {  
+        $start_date = $request->start_date ?: date('Y-m-d', strtotime("first day of this month"));
+        $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));        
 
+        $stm_lgo_list=DB::select('
+            SELECT dep,stm_filename,repno,hn,an,pt_name,datetimeadm,datetimedch,adjrw,
+            payrate,charge_treatment,compensate_treatment,
+            case_iplg,case_oplg,case_palg,case_inslg,case_otlg,case_pp,case_drug
+            FROM stm_lgo WHERE DATE(datetimeadm) BETWEEN ? AND ?
+            AND dep = "OP"
+            GROUP BY stm_filename,repno,hn,datetimeadm ORDER BY dep DESC,repno',[$start_date,$end_date]);
+
+        $stm_lgo_list_ip=DB::select('
+            SELECT dep,stm_filename,repno,hn,an,pt_name,datetimeadm,datetimedch,adjrw,
+            payrate,charge_treatment,compensate_treatment,
+            case_iplg,case_oplg,case_palg,case_inslg,case_otlg,case_pp,case_drug
+            FROM stm_lgo WHERE DATE(datetimedch) BETWEEN ? AND ?
+            AND dep = "IP"
+            GROUP BY stm_filename,repno,hn,datetimedch ORDER BY dep DESC,repno',[$start_date,$end_date]);
+
+        return view('import.stm_lgo_detail',compact('start_date','end_date','stm_lgo_list','stm_lgo_list_ip'));
+    }
 //stm_lgo_kidney-------------------------------------------------------------------------------------------------------------------------
     public function stm_lgo_kidney(Request $request)
     {  
@@ -928,7 +1032,22 @@ public function stm_ucs_save(Request $request)
             
         return redirect()->route('stm_lgo_kidney')->with('success',$file_name);
     }
+//stm_lgo_kidneydetail------------------------------------------------------------------------------------------------------------
+public function stm_lgo_kidneydetail(Request $request)
+    {  
+        $start_date = $request->start_date ?: date('Y-m-d', strtotime("first day of this month"));
+        $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));
 
+        $stm_lgo_kidney_list=DB::select('
+            SELECT dep,stm_filename,repno,hn,cid,pt_name,
+            datetimeadm,compensate_kidney,note 
+            FROM stm_lgo_kidney 
+            WHERE DATE(datetimeadm) BETWEEN ? AND ?
+            GROUP BY stm_filename,repno,cid,datetimeadm 
+            ORDER BY dep DESC,repno',[$start_date,$end_date]);
+
+        return view('import.stm_lgo_kidneydetail',compact('start_date','end_date','stm_lgo_kidney_list'));
+}
 //stm_sss_kidney----------------------------------------------------------------------------------------------------------
     public function stm_sss_kidney(Request $request)
     {  
@@ -1041,5 +1160,19 @@ public function stm_ucs_save(Request $request)
             
         return redirect()->route('stm_sss_kidney')->with('success',@$STMdoc);
     }
+//stm_sss_kidneydetail--------------------------------------------------------------------------------------------------------------
+public function stm_sss_kidneydetail(Request $request)
+{  
+    $start_date = $request->start_date ?: date('Y-m-d', strtotime("first day of this month"));
+    $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));
 
+    $stm_sss_kidney_list=DB::select('
+        SELECT hcode,hname,stmdoc,station,hreg,hn,cid,
+        dttran,paid,rid,amount,epopay,epoadm 
+        FROM stm_sss_kidney 
+        WHERE DATE(dttran) BETWEEN ? AND ?
+        ORDER BY station ,stmdoc',[$start_date,$end_date]);
+
+    return view('import.stm_sss_kidneydetail',compact('start_date','end_date','stm_sss_kidney_list'));
+}
 }

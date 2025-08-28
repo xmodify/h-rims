@@ -73,18 +73,25 @@ Route::match(['get','post'],'ipd_finance_chk_wait_rcpt_money',[HomeController::c
 //Import---------------------------------------------------------------------------------------------------------------------------
 Route::match(['get','post'],'import/stm_ucs',[ImportController::class,'stm_ucs'])->name('stm_ucs');
 Route::post('import/stm_ucs_save',[ImportController::class,'stm_ucs_save']);
+Route::match(['get','post'],'import/stm_ucs_detail',[ImportController::class,'stm_ucs_detail']);
 Route::match(['get','post'],'import/stm_ucs_kidney',[ImportController::class,'stm_ucs_kidney'])->name('stm_ucs_kidney');
 Route::post('import/stm_ucs_kidney_save',[ImportController::class,'stm_ucs_kidney_save']);
+Route::match(['get','post'],'import/stm_ucs_kidneydetail',[ImportController::class,'stm_ucs_kidneydetail']);
 Route::match(['get','post'],'import/stm_ofc',[ImportController::class,'stm_ofc'])->name('stm_ofc');
 Route::post('import/stm_ofc_save',[ImportController::class,'stm_ofc_save']);
+Route::match(['get','post'],'import/stm_ofc_detail',[ImportController::class,'stm_ofc_detail']);
 Route::match(['get','post'],'import/stm_ofc_kidney',[ImportController::class,'stm_ofc_kidney'])->name('stm_ofc_kidney');
 Route::post('import/stm_ofc_kidney_save',[ImportController::class,'stm_ofc_kidney_save']);
+Route::match(['get','post'],'import/stm_ofc_kidneydetail',[ImportController::class,'stm_ofc_kidneydetail']);
 Route::match(['get','post'],'import/stm_lgo',[ImportController::class,'stm_lgo'])->name('stm_lgo');
 Route::post('import/stm_lgo_save',[ImportController::class,'stm_lgo_save']);
+Route::match(['get','post'],'import/stm_lgo_detail',[ImportController::class,'stm_lgo_detail']);
 Route::match(['get','post'],'import/stm_lgo_kidney',[ImportController::class,'stm_lgo_kidney'])->name('stm_lgo_kidney');
 Route::post('import/stm_lgo_kidney_save',[ImportController::class,'stm_lgo_kidney_save']);
+Route::match(['get','post'],'import/stm_lgo_kidneydetail',[ImportController::class,'stm_lgo_kidneydetail']);
 Route::match(['get','post'],'import/stm_sss_kidney',[ImportController::class,'stm_sss_kidney'])->name('stm_sss_kidney');
 Route::post('import/stm_sss_kidney_save',[ImportController::class,'stm_sss_kidney_save']);
+Route::match(['get','post'],'import/stm_sss_kidneydetail',[ImportController::class,'stm_sss_kidneydetail']);
 
 //Diag------------------------------------------------------------------------------------------------------------------------------
 Route::match(['get','post'],'diag/sepsis',[DiagController::class,'sepsis']);

@@ -53,37 +53,80 @@
                             <a id="navbarDropdown" class="btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
                                 นำเข้าข้อมูล
                             </a>
-                            <div class=" btn btn-outline-success dropdown-menu dropdown-menu-end">                                       
-                                <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_ucs') }}" >
-                                    STM-UCS [OP-IP]
-                                </a> 
+                            <ul class="bg-success dropdown-menu dropdown-menu-end"> 
+                                <!-- ชี้ขวา -->
+                                <li class="dropend">
+                                    <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
+                                        STM-UCS [OP-IP]
+                                    </a>
+                                    <ul class="bg-success dropdown-menu">
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_ucs') }}">นำเข้าข้อมูล</a></li>
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_ucs_detail') }}">รายละเอียด</a></li>                                       
+                                    </ul>
+                                </li> 
                                 @if($hasLookupIcode_kidney) 
-                                    <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_ucs_kidney') }}" >
+                                <li class="dropend">
+                                    <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         STM-UCS [ฟอกไต]
-                                    </a> 
+                                    </a>
+                                    <ul class="bg-success dropdown-menu">
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_ucs_kidney') }}">นำเข้าข้อมูล</a></li>
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_ucs_kidneydetail') }}">รายละเอียด</a></li>                                       
+                                    </ul>
+                                </li>  
                                 @endif
-                                <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_ofc') }}" >
-                                    STM-OFC:BKK:BMT [OP-IP]
-                                </a> 
+                                <li class="dropend">
+                                    <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
+                                        STM-OFC:BKK:BMT [OP-IP]
+                                    </a>
+                                    <ul class="bg-success dropdown-menu">
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_ofc') }}">นำเข้าข้อมูล</a></li>
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_ofc_detail') }}">รายละเอียด</a></li>                                       
+                                    </ul>
+                                </li> 
                                 @if($hasLookupIcode_kidney) 
-                                    <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_ofc_kidney') }}" >
+                                <li class="dropend">
+                                    <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         STM-OFC [ฟอกไต]
-                                    </a> 
+                                    </a>
+                                    <ul class="bg-success dropdown-menu">
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_ofc_kidney') }}">นำเข้าข้อมูล</a></li>
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_ofc_kidneydetail') }}">รายละเอียด</a></li>                                       
+                                    </ul>
+                                </li>  
                                 @endif
-                                <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_lgo') }}" >
-                                    STM-LGO [OP-IP]
-                                </a> 
+                                <li class="dropend">
+                                    <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
+                                        STM-LGO [OP-IP]
+                                    </a>
+                                    <ul class="bg-success dropdown-menu">
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_lgo') }}">นำเข้าข้อมูล</a></li>
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_lgo_detail') }}">รายละเอียด</a></li>                                       
+                                    </ul>
+                                </li>
                                 @if($hasLookupIcode_kidney) 
-                                    <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_lgo_kidney') }}" >
+                                <li class="dropend">
+                                    <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         STM-LGO [ฟอกไต]
-                                    </a> 
+                                    </a>
+                                    <ul class="bg-success dropdown-menu">
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_lgo_kidney') }}">นำเข้าข้อมูล</a></li>
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_lgo_kidneydetail') }}">รายละเอียด</a></li>                                       
+                                    </ul>
+                                </li>  
                                 @endif
-                                 @if($hasLookupIcode_kidney) 
-                                    <a class="dropdown-item link-primary text-white " href="{{ url('/import/stm_sss_kidney') }}" >
+                                @if($hasLookupIcode_kidney) 
+                                <li class="dropend">
+                                    <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         STM-SSS [ฟอกไต]
-                                    </a> 
+                                    </a>
+                                    <ul class="bg-success dropdown-menu">
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_sss_kidney') }}">นำเข้าข้อมูล</a></li>
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_sss_kidneydetail') }}">รายละเอียด</a></li>                                       
+                                    </ul>
+                                </li>  
                                 @endif
-                            </div>                 
+                            </ul>                                            
                         </li>  
                         <li class="nav-item dropdown">
                             <a id="navbarDropdown" class="btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
@@ -369,7 +412,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li > 
                             <div class="btn text-info">
-                                V. 68-08-27
+                                V. 68-08-28
                             </div>   
                         </li>                         
                         <!-- Authentication Links -->

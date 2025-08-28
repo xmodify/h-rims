@@ -52,9 +52,8 @@
                   <th class="text-center" width = "5%">ICD9</th> 
                   <th class="text-center">ค่ารักษาทั้งหมด</th> 
                   <th class="text-center">ชำระเอง</th>
-                  <th class="text-center" width = "10%">รายการที่เรียกเก็บ</th>  
+                  <th class="text-center" width = "10%">รายการ PPFS</th>  
                   <th class="text-center">เรียกเก็บ</th> 
-                  <th class="text-center">Project</th> 
               </tr>
             </thead> 
             <tbody> 
@@ -89,8 +88,6 @@
                 <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
                 <td align="right" width = "10%">{{ $row->claim_list }}</td>   
                 <td align="right">{{ number_format($row->claim_price,2) }}</td> 
-                <td align="right">{{ $row->project }}</td>         
-              </tr>
               <?php $count++; ?>
               <?php $sum_income += $row->income ; ?>
               <?php $sum_rcpt_money += $row->rcpt_money ; ?>
@@ -123,9 +120,9 @@
                     <th class="text-center" width = "5%">ICD9</th> 
                     <th class="text-center">ค่ารักษาทั้งหมด</th> 
                     <th class="text-center">ชำระเอง</th>
-                    <th class="text-center" width = "10%">รายการที่เรียกเก็บ</th>
                     <th class="text-center">PPFS</th>
-                    <th class="text-center">Project</th>
+                    <th class="text-center">เรียกเก็บ</th>
+                    <th class="text-center" width = "10%">รายการ PPFS</th>                    
                     <th class="text-center text-primary">Rep NHSO</th> 
                     <th class="text-center text-primary">Error</th> 
                     <th class="text-center text-primary">STM ชดเชย</th> 
@@ -138,6 +135,7 @@
                 <?php $sum_income = 0 ; ?>  
                 <?php $sum_rcpt_money = 0 ; ?>
                 <?php $sum_ppfs = 0 ; ?> 
+                <?php $sum_claim_price = 0 ; ?>
                 <?php $sum_rep_nhso = 0 ; ?>  
                 <?php $sum_receive_total = 0 ; ?> 
                 @foreach($claim as $row) 
@@ -153,23 +151,24 @@
                     <td align="right" width = "5%">{{$row->icd9}}</td> 
                     <td align="right">{{ number_format($row->income,2) }}</td>              
                     <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
-                    <td align="right" width = "10%">{{ $row->claim_list }}</td> 
                     <td align="right">{{ number_format($row->ppfs,2) }}</td> 
-                    <td align="right">{{ $row->project }}</td>  
+                    <td align="right">{{ number_format($row->claim_price,2) }}</td> 
+                    <td align="right" width = "10%">{{ $row->claim_list }}</td>                     
                     <td align="right" class="text-primary">{{ number_format($row->rep_nhso,2) }}</td>
                     <td align="center">{{ $row->rep_error }}</td>
                     <td align="right" @if($row->receive_total > 0) style="color:green" 
                         @elseif($row->receive_total < 0) style="color:red" @endif>
                         {{ number_format($row->receive_total,2) }}</td>
-                    <td align="right" @if($row->receive_total-$row->ppfs > 0) style="color:green" 
-                        @elseif($row->receive_total-$row->ppfs < 0) style="color:red" @endif>
-                        {{ number_format($row->receive_total-$row->ppfs,2) }}</td>
+                    <td align="right" @if($row->receive_total-$row->claim_price > 0) style="color:green" 
+                        @elseif($row->receive_total-$row->claim_price < 0) style="color:red" @endif>
+                        {{ number_format($row->receive_total-$row->claim_price,2) }}</td>
                     <td align="right">{{ $row->repno }}</td> 
                 </tr>
                 <?php $count++; ?>
                 <?php $sum_income += $row->income ; ?>
                 <?php $sum_rcpt_money += $row->rcpt_money ; ?>
                 <?php $sum_ppfs += $row->ppfs ; ?>
+                <?php $sum_claim_price += $row->claim_price ; ?>
                 <?php $sum_rep_nhso += $row->rep_nhso ; ?>
                 <?php $sum_receive_total += $row->receive_total ; ?>
                 @endforeach                 
@@ -180,12 +179,13 @@
               รักษาทั้งหมด: <strong>{{ number_format($sum_income,2)}}</strong> บาท |
               ชำระเอง: <strong>{{ number_format($sum_rcpt_money,2)}}</strong> บาท |
               PPFS: <strong>{{ number_format($sum_ppfs,2)}}</strong> บาท |
+              เรียกเก็บ: <strong>{{ number_format($sum_claim_price,2)}}</strong> บาท |
               ชดเชย: <strong  @if($sum_receive_total > 0) style="color:green" 
                         @elseif($sum_receive_total < 0) style="color:red" @endif>
                         {{ number_format($sum_receive_total,2)}}</strong> บาท |
-              ผลต่าง: <strong  @if($sum_receive_total-$sum_ppfs > 0) style="color:green" 
-                        @elseif($sum_receive_total-$sum_ppfs < 0) style="color:red" @endif>
-                        {{ number_format($sum_receive_total-$sum_ppfs,2)}}</strong> บาท
+              ผลต่าง: <strong  @if($sum_receive_total-$sum_claim_price > 0) style="color:green" 
+                        @elseif($sum_receive_total-$sum_claim_price < 0) style="color:red" @endif>
+                        {{ number_format($sum_receive_total-$sum_claim_price,2)}}</strong> บาท
               </h5>
             </div>     
           </div>          

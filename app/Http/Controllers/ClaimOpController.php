@@ -370,7 +370,7 @@ class ClaimOpController extends Controller
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,GROUP_CONCAT(DISTINCT IFNULL(d.`name`,n.`name`)) AS claim_list,
-            v.income,v.rcpt_money,COALESCE(o2.claim_price, 0) AS claim_price,GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project
+            v.income,v.rcpt_money,v.income-v.rcpt_money-COALESCE(o2.claim_price, 0) AS claim_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -379,15 +379,12 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
-            INNER JOIN opitemrece o1 ON o1.vn=o.vn
-            INNER JOIN hrims.lookup_icode li ON o1.icode = li.icode AND li.ppfs = "Y" 
+            LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs = "Y")
             LEFT JOIN nondrugitems n ON n.icode=o1.icode
             LEFT JOIN drugitems d ON d.icode=o1.icode
-            LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price	FROM opitemrece op
+            LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op
             INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
-                WHERE op.vstdate BETWEEN ? AND ? AND li.ppfs = "Y" GROUP BY op.vn) o2 ON o2.vn=o.vn
-            LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
-            LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
+                WHERE op.vstdate BETWEEN ? AND ? AND li.ppfs = "Y" GROUP BY op.vn) o2 ON o2.vn=o.vn            
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
@@ -399,7 +396,7 @@ class ClaimOpController extends Controller
         $claim=DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
             v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,GROUP_CONCAT(DISTINCT IFNULL(n.`name`,d.`name`)) AS claim_list,
-            COALESCE(ppfs.claim_price, 0) AS ppfs,GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,rep.rep_eclaim_detail_nhso AS rep_nhso,
+            COALESCE(o2.claim_price, 0) AS ppfs,v.income-v.rcpt_money-COALESCE(o2.claim_price, 0) AS claim_price,rep.rep_eclaim_detail_nhso AS rep_nhso,
             rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -409,16 +406,12 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn        
-            INNER JOIN opitemrece o1 ON o1.vn=o.vn
-            INNER JOIN hrims.lookup_icode li ON o1.icode = li.icode AND li.ppfs = "Y"
+            LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs = "Y")
             LEFT JOIN nondrugitems n ON n.icode=o1.icode
             LEFT JOIN drugitems d ON d.icode=o1.icode
-            LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price	FROM opitemrece op
+            LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op
             INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
-                WHERE op.vstdate BETWEEN ? AND ? AND li.ppfs = "Y" GROUP BY op.vn) ppfs ON ppfs.vn=o.vn
-            LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode 
-                IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
-            LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
+                WHERE op.vstdate BETWEEN ? AND ? AND li.ppfs = "Y" GROUP BY op.vn) o2 ON o2.vn=o.vn            
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)

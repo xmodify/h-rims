@@ -19,14 +19,26 @@
 
     <!-- Styles -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        a{color:inherit;text-decoration:inherit}
+    </style>
 
 </head>
 
 <div class="container my-5">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">{{ __('Register') }}</div>
+        <div class="col-md-6">
+            <div class="card" style="border: 2px solid #198754;">
+                <div class="card-header">
+                    <div class="row"> 
+                        <div class="col-md-6 text-success" align="left"> 
+                            <a href="{{ route('login') }}">  {{ __('H-RiMS') }}</a> 
+                        </div>
+                        <div class="col-md-6 text-success" align="right">                        
+                            <a href="{{ route('register') }}"> {{ __('Register') }}</a>                        
+                        </div>
+                    </div>
+                </div>
 
                 <div class="card-body">
                     <form method="POST" action="{{ route('register') }}">

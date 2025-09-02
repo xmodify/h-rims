@@ -132,11 +132,6 @@
                   <th class="text-center">Refer</th>  
                   <th class="text-center">AdjRW</th>
                   <th class="text-center">สถานะ</th>
-                  <th class="text-center">ชดเชย Rw</th>
-                  <th class="text-center">ชดเชย Other</th>
-                  <th class="text-center">ชดเชยทั้งหมด</th> 
-                  <th class="text-center">ส่วนต่าง</th> 
-                  <th class="text-center">REP No.</th> 
                 </tr>
               </thead> 
               <tbody> 
@@ -165,22 +160,12 @@
                   <td align="right">{{ number_format($row->claim_price,2) }}</td> 
                   <td align="right">{{ $row->refer }}</td>
                   <td align="center">{{ $row->adjrw }}</td>
-                  <td align="left" width = "5%">{{ $row->ipt_coll_status_type_name }}</td>                  
-                  <td align="right">{{ number_format($row->receive_treatment,2) }}</td>
-                  <td align="right">{{ number_format($row->receive_total-$row->receive_treatment,2) }}</td>
-                  <td align="right">{{ number_format($row->receive_total,2) }}</td>
-                  <td align="right" @if($row->receive_total-$row->claim_price > 0) style="color:green"
-                    @elseif($row->receive_total-$row->claim_price <0) style="color:red" @endif>
-                    {{ number_format($row->receive_total-$row->claim_price,2) }}
-                  </td>
-                  <td align="center">{{ $row->repno }}</td>
+                  <td align="left" width = "5%">{{ $row->ipt_coll_status_type_name }}</td>   
                 </tr>
                 <?php $count++; ?>
                 <?php $sum_income += $row->income ; ?>
                 <?php $sum_rcpt_money += $row->rcpt_money ; ?>
                 <?php $sum_claim_price += $row->claim_price ; ?>
-                <?php $sum_receive_rw += $row->receive_treatment ; ?>
-                <?php $sum_receive_total += $row->receive_total ; ?>
                 @endforeach                 
               </tbody>
             </table>
@@ -188,15 +173,7 @@
               <h5 class="text-primary text-center">
               รักษาทั้งหมด: <strong>{{ number_format($sum_income,2)}}</strong> บาท |
               ชำระเอง: <strong>{{ number_format($sum_rcpt_money,2)}}</strong> บาท |
-              เรียกเก็บ: <strong>{{ number_format($sum_claim_price,2)}}</strong> บาท | 
-              ชดเชย Rw: <strong>{{ number_format($sum_receive_rw,2)}}</strong> บาท |
-              ชดเชย Other: <strong>{{ number_format($sum_receive_total-$sum_receive_rw,2)}}</strong> บาท | 
-              ชดเชยทั้งหมด: <strong  @if($sum_receive_total > 0) style="color:green" 
-                        @elseif($sum_receive_total < 0) style="color:red" @endif>
-                        {{ number_format($sum_receive_total,2)}}</strong> บาท |
-              ผลต่าง: <strong  @if($sum_receive_total-$sum_claim_price> 0) style="color:green" 
-                        @elseif($sum_receive_total-$sum_claim_price< 0) style="color:red" @endif>
-                        {{ number_format($sum_receive_total-$sum_claim_price,2)}}</strong> บาท              
+              เรียกเก็บ: <strong>{{ number_format($sum_claim_price,2)}}</strong> บาท         
               </h5>
             </div>     
           </div>          

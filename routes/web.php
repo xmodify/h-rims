@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\LookupHospcodeController;
 use App\Http\Controllers\NotifyController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ImportController;
+use App\Http\Controllers\CheckController;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\DiagController;
 use App\Http\Controllers\IpdController;
@@ -92,6 +93,14 @@ Route::match(['get','post'],'import/stm_lgo_kidneydetail',[ImportController::cla
 Route::match(['get','post'],'import/stm_sss_kidney',[ImportController::class,'stm_sss_kidney'])->name('stm_sss_kidney');
 Route::post('import/stm_sss_kidney_save',[ImportController::class,'stm_sss_kidney_save']);
 Route::match(['get','post'],'import/stm_sss_kidneydetail',[ImportController::class,'stm_sss_kidneydetail']);
+
+//Check------------------------------------------------------------------------------------------------------------------------------
+Route::post('check/drug_cat_nhso_save',[CheckController::class,'drug_cat_nhso_save']);
+Route::get('check/drug_cat',[CheckController::class,'drug_cat'])->name('drug_cat');;
+Route::get('check/drug_cat_non_nhso',[CheckController::class,'drug_cat_non_nhso']);
+Route::get('check/drug_cat_nhso_price_notmatch_hosxp',[CheckController::class,'drug_cat_nhso_price_notmatch_hosxp']);
+Route::get('check/drug_cat_nhso_tmt_notmatch_hosxp',[CheckController::class,'drug_cat_nhso_tmt_notmatch_hosxp']);
+Route::get('check/drug_cat_nhso_code24_notmatch_hosxp',[CheckController::class,'drug_cat_nhso_code24_notmatch_hosxp']);
 
 //Diag------------------------------------------------------------------------------------------------------------------------------
 Route::match(['get','post'],'diag/sepsis',[DiagController::class,'sepsis']);

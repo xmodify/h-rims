@@ -249,4 +249,30 @@ class CheckController extends Controller
 
         return view('check.drug_cat',compact('drug'));            
     }
+###################################################################################################################################################
+//สิทธิการักษา---------------------------------------------------------------------------------------------------------------------------
+    public function pttype()
+    {
+        $pttype =  DB::connection('hosxp')->select('
+            SELECT p.pttype,inscl.nhso_subinscl,p.`name`,CONCAT(p1.paidst,SPACE(1),p1.`name`) AS paidst,p.export_eclaim,p.hipdata_code,p.pttype_std_code,
+            CONCAT(pi.`code`,SPACE(1),pi.`name`) AS pi_name,pi.pttype_std_code AS pi_pttype_std_code,pg.pttype_price_group_name
+            FROM pttype p
+            LEFT JOIN paidst p1 ON p1.paidst=p.paidst
+            LEFT JOIN pttype_price_group pg ON pg.pttype_price_group_id=p.pttype_price_group_id
+            LEFT JOIN provis_instype pi ON pi.`code`=p.nhso_code
+            LEFT JOIN pttype_nhso_subinscl inscl ON inscl.pttype=p.pttype
+            WHERE p.isuse = "Y" ORDER BY p.hipdata_code,p.pttype');
+
+        $pttype_close =  DB::connection('hosxp')->select('
+            SELECT p.pttype,inscl.nhso_subinscl,p.`name`,CONCAT(p1.paidst,SPACE(1),p1.`name`) AS paidst,p.export_eclaim,p.hipdata_code,p.pttype_std_code,
+            CONCAT(pi.`code`,SPACE(1),pi.`name`) AS pi_name,pi.pttype_std_code AS pi_pttype_std_code,pg.pttype_price_group_name
+            FROM pttype p
+            LEFT JOIN paidst p1 ON p1.paidst=p.paidst
+            LEFT JOIN pttype_price_group pg ON pg.pttype_price_group_id=p.pttype_price_group_id
+            LEFT JOIN provis_instype pi ON pi.`code`=p.nhso_code
+            LEFT JOIN pttype_nhso_subinscl inscl ON inscl.pttype=p.pttype
+            WHERE p.isuse <> "Y" ORDER BY p.hipdata_code,p.pttype');
+
+        return view('check.pttype',compact('pttype','pttype_close'));            
+    }
 }

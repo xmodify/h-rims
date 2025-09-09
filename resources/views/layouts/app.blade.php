@@ -145,8 +145,11 @@
                                 </li> --}}
                                 <!-- เมนูอื่น -->
                                 <li>
-                                    <a class="link-primary dropdown-item text-white" href="{{ url('/check/drug_cat') }}">
+                                    <a class="link-primary dropdown-item text-white" href="{{ url('check/drug_cat') }}">
                                         Drug Catalog สปสช.
+                                    </a>
+                                    <a class="link-primary dropdown-item text-white" href="{{ url('check/pttype') }}">
+                                        สิทธการักษา
                                     </a>
                                 </li>
                             </ul>

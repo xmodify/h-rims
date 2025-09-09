@@ -57,6 +57,8 @@ class MainSettingController extends Controller
                 ['id' => 15, 'name_th' => 'สิทธิ ปกส. 72 ชั่วโมงแรก (รหัสสิทธิ HOSxP)', 'name' => 'pttype_sss_72', 'value' => '32'],
                 ['id' => 16, 'name_th' => 'LAB Pregnancy Test (รหัส lab_items HOSxP)', 'name' => 'lab_prt', 'value' => '444'],
                 ['id' => 17, 'name_th' => 'ยา Clopidogrel (รหัส drugitems HOSxP)', 'name' => 'drug_clopidogrel', 'value' => '1520019'],
+                ['id' => 18, 'name_th' => 'โรงพยาบาล ชื่อ', 'name' => 'hospital_name', 'value' => 'โรงพยาบาล'],
+                ['id' => 19, 'name_th' => 'โรงพยาบาล รหัส 5 หลัก', 'name' => 'hospital_code', 'value' => '00000'],
             ];
 
             foreach ($main_setting as $row) {

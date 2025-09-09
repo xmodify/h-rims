@@ -427,6 +427,11 @@
                                     </ul>
                                 </li>                                
                             </ul> 
+                        </li> 
+                        <li >                            
+                            <a class="btn btn-outline-info text-white" href="{{ url('debtor') }}">
+                                ลูกหนี้ค่ารักษาพยาบาล
+                            </a>       
                         </li>                 
                     @endguest
                     </ul>
@@ -435,7 +440,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li > 
                             <div class="btn text-info">
-                                V. 68-09-05
+                                V. 68-09-09
                             </div>   
                         </li>                         
                         <!-- Authentication Links -->

@@ -1,5 +1,0 @@
-#insert ward
-INSERT INTO lookup_ward (ward,ward_name)
-SELECT ward,name AS ward_name FROM hosxe.ward 
-WHERE ward NOT IN (SELECT ward FROM lookup_ward)
-AND ward_active = "Y"

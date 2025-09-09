@@ -101,6 +101,7 @@ Route::get('check/drug_cat_non_nhso',[CheckController::class,'drug_cat_non_nhso'
 Route::get('check/drug_cat_nhso_price_notmatch_hosxp',[CheckController::class,'drug_cat_nhso_price_notmatch_hosxp']);
 Route::get('check/drug_cat_nhso_tmt_notmatch_hosxp',[CheckController::class,'drug_cat_nhso_tmt_notmatch_hosxp']);
 Route::get('check/drug_cat_nhso_code24_notmatch_hosxp',[CheckController::class,'drug_cat_nhso_code24_notmatch_hosxp']);
+Route::get('check/drug_cat_herb',[CheckController::class,'drug_cat_herb']);
 
 //Diag------------------------------------------------------------------------------------------------------------------------------
 Route::match(['get','post'],'diag/sepsis',[DiagController::class,'sepsis']);

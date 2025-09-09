@@ -82,6 +82,9 @@
                     <a class="btn btn-outline-purple" href="{{ url('check/drug_cat_nhso_code24_notmatch_hosxp') }}">
                         รหัส 24 หลักไม่ตรง HOSxP
                     </a> 
+                    <a class="btn btn-outline-purple" href="{{ url('check/drug_cat_herb') }}">
+                        ยาสมุนไพร
+                    </a>
                 </div>   
                 <div class="col-md-6" align="right"> 
                     

@@ -226,4 +226,27 @@ class CheckController extends Controller
 
         return view('check.drug_cat',compact('drug'));            
     }
+//Drug Catalog ยาสมุนไพร---------------------------------------------------------------------------------------------------------------------------
+    public function drug_cat_herb()
+    {
+        $drug =  DB::connection('hosxp')->select('
+            SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
+			IF(d2.ref_code LIKE "4%","Y","") AS herb,IF(nd.hospdrugcode IS NULL,"N","Y") AS chk_nhso_drugcat,
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
+            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            CASE WHEN (d.drugaccount = "-" OR d.drugaccount = "") THEN"N" WHEN drugaccount <> "" THEN "E" END AS ISED,d.drugaccount,
+            IFNULL(d.generic_name,d.`name`) AS GenericName,IFNULL(d.trade_name,s.TradeName) AS TradeName,IFNULL(d.dosageform,s.DosageForm) AS DosageForm     
+            FROM drugitems d
+            LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
+            LEFT JOIN income i ON i.income = d.income
+            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
+            LEFT JOIN sks_drugcatalog s ON s.HospDrugCode=d.icode
+            LEFT JOIN (SELECT dc.* FROM hrims.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM hrims.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ("A","U","E"))) nd ON nd.hospdrugcode=d.icode 
+            WHERE d.istatus = "Y" AND d.`name` NOT LIKE "*%" AND d2.ref_code LIKE "4%"
+            ORDER BY d.NAME,d.strength,d.units');
+
+        return view('check.drug_cat',compact('drug'));            
+    }
 }

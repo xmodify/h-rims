@@ -11,7 +11,7 @@
  Target Server Version : 100017
  File Encoding         : 65001
 
- Date: 22/07/2025 16:50:34
+ Date: 09/09/2025 12:42:04
 */
 
 SET NAMES utf8mb4;
@@ -93,7 +93,7 @@ CREATE TABLE `stm_lgo`  (
   INDEX `vsttime`(`vsttime`) USING BTREE,
   INDEX `dchdate`(`dchdate`) USING BTREE,
   INDEX `dchtime`(`dchtime`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 5125 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
 
 -- ----------------------------
 -- Table structure for stm_lgo_kidney
@@ -117,7 +117,7 @@ CREATE TABLE `stm_lgo_kidney`  (
   INDEX `hn`(`hn`) USING BTREE,
   INDEX `cid`(`cid`) USING BTREE,
   INDEX `datetimeadm`(`datetimeadm`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 1190 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
 
 -- ----------------------------
 -- Table structure for stm_lgo_kidneyexcel
@@ -216,7 +216,7 @@ CREATE TABLE `stm_lgoexcel`  (
   INDEX `vsttime`(`vsttime`) USING BTREE,
   INDEX `dchdate`(`dchdate`) USING BTREE,
   INDEX `dchtime`(`dchtime`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 5125 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
 
 -- ----------------------------
 -- Table structure for stm_ofc
@@ -259,7 +259,7 @@ CREATE TABLE `stm_ofc`  (
   INDEX `vsttime`(`vsttime`) USING BTREE,
   INDEX `dchdate`(`dchdate`) USING BTREE,
   INDEX `dchtime`(`dchtime`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 25432 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
 
 -- ----------------------------
 -- Table structure for stm_ofc_kidney
@@ -286,7 +286,7 @@ CREATE TABLE `stm_ofc_kidney`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `hn`(`hn`) USING BTREE,
   INDEX `vstdate`(`vstdate`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 5771 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
 
 -- ----------------------------
 -- Table structure for stm_ofcexcel
@@ -359,7 +359,7 @@ CREATE TABLE `stm_sss_kidney`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `cid`(`cid`) USING BTREE,
   INDEX `hn`(`hn`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 585 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
 
 -- ----------------------------
 -- Table structure for stm_ucs
@@ -423,7 +423,7 @@ CREATE TABLE `stm_ucs`  (
   INDEX `vsttime`(`vsttime`) USING BTREE,
   INDEX `dchdate`(`dchdate`) USING BTREE,
   INDEX `dchtime`(`dchtime`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 46800 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
 
 -- ----------------------------
 -- Table structure for stm_ucs_kidney
@@ -448,7 +448,7 @@ CREATE TABLE `stm_ucs_kidney`  (
   PRIMARY KEY (`id`) USING BTREE,
   INDEX `cid`(`cid`) USING BTREE,
   INDEX `datetimeadm`(`datetimeadm`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 33714 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
 
 -- ----------------------------
 -- Table structure for stm_ucs_kidneyexcel
@@ -535,6 +535,6 @@ CREATE TABLE `stm_ucsexcel`  (
   INDEX `vsttime`(`vsttime`) USING BTREE,
   INDEX `dchdate`(`dchdate`) USING BTREE,
   INDEX `dchtime`(`dchtime`) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 46800 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Compact;
 
 SET FOREIGN_KEY_CHECKS = 1;

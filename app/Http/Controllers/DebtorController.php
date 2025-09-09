@@ -55,7 +55,10 @@ class DebtorController extends Controller
 //index---------------------------------------------------------------------------
     public function index()
     {    
-        return view('debtor.index');
+        $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
+        $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value'); 
+
+        return view('debtor.index', compact('hospital_name','hospital_code'));
     }
 //_check_income---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
     public function _check_income(Request $request )

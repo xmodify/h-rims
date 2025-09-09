@@ -3,7 +3,7 @@
 @section('content')
   <div class="container-fluid">
     <div class="card-body">
-    <div class="alert alert-success text-primary" role="alert"><strong>ลูกหนี้ค่ารักษาพยาบาล</strong></div>
+    <div class="alert alert-success text-primary" role="alert"><strong>ลูกหนี้ค่ารักษาพยาบาล{{$hospital_name}} ({{$hospital_code}})</strong></div>
 
       <div class="row">            
         <div class="col-md-12">

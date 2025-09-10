@@ -475,6 +475,7 @@ public function nhso_endpoint_pull_yesterday()
                     ->where('claimCode', $claimCode)
                     ->update([
                         'claimType' => $claimType,
+                        'vstdate' => $serviceDateTime ? date('Y-m-d', strtotime($serviceDateTime)) : $vstdate,
                     ]);
             } elseif ($sourceChannel === 'ENDPOINT' || $claimType === 'PG0140001') {
                 Nhso_Endpoint::create([

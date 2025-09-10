@@ -247,6 +247,8 @@ public function index(Request $request )
 //Create nhso_endpoint_pull
 public function nhso_endpoint_pull(Request $request)
 {   
+    set_time_limit(600);  
+
     $vstdate = $request->input('vstdate') ?? now()->format('Y-m-d'); 
     $hosxp = DB::connection('hosxp')->select('
         SELECT o.vn, o.hn, pt.cid, vp.auth_code
@@ -255,78 +257,98 @@ public function nhso_endpoint_pull(Request $request)
         LEFT JOIN patient pt ON pt.hn = o.hn
         WHERE o.vstdate = ?
         AND vp.auth_code NOT LIKE "EP%"
-        AND vp.auth_code <> "" ', [$vstdate]);  
+        AND vp.auth_code <> ""
+        AND pt.cid NOT IN (SELECT cid FROM hrims.nhso_endpoint WHERE vstdate = ? AND cid IS NOT NULL)'
+        , [$vstdate,$vstdate]);  
 
-    $cids = array_column($hosxp, 'cid');      
+    $cids = array_column($hosxp, 'cid');     
+    // ดึง token 
     $token = DB::table('main_setting')
         ->where('name', 'token_authen_kiosk_nhso')
         ->value('value');
 
-    foreach ($cids as $cid) {
-        $response = Http::timeout(5)  // สูงสุดรอ 5 วิ ต่อ 1 request
-            ->withToken($token)
-            ->acceptJson()
-            ->get('https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status', [
-                'personalId' => $cid,
-                'serviceDate' => $vstdate
-            ]);
-
-        if ($response->failed()) {
-            \Log::warning("ดึงข้อมูลไม่สำเร็จสำหรับ CID: $cid", [
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-            continue;
-        }
-
-        $result = $response->json();
-
-        if (!isset($result['firstName']) || empty($result['serviceHistories'])) {
-            continue;
-        }
-
-        $firstName = $result['firstName'];
-        $lastName  = $result['lastName'];
-        $mainInscl = $result['mainInscl']['id'] ?? null;
-        $mainInsclName = $result['mainInscl']['name'] ?? null;
-        $subInscl = $result['subInscl']['id'] ?? null;
-        $subInsclName = $result['subInscl']['name'] ?? null;
-
-        foreach ($result['serviceHistories'] as $row) {
-            $serviceDateTime = $row['serviceDateTime'] ?? null;
-            $sourceChannel = $row['sourceChannel'] ?? '';
-            $claimCode = $row['claimCode'] ?? null;
-            $claimType = $row['service']['code'] ?? null;
-
-            if (!$claimCode) continue;
-
-            $exists = Nhso_Endpoint::where('cid', $cid)
-                ->where('claimCode', $claimCode)
-                ->exists();
-
-            if ($exists) {
-                Nhso_Endpoint::where('cid', $cid)
-                    ->where('claimCode', $claimCode)
-                    ->update([
-                        'claimType' => $claimType
+    // วนทีละก้อน (chunk) ก้อนละ 10 CID
+    foreach (array_chunk($cids, 10) as $chunk) {
+        foreach ($chunk as $cid) {
+            try {
+                $response = Http::timeout(5) // สูงสุดรอ 5 วิ ต่อ 1 request
+                    ->withToken($token)
+                    ->acceptJson()
+                    ->get('https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status', [
+                        'personalId'  => $cid,
+                        'serviceDate' => $vstdate,
                     ]);
-            } elseif ($sourceChannel == 'ENDPOINT' || $claimType == 'PG0140001') {
-                Nhso_Endpoint::create([
-                    'cid' => $cid,
-                    'firstName' => $firstName,
-                    'lastName' => $lastName,
-                    'mainInscl' => $mainInscl,
-                    'mainInsclName' => $mainInsclName,
-                    'subInscl' => $subInscl,
-                    'subInsclName' => $subInsclName,
-                    'serviceDateTime' => $serviceDateTime,
-                    'vstdate' => date('Y-m-d', strtotime($serviceDateTime)),
-                    'sourceChannel' => $sourceChannel,
-                    'claimCode' => $claimCode,
-                    'claimType' => $claimType,
+
+                if ($response->failed()) {
+                    \Log::warning("ดึงข้อมูลไม่สำเร็จสำหรับ CID: {$cid}", [
+                        'status' => $response->status(),
+                        'body'   => $response->body(),
+                    ]);
+                    continue;
+                }
+
+                $result = $response->json();
+
+                // กันกรณี response รูปแบบไม่ครบ
+                if (!is_array($result) || !isset($result['firstName']) || empty($result['serviceHistories'])) {
+                    continue;
+                }
+
+                $firstName     = $result['firstName'] ?? null;
+                $lastName      = $result['lastName'] ?? null;
+                $mainInscl     = $result['mainInscl']['id']   ?? null;
+                $mainInsclName = $result['mainInscl']['name'] ?? null;
+                $subInscl      = $result['subInscl']['id']    ?? null;
+                $subInsclName  = $result['subInscl']['name']  ?? null;
+
+                foreach ($result['serviceHistories'] as $row) {
+                    if (!is_array($row)) continue;
+
+                    $serviceDateTime = $row['serviceDateTime'] ?? null;
+                    $sourceChannel   = $row['sourceChannel']   ?? '';
+                    $claimCode       = $row['claimCode']       ?? null;
+                    $claimType       = $row['service']['code'] ?? null;
+
+                    if (!$claimCode) continue;
+
+                    $exists = Nhso_Endpoint::where('cid', $cid)
+                        ->where('claimCode', $claimCode)
+                        ->exists();
+
+                    if ($exists) {
+                        // อัปเดตเฉพาะ claimType ตามลอจิกเดิม
+                        Nhso_Endpoint::where('cid', $cid)
+                            ->where('claimCode', $claimCode)
+                            ->update([
+                                'claimType' => $claimType,
+                            ]);
+                    } elseif ($sourceChannel === 'ENDPOINT' || $claimType === 'PG0140001') {
+                        Nhso_Endpoint::create([
+                            'cid'            => $cid,
+                            'firstName'      => $firstName,
+                            'lastName'       => $lastName,
+                            'mainInscl'      => $mainInscl,
+                            'mainInsclName'  => $mainInsclName,
+                            'subInscl'       => $subInscl,
+                            'subInsclName'   => $subInsclName,
+                            'serviceDateTime'=> $serviceDateTime,
+                            'vstdate'        => $serviceDateTime ? date('Y-m-d', strtotime($serviceDateTime)) : $vstdate,
+                            'sourceChannel'  => $sourceChannel,
+                            'claimCode'      => $claimCode,
+                            'claimType'      => $claimType,
+                        ]);
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Log::error("ข้อผิดพลาดระหว่างเรียก สปสช. สำหรับ CID: {$cid}", [
+                    'exception' => $e->getMessage(),
                 ]);
+                continue;
             }
         }
+
+        // หน่วงเล็กน้อยระหว่างแต่ละก้อน เพื่อกัน rate limit/ภาระระบบปลายทาง
+        usleep(300000); // 0.3 วินาที (ปรับตามเหมาะสม: 300ms–1s)
     }
  
     return response()->json(['success' => true, 'message' => 'ดึงข้อมูลจาก สปสช สำเร็จ' ]);
@@ -408,7 +430,7 @@ public function nhso_endpoint_pull_indiv(Request $request, $vstdate, $cid)
 //Create nhso_endpoint_pull_yesterday
 public function nhso_endpoint_pull_yesterday()
 {
-    set_time_limit(300); // หรือ 0 (ไม่จำกัด) แต่ไม่แนะนำกับ route web
+    set_time_limit(600); // หรือ 0 (ไม่จำกัด) แต่ไม่แนะนำกับ route web
     // กำหนดวันที่ = เมื่อวาน (ตาม Asia/Bangkok)
     $vstdate = Carbon::yesterday('Asia/Bangkok')->format('Y-m-d');
 
@@ -418,9 +440,10 @@ public function nhso_endpoint_pull_yesterday()
         INNER JOIN visit_pttype vp ON vp.vn = o.vn 
         LEFT JOIN patient pt ON pt.hn = o.hn
         WHERE o.vstdate = ?
-          AND vp.auth_code NOT LIKE "EP%"
-          AND vp.auth_code <> ""
-    ', [$vstdate]);
+        AND vp.auth_code NOT LIKE "EP%"
+        AND vp.auth_code <> ""
+        AND pt.cid NOT IN (SELECT cid FROM hrims.nhso_endpoint WHERE vstdate = ? AND cid IS NOT NULL)'
+        , [$vstdate,$vstdate]);  
 
     $cids = array_map(static fn($row) => $row->cid, $hosxp);
 
@@ -428,72 +451,88 @@ public function nhso_endpoint_pull_yesterday()
         ->where('name', 'token_authen_kiosk_nhso')
         ->value('value');
 
-    foreach ($cids as $cid) {
-        $response = Http::timeout(5)
-            ->withToken($token)
-            ->acceptJson()
-            ->get('https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status', [
-                'personalId' => $cid,
-                'serviceDate' => $vstdate,
-            ]);
-
-        if ($response->failed()) {
-            \Log::warning("ดึงข้อมูลไม่สำเร็จสำหรับ CID: $cid", [
-                'status' => $response->status(),
-                'body' => $response->body(),
-            ]);
-            continue;
-        }
-
-        $result = $response->json();
-
-        if (!isset($result['firstName']) || empty($result['serviceHistories'])) {
-            continue;
-        }
-
-        $firstName = $result['firstName'];
-        $lastName  = $result['lastName'];
-        $mainInscl = $result['mainInscl']['id'] ?? null;
-        $mainInsclName = $result['mainInscl']['name'] ?? null;
-        $subInscl = $result['subInscl']['id'] ?? null;
-        $subInsclName = $result['subInscl']['name'] ?? null;
-
-        foreach ($result['serviceHistories'] as $row) {
-            $serviceDateTime = $row['serviceDateTime'] ?? null;
-            $sourceChannel = $row['sourceChannel'] ?? '';
-            $claimCode = $row['claimCode'] ?? null;
-            $claimType = $row['service']['code'] ?? null;
-
-            if (!$claimCode) continue;
-
-            $exists = Nhso_Endpoint::where('cid', $cid)
-                ->where('claimCode', $claimCode)
-                ->exists();
-
-            if ($exists) {
-                Nhso_Endpoint::where('cid', $cid)
-                    ->where('claimCode', $claimCode)
-                    ->update([
-                        'claimType' => $claimType,
-                        'vstdate' => $serviceDateTime ? date('Y-m-d', strtotime($serviceDateTime)) : $vstdate,
+    // วนทีละก้อน (chunk) ก้อนละ 10 CID
+    foreach (array_chunk($cids, 10) as $chunk) {
+        foreach ($chunk as $cid) {
+            try {
+                $response = Http::timeout(5) // สูงสุดรอ 5 วิ ต่อ 1 request
+                    ->withToken($token)
+                    ->acceptJson()
+                    ->get('https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status', [
+                        'personalId'  => $cid,
+                        'serviceDate' => $vstdate,
                     ]);
-            } elseif ($sourceChannel === 'ENDPOINT' || $claimType === 'PG0140001') {
-                Nhso_Endpoint::create([
-                    'cid' => $cid,
-                    'firstName' => $firstName,
-                    'lastName' => $lastName,
-                    'mainInscl' => $mainInscl,
-                    'mainInsclName' => $mainInsclName,
-                    'subInscl' => $subInscl,
-                    'subInsclName' => $subInsclName,
-                    'serviceDateTime' => $serviceDateTime,
-                    'vstdate' => $serviceDateTime ? date('Y-m-d', strtotime($serviceDateTime)) : $vstdate,
-                    'sourceChannel' => $sourceChannel,
-                    'claimCode' => $claimCode,
-                    'claimType' => $claimType,
+
+                if ($response->failed()) {
+                    \Log::warning("ดึงข้อมูลไม่สำเร็จสำหรับ CID: {$cid}", [
+                        'status' => $response->status(),
+                        'body'   => $response->body(),
+                    ]);
+                    continue;
+                }
+
+                $result = $response->json();
+
+                // กันกรณี response รูปแบบไม่ครบ
+                if (!is_array($result) || !isset($result['firstName']) || empty($result['serviceHistories'])) {
+                    continue;
+                }
+
+                $firstName     = $result['firstName'] ?? null;
+                $lastName      = $result['lastName'] ?? null;
+                $mainInscl     = $result['mainInscl']['id']   ?? null;
+                $mainInsclName = $result['mainInscl']['name'] ?? null;
+                $subInscl      = $result['subInscl']['id']    ?? null;
+                $subInsclName  = $result['subInscl']['name']  ?? null;
+
+                foreach ($result['serviceHistories'] as $row) {
+                    if (!is_array($row)) continue;
+
+                    $serviceDateTime = $row['serviceDateTime'] ?? null;
+                    $sourceChannel   = $row['sourceChannel']   ?? '';
+                    $claimCode       = $row['claimCode']       ?? null;
+                    $claimType       = $row['service']['code'] ?? null;
+
+                    if (!$claimCode) continue;
+
+                    $exists = Nhso_Endpoint::where('cid', $cid)
+                        ->where('claimCode', $claimCode)
+                        ->exists();
+
+                    if ($exists) {
+                        // อัปเดตเฉพาะ claimType ตามลอจิกเดิม
+                        Nhso_Endpoint::where('cid', $cid)
+                            ->where('claimCode', $claimCode)
+                            ->update([
+                                'claimType' => $claimType,
+                            ]);
+                    } elseif ($sourceChannel === 'ENDPOINT' || $claimType === 'PG0140001') {
+                        Nhso_Endpoint::create([
+                            'cid'            => $cid,
+                            'firstName'      => $firstName,
+                            'lastName'       => $lastName,
+                            'mainInscl'      => $mainInscl,
+                            'mainInsclName'  => $mainInsclName,
+                            'subInscl'       => $subInscl,
+                            'subInsclName'   => $subInsclName,
+                            'serviceDateTime'=> $serviceDateTime,
+                            'vstdate'        => $serviceDateTime ? date('Y-m-d', strtotime($serviceDateTime)) : $vstdate,
+                            'sourceChannel'  => $sourceChannel,
+                            'claimCode'      => $claimCode,
+                            'claimType'      => $claimType,
+                        ]);
+                    }
+                }
+            } catch (\Throwable $e) {
+                \Log::error("ข้อผิดพลาดระหว่างเรียก สปสช. สำหรับ CID: {$cid}", [
+                    'exception' => $e->getMessage(),
                 ]);
+                continue;
             }
         }
+
+        // หน่วงเล็กน้อยระหว่างแต่ละก้อน เพื่อกัน rate limit/ภาระระบบปลายทาง
+        usleep(300000); // 0.3 วินาที (ปรับตามเหมาะสม: 300ms–1s)
     }
 
     return response()->json([

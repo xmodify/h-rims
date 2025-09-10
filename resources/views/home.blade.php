@@ -49,10 +49,7 @@
           ข้อมูลผู้ป่วยนอก ณ วันที่ <font style="color:red;">{{DateThai(date('Y-m-d'))}}</font> เวลา: <font style="color:red;"><span id="realtime-clock"></span></font>  
           ทั้งหมด : <font style="color:red;">{{$opd_total}}</font> Visit | 
           ปิดสิทธิ สปสช : <font style="color:red;">{{$endpoint}}</font> Visit
-          <!-- ปุ่มเรียก Modal -->
-          <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#nhsoModal">
-            ดึงปิดสิทธิ สปสช.
-          </button>
+          <a class="btn btn-outline-danger btn-sm" href="{{ url('check/nhso_endpoint') }}" target="_blank">ดึงปิดสิทธิ สปสช.</a> 
         </h5> 
       <div class="col-sm-3">
           <div class="card text-white bg-1 mb-3" style="max-width: 18rem;" >
@@ -323,38 +320,6 @@
 
 </div>
 
-<!-- Modal -->
-<div class="modal fade" id="nhsoModal" tabindex="-1" aria-labelledby="nhsoModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content text-center">
-      <div class="modal-header">
-        <h5>เลือกวันที่เข้ารับบริการ</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-
-      <form id="nhsoForm">
-        <div class="modal-body">         
-          <input type="date" id="vstdate" name="vstdate" class="form-control"  value="{{ date('Y-m-d') }}" required>
-
-          <div id="loadingSpinner" class="mt-4 d-none">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-2">กำลังดึงข้อมูลจาก สปสช....</p>
-          </div>
-
-          <div id="resultMessage" class="mt-3 d-none"></div>
-        </div>
-
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">ดึงข้อมูล</button>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
 <!-- ionicon -->
 <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
 <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
@@ -375,60 +340,13 @@
     setInterval(updateClock, 1000);
     updateClock();
 
-    // รีโหลดหน้าทุก 1.5 นาที (90000 ms)
+    // รีโหลดหน้าทุก 1 นาที (60000 ms)
     setTimeout(function() {
         location.reload();
-    }, 90000);
+    }, 60000);
 </script>
 
 @endsection
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const form = document.getElementById("nhsoForm");
-    const spinner = document.getElementById("loadingSpinner");
-    const resultMessage = document.getElementById("resultMessage");
-    const nhsoModal = document.getElementById('nhsoModal');
-
-    form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        spinner.classList.remove("d-none");
-        resultMessage.classList.add("d-none");
-        resultMessage.innerHTML = "";
-
-        const formData = new FormData(form);
-
-        fetch("{{ url('/nhso_endpoint_pull') }}", {
-            method: "POST",
-            headers: {
-                "X-CSRF-TOKEN": "{{ csrf_token() }}",
-                "Accept": "application/json"
-            },
-            body: formData
-        })
-        .then(response => {
-            spinner.classList.add("d-none");
-            if (!response.ok) throw new Error("โหลดล้มเหลว");
-            return response.json();
-        })
-        .then(data => {
-            resultMessage.classList.remove("d-none");
-            resultMessage.classList.add("text-success");
-            resultMessage.innerHTML = "✅ " + (data.message || "ดึงข้อมูลสำเร็จ");
-        })
-        .catch(err => {
-            resultMessage.classList.remove("d-none");
-            resultMessage.classList.add("text-danger");
-            resultMessage.innerHTML = "❌ ดึงข้อมูลล้มเหลว";
-        });
-    });
-
-    nhsoModal.addEventListener('hide.bs.modal', function () {
-        // ✅ Redirect ไปหน้า /home เมื่อปิด Modal
-        window.location.href = "{{ url('/home') }}";
-    });
-});
-</script>
 
 <!-- Vendor JS Files -->
 <script src="{{ asset('assets/vendor/apexcharts/apexcharts.min.js') }}"></script>

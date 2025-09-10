@@ -145,11 +145,14 @@
                                 </li> --}}
                                 <!-- เมนูอื่น -->
                                 <li>
+                                    <a class="link-primary dropdown-item text-white" href="{{ url('check/nhso_endpoint') }}">
+                                        ดึงข้อมูลปิดสิทธิ สปสช.
+                                    </a>
                                     <a class="link-primary dropdown-item text-white" href="{{ url('check/drug_cat') }}">
                                         Drug Catalog สปสช.
                                     </a>
                                     <a class="link-primary dropdown-item text-white" href="{{ url('check/pttype') }}">
-                                        สิทธการักษา
+                                        สิทธิการรักษา
                                     </a>
                                 </li>
                             </ul>
@@ -443,7 +446,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li > 
                             <div class="btn text-info">
-                                V. 68-09-09
+                                V. 68-09-10
                             </div>   
                         </li>                         
                         <!-- Authentication Links -->

@@ -269,4 +269,18 @@ class CheckController extends Controller
 
         return view('check.pttype',compact('pttype','pttype_close'));            
     }
+###################################################################################################################################################
+//ข้อมูลปิดสิทธิ สปสช---------------------------------------------------------------------------------------------------------------------------
+    public function nhso_endpoint(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
+
+        $sql=DB::select('
+            SELECT * FROM nhso_endpoint WHERE vstdate BETWEEN ? AND ?'
+            ,[$start_date,$end_date]);
+
+        return view('check.nhso_endpoint',compact('start_date','end_date','sql'));            
+    }
+
 }

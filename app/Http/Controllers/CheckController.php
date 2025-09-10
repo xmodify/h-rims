@@ -4,12 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Reader\Exception;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use App\Models\Drugcat_nhso;
-use Session;
-use PDF;
 
 class CheckController extends Controller
 {
@@ -273,8 +272,11 @@ class CheckController extends Controller
 //ข้อมูลปิดสิทธิ สปสช---------------------------------------------------------------------------------------------------------------------------
     public function nhso_endpoint(Request $request)
     {
-        $start_date = $request->start_date ?: date('Y-m-d');
-        $end_date = $request->end_date ?: date('Y-m-d');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
+        // อัปเดตค่าเก็บใน Session เผื่อครั้งถัดไป
+        Session::put('start_date', $start_date);
+        Session::put('end_date', $end_date);
 
         $sql=DB::select('
             SELECT * FROM nhso_endpoint WHERE vstdate BETWEEN ? AND ?'

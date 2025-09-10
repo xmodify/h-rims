@@ -256,8 +256,6 @@ public function nhso_endpoint_pull(Request $request)
         INNER JOIN visit_pttype vp ON vp.vn = o.vn 
         LEFT JOIN patient pt ON pt.hn = o.hn
         WHERE o.vstdate = ?
-        AND vp.auth_code NOT LIKE "EP%"
-        AND vp.auth_code <> ""
         AND pt.cid NOT IN (SELECT cid FROM hrims.nhso_endpoint WHERE vstdate = ? AND cid IS NOT NULL)'
         , [$vstdate,$vstdate]);  
 
@@ -267,8 +265,8 @@ public function nhso_endpoint_pull(Request $request)
         ->where('name', 'token_authen_kiosk_nhso')
         ->value('value');
 
-    // วนทีละก้อน (chunk) ก้อนละ 10 CID
-    foreach (array_chunk($cids, 10) as $chunk) {
+    // วนทีละก้อน (chunk) ก้อนละ 20 CID
+    foreach (array_chunk($cids, 20) as $chunk) {
         foreach ($chunk as $cid) {
             try {
                 $response = Http::timeout(5) // สูงสุดรอ 5 วิ ต่อ 1 request
@@ -440,8 +438,6 @@ public function nhso_endpoint_pull_yesterday()
         INNER JOIN visit_pttype vp ON vp.vn = o.vn 
         LEFT JOIN patient pt ON pt.hn = o.hn
         WHERE o.vstdate = ?
-        AND vp.auth_code NOT LIKE "EP%"
-        AND vp.auth_code <> ""
         AND pt.cid NOT IN (SELECT cid FROM hrims.nhso_endpoint WHERE vstdate = ? AND cid IS NOT NULL)'
         , [$vstdate,$vstdate]);  
 
@@ -451,8 +447,8 @@ public function nhso_endpoint_pull_yesterday()
         ->where('name', 'token_authen_kiosk_nhso')
         ->value('value');
 
-    // วนทีละก้อน (chunk) ก้อนละ 10 CID
-    foreach (array_chunk($cids, 10) as $chunk) {
+    // วนทีละก้อน (chunk) ก้อนละ 20 CID
+    foreach (array_chunk($cids, 20) as $chunk) {
         foreach ($chunk as $cid) {
             try {
                 $response = Http::timeout(5) // สูงสุดรอ 5 วิ ต่อ 1 request

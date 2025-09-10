@@ -3,10 +3,11 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use App\Models\Nhso_Endpoint;
-use Session;
+use Carbon\Carbon;
 
 class HomeController extends Controller
 {
@@ -17,7 +18,8 @@ class HomeController extends Controller
      */
 public function __construct()
 {
-    $this->middleware('auth')->except(['ipd_non_dchsummary','ipd_finance_chk_opd_wait_transfer','ipd_finance_chk_wait_rcpt_money']);
+    $this->middleware('auth')->except(['ipd_non_dchsummary','ipd_finance_chk_opd_wait_transfer',
+    'ipd_finance_chk_wait_rcpt_money','nhso_endpoint_pull_yesterday']);
 }
 
     /**
@@ -402,7 +404,102 @@ public function nhso_endpoint_pull_indiv(Request $request, $vstdate, $cid)
    return response()->json(['success' => true]);
    
 }
+###################################################################################################
+//Create nhso_endpoint_pull_yesterday
+public function nhso_endpoint_pull_yesterday()
+{
+    set_time_limit(300); // หรือ 0 (ไม่จำกัด) แต่ไม่แนะนำกับ route web
+    // กำหนดวันที่ = เมื่อวาน (ตาม Asia/Bangkok)
+    $vstdate = Carbon::yesterday('Asia/Bangkok')->format('Y-m-d');
 
+    $hosxp = DB::connection('hosxp')->select('
+        SELECT o.vn, o.hn, pt.cid, vp.auth_code
+        FROM ovst o
+        INNER JOIN visit_pttype vp ON vp.vn = o.vn 
+        LEFT JOIN patient pt ON pt.hn = o.hn
+        WHERE o.vstdate = ?
+          AND vp.auth_code NOT LIKE "EP%"
+          AND vp.auth_code <> ""
+    ', [$vstdate]);
+
+    $cids = array_map(static fn($row) => $row->cid, $hosxp);
+
+    $token = DB::table('main_setting')
+        ->where('name', 'token_authen_kiosk_nhso')
+        ->value('value');
+
+    foreach ($cids as $cid) {
+        $response = Http::timeout(5)
+            ->withToken($token)
+            ->acceptJson()
+            ->get('https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status', [
+                'personalId' => $cid,
+                'serviceDate' => $vstdate,
+            ]);
+
+        if ($response->failed()) {
+            \Log::warning("ดึงข้อมูลไม่สำเร็จสำหรับ CID: $cid", [
+                'status' => $response->status(),
+                'body' => $response->body(),
+            ]);
+            continue;
+        }
+
+        $result = $response->json();
+
+        if (!isset($result['firstName']) || empty($result['serviceHistories'])) {
+            continue;
+        }
+
+        $firstName = $result['firstName'];
+        $lastName  = $result['lastName'];
+        $mainInscl = $result['mainInscl']['id'] ?? null;
+        $mainInsclName = $result['mainInscl']['name'] ?? null;
+        $subInscl = $result['subInscl']['id'] ?? null;
+        $subInsclName = $result['subInscl']['name'] ?? null;
+
+        foreach ($result['serviceHistories'] as $row) {
+            $serviceDateTime = $row['serviceDateTime'] ?? null;
+            $sourceChannel = $row['sourceChannel'] ?? '';
+            $claimCode = $row['claimCode'] ?? null;
+            $claimType = $row['service']['code'] ?? null;
+
+            if (!$claimCode) continue;
+
+            $exists = Nhso_Endpoint::where('cid', $cid)
+                ->where('claimCode', $claimCode)
+                ->exists();
+
+            if ($exists) {
+                Nhso_Endpoint::where('cid', $cid)
+                    ->where('claimCode', $claimCode)
+                    ->update([
+                        'claimType' => $claimType,
+                    ]);
+            } elseif ($sourceChannel === 'ENDPOINT' || $claimType === 'PG0140001') {
+                Nhso_Endpoint::create([
+                    'cid' => $cid,
+                    'firstName' => $firstName,
+                    'lastName' => $lastName,
+                    'mainInscl' => $mainInscl,
+                    'mainInsclName' => $mainInsclName,
+                    'subInscl' => $subInscl,
+                    'subInsclName' => $subInsclName,
+                    'serviceDateTime' => $serviceDateTime,
+                    'vstdate' => $serviceDateTime ? date('Y-m-d', strtotime($serviceDateTime)) : $vstdate,
+                    'sourceChannel' => $sourceChannel,
+                    'claimCode' => $claimCode,
+                    'claimType' => $claimType,
+                ]);
+            }
+        }
+    }
+
+    return response()->json([
+        'success' => true,
+        'message' => 'ดึงข้อมูลจาก สปสช สำเร็จ',
+    ]);
+}
 ##############################################################################################
 public function opd_ofc(Request $request )
 {

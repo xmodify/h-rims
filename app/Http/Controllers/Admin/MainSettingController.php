@@ -14,9 +14,10 @@ class MainSettingController extends Controller
 
     public function index()
     {
-        $notify_summary=route('notify_summary');       
+        $notify_summary=route('notify_summary');   
+        $nhso_endpoint_pull_yesterday=route('nhso_endpoint_pull_yesterday');      
         $data = MainSetting::orderBy('name_th', 'asc')->get();
-        return view('admin.main_setting', compact('data','notify_summary'));
+        return view('admin.main_setting', compact('data','notify_summary','nhso_endpoint_pull_yesterday'));
     }
 // Update Table main_setting------------------------------------------------------------------------------
     public function update(Request $request, $id)

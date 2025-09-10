@@ -146,7 +146,7 @@
                                 <!-- เมนูอื่น -->
                                 <li>
                                     <a class="link-primary dropdown-item text-white" href="{{ url('check/nhso_endpoint') }}">
-                                        ดึงข้อมูลปิดสิทธิ สปสช.
+                                        ปิดสิทธิ สปสช.
                                     </a>
                                     <a class="link-primary dropdown-item text-white" href="{{ url('check/drug_cat') }}">
                                         Drug Catalog สปสช.

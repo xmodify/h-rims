@@ -20,6 +20,7 @@ class Nhso_Endpoint extends Model
         'subInscl',          
         'subInsclName',   
         'serviceDateTime', 
+        'vstdate',
         'sourceChannel', 
         'claimCode',  
         'claimType',                        

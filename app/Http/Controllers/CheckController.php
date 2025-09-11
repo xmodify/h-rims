@@ -284,5 +284,5 @@ class CheckController extends Controller
 
         return view('check.nhso_endpoint',compact('start_date','end_date','sql'));            
     }
-
+ 
 }

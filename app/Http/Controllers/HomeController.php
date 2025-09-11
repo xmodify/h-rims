@@ -399,6 +399,9 @@ public function nhso_endpoint_pull_indiv(Request $request, $vstdate, $cid)
         if (!$claimCode || !$claimType) {
             continue; // ข้ามรายการที่ข้อมูลไม่ครบ
         }
+        if (!($sourceChannel === 'ENDPOINT' || $claimType === 'PG0140001')) {
+            continue;
+        }
 
         $indiv = Nhso_Endpoint::firstOrNew([
             'cid' => $cid,

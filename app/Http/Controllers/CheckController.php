@@ -12,6 +12,22 @@ use App\Models\Drugcat_nhso;
 
 class CheckController extends Controller
 {
+###################################################################################################################################################
+//ข้อมูลปิดสิทธิ สปสช---------------------------------------------------------------------------------------------------------------------------
+    public function nhso_endpoint(Request $request)
+    {
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
+        // อัปเดตค่าเก็บใน Session เผื่อครั้งถัดไป
+        Session::put('start_date', $start_date);
+        Session::put('end_date', $end_date);
+
+        $sql=DB::select('
+            SELECT * FROM nhso_endpoint WHERE vstdate BETWEEN ? AND ?'
+            ,[$start_date,$end_date]);
+
+        return view('check.nhso_endpoint',compact('start_date','end_date','sql'));            
+    }
 ####################################################################################################################################
 //นำเข้า Drug Catalog-----------------------------------------------------------------------------------------------------------------
 
@@ -242,8 +258,9 @@ class CheckController extends Controller
 
         return view('check.drug_cat',compact('drug'));            
     }
+    
 ###################################################################################################################################################
-//สิทธิการักษา---------------------------------------------------------------------------------------------------------------------------
+//สิทธิการักษา HOSxP---------------------------------------------------------------------------------------------------------------------------
     public function pttype()
     {
         $pttype =  DB::connection('hosxp')->select('
@@ -268,21 +285,16 @@ class CheckController extends Controller
 
         return view('check.pttype',compact('pttype','pttype_close'));            
     }
-###################################################################################################################################################
-//ข้อมูลปิดสิทธิ สปสช---------------------------------------------------------------------------------------------------------------------------
-    public function nhso_endpoint(Request $request)
+//สิทธิการักษา nhso_subinscl---------------------------------------------------------------------------------------------------------------------------
+    public function nhso_subinscl()
     {
-        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
-        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        // อัปเดตค่าเก็บใน Session เผื่อครั้งถัดไป
-        Session::put('start_date', $start_date);
-        Session::put('end_date', $end_date);
+        $subinscl =  DB::connection('hosxp')->select('
+            SELECT s.*,p.pttype,p.`name` AS pttype_name,p.hipdata_code 
+            FROM hrims.subinscl s
+            LEFT JOIN pttype p ON p.pttype=s.`code`');
 
-        $sql=DB::select('
-            SELECT * FROM nhso_endpoint WHERE vstdate BETWEEN ? AND ?'
-            ,[$start_date,$end_date]);
 
-        return view('check.nhso_endpoint',compact('start_date','end_date','sql'));            
+        return view('check.nhso_subinscl',compact('subinscl'));            
     }
- 
+  
 }

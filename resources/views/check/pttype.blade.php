@@ -14,7 +14,7 @@
               <th class="text-center" colspan="2" style="background-color: #b3e5fc">ตาราง provis_instype</th>                
           </tr>
           <tr class="table-primary">
-              <th class="text-center">Kiosk</th>  
+              <th class="text-center">สปสช</th>  
               <th class="text-center">รหัส</th>
               <th class="text-center">ชื่อสิทธิ</th>  
               <th class="text-center">ประเภทการชำระ</th>     
@@ -61,7 +61,7 @@
               <th class="text-center" colspan="2" >ตาราง provis_instype</th>                
           </tr>
           <tr class="table-secondary">
-              <th class="text-center">Kiosk</th>  
+              <th class="text-center">สปสช</th>  
               <th class="text-center">รหัส</th>
               <th class="text-center">ชื่อสิทธิ</th>  
               <th class="text-center">ประเภทการชำระ</th>     
@@ -114,7 +114,7 @@
               extend: 'excelHtml5',
               text: 'Excel',
               className: 'btn btn-success',
-              title: 'สิทธการักษา ที่เปิดใช้งาน'
+              title: 'สิทธิการรักษา ที่เปิดใช้งาน'
             }
         ],
         language: {
@@ -146,7 +146,7 @@
               extend: 'excelHtml5',
               text: 'Excel',
               className: 'btn btn-success',
-              title: 'สิทธการักษา ที่ปิดใช้งาน'
+              title: 'สิทธิการรักษา ที่ปิดใช้งาน'
             }
         ],
         language: {

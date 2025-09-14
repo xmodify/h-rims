@@ -132,17 +132,7 @@
                             <a id="navbarDropdown" class="btn btn-outline-info dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
                                 ตรวจสอบข้อมูล
                             </a>
-                            <ul class="bg-success dropdown-menu dropdown-menu-end"> 
-                                <!-- ชี้ขวา -->
-                                {{-- <li class="dropend">
-                                    <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
-                                        Drug Catalog
-                                    </a>
-                                    <ul class="bg-success dropdown-menu">
-                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/diag/sepsis') }}">สปสช.</a></li>
-                                        <li><a class="dropdown-item link-primary text-white" href="#">AIPN</a></li>                                       
-                                    </ul>
-                                </li> --}}
+                            <ul class="bg-success dropdown-menu dropdown-menu-end">                                 
                                 <!-- เมนูอื่น -->
                                 <li>
                                     <a class="link-primary dropdown-item text-white" href="{{ url('check/nhso_endpoint') }}">
@@ -151,9 +141,16 @@
                                     <a class="link-primary dropdown-item text-white" href="{{ url('check/drug_cat') }}">
                                         Drug Catalog สปสช.
                                     </a>
-                                    <a class="link-primary dropdown-item text-white" href="{{ url('check/pttype') }}">
+                                </li>
+                                <!-- ชี้ขวา -->
+                                <li class="dropend">
+                                    <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         สิทธิการรักษา
                                     </a>
+                                    <ul class="bg-success dropdown-menu">
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('check/pttype') }}">HOSxP</a></li>
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('check/nhso_subinscl') }}">สปสช.</a></li>                                       
+                                    </ul>
                                 </li>
                             </ul>
                         </li>   

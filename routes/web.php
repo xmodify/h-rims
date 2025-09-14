@@ -97,6 +97,7 @@ Route::post('import/stm_sss_kidney_save',[ImportController::class,'stm_sss_kidne
 Route::match(['get','post'],'import/stm_sss_kidneydetail',[ImportController::class,'stm_sss_kidneydetail']);
 
 //Check------------------------------------------------------------------------------------------------------------------------------
+Route::match(['get','post'],'check/nhso_endpoint',[CheckController::class,'nhso_endpoint']);
 Route::post('check/drug_cat_nhso_save',[CheckController::class,'drug_cat_nhso_save']);
 Route::get('check/drug_cat',[CheckController::class,'drug_cat'])->name('drug_cat');;
 Route::get('check/drug_cat_non_nhso',[CheckController::class,'drug_cat_non_nhso']);
@@ -105,7 +106,7 @@ Route::get('check/drug_cat_nhso_tmt_notmatch_hosxp',[CheckController::class,'dru
 Route::get('check/drug_cat_nhso_code24_notmatch_hosxp',[CheckController::class,'drug_cat_nhso_code24_notmatch_hosxp']);
 Route::get('check/drug_cat_herb',[CheckController::class,'drug_cat_herb']);
 Route::get('check/pttype',[CheckController::class,'pttype']);
-Route::match(['get','post'],'check/nhso_endpoint',[CheckController::class,'nhso_endpoint']);
+Route::get('check/nhso_subinscl',[CheckController::class,'nhso_subinscl']);
 
 //Diag------------------------------------------------------------------------------------------------------------------------------
 Route::match(['get','post'],'diag/sepsis',[DiagController::class,'sepsis']);

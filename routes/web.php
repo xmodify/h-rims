@@ -11,7 +11,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\CheckController;
 use App\Http\Controllers\Controller;
-use App\Http\Controllers\DiagController;
+use App\Http\Controllers\OpdController;
 use App\Http\Controllers\IpdController;
 use App\Http\Controllers\ClaimOpController;
 use App\Http\Controllers\ClaimIpController;
@@ -108,11 +108,11 @@ Route::get('check/drug_cat_herb',[CheckController::class,'drug_cat_herb']);
 Route::get('check/pttype',[CheckController::class,'pttype']);
 Route::get('check/nhso_subinscl',[CheckController::class,'nhso_subinscl']);
 
-//Diag------------------------------------------------------------------------------------------------------------------------------
-Route::match(['get','post'],'diag/sepsis',[DiagController::class,'sepsis']);
-Route::match(['get','post'],'diag/stroke',[DiagController::class,'stroke']);
-Route::match(['get','post'],'diag/stemi',[DiagController::class,'stemi']);
-Route::match(['get','post'],'diag/pneumonia',[DiagController::class,'pneumonia']);
+//OPD------------------------------------------------------------------------------------------------------------------------------
+Route::match(['get','post'],'opd/diag_sepsis',[OpdController::class,'diag_sepsis']);
+Route::match(['get','post'],'opd/diag_stroke',[OpdController::class,'diag_stroke']);
+Route::match(['get','post'],'opd/diag_stemi',[OpdController::class,'diag_stemi']);
+Route::match(['get','post'],'opd/diag_pneumonia',[OpdController::class,'diag_pneumonia']);
 
 //Ipd-------------------------------------------------------------------------------------------------------------------------------
 Route::match(['get','post'],'ipd/wait_doctor_dchsummary',[IpdController::class,'wait_doctor_dchsummary']);

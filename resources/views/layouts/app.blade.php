@@ -165,10 +165,10 @@
                                         OP-รายโรคสำคัญ
                                     </a>
                                     <ul class="bg-success dropdown-menu">
-                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/diag/sepsis') }}">Sepsis</a></li>
-                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/diag/stroke') }}">Stroke</a></li>
-                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/diag/stemi') }}">Stemi</a></li>
-                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/diag/pneumonia') }}">Pneumonia</a></li>
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('opd/diag_sepsis') }}">Sepsis</a></li>
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('opd/diag_stroke') }}">Stroke</a></li>
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('opd/diag_stemi') }}">Stemi</a></li>
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('opd/diag_pneumonia') }}">Pneumonia</a></li>
                                     </ul>
                                 </li>
                                 <!-- เมนูอื่น -->

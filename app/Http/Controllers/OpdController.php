@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
-class DiagController extends Controller
+class OpdController extends Controller
 {
     //Check Login
     public function __construct()
@@ -13,8 +13,8 @@ class DiagController extends Controller
         $this->middleware('auth');
     }
 
-//Create sepsis----------------------------------------------------------------------------------------------------------------------------------------------------
-    public function sepsis(Request $request)
+//Create diag_sepsis----------------------------------------------------------------------------------------------------------------------------------------------------
+    public function diag_sepsis(Request $request)
     {
         // Set the execution time to 300 seconds (5 minutes)
         set_time_limit(300);
@@ -114,11 +114,11 @@ class DiagController extends Controller
             OR v.dx5 IN ("A419","R651","R572"))
             GROUP BY o.vn',[$start_date,$end_date]);         
 
-        return view('diag.sepsis',compact('budget_year_select','budget_year','diag_m','diag_visit_m','diag_hn_m','diag_admit_m','diag_refer_m',
+        return view('opd.diag_sepsis',compact('budget_year_select','budget_year','diag_m','diag_visit_m','diag_hn_m','diag_admit_m','diag_refer_m',
             'diag_y','diag_visit_y','diag_hn_y','diag_admit_y','diag_refer_y','diag_list'));            
     }
-//Create stroke-------------------------------------------------------------------------------------------------------------------------------------------------
-    public function stroke(Request $request)
+//Create diag_stroke-------------------------------------------------------------------------------------------------------------------------------------------------
+    public function diag_stroke(Request $request)
     {
         // Set the execution time to 300 seconds (5 minutes)
         set_time_limit(300);
@@ -218,12 +218,12 @@ class DiagController extends Controller
             OR v.dx5 IN ("I64"))
             GROUP BY o.vn',[$start_date,$end_date]);         
 
-        return view('diag.stroke',compact('budget_year_select','budget_year','diag_m','diag_visit_m','diag_hn_m','diag_admit_m','diag_refer_m',
+        return view('opd.diag_stroke',compact('budget_year_select','budget_year','diag_m','diag_visit_m','diag_hn_m','diag_admit_m','diag_refer_m',
             'diag_y','diag_visit_y','diag_hn_y','diag_admit_y','diag_refer_y','diag_list'));            
     }
 
-    //Create stemi
-    public function stemi(Request $request)
+//Create diag_stemi----------------------------------------------------------------------------------------------------------------------------------------------
+    public function diag_stemi(Request $request)
     {
         // Set the execution time to 300 seconds (5 minutes)
         set_time_limit(300);
@@ -323,12 +323,12 @@ class DiagController extends Controller
             OR v.dx5 IN ("I21","I210","I211","I212","I213","I214","I219"))
             GROUP BY o.vn',[$start_date,$end_date]);         
 
-        return view('diag.stemi',compact('budget_year_select','budget_year','diag_m','diag_visit_m','diag_hn_m','diag_admit_m','diag_refer_m',
+        return view('opd.diag_stemi',compact('budget_year_select','budget_year','diag_m','diag_visit_m','diag_hn_m','diag_admit_m','diag_refer_m',
             'diag_y','diag_visit_y','diag_hn_y','diag_admit_y','diag_refer_y','diag_list'));            
     }
 
-    //Create pneumonia
-    public function pneumonia(Request $request)
+//Create diag_pneumonia
+    public function diag_pneumonia(Request $request)
     {
         // Set the execution time to 300 seconds (5 minutes)
         set_time_limit(300);
@@ -428,7 +428,7 @@ class DiagController extends Controller
             OR v.dx5 IN ("J128","J159","J188","J189"))
             GROUP BY o.vn',[$start_date,$end_date]);         
 
-        return view('diag.pneumonia',compact('budget_year_select','budget_year','diag_m','diag_visit_m','diag_hn_m','diag_admit_m','diag_refer_m',
+        return view('opd.diag_pneumonia',compact('budget_year_select','budget_year','diag_m','diag_visit_m','diag_hn_m','diag_admit_m','diag_refer_m',
             'diag_y','diag_visit_y','diag_hn_y','diag_admit_y','diag_refer_y','diag_list'));            
     }
 

@@ -109,6 +109,7 @@ Route::get('check/pttype',[CheckController::class,'pttype']);
 Route::get('check/nhso_subinscl',[CheckController::class,'nhso_subinscl']);
 
 //OPD------------------------------------------------------------------------------------------------------------------------------
+Route::match(['get','post'],'opd/oppp_visit',[OpdController::class,'oppp_visit']);
 Route::match(['get','post'],'opd/diag_sepsis',[OpdController::class,'diag_sepsis']);
 Route::match(['get','post'],'opd/diag_stroke',[OpdController::class,'diag_stroke']);
 Route::match(['get','post'],'opd/diag_stemi',[OpdController::class,'diag_stemi']);

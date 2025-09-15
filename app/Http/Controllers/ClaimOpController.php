@@ -549,6 +549,7 @@ class ClaimOpController extends Controller
         $end_date_b   = $year_data->DATE_END ?? null;
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
+        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');  
 
         $sum_month=DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -572,7 +573,7 @@ class ClaimOpController extends Controller
 			LEFT JOIN vn_stat v ON v.vn = o.vn 	
             LEFT JOIN hrims.stm_ofc stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)           
             WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "OFC" AND o.vstdate BETWEEN ? AND ?
-            AND v.income <>"0"  GROUP BY o.vn ) AS a
+            AND p.pttype NOT IN ('.$pttype_checkup.') AND v.income <>"0"  GROUP BY o.vn  ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
             ORDER BY YEAR(vstdate), MONTH(vstdate)',[$start_date_b,$end_date_b]);
         $month = array_column($sum_month,'month');  
@@ -603,6 +604,7 @@ class ClaimOpController extends Controller
                 WHERE op.vstdate BETWEEN ? AND ? AND li.ppfs = "Y" GROUP BY op.vn) o2 ON o2.vn=o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "OFC" AND o.vstdate BETWEEN ? AND ?
+            AND p.pttype NOT IN ('.$pttype_checkup.')
             AND v.income <>"0" AND kidney.vn IS NULL AND oe.upload_datetime IS NULL 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
@@ -626,13 +628,14 @@ class ClaimOpController extends Controller
             LEFT JOIN opitemrece ppfs ON ppfs.vn=o.vn AND ppfs.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs = "Y")
             LEFT JOIN s_drugitems s ON s.icode=ppfs.icode
             LEFT JOIN opitemrece kidney ON kidney.vn=o.vn AND kidney.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney = "Y")
-            LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS claim_price	FROM opitemrece op
+            LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS claim_price FROM opitemrece op
             INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
                 WHERE op.vstdate BETWEEN ? AND ? AND li.ppfs = "Y" GROUP BY op.vn) o2 ON o2.vn=o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN hrims.stm_ofc stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
             LEFT JOIN hrims.stm_ucs stm_uc ON stm_uc.cid=pt.cid AND stm_uc.vstdate = o.vstdate AND LEFT(stm_uc.vsttime,5) =LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code = "OFC" AND o.vstdate BETWEEN ? AND ?
+            AND p.pttype NOT IN ('.$pttype_checkup.')
             AND v.income <>"0" AND kidney.vn IS NULL AND oe.upload_datetime IS NOT NULL
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 

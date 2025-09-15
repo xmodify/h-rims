@@ -159,6 +159,12 @@
                                 งานเวชระเบียน
                             </a>
                             <ul class="bg-success dropdown-menu dropdown-menu-end"> 
+                                <!-- เมนูอื่น -->
+                                <li>
+                                    <a class="link-primary dropdown-item text-white" href="{{ url('opd/oppp_visit') }}">
+                                        OP-จำนวนผู้มารับบริการ
+                                    </a>
+                                </li>
                                 <!-- ชี้ขวา -->
                                 <li class="dropend">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
@@ -443,7 +449,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li > 
                             <div class="btn text-info">
-                                V. 68-09-14
+                                V. 68-09-15
                             </div>   
                         </li>                         
                         <!-- Authentication Links -->

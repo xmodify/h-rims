@@ -46,7 +46,7 @@
   <div class="card border-info">
     <div class="card-header bg-success bg-opacity-75 text-white">จำนวนผู้มารับบริการผู้ป่วยนอกแยกกลุ่มสิทธิหลัก (ครั้ง) ปีงบประมาณ {{$budget_year}} </div>
     <div class="card-body" style="overflow-x:auto;">
-      <table id="visit_pttype" class="table table-bordered table-striped my-3">
+      <table id="visit_pttype" class="table table-bordered table-striped my-3" width ="100%">
         <thead>
         <tr class="table-primary">
             <th class="text-center" rowspan="2">เดือน</th>
@@ -151,6 +151,122 @@
             <td align="right" class="text-success"><strong>{{number_format($sum_stp_income,2)}}</strong></td>
             <td align="right"><strong>{{number_format($sum_pay)}}</strong></td>   
             <td align="right" class="text-success"><strong>{{number_format($sum_pay_income,2)}}</strong></td>                
+        </tr>   
+      </table>  
+    </div>         
+  </div>
+</div>     
+<br>
+<!-- row -->
+<div class="container-fluid">   
+  <div class="card border-info">
+    <div class="card-header bg-success bg-opacity-75 text-white">จำนวนผู้มารับบริการผู้ป่วยนอกแยกหมวดค่าใช้จ่าย ปีงบประมาณ {{$budget_year}} </div>
+    <div class="card-body" style="overflow-x:auto;">
+      <table id="visit_pttype" class="table table-bordered table-striped my-3" width ="100%">
+        <thead>
+        <tr class="table-primary">
+            <th class="text-center" rowspan="2">เดือน</th>
+            <th class="text-center" colspan="2">ทั้งหมด</th>
+            <th class="text-center" colspan="2">ประกันสุขภาพ</th>     
+            <th class="text-center" colspan="2">ข้าราชการ</th>  
+            <th class="text-center" colspan="2">ประกันสังคม</th>
+            <th class="text-center" colspan="2">อปท.</th>
+            <th class="text-center" colspan="2">ต่างด้าว</th>
+            <th class="text-center" colspan="2">Stateless</th>
+            <th class="text-center" colspan="2">ชำระเงิน/พรบ.</th>                 
+        </tr>    
+        <tr class="table-primary">            
+            <th class="text-center">drug</th>
+            <th class="text-center">lab</th>
+            <th class="text-center">drug</th>
+            <th class="text-center">lab</th>    
+            <th class="text-center">drug</th>
+            <th class="text-center">lab</th> 
+            <th class="text-center">drug</th>
+            <th class="text-center">lab</th>
+            <th class="text-center">drug</th>
+            <th class="text-center">lab</th>
+            <th class="text-center">drug</th>
+            <th class="text-center">lab</th>
+            <th class="text-center">drug</th>
+            <th class="text-center">lab</th>
+            <th class="text-center">drug</th>
+            <th class="text-center">lab</th>               
+        </tr>    
+        </thead> 
+        <?php $count = 1 ; ?> 
+        <?php $sum_inc_drug = 0 ; ?> 
+        <?php $sum_inc_lab = 0 ; ?>   
+        <?php $sum_ucs_inc_drug = 0 ; ?>  
+        <?php $sum_ucs_inc_lab = 0 ; ?> 
+        <?php $sum_ofc_inc_drug = 0 ; ?>  
+        <?php $sum_ofc_inc_lab = 0 ; ?>
+        <?php $sum_sss_inc_drug = 0 ; ?> 
+        <?php $sum_sss_inc_lab = 0 ; ?>  
+        <?php $sum_lgo_inc_drug = 0 ; ?>  
+        <?php $sum_lgo_inc_lab = 0 ; ?>  
+        <?php $sum_fss_inc_drug = 0 ; ?>  
+        <?php $sum_fss_inc_lab = 0 ; ?>  
+        <?php $sum_stp_inc_drug = 0 ; ?> 
+        <?php $sum_stp_inc_lab = 0 ; ?>   
+        <?php $sum_pay_inc_drug = 0 ; ?>  
+        <?php $sum_pay_inc_lab = 0 ; ?>  
+        @foreach($visit_month as $row)          
+        <tr>
+            <td align="center">{{ $row->month }}</td> 
+            <td align="right" class="text-primary">{{ number_format($row->inc_drug) }}</td>
+            <td align="right" class="text-success">{{ number_format($row->inc_lab,2) }}</td> 
+            <td align="right" class="text-primary">{{ number_format($row->ucs_inc_drug) }}</td> 
+            <td align="right" class="text-success">{{ number_format($row->ucs_inc_lab,2) }}</td> 
+            <td align="right" class="text-primary">{{ number_format($row->ofc_inc_drug) }}</td> 
+            <td align="right" class="text-success">{{ number_format($row->ofc_inc_lab,2) }}</td> 
+            <td align="right" class="text-primary">{{ number_format($row->sss_inc_drug) }}</td> 
+            <td align="right" class="text-success">{{ number_format($row->sss_inc_lab,2) }}</td> 
+            <td align="right" class="text-primary">{{ number_format($row->lgo_inc_drug) }}</td> 
+            <td align="right" class="text-success">{{ number_format($row->lgo_inc_lab,2) }}</td> 
+            <td align="right" class="text-primary">{{ number_format($row->fss_inc_drug) }}</td> 
+            <td align="right" class="text-success">{{ number_format($row->fss_inc_lab,2) }}</td>
+            <td align="right" class="text-primary">{{ number_format($row->stp_inc_drug) }}</td> 
+            <td align="right" class="text-success">{{ number_format($row->stp_inc_lab,2) }}</td> 
+            <td align="right" class="text-primary">{{ number_format($row->pay_inc_drug) }}</td>   
+            <td align="right" class="text-success">{{ number_format($row->pay_inc_lab,2) }}</td>              
+        </tr>                
+        <?php $count++; ?>
+        <?php $sum_inc_drug += $row->inc_drug ; ?>
+        <?php $sum_inc_lab += $row->inc_lab ; ?>
+        <?php $sum_ucs_inc_drug += $row->ucs_inc_drug ; ?>
+        <?php $sum_ucs_inc_lab += $row->ucs_inc_lab ; ?>
+        <?php $sum_ofc_inc_drug += $row->ofc_inc_drug ; ?>
+        <?php $sum_ofc_inc_lab += $row->ofc_inc_lab ; ?>
+        <?php $sum_sss_inc_drug += $row->sss_inc_drug ; ?>
+        <?php $sum_sss_inc_lab += $row->sss_inc_lab ; ?>
+        <?php $sum_lgo_inc_drug += $row->lgo_inc_drug ; ?>
+        <?php $sum_lgo_inc_lab += $row->lgo_inc_lab ; ?>
+        <?php $sum_fss_inc_drug += $row->fss_inc_drug ; ?>
+        <?php $sum_fss_inc_lab += $row->fss_inc_lab ; ?>
+        <?php $sum_stp_inc_drug += $row->stp_inc_drug ; ?>
+        <?php $sum_stp_inc_lab += $row->stp_inc_lab ; ?>
+        <?php $sum_pay_inc_drug += $row->pay_inc_drug ; ?>
+        <?php $sum_pay_inc_lab += $row->pay_inc_lab ; ?>
+        @endforeach     
+        <tr>
+            <td align="right"><strong>รวม</strong></td>
+            <td align="right" class="text-primary"><strong>{{number_format($sum_inc_drug,2)}}</strong></td>
+            <td align="right" class="text-success"><strong>{{number_format($sum_inc_lab,2)}}</strong></td>
+            <td align="right" class="text-primary"><strong>{{number_format($sum_ucs_inc_drug,2)}}</strong></td>     
+            <td align="right" class="text-success"><strong>{{number_format($sum_ucs_inc_lab,2)}}</strong></td>   
+            <td align="right" class="text-primary"><strong>{{number_format($sum_ofc_inc_drug,2)}}</strong></td>  
+            <td align="right" class="text-success"><strong>{{number_format($sum_ofc_inc_lab,2)}}</strong></td> 
+            <td align="right" class="text-primary"><strong>{{number_format($sum_sss_inc_drug,2)}}</strong></td>
+            <td align="right" class="text-success"><strong>{{number_format($sum_sss_inc_lab,2)}}</strong></td>
+            <td align="right" class="text-primary"><strong>{{number_format($sum_lgo_inc_drug,2)}}</strong></td>
+            <td align="right" class="text-success"><strong>{{number_format($sum_lgo_inc_lab,2)}}</strong></td>
+            <td align="right" class="text-primary"><strong>{{number_format($sum_fss_inc_drug,2)}}</strong></td>
+            <td align="right" class="text-success"><strong>{{number_format($sum_fss_inc_lab,2)}}</strong></td>
+            <td align="right" class="text-primary"><strong>{{number_format($sum_stp_inc_drug,2)}}</strong></td>
+            <td align="right" class="text-success"><strong>{{number_format($sum_stp_inc_lab,2)}}</strong></td>
+            <td align="right" class="text-primary"><strong>{{number_format($sum_pay_inc_drug,2)}}</strong></td>   
+            <td align="right" class="text-success"><strong>{{number_format($sum_pay_inc_lab,2)}}</strong></td>                
         </tr>   
       </table>  
     </div>         

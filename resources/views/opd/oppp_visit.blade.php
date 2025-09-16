@@ -51,7 +51,8 @@
         <tr class="table-primary">
             <th class="text-center" rowspan="2">เดือน</th>
             <th class="text-center" colspan="2">ทั้งหมด</th>
-            <th class="text-center" colspan="2">ประกันสุขภาพ</th>     
+            <th class="text-center" colspan="2">ประกันสุขภาพ ใน CUP</th> 
+            <th class="text-center" colspan="2">ประกันสุขภาพ นอก CUP</th>     
             <th class="text-center" colspan="2">ข้าราชการ</th>  
             <th class="text-center" colspan="2">ประกันสังคม</th>
             <th class="text-center" colspan="2">อปท.</th>
@@ -62,6 +63,8 @@
         <tr class="table-primary">            
             <th class="text-center">visit</th>
             <th class="text-center">income</th>
+            <th class="text-center">visit</th>
+            <th class="text-center">income</th> 
             <th class="text-center">visit</th>
             <th class="text-center">income</th>    
             <th class="text-center">visit</th>
@@ -81,8 +84,10 @@
         <?php $count = 1 ; ?> 
         <?php $sum_visit = 0 ; ?> 
         <?php $sum_income = 0 ; ?>   
-        <?php $sum_ucs = 0 ; ?>  
-        <?php $sum_ucs_income = 0 ; ?> 
+        <?php $sum_ucs_incup = 0 ; ?>  
+        <?php $sum_ucs_incup_income = 0 ; ?>
+        <?php $sum_ucs_outcup = 0 ; ?>  
+        <?php $sum_ucs_outcup_income = 0 ; ?>
         <?php $sum_ofc = 0 ; ?>  
         <?php $sum_ofc_income = 0 ; ?>
         <?php $sum_sss = 0 ; ?> 
@@ -100,8 +105,10 @@
             <td align="center">{{ $row->month }}</td> 
             <td align="right">{{ number_format($row->visit) }}</td>
             <td align="right" class="text-success">{{ number_format($row->income,2) }}</td> 
-            <td align="right">{{ number_format($row->ucs) }}</td> 
-            <td align="right" class="text-success">{{ number_format($row->ucs_income,2) }}</td> 
+            <td align="right">{{ number_format($row->ucs_incup) }}</td> 
+            <td align="right" class="text-success">{{ number_format($row->ucs_incup_income,2) }}</td> 
+            <td align="right">{{ number_format($row->ucs_outcup) }}</td> 
+            <td align="right" class="text-success">{{ number_format($row->ucs_outcup_income,2) }}</td>
             <td align="right">{{ number_format($row->ofc) }}</td> 
             <td align="right" class="text-success">{{ number_format($row->ofc_income,2) }}</td> 
             <td align="right">{{ number_format($row->sss) }}</td> 
@@ -118,8 +125,10 @@
         <?php $count++; ?>
         <?php $sum_visit += $row->visit ; ?>
         <?php $sum_income += $row->income ; ?>
-        <?php $sum_ucs += $row->ucs ; ?>
-        <?php $sum_ucs_income += $row->ucs_income ; ?>
+        <?php $sum_ucs_incup += $row->ucs_incup ; ?>
+        <?php $sum_ucs_incup_income += $row->ucs_incup_income ; ?>
+        <?php $sum_ucs_outcup += $row->ucs_outcup ; ?>
+        <?php $sum_ucs_outcup_income += $row->ucs_outcup_income ; ?>
         <?php $sum_ofc += $row->ofc ; ?>
         <?php $sum_ofc_income += $row->ofc_income ; ?>
         <?php $sum_sss += $row->sss ; ?>
@@ -137,8 +146,10 @@
             <td align="right"><strong>รวม</strong></td>
             <td align="right"><strong>{{number_format($sum_visit)}}</strong></td>
             <td align="right" class="text-success"><strong>{{number_format($sum_income,2)}}</strong></td>
-            <td align="right"><strong>{{number_format($sum_ucs)}}</strong></td>     
-            <td align="right" class="text-success"><strong>{{number_format($sum_ucs_income,2)}}</strong></td>   
+            <td align="right"><strong>{{number_format($sum_ucs_incup)}}</strong></td>     
+            <td align="right" class="text-success"><strong>{{number_format($sum_ucs_incup_income,2)}}</strong></td>   
+            <td align="right"><strong>{{number_format($sum_ucs_outcup)}}</strong></td>     
+            <td align="right" class="text-success"><strong>{{number_format($sum_ucs_outcup_income,2)}}</strong></td>    
             <td align="right"><strong>{{number_format($sum_ofc)}}</strong></td>  
             <td align="right" class="text-success"><strong>{{number_format($sum_ofc_income,2)}}</strong></td> 
             <td align="right"><strong>{{number_format($sum_sss)}}</strong></td>
@@ -162,7 +173,7 @@
   <div class="card border-info">
     <div class="card-header bg-success bg-opacity-75 text-white">จำนวนผู้มารับบริการผู้ป่วยนอกแยกหมวดค่าใช้จ่าย ปีงบประมาณ {{$budget_year}} </div>
     <div class="card-body" style="overflow-x:auto;">
-      <table id="visit_pttype" class="table table-bordered table-striped my-3" width ="100%">
+      <table id="visit_income" class="table table-bordered table-striped my-3" width ="100%">
         <thead>
         <tr class="table-primary">
             <th class="text-center" rowspan="2">เดือน</th>
@@ -280,6 +291,29 @@
   <script>
     $(document).ready(function () {
       $('#visit_pttype').DataTable({
+        dom: '<"d-flex justify-content-end align-items-center gap-2 mb-3"fB>' +
+             'rt',
+        buttons: [
+          {
+            extend: 'excelHtml5',
+            text: 'Excel',
+            className: 'btn btn-success',
+            title: 'จำนวนผู้มารับบริการผู้ป่วยนอกแยกกลุ่มสิทธิหลัก (ครั้ง) ปีงบประมาณ {{$budget_year}} '
+          }
+        ],
+        ordering: false,     // ❌ ปิดการกดเรียงหัวคอลัมน์
+        paging: false,       // ❌ ปิดการแบ่งหน้า
+        info: false,         // ❌ ไม่แสดง "แสดงกี่รายการ"
+        lengthChange: false, // ❌ ไม่ให้เลือกจำนวนรายการ
+        language: {
+          search: "ค้นหา:",
+        }
+      });
+    });
+  </script>
+  <script>
+    $(document).ready(function () {
+      $('#visit_income').DataTable({
         dom: '<"d-flex justify-content-end align-items-center gap-2 mb-3"fB>' +
              'rt',
         buttons: [

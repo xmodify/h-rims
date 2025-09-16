@@ -54,8 +54,10 @@ class OpdController extends Controller
             SUM(CASE WHEN diagtype ="OP" THEN 1 ELSE 0 END) AS "visit_op",
             SUM(CASE WHEN diagtype ="PP" THEN 1 ELSE 0 END) AS "visit_pp",SUM(income) AS "income",
             SUM(inc12) AS "inc_drug",SUM(inc03) AS "inc_lab",
-            SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS "ucs",
-            SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN income ELSE 0 END) AS "ucs_income",            
+            SUM(CASE WHEN hipdata_code IN ("UCS","DIS") AND paidst NOT IN ("01","03") AND incup = "Y" THEN 1 ELSE 0 END) AS "ucs_incup",
+            SUM(CASE WHEN hipdata_code IN ("UCS","DIS") AND paidst NOT IN ("01","03") AND incup = "Y" THEN income ELSE 0 END) AS "ucs_incup_income",  
+            SUM(CASE WHEN hipdata_code IN ("UCS","DIS") AND paidst NOT IN ("01","03") AND incup = "N" THEN 1 ELSE 0 END) AS "ucs_outcup",
+            SUM(CASE WHEN hipdata_code IN ("UCS","DIS") AND paidst NOT IN ("01","03") AND incup = "N" THEN income ELSE 0 END) AS "ucs_outcup_income",  
             SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc12 ELSE 0 END) AS "ucs_inc_drug",
             SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc03 ELSE 0 END) AS "ucs_inc_lab",
             SUM(CASE WHEN hipdata_code IN ("OFC","BKK","BMT") AND paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS "ofc",
@@ -83,9 +85,11 @@ class OpdController extends Controller
             SUM(CASE WHEN (paidst IN ("01","03") OR hipdata_code IN ("A1","A9")) THEN inc12 ELSE 0 END) AS "pay_inc_drug",
             SUM(CASE WHEN (paidst IN ("01","03") OR hipdata_code IN ("A1","A9")) THEN inc03 ELSE 0 END) AS "pay_inc_lab"            
             FROM (SELECT v.vstdate,v.vn,v.hn,v.pttype,p.hipdata_code,p.paidst,v.income,v.inc03,v.inc12 ,v.pdx,
-            IF(i.icd10 IS NULL,"OP","PP") AS diagtype
+            IF(i.icd10 IS NULL,"OP","PP") AS diagtype,IF(vp.hospmain IS NOT NULL,"Y","N") AS incup
             FROM vn_stat v
             LEFT JOIN pttype p ON p.pttype=v.pttype
+            LEFT JOIN visit_pttype vp ON vp.vn =v.vn 
+		        AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
             LEFT JOIN hrims.lookup_icd10 i ON i.icd10=v.pdx AND i.pp="Y"
             WHERE v.vstdate BETWEEN ? AND ?) AS a									
             GROUP BY YEAR(vstdate) , MONTH(vstdate)
@@ -94,32 +98,9 @@ class OpdController extends Controller
         $visit = array_column($visit_month,'visit');
         $hn = array_column($visit_month,'hn');
         $visit_op = array_column($visit_month,'visit_op');
-        $visit_pp = array_column($visit_month,'visit_pp');
-        $ucs = array_column($visit_month,'ucs');
-        $ucs_inc_lab = array_column($visit_month,'ucs_inc_lab');         
-        $ucs_inc_drug = array_column($visit_month,'ucs_inc_drug'); 
-        $ofc = array_column($visit_month,'ofc');
-        $ofc_inc_lab = array_column($visit_month,'ofc_inc_lab');         
-        $ofc_inc_drug = array_column($visit_month,'ofc_inc_drug'); 
-        $sss = array_column($visit_month,'sss');
-        $sss_inc_lab = array_column($visit_month,'sss_inc_lab');         
-        $sss_inc_drug = array_column($visit_month,'sss_inc_drug'); 
-        $lgo = array_column($visit_month,'lgo');
-        $lgo_inc_lab = array_column($visit_month,'lgo_inc_lab');         
-        $lgo_inc_drug = array_column($visit_month,'lgo_inc_drug'); 
-        $fss = array_column($visit_month,'fss');
-        $fss_inc_lab = array_column($visit_month,'fss_inc_lab');         
-        $fss_inc_drug = array_column($visit_month,'fss_inc_drug'); 
-        $stp = array_column($visit_month,'stp');
-        $stp_inc_lab = array_column($visit_month,'stp_inc_lab');         
-        $stp_inc_drug = array_column($visit_month,'stp_inc_drug'); 
-        $pay = array_column($visit_month,'pay');
-        $pay_inc_lab = array_column($visit_month,'pay_inc_lab');         
-        $pay_inc_drug = array_column($visit_month,'pay_inc_drug'); 
+        $visit_pp = array_column($visit_month,'visit_pp');        
 
-        return view('opd.oppp_visit',compact('budget_year_select','budget_year','visit_month','month','hn','visit','visit_op','visit_pp','ucs',
-            'ucs_inc_lab','ucs_inc_drug','ofc','ofc_inc_lab','ofc_inc_drug','sss','sss_inc_lab','sss_inc_drug','lgo','lgo_inc_lab',
-            'lgo_inc_drug','fss','fss_inc_lab','fss_inc_drug','stp','stp_inc_lab','stp_inc_drug','pay','pay_inc_lab','pay_inc_drug'));            
+        return view('opd.oppp_visit',compact('budget_year_select','budget_year','visit_month','month','hn','visit','visit_op','visit_pp'));            
     }
 //Create diag_sepsis----------------------------------------------------------------------------------------------------------------------------------------------------
     public function diag_sepsis(Request $request)

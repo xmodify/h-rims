@@ -4,7 +4,7 @@
 
 <div class="container-fluid"> 
   <canvas id="sum_month" style="max-height: 400px;"></canvas> 
-  <hr>
+  <hr> 
   <form method="POST" enctype="multipart/form-data">
       @csrf            
       <div class="row" >

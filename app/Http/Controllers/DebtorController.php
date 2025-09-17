@@ -2553,7 +2553,7 @@ class DebtorController extends Controller
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,d.rcpt_money,  
                     d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
                     IFNULL(s.receive_total,0) AS receive_ofc,IFNULL(sk.receive_total,0) AS receive_kidney,IFNULL(su.receive_pp,0) AS receive_ppfs,
-                    IFNULL(d.receive,0)+IFNULL(s.receive_total,0)+IFNULL(sk.receive_total,0) AS receive,d.status,IFNULL(s.repno,sk.repno) AS repno,d.debtor_lock,
+                    IFNULL(d.receive,0)+IFNULL(s.receive_total,0)+IFNULL(sk.receive_total,0) AS receive,d.status,s.repno,sk.repno AS repno1,d.debtor_lock,
                     CASE WHEN (IFNULL(d.receive,0)+IFNULL(s.receive_total,0)+IFNULL(sk.receive_total,0)) - IFNULL(d.debtor, 0)>= 0 
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_401 d   
@@ -2568,7 +2568,7 @@ class DebtorController extends Controller
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,d.rcpt_money,  
                     d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
                     IFNULL(s.receive_total,0) AS receive_ofc,IFNULL(sk.receive_total,0) AS receive_kidney,IFNULL(su.receive_pp,0) AS receive_ppfs,
-                    IFNULL(d.receive,0)+IFNULL(s.receive_total,0)+IFNULL(sk.receive_total,0)AS receive,d.status,IFNULL(s.repno,sk.repno) AS repno,d.debtor_lock,
+                    IFNULL(d.receive,0)+IFNULL(s.receive_total,0)+IFNULL(sk.receive_total,0)AS receive,d.status,s.repno,sk.repno AS repno1,d.debtor_lock,
                     CASE WHEN (IFNULL(d.receive,0)+IFNULL(s.receive_total,0)+IFNULL(sk.receive_total,0)) - IFNULL(d.debtor, 0)>= 0 
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_401 d   

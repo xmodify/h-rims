@@ -75,7 +75,7 @@ public function index(Request $request )
         LEFT JOIN opitemrece uc_cr ON uc_cr.vn=o.vn AND uc_cr.icode IN (SELECT icode FROM hrims.lookup_icode WHERE uc_cr = "Y")
         LEFT JOIN opitemrece herb ON herb.vn=o.vn AND herb.icode IN (SELECT icode FROM hrims.lookup_icode WHERE herb32 = "Y")
         LEFT JOIN health_med_service healthmed ON healthmed.vn=o.vn
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
+        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
         WHERE o.vstdate = DATE(NOW()) AND (o.an ="" OR o.an IS NULL) GROUP BY o.vn) AS a');
 
     foreach ($opd_monitor as $row){
@@ -558,7 +558,7 @@ public function opd_ofc(Request $request )
         LEFT JOIN ovst_seq os ON os.vn = o.vn
         LEFT JOIN vn_stat v ON v.vn = o.vn
 		LEFT JOIN opitemrece ppfs ON ppfs.vn=o.vn AND ppfs.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs = "Y")
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
+        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
         WHERE o.vstdate  BETWEEN ? AND ? AND p.hipdata_code = "OFC" AND (o.an ="" OR o.an IS NULL)
         GROUP BY o.vn ORDER BY ep.claimCode DESC ,o.vstdate,o.vsttime',[$start_date,$end_date]);
 
@@ -580,7 +580,8 @@ public function opd_non_authen(Request $request )
         LEFT JOIN pttype p1 ON p1.pttype=vp.pttype
         LEFT JOIN kskdepartment k ON k.depcode=o.main_dep
         WHERE o.vstdate BETWEEN ? AND ?        
-        AND p.cid NOT LIKE "0%" AND vp.auth_code ="" 
+        AND p.cid NOT LIKE "0%" 
+        AND (vp.auth_code ="" OR vp.auth_code IS NULL)  
         GROUP BY o.vn ORDER BY o.vsttime',[$start_date,$end_date]);
 
     return view('home_detail.opd_non_authen',compact('start_date','end_date','sql'));
@@ -600,7 +601,8 @@ public function opd_non_hospmain(Request $request )
         LEFT JOIN visit_pttype vp ON vp.vn=o.vn
         LEFT JOIN pttype p ON p.pttype=vp.pttype
         WHERE o.vstdate BETWEEN ? AND ?
-        AND p.hipdata_code IN ("UCS","SSS","STP") AND (vp.hospmain="" OR vp.hospmain IS NULL)
+        AND p.hipdata_code IN ("UCS","WEL","SSS","STP") 
+        AND (vp.hospmain="" OR vp.hospmain IS NULL)
         GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date]);
 
     return view('home_detail.opd_non_hospmain',compact('start_date','end_date','sql'));
@@ -629,10 +631,12 @@ public function opd_ucs_anywhere(Request $request )
         LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode       
         LEFT JOIN vn_stat v ON v.vn = o.vn
         LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
-        LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND DATE(stm.datetimeadm) = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"     
-        WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN ? AND ?
-        AND p.hipdata_code IN ("UCS","WEL") AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
+        LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND stm.vstdate = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
+        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"     
+        WHERE (o.an ="" OR o.an IS NULL) 
+        AND o.vstdate BETWEEN ? AND ?
+        AND p.hipdata_code IN ("UCS","WEL") 
+        AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
         GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date]);    
 
     return view('home_detail.opd_ucs_anywhere',compact('start_date','end_date','search'));
@@ -667,10 +671,13 @@ public function opd_ucs_cr(Request $request )
             IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
         LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
         LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
-        LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND DATE(stm.datetimeadm) = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"       
-        WHERE p.hipdata_code IN ("UCS","WEL") AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-        AND (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL AND o.vstdate BETWEEN ? AND ?
+        LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND stm.vstdate = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
+        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"       
+        WHERE p.hipdata_code IN ("UCS","WEL") 
+        AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
+        AND (o.an IS NULL OR o.an ="") 
+        AND o1.vn IS NOT NULL 
+        AND o.vstdate BETWEEN ? AND ?
         GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]);
 
     return view('home_detail.opd_ucs_cr',compact('start_date','end_date','search'));
@@ -704,10 +711,12 @@ public function opd_ucs_herb(Request $request )
             IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
         LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
         LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
-        LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND DATE(stm.datetimeadm) = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"       
-        WHERE p.hipdata_code IN ("UCS","WEL") AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-        AND (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL AND o.vstdate BETWEEN ? AND ?
+        LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND stm.vstdate = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
+        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"       
+        WHERE p.hipdata_code IN ("UCS","WEL") 
+        AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
+        AND (o.an IS NULL OR o.an ="") 
+        AND o1.vn IS NOT NULL AND o.vstdate BETWEEN ? AND ?
         GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]);    
 
     return view('home_detail.opd_ucs_herb',compact('start_date','end_date','search'));
@@ -736,7 +745,7 @@ public function opd_ucs_healthmed(Request $request )
             LEFT JOIN health_med_operation_item h2 ON h2.health_med_operation_item_id=h1.health_med_operation_item_id
             WHERE h.service_date BETWEEN ? AND ?
             GROUP BY h1.health_med_service_id,h1.health_med_operation_item_id) healthmed ON healthmed.vn=o.vn
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
+        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
         WHERE (o.an ="" OR o.an IS NULL) AND healthmed.vn <>"" AND o.vstdate BETWEEN ? AND ?
         AND p.hipdata_code IN ("UCS","WEL") AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")          
         GROUP BY o.vn ORDER BY ep.claimCode DESC,o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
@@ -773,8 +782,8 @@ public function opd_ppfs(Request $request )
             IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
         LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
         LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
-        LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND DATE(stm.datetimeadm) = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"       
+        LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND stm.vstdate = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
+        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"       
         WHERE (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL AND o.vstdate BETWEEN ? AND ?
         GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]);
 
@@ -797,7 +806,7 @@ public function ipd_homeward(Request $request )
         LEFT JOIN pttype p1 ON p1.pttype=vp.pttype				
         LEFT JOIN kskdepartment k ON k.depcode=o.main_dep
 		LEFT JOIN ipt i ON i.an=o.an AND i.ward IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimType = "PG0140001"
+        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimType = "PG0140001"
         WHERE (i.an IS NOT NULL OR i.an <>"") AND o.vstdate BETWEEN ? AND ?
 		GROUP BY o.vn ORDER BY o.vsttime',[$start_date,$end_date]);
 

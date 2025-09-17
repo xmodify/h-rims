@@ -350,8 +350,42 @@ class ClaimIpController extends Controller
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
+        $year_data = DB::table('budget_year')
+            ->orderByDesc('LEAVE_YEAR_ID')
+            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
+        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
+        $start_date_b = $year_data->DATE_BEGIN ?? null;
+        $end_date_b   = $year_data->DATE_END ?? null;
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
+
+        $sum_month=DB::connection('hosxp')->select('
+            SELECT CASE WHEN MONTH(dchdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(dchdate)+543, 2))
+                END AS month,COUNT(an) AS an,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
+            FROM (SELECT i.dchdate,i.hn,i.an,a.income-a.rcpt_money AS claim_price,stm.compensate_treatment AS receive_total
+            FROM ipt i             
+            LEFT JOIN ipt_pttype ip ON ip.an=i.an
+            LEFT JOIN pttype p ON p.pttype=ip.pttype          
+            LEFT JOIN an_stat a ON a.an=i.an            
+            LEFT JOIN hrims.stm_lgo stm ON stm.an=i.an 
+            WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
+            AND p.hipdata_code = "LGO" GROUP BY i.an ) AS a
+			GROUP BY YEAR(dchdate), MONTH(dchdate)
+            ORDER BY YEAR(dchdate), MONTH(dchdate) ',[$start_date_b,$end_date_b]);
+        $month = array_column($sum_month,'month');  
+        $claim_price = array_column($sum_month,'claim_price');
+        $receive_total = array_column($sum_month,'receive_total');
 
         $search=DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
@@ -396,15 +430,49 @@ class ClaimIpController extends Controller
             AND p.hipdata_code = "LGO" AND ((ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) OR stm.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
-        return view('claim_ip.lgo',compact('start_date','end_date','search','claim'));
+        return view('claim_ip.lgo',compact('start_date','end_date','month','claim_price','receive_total','search','claim'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function bkk(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
+        $year_data = DB::table('budget_year')
+            ->orderByDesc('LEAVE_YEAR_ID')
+            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
+        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
+        $start_date_b = $year_data->DATE_BEGIN ?? null;
+        $end_date_b   = $year_data->DATE_END ?? null;
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
+
+        $sum_month=DB::connection('hosxp')->select('
+            SELECT CASE WHEN MONTH(dchdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(dchdate)+543, 2))
+                END AS month,COUNT(an) AS an,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
+            FROM (SELECT i.dchdate,i.hn,i.an,a.income-a.rcpt_money AS claim_price,stm.receive_total
+            FROM ipt i             
+            LEFT JOIN ipt_pttype ip ON ip.an=i.an
+            LEFT JOIN pttype p ON p.pttype=ip.pttype          
+            LEFT JOIN an_stat a ON a.an=i.an            
+            LEFT JOIN hrims.stm_ofc stm ON stm.an=i.an 
+            WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
+            AND p.hipdata_code = "BKK" GROUP BY i.an ) AS a
+			GROUP BY YEAR(dchdate), MONTH(dchdate)
+            ORDER BY YEAR(dchdate), MONTH(dchdate) ',[$start_date_b,$end_date_b]);
+        $month = array_column($sum_month,'month');  
+        $claim_price = array_column($sum_month,'claim_price');
+        $receive_total = array_column($sum_month,'receive_total');
 
         $search=DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
@@ -449,15 +517,49 @@ class ClaimIpController extends Controller
             AND p.hipdata_code = "BKK" AND ((ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) OR stm.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
-        return view('claim_ip.bkk',compact('start_date','end_date','search','claim'));
+        return view('claim_ip.bkk',compact('start_date','end_date','month','claim_price','receive_total','search','claim'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function bmt(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
+        $year_data = DB::table('budget_year')
+            ->orderByDesc('LEAVE_YEAR_ID')
+            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
+        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
+        $start_date_b = $year_data->DATE_BEGIN ?? null;
+        $end_date_b   = $year_data->DATE_END ?? null;
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
+
+        $sum_month=DB::connection('hosxp')->select('
+            SELECT CASE WHEN MONTH(dchdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                WHEN MONTH(dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(dchdate)+543, 2))
+                END AS month,COUNT(an) AS an,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
+            FROM (SELECT i.dchdate,i.hn,i.an,a.income-a.rcpt_money AS claim_price,stm.receive_total
+            FROM ipt i             
+            LEFT JOIN ipt_pttype ip ON ip.an=i.an
+            LEFT JOIN pttype p ON p.pttype=ip.pttype          
+            LEFT JOIN an_stat a ON a.an=i.an            
+            LEFT JOIN hrims.stm_ofc stm ON stm.an=i.an 
+            WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
+            AND p.hipdata_code = "BKK" GROUP BY i.an ) AS a
+			GROUP BY YEAR(dchdate), MONTH(dchdate)
+            ORDER BY YEAR(dchdate), MONTH(dchdate) ',[$start_date_b,$end_date_b]);
+        $month = array_column($sum_month,'month');  
+        $claim_price = array_column($sum_month,'claim_price');
+        $receive_total = array_column($sum_month,'receive_total');
 
         $search=DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
@@ -502,7 +604,7 @@ class ClaimIpController extends Controller
             AND p.hipdata_code = "BMT" AND ((ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) OR stm.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
-        return view('claim_ip.bmt',compact('start_date','end_date','search','claim'));
+        return view('claim_ip.bmt',compact('start_date','end_date','month','claim_price','receive_total','search','claim'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function sss(Request $request )

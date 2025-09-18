@@ -143,7 +143,7 @@ class CheckController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3           
             LEFT JOIN (SELECT dc.* FROM hrims.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
                 FROM hrims.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ("A","U","E"))) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = "Y" AND d.`name` NOT LIKE "*%"  
+            WHERE d.istatus = "Y" AND d.`name` NOT LIKE "*%" AND d.`name` NOT LIKE "(ยาผู้ป่วย)%"
             ORDER BY d.NAME,d.strength,d.units');
 
         return view('check.drug_cat',compact('drug'));            
@@ -165,7 +165,7 @@ class CheckController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM hrims.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
                 FROM hrims.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ("A","U","E"))) nd ON nd.hospdrugcode=d.icode             
-            WHERE d.istatus = "Y" AND d.`name` NOT LIKE "*%" AND nd.hospdrugcode IS NULL  
+            WHERE d.istatus = "Y" AND d.`name` NOT LIKE "*%" AND d.`name` NOT LIKE "(ยาผู้ป่วย)%" AND nd.hospdrugcode IS NULL  
             ORDER BY d.NAME,d.strength,d.units');
 
         return view('check.drug_cat',compact('drug'));            
@@ -187,7 +187,7 @@ class CheckController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3           
             LEFT JOIN (SELECT dc.* FROM hrims.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
                 FROM hrims.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ("A","U","E"))) nd ON nd.hospdrugcode=d.icode             
-            WHERE d.istatus = "Y" AND d.`name` NOT LIKE "*%" AND nd.unitprice <> d.unitprice
+            WHERE d.istatus = "Y" AND d.`name` NOT LIKE "*%" AND d.`name` NOT LIKE "(ยาผู้ป่วย)%" AND nd.unitprice <> d.unitprice
             ORDER BY d.NAME,d.strength,d.units');
 
         return view('check.drug_cat',compact('drug'));            
@@ -209,7 +209,7 @@ class CheckController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM hrims.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
                 FROM hrims.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ("A","U","E"))) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = "Y" AND d.`name` NOT LIKE "*%" AND nd.tmtid <> d3.ref_code
+            WHERE d.istatus = "Y" AND d.`name` NOT LIKE "*%" AND d.`name` NOT LIKE "(ยาผู้ป่วย)%" AND nd.tmtid <> d3.ref_code
             ORDER BY d.NAME,d.strength,d.units');
 
         return view('check.drug_cat',compact('drug'));            
@@ -231,7 +231,7 @@ class CheckController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM hrims.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
                 FROM hrims.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ("A","U","E"))) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = "Y" AND d.`name` NOT LIKE "*%" AND nd.ndc24 <> d2.ref_code
+            WHERE d.istatus = "Y" AND d.`name` NOT LIKE "*%" AND d.`name` NOT LIKE "(ยาผู้ป่วย)%" AND nd.ndc24 <> d2.ref_code
             ORDER BY d.NAME,d.strength,d.units');
 
         return view('check.drug_cat',compact('drug'));            
@@ -253,7 +253,7 @@ class CheckController extends Controller
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
             LEFT JOIN (SELECT dc.* FROM hrims.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
                 FROM hrims.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ("A","U","E"))) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = "Y" AND d.`name` NOT LIKE "*%" AND d2.ref_code LIKE "4%"
+            WHERE d.istatus = "Y" AND d.`name` NOT LIKE "*%" AND d.`name` NOT LIKE "(ยาผู้ป่วย)%" AND d2.ref_code LIKE "4%"
             ORDER BY d.NAME,d.strength,d.units');
 
         return view('check.drug_cat',compact('drug'));            

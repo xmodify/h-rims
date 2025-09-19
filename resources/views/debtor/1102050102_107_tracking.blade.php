@@ -127,7 +127,7 @@
              <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
              </button>
              </div>         
-             <form action={{ url('finance_debtor/1102050102_107/tracking_insert') }} method="POST" enctype="multipart/form-data">
+             <form action={{ url('debtor/1102050102_107/tracking_insert') }} method="POST" enctype="multipart/form-data">
                  @csrf
                  <div class="modal-body">
                      <input type="hidden" id="vn" name="vn" value="{{ $row->vn }}">       

@@ -275,9 +275,9 @@ Route::delete('debtor/1102050102_106_delete',[DebtorController::class,'_11020501
 Route::put('debtor/1102050102_106/update/{vn}',[DebtorController::class,'_1102050102_106_update']);
 Route::get('debtor/1102050102_106_daily_pdf',[DebtorController::class,'_1102050102_106_daily_pdf']);
 Route::get('debtor/1102050102_106_indiv_excel',[DebtorController::class,'_1102050102_106_indiv_excel']);
-Route::get('debtor/1102050102_106/tracking/{vn}',[Finance_DebtorController::class,'_1102050102_106_tracking']);
-Route::post('debtor/1102050102_106/tracking_insert',[Finance_DebtorController::class,'_1102050102_106_tracking_insert']);
-Route::put('debtor/1102050102_106/tracking_update/{tracking_id}',[Finance_DebtorController::class,'_1102050102_106_tracking_update']);
+Route::get('debtor/1102050102_106/tracking/{vn}',[DebtorController::class,'_1102050102_106_tracking']);
+Route::post('debtor/1102050102_106/tracking_insert',[DebtorController::class,'_1102050102_106_tracking_insert']);
+Route::put('debtor/1102050102_106/tracking_update/{tracking_id}',[DebtorController::class,'_1102050102_106_tracking_update']);
 Route::match(['get','post'],'debtor/1102050102_108',[DebtorController::class,'_1102050102_108']);
 Route::post('debtor/1102050102_108_confirm',[DebtorController::class,'_1102050102_108_confirm']);
 Route::delete('debtor/1102050102_108_delete',[DebtorController::class,'_1102050102_108_delete']);

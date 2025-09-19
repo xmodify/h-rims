@@ -50,7 +50,7 @@
             <form action="{{ url('debtor/1102050102_106_delete') }}" method="POST" enctype="multipart/form-data">
                 @csrf   
                 @method('DELETE')
-                <table id="debtor" class="table table-bordered table-striped my-3">
+                <table id="debtor" class="table table-bordered table-striped my-3" width="100%">
                     <thead>
                     <tr class="table-success">
                         <th class="text-center">
@@ -61,7 +61,7 @@
                     </tr>
                     <tr class="table-success">
                         <th class="text-center"><input type="checkbox" onClick="toggle_d(this)"> All</th> 
-                        <th class="text-center"width="6%" >วันที่</th>
+                        <th class="text-center" width="6%" >วันที่</th>
                         <th class="text-center">HN</th> 
                         <th class="text-center">ชื่อ-สกุล</th>
                         <th class="text-center">เบอร์โทร</th>
@@ -133,7 +133,7 @@
                     </tr>   
                 </table>
             </form>
-            <table class="table table-bordered ">
+            <table class="table table-bordered " width="100%">
                 <thead>
                 <tr class="table-primary" >
                     <th class="text-center">รหัสผังบัญชี</th>
@@ -185,7 +185,7 @@
                 <div style="overflow-x:auto;">
                     <form action="{{ url('debtor/1102050102_106_confirm') }}" method="POST" enctype="multipart/form-data">
                         @csrf                
-                        <table id="debtor_search" class="table table-bordered table-striped my-3">
+                        <table id="debtor_search" class="table table-bordered table-striped my-3" width="100%">
                             <thead>
                             <tr class="table-secondary">
                                 <th class="text-center">

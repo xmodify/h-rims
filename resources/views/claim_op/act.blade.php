@@ -3,6 +3,8 @@
 @section('content')
 
 <div class="container-fluid"> 
+  <canvas id="sum_month" style="max-height: 400px;"></canvas> 
+  <hr> 
   <form method="POST" enctype="multipart/form-data">
       @csrf            
       <div class="row" >
@@ -132,3 +134,67 @@
   </script>
 @endpush
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    new Chart(document.querySelector('#sum_month'), {
+      type: 'bar',
+      data: {
+        labels: <?php echo json_encode($month); ?>,
+        datasets: [
+          {
+            label: 'เรียกเก็บ',
+            data: <?php echo json_encode($claim_price); ?>,
+            backgroundColor: 'rgba(255, 159, 64, 0.2)',
+            borderColor: 'rgb(255, 159, 64)',
+            borderWidth: 1
+          },
+          {
+            label: 'ชดเชย',
+            data: <?php echo json_encode($receive_total); ?>,
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            borderColor: 'rgb(75, 192, 192)',
+            borderWidth: 1
+          }
+        ]
+      }, 
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.dataset.label + ': ' + context.formattedValue + ' บาท';
+              }
+            }
+          },
+          datalabels: {
+            anchor: 'end',
+            align: 'end',
+            color: '#000',
+            font: {
+              weight: 'bold',
+              size: 10
+            },
+            formatter: (value) => value.toLocaleString() + ' บาท'
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return value.toLocaleString() + ' บาท';
+              }
+            }
+          }
+        }
+      },
+      plugins: [ChartDataLabels] // ✅ เปิดใช้งาน plugin datalabels ตรงนี้
+    });
+  });
+</script>

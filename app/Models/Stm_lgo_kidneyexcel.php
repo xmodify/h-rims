@@ -20,7 +20,7 @@ class Stm_lgo_kidneyexcel extends Model
         'pt_name',
         'dep',  
         'datetimeadm',
-        'compensate_total',
+        'compensate_kidney',
         'note',        
     ];
     public $timestamps = false;   

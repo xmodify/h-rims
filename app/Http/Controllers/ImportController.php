@@ -42,227 +42,241 @@ public function stm_ucs(Request $request)
     }
 
 //stm_ucs_save--------------------------------------------------------------------------------------------------
-public function stm_ucs_save(Request $request)
+    public function stm_ucs_save(Request $request)
     {
-        // Set the execution time to 300 seconds (5 minutes)
-        set_time_limit(300);
+        @set_time_limit(300);
+        @ini_set('memory_limit', '1024M');
 
-        $this->validate($request, [
-            'file' => 'required|file|mimes:xls,xlsx'
-        ]);
-        $the_file = $request->file('file');
-        $file_name = $request->file('file')->getClientOriginalName(); //ชื่อไฟล์
-
-        try{
-            $spreadsheet = IOFactory::load($the_file->getRealPath());
-            $sheet        = $spreadsheet->setActiveSheetIndex(2); //sheet
-            $row_limit    = $sheet->getHighestDataRow();
-            // $column_limit = $sheet->getHighestDataColumn();
-            $row_range    = range( '15', $row_limit );
-            $startcount = '15';
-            
-            $data = array();
-            foreach ($row_range as $row ) {
-
-                $adm = $sheet->getCell( 'H' . $row )->getValue(); 
-                $day = substr($adm, 0, 2);
-                $mo = substr($adm, 3, 2);
-                $year = substr($adm, 6, 4);     
-                $admtime = substr($adm, 11, 8);  
-                $datetimeadm = $year.'-'.$mo.'-'.$day.' '.$admtime;
-
-                $dch = $sheet->getCell( 'I' . $row )->getValue();
-                $dchday = substr($dch, 0, 2);
-                $dchmo = substr($dch, 3, 2);
-                $dchyear = substr($dch, 6, 4);
-                $dchtime = substr($dch, 11, 8);
-                $datetimedch = $dchyear.'-'.$dchmo.'-'.$dchday.' '.$dchtime;    
-                
-                $s = $sheet->getCell( 'S' . $row )->getValue();
-                $del_s = str_replace(",","",$s);
-                $t = $sheet->getCell( 'T' . $row )->getValue();
-                $del_t = str_replace(",","",$t);
-                $u = $sheet->getCell( 'U' . $row )->getValue();
-                $del_u = str_replace(",","",$u);
-                $v= $sheet->getCell( 'V' . $row )->getValue();
-                $del_v = str_replace(",","",$v);
-                $w = $sheet->getCell( 'W' . $row )->getValue();
-                $del_w = str_replace(",","",$w);
-                $x = $sheet->getCell( 'X' . $row )->getValue();
-                $del_x = str_replace(",","",$x);
-                $y = $sheet->getCell( 'Y' . $row )->getValue();
-                $del_y = str_replace(",","",$y);
-                $z = $sheet->getCell( 'Z' . $row )->getValue();
-                $del_z = str_replace(",","",$z);
-                $aa = $sheet->getCell( 'AA' . $row )->getValue();
-                $del_aa = str_replace(",","",$aa);
-                $ab = $sheet->getCell( 'AB' . $row )->getValue();
-                $del_ab = str_replace(",","",$ab);
-                $ac = $sheet->getCell( 'AC' . $row )->getValue();
-                $del_ac = str_replace(",","",$ac);
-                $ad = $sheet->getCell( 'AD' . $row )->getValue();
-                $del_ad = str_replace(",","",$ad);
-                $ae = $sheet->getCell( 'AE' . $row )->getValue();
-                $del_ae = str_replace(",","",$ae);
-                $af = $sheet->getCell( 'AF' . $row )->getValue();
-                $del_af = str_replace(",","",$af);
-                $ag = $sheet->getCell( 'AG' . $row )->getValue();
-                $del_ag = str_replace(",","",$ag);
-                $ah = $sheet->getCell( 'AH' . $row )->getValue();
-                $del_ah = str_replace(",","",$ah);
-                $ai = $sheet->getCell( 'AI' . $row )->getValue();
-                $del_ai = str_replace(",","",$ai);
-                $aj = $sheet->getCell( 'AJ' . $row )->getValue();
-                $del_aj = str_replace(",","",$aj);
-                $ak = $sheet->getCell( 'AK' . $row )->getValue();
-                $del_ak = str_replace(",","",$ak);
-                $al = $sheet->getCell( 'AL' . $row )->getValue();
-                $del_al = str_replace(",","",$al);
-
-                    $data[] = [
-                        'repno'                         =>$sheet->getCell( 'A' . $row )->getValue(),
-                        'no'                            =>$sheet->getCell( 'B' . $row )->getValue(),
-                        'tran_id'                       =>$sheet->getCell( 'C' . $row )->getValue(),
-                        'hn'                            =>$sheet->getCell( 'D' . $row )->getValue(),
-                        'an'                            =>$sheet->getCell( 'E' . $row )->getValue(),
-                        'cid'                           =>$sheet->getCell( 'F' . $row )->getValue(),
-                        'pt_name'                       =>$sheet->getCell( 'G' . $row )->getValue(),                    
-                        'datetimeadm'                   =>$datetimeadm,
-                        'vstdate'                       => date('Y-m-d', strtotime($datetimeadm)),
-                        'vsttime'                       => date('H:i:s', strtotime($datetimeadm)),
-                        'datetimedch'                   =>$datetimedch,
-                        'dchdate'                       => date('Y-m-d', strtotime($datetimedch)),
-                        'dchtime'                       => date('H:i:s', strtotime($datetimedch)),
-                        'maininscl'                     =>$sheet->getCell( 'J' . $row )->getValue(),
-                        'projcode'                      =>$sheet->getCell( 'K' . $row )->getValue(),
-                        'charge'                        =>$sheet->getCell( 'L' . $row )->getValue(),
-                        'fund_ip_act'                   =>$sheet->getCell( 'M' . $row )->getValue(),
-                        'fund_ip_adjrw'                 =>$sheet->getCell( 'N' . $row )->getValue(),
-                        'fund_ip_ps'                    =>$sheet->getCell( 'O' . $row )->getValue(),
-                        'fund_ip_ps2'                   =>$sheet->getCell( 'P' . $row )->getValue(),
-                        'fund_ip_ccuf'                  =>$sheet->getCell( 'Q' . $row )->getValue(),
-                        'fund_ip_adjrw2'                =>$sheet->getCell( 'R' . $row )->getValue(),
-                        'fund_ip_payrate'               =>$del_s,
-                        'fund_ip_salary'                =>$del_t,
-                        'fund_compensate_salary'        =>$del_u,
-                        'receive_op'                    =>$del_v,
-                        'receive_ip_compensate_cal'     =>$del_w,
-                        'receive_ip_compensate_pay'     =>$del_x,
-                        'receive_hc_hc'                 =>$del_y,
-                        'receive_hc_drug'               =>$del_z,
-                        'receive_ae_ae'                 =>$del_aa,
-                        'receive_ae_drug'               =>$del_ab,
-                        'receive_inst'                  =>$del_ac,
-                        'receive_dmis_compensate_cal'   =>$del_ad,
-                        'receive_dmis_compensate_pay'   =>$del_ae,
-                        'receive_dmis_drug'             =>$del_af,
-                        'receive_palliative'            =>$del_ag,
-                        'receive_dmishd'                =>$del_ah,
-                        'receive_pp'                    =>$del_ai,
-                        'receive_fs'                    =>$del_aj,
-                        'receive_opbkk'                 =>$del_ak,
-                        'receive_total'                 =>$del_al, 
-                        'va'                            =>$sheet->getCell( 'AM' . $row )->getValue(), 
-                        'covid'                         =>$sheet->getCell( 'AN' . $row )->getValue(), 
-                        'resources'                     =>$sheet->getCell( 'AO' . $row )->getValue(), 
-                        'stm_filename'                  =>$file_name,
-                    ]; 
-                $startcount++;            
-            }
-
-            $for_insert = array_chunk($data, 1000);
-            foreach ($for_insert as $key => $data_) {
-                Stm_ucsexcel::insert($data_);                 
-            }
-        }    
-        catch (Exception $e) {
-            $error_code = $e->errorInfo[1];
-            return back()->withErrors('There was a problem uploading the data!');
+        if ($request->hasFile('files')) {
+            $this->validate($request, [
+                // 'files'   => 'required|array',
+                'files'   => 'required|array|max:5', // ✅ จำกัดไม่เกิน 5 ไฟล์                
+                'files.*' => 'file|mimes:xls,xlsx'
+            ]);
+            $files = $request->file('files');
+        } elseif ($request->hasFile('file')) {
+            $this->validate($request, [
+                'file' => 'required|file|mimes:xls,xlsx'
+            ]);
+            $files = [$request->file('file')];
+        } else {
+            return back()->withErrors('กรุณาเลือกไฟล์ .xls หรือ .xlsx');
         }
-    // ***************************************************************************************************************************** 
-            $stm_ucsexcel=Stm_ucsexcel::whereNotNull('charge')->get();
-                
-            foreach ($stm_ucsexcel as $key => $value) {
-                $check = Stm_ucs::where('repno','=',$value->repno)->where('no','=',$value->no)->count();
-                if ($check > 0) {
-                    Stm_ucs::where('repno','=',$value->repno)->where('no','=',$value->no)->update([
-                            'datetimeadm'                   => $value->datetimeadm,
-                            'vstdate'                       => $value->vstdate,
-                            'vsttime'                       => $value->vsttime,
-                            'datetimedch'                   => $value->datetimedch,
-                            'dchdate'                       => $value->dchdate,
-                            'dchtime'                       => $value->dchtime,
-                            'charge'                        => $value->charge,
-                            'receive_op'                    => $value->receive_op,
-                            'receive_ip_compensate_pay'     => $value->receive_ip_compensate_pay,
-                            'receive_hc_hc'                 => $value->receive_hc_hc,
-                            'receive_hc_drug'               => $value->receive_hc_drug,
-                            'receive_ae_ae'                 => $value->receive_ae_ae,
-                            'receive_ae_drug'               => $value->receive_ae_drug,
-                            'receive_inst'                  => $value->receive_inst,
-                            'receive_dmis_compensate_pay'   => $value->receive_dmis_compensate_pay,
-                            'receive_dmis_drug'             => $value->receive_dmis_drug,
-                            'receive_palliative'            => $value->receive_palliative,
-                            'receive_pp'                    => $value->receive_pp,
-                            'receive_fs'                    => $value->receive_fs,                     
-                            'receive_total'                 => $value->receive_total,
-                            'stm_filename'                  => $value->stm_filename
-                            ]); 
-                } else {
+
+        $allUploadedNames = [];
+
+        try {
+            // ✅ เคลียร์ตารางชั่วคราว “นอก” transaction
+            Stm_ucsexcel::truncate();
+
+            DB::transaction(function () use ($files, &$allUploadedNames) {
+                foreach ($files as $the_file) {
+                    $file_name = $the_file->getClientOriginalName();
+                    $allUploadedNames[] = $file_name;
+
+                    $spreadsheet = IOFactory::load($the_file->getRealPath());
+                    $sheet       = $spreadsheet->setActiveSheetIndex(2);
+
+                    $row_limit = $sheet->getHighestDataRow();
+                    $row_range = range(15, $row_limit);
+
+                    $data = [];
+                    foreach ($row_range as $row) {
+                        $adm = $sheet->getCell('H' . $row)->getValue();
+                        $day = substr($adm, 0, 2);
+                        $mo  = substr($adm, 3, 2);
+                        $yr  = substr($adm, 6, 4);
+                        $tm  = substr($adm, 11, 8);
+                        $datetimeadm = $yr.'-'.$mo.'-'.$day.' '.$tm;
+
+                        $dch = $sheet->getCell('I' . $row)->getValue();
+                        $dchday = substr($dch, 0, 2);
+                        $dchmo  = substr($dch, 3, 2);
+                        $dchyr  = substr($dch, 6, 4);
+                        $dchtm  = substr($dch, 11, 8);
+                        $datetimedch = $dchyr.'-'.$dchmo.'-'.$dchday.' '.$dchtm;
+
+                        $cols = ['S','T','U','V','W','X','Y','Z','AA','AB','AC','AD','AE','AF','AG','AH','AI','AJ','AK','AL'];
+                        $clean = [];
+                        foreach ($cols as $c) {
+                            $val = $sheet->getCell($c.$row)->getValue();
+                            $clean[$c] = str_replace(',', '', $val);
+                        }
+
+                        $data[] = [
+                            'repno' => $sheet->getCell('A'.$row)->getValue(),
+                            'no' => $sheet->getCell('B'.$row)->getValue(),
+                            'tran_id' => $sheet->getCell('C'.$row)->getValue(),
+                            'hn' => $sheet->getCell('D'.$row)->getValue(),
+                            'an' => $sheet->getCell('E'.$row)->getValue(),
+                            'cid' => $sheet->getCell('F'.$row)->getValue(),
+                            'pt_name' => $sheet->getCell('G'.$row)->getValue(),
+
+                            'datetimeadm' => $datetimeadm,
+                            'vstdate' => date('Y-m-d', strtotime($datetimeadm)),
+                            'vsttime' => date('H:i:s', strtotime($datetimeadm)),
+
+                            'datetimedch' => $datetimedch,
+                            'dchdate' => date('Y-m-d', strtotime($datetimedch)),
+                            'dchtime' => date('H:i:s', strtotime($datetimedch)),
+
+                            'maininscl' => $sheet->getCell('J'.$row)->getValue(),
+                            'projcode' => $sheet->getCell('K'.$row)->getValue(),
+                            'charge' => $sheet->getCell('L'.$row)->getValue(),
+                            'fund_ip_act' => $sheet->getCell('M'.$row)->getValue(),
+                            'fund_ip_adjrw' => $sheet->getCell('N'.$row)->getValue(),
+                            'fund_ip_ps' => $sheet->getCell('O'.$row)->getValue(),
+                            'fund_ip_ps2' => $sheet->getCell('P'.$row)->getValue(),
+                            'fund_ip_ccuf' => $sheet->getCell('Q'.$row)->getValue(),
+                            'fund_ip_adjrw2' => $sheet->getCell('R'.$row)->getValue(),
+
+                            'fund_ip_payrate' => $clean['S'],
+                            'fund_ip_salary' => $clean['T'],
+                            'fund_compensate_salary' => $clean['U'],
+                            'receive_op' => $clean['V'],
+                            'receive_ip_compensate_cal' => $clean['W'],
+                            'receive_ip_compensate_pay' => $clean['X'],
+                            'receive_hc_hc' => $clean['Y'],
+                            'receive_hc_drug' => $clean['Z'],
+                            'receive_ae_ae' => $clean['AA'],
+                            'receive_ae_drug' => $clean['AB'],
+                            'receive_inst' => $clean['AC'],
+                            'receive_dmis_compensate_cal' => $clean['AD'],
+                            'receive_dmis_compensate_pay' => $clean['AE'],
+                            'receive_dmis_drug' => $clean['AF'],
+                            'receive_palliative' => $clean['AG'],
+                            'receive_dmishd' => $clean['AH'],
+                            'receive_pp' => $clean['AI'],
+                            'receive_fs' => $clean['AJ'],
+                            'receive_opbkk' => $clean['AK'],
+                            'receive_total' => $clean['AL'],
+
+                            'va' => $sheet->getCell('AM'.$row)->getValue(),
+                            'covid' => $sheet->getCell('AN'.$row)->getValue(),
+                            'resources' => $sheet->getCell('AO'.$row)->getValue(),
+                            'stm_filename' => $file_name,
+                        ];
+                    }
+
+                    foreach (array_chunk($data, 1000) as $chunk) {
+                        Stm_ucsexcel::insert($chunk);
+                    }
+
+                    unset($data, $spreadsheet, $sheet);
+                    gc_collect_cycles();
+                }
+
+                // ===== รวมลงตารางจริง =====
+                $stm_ucsexcel = Stm_ucsexcel::whereNotNull('charge')->get();
+
+                foreach ($stm_ucsexcel as $value) {
+                    $exists = Stm_ucs::where('repno', $value->repno)
+                                    ->where('no', $value->no)
+                                    ->exists();
+
+                    if ($exists) {
+                        Stm_ucs::where('repno', $value->repno)
+                            ->where('no', $value->no)
+                            ->update([
+                                'datetimeadm' => $value->datetimeadm,
+                                'vstdate' => $value->vstdate,
+                                'vsttime' => $value->vsttime,
+                                'datetimedch' => $value->datetimedch,
+                                'dchdate' => $value->dchdate,
+                                'dchtime' => $value->dchtime,
+                                'charge' => $value->charge,
+                                'receive_op' => $value->receive_op,
+                                'receive_ip_compensate_pay' => $value->receive_ip_compensate_pay,
+                                'receive_hc_hc' => $value->receive_hc_hc,
+                                'receive_hc_drug' => $value->receive_hc_drug,
+                                'receive_ae_ae' => $value->receive_ae_ae,
+                                'receive_ae_drug' => $value->receive_ae_drug,
+                                'receive_inst' => $value->receive_inst,
+                                'receive_dmis_compensate_pay' => $value->receive_dmis_compensate_pay,
+                                'receive_dmis_drug' => $value->receive_dmis_drug,
+                                'receive_palliative' => $value->receive_palliative,
+                                'receive_pp' => $value->receive_pp,
+                                'receive_fs' => $value->receive_fs,
+                                'receive_total' => $value->receive_total,
+                                'stm_filename' => $value->stm_filename,
+                            ]);
+                    } else {
                         $add = new Stm_ucs();
-                        $add->repno                         = $value->repno;
-                        $add->no                            = $value->no;
-                        $add->tran_id                       = $value->tran_id;
-                        $add->hn                            = $value->hn;
-                        $add->an                            = $value->an;
-                        $add->cid                           = $value->cid;
-                        $add->pt_name                       = $value->pt_name;                   
-                        $add->datetimeadm                   = $value->datetimeadm;
-                        $add->vstdate                       = $value->vstdate;
-                        $add->vsttime                       = $value->vsttime;
-                        $add->datetimedch                   = $value->datetimedch;
-                        $add->dchdate                       = $value->dchdate;
-                        $add->dchtime                       = $value->dchtime;
-                        $add->maininscl                     = $value->maininscl;
-                        $add->projcode                      = $value->projcode;
-                        $add->charge                        = $value->charge;
-                        $add->fund_ip_act                   = $value->fund_ip_act;
-                        $add->fund_ip_adjrw                 = $value->fund_ip_adjrw;
-                        $add->fund_ip_ps                    = $value->fund_ip_ps;
-                        $add->fund_ip_ps2                   = $value->fund_ip_ps2;
-                        $add->fund_ip_ccuf                  = $value->fund_ip_ccuf;
-                        $add->fund_ip_adjrw2                = $value->fund_ip_adjrw2;
-                        $add->fund_ip_payrate               = $value->fund_ip_payrate;
-                        $add->fund_ip_salary                = $value->fund_ip_salary;
-                        $add->fund_compensate_salary        = $value->fund_compensate_salary;
-                        $add->receive_op                    = $value->receive_op;
-                        $add->receive_ip_compensate_cal     = $value->receive_ip_compensate_cal;
-                        $add->receive_ip_compensate_pay     = $value->receive_ip_compensate_pay;
-                        $add->receive_hc_hc                 = $value->receive_hc_hc;
-                        $add->receive_hc_drug               = $value->receive_hc_drug;
-                        $add->receive_ae_ae                 = $value->receive_ae_ae;
-                        $add->receive_ae_drug               = $value->receive_ae_drug;
-                        $add->receive_inst                  = $value->receive_inst;
-                        $add->receive_dmis_compensate_cal   = $value->receive_dmis_compensate_cal;
-                        $add->receive_dmis_compensate_pay   = $value->receive_dmis_compensate_pay;
-                        $add->receive_dmis_drug             = $value->receive_dmis_drug;
-                        $add->receive_palliative            = $value->receive_palliative;
-                        $add->receive_dmishd                = $value->receive_dmishd;
-                        $add->receive_pp                    = $value->receive_pp;
-                        $add->receive_fs                    = $value->receive_fs;
-                        $add->receive_opbkk                 = $value->receive_opbkk;
-                        $add->receive_total                 = $value->receive_total;
-                        $add->va                            = $value->va;
-                        $add->covid                         = $value->covid;
-                        $add->resources                     = $value->resources;
-                        $add->stm_filename                  = $value->stm_filename;
-                        $add->save(); 
-                } 
-            }                
-                Stm_ucsexcel::truncate(); 
-            
-        return redirect()->route('stm_ucs')->with('success',$file_name);         
+                        // ... (ตั้งค่าฟิลด์เหมือนเดิมทั้งหมด)
+                        $add->repno = $value->repno;
+                        $add->no = $value->no;
+                        $add->tran_id = $value->tran_id;
+                        $add->hn = $value->hn;
+                        $add->an = $value->an;
+                        $add->cid = $value->cid;
+                        $add->pt_name = $value->pt_name;
+
+                        $add->datetimeadm = $value->datetimeadm;
+                        $add->vstdate = $value->vstdate;
+                        $add->vsttime = $value->vsttime;
+
+                        $add->datetimedch = $value->datetimedch;
+                        $add->dchdate = $value->dchdate;
+                        $add->dchtime = $value->dchtime;
+
+                        $add->maininscl = $value->maininscl;
+                        $add->projcode = $value->projcode;
+                        $add->charge = $value->charge;
+
+                        $add->fund_ip_act = $value->fund_ip_act;
+                        $add->fund_ip_adjrw = $value->fund_ip_adjrw;
+                        $add->fund_ip_ps = $value->fund_ip_ps;
+                        $add->fund_ip_ps2 = $value->fund_ip_ps2;
+                        $add->fund_ip_ccuf = $value->fund_ip_ccuf;
+                        $add->fund_ip_adjrw2 = $value->fund_ip_adjrw2;
+
+                        $add->fund_ip_payrate = $value->fund_ip_payrate;
+                        $add->fund_ip_salary = $value->fund_ip_salary;
+                        $add->fund_compensate_salary = $value->fund_compensate_salary;
+
+                        $add->receive_op = $value->receive_op;
+                        $add->receive_ip_compensate_cal = $value->receive_ip_compensate_cal;
+                        $add->receive_ip_compensate_pay = $value->receive_ip_compensate_pay;
+                        $add->receive_hc_hc = $value->receive_hc_hc;
+                        $add->receive_hc_drug = $value->receive_hc_drug;
+                        $add->receive_ae_ae = $value->receive_ae_ae;
+                        $add->receive_ae_drug = $value->receive_ae_drug;
+                        $add->receive_inst = $value->receive_inst;
+                        $add->receive_dmis_compensate_cal = $value->receive_dmis_compensate_cal;
+                        $add->receive_dmis_compensate_pay = $value->receive_dmis_compensate_pay;
+                        $add->receive_dmis_drug = $value->receive_dmis_drug;
+                        $add->receive_palliative = $value->receive_palliative;
+                        $add->receive_dmishd = $value->receive_dmishd;
+                        $add->receive_pp = $value->receive_pp;
+                        $add->receive_fs = $value->receive_fs;
+                        $add->receive_opbkk = $value->receive_opbkk;
+                        $add->receive_total = $value->receive_total;
+
+                        $add->va = $value->va;
+                        $add->covid = $value->covid;
+                        $add->resources = $value->resources;
+                        $add->stm_filename = $value->stm_filename;
+                        $add->save();
+                    }
+                }
+            }, 1); // retry=1 พอ (หากเจอ Deadlock จะลองซ้ำ 1 ครั้ง)
+
+            // ✅ ลบชั่วคราว “นอก” transaction อีกครั้งหลังจบงาน
+            Stm_ucsexcel::truncate();
+
+            $msg = 'อัปโหลดสำเร็จ: ' . implode(', ', $allUploadedNames);
+            return redirect()->route('stm_ucs')->with('success', $msg);
+
+        } catch (\Throwable $e) {
+            // ไม่เรียก rollBack เอง เพราะใช้ DB::transaction แล้ว
+            // ถ้าจะกันเหนียวเพิ่มเติม:
+            // if (DB::transactionLevel() > 0) DB::rollBack();
+
+            // ส่งข้อความ error ออกไปดูต้นเหตุจริง
+            return back()->withErrors('มีปัญหาในการนำเข้า: '.$e->getMessage());
+        }
     }
+
 //stm_ucs_detail---------------------------------------------------------------------------------------------------------------------
 public function stm_ucs_detail(Request $request)
     {  
@@ -308,94 +322,112 @@ public function stm_ucs_kidney(Request $request)
     }
 
 //ucs_kidney_save------------------------------------------------------------------------------------------------------------------
-public function stm_ucs_kidney_save(Request $request)
+    public function stm_ucs_kidney_save(Request $request)
     {
-        // Set the execution time to 300 seconds (5 minutes)
         set_time_limit(300);
 
         $this->validate($request, [
-            'file' => 'required|file|mimes:xls,xlsx'
+            'files'   => 'required|array|max:5',
+            'files.*' => 'file|mimes:xls,xlsx'
         ]);
-        $the_file = $request->file('file');
-        $file_name = $request->file('file')->getClientOriginalName(); //ชื่อไฟล์
 
-        try{
-            $spreadsheet = IOFactory::load($the_file->getRealPath());
-            $sheet        = $spreadsheet->setActiveSheetIndex(0); //sheet
-            $row_limit    = $sheet->getHighestDataRow();
-            // $column_limit = $sheet->getHighestDataColumn();
-            $row_range    = range( '11', $row_limit );
-            $startcount = '11';
-            
-            $data = array();
-            foreach ($row_range as $row ) {
+        $uploadedFiles = $request->file('files');
+        $allFileNames  = [];
 
-                $adm = $sheet->getCell( 'K' . $row )->getValue(); 
-                $day = substr($adm, 0, 2);
-                $mo = substr($adm, 3, 2);
-                $year = substr($adm, 6, 4);     
-                $admtime = substr($adm, 11, 8);  
-                $datetimeadm = $year.'-'.$mo.'-'.$day.' '.$admtime;     
+        // ✅ TRUNCATE นอกทรานแซกชัน (ก่อนเริ่ม)
+        Stm_ucs_kidneyexcel::truncate();
 
-                $data[] = [
-                    'no'                    =>$sheet->getCell( 'A' . $row )->getValue(),
-                    'repno'                 =>$sheet->getCell( 'C' . $row )->getValue(),
-                    'hn'                    =>$sheet->getCell( 'E' . $row )->getValue(),
-                    'an'                    =>$sheet->getCell( 'F' . $row )->getValue(),
-                    'cid'                   =>$sheet->getCell( 'G' . $row )->getValue(),
-                    'pt_name'               =>$sheet->getCell( 'H' . $row )->getValue(),
-                    'datetimeadm'           =>$datetimeadm,
-                    'hd_type'               =>$sheet->getCell( 'N' . $row )->getValue(), 
-                    'charge_total'          =>$sheet->getCell( 'P' . $row )->getValue(), 
-                    'receive_total'         =>$sheet->getCell( 'Q' . $row )->getValue(),                 
-                    'note'                  =>$sheet->getCell( 'S' . $row )->getValue(),                    
-                    'stm_filename'          =>$file_name,
-                ]; 
-                $startcount++;            
+        DB::beginTransaction();
+        try {
+            // ---------- โหลดไฟล์ทั้งหมด ลงตาราง staging ----------
+            foreach ($uploadedFiles as $the_file) {
+                $file_name       = $the_file->getClientOriginalName();
+                $allFileNames[]  = $file_name;
+
+                $spreadsheet = IOFactory::load($the_file->getRealPath());
+                $sheet       = $spreadsheet->setActiveSheetIndex(0);
+                $row_limit   = $sheet->getHighestDataRow();
+
+                $data = [];
+                for ($row = 11; $row <= $row_limit; $row++) {
+                    $adm = $sheet->getCell('K'.$row)->getValue();
+                    $day  = substr($adm, 0, 2);
+                    $mo   = substr($adm, 3, 2);
+                    $year = substr($adm, 6, 4);
+                    $tm   = substr($adm, 11, 8);
+                    $datetimeadm = $year.'-'.$mo.'-'.$day.' '.$tm;
+
+                    $data[] = [
+                        'no'            => $sheet->getCell('A'.$row)->getValue(),
+                        'repno'         => $sheet->getCell('C'.$row)->getValue(),
+                        'hn'            => $sheet->getCell('E'.$row)->getValue(),
+                        'an'            => $sheet->getCell('F'.$row)->getValue(),
+                        'cid'           => $sheet->getCell('G'.$row)->getValue(),
+                        'pt_name'       => $sheet->getCell('H'.$row)->getValue(),
+                        'datetimeadm'   => $datetimeadm,
+                        'hd_type'       => $sheet->getCell('N'.$row)->getValue(),
+                        'charge_total'  => $sheet->getCell('P'.$row)->getValue(),
+                        'receive_total' => $sheet->getCell('Q'.$row)->getValue(),
+                        'note'          => $sheet->getCell('S'.$row)->getValue(),
+                        'stm_filename'  => $file_name,
+                    ];
+                }
+
+                foreach (array_chunk($data, 1000) as $chunk) {
+                    Stm_ucs_kidneyexcel::insert($chunk);
+                }
             }
 
-            $for_insert = array_chunk($data, 1000);
-            foreach ($for_insert as $key => $data_) {
-                Stm_ucs_kidneyexcel::insert($data_);                 
+            // ---------- merge เข้าตารางหลัก ----------
+            $rows = Stm_ucs_kidneyexcel::whereNotNull('charge_total')->get();
+
+            foreach ($rows as $value) {
+                $exists = Stm_ucs_kidney::where('repno', $value->repno)
+                            ->where('no', $value->no)
+                            ->exists();
+
+                if ($exists) {
+                    Stm_ucs_kidney::where('repno', $value->repno)
+                        ->where('no', $value->no)
+                        ->update([
+                            'datetimeadm'   => $value->datetimeadm,
+                            'charge_total'  => $value->charge_total,
+                            'receive_total' => $value->receive_total,
+                            'stm_filename'  => $value->stm_filename,
+                        ]);
+                } else {
+                    Stm_ucs_kidney::create([
+                        'no'            => $value->no,
+                        'repno'         => $value->repno,
+                        'hn'            => $value->hn,
+                        'an'            => $value->an,
+                        'cid'           => $value->cid,
+                        'pt_name'       => $value->pt_name,
+                        'datetimeadm'   => $value->datetimeadm,
+                        'hd_type'       => $value->hd_type,
+                        'charge_total'  => $value->charge_total,
+                        'receive_total' => $value->receive_total,
+                        'note'          => $value->note,
+                        'stm_filename'  => $value->stm_filename,
+                    ]);
+                }
             }
-        }    
-        catch (Exception $e) {
-            $error_code = $e->errorInfo[1];
+
+            DB::commit();
+
+            // ✅ TRUNCATE นอกทรานแซกชัน (หลัง commit แล้ว)
+            Stm_ucs_kidneyexcel::truncate();
+
+            return redirect()
+                ->route('stm_ucs_kidney')
+                ->with('success', implode(', ', $allFileNames));
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
             return back()->withErrors('There was a problem uploading the data!');
         }
-    // ***************************************************************************************************************************** 
-            $stm_ucs_kidneyexcel=Stm_ucs_kidneyexcel::whereNotNull('charge_total')->get();
-                        
-            foreach ($stm_ucs_kidneyexcel as $key => $value) {
-                $check = Stm_ucs_kidney::where('repno','=',$value->repno)->where('no','=',$value->no)->count();
-                if ($check > 0) {
-                    Stm_ucs_kidney::where('repno','=',$value->repno)->where('no','=',$value->no)->update([
-                            'datetimeadm'        => $value->datetimeadm,
-                            'charge_total'       => $value->charge_total,
-                            'receive_total'      => $value->receive_total,
-                            'stm_filename'       => $value->stm_filename
-                            ]); 
-                } else {
-                        $add = new Stm_ucs_kidney();
-                        $add->no                    = $value->no;
-                        $add->repno                 = $value->repno;
-                        $add->hn                    = $value->hn;   
-                        $add->an                    = $value->an;                
-                        $add->cid                   = $value->cid;
-                        $add->pt_name               = $value->pt_name;                    
-                        $add->datetimeadm           = $value->datetimeadm;                   
-                        $add->hd_type               = $value->hd_type;
-                        $add->charge_total          = $value->charge_total;
-                        $add->receive_total         = $value->receive_total;
-                        $add->note                  = $value->note;                   
-                        $add->stm_filename          = $value->stm_filename;
-                        $add->save(); 
-                } 
-            }                
-                Stm_ucs_kidneyexcel::truncate(); 
-            
-        return redirect()->route('stm_ucs_kidney')->with('success',$file_name);
     }
+       
 //stm_ucs_kidneydetail------------------------------------------------------------------------------------------------------------------
 public function stm_ucs_kidneydetail(Request $request)
     {  
@@ -427,144 +459,160 @@ public function stm_ofc(Request $request)
 //stm_ofc_save---------------------------------------------------------------------------------------------------------------------------
     public function stm_ofc_save(Request $request)
     {
-        // Set the execution time to 300 seconds (5 minutes)
         set_time_limit(300);
 
+        // ✅ เปลี่ยน validation ให้รองรับหลายไฟล์และจำกัดไม่เกิน 5
         $this->validate($request, [
-            'file' => 'required|file|mimes:xls,xlsx'
+            'files'   => 'required|array|max:5',
+            'files.*' => 'file|mimes:xls,xlsx'
         ]);
-        $the_file = $request->file('file');
-        $file_name = $request->file('file')->getClientOriginalName(); //ชื่อไฟล์
 
-        try{
-            $spreadsheet = IOFactory::load($the_file->getRealPath());
-            // $sheet        = $spreadsheet->getActiveSheet();
-            $sheet        = $spreadsheet->setActiveSheetIndex(0);
-            $row_limit    = $sheet->getHighestDataRow();
-            $column_limit = $sheet->getHighestDataColumn();
-            $row_range    = range( '12', $row_limit );
-            // $row_range    = range( "!", $row_limit );
-            $column_range = range( 'T', $column_limit );
-            $startcount = '12';
-            // $row_range_namefile  = range( 9, $sheet->getCell( 'A' . $row )->getValue() );
-            $data = array();
-            foreach ($row_range as $row ) {
+        $uploadedFiles = $request->file('files');
+        $allFileNames  = [];
 
-                $adm = $sheet->getCell( 'G' . $row )->getValue();          
-                $day = substr($adm, 0, 2);
-                $mo = substr($adm, 3, 2);
-                $year = substr($adm, 7, 4);
-                $admtime = substr($adm, 12, 8);
-                $datetimeadm = $year.'-'.$mo.'-'.$day.' '.$admtime;
+        // ✅ TRUNCATE นอกทรานแซกชัน (ก่อนเริ่มทำงาน)
+        Stm_ofcexcel::truncate();
 
-                $dch = $sheet->getCell( 'H' . $row )->getValue();            
-                $dchday = substr($dch, 0, 2);
-                $dchmo = substr($dch, 3, 2);
-                $dchyear = substr($dch, 7, 4);
-                $dchtime = substr($dch, 12, 8);
-                $datetimedch = $dchyear.'-'.$dchmo.'-'.$dchday.' '.$dchtime;            
+        DB::beginTransaction();
+        try {
+            // ------------------ อ่านทุกไฟล์ -> ใส่ staging ------------------
+            foreach ($uploadedFiles as $the_file) {
+                $file_name       = $the_file->getClientOriginalName();
+                $allFileNames[]  = $file_name;
+
+                $spreadsheet = IOFactory::load($the_file->getRealPath());
+                $sheet       = $spreadsheet->setActiveSheetIndex(0);
+                $row_limit   = $sheet->getHighestDataRow();
+
+                $data = [];
+                for ($row = 12; $row <= $row_limit; $row++) {
+
+                    // รูปแบบเดิมของคุณ (G,H): dd/mm/yyyy HH:MM:SS
+                    $adm  = $sheet->getCell('G'.$row)->getValue();
+                    $day  = substr($adm, 0, 2);
+                    $mo   = substr($adm, 3, 2);
+                    $year = substr($adm, 7, 4);
+                    $tm   = substr($adm, 12, 8);
+                    $datetimeadm = $year.'-'.$mo.'-'.$day.' '.$tm;
+
+                    $dch     = $sheet->getCell('H'.$row)->getValue();
+                    $dchday  = substr($dch, 0, 2);
+                    $dchmo   = substr($dch, 3, 2);
+                    $dchyear = substr($dch, 7, 4);
+                    $dchtime = substr($dch, 12, 8);
+                    $datetimedch = $dchyear.'-'.$dchmo.'-'.$dchday.' '.$dchtime;
 
                     $data[] = [
-                        'repno'             =>$sheet->getCell( 'A' . $row )->getValue(),
-                        'no'                =>$sheet->getCell( 'B' . $row )->getValue(),
-                        'hn'                =>$sheet->getCell( 'C' . $row )->getValue(),
-                        'an'                =>$sheet->getCell( 'D' . $row )->getValue(),
-                        'cid'               =>$sheet->getCell( 'E' . $row )->getValue(),
-                        'pt_name'           =>$sheet->getCell( 'F' . $row )->getValue(),
-                        'datetimeadm'       =>$datetimeadm,
-                        'vstdate'           => date('Y-m-d', strtotime($datetimeadm)),
-                        'vsttime'           => date('H:i:s', strtotime($datetimeadm)),
-                        'datetimedch'       =>$datetimedch,
-                        'dchdate'           => date('Y-m-d', strtotime($datetimedch)),
-                        'dchtime'           => date('H:i:s', strtotime($datetimedch)),
-                        'projcode'          =>$sheet->getCell( 'I' . $row )->getValue(),
-                        'adjrw'             =>$sheet->getCell( 'J' . $row )->getValue(),
-                        'charge'            =>$sheet->getCell( 'K' . $row )->getValue(),
-                        'act'               =>$sheet->getCell( 'L' . $row )->getValue(),
-                        'receive_room'      =>$sheet->getCell( 'M' . $row )->getValue(),
-                        'receive_instument' =>$sheet->getCell( 'N' . $row )->getValue(),
-                        'receive_drug'      =>$sheet->getCell( 'O' . $row )->getValue(),
-                        'receive_treatment' =>$sheet->getCell( 'P' . $row )->getValue(),
-                        'receive_car'       =>$sheet->getCell( 'Q' . $row )->getValue(),
-                        'receive_waitdch'   =>$sheet->getCell( 'R' . $row )->getValue(),
-                        'receive_other'     =>$sheet->getCell( 'S' . $row )->getValue(),
-                        'receive_total'     =>$sheet->getCell( 'T' . $row )->getValue(),
-                        'stm_filename'      =>$file_name,
-                    ]; 
-                $startcount++;            
+                        'repno'              => $sheet->getCell('A'.$row)->getValue(),
+                        'no'                 => $sheet->getCell('B'.$row)->getValue(),
+                        'hn'                 => $sheet->getCell('C'.$row)->getValue(),
+                        'an'                 => $sheet->getCell('D'.$row)->getValue(),
+                        'cid'                => $sheet->getCell('E'.$row)->getValue(),
+                        'pt_name'            => $sheet->getCell('F'.$row)->getValue(),
+                        'datetimeadm'        => $datetimeadm,
+                        'vstdate'            => date('Y-m-d', strtotime($datetimeadm)),
+                        'vsttime'            => date('H:i:s', strtotime($datetimeadm)),
+                        'datetimedch'        => $datetimedch,
+                        'dchdate'            => date('Y-m-d', strtotime($datetimedch)),
+                        'dchtime'            => date('H:i:s', strtotime($datetimedch)),
+                        'projcode'           => $sheet->getCell('I'.$row)->getValue(),
+                        'adjrw'              => $sheet->getCell('J'.$row)->getValue(),
+                        'charge'             => $sheet->getCell('K'.$row)->getValue(),
+                        'act'                => $sheet->getCell('L'.$row)->getValue(),
+                        'receive_room'       => $sheet->getCell('M'.$row)->getValue(),
+                        'receive_instument'  => $sheet->getCell('N'.$row)->getValue(),
+                        'receive_drug'       => $sheet->getCell('O'.$row)->getValue(),
+                        'receive_treatment'  => $sheet->getCell('P'.$row)->getValue(),
+                        'receive_car'        => $sheet->getCell('Q'.$row)->getValue(),
+                        'receive_waitdch'    => $sheet->getCell('R'.$row)->getValue(),
+                        'receive_other'      => $sheet->getCell('S'.$row)->getValue(),
+                        'receive_total'      => $sheet->getCell('T'.$row)->getValue(),
+                        'stm_filename'       => $file_name,
+                    ];
+                }
+
+                foreach (array_chunk($data, 1000) as $chunk) {
+                    Stm_ofcexcel::insert($chunk);
+                }
             }
 
-            $for_insert = array_chunk($data, 1000);
-            foreach ($for_insert as $key => $data_) {
-                Stm_ofcexcel::insert($data_);                 
+            // ------------------ merge -> ตารางหลัก ------------------
+            $stm_ofcexcel = Stm_ofcexcel::whereNotNull('charge')
+                ->where('charge', '<>', 'เรียกเก็บ')
+                ->get();
+
+            foreach ($stm_ofcexcel as $value) {
+                $exists = Stm_ofc::where('repno', $value->repno)
+                            ->where('no', $value->no)
+                            ->exists();
+
+                if ($exists) {
+                    Stm_ofc::where('repno', $value->repno)
+                        ->where('no', $value->no)
+                        ->update([
+                            'datetimeadm'       => $value->datetimeadm,
+                            'vstdate'           => $value->vstdate,
+                            'vsttime'           => $value->vsttime,
+                            'datetimedch'       => $value->datetimedch,
+                            'dchdate'           => $value->dchdate,
+                            'dchtime'           => $value->dchtime,
+                            'charge'            => $value->charge,
+                            'receive_room'      => $value->receive_room,
+                            'receive_instument' => $value->receive_instument,
+                            'receive_drug'      => $value->receive_drug,
+                            'receive_treatment' => $value->receive_treatment,
+                            'receive_car'       => $value->receive_car,
+                            'receive_waitdch'   => $value->receive_waitdch,
+                            'receive_other'     => $value->receive_other,
+                            'receive_total'     => $value->receive_total,
+                            'stm_filename'      => $value->stm_filename,
+                        ]);
+                } else {
+                    Stm_ofc::create([
+                        'repno'              => $value->repno,
+                        'no'                 => $value->no,
+                        'hn'                 => $value->hn,
+                        'an'                 => $value->an,
+                        'cid'                => $value->cid,
+                        'pt_name'            => $value->pt_name,
+                        'datetimeadm'        => $value->datetimeadm,
+                        'vstdate'            => $value->vstdate,
+                        'vsttime'            => $value->vsttime,
+                        'datetimedch'        => $value->datetimedch,
+                        'dchdate'            => $value->dchdate,
+                        'dchtime'            => $value->dchtime,
+                        'projcode'           => $value->projcode,
+                        'adjrw'              => $value->adjrw,
+                        'charge'             => $value->charge,
+                        'act'                => $value->act,
+                        'receive_room'       => $value->receive_room,
+                        'receive_instument'  => $value->receive_instument,
+                        'receive_drug'       => $value->receive_drug,
+                        'receive_treatment'  => $value->receive_treatment,
+                        'receive_car'        => $value->receive_car,
+                        'receive_waitdch'    => $value->receive_waitdch,
+                        'receive_other'      => $value->receive_other,
+                        'receive_total'      => $value->receive_total,
+                        'stm_filename'       => $value->stm_filename,
+                    ]);
+                }
             }
 
-        } 
-        
-        catch (Exception $e) {
-            $error_code = $e->errorInfo[1];
+            DB::commit();
+
+            // ✅ TRUNCATE นอกทรานแซกชัน (หลัง commit)
+            Stm_ofcexcel::truncate();
+
+            return redirect()
+                ->route('stm_ofc')
+                ->with('success', implode(', ', $allFileNames));
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
             return back()->withErrors('There was a problem uploading the data!');
         }
-    // ***************************************************************************************************************************** 
-            $stm_ofcexcel=Stm_ofcexcel::whereNotNull('charge')
-                        ->Where('charge','<>', 'เรียกเก็บ')->get();
-                        
-            foreach ($stm_ofcexcel as $key => $value) {
-
-                $check = Stm_ofc::where('repno','=',$value->repno)->where('no','=',$value->no)->count();
-                    if ($check > 0) {
-                        Stm_ofc::where('repno','=',$value->repno)->where('no','=',$value->no)->update([
-                            'datetimeadm'           => $value->datetimeadm,
-                            'vstdate'               => $value->vstdate,
-                            'vsttime'               => $value->vsttime,
-                            'datetimedch'           => $value->datetimedch,
-                            'dchdate'               => $value->dchdate,
-                            'dchtime'               => $value->dchtime,
-                            'charge'                => $value->charge,
-                            'receive_room'          => $value->receive_room,
-                            'receive_instument'     => $value->receive_instument,
-                            'receive_drug'          => $value->receive_drug,
-                            'receive_treatment'     => $value->receive_treatment,
-                            'receive_car'           => $value->receive_car,
-                            'receive_waitdch'       => $value->receive_waitdch,
-                            'receive_other'         => $value->receive_other,
-                            'receive_total'         => $value->receive_total,
-                            'stm_filename'          => $value->stm_filename
-                        ]); 
-                    } else {
-                        $add = new Stm_ofc();
-                        $add->repno                 = $value->repno;
-                        $add->no                    = $value->no;
-                        $add->hn                    = $value->hn;
-                        $add->an                    = $value->an;
-                        $add->cid                   = $value->cid;
-                        $add->pt_name               = $value->pt_name;
-                        $add->datetimeadm           = $value->datetimeadm;
-                        $add->vstdate               = $value->vstdate;
-                        $add->vsttime               = $value->vsttime;
-                        $add->datetimedch           = $value->datetimedch;
-                        $add->dchdate               = $value->dchdate;
-                        $add->dchtime               = $value->dchtime;
-                        $add->projcode              = $value->projcode;
-                        $add->adjrw                 = $value->adjrw;
-                        $add->charge                = $value->charge;
-                        $add->act                   = $value->act;
-                        $add->receive_room          = $value->receive_room;
-                        $add->receive_instument     = $value->receive_instument;
-                        $add->receive_drug          = $value->receive_drug;
-                        $add->receive_treatment     = $value->receive_treatment;
-                        $add->receive_car           = $value->receive_car;
-                        $add->receive_waitdch       = $value->receive_waitdch;
-                        $add->receive_other         = $value->receive_other;
-                        $add->receive_total         = $value->receive_total;
-                        $add->stm_filename          = $value->stm_filename;
-                        $add->save(); 
-                    } 
-            }                
-            Stm_ofcexcel::truncate(); 
-            
-        return redirect()->route('stm_ofc')->with('success',$file_name);
     }
+
 //stm_ofc_detail----------------------------------------------------------------------------------------------------------------
 public function stm_ofc_detail(Request $request)
     {  
@@ -606,78 +654,106 @@ public function stm_ofc_detail(Request $request)
 
 //stm_ofc_kidney_save-------------------------------------------------------------------------------------------------------------
     public function stm_ofc_kidney_save(Request $request)
-    {  
-        // Set the execution time to 300 seconds (5 minutes)
+    {
         set_time_limit(300);
 
-            $tar_file_ = $request->file; 
-            $file_ = $request->file('file')->getClientOriginalName(); //ชื่อไฟล์
-            $filename = pathinfo($file_, PATHINFO_FILENAME);
-            $extension = pathinfo($file_, PATHINFO_EXTENSION);  
-            $xmlString = file_get_contents(($tar_file_));
-            $xmlObject = simplexml_load_string($xmlString);
-            $json = json_encode($xmlObject); 
-            $result = json_decode($json, true); 
-        
-            // dd($result);
+        $this->validate($request, [
+            'files'   => 'required|array|max:5',
+            'files.*' => 'file|mimes:zip'
+        ]);
 
-            @$hcode = $result['hcode'];
-            @$hname = $result['hname'];
-            @$STMdoc = $result['STMdoc'];       
-            @$TBills = $result['TBills']['TBill']; 
-            $bills_       = @$TBills;  
-            
-                foreach ($bills_ as $value) {                     
-                    $hreg = $value['hreg'];
-                    $station = $value['station'];
-                    $invno = $value['invno'];
-                    $hn = $value['hn']; 
-                    $amount = $value['amount'];
-                    $paid = $value['paid'];
-                    $rid = $value['rid']; 
-                    $HDflag = $value['HDflag']; 
-                    $dttran = $value['dttran'];                     
-                    $dttranDate = explode("T",$value['dttran']);
-                    $dttdate = $dttranDate[0];
-                    $dtttime = $dttranDate[1];
-                    $checkc = Stm_ofc_kidney::where('hn', $hn)->where('vstdate', $dttdate)->count();
-                    if ( $checkc > 0) {
-                        Stm_ofc_kidney::where('hn', $hn)->where('vstdate', $dttdate) 
-                            ->update([   
-                                'invno'            => $invno,
-                                'dttran'           => $dttran, 
-                                'hn'               => $hn, 
-                                'amount'           => $amount, 
-                                'paid'             => $paid,
-                                'rid'              => $rid, 
-                                'HDflag'           => $HDflag,
-                                'vstdate'          => $dttdate,
-                                'vsttime'          => $dtttime                                
-                            ]);
+        $uploadedFiles = $request->file('files');
+        $docNames = [];
 
-                    } else {
-                            Stm_ofc_kidney::insert([                            
-    
-                                'hcode'              => @$hcode, 
-                                'hname'              => @$hname,
-                                'stmdoc'             => @$STMdoc,
-                                'station'            => $station, 
-                                'hreg'               => $hreg,
-                                'hn'                 => $hn,
-                                'invno'              => $invno,
-                                'dttran'             => $dttran,
-                                'vstdate'            => $dttdate,
-                                'vsttime'            => $dtttime,
-                                'amount'             => $amount,
-                                'paid'               => $paid,
-                                'rid'                => $rid,
-                                'hdflag'             => $HDflag
-                            ]);   
-                    } 
-                }            
-        
-        return redirect()->route('stm_ofc_kidney')->with('success',@$STMdoc);
+        DB::beginTransaction();
+        try {
+            foreach ($uploadedFiles as $zipFile) {
+                $zip = new \ZipArchive;
+                if ($zip->open($zipFile->getRealPath()) === true) {
+                    for ($i = 0; $i < $zip->numFiles; $i++) {
+                        $stat = $zip->statIndex($i);
+                        $innerName = $stat['name'];
+
+                        // สนใจเฉพาะไฟล์ .xml ด้านใน
+                        if (strtolower(pathinfo($innerName, PATHINFO_EXTENSION)) !== 'xml') {
+                            continue;
+                        }
+
+                        $xmlString = $zip->getFromIndex($i);
+                        if (!$xmlString) continue;
+
+                        $xmlObject = simplexml_load_string($xmlString, 'SimpleXMLElement', LIBXML_NOCDATA);
+                        if ($xmlObject === false) continue;
+
+                        $json   = json_encode($xmlObject);
+                        $result = json_decode($json, true);
+
+                        $hcode  = $result['hcode']  ?? null;
+                        $hname  = $result['hname']  ?? null;
+                        $STMdoc = $result['STMdoc'] ?? $innerName;
+                        $docNames[] = $STMdoc;
+
+                        $TBills = $result['TBills']['TBill'] ?? [];
+                        if (!empty($TBills) && array_keys($TBills) !== range(0, count($TBills) - 1)) {
+                            $TBills = [$TBills];
+                        }
+
+                        foreach ($TBills as $bill) {
+                            $hn     = $bill['hn'] ?? null;
+                            $dttran = $bill['dttran'] ?? null;
+                            $dttdate = null; $dtttime = null;
+                            if ($dttran && strpos($dttran, 'T') !== false) {
+                                [$dttdate, $dtttime] = explode('T', $dttran, 2);
+                            }
+
+                            if ($hn && $dttdate) {
+                                $exists = Stm_ofc_kidney::where('hn', $hn)
+                                            ->where('vstdate', $dttdate)
+                                            ->exists();
+
+                                $dataRow = [
+                                    'hcode'   => $hcode,
+                                    'hname'   => $hname,
+                                    'stmdoc'  => $STMdoc,
+                                    'station' => $bill['station'] ?? null,
+                                    'hreg'    => $bill['hreg'] ?? null,
+                                    'hn'      => $hn,
+                                    'invno'   => $bill['invno'] ?? null,
+                                    'dttran'  => $dttran,
+                                    'vstdate' => $dttdate,
+                                    'vsttime' => $dtttime,
+                                    'amount'  => $bill['amount'] ?? null,
+                                    'paid'    => $bill['paid'] ?? null,
+                                    'rid'     => $bill['rid'] ?? null,
+                                    'hdflag'  => $bill['HDflag'] ?? ($bill['hdflag'] ?? null),
+                                ];
+
+                                if ($exists) {
+                                    Stm_ofc_kidney::where('hn', $hn)
+                                        ->where('vstdate', $dttdate)
+                                        ->update($dataRow);
+                                } else {
+                                    Stm_ofc_kidney::insert($dataRow);
+                                }
+                            }
+                        }
+                    }
+                    $zip->close();
+                }
+            }
+
+            DB::commit();
+
+            return redirect()
+                ->route('stm_ofc_kidney')
+                ->with('success', implode(', ', $docNames));
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return back()->withErrors('There was a problem uploading the data!');
+        }
     }
+               
 //stm_ofc_kidneydetail-------------------------------------------------------------------------------------------------------------------
 public function stm_ofc_kidneydetail(Request $request)
     {  
@@ -707,210 +783,232 @@ public function stm_ofc_kidneydetail(Request $request)
 //stm_lgo_save------------------------------------------------------------------------------------------------------------------------
     public function stm_lgo_save(Request $request)
     {
-        // Set the execution time to 300 seconds (5 minutes)
         set_time_limit(300);
 
+        // ✅ รองรับหลายไฟล์ จำกัดไม่เกิน 5
         $this->validate($request, [
-            'file' => 'required|file|mimes:xls,xlsx'
+            'files'   => 'required|array|max:5',
+            'files.*' => 'file|mimes:xls,xlsx',
         ]);
-        $the_file = $request->file('file');
-        $file_name = $request->file('file')->getClientOriginalName(); //ชื่อไฟล์
 
-        try{
-            $spreadsheet = IOFactory::load($the_file->getRealPath());
-            $sheet        = $spreadsheet->setActiveSheetIndex(0); //sheet
-            $row_limit    = $sheet->getHighestDataRow();
-            // $column_limit = $sheet->getHighestDataColumn();
-            $row_range    = range( '8', $row_limit );
-            $startcount = '8';
-            
-            $data = array();
-            foreach ($row_range as $row ) {
+        $uploadedFiles = $request->file('files');
+        $allFileNames  = [];
 
-                $adm = $sheet->getCell( 'I' . $row )->getValue(); 
-                $day = substr($adm, 0, 2);
-                $mo = substr($adm, 3, 2);
-                $year = substr($adm, 6, 4);     
-                $admtime = substr($adm, 11, 8);  
-                $datetimeadm = $year.'-'.$mo.'-'.$day.' '.$admtime;
+        // ✅ ล้าง staging นอกทรานแซกชัน (ก่อนเริ่ม)
+        Stm_lgoexcel::truncate();
 
-                $dch = $sheet->getCell( 'J' . $row )->getValue();
-                $dchday = substr($dch, 0, 2);
-                $dchmo = substr($dch, 3, 2);
-                $dchyear = substr($dch, 6, 4);
-                $dchtime = substr($dch, 11, 8);
-                $datetimedch = $dchyear.'-'.$dchmo.'-'.$dchday.' '.$dchtime;          
+        DB::beginTransaction();
+        try {
+
+            // ------------------ อ่านทุกไฟล์ -> ใส่ staging ------------------
+            foreach ($uploadedFiles as $the_file) {
+                $file_name       = $the_file->getClientOriginalName();
+                $allFileNames[]  = $file_name;
+
+                $spreadsheet = IOFactory::load($the_file->getRealPath());
+                $sheet       = $spreadsheet->setActiveSheetIndex(0);
+                $row_limit   = $sheet->getHighestDataRow();
+
+                $data = [];
+                for ($row = 8; $row <= $row_limit; $row++) {
+
+                    // I,J เป็น datetime แบบ dd/mm/YYYY HH:MM:SS (ตามโค้ดเดิม)
+                    $adm  = $sheet->getCell('I'.$row)->getValue();
+                    $day  = substr($adm, 0, 2);
+                    $mo   = substr($adm, 3, 2);
+                    $year = substr($adm, 6, 4);
+                    $tm   = substr($adm, 11, 8);
+                    $datetimeadm = $year.'-'.$mo.'-'.$day.' '.$tm;
+
+                    $dch     = $sheet->getCell('J'.$row)->getValue();
+                    $dchday  = substr($dch, 0, 2);
+                    $dchmo   = substr($dch, 3, 2);
+                    $dchyear = substr($dch, 6, 4);
+                    $dchtime = substr($dch, 11, 8);
+                    $datetimedch = $dchyear.'-'.$dchmo.'-'.$dchday.' '.$dchtime;
 
                     $data[] = [
-                        'repno'                 =>$sheet->getCell( 'A' . $row )->getValue(),
-                        'no'                    =>$sheet->getCell( 'B' . $row )->getValue(),
-                        'tran_id'               =>$sheet->getCell( 'C' . $row )->getValue(),
-                        'hn'                    =>$sheet->getCell( 'D' . $row )->getValue(),
-                        'an'                    =>$sheet->getCell( 'E' . $row )->getValue(),
-                        'cid'                   =>$sheet->getCell( 'F' . $row )->getValue(),
-                        'pt_name'               =>$sheet->getCell( 'G' . $row )->getValue(),
-                        'dep'                   =>$sheet->getCell( 'H' . $row )->getValue(),
-                        'datetimeadm'           =>$datetimeadm,
-                        'vstdate'               => date('Y-m-d', strtotime($datetimeadm)),
-                        'vsttime'               => date('H:i:s', strtotime($datetimeadm)),
-                        'datetimedch'           =>$datetimedch,
-                        'dchdate'               => date('Y-m-d', strtotime($datetimedch)),
-                        'dchtime'               => date('H:i:s', strtotime($datetimedch)),
-                        'compensate_treatment'  =>$sheet->getCell( 'K' . $row )->getValue(),
-                        'compensate_nhso'       =>$sheet->getCell( 'L' . $row )->getValue(),
-                        'error_code'            =>$sheet->getCell( 'M' . $row )->getValue(),
-                        'fund'                  =>$sheet->getCell( 'N' . $row )->getValue(),
-                        'service_type'          =>$sheet->getCell( 'O' . $row )->getValue(),
-                        'refer'                 =>$sheet->getCell( 'P' . $row )->getValue(),
-                        'have_rights'           =>$sheet->getCell( 'Q' . $row )->getValue(),
-                        'use_rights'            =>$sheet->getCell( 'R' . $row )->getValue(),
-                        'main_rights'           =>$sheet->getCell( 'S' . $row )->getValue(),
-                        'secondary_rights'      =>$sheet->getCell( 'T' . $row )->getValue(),
-                        'href'                  =>$sheet->getCell( 'U' . $row )->getValue(),
-                        'hcode'                 =>$sheet->getCell( 'V' . $row )->getValue(),
-                        'prov1'                 =>$sheet->getCell( 'W' . $row )->getValue(),
-                        'hospcode'              =>$sheet->getCell( 'X' . $row )->getValue(),
-                        'hospname'              =>$sheet->getCell( 'Y' . $row )->getValue(),
-                        'proj'                  =>$sheet->getCell( 'Z' . $row )->getValue(),
-                        'pa'                    =>$sheet->getCell( 'AA' . $row )->getValue(),
-                        'drg'                   =>$sheet->getCell( 'AB' . $row )->getValue(),
-                        'rw'                    =>$sheet->getCell( 'AC' . $row )->getValue(),
-                        'charge_treatment'      =>$sheet->getCell( 'AD' . $row )->getValue(),
-                        'charge_pp'             =>$sheet->getCell( 'AE' . $row )->getValue(),
-                        'withdraw'              =>$sheet->getCell( 'AF' . $row )->getValue(),
-                        'non_withdraw'          =>$sheet->getCell( 'AG' . $row )->getValue(),
-                        'pay'                   =>$sheet->getCell( 'AH' . $row )->getValue(),
-                        'payrate'               =>$sheet->getCell( 'AI' . $row )->getValue(),
-                        'delay'                 =>$sheet->getCell( 'AJ' . $row )->getValue(),
-                        'delay_percent'         =>$sheet->getCell( 'AK' . $row )->getValue(),
-                        'ccuf'                  =>$sheet->getCell( 'AL' . $row )->getValue(),
-                        'adjrw'                 =>$sheet->getCell( 'AM' . $row )->getValue(),
-                        'act'                   =>$sheet->getCell( 'AN' . $row )->getValue(),
-                        'case_iplg'             =>$sheet->getCell( 'AO' . $row )->getValue(),
-                        'case_oplg'             =>$sheet->getCell( 'AP' . $row )->getValue(),
-                        'case_palg'             =>$sheet->getCell( 'AQ' . $row )->getValue(),
-                        'case_inslg'            =>$sheet->getCell( 'AR' . $row )->getValue(),
-                        'case_otlg'             =>$sheet->getCell( 'AS' . $row )->getValue(),
-                        'case_pp'               =>$sheet->getCell( 'AT' . $row )->getValue(),
-                        'case_drug'             =>$sheet->getCell( 'AU' . $row )->getValue(),
-                        'deny_iplg'             =>$sheet->getCell( 'AV' . $row )->getValue(),
-                        'deny_oplg'             =>$sheet->getCell( 'AW' . $row )->getValue(),
-                        'deny_palg'             =>$sheet->getCell( 'AX' . $row )->getValue(),
-                        'deny_inslg'            =>$sheet->getCell( 'AY' . $row )->getValue(),
-                        'deny_otlg'             =>$sheet->getCell( 'AZ' . $row )->getValue(),
-                        'ors'                   =>$sheet->getCell( 'BA' . $row )->getValue(),
-                        'va'                    =>$sheet->getCell( 'BB' . $row )->getValue(),
-                        'audit_results'         =>$sheet->getCell( 'BC' . $row )->getValue(),
-                        'stm_filename'          =>$file_name,
-                    ]; 
-                $startcount++;            
+                        'repno'                => $sheet->getCell('A'.$row)->getValue(),
+                        'no'                   => $sheet->getCell('B'.$row)->getValue(),
+                        'tran_id'              => $sheet->getCell('C'.$row)->getValue(),
+                        'hn'                   => $sheet->getCell('D'.$row)->getValue(),
+                        'an'                   => $sheet->getCell('E'.$row)->getValue(),
+                        'cid'                  => $sheet->getCell('F'.$row)->getValue(),
+                        'pt_name'              => $sheet->getCell('G'.$row)->getValue(),
+                        'dep'                  => $sheet->getCell('H'.$row)->getValue(),
+                        'datetimeadm'          => $datetimeadm,
+                        'vstdate'              => date('Y-m-d', strtotime($datetimeadm)),
+                        'vsttime'              => date('H:i:s', strtotime($datetimeadm)),
+                        'datetimedch'          => $datetimedch,
+                        'dchdate'              => date('Y-m-d', strtotime($datetimedch)),
+                        'dchtime'              => date('H:i:s', strtotime($datetimedch)),
+                        'compensate_treatment' => $sheet->getCell('K'.$row)->getValue(),
+                        'compensate_nhso'      => $sheet->getCell('L'.$row)->getValue(),
+                        'error_code'           => $sheet->getCell('M'.$row)->getValue(),
+                        'fund'                 => $sheet->getCell('N'.$row)->getValue(),
+                        'service_type'         => $sheet->getCell('O'.$row)->getValue(),
+                        'refer'                => $sheet->getCell('P'.$row)->getValue(),
+                        'have_rights'          => $sheet->getCell('Q'.$row)->getValue(),
+                        'use_rights'           => $sheet->getCell('R'.$row)->getValue(),
+                        'main_rights'          => $sheet->getCell('S'.$row)->getValue(),
+                        'secondary_rights'     => $sheet->getCell('T'.$row)->getValue(),
+                        'href'                 => $sheet->getCell('U'.$row)->getValue(),
+                        'hcode'                => $sheet->getCell('V'.$row)->getValue(),
+                        'prov1'                => $sheet->getCell('W'.$row)->getValue(),
+                        'hospcode'             => $sheet->getCell('X'.$row)->getValue(),
+                        'hospname'             => $sheet->getCell('Y'.$row)->getValue(),
+                        'proj'                 => $sheet->getCell('Z'.$row)->getValue(),
+                        'pa'                   => $sheet->getCell('AA'.$row)->getValue(),
+                        'drg'                  => $sheet->getCell('AB'.$row)->getValue(),
+                        'rw'                   => $sheet->getCell('AC'.$row)->getValue(),
+                        'charge_treatment'     => $sheet->getCell('AD'.$row)->getValue(),
+                        'charge_pp'            => $sheet->getCell('AE'.$row)->getValue(),
+                        'withdraw'             => $sheet->getCell('AF'.$row)->getValue(),
+                        'non_withdraw'         => $sheet->getCell('AG'.$row)->getValue(),
+                        'pay'                  => $sheet->getCell('AH'.$row)->getValue(),
+                        'payrate'              => $sheet->getCell('AI'.$row)->getValue(),
+                        'delay'                => $sheet->getCell('AJ'.$row)->getValue(),
+                        'delay_percent'        => $sheet->getCell('AK'.$row)->getValue(),
+                        'ccuf'                 => $sheet->getCell('AL'.$row)->getValue(),
+                        'adjrw'                => $sheet->getCell('AM'.$row)->getValue(),
+                        'act'                  => $sheet->getCell('AN'.$row)->getValue(),
+                        'case_iplg'            => $sheet->getCell('AO'.$row)->getValue(),
+                        'case_oplg'            => $sheet->getCell('AP'.$row)->getValue(),
+                        'case_palg'            => $sheet->getCell('AQ'.$row)->getValue(),
+                        'case_inslg'           => $sheet->getCell('AR'.$row)->getValue(),
+                        'case_otlg'            => $sheet->getCell('AS'.$row)->getValue(),
+                        'case_pp'              => $sheet->getCell('AT'.$row)->getValue(),
+                        'case_drug'            => $sheet->getCell('AU'.$row)->getValue(),
+                        'deny_iplg'            => $sheet->getCell('AV'.$row)->getValue(),
+                        'deny_oplg'            => $sheet->getCell('AW'.$row)->getValue(),
+                        'deny_palg'            => $sheet->getCell('AX'.$row)->getValue(),
+                        'deny_inslg'           => $sheet->getCell('AY'.$row)->getValue(),
+                        'deny_otlg'            => $sheet->getCell('AZ'.$row)->getValue(),
+                        'ors'                  => $sheet->getCell('BA'.$row)->getValue(),
+                        'va'                   => $sheet->getCell('BB'.$row)->getValue(),
+                        'audit_results'        => $sheet->getCell('BC'.$row)->getValue(),
+                        'stm_filename'         => $file_name,
+                    ];
+                }
+
+                foreach (array_chunk($data, 1000) as $chunk) {
+                    Stm_lgoexcel::insert($chunk);
+                }
             }
 
-            $for_insert = array_chunk($data, 1000);
-            foreach ($for_insert as $key => $data_) {
-                Stm_lgoexcel::insert($data_);                 
+            // ------------------ merge -> ตารางหลัก ------------------
+            $stm_lgoexcel = Stm_lgoexcel::whereNotNull('charge_treatment')->get();
+
+            foreach ($stm_lgoexcel as $value) {
+                $exists = Stm_lgo::where('repno', $value->repno)
+                            ->where('no', $value->no)
+                            ->exists();
+
+                if ($exists) {
+                    Stm_lgo::where('repno', $value->repno)
+                        ->where('no', $value->no)
+                        ->update([
+                            'datetimeadm'          => $value->datetimeadm,
+                            'vstdate'              => $value->vstdate,
+                            'vsttime'              => $value->vsttime,
+                            'datetimedch'          => $value->datetimedch,
+                            'dchdate'              => $value->dchdate,
+                            'dchtime'              => $value->dchtime,
+                            'compensate_treatment' => $value->compensate_treatment,
+                            'compensate_nhso'      => $value->compensate_nhso,
+                            'charge_treatment'     => $value->charge_treatment,
+                            'charge_pp'            => $value->charge_pp,
+                            'payrate'              => $value->payrate,
+                            'case_iplg'            => $value->case_iplg,
+                            'case_oplg'            => $value->case_oplg,
+                            'case_palg'            => $value->case_palg,
+                            'case_inslg'           => $value->case_inslg,
+                            'case_otlg'            => $value->case_otlg,
+                            'case_pp'              => $value->case_pp,
+                            'case_drug'            => $value->case_drug,
+                            'stm_filename'         => $value->stm_filename,
+                        ]);
+                } else {
+                    Stm_lgo::create([
+                        'repno'                => $value->repno,
+                        'no'                   => $value->no,
+                        'tran_id'              => $value->tran_id,
+                        'hn'                   => $value->hn,
+                        'an'                   => $value->an,
+                        'cid'                  => $value->cid,
+                        'pt_name'              => $value->pt_name,
+                        'dep'                  => $value->dep,
+                        'datetimeadm'          => $value->datetimeadm,
+                        'vstdate'              => $value->vstdate,
+                        'vsttime'              => $value->vsttime,
+                        'datetimedch'          => $value->datetimedch,
+                        'dchdate'              => $value->dchdate,
+                        'dchtime'              => $value->dchtime,
+                        'compensate_treatment' => $value->compensate_treatment,
+                        'compensate_nhso'      => $value->compensate_nhso,
+                        'error_code'           => $value->error_code,
+                        'fund'                 => $value->fund,
+                        'service_type'         => $value->service_type,
+                        'refer'                => $value->refer,
+                        'have_rights'          => $value->have_rights,
+                        'use_rights'           => $value->use_rights,
+                        'main_rights'          => $value->main_rights,
+                        'secondary_rights'     => $value->secondary_rights,
+                        'href'                 => $value->href,
+                        'hcode'                => $value->hcode,
+                        'prov1'                => $value->prov1,
+                        'hospcode'             => $value->hospcode,
+                        'hospname'             => $value->hospname,
+                        'proj'                 => $value->proj,
+                        'pa'                   => $value->pa,
+                        'drg'                  => $value->drg,
+                        'rw'                   => $value->rw,
+                        'charge_treatment'     => $value->charge_treatment,
+                        'charge_pp'            => $value->charge_pp,
+                        'withdraw'             => $value->withdraw,
+                        'non_withdraw'         => $value->non_withdraw,
+                        'pay'                  => $value->pay,
+                        'payrate'              => $value->payrate,
+                        'delay'                => $value->delay,
+                        'delay_percent'        => $value->delay_percent,
+                        'ccuf'                 => $value->ccuf,
+                        'adjrw'                => $value->adjrw,
+                        'act'                  => $value->act,
+                        'case_iplg'            => $value->case_iplg,
+                        'case_oplg'            => $value->case_oplg,
+                        'case_palg'            => $value->case_palg,
+                        'case_inslg'           => $value->case_inslg,
+                        'case_otlg'            => $value->case_otlg,
+                        'case_pp'              => $value->case_pp,
+                        'case_drug'            => $value->case_drug,
+                        'deny_iplg'            => $value->deny_iplg,
+                        'deny_oplg'            => $value->deny_oplg,
+                        'deny_palg'            => $value->deny_palg,
+                        'deny_inslg'           => $value->deny_inslg,
+                        'deny_otlg'            => $value->deny_otlg,
+                        'ors'                  => $value->ors,
+                        'va'                   => $value->va,
+                        'audit_results'        => $value->audit_results,
+                        'stm_filename'         => $value->stm_filename,
+                    ]);
+                }
             }
-        }    
-        catch (Exception $e) {
-            $error_code = $e->errorInfo[1];
+
+            DB::commit();
+
+            // ✅ ล้าง staging นอกทรานแซกชัน (หลัง commit)
+            Stm_lgoexcel::truncate();
+
+            return redirect()
+                ->route('stm_lgo')
+                ->with('success', implode(', ', $allFileNames));
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
             return back()->withErrors('There was a problem uploading the data!');
         }
-    // **************************************************************************************************
-            $stm_lgoexcel=Stm_lgoexcel::whereNotNull('charge_treatment')->get();
-                        
-            foreach ($stm_lgoexcel as $key => $value) {
-                $check = Stm_lgo::where('repno','=',$value->repno)->where('no','=',$value->no)->count();
-                if ($check > 0) {
-                    Stm_lgo::where('repno','=',$value->repno)->where('no','=',$value->no)->update([
-                            'datetimeadm'                   => $value->datetimeadm,
-                            'vstdate'                       => $value->vstdate,
-                            'vsttime'                       => $value->vsttime,
-                            'datetimedch'                   => $value->datetimedch,
-                            'dchdate'                       => $value->dchdate,
-                            'dchtime'                       => $value->dchtime,
-                            'compensate_treatment'          => $value->compensate_treatment,
-                            'compensate_nhso'               => $value->compensate_nhso,
-                            'charge_treatment'              => $value->charge_treatment,
-                            'charge_pp'                     => $value->charge_pp,
-                            'payrate'                       => $value->payrate,
-                            'case_iplg'                     => $value->case_iplg,
-                            'case_oplg'                     => $value->case_oplg,
-                            'case_palg'                     => $value->case_palg,
-                            'case_inslg'                    => $value->case_inslg,
-                            'case_otlg'                     => $value->case_otlg,
-                            'case_pp'                       => $value->case_pp,
-                            'case_drug'                     => $value->case_drug,
-                            'stm_filename'                  => $value->stm_filename
-                            ]); 
-                } else {
-                        $add = new Stm_lgo();
-                        $add->repno                 = $value->repno;
-                        $add->no                    = $value->no;
-                        $add->tran_id               = $value->tran_id;
-                        $add->hn                    = $value->hn;
-                        $add->an                    = $value->an;
-                        $add->cid                   = $value->cid;
-                        $add->pt_name               = $value->pt_name;
-                        $add->dep                   = $value->dep;
-                        $add->datetimeadm           = $value->datetimeadm;
-                        $add->vstdate               = $value->vstdate;
-                        $add->vsttime               = $value->vsttime;
-                        $add->datetimedch           = $value->datetimedch;
-                        $add->dchdate               = $value->dchdate;
-                        $add->dchtime               = $value->dchtime;
-                        $add->compensate_treatment  = $value->compensate_treatment;
-                        $add->compensate_nhso       = $value->compensate_nhso;
-                        $add->error_code            = $value->error_code;
-                        $add->fund                  = $value->fund;
-                        $add->service_type          = $value->service_type;
-                        $add->refer                 = $value->refer;
-                        $add->have_rights           = $value->have_rights;
-                        $add->use_rights            = $value->use_rights;
-                        $add->main_rights           = $value->main_rights;
-                        $add->secondary_rights      = $value->secondary_rights;
-                        $add->href                  = $value->href;
-                        $add->hcode                 = $value->hcode;
-                        $add->prov1                 = $value->prov1;
-                        $add->hospcode              = $value->hospcode;
-                        $add->hospname              = $value->hospname;
-                        $add->proj                  = $value->proj;
-                        $add->pa                    = $value->pa;
-                        $add->drg                   = $value->drg;
-                        $add->rw                    = $value->rw;
-                        $add->charge_treatment      = $value->charge_treatment;
-                        $add->charge_pp             = $value->charge_pp;
-                        $add->withdraw              = $value->withdraw;
-                        $add->non_withdraw          = $value->non_withdraw;
-                        $add->pay                   = $value->pay;
-                        $add->payrate               = $value->payrate;
-                        $add->delay                 = $value->delay;
-                        $add->delay_percent         = $value->delay_percent;
-                        $add->ccuf                  = $value->ccuf;
-                        $add->adjrw                 = $value->adjrw;
-                        $add->act                   = $value->act;
-                        $add->case_iplg             = $value->case_iplg;
-                        $add->case_oplg             = $value->case_oplg;
-                        $add->case_palg             = $value->case_palg;
-                        $add->case_inslg            = $value->case_inslg;
-                        $add->case_otlg             = $value->case_otlg;
-                        $add->case_pp               = $value->case_pp;
-                        $add->case_drug             = $value->case_drug;
-                        $add->deny_iplg             = $value->deny_iplg;
-                        $add->deny_oplg             = $value->deny_oplg;
-                        $add->deny_palg             = $value->deny_palg;
-                        $add->deny_inslg            = $value->deny_inslg;
-                        $add->deny_otlg             = $value->deny_otlg;
-                        $add->ors                   = $value->ors;
-                        $add->va                    = $value->va;
-                        $add->audit_results            = $value->audit_results;
-                        $add->stm_filename          = $value->stm_filename;
-                        $add->save(); 
-                } 
-            }                
-                Stm_lgoexcel::truncate(); 
-            
-        return redirect()->route('stm_lgo')->with('success',$file_name);
     }
+        
 //stm_lgo_detail---------------------------------------------------------------------------------------------------------------
 public function stm_lgo_detail(Request $request)
     {  
@@ -951,87 +1049,105 @@ public function stm_lgo_detail(Request $request)
 //stm_lgo_kidney_save---------------------------------------------------------------------------------------------------------------
     public function stm_lgo_kidney_save(Request $request)
     {
-        // Set the execution time to 300 seconds (5 minutes)
         set_time_limit(300);
 
+        // ✅ หลายไฟล์ ไม่เกิน 5
         $this->validate($request, [
-            'file' => 'required|file|mimes:xls,xlsx'
+            'files'   => 'required|array|max:5',
+            'files.*' => 'file|mimes:xls,xlsx'
         ]);
-        $the_file = $request->file('file');
-        $file_name = $request->file('file')->getClientOriginalName(); //ชื่อไฟล์
 
-        try{
-            $spreadsheet = IOFactory::load($the_file->getRealPath());
-            $sheet        = $spreadsheet->setActiveSheetIndex(0); //sheet
-            $row_limit    = $sheet->getHighestDataRow();
-            // $column_limit = $sheet->getHighestDataColumn();
-            $row_range    = range( '11', $row_limit );
-            $startcount = '11';
-            
-            $data = array();
-            foreach ($row_range as $row ) {
+        $uploadedFiles = $request->file('files');
+        $allFileNames  = [];
 
-                $adm = $sheet->getCell( 'G' . $row )->getValue(); 
-                $day = substr($adm, 0, 2);
-                $mo = substr($adm, 3, 2);
-                $year = substr($adm, 6, 4);     
-                $admtime = substr($adm, 11, 8);  
-                $datetimeadm = $year.'-'.$mo.'-'.$day.' '.$admtime;     
+        // ✅ ล้าง staging นอกทรานแซกชัน (ก่อนเริ่ม)
+        Stm_lgo_kidneyexcel::truncate();
 
-                $data[] = [
-                    'no'                    =>$sheet->getCell( 'A' . $row )->getValue(),
-                    'repno'                 =>$sheet->getCell( 'B' . $row )->getValue(),
-                    'hn'                    =>$sheet->getCell( 'C' . $row )->getValue(),
-                    'cid'                   =>$sheet->getCell( 'D' . $row )->getValue(),
-                    'pt_name'               =>$sheet->getCell( 'E' . $row )->getValue(),
-                    'dep'                   =>$sheet->getCell( 'F' . $row )->getValue(),
-                    'datetimeadm'           =>$datetimeadm,
-                    'compensate_kidney'     =>$sheet->getCell( 'H' . $row )->getValue(), 
-                    'note'                  =>$sheet->getCell( 'I' . $row )->getValue(),                    
-                    'stm_filename'          =>$file_name,
-                ]; 
-                $startcount++;            
+        DB::beginTransaction();
+        try {
+            // ------------------ อ่านทุกไฟล์ -> ใส่ staging ------------------
+            foreach ($uploadedFiles as $the_file) {
+                $file_name       = $the_file->getClientOriginalName();
+                $allFileNames[]  = $file_name;
+
+                $spreadsheet = IOFactory::load($the_file->getRealPath());
+                $sheet       = $spreadsheet->setActiveSheetIndex(0);
+                $row_limit   = $sheet->getHighestDataRow();
+
+                $data = [];
+                for ($row = 11; $row <= $row_limit; $row++) {
+                    // คอลัมน์ G เป็น datetime รูปแบบ dd/mm/YYYY HH:MM:SS ตามโค้ดเดิม
+                    $adm  = $sheet->getCell('G'.$row)->getValue();
+                    $day  = substr($adm, 0, 2);
+                    $mo   = substr($adm, 3, 2);
+                    $year = substr($adm, 6, 4);
+                    $tm   = substr($adm, 11, 8);
+                    $datetimeadm = $year.'-'.$mo.'-'.$day.' '.$tm;
+
+                    $data[] = [
+                        'no'                 => $sheet->getCell('A'.$row)->getValue(),
+                        'repno'              => $sheet->getCell('B'.$row)->getValue(),
+                        'hn'                 => $sheet->getCell('C'.$row)->getValue(),
+                        'cid'                => $sheet->getCell('D'.$row)->getValue(),
+                        'pt_name'            => $sheet->getCell('E'.$row)->getValue(),
+                        'dep'                => $sheet->getCell('F'.$row)->getValue(),
+                        'datetimeadm'        => $datetimeadm,
+                        'compensate_kidney'  => $sheet->getCell('H'.$row)->getValue(),
+                        'note'               => $sheet->getCell('I'.$row)->getValue(),
+                        'stm_filename'       => $file_name,
+                    ];
+                }
+
+                foreach (array_chunk($data, 1000) as $chunk) {
+                    Stm_lgo_kidneyexcel::insert($chunk);
+                }
             }
 
-            $for_insert = array_chunk($data, 1000);
-            foreach ($for_insert as $key => $data_) {
-                Stm_lgo_kidneyexcel::insert($data_);                 
+            // ------------------ merge -> ตารางหลัก ------------------
+            $rows = Stm_lgo_kidneyexcel::whereNotNull('compensate_kidney')->get();
+
+            foreach ($rows as $value) {
+                $exists = Stm_lgo_kidney::where('repno', $value->repno)
+                            ->where('no', $value->no)
+                            ->exists();
+
+                if ($exists) {
+                    Stm_lgo_kidney::where('repno', $value->repno)
+                        ->where('no', $value->no)
+                        ->update([
+                            'datetimeadm'       => $value->datetimeadm
+                        ]);
+                } else {
+                    Stm_lgo_kidney::create([
+                        'no'                 => $value->no,
+                        'repno'              => $value->repno,
+                        'hn'                 => $value->hn,
+                        'cid'                => $value->cid,
+                        'pt_name'            => $value->pt_name,
+                        'dep'                => $value->dep,
+                        'datetimeadm'        => $value->datetimeadm,
+                        'compensate_kidney'  => $value->compensate_kidney,
+                        'note'               => $value->note,
+                        'stm_filename'       => $value->stm_filename,
+                    ]);
+                }
             }
-        }    
-        catch (Exception $e) {
-            $error_code = $e->errorInfo[1];
+
+            DB::commit();
+
+            // ✅ ล้าง staging นอกทรานแซกชัน (หลัง commit)
+            Stm_lgo_kidneyexcel::truncate();
+
+            return redirect()
+                ->route('stm_lgo_kidney')
+                ->with('success', implode(', ', $allFileNames));
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
             return back()->withErrors('There was a problem uploading the data!');
         }
-    // ***************************************************************************************************************************** 
-            $stm_lgo_kidneyexcel=Stm_lgo_kidneyexcel::whereNotNull('compensate_kidney')->get();
-                        
-            foreach ($stm_lgo_kidneyexcel as $key => $value) {
-                $check = Stm_lgo_kidney::where('repno','=',$value->repno)->where('no','=',$value->no)->count();
-                if ($check > 0) {
-                    Stm_lgo_kidney::where('repno','=',$value->repno)->where('no','=',$value->no)->update([
-                            'datetimeadm'               => $value->datetimeadm,
-                            'compensate_kidney'         => $value->compensate_kidney,
-                            'stm_filename'              => $value->stm_filename
-                            ]); 
-                } else {
-                        $add = new Stm_lgo_kidney();
-                        $add->no                    = $value->no;
-                        $add->repno                 = $value->repno;
-                        $add->hn                    = $value->hn;                
-                        $add->cid                   = $value->cid;
-                        $add->pt_name               = $value->pt_name;
-                        $add->dep                   = $value->dep;
-                        $add->datetimeadm           = $value->datetimeadm;                   
-                        $add->compensate_kidney     = $value->compensate_kidney;
-                        $add->note                  = $value->note;                   
-                        $add->stm_filename          = $value->stm_filename;
-                        $add->save(); 
-                } 
-            }                
-                Stm_lgo_kidneyexcel::truncate(); 
-            
-        return redirect()->route('stm_lgo_kidney')->with('success',$file_name);
     }
+       
 //stm_lgo_kidneydetail------------------------------------------------------------------------------------------------------------
 public function stm_lgo_kidneydetail(Request $request)
     {  
@@ -1061,105 +1177,149 @@ public function stm_lgo_kidneydetail(Request $request)
     }
 //stm_sss_kidney------------------------------------------------------------------------------------------------
     public function stm_sss_kidney_save(Request $request)
-    {  
-        // Set the execution time to 300 seconds (5 minutes)
+    {
         set_time_limit(300);
 
-            $tar_file_ = $request->file; 
-            $file_ = $request->file('file')->getClientOriginalName(); //ชื่อไฟล์
-            $filename = pathinfo($file_, PATHINFO_FILENAME);
-            $extension = pathinfo($file_, PATHINFO_EXTENSION);  
-            $xmlString = file_get_contents(($tar_file_));
-            $xmlObject = simplexml_load_string($xmlString);
-            $json = json_encode($xmlObject); 
-            $result = json_decode($json, true); 
-        
-            // dd($result);
+        // ✅ หลายไฟล์ .zip ไม่เกิน 5
+        $this->validate($request, [
+            'files'   => 'required|array|max:5',
+            'files.*' => 'file|mimes:zip',
+        ]);
 
-            @$hcode     = $result['hcode'];
-            @$hname     = $result['hname'];
-            @$STMdoc    = $result['STMdoc'];    
-            @$HDBills   = $result['HDBills']['HDBill'];    
-            $bills_     = @$HDBills;       
+        $uploadedFiles = $request->file('files');
+        $docNames = []; // เก็บ STMdoc/ชื่อไฟล์ภายใน zip ไว้แสดงผล
 
-                foreach ($bills_ as $value) {  
-                    $name = $value['name']; 
-                    $cid = $value['pid'];
-                    $wkno = $value['wkno'];
-                    $TBill = $value['TBill']; 
+        DB::beginTransaction();
+        try {
 
-                    foreach ($TBill as $row) {   
+            foreach ($uploadedFiles as $zipFile) {
+                $zip = new \ZipArchive;
+                if ($zip->open($zipFile->getRealPath()) !== true) {
+                    // เปิด zip ไม่ได้ ข้ามไฟล์นี้
+                    continue;
+                }
 
-                        $hreg       = $row['hreg']; 
-                        $station    = $row['station'];
-                        $invno      = $row['invno'];
-                        $hn         = $row['hn']; 
-                        $amount     = $row['amount'];
-                        $paid       = $row['paid'];
-                        $rid        = $row['rid']; 
-                        $HDflag     = $row['HDflag']; 
-                        $dttran     = $row['dttran'];                     
-                        $dttranDate = explode("T",$row['dttran']);
-                        $dttdate    = $dttranDate[0];
-                        $dtttime    = $dttranDate[1];                 
+                for ($i = 0; $i < $zip->numFiles; $i++) {
+                    $stat      = $zip->statIndex($i);
+                    $innerName = $stat['name'];
 
-                            if (isset($row['EPOs']['EPOpay'])) {
-                                $epopay   = $row['EPOs']['EPOpay'];
-                            } else {
-                                $epopay   = '';
-                            }
-
-                            if (isset($row['EPOs']['EPOadm'])) {
-                                $epoadm   = $row['EPOs']['EPOadm'];
-                            } else {
-                                $epoadm   = '';
-                            }
-                
-                        $checkc = Stm_sss_kidney::where('cid', $cid)->where('vstdate', $dttdate)->count();
-                        if ( $checkc > 0) {
-                            Stm_sss_kidney::where('cid', $cid)->where('vstdate', $dttdate) 
-                                ->update([   
-                                    'invno'            => $invno,
-                                    'dttran'           => $dttran, 
-                                    'hn'               => $hn, 
-                                    'cid'              => $cid, 
-                                    'amount'           => $amount, 
-                                    'epopay'           => $epopay, 
-                                    'epoadm'           => $epoadm, 
-                                    'paid'             => $paid,
-                                    'rid'              => $rid, 
-                                    'HDflag'           => $HDflag,
-                                    'vstdate'          => $dttdate,
-                                    'vsttime'          => $dtttime                                
-                                ]);
-
-                        } else {
-                                Stm_sss_kidney::insert([                            
-        
-                                    'hcode'              => @$hcode, 
-                                    'hname'              => @$hname,
-                                    'stmdoc'             => @$STMdoc,
-                                    'station'            => $station, 
-                                    'hreg'               => $hreg,
-                                    'hn'                 => $hn,
-                                    'cid'                => $cid,
-                                    'invno'              => $invno,
-                                    'dttran'             => $dttran,
-                                    'vstdate'            => $dttdate,
-                                    'vsttime'            => $dtttime,
-                                    'amount'             => $amount,
-                                    'epopay'             => $epopay,
-                                    'epoadm'             => $epoadm,
-                                    'paid'               => $paid,
-                                    'rid'                => $rid,
-                                    'hdflag'             => $HDflag
-                                ]);        
-                        } 
+                    // สนใจเฉพาะไฟล์ .xml ภายใน zip
+                    if (strtolower(pathinfo($innerName, PATHINFO_EXTENSION)) !== 'xml') {
+                        continue;
                     }
-                }            
-            
-        return redirect()->route('stm_sss_kidney')->with('success',@$STMdoc);
-    }
+
+                    $xmlString = $zip->getFromIndex($i);
+                    if (!$xmlString) {
+                        continue;
+                    }
+
+                    $xmlObject = simplexml_load_string($xmlString, 'SimpleXMLElement', LIBXML_NOCDATA);
+                    if ($xmlObject === false) {
+                        continue;
+                    }
+
+                    $json   = json_encode($xmlObject);
+                    $result = json_decode($json, true);
+
+                    // ส่วนหัวเอกสาร
+                    $hcode  = $result['hcode']  ?? null;
+                    $hname  = $result['hname']  ?? null;
+                    $STMdoc = $result['STMdoc'] ?? $innerName;
+                    $docNames[] = $STMdoc;
+
+                    // HDBills/HDBill อาจเป็น object เดี่ยว ให้ normalize เป็น array
+                    $HDBills = $result['HDBills']['HDBill'] ?? [];
+                    if (!empty($HDBills) && array_keys($HDBills) !== range(0, count($HDBills) - 1)) {
+                        $HDBills = [$HDBills];
+                    }
+
+                    foreach ($HDBills as $bill) {
+                        $name = $bill['name'] ?? null;
+                        $cid  = $bill['pid']  ?? null;
+                        $wkno = $bill['wkno'] ?? null;
+
+                        // TBill อาจเป็น object เดี่ยว ให้ normalize เป็น array
+                        $TBills = $bill['TBill'] ?? [];
+                        if (!empty($TBills) && array_keys($TBills) !== range(0, count($TBills) - 1)) {
+                            $TBills = [$TBills];
+                        }
+
+                        foreach ($TBills as $row) {
+                            $hreg    = $row['hreg']    ?? null;
+                            $station = $row['station'] ?? null;
+                            $invno   = $row['invno']   ?? null;
+                            $hn      = $row['hn']      ?? null;
+                            $amount  = $row['amount']  ?? null;
+                            $paid    = $row['paid']    ?? null;
+                            $rid     = $row['rid']     ?? null;
+                            $HDflag  = $row['HDflag']  ?? ($row['hdflag'] ?? null);
+                            $dttran  = $row['dttran']  ?? null;
+
+                            // แยกวันที่เวลาแบบ ISO: 2024-07-01T12:34:56
+                            $dttdate = null; $dtttime = null;
+                            if ($dttran && strpos($dttran, 'T') !== false) {
+                                [$dttdate, $dtttime] = explode('T', $dttran, 2);
+                            }
+
+                            // EPOs (อาจไม่มี)
+                            $epopay = $row['EPOs']['EPOpay'] ?? '';
+                            $epoadm = $row['EPOs']['EPOadm'] ?? '';
+
+                            // upsert ตามคีย์เดิม: cid + vstdate
+                            if ($cid && $dttdate) {
+                                $dataRow = [
+                                    'hcode'  => $hcode,
+                                    'hname'  => $hname,
+                                    'stmdoc' => $STMdoc,
+                                    'station'=> $station,
+                                    'hreg'   => $hreg,
+                                    'hn'     => $hn,
+                                    'cid'    => $cid,
+                                    'invno'  => $invno,
+                                    'dttran' => $dttran,
+                                    'vstdate'=> $dttdate,
+                                    'vsttime'=> $dtttime,
+                                    'amount' => $amount,
+                                    'epopay' => $epopay,
+                                    'epoadm' => $epoadm,
+                                    'paid'   => $paid,
+                                    'rid'    => $rid,
+                                    // เก็บชื่อคอลัมน์ให้ตรงกับ schema ของคุณ
+                                    'hdflag' => $HDflag,
+                                ];
+
+                                $exists = Stm_sss_kidney::where('cid', $cid)
+                                            ->where('vstdate', $dttdate)
+                                            ->exists();
+
+                                if ($exists) {
+                                    Stm_sss_kidney::where('cid', $cid)
+                                        ->where('vstdate', $dttdate)
+                                        ->update($dataRow);
+                                } else {
+                                    Stm_sss_kidney::insert($dataRow);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                $zip->close();
+            }
+
+            DB::commit();
+
+            return redirect()
+                ->route('stm_sss_kidney')
+                ->with('success', implode(', ', $docNames));
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            // report($e); // ถ้าต้องการ debug
+            return back()->withErrors('There was a problem uploading the data!');
+        }
+    }    
+       
 //stm_sss_kidneydetail--------------------------------------------------------------------------------------------------------------
 public function stm_sss_kidneydetail(Request $request)
 {  

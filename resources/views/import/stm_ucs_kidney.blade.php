@@ -8,14 +8,14 @@
                 <strong>ข้อมูล Statement ประกันสุขภาพ UCS [ฟอกไต HD]</strong>
             </div>
             <div class="card-body">
-                <form action="{{ url('import/stm_ucs_kidney_save') }}" method="POST" enctype="multipart/form-data">
+                <form id="importForm" onsubmit="simulateProcess(event)" action="{{ url('import/stm_ucs_kidney_save') }}" method="POST" enctype="multipart/form-data">
                     @csrf      
                     <div class="row mb-2">            
                         <div class="col"></div>
                             <div class="col-md-5">
                                 <div class="mb-3 mt-3">
-                                <input class="form-control form-control-lg" id="formFileLg" name="file"
-                                    type="file" required>
+                                {{-- <input class="form-control form-control-lg" id="formFileLg" name="file" type="file" multiple required> --}}
+                                <input class="form-control form-control-lg" id="formFileLg" type="file" name="files[]" multiple accept=".xlsx,.xls" required>
                                 <input type="hidden" name="_token" value="{{ csrf_token() }}">
                             </div>
                             </div>
@@ -94,7 +94,11 @@
         });
     }
 
-    function simulateProcess() {
+    function simulateProcess(event) {
+
+            // ป้องกันฟอร์มส่งออกไปก่อนเวลา
+        event.preventDefault(); 
+
         const fileInput = document.querySelector('input[type="file"]');
                 // ตรวจสอบว่าไม่ได้เลือกไฟล์
         if (!fileInput.files || fileInput.files.length === 0) {
@@ -105,6 +109,16 @@
                 confirmButtonText: 'ตกลง'
             });
             return; // ❌ หยุดการทำงาน ไม่ส่งฟอร์ม
+        }
+            // ✅ ตรวจสอบจำนวนไฟล์เกิน 5
+        if (fileInput.files.length > 5) {
+            Swal.fire({
+                title: 'แจ้งเตือน',
+                text: 'เลือกไฟล์ได้ไม่เกิน 5 ไฟล์',
+                icon: 'error',
+                confirmButtonText: 'ตกลง'
+            });
+            return; // ❌ หยุดการทำงาน
         }
 
         showLoadingAlert();

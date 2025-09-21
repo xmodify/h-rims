@@ -1,30 +1,17 @@
 @extends('layouts.app')
-<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.2.0/css/bootstrap.min.css">
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.1/css/dataTables.bootstrap5.min.css">
-<style>
-    table {
-    border-collapse: collapse;
-    border-spacing: 0;
-    width: 100%;
-    border: 1px solid #ddd;
-    }
-    th, td {
-    padding: 8px;
-    }
-</style>
 
 @section('content')
 
 <div class="container-fluid">       
   
-    <form action="{{ url('import/stm_ucs_save') }}" method="POST" enctype="multipart/form-data">
+    <form id="importForm" onsubmit="simulateProcess(event)" action="{{ url('import/stm_ucs_save') }}" method="POST" enctype="multipart/form-data">
         @csrf      
         <div class="row mb-2">            
             <div class="col"></div>
                 <div class="col-md-5">
                     <div class="mb-3 mt-3">
-                    <input class="form-control form-control-lg" id="formFileLg" name="file"
-                        type="file" required>
+                    {{-- <input class="form-control form-control-lg" id="formFileLg" name="file" type="file" multiple required> --}}
+                    <input class="form-control form-control-lg" id="formFileLg" type="file" name="files[]" multiple accept=".xlsx,.xls" required>
                     <input type="hidden" name="_token" value="{{ csrf_token() }}">
                 </div>
                 </div>
@@ -86,19 +73,6 @@
 @endif
 
 @endsection
-<script type="text/javascript" language="javascript" src="https://code.jquery.com/jquery-3.5.1.js"></script>
-<script type="text/javascript" language="javascript" src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
-<script type="text/javascript" language="javascript" src="https://cdn.datatables.net/1.13.1/js/dataTables.bootstrap5.min.js"></script>
-<script type="text/javascript" class="init">
-    $(document).ready(function () {
-        $('#stm_ucs').DataTable();
-    });
-</script>
-<script type="text/javascript" class="init">
-    $(document).ready(function () {
-        $('#stm_ucs_list').DataTable();
-    });
-</script>
 
 <script>
     function showLoadingAlert() {
@@ -112,7 +86,11 @@
         });
     }
 
-    function simulateProcess() {
+    function simulateProcess(event) {
+
+            // ป้องกันฟอร์มส่งออกไปก่อนเวลา
+        event.preventDefault(); 
+
         const fileInput = document.querySelector('input[type="file"]');
                 // ตรวจสอบว่าไม่ได้เลือกไฟล์
         if (!fileInput.files || fileInput.files.length === 0) {
@@ -124,10 +102,53 @@
             });
             return; // ❌ หยุดการทำงาน ไม่ส่งฟอร์ม
         }
+            // ✅ ตรวจสอบจำนวนไฟล์เกิน 5
+        if (fileInput.files.length > 5) {
+            Swal.fire({
+                title: 'แจ้งเตือน',
+                text: 'เลือกไฟล์ได้ไม่เกิน 5 ไฟล์',
+                icon: 'error',
+                confirmButtonText: 'ตกลง'
+            });
+            return; // ❌ หยุดการทำงาน
+        }
 
         showLoadingAlert();
         document.getElementById('importForm').submit();
     }
-
 </script>
 
+@push('scripts')
+  <script>
+    $(document).ready(function () {
+      $('#stm_ucs').DataTable({
+        dom: '<"row mb-3"' +
+                '<"col-md-6"l>' + // Show รายการ
+                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
+              '>' +
+              'rt' +
+              '<"row mt-3"' +
+                '<"col-md-6"i>' + // Info
+                '<"col-md-6"p>' + // Pagination
+              '>',
+        buttons: [
+            {
+              extend: 'excelHtml5',
+              text: 'Excel',
+              className: 'btn btn-success',
+              title: 'ข้อมูล Statement ประกันสุขภาพ UCS [OP-IP]'
+            }
+        ],
+        language: {
+            search: "ค้นหา:",
+            lengthMenu: "แสดง _MENU_ รายการ",
+            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+            paginate: {
+              previous: "ก่อนหน้า",
+              next: "ถัดไป"
+            }
+        }
+      });
+    });
+  </script>  
+@endpush

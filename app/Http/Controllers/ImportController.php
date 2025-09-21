@@ -44,235 +44,219 @@ public function stm_ucs(Request $request)
 //stm_ucs_save--------------------------------------------------------------------------------------------------
     public function stm_ucs_save(Request $request)
     {
-        @set_time_limit(300);
+        set_time_limit(300);
         @ini_set('memory_limit', '1024M');
 
-        if ($request->hasFile('files')) {
-            $this->validate($request, [
-                // 'files'   => 'required|array',
-                'files'   => 'required|array|max:5', // ✅ จำกัดไม่เกิน 5 ไฟล์                
-                'files.*' => 'file|mimes:xls,xlsx'
-            ]);
-            $files = $request->file('files');
-        } elseif ($request->hasFile('file')) {
-            $this->validate($request, [
-                'file' => 'required|file|mimes:xls,xlsx'
-            ]);
-            $files = [$request->file('file')];
-        } else {
-            return back()->withErrors('กรุณาเลือกไฟล์ .xls หรือ .xlsx');
-        }
+        // ✅ รับทีละหลายไฟล์ เหมือน ofc_save (จำกัดไม่เกิน 5)
+        $this->validate($request, [
+            'files'   => 'required|array|max:5',
+            'files.*' => 'file|mimes:xls,xlsx'
+        ]);
 
-        $allUploadedNames = [];
+        $uploadedFiles = $request->file('files');
+        $allFileNames  = [];
 
+        // ✅ เคลียร์ staging นอกทรานแซกชัน
+        Stm_ucsexcel::truncate();
+
+        DB::beginTransaction();
         try {
-            // ✅ เคลียร์ตารางชั่วคราว “นอก” transaction
-            Stm_ucsexcel::truncate();
+            // ------------------ อ่านทุกไฟล์ -> ใส่ staging ------------------
+            foreach ($uploadedFiles as $the_file) {
+                $file_name      = $the_file->getClientOriginalName();
+                $allFileNames[] = $file_name;
 
-            DB::transaction(function () use ($files, &$allUploadedNames) {
-                foreach ($files as $the_file) {
-                    $file_name = $the_file->getClientOriginalName();
-                    $allUploadedNames[] = $file_name;
+                $spreadsheet = IOFactory::load($the_file->getRealPath());
+                $sheet       = $spreadsheet->setActiveSheetIndex(2);
 
-                    $spreadsheet = IOFactory::load($the_file->getRealPath());
-                    $sheet       = $spreadsheet->setActiveSheetIndex(2);
+                $row_limit = $sheet->getHighestDataRow();
+                $startRow  = 15;
 
-                    $row_limit = $sheet->getHighestDataRow();
-                    $row_range = range(15, $row_limit);
+                $data = [];
+                for ($row = $startRow; $row <= $row_limit; $row++) {
+                    // adm: H, dch: I (รูปแบบ dd/mm/yyyy HH:MM:SS)
+                    $adm = (string) $sheet->getCell('H'.$row)->getValue();
+                    $day = substr($adm, 0, 2);
+                    $mo  = substr($adm, 3, 2);
+                    $yr  = substr($adm, 6, 4);
+                    $tm  = substr($adm, 11, 8);
+                    $datetimeadm = $yr.'-'.$mo.'-'.$day.' '.$tm;
 
-                    $data = [];
-                    foreach ($row_range as $row) {
-                        $adm = $sheet->getCell('H' . $row)->getValue();
-                        $day = substr($adm, 0, 2);
-                        $mo  = substr($adm, 3, 2);
-                        $yr  = substr($adm, 6, 4);
-                        $tm  = substr($adm, 11, 8);
-                        $datetimeadm = $yr.'-'.$mo.'-'.$day.' '.$tm;
+                    $dch = (string) $sheet->getCell('I'.$row)->getValue();
+                    $dchday = substr($dch, 0, 2);
+                    $dchmo  = substr($dch, 3, 2);
+                    $dchyr  = substr($dch, 6, 4);
+                    $dchtm  = substr($dch, 11, 8);
+                    $datetimedch = $dchyr.'-'.$dchmo.'-'.$dchday.' '.$dchtm;
 
-                        $dch = $sheet->getCell('I' . $row)->getValue();
-                        $dchday = substr($dch, 0, 2);
-                        $dchmo  = substr($dch, 3, 2);
-                        $dchyr  = substr($dch, 6, 4);
-                        $dchtm  = substr($dch, 11, 8);
-                        $datetimedch = $dchyr.'-'.$dchmo.'-'.$dchday.' '.$dchtm;
-
-                        $cols = ['S','T','U','V','W','X','Y','Z','AA','AB','AC','AD','AE','AF','AG','AH','AI','AJ','AK','AL'];
-                        $clean = [];
-                        foreach ($cols as $c) {
-                            $val = $sheet->getCell($c.$row)->getValue();
-                            $clean[$c] = str_replace(',', '', $val);
-                        }
-
-                        $data[] = [
-                            'repno' => $sheet->getCell('A'.$row)->getValue(),
-                            'no' => $sheet->getCell('B'.$row)->getValue(),
-                            'tran_id' => $sheet->getCell('C'.$row)->getValue(),
-                            'hn' => $sheet->getCell('D'.$row)->getValue(),
-                            'an' => $sheet->getCell('E'.$row)->getValue(),
-                            'cid' => $sheet->getCell('F'.$row)->getValue(),
-                            'pt_name' => $sheet->getCell('G'.$row)->getValue(),
-
-                            'datetimeadm' => $datetimeadm,
-                            'vstdate' => date('Y-m-d', strtotime($datetimeadm)),
-                            'vsttime' => date('H:i:s', strtotime($datetimeadm)),
-
-                            'datetimedch' => $datetimedch,
-                            'dchdate' => date('Y-m-d', strtotime($datetimedch)),
-                            'dchtime' => date('H:i:s', strtotime($datetimedch)),
-
-                            'maininscl' => $sheet->getCell('J'.$row)->getValue(),
-                            'projcode' => $sheet->getCell('K'.$row)->getValue(),
-                            'charge' => $sheet->getCell('L'.$row)->getValue(),
-                            'fund_ip_act' => $sheet->getCell('M'.$row)->getValue(),
-                            'fund_ip_adjrw' => $sheet->getCell('N'.$row)->getValue(),
-                            'fund_ip_ps' => $sheet->getCell('O'.$row)->getValue(),
-                            'fund_ip_ps2' => $sheet->getCell('P'.$row)->getValue(),
-                            'fund_ip_ccuf' => $sheet->getCell('Q'.$row)->getValue(),
-                            'fund_ip_adjrw2' => $sheet->getCell('R'.$row)->getValue(),
-
-                            'fund_ip_payrate' => $clean['S'],
-                            'fund_ip_salary' => $clean['T'],
-                            'fund_compensate_salary' => $clean['U'],
-                            'receive_op' => $clean['V'],
-                            'receive_ip_compensate_cal' => $clean['W'],
-                            'receive_ip_compensate_pay' => $clean['X'],
-                            'receive_hc_hc' => $clean['Y'],
-                            'receive_hc_drug' => $clean['Z'],
-                            'receive_ae_ae' => $clean['AA'],
-                            'receive_ae_drug' => $clean['AB'],
-                            'receive_inst' => $clean['AC'],
-                            'receive_dmis_compensate_cal' => $clean['AD'],
-                            'receive_dmis_compensate_pay' => $clean['AE'],
-                            'receive_dmis_drug' => $clean['AF'],
-                            'receive_palliative' => $clean['AG'],
-                            'receive_dmishd' => $clean['AH'],
-                            'receive_pp' => $clean['AI'],
-                            'receive_fs' => $clean['AJ'],
-                            'receive_opbkk' => $clean['AK'],
-                            'receive_total' => $clean['AL'],
-
-                            'va' => $sheet->getCell('AM'.$row)->getValue(),
-                            'covid' => $sheet->getCell('AN'.$row)->getValue(),
-                            'resources' => $sheet->getCell('AO'.$row)->getValue(),
-                            'stm_filename' => $file_name,
-                        ];
+                    // ลบคอมม่าในคอลัมน์ S..AL
+                    $cols = ['S','T','U','V','W','X','Y','Z','AA','AB','AC','AD','AE','AF','AG','AH','AI','AJ','AK','AL'];
+                    $clean = [];
+                    foreach ($cols as $c) {
+                        $val = $sheet->getCell($c.$row)->getValue();
+                        $clean[$c] = str_replace(',', '', $val);
                     }
 
-                    foreach (array_chunk($data, 1000) as $chunk) {
-                        Stm_ucsexcel::insert($chunk);
-                    }
+                    $data[] = [
+                        'repno'   => $sheet->getCell('A'.$row)->getValue(),
+                        'no'      => $sheet->getCell('B'.$row)->getValue(),
+                        'tran_id' => $sheet->getCell('C'.$row)->getValue(),
+                        'hn'      => $sheet->getCell('D'.$row)->getValue(),
+                        'an'      => $sheet->getCell('E'.$row)->getValue(),
+                        'cid'     => $sheet->getCell('F'.$row)->getValue(),
+                        'pt_name' => $sheet->getCell('G'.$row)->getValue(),
 
-                    unset($data, $spreadsheet, $sheet);
-                    gc_collect_cycles();
+                        'datetimeadm' => $datetimeadm,
+                        'vstdate'     => date('Y-m-d', strtotime($datetimeadm)),
+                        'vsttime'     => date('H:i:s', strtotime($datetimeadm)),
+
+                        'datetimedch' => $datetimedch,
+                        'dchdate'     => date('Y-m-d', strtotime($datetimedch)),
+                        'dchtime'     => date('H:i:s', strtotime($datetimedch)),
+
+                        'maininscl' => $sheet->getCell('J'.$row)->getValue(),
+                        'projcode'  => $sheet->getCell('K'.$row)->getValue(),
+                        'charge'    => $sheet->getCell('L'.$row)->getValue(),
+                        'fund_ip_act'     => $sheet->getCell('M'.$row)->getValue(),
+                        'fund_ip_adjrw'   => $sheet->getCell('N'.$row)->getValue(),
+                        'fund_ip_ps'      => $sheet->getCell('O'.$row)->getValue(),
+                        'fund_ip_ps2'     => $sheet->getCell('P'.$row)->getValue(),
+                        'fund_ip_ccuf'    => $sheet->getCell('Q'.$row)->getValue(),
+                        'fund_ip_adjrw2'  => $sheet->getCell('R'.$row)->getValue(),
+
+                        'fund_ip_payrate'           => $clean['S'],
+                        'fund_ip_salary'            => $clean['T'],
+                        'fund_compensate_salary'    => $clean['U'],
+                        'receive_op'                => $clean['V'],
+                        'receive_ip_compensate_cal' => $clean['W'],
+                        'receive_ip_compensate_pay' => $clean['X'],
+                        'receive_hc_hc'             => $clean['Y'],
+                        'receive_hc_drug'           => $clean['Z'],
+                        'receive_ae_ae'             => $clean['AA'],
+                        'receive_ae_drug'           => $clean['AB'],
+                        'receive_inst'              => $clean['AC'],
+                        'receive_dmis_compensate_cal'=> $clean['AD'],
+                        'receive_dmis_compensate_pay'=> $clean['AE'],
+                        'receive_dmis_drug'         => $clean['AF'],
+                        'receive_palliative'        => $clean['AG'],
+                        'receive_dmishd'            => $clean['AH'],
+                        'receive_pp'                => $clean['AI'],
+                        'receive_fs'                => $clean['AJ'],
+                        'receive_opbkk'             => $clean['AK'],
+                        'receive_total'             => $clean['AL'],
+                        'va'         => $sheet->getCell('AM'.$row)->getValue(),
+                        'covid'      => $sheet->getCell('AN'.$row)->getValue(),
+                        'resources'  => $sheet->getCell('AO'.$row)->getValue(),
+                        'stm_filename' => $file_name,
+                    ];
                 }
 
-                // ===== รวมลงตารางจริง =====
-                $stm_ucsexcel = Stm_ucsexcel::whereNotNull('charge')->get();
+                foreach (array_chunk($data, 1000) as $chunk) {
+                    Stm_ucsexcel::insert($chunk);
+                }
 
-                foreach ($stm_ucsexcel as $value) {
-                    $exists = Stm_ucs::where('repno', $value->repno)
-                                    ->where('no', $value->no)
-                                    ->exists();
+                unset($data, $spreadsheet, $sheet);
+                gc_collect_cycles();
+            }
 
-                    if ($exists) {
-                        Stm_ucs::where('repno', $value->repno)
+            // ------------------ รวมลงตารางจริง ------------------
+            $stm_ucsexcel = Stm_ucsexcel::whereNotNull('charge')->get();
+
+            foreach ($stm_ucsexcel as $value) {
+                $exists = Stm_ucs::where('repno', $value->repno)
                             ->where('no', $value->no)
-                            ->update([
-                                'datetimeadm' => $value->datetimeadm,
-                                'vstdate' => $value->vstdate,
-                                'vsttime' => $value->vsttime,
-                                'datetimedch' => $value->datetimedch,
-                                'dchdate' => $value->dchdate,
-                                'dchtime' => $value->dchtime,
-                                'charge' => $value->charge,
-                                'receive_op' => $value->receive_op,
-                                'receive_ip_compensate_pay' => $value->receive_ip_compensate_pay,
-                                'receive_hc_hc' => $value->receive_hc_hc,
-                                'receive_hc_drug' => $value->receive_hc_drug,
-                                'receive_ae_ae' => $value->receive_ae_ae,
-                                'receive_ae_drug' => $value->receive_ae_drug,
-                                'receive_inst' => $value->receive_inst,
-                                'receive_dmis_compensate_pay' => $value->receive_dmis_compensate_pay,
-                                'receive_dmis_drug' => $value->receive_dmis_drug,
-                                'receive_palliative' => $value->receive_palliative,
-                                'receive_pp' => $value->receive_pp,
-                                'receive_fs' => $value->receive_fs,
-                                'receive_total' => $value->receive_total,
-                                'stm_filename' => $value->stm_filename,
-                            ]);
-                    } else {
-                        $add = new Stm_ucs();
-                        // ... (ตั้งค่าฟิลด์เหมือนเดิมทั้งหมด)
-                        $add->repno = $value->repno;
-                        $add->no = $value->no;
-                        $add->tran_id = $value->tran_id;
-                        $add->hn = $value->hn;
-                        $add->an = $value->an;
-                        $add->cid = $value->cid;
-                        $add->pt_name = $value->pt_name;
+                            ->exists();
 
-                        $add->datetimeadm = $value->datetimeadm;
-                        $add->vstdate = $value->vstdate;
-                        $add->vsttime = $value->vsttime;
-
-                        $add->datetimedch = $value->datetimedch;
-                        $add->dchdate = $value->dchdate;
-                        $add->dchtime = $value->dchtime;
-
-                        $add->maininscl = $value->maininscl;
-                        $add->projcode = $value->projcode;
-                        $add->charge = $value->charge;
-
-                        $add->fund_ip_act = $value->fund_ip_act;
-                        $add->fund_ip_adjrw = $value->fund_ip_adjrw;
-                        $add->fund_ip_ps = $value->fund_ip_ps;
-                        $add->fund_ip_ps2 = $value->fund_ip_ps2;
-                        $add->fund_ip_ccuf = $value->fund_ip_ccuf;
-                        $add->fund_ip_adjrw2 = $value->fund_ip_adjrw2;
-
-                        $add->fund_ip_payrate = $value->fund_ip_payrate;
-                        $add->fund_ip_salary = $value->fund_ip_salary;
-                        $add->fund_compensate_salary = $value->fund_compensate_salary;
-
-                        $add->receive_op = $value->receive_op;
-                        $add->receive_ip_compensate_cal = $value->receive_ip_compensate_cal;
-                        $add->receive_ip_compensate_pay = $value->receive_ip_compensate_pay;
-                        $add->receive_hc_hc = $value->receive_hc_hc;
-                        $add->receive_hc_drug = $value->receive_hc_drug;
-                        $add->receive_ae_ae = $value->receive_ae_ae;
-                        $add->receive_ae_drug = $value->receive_ae_drug;
-                        $add->receive_inst = $value->receive_inst;
-                        $add->receive_dmis_compensate_cal = $value->receive_dmis_compensate_cal;
-                        $add->receive_dmis_compensate_pay = $value->receive_dmis_compensate_pay;
-                        $add->receive_dmis_drug = $value->receive_dmis_drug;
-                        $add->receive_palliative = $value->receive_palliative;
-                        $add->receive_dmishd = $value->receive_dmishd;
-                        $add->receive_pp = $value->receive_pp;
-                        $add->receive_fs = $value->receive_fs;
-                        $add->receive_opbkk = $value->receive_opbkk;
-                        $add->receive_total = $value->receive_total;
-
-                        $add->va = $value->va;
-                        $add->covid = $value->covid;
-                        $add->resources = $value->resources;
-                        $add->stm_filename = $value->stm_filename;
-                        $add->save();
-                    }
+                if ($exists) {
+                    Stm_ucs::where('repno', $value->repno)
+                        ->where('no', $value->no)
+                        ->update([
+                            'datetimeadm' => $value->datetimeadm,
+                            'vstdate'     => $value->vstdate,
+                            'vsttime'     => $value->vsttime,
+                            'datetimedch' => $value->datetimedch,
+                            'dchdate'     => $value->dchdate,
+                            'dchtime'     => $value->dchtime,
+                            'charge'      => $value->charge,
+                            'receive_op'  => $value->receive_op,
+                            'receive_ip_compensate_pay' => $value->receive_ip_compensate_pay,
+                            'receive_hc_hc'    => $value->receive_hc_hc,
+                            'receive_hc_drug'  => $value->receive_hc_drug,
+                            'receive_ae_ae'    => $value->receive_ae_ae,
+                            'receive_ae_drug'  => $value->receive_ae_drug,
+                            'receive_inst'     => $value->receive_inst,
+                            'receive_dmis_compensate_pay' => $value->receive_dmis_compensate_pay,
+                            'receive_dmis_drug' => $value->receive_dmis_drug,
+                            'receive_palliative'=> $value->receive_palliative,
+                            'receive_pp'        => $value->receive_pp,
+                            'receive_fs'        => $value->receive_fs,
+                            'receive_total'     => $value->receive_total,
+                            'stm_filename'      => $value->stm_filename,
+                        ]);
+                } else {
+                    $add = new Stm_ucs();
+                    $add->repno   = $value->repno;
+                    $add->no      = $value->no;
+                    $add->tran_id = $value->tran_id;
+                    $add->hn      = $value->hn;
+                    $add->an      = $value->an;
+                    $add->cid     = $value->cid;
+                    $add->pt_name = $value->pt_name;
+                    $add->datetimeadm = $value->datetimeadm;
+                    $add->vstdate     = $value->vstdate;
+                    $add->vsttime     = $value->vsttime;
+                    $add->datetimedch = $value->datetimedch;
+                    $add->dchdate     = $value->dchdate;
+                    $add->dchtime     = $value->dchtime;
+                    $add->maininscl = $value->maininscl;
+                    $add->projcode  = $value->projcode;
+                    $add->charge    = $value->charge;
+                    $add->fund_ip_act    = $value->fund_ip_act;
+                    $add->fund_ip_adjrw  = $value->fund_ip_adjrw;
+                    $add->fund_ip_ps     = $value->fund_ip_ps;
+                    $add->fund_ip_ps2    = $value->fund_ip_ps2;
+                    $add->fund_ip_ccuf   = $value->fund_ip_ccuf;
+                    $add->fund_ip_adjrw2 = $value->fund_ip_adjrw2;
+                    $add->fund_ip_payrate        = $value->fund_ip_payrate;
+                    $add->fund_ip_salary         = $value->fund_ip_salary;
+                    $add->fund_compensate_salary = $value->fund_compensate_salary;
+                    $add->receive_op                 = $value->receive_op;
+                    $add->receive_ip_compensate_cal  = $value->receive_ip_compensate_cal;
+                    $add->receive_ip_compensate_pay  = $value->receive_ip_compensate_pay;
+                    $add->receive_hc_hc              = $value->receive_hc_hc;
+                    $add->receive_hc_drug            = $value->receive_hc_drug;
+                    $add->receive_ae_ae              = $value->receive_ae_ae;
+                    $add->receive_ae_drug            = $value->receive_ae_drug;
+                    $add->receive_inst               = $value->receive_inst;
+                    $add->receive_dmis_compensate_cal= $value->receive_dmis_compensate_cal;
+                    $add->receive_dmis_compensate_pay= $value->receive_dmis_compensate_pay;
+                    $add->receive_dmis_drug          = $value->receive_dmis_drug;
+                    $add->receive_palliative         = $value->receive_palliative;
+                    $add->receive_dmishd             = $value->receive_dmishd;
+                    $add->receive_pp                 = $value->receive_pp;
+                    $add->receive_fs                 = $value->receive_fs;
+                    $add->receive_opbkk              = $value->receive_opbkk;
+                    $add->receive_total              = $value->receive_total;
+                    $add->va        = $value->va;
+                    $add->covid     = $value->covid;
+                    $add->resources = $value->resources;
+                    $add->stm_filename = $value->stm_filename;
+                    $add->save();
                 }
-            }, 1); // retry=1 พอ (หากเจอ Deadlock จะลองซ้ำ 1 ครั้ง)
+            }
 
-            // ✅ ลบชั่วคราว “นอก” transaction อีกครั้งหลังจบงาน
+            DB::commit();
+
+            // ✅ เคลียร์ staging นอกทรานแซกชัน (หลัง commit)
             Stm_ucsexcel::truncate();
 
-            $msg = 'อัปโหลดสำเร็จ: ' . implode(', ', $allUploadedNames);
-            return redirect()->route('stm_ucs')->with('success', $msg);
+            return redirect()
+                ->route('stm_ucs')
+                ->with('success', implode(', ', $allFileNames));
 
         } catch (\Throwable $e) {
-            // ไม่เรียก rollBack เอง เพราะใช้ DB::transaction แล้ว
-            // ถ้าจะกันเหนียวเพิ่มเติม:
-            // if (DB::transactionLevel() > 0) DB::rollBack();
-
-            // ส่งข้อความ error ออกไปดูต้นเหตุจริง
+            DB::rollBack();
+            // โยนข้อความ error จริงเพื่อดีบักง่าย
             return back()->withErrors('มีปัญหาในการนำเข้า: '.$e->getMessage());
         }
     }

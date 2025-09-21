@@ -18,7 +18,7 @@
             <div class="col"></div>
         </div>
         <div class="row mb-2">            
-            <div align="center">             
+            <div align="center">              
                 <button type="submit" onclick="simulateProcess()"
                     class="mb-3 me-2 btn-icon btn-shadow btn-dashed btn btn-outline-primary">
                     <i class="fa-solid fa-cloud-arrow-up me-2" data-bs-toggle="tooltip"
@@ -26,6 +26,13 @@
                     นำเข้า STM
                 </button> 
             </div>
+        </div>
+        <div class="row"> 
+            @if ($message = Session::get('success'))
+            <div class="alert alert-success text-center">
+            <h5><strong>{{ $message }}</strong></h5>
+            </div>
+            @endif
         </div>
     </form>
     <div class="alert alert-success text-primary" role="alert"><strong>ข้อมูล Statement ประกันสุขภาพ UCS [OP-IP]</strong></div> 

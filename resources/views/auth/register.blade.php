@@ -9,7 +9,7 @@
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'H-RiMS') }}</title>
+    <title>RiMS</title>
 
     <!-- Fonts -->
     <link rel="dns-prefetch" href="//fonts.bunny.net">
@@ -33,7 +33,7 @@
                 <div class="card-header">
                     <div class="row"> 
                         <div class="col-md-6 text-success" align="left"> 
-                            <a href="{{ route('login') }}">  {{ __('H-RiMS') }}</a> 
+                            <a href="{{ route('login') }}">  {{ __('RiMS') }}</a> 
                         </div>
                         <div class="col-md-6 text-success" align="right">                        
                             <a href="{{ route('register') }}"> {{ __('Register') }}</a>                        

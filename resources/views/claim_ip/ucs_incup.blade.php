@@ -368,4 +368,4 @@
       plugins: [ChartDataLabels] // ✅ เปิดใช้งาน plugin datalabels ตรงนี้
     });
   });
-</script>
+</script> 

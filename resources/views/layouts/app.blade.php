@@ -341,9 +341,23 @@
                                     <a class="dropdown-item link-primary text-white " href="{{ url('claim_ip/bmt') }}" >
                                         IP-BMT อปท.รูปแบบพิเศษ ขสมก.
                                     </a>
-                                    <a class="dropdown-item link-primary text-white " href="{{ url('claim_ip/sss') }}" >
+                                </li>
+                                <!-- ชี้ขวา -->
+                                <li class="dropend">
+                                    <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         IP-SSS ประกันสังคม
-                                    </a>   
+                                    </a>
+                                    <ul class="bg-success dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item link-primary text-white" href="{{ url('claim_ip/sss') }}"> SS-IP ประกันสังคม ทั่วไป </a>
+                                        </li> 
+                                        <li>
+                                            <a class="dropdown-item link-primary text-white" href="{{ url('claim_ip/sss_hc') }}"> SS-IP ประกันสังคม ค่าใช้จ่ายสูง </a>
+                                        </li> 
+                                    </ul>
+                                </li>
+                                <!-- เมนูอื่น -->
+                                <li>                                     
                                     <a class="dropdown-item link-primary text-white " href="{{ url('claim_ip/gof') }}" >
                                         IP-GOF หน่วยงานรัฐ
                                     </a>    

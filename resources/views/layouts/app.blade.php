@@ -289,6 +289,9 @@
                                             <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/sss_kidney') }}">SS-OP ประกันสังคม ฟอกไต</a>
                                         </li>
                                         @endif
+                                        <li>
+                                            <a class="dropdown-item link-primary text-white" href="{{ url('claim_op/sss_hc') }}"> SS-OP ประกันสังคม ค่าใช้จ่ายสูง</a>
+                                        </li>
                                     </ul>
                                 </li>
                                 <!-- เมนูอื่น -->
@@ -451,7 +454,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li > 
                             <div class="btn text-info">
-                                V. 68-09-22
+                                V. 68-09-23
                             </div>   
                         </li>                         
                         <!-- Authentication Links -->

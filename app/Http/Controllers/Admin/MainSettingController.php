@@ -57,6 +57,7 @@ class MainSettingController extends Controller
             ['id' => 17, 'name_th' => 'ยา Clopidogrel (รหัส drugitems HOSxP)', 'name' => 'drug_clopidogrel', 'value' => '1520019'],
             ['id' => 18, 'name_th' => 'ชื่อโรงพยาบาล', 'name' => 'hospital_name', 'value' => 'โรงพยาบาลหัวตะพาน'],
             ['id' => 19, 'name_th' => 'รหัส 5 หลักโรงพยาบาล', 'name' => 'hospital_code', 'value' => '10989'],
+            ['id' => 20, 'name_th' => 'OPOH Token', 'name' => 'opoh_token', 'value' => ''],
         ];
         
         foreach ($main_setting as $row) {

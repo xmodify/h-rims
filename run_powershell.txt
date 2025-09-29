@@ -1,0 +1,7 @@
+Program/script:
+powershell.exe
+----------------------------------
+Add arguments (optional)
+ส่ง opoh
+1. -NoProfile -ExecutionPolicy Bypass -Command "Invoke-RestMethod -Uri 'http://127.0.0.1:88/api/send_opinsurance' -Method Post"
+2.(ใส่ช่วงวันที่) Invoke-RestMethod -Uri 'http://127.0.0.1:88/api/send_opinsurance?start_date=2024-10-01&end_date=2025-09-30' -Method Post

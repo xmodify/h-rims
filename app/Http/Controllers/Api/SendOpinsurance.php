@@ -116,8 +116,8 @@ class SendOpinsurance extends Controller
         }
 
         // 5) ส่งเข้า API ปลายทาง (Sanctum Bearer)
-        // $url = config('services.opoh.ingest_url', 'http://1.179.128.29:3394/api/ingest');
-        $url = config('services.opoh.ingest_url', 'http://127.0.0.1:8000/api/op_insurance');
+        $url = config('services.opoh.ingest_url', 'http://1.179.128.29:3394/api/op_insurance');
+        // $url = config('services.opoh.ingest_url', 'http://127.0.0.1:8000/api/op_insurance');
 
         $chunkSize = (int)($request->query('chunk', 200)); // เปลี่ยนได้ผ่าน ?chunk=
         $chunks = array_chunk($records, max(1, $chunkSize));

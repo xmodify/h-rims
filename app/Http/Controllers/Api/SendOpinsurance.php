@@ -23,15 +23,15 @@ class SendOpinsurance extends Controller
             ], 422);
         }
 
-        // 2) รับช่วงวันที่ (ไม่ส่งมา = ดือนปัจจุบันทั้งเดือน)
+        // 2) รับช่วงวันที่ (ไม่ส่งมา = 10 วันย้อนหลังถึงปัจจุบัน) 
         $start = $request->query('start_date');
         $end   = $request->query('end_date');
-        if (!$start || !$end) {
-            $today     = Carbon::today();            
-            $start     = $today->copy()->startOfMonth()->toDateString();
-            $end       = $today->copy()->endOfMonth()->toDateString();
-        }
 
+        if (!$start || !$end) {
+            $today = Carbon::today();
+            $start = $today->copy()->subDays(10)->toDateString();
+            $end   = $today->toDateString();
+        }
         // 3) Query จากฐาน HOSxP (connection 'hosxp')
         $sql = '
             SELECT ? AS hospcode,vstdate,COUNT(vn) AS total_visit,IFNULL(SUM(CASE WHEN endpoint<>"" THEN 1 ELSE 0 END),0) AS "endpoint",
@@ -116,7 +116,7 @@ class SendOpinsurance extends Controller
         }
 
         // 5) ส่งเข้า API ปลายทาง (Sanctum Bearer)
-        $url = config('services.opoh.ingest_url', 'http://localhost:8837/api/ingest');
+        $url = config('services.opoh.ingest_url', 'http://192.168.16.4:8837/api/ingest');
 
         $chunkSize = (int)($request->query('chunk', 200)); // เปลี่ยนได้ผ่าน ?chunk=
         $chunks = array_chunk($records, max(1, $chunkSize));

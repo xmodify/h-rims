@@ -34,67 +34,160 @@ class SendOpinsurance extends Controller
         }
         // 3) Query จากฐาน HOSxP (connection 'hosxp')
         $sql = '
-            SELECT ? AS hospcode,vstdate,COUNT(vn) AS total_visit,IFNULL(SUM(CASE WHEN endpoint<>"" THEN 1 ELSE 0 END),0) AS "endpoint",
-            IFNULL(SUM(CASE WHEN hipdata_code="OFC" THEN 1 ELSE 0 END),0) AS "ofc_visit",
-            IFNULL(SUM(CASE WHEN hipdata_code="OFC" AND edc_approve_list_text <> "" THEN 1 ELSE 0 END),0) AS "ofc_edc",
-            IFNULL(SUM(CASE WHEN auth_code="" AND cid NOT LIKE "0%" THEN 1 ELSE 0 END),0) AS "non_authen",
-            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","SSS","STP") AND hospmain="" THEN 1 ELSE 0 END),0) AS "non_hmain",
-            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
-                THEN 1 ELSE 0 END),0) AS "uc_anywhere",
-            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
-                AND endpoint ="Y" THEN 1 ELSE 0 END),0) AS "uc_anywhere_endpoint",
-            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-                AND uc_cr<>"" THEN 1 ELSE 0 END),0) AS "uc_cr",
-            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-                AND uc_cr<>"" AND endpoint ="Y" THEN 1 ELSE 0 END),0) AS "uc_cr_endpoint",
-            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-                AND herb<>"" THEN 1 ELSE 0 END),0) AS "uc_herb",
-            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-                AND herb<>"" AND endpoint ="Y" THEN 1 ELSE 0 END),0) AS "uc_herb_endpoint",
-            IFNULL(SUM(CASE WHEN ppfs<>"" THEN 1 ELSE 0 END),0) AS "ppfs",
-            IFNULL(SUM(CASE WHEN ppfs<>"" AND endpoint ="Y" THEN 1 ELSE 0 END),0) AS "ppfs_endpoint",
-            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND healthmed<>"" THEN 1 ELSE 0 END),0) AS "uc_healthmed",
-            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND healthmed<>"" AND endpoint ="Y" THEN 1 ELSE 0 END),0) AS "uc_healthmed_endpoint"
-            FROM(SELECT o.vstdate,o.vn,pt.cid,pt.nationality,vp.auth_code,p.pttype,p.paidst,p.hipdata_code,vp.hospmain,os.edc_approve_list_text,
-            uc_cr.vn AS uc_cr,herb.vn AS herb,ppfs.vn AS ppfs,healthmed.vn AS healthmed,
-            IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,v.income,v.paid_money
-            FROM ovst o
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-            LEFT JOIN ovst_seq os ON os.vn=o.vn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN opitemrece ppfs ON ppfs.vn=o.vn AND ppfs.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs = "Y")
-            LEFT JOIN opitemrece uc_cr ON uc_cr.vn=o.vn AND uc_cr.icode IN (SELECT icode FROM hrims.lookup_icode WHERE uc_cr = "Y")
-            LEFT JOIN opitemrece herb ON herb.vn=o.vn AND herb.icode IN (SELECT icode FROM hrims.lookup_icode WHERE herb32 = "Y")
-            LEFT JOIN health_med_service healthmed ON healthmed.vn=o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
-            WHERE o.vstdate BETWEEN ? AND ?
-            AND (o.an ="" OR o.an IS NULL) 
-            GROUP BY o.vn) AS a GROUP BY vstdate ';
+            SELECT ? AS hospcode,vstdate,COUNT(DISTINCT hn) AS hn_total,COUNT(vn) AS visit_total,
+            SUM(CASE WHEN diagtype ="OP" THEN 1 ELSE 0 END) AS visit_total_op,
+            SUM(CASE WHEN diagtype ="PP" THEN 1 ELSE 0 END) AS visit_total_pp,
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND incup = "Y" THEN 1 ELSE 0 END) AS visit_ucs_incup,
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND inprov = "Y" THEN 1 ELSE 0 END) AS visit_ucs_inprov,
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND outprov = "Y" THEN 1 ELSE 0 END) AS visit_ucs_outprov,
+            SUM(CASE WHEN hipdata_code IN ("OFC") AND paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_ofc,
+            SUM(CASE WHEN hipdata_code IN ("BKK") AND paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_bkk,
+            SUM(CASE WHEN hipdata_code IN ("BMT") AND paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_bmt,
+            SUM(CASE WHEN hipdata_code IN ("SSS","SSI") AND paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_sss,
+            SUM(CASE WHEN hipdata_code IN ("LGO") AND paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_lgo,
+            SUM(CASE WHEN hipdata_code IN ("NRD","NRH") AND paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_fss,
+            SUM(CASE WHEN hipdata_code IN ("STP") AND paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_stp,
+            SUM(CASE WHEN (paidst IN ("01","03") OR hipdata_code IN ("A1","A9")) THEN 1 ELSE 0 END) AS visit_pay,
+            SUM(CASE WHEN ppfs = "Y" THEN 1 ELSE 0 END) AS visit_ppfs,
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND uccr = "Y" THEN 1 ELSE 0 END) AS visit_ucs_cr,
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND herb = "Y" THEN 1 ELSE 0 END) AS visit_ucs_herb,
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND healthmed = "Y" THEN 1 ELSE 0 END) AS visit_ucs_healthmed,
+            SUM(income) AS inc_total,
+            SUM(inc03) AS inc_lab_total,
+            SUM(inc12) AS inc_drug_total,
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND incup = "Y" THEN income ELSE 0 END) AS inc_ucs_incup,
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND incup = "Y" THEN inc03 ELSE 0 END) AS inc_lab_ucs_incup,
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND incup = "Y" THEN inc12 ELSE 0 END) AS inc_drug_ucs_incup,
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND inprov = "Y" THEN income ELSE 0 END) AS inc_ucs_inprov,
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND inprov = "Y" THEN inc03 ELSE 0 END) AS inc_lab_ucs_inprov,
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND inprov = "Y" THEN inc12 ELSE 0 END) AS inc_drug_ucs_inprov,
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND outprov = "Y" THEN income ELSE 0 END) AS inc_ucs_outprov,
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND outprov = "Y" THEN inc03 ELSE 0 END) AS inc_lab_ucs_outprov,
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND outprov = "Y" THEN inc12 ELSE 0 END) AS inc_drug_ucs_outprov,
+            SUM(CASE WHEN hipdata_code IN ("OFC") AND paidst NOT IN ("01","03") THEN income ELSE 0 END) AS inc_ofc,            
+            SUM(CASE WHEN hipdata_code IN ("OFC") AND paidst NOT IN ("01","03") THEN inc03 ELSE 0 END) AS inc_lab_ofc, 
+            SUM(CASE WHEN hipdata_code IN ("OFC") AND paidst NOT IN ("01","03") THEN inc12 ELSE 0 END) AS inc_drug_ofc, 
+            SUM(CASE WHEN hipdata_code IN ("BKK") AND paidst NOT IN ("01","03") THEN income ELSE 0 END) AS inc_bkk,            
+            SUM(CASE WHEN hipdata_code IN ("BKK") AND paidst NOT IN ("01","03") THEN inc03 ELSE 0 END) AS inc_lab_bkk, 
+            SUM(CASE WHEN hipdata_code IN ("BKK") AND paidst NOT IN ("01","03") THEN inc12 ELSE 0 END) AS inc_drug_bkk,
+            SUM(CASE WHEN hipdata_code IN ("BMT") AND paidst NOT IN ("01","03") THEN income ELSE 0 END) AS inc_bmt,            
+            SUM(CASE WHEN hipdata_code IN ("BMT") AND paidst NOT IN ("01","03") THEN inc03 ELSE 0 END) AS inc_lab_bmt, 
+            SUM(CASE WHEN hipdata_code IN ("BMT") AND paidst NOT IN ("01","03") THEN inc12 ELSE 0 END) AS inc_drug_bmt,
+            SUM(CASE WHEN hipdata_code IN ("SSS","SSI") AND paidst NOT IN ("01","03") THEN income ELSE 0 END) AS inc_sss,            
+            SUM(CASE WHEN hipdata_code IN ("SSS","SSI") AND paidst NOT IN ("01","03") THEN inc03 ELSE 0 END) AS inc_lab_sss, 
+            SUM(CASE WHEN hipdata_code IN ("SSS","SSI") AND paidst NOT IN ("01","03") THEN inc12 ELSE 0 END) AS inc_drug_sss,         
+            SUM(CASE WHEN hipdata_code IN ("LGO") AND paidst NOT IN ("01","03") THEN income ELSE 0 END) AS inc_lgo,            
+            SUM(CASE WHEN hipdata_code IN ("LGO") AND paidst NOT IN ("01","03") THEN inc03 ELSE 0 END) AS inc_lab_lgo, 
+            SUM(CASE WHEN hipdata_code IN ("LGO") AND paidst NOT IN ("01","03") THEN inc12 ELSE 0 END) AS inc_drug_lgo,            
+            SUM(CASE WHEN hipdata_code IN ("NRD","NRH") AND paidst NOT IN ("01","03") THEN income ELSE 0 END) AS inc_fss,            
+            SUM(CASE WHEN hipdata_code IN ("NRD","NRH") AND paidst NOT IN ("01","03") THEN inc03 ELSE 0 END) AS inc_lab_fss, 
+            SUM(CASE WHEN hipdata_code IN ("NRD","NRH") AND paidst NOT IN ("01","03") THEN inc12 ELSE 0 END) AS inc_drug_fss,  
+            SUM(CASE WHEN hipdata_code IN ("STP") AND paidst NOT IN ("01","03") THEN income ELSE 0 END) AS inc_stp,            
+            SUM(CASE WHEN hipdata_code IN ("STP") AND paidst NOT IN ("01","03") THEN inc03 ELSE 0 END) AS inc_lab_stp, 
+            SUM(CASE WHEN hipdata_code IN ("STP") AND paidst NOT IN ("01","03") THEN inc12 ELSE 0 END) AS inc_drug_stp,  
+            SUM(CASE WHEN (hipdata_code IN ("A1","A9") OR paidst IN ("01","03")) THEN income ELSE 0 END) AS inc_pay,            
+            SUM(CASE WHEN (hipdata_code IN ("A1","A9") OR paidst IN ("01","03")) THEN inc03 ELSE 0 END) AS inc_lab_pay, 
+            SUM(CASE WHEN (hipdata_code IN ("A1","A9") OR paidst IN ("01","03")) THEN inc12 ELSE 0 END) AS inc_drug_pay,
+            SUM(inc_ppfs) AS inc_ppfs,
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc_uccr ELSE 0 END) AS inc_uccr,
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc_herb ELSE 0 END) AS inc_herb
+            FROM (SELECT v.vstdate,v.vn,v.hn,v.pttype,p.hipdata_code,p.paidst,v.income,v.inc03,v.inc12 ,v.pdx,
+            IF(i.icd10 IS NULL,"OP","PP") AS diagtype,IF(vp.hospmain IS NOT NULL,"Y","") AS incup,
+            IF(vp1.hospmain IS NOT NULL,"Y","") AS inprov,IF(vp2.hospmain IS NOT NULL,"Y","") AS outprov,
+            IF(op.vn IS NOT NULL,"Y","") AS ppfs,IF(op1.vn IS NOT NULL,"Y","") AS uccr,IF(op2.vn IS NOT NULL,"Y","") AS herb,
+            IF(hm.vn IS NOT NULL,"Y","") AS healthmed,COALESCE(inc_ppfs.inc, 0) AS inc_ppfs,COALESCE(inc_uccr.inc, 0) AS inc_uccr,
+            COALESCE(inc_herb.inc, 0) AS inc_herb
+            FROM vn_stat v
+            LEFT JOIN pttype p ON p.pttype=v.pttype
+            LEFT JOIN visit_pttype vp ON vp.vn =v.vn 
+                AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
+            LEFT JOIN visit_pttype vp1 ON vp1.vn =v.vn 
+                AND vp1.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs =""))
+            LEFT JOIN visit_pttype vp2 ON vp2.vn =v.vn 
+                AND vp2.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+            LEFT JOIN opitemrece op ON op.vn=v.vn AND op.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs = "Y")
+            LEFT JOIN opitemrece op1 ON op1.vn=v.vn AND op1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE uc_cr = "Y")
+            LEFT JOIN opitemrece op2 ON op2.vn=v.vn AND op2.icode IN (SELECT icode FROM hrims.lookup_icode WHERE herb32 = "Y")
+            LEFT JOIN health_med_service hm ON hm.vn=v.vn
+            LEFT JOIN hrims.lookup_icd10 i ON i.icd10=v.pdx AND i.pp="Y"
+            LEFT JOIN (SELECT o.vn,SUM(o.sum_price) AS inc FROM opitemrece o
+                INNER JOIN hrims.lookup_icode li ON o.icode = li.icode
+                WHERE o.vstdate BETWEEN ? AND ? AND li.ppfs = "Y" 
+                GROUP BY o.vn) inc_ppfs ON inc_ppfs.vn=v.vn
+            LEFT JOIN (SELECT o.vn,SUM(o.sum_price) AS inc FROM opitemrece o
+                INNER JOIN hrims.lookup_icode li ON o.icode = li.icode
+                WHERE o.vstdate BETWEEN ? AND ? AND li.uc_cr = "Y" 
+                GROUP BY o.vn) inc_uccr ON inc_uccr.vn=v.vn
+            LEFT JOIN (SELECT o.vn,SUM(o.sum_price) AS inc FROM opitemrece o
+                INNER JOIN hrims.lookup_icode li ON o.icode = li.icode
+                WHERE o.vstdate BETWEEN ? AND ? AND li.herb32 = "Y" 
+                GROUP BY o.vn) inc_herb ON inc_herb.vn=v.vn
+            WHERE v.vstdate BETWEEN ? AND ? GROUP BY v.vn) AS a GROUP BY vstdate ';
 
-        $rows = DB::connection('hosxp')->select($sql, [$hospcode, $start, $end]);
+        $rows = DB::connection('hosxp')->select($sql, [$hospcode, $start, $end, $start, $end, $start, $end, $start, $end]);
 
         // 4) แปลงผลให้เป็น records ตามสเปกของปลายทาง
         $records = array_map(function ($r) {
             return [
-                'vstdate'               => $r->vstdate,
-                'total_visit'           => (int)$r->total_visit,
-                'endpoint'              => (int)$r->endpoint,
-                'ofc_visit'             => (int)$r->ofc_visit,
-                'ofc_edc'               => (int)$r->ofc_edc,
-                'non_authen'            => (int)$r->non_authen,
-                'non_hmain'             => (int)$r->non_hmain,
-                'uc_anywhere'           => (int)$r->uc_anywhere,
-                'uc_anywhere_endpoint'  => (int)$r->uc_anywhere_endpoint,
-                'uc_cr'                 => (int)$r->uc_cr,
-                'uc_cr_endpoint'        => (int)$r->uc_cr_endpoint,
-                'uc_herb'               => (int)$r->uc_herb,
-                'uc_herb_endpoint'      => (int)$r->uc_herb_endpoint,
-                'ppfs'                  => (int)$r->ppfs,
-                'ppfs_endpoint'         => (int)$r->ppfs_endpoint,
-                'uc_healthmed'          => (int)$r->uc_healthmed,
-                'uc_healthmed_endpoint' => (int)$r->uc_healthmed_endpoint,
+                'vstdate'              => $r->vstdate,
+                'hn_total'             => (int)$r->hn_total,
+                'visit_total'          => (int)$r->visit_total,
+                'visit_total_op'       => (int)$r->visit_total_op,
+                'visit_total_pp'       => (int)$r->visit_total_pp,
+                'visit_ucs_incup'      => (int)$r->visit_ucs_incup,
+                'visit_ucs_inprov'     => (int)$r->visit_ucs_inprov,
+                'visit_ucs_outprov'    => (int)$r->visit_ucs_outprov,
+                'visit_ofc'            => (int)$r->visit_ofc,
+                'visit_bkk'            => (int)$r->visit_bkk,
+                'visit_bmt'            => (int)$r->visit_bmt,
+                'visit_sss'            => (int)$r->visit_sss,
+                'visit_lgo'            => (int)$r->visit_lgo,
+                'visit_fss'            => (int)$r->visit_fss,
+                'visit_stp'            => (int)$r->visit_stp,
+                'visit_pay'            => (int)$r->visit_pay,
+                'visit_ppfs'           => (int)$r->visit_ppfs,
+                'visit_ucs_cr'         => (int)$r->visit_ucs_cr,
+                'visit_ucs_herb'       => (int)$r->visit_ucs_herb,
+                'visit_ucs_healthmed'  => (int)$r->visit_ucs_healthmed,
+                'inc_total'            => (float)$r->inc_total,
+                'inc_lab_total'        => (float)$r->inc_lab_total,
+                'inc_drug_total'       => (float)$r->inc_drug_total,
+                'inc_ucs_incup'        => (float)$r->inc_ucs_incup,
+                'inc_lab_ucs_incup'    => (float)$r->inc_lab_ucs_incup,
+                'inc_drug_ucs_incup'   => (float)$r->inc_drug_ucs_incup,
+                'inc_ucs_inprov'       => (float)$r->inc_ucs_inprov,
+                'inc_lab_ucs_inprov'   => (float)$r->inc_lab_ucs_inprov,
+                'inc_drug_ucs_inprov'  => (float)$r->inc_drug_ucs_inprov,
+                'inc_ucs_outprov'      => (float)$r->inc_ucs_outprov,
+                'inc_lab_ucs_outprov'  => (float)$r->inc_lab_ucs_outprov,
+                'inc_drug_ucs_outprov' => (float)$r->inc_drug_ucs_outprov,
+                'inc_ofc'              => (float)$r->inc_ofc,
+                'inc_lab_ofc'          => (float)$r->inc_lab_ofc,
+                'inc_drug_ofc'         => (float)$r->inc_drug_ofc,
+                'inc_bkk'              => (float)$r->inc_bkk,
+                'inc_lab_bkk'          => (float)$r->inc_lab_bkk,
+                'inc_drug_bkk'         => (float)$r->inc_drug_bkk,
+                'inc_bmt'              => (float)$r->inc_bmt,
+                'inc_lab_bmt'          => (float)$r->inc_lab_bmt,
+                'inc_drug_bmt'         => (float)$r->inc_drug_bmt,
+                'inc_sss'              => (float)$r->inc_sss,
+                'inc_lab_sss'          => (float)$r->inc_lab_sss,
+                'inc_drug_sss'         => (float)$r->inc_drug_sss,
+                'inc_lgo'              => (float)$r->inc_lgo,
+                'inc_lab_lgo'          => (float)$r->inc_lab_lgo,
+                'inc_drug_lgo'         => (float)$r->inc_drug_lgo,
+                'inc_fss'              => (float)$r->inc_fss,
+                'inc_lab_fss'          => (float)$r->inc_lab_fss,
+                'inc_drug_fss'         => (float)$r->inc_drug_fss,
+                'inc_stp'              => (float)$r->inc_stp,
+                'inc_lab_stp'          => (float)$r->inc_lab_stp,
+                'inc_drug_stp'         => (float)$r->inc_drug_stp,
+                'inc_pay'              => (float)$r->inc_pay,
+                'inc_lab_pay'          => (float)$r->inc_lab_pay,
+                'inc_drug_pay'         => (float)$r->inc_drug_pay,
+                'inc_ppfs'             => (float)$r->inc_ppfs,
+                'inc_uccr'             => (float)$r->inc_uccr,
+                'inc_herb'             => (float)$r->inc_herb,
             ];
         }, $rows);
 

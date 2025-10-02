@@ -20,6 +20,8 @@
                 <tr>
                     <th class="text-center">Ward</th>
                     <th class="text-center">Ward Name</th>
+                    <th class="text-center">จำนวนเตียงจริง</th>
+                    <th class="text-center">ทั่วไป</th>
                     <th class="text-center">ชาย</th>
                     <th class="text-center">หญิง</th>
                     <th class="text-center">VIP</th>
@@ -34,6 +36,8 @@
                         <tr>
                             <td>{{ $item->ward }}</td>
                             <td>{{ $item->ward_name }}</td>
+                            <td class="text-center">{{ $item->bed_qty }}</td>
+                            <td class="text-center">{{ $item->ward_normal }}</td>
                             <td class="text-center">{{ $item->ward_m }}</td>
                             <td class="text-center">{{ $item->ward_f }}</td>
                             <td class="text-center">{{ $item->ward_vip }}</td>
@@ -44,6 +48,8 @@
                                 <button class="btn btn-warning btn-sm btn-edit" 
                                     data-ward="{{ $item->ward }}"    
                                     data-ward_name="{{ $item->ward_name }}"
+                                    data-bed_qty="{{ $item->bed_qty }}"
+                                    data-ward_normal="{{ $item->ward_normal }}"
                                     data-ward_m="{{ $item->ward_m }}"
                                     data-ward_f="{{ $item->ward_f }}"
                                     data-ward_vip="{{ $item->ward_vip }}"
@@ -77,7 +83,11 @@
                     </div>
                     <div class="modal-body">
                         <input class="form-control mb-2" name="ward" type="text" placeholder="ward" required>
-                        <input class="form-control mb-2" name="ward_name" type="text" placeholder="ward_name" required>                               
+                        <input class="form-control mb-2" name="ward_name" type="text" placeholder="ward_name" required>  
+                        <input class="form-control mb-2" name="bed_qty" type="text" placeholder="bed_qty" required>                              
+                        <input type="checkbox" name="ward_normal" value="Y">
+                        <label for="ward_normal">ทั่วไป</label>
+                        <br>
                         <input type="checkbox" name="ward_m" value="Y">
                         <label for="ward_m">ชาย</label>
                         <br>
@@ -112,7 +122,12 @@
                     <div class="modal-body">
                         @if (!empty($item))
                             <input class="form-control mb-2" id="editward" name="ward" type="text" readonly>
-                            <input class="form-control mb-2" id="editward_name" name="ward_name" type="text"  readonly>                                
+                            <input class="form-control mb-2" id="editward_name" name="ward_name" type="text"  readonly>
+                            <input class="form-control mb-2" id="editbed_qty" name="bed_qty" type="text" >                                 
+                            <input type="checkbox" name="ward_normal" id="editward_normal" value="Y"
+                                {{ $item->ward_normal === 'Y' ? 'checked' : '' }}>
+                            <label for="editward_normal">ทั่วไป</label>
+                            <br>
                             <input type="checkbox" name="ward_m" id="editward_m" value="Y"
                                 {{ $item->ward_m === 'Y' ? 'checked' : '' }}>
                             <label for="editward_m">ชาย</label>
@@ -162,6 +177,8 @@
                 button.addEventListener('click', function () {
                     const ward = this.dataset.ward;
                     const ward_name = this.dataset.ward_name; 
+                    const bed_qty = this.dataset.bed_qty; 
+                    const ward_normal = this.dataset.ward_normal; 
                     const ward_m = this.dataset.ward_m; 
                     const ward_f = this.dataset.ward_f; 
                     const ward_vip = this.dataset.ward_vip; 
@@ -170,6 +187,8 @@
 
                     document.getElementById('editward').value = this.dataset.ward;
                     document.getElementById('editward_name').value = this.dataset.ward_name;
+                    document.getElementById('editbed_qty').value = this.dataset.bed_qty;
+                    document.getElementById('editward_normal').checked = (this.dataset.ward_normal === 'Y');
                     document.getElementById('editward_m').checked = (this.dataset.ward_m === 'Y');
                     document.getElementById('editward_f').checked = (this.dataset.ward_f === 'Y');
                     document.getElementById('editward_vip').checked = (this.dataset.ward_vip === 'Y');

@@ -72,6 +72,8 @@ class LookupWardController extends Controller
 
         $data = [           
             'ward_name' => $request->ward_name,
+            'bed_qty' => $request->bed_qty,
+            'ward_normal' => $request->has('ward_normal') ? 'Y' : '',
             'ward_m' => $request->has('ward_m') ? 'Y' : '',
             'ward_f' => $request->has('ward_f') ? 'Y' : '',
             'ward_vip' => $request->has('ward_vip') ? 'Y' : '',

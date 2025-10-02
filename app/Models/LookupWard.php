@@ -16,6 +16,8 @@ class LookupWard extends Model
     protected $fillable = [
         'ward',
         'ward_name',
+        'bed_qty',
+        'ward_normal',
         'ward_m',
         'ward_f',
         'ward_vip',

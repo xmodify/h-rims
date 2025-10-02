@@ -14,7 +14,7 @@ class LookupWardController extends Controller
      */
     public function index()
     {
-        $data = LookupWard::all();
+        $data = LookupWard::orderBy('ward', 'ASC')->get();
         return view('admin.lookup_ward.index', compact('data'));
     }
 

@@ -17,12 +17,24 @@ class MishosController extends Controller
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
@@ -83,19 +95,31 @@ class MishosController extends Controller
 			AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date]);
 
-        return view('mishos.ucs_ae',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('mishos.ucs_ae',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_walkin(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
@@ -156,19 +180,31 @@ class MishosController extends Controller
 			AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date]);
 
-        return view('mishos.ucs_walkin',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('mishos.ucs_walkin',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_herb(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
@@ -234,19 +270,31 @@ class MishosController extends Controller
                 AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
-        return view('mishos.ucs_herb',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('mishos.ucs_herb',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_telemed(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
@@ -312,19 +360,31 @@ class MishosController extends Controller
                 AND o.vstdate BETWEEN ? AND ? 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
-        return view('mishos.ucs_telemed',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('mishos.ucs_telemed',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_rider(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
@@ -390,19 +450,31 @@ class MishosController extends Controller
                 AND o.vstdate BETWEEN ? AND ? 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
-        return view('mishos.ucs_rider',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('mishos.ucs_rider',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_gdm(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
         
@@ -470,19 +542,31 @@ class MishosController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
-        return view('mishos.ucs_gdm',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('mishos.ucs_gdm',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_drug_clopidogrel(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
         $drug_clopidogrel = DB::table('main_setting')->where('name', 'drug_clopidogrel')->value('value');  
@@ -542,19 +626,31 @@ class MishosController extends Controller
                 AND o.vstdate BETWEEN ? AND ? 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$drug_clopidogrel,$start_date,$end_date,$drug_clopidogrel,$start_date,$end_date]);
 
-        return view('mishos.ucs_drug_clopidogrel',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('mishos.ucs_drug_clopidogrel',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_drug_sk(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
@@ -619,19 +715,31 @@ class MishosController extends Controller
                 AND o.vstdate BETWEEN ? AND ? 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
-        return view('mishos.ucs_drug_sk',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('mishos.ucs_drug_sk',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ins(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
@@ -696,19 +804,31 @@ class MishosController extends Controller
                 AND o.vstdate BETWEEN ? AND ? 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
-        return view('mishos.ucs_ins',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('mishos.ucs_ins',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_palliative(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
@@ -773,19 +893,31 @@ class MishosController extends Controller
                 AND o.vstdate BETWEEN ? AND ? 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
-        return view('mishos.ucs_palliative',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('mishos.ucs_palliative',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_fp(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
         
@@ -856,19 +988,31 @@ class MishosController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
-        return view('mishos.ucs_ppfs_fp',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('mishos.ucs_ppfs_fp',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_prt(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
         $lab_prt = DB::table('main_setting')->where('name', 'lab_prt')->value('value'); 
@@ -934,19 +1078,31 @@ class MishosController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
-        return view('mishos.ucs_ppfs_prt',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('mishos.ucs_ppfs_prt',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_ida(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
         
@@ -1013,19 +1169,31 @@ class MishosController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
-        return view('mishos.ucs_ppfs_ida',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('mishos.ucs_ppfs_ida',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_ferrofolic(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
         
@@ -1088,19 +1256,31 @@ class MishosController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
-        return view('mishos.ucs_ppfs_ferrofolic',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('mishos.ucs_ppfs_ferrofolic',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_fluoride(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
         
@@ -1163,19 +1343,31 @@ class MishosController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
-        return view('mishos.ucs_ppfs_fluoride',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('mishos.ucs_ppfs_fluoride',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_anc(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
         
@@ -1243,19 +1435,31 @@ class MishosController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
-        return view('mishos.ucs_ppfs_anc',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('mishos.ucs_ppfs_anc',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_postnatal(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
         
@@ -1321,19 +1525,31 @@ class MishosController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
-        return view('mishos.ucs_ppfs_postnatal',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('mishos.ucs_ppfs_postnatal',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_fittest(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
         
@@ -1399,19 +1615,31 @@ class MishosController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
-        return view('mishos.ucs_ppfs_fittest',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('mishos.ucs_ppfs_fittest',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_scr(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
         
@@ -1477,7 +1705,7 @@ class MishosController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
-        return view('mishos.ucs_ppfs_scr',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('mishos.ucs_ppfs_scr',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 
 }

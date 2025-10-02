@@ -14,7 +14,7 @@ class LookupHospcodeController extends Controller
      */
     public function index()
     {
-        $data = LookupHospcode::all();
+        $data = LookupHospcode::orderBy('hospcode', 'ASC')->get();
         return view('admin.lookup_hospcode.index', compact('data'));
     }
 

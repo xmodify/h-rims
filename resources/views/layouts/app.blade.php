@@ -490,19 +490,20 @@
                                     {{ Auth::user()->name }}
                                 </a>
 
-                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                <div class="dropdown-menu dropdown-menu-end bg-success" aria-labelledby="navbarDropdown">
                                     <!-- Admin -->
                                     @auth
                                         @if(auth()->user()->status === 'admin')                                            
-                                            <a class="dropdown-item" href="{{ route('admin.main_setting') }}">Main Setting</a>
-                                            <a class="dropdown-item" href="{{ route('admin.users.index') }}">Manage User</a>                                            
-                                            <a class="dropdown-item" href="{{ route('admin.lookup_icode.index') }}">Lookup icode</a>
-                                            <a class="dropdown-item" href="{{ route('admin.lookup_ward.index') }}">Lookup ward</a>
-                                            <a class="dropdown-item" href="{{ route('admin.lookup_hospcode.index') }}">Lookup hospcode</a>
+                                            <a class="dropdown-item link-primary text-white" href="{{ route('admin.main_setting') }}">Main Setting</a>
+                                            <a class="dropdown-item link-primary text-white" href="{{ route('admin.users.index') }}">Manage User</a>                                            
+                                            <a class="dropdown-item link-primary text-white" href="{{ route('admin.lookup_icode.index') }}">Lookup icode</a>
+                                            <a class="dropdown-item link-primary text-white" href="{{ route('admin.lookup_ward.index') }}">Lookup ward</a>
+                                            <a class="dropdown-item link-primary text-white" href="{{ route('admin.lookup_hospcode.index') }}">Lookup hospcode</a>
+                                            <a class="dropdown-item link-primary text-white" href="{{ route('admin.budget_year.index') }}">Budget year</a>
                                         @endif
                                     @endauth
                                     <!-- -->
-                                    <a class="dropdown-item" href="{{ route('logout') }}"
+                                    <a class="dropdown-item link-primary text-white" href="{{ route('logout') }}"
                                        onclick="event.preventDefault();
                                                      document.getElementById('logout-form').submit();">
                                         {{ __('Logout') }}

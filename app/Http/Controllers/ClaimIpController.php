@@ -17,12 +17,24 @@ class ClaimIpController extends Controller
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
@@ -104,19 +116,31 @@ class ClaimIpController extends Controller
             AND i.data_exp_date IS NOT NULL 
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
-        return view('claim_ip.ucs_incup',compact('start_date','end_date','month','claim_price','receive_total','search','claim'));
+        return view('claim_ip.ucs_incup',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search','claim'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_outcup(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
@@ -198,19 +222,31 @@ class ClaimIpController extends Controller
             AND i.data_exp_date IS NOT NULL 
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
-        return view('claim_ip.ucs_outcup',compact('start_date','end_date','month','claim_price','receive_total','search','claim'));
+        return view('claim_ip.ucs_outcup',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search','claim'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function stp(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
@@ -292,19 +328,31 @@ class ClaimIpController extends Controller
             AND i.data_exp_date IS NOT NULL 
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
-        return view('claim_ip.stp',compact('start_date','end_date','month','claim_price','receive_total','search','claim'));
+        return view('claim_ip.stp',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search','claim'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function ofc(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
@@ -379,19 +427,31 @@ class ClaimIpController extends Controller
             AND p.hipdata_code = "OFC" AND ((ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) OR stm.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
-        return view('claim_ip.ofc',compact('start_date','end_date','month','claim_price','receive_total','search','claim'));
+        return view('claim_ip.ofc',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search','claim'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function lgo(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
@@ -466,19 +526,31 @@ class ClaimIpController extends Controller
             AND p.hipdata_code = "LGO" AND ((ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) OR stm.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
-        return view('claim_ip.lgo',compact('start_date','end_date','month','claim_price','receive_total','search','claim'));
+        return view('claim_ip.lgo',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search','claim'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function bkk(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
@@ -553,19 +625,31 @@ class ClaimIpController extends Controller
             AND p.hipdata_code = "BKK" AND ((ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) OR stm.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
-        return view('claim_ip.bkk',compact('start_date','end_date','month','claim_price','receive_total','search','claim'));
+        return view('claim_ip.bkk',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search','claim'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function bmt(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
@@ -640,19 +724,31 @@ class ClaimIpController extends Controller
             AND p.hipdata_code = "BMT" AND ((ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) OR stm.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
-        return view('claim_ip.bmt',compact('start_date','end_date','month','claim_price','receive_total','search','claim'));
+        return view('claim_ip.bmt',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search','claim'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function sss(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
@@ -729,19 +825,31 @@ class ClaimIpController extends Controller
             AND p.hipdata_code IN ("SSS","SSI") AND ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
-        return view('claim_ip.sss',compact('start_date','end_date','month','claim_price','receive_total','search','claim'));
+        return view('claim_ip.sss',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search','claim'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function sss_hc(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
@@ -808,19 +916,31 @@ class ClaimIpController extends Controller
             AND p.hipdata_code IN ("SSS","SSI") 
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date,$start_date,$end_date]);        
 
-        return view('claim_ip.sss_hc',compact('start_date','end_date','month','claim_price','receive_total','search'));
+        return view('claim_ip.sss_hc',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function gof(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
@@ -895,19 +1015,31 @@ class ClaimIpController extends Controller
             AND p.hipdata_code IN ("GOF","WVO") AND ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
-        return view('claim_ip.gof',compact('start_date','end_date','month','claim_price','receive_total','search','claim'));
+        return view('claim_ip.gof',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search','claim'));
     }
 //----------------------------------------------------------------------------------------------------------------------------------------
     public function rcpt(Request $request )
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
@@ -1012,7 +1144,7 @@ class ClaimIpController extends Controller
             AND a.paid_money <>"0" AND a.rcpt_money = a.paid_money 
             GROUP BY i.an ORDER BY i.ward,i.dchdate,p.pttype',[$start_date,$end_date]);
 
-        return view('claim_ip.rcpt',compact('start_date','end_date','month','claim_price','receive_total','search','claim'));
+        return view('claim_ip.rcpt',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search','claim'));
     }
 
 //----------------------------------------------------------------------------------------------------------------------------------------
@@ -1020,12 +1152,24 @@ class ClaimIpController extends Controller
     {
         ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-        $year_data = DB::table('budget_year')
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
             ->orderByDesc('LEAVE_YEAR_ID')
-            ->first(['LEAVE_YEAR_ID', 'DATE_BEGIN', 'DATE_END']);
-        $budget_year = $year_data->LEAVE_YEAR_ID ?? null;
-        $start_date_b = $year_data->DATE_BEGIN ?? null;
-        $end_date_b   = $year_data->DATE_END ?? null;
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');       
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b   = $year_data[$budget_year] ?? null;
+        $end_date_b = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
+
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
         $pttype_act = DB::table('main_setting')->where('name', 'pttype_act')->value('value');
@@ -1100,7 +1244,7 @@ class ClaimIpController extends Controller
             AND ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
             
-        return view('claim_ip.act',compact('start_date','end_date','month','claim_price','receive_total','search','claim'));
+        return view('claim_ip.act',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search','claim'));
     }
 
 }

@@ -2,6 +2,6 @@ Program/script:
 powershell.exe
 ----------------------------------
 Add arguments (optional)
-ส่ง opoh
-1. -NoProfile -ExecutionPolicy Bypass -Command "Invoke-RestMethod -Uri 'http://127.0.0.1:88/api/send_opinsurance' -Method Post"
-2.(ใส่ช่วงวันที่) Invoke-RestMethod -Uri 'http://127.0.0.1:88/api/send_opinsurance?start_date=2024-10-01&end_date=2025-09-30' -Method Post
+00.05 น. ดึงปิดสิทธิ สปสช : -Command "Invoke-WebRequest http://127.0.0.1:88/nhso_endpoint_pull_yesterday"
+00.15 น. ส่งข้อมูล Amono : -NoProfile -ExecutionPolicy Bypass -Command "Invoke-RestMethod -Uri 'http://127.0.0.1:88/api/amnosend' -Method Post"
+ 	   กรณีเลือกวันที่ : -Invoke-RestMethod -Uri 'http://127.0.0.1:88/api/amnosend?start_date=2024-10-01&end_date=2025-09-30' -Method Post

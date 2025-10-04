@@ -42,7 +42,7 @@
     <div class="text-primary">NonifyTelegram เรียกผ่าน Task Scheduler Windows <br>
         (Program/script: powershell.exe) <br>
         แจ้งเตือน Summary | Add argumenta: -Command "Invoke-WebRequest {{$notify_summary}}"<br>
-        ดึงปิดสิทธิ สปสช.เมื่อวาน | Add argumenta: -Command "Invoke-WebRequest {{$nhso_endpoint_pull_yesterday}}"</div>
+
     <!-- Modal Edit -->
     <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">

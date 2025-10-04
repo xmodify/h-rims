@@ -110,7 +110,7 @@ class ClaimOpController extends Controller
             LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode 
                 IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	
                 AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
@@ -154,7 +154,7 @@ class ClaimOpController extends Controller
             LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode 
                 IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	
                 AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
@@ -266,7 +266,7 @@ class ClaimOpController extends Controller
             LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode 
                 IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	
                 AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)            
@@ -310,7 +310,7 @@ class ClaimOpController extends Controller
             LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode 
                 IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	
                 AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
@@ -477,7 +477,7 @@ class ClaimOpController extends Controller
             LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode 
                 IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	
                 AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
@@ -510,7 +510,7 @@ class ClaimOpController extends Controller
             LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode 
                 IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	
                 AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)

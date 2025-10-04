@@ -248,32 +248,25 @@ class AmnosendController extends Controller
 
     // 3.3 ข้อมูล UPdate Hospital ปัจจุบัน-------------------------------------------------------------------------------------------------------
         $sqlhospital = '
-            SELECT ? AS hospcode,(SELECT SUM(bed_qty) FROM hrims.lookup_ward 
-                WHERE (ward_normal = "Y" OR ward_m ="Y" OR ward_f ="Y" OR ward_vip="Y")) AS bed_qty,
-            COUNT(DISTINCT an) AS bed_use
+            SELECT ? AS hospcode,IFNULL((SELECT SUM(bed_qty) FROM hrims.lookup_ward 
+            WHERE (ward_normal = "Y" OR ward_m ="Y" OR ward_f ="Y" OR ward_vip="Y")),0) AS bed_qty,
+            IFNULL(COUNT(DISTINCT an),0) AS bed_use
             FROM (SELECT i.an,i.regdate,i.regtime,i.ward 
-                FROM ipt i WHERE confirm_discharge = "N" 
-                AND i.ward IN (SELECT ward FROM hrims.lookup_ward 
+            FROM ipt i WHERE confirm_discharge = "N" AND
+            i.ward IN (SELECT ward FROM hrims.lookup_ward 
             WHERE (ward_normal = "Y" OR ward_m ="Y" OR ward_f ="Y" OR ward_vip="Y"))) AS a ';
 
         $rowshospital = DB::connection('hosxp')->select($sqlhospital, [$hospcode]);
 
         $hospitalRecords = array_map(function ($r) use ($hospcode) {
-            return [
-                'hospcode' => $hospcode, 
-                'bed_qty' => (int)($r->bed_qty ?? 0),
-                'bed_use' => (int)($r->bed_use ?? 0),
-            ];
-        }, $rowshospital);
+        return [
+            'hospcode' => $hospcode,
+            'bed_qty'  => (int)($r->bed_qty ?? $bed_qty ?? 0),
+            'bed_use'  => (int)($r->bed_use ?? 0),
+        ];
+    }, $rowshospital);
 
-        // กรณีไม่มีข้อมูลจาก SQL เลย ให้สร้างแถว default
-        if (empty($hospitalRecords)) {
-            $hospitalRecords = [[
-                'hospcode' => $hospcode,
-                'bed_qty' => 0,
-                'bed_use' => 0,
-            ]];
-        }
+
     // 4) ส่งข้อมูลไปยัง API ปลายทาง-----------------------------------------------------------------------------------------------
 
         $chunkSize = (int)($request->query('chunk', 200));
@@ -301,21 +294,24 @@ class AmnosendController extends Controller
     // 5) สรุปผลรวม
         // =====================================================
         return response()->json([
-            'ok'         => $summaryOpd['failed'] === 0 && $summaryIpd['failed'] === 0,
+            'ok'         => $summaryOpd['failed'] === 0 && $summaryIpd['failed'] === 0 && $summaryHospital['failed'] === 0,
             'hospcode'   => $hospcode,
             'start_date' => $start,
             'end_date'   => $end,
             'received'   => [
                 'opd' => count($opdRecords),
                 'ipd' => count($ipdRecords),
+                'hospital' => count($hospitalRecords),
             ],
             'summary'    => [
                 'opd' => $summaryOpd,
                 'ipd' => $summaryIpd,
+                'hospital' => $summaryHospital,
             ],
             'sample'     => [
                 'opd' => $opdRecords[0] ?? null,
                 'ipd' => $ipdRecords[0] ?? null,
+                'ipd' => $hospitalRecords[0] ?? null,
             ],
         ], 200);
     }
@@ -334,7 +330,12 @@ class AmnosendController extends Controller
         ];
 
         foreach ($chunks as $i => $chunk) {
-            $dates = array_column($chunk, $prefix === 'OPD' ? 'vstdate' : 'admdate');
+            // $dates = array_column($chunk, $prefix === 'OPD' ? 'vstdate' : 'admdate');
+            $dates = match($prefix) {
+                'OPD' => array_column($chunk, 'vstdate'),
+                'IPD' => array_column($chunk, 'dchdate'),
+                default => []  // HOSPITAL
+            };
             sort($dates);
             $idempotencyKey = hash('sha256', $hospcode . "|$prefix|" . implode(',', $dates));
 

@@ -248,7 +248,7 @@ class AmnosendController extends Controller
 
     // 3.3 ข้อมูล UPdate Hospital ปัจจุบัน-------------------------------------------------------------------------------------------------------
         $sqlhospital = '
-            SELECT ?,(SELECT SUM(bed_qty) FROM hrims.lookup_ward 
+            SELECT ? AS hospcode,(SELECT SUM(bed_qty) FROM hrims.lookup_ward 
                 WHERE (ward_normal = "Y" OR ward_m ="Y" OR ward_f ="Y" OR ward_vip="Y")) AS bed_qty,
             COUNT(DISTINCT an) AS bed_use
             FROM (SELECT i.an,i.regdate,i.regtime,i.ward 

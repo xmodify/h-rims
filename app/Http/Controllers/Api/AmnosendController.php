@@ -252,9 +252,10 @@ class AmnosendController extends Controller
             WHERE (ward_normal = "Y" OR ward_m ="Y" OR ward_f ="Y" OR ward_vip="Y")),0) AS bed_qty,
             IFNULL(COUNT(DISTINCT an),0) AS bed_use
             FROM (SELECT i.an,i.regdate,i.regtime,i.ward 
-            FROM ipt i WHERE confirm_discharge = "N" AND
-            i.ward IN (SELECT ward FROM hrims.lookup_ward 
-            WHERE (ward_normal = "Y" OR ward_m ="Y" OR ward_f ="Y" OR ward_vip="Y"))) AS a ';
+            FROM ipt i 
+			INNER JOIN iptadm ia ON ia.an = i.an
+			WHERE confirm_discharge = "N" 
+			AND ia.roomno IN (SELECT roomno FROM roomno WHERE roomtype IN (1,2))) AS a ';
 
         $rowshospital = DB::connection('hosxp')->select($sqlhospital, [$hospcode]);
 

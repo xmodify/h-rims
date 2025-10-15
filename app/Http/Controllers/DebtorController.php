@@ -87,8 +87,8 @@ class DebtorController extends Controller
 //_summary-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     public function _summary(Request $request )
         {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
 
         $_1102050101_103 = DB::select('
             SELECT COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
@@ -363,8 +363,8 @@ class DebtorController extends Controller
 //_1102050101_103--------------------------------------------------------------------------------------------------------------
     public function _1102050101_103(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
        
@@ -533,8 +533,8 @@ class DebtorController extends Controller
 //_1102050101_109--------------------------------------------------------------------------------------------------------------
     public function _1102050101_109(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');              
 
         $debtor =  Debtor_1102050101_109::whereBetween('vstdate', [$start_date,$end_date])
@@ -706,8 +706,8 @@ class DebtorController extends Controller
 //_1102050101_201--------------------------------------------------------------------------------------------------------------
     public function _1102050101_201(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');     
 
         if ($search) {
@@ -892,8 +892,8 @@ class DebtorController extends Controller
 //_1102050101_203--------------------------------------------------------------------------------------------------------------
     public function _1102050101_203(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');              
 
         $debtor =  Debtor_1102050101_203::whereBetween('vstdate', [$start_date,$end_date])
@@ -1105,8 +1105,8 @@ class DebtorController extends Controller
 //_1102050101_209--------------------------------------------------------------------------------------------------------------
     public function _1102050101_209(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
         
@@ -1295,8 +1295,8 @@ class DebtorController extends Controller
 //_1102050101_216--------------------------------------------------------------------------------------------------------------
     public function _1102050101_216(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
         
         if ($search) {
@@ -1650,8 +1650,8 @@ class DebtorController extends Controller
 //_1102050101_301--------------------------------------------------------------------------------------------------------------
     public function _1102050101_301(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');          
 
@@ -1844,8 +1844,8 @@ class DebtorController extends Controller
 //_1102050101_303--------------------------------------------------------------------------------------------------------------
     public function _1102050101_303(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');          
 
@@ -2054,8 +2054,8 @@ class DebtorController extends Controller
 //_1102050101_307--------------------------------------------------------------------------------------------------------------
     public function _1102050101_307(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');          
 
@@ -2357,8 +2357,8 @@ class DebtorController extends Controller
 //_1102050101_309--------------------------------------------------------------------------------------------------------------
     public function _1102050101_309(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');                  
 
         if ($search) {
@@ -2545,8 +2545,8 @@ class DebtorController extends Controller
 //_1102050101_401--------------------------------------------------------------------------------------------------------------
     public function _1102050101_401(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');           
 
@@ -2778,8 +2778,8 @@ class DebtorController extends Controller
 //_1102050101_501--------------------------------------------------------------------------------------------------------------
     public function _1102050101_501(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
 
         $debtor =  Debtor_1102050101_501::whereBetween('vstdate', [$start_date,$end_date])
@@ -2946,8 +2946,8 @@ class DebtorController extends Controller
 //_1102050101_503--------------------------------------------------------------------------------------------------------------
     public function _1102050101_503(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');       
 
         $debtor =  Debtor_1102050101_503::whereBetween('vstdate', [$start_date,$end_date])
@@ -3109,8 +3109,8 @@ class DebtorController extends Controller
 //_1102050101_701--------------------------------------------------------------------------------------------------------------
     public function _1102050101_701(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
 
         if ($search) {
@@ -3293,8 +3293,8 @@ class DebtorController extends Controller
 //_1102050101_702--------------------------------------------------------------------------------------------------------------
     public function _1102050101_702(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
 
         if ($search) {
@@ -3479,8 +3479,8 @@ class DebtorController extends Controller
 //_1102050102_106--------------------------------------------------------------------------------------------------------------
     public function _1102050102_106(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
         $pttype_iclaim = DB::table('main_setting')->where('name', 'pttype_iclaim')->value('value');       
 
@@ -3796,8 +3796,8 @@ class DebtorController extends Controller
 //_1102050102_108--------------------------------------------------------------------------------------------------------------
     public function _1102050102_108(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
 
         $debtor =  Debtor_1102050102_108::whereBetween('vstdate', [$start_date,$end_date])
@@ -3973,8 +3973,8 @@ class DebtorController extends Controller
 //_1102050102_602--------------------------------------------------------------------------------------------------------------
     public function _1102050102_602(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');    
         $pttype_act = DB::table('main_setting')->where('name', 'pttype_act')->value('value');     
 
@@ -4149,8 +4149,8 @@ class DebtorController extends Controller
 //_1102050102_801--------------------------------------------------------------------------------------------------------------
     public function _1102050102_801(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');           
 
@@ -4383,8 +4383,8 @@ class DebtorController extends Controller
 //_1102050102_803--------------------------------------------------------------------------------------------------------------
     public function _1102050102_803(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');           
  
@@ -4616,8 +4616,8 @@ class DebtorController extends Controller
 //_1102050101_202--------------------------------------------------------------------------------------------------------------
     public function _1102050101_202(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
  
         if ($search) {
@@ -4804,8 +4804,8 @@ class DebtorController extends Controller
 //_1102050101_217--------------------------------------------------------------------------------------------------------------
     public function _1102050101_217(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
  
         if ($search) {
@@ -4999,8 +4999,8 @@ class DebtorController extends Controller
 //_1102050101_302--------------------------------------------------------------------------------------------------------------
     public function _1102050101_302(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
         $pttype_sss_72 = DB::table('main_setting')->where('name', 'pttype_sss_72')->value('value');
@@ -5202,8 +5202,8 @@ class DebtorController extends Controller
 //_1102050101_304--------------------------------------------------------------------------------------------------------------
     public function _1102050101_304(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
         $pttype_sss_72 = DB::table('main_setting')->where('name', 'pttype_sss_72')->value('value');
@@ -5405,8 +5405,8 @@ class DebtorController extends Controller
 //_1102050101_308--------------------------------------------------------------------------------------------------------------
     public function _1102050101_308(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
         $pttype_sss_72 = DB::table('main_setting')->where('name', 'pttype_sss_72')->value('value');
         
@@ -5601,8 +5601,8 @@ class DebtorController extends Controller
 //_1102050101_310--------------------------------------------------------------------------------------------------------------
     public function _1102050101_310(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
         
         $debtor =  Debtor_1102050101_310::whereBetween('dchdate', [$start_date,$end_date])
@@ -5796,8 +5796,8 @@ class DebtorController extends Controller
 //_1102050101_402--------------------------------------------------------------------------------------------------------------
     public function _1102050101_402(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
  
         if ($search) {
@@ -5986,8 +5986,8 @@ class DebtorController extends Controller
 //_1102050101_502--------------------------------------------------------------------------------------------------------------
     public function _1102050101_502(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
         
         $debtor =  Debtor_1102050101_502::whereBetween('dchdate', [$start_date,$end_date])
@@ -6181,8 +6181,8 @@ class DebtorController extends Controller
 //_1102050101_504--------------------------------------------------------------------------------------------------------------
     public function _1102050101_504(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
         
         $debtor =  Debtor_1102050101_504::whereBetween('dchdate', [$start_date,$end_date])
@@ -6378,8 +6378,8 @@ class DebtorController extends Controller
 //_1102050101_704--------------------------------------------------------------------------------------------------------------
     public function _1102050101_704(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
         
         $debtor =  Debtor_1102050101_704::whereBetween('dchdate', [$start_date,$end_date])
@@ -6563,8 +6563,8 @@ class DebtorController extends Controller
 //_1102050102_107--------------------------------------------------------------------------------------------------------------
     public function _1102050102_107(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
         $pttype_iclaim = DB::table('main_setting')->where('name', 'pttype_iclaim')->value('value');       
         
@@ -6878,8 +6878,8 @@ class DebtorController extends Controller
 //_1102050102_109--------------------------------------------------------------------------------------------------------------
     public function _1102050102_109(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
         
         $debtor =  Debtor_1102050102_109::whereBetween('dchdate', [$start_date,$end_date])
@@ -7071,8 +7071,8 @@ class DebtorController extends Controller
 //_1102050102_603--------------------------------------------------------------------------------------------------------------
     public function _1102050102_603(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
         $pttype_act = DB::table('main_setting')->where('name', 'pttype_act')->value('value');
 
@@ -7267,8 +7267,8 @@ class DebtorController extends Controller
 //_1102050102_802--------------------------------------------------------------------------------------------------------------
     public function _1102050102_802(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
  
         if ($search) {
@@ -7457,8 +7457,8 @@ class DebtorController extends Controller
 //_1102050102_804--------------------------------------------------------------------------------------------------------------
     public function _1102050102_804(Request $request )
     {
-        $start_date = $request->start_date ?: Session::get('start_date');
-        $end_date = $request->end_date ?: Session::get('end_date');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
  
         if ($search) {

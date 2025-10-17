@@ -29,16 +29,36 @@ public function __construct()
      */
 public function index(Request $request )
 {
+    // $budget_year_now = DB::table('budget_year')
+    //     ->where('DATE_END', '>=', date('Y-m-d'))
+    //     ->where('DATE_BEGIN', '<=', date('Y-m-d'))
+    //     ->value('LEAVE_YEAR_ID');
+    // $budget_year = $request->budget_year ?: $budget_year_now;
+    // $year_data = DB::table('budget_year')
+    //     ->where('LEAVE_YEAR_ID', $budget_year)
+    //     ->first(['DATE_BEGIN', 'DATE_END']);
+    // $start_date = $year_data->DATE_BEGIN ?? null;
+    // $end_date   = $year_data->DATE_END ?? null;
+
+    ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+
+    $budget_year_select = DB::table('budget_year')
+        ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
+        ->orderByDesc('LEAVE_YEAR_ID')
+        ->limit(7)
+        ->get();
     $budget_year_now = DB::table('budget_year')
-        ->where('DATE_END', '>=', date('Y-m-d'))
-        ->where('DATE_BEGIN', '<=', date('Y-m-d'))
-        ->value('LEAVE_YEAR_ID');
+        ->whereDate('DATE_END', '>=', date('Y-m-d'))
+        ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+        ->value('LEAVE_YEAR_ID');       
     $budget_year = $request->budget_year ?: $budget_year_now;
     $year_data = DB::table('budget_year')
+        ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+        ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+    $start_date = $year_data[$budget_year] ?? null;
+    $end_date = DB::table('budget_year')
         ->where('LEAVE_YEAR_ID', $budget_year)
-        ->first(['DATE_BEGIN', 'DATE_END']);
-    $start_date = $year_data->DATE_BEGIN ?? null;
-    $end_date   = $year_data->DATE_END ?? null;
+        ->value('DATE_END');
 
     $opd_monitor = DB::connection('hosxp')->select('
         SELECT COUNT(vn) AS total,IFNULL(SUM(CASE WHEN endpoint<>"" THEN 1 ELSE 0 END),0) AS "endpoint",
@@ -165,80 +185,84 @@ public function index(Request $request )
     }
     $bed_qty = DB::table('main_setting')->where('name','bed_qty')->value('value'); 
     $ip_all = DB::connection('hosxp')->select('
-        SELECT CASE WHEN MONTH(i.dchdate)="10" THEN CONCAT("ต.ค. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="11" THEN CONCAT("พ.ย. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="12" THEN CONCAT("ธ.ค. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="1" THEN CONCAT("ม.ค ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="2" THEN CONCAT("ก.พ. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="3" THEN CONCAT("มี.ค. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="4" THEN CONCAT("เม.ย. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="5" THEN CONCAT("พ.ค. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="6" THEN CONCAT("มิ.ย. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="7" THEN CONCAT("ก.ค. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="8" THEN CONCAT("ส.ค. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="9" THEN CONCAT("ก.ย. ",YEAR(i.dchdate)+543)
-        END AS "month",COUNT(DISTINCT i.an) AS an ,sum(a.admdate) AS admdate,        
-        ROUND((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(i.dchdate))),2) AS "bed_occupancy",
+        SELECT CASE WHEN MONTH(a.dchdate)="10" THEN CONCAT("ต.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="11" THEN CONCAT("พ.ย. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="12" THEN CONCAT("ธ.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="1" THEN CONCAT("ม.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="2" THEN CONCAT("ก.พ. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="3" THEN CONCAT("มี.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="4" THEN CONCAT("เม.ย. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="5" THEN CONCAT("พ.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="6" THEN CONCAT("มิ.ย. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="7" THEN CONCAT("ก.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="8" THEN CONCAT("ส.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="9" THEN CONCAT("ก.ย. ",YEAR(a.dchdate)+543)
+        END AS "month",COUNT(DISTINCT a.an) AS an ,sum(a.admdate) AS admdate,        
+        ROUND((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(a.dchdate))),2) AS "bed_occupancy",
         ROUND(((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(a.dchdate)))*?)/100,2) AS "active_bed",
-		ROUND(SUM(i.adjrw)/COUNT(DISTINCT i.an),2) AS cmi,
-        ROUND(SUM(i.adjrw),2) AS adjrw ,SUM(a.income-a.rcpt_money)/SUM(i.adjrw) AS "income_rw"  
-        FROM an_stat a INNER JOIN ipt i ON a.an=i.an
-        WHERE i.dchdate BETWEEN ? AND DATE(NOW())
+		ROUND(SUM(a.rw)/COUNT(DISTINCT a.an),2) AS cmi,
+        ROUND(SUM(a.rw),2) AS adjrw ,SUM(a.income-a.rcpt_money)/SUM(a.rw) AS "income_rw"  
+        FROM an_stat a        
+        WHERE a.dchdate BETWEEN ? AND DATE(NOW())
         AND a.pdx NOT IN ("Z290","Z208")
-        GROUP BY MONTH(i.dchdate)
-        ORDER BY YEAR(i.dchdate) , MONTH(i.dchdate)',[$bed_qty,$bed_qty,$bed_qty,$start_date]);
+        GROUP BY MONTH(a.dchdate)
+        ORDER BY YEAR(a.dchdate) , MONTH(a.dchdate)',[$bed_qty,$bed_qty,$bed_qty,$start_date]);
 
     $ip_normal = DB::connection('hosxp')->select('
-        SELECT CASE WHEN MONTH(i.dchdate)="10" THEN CONCAT("ต.ค. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="11" THEN CONCAT("พ.ย. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="12" THEN CONCAT("ธ.ค. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="1" THEN CONCAT("ม.ค ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="2" THEN CONCAT("ก.พ. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="3" THEN CONCAT("มี.ค. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="4" THEN CONCAT("เม.ย. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="5" THEN CONCAT("พ.ค. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="6" THEN CONCAT("มิ.ย. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="7" THEN CONCAT("ก.ค. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="8" THEN CONCAT("ส.ค. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="9" THEN CONCAT("ก.ย. ",YEAR(i.dchdate)+543)
-        END AS "month",COUNT(DISTINCT i.an) AS an ,sum(a.admdate) AS admdate,        
-        ROUND((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(i.dchdate))),2) AS "bed_occupancy",
+        SELECT CASE WHEN MONTH(a.dchdate)="10" THEN CONCAT("ต.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="11" THEN CONCAT("พ.ย. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="12" THEN CONCAT("ธ.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="1" THEN CONCAT("ม.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="2" THEN CONCAT("ก.พ. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="3" THEN CONCAT("มี.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="4" THEN CONCAT("เม.ย. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="5" THEN CONCAT("พ.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="6" THEN CONCAT("มิ.ย. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="7" THEN CONCAT("ก.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="8" THEN CONCAT("ส.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="9" THEN CONCAT("ก.ย. ",YEAR(a.dchdate)+543)
+        END AS "month",COUNT(DISTINCT a.an) AS an ,sum(a.admdate) AS admdate,        
+        ROUND((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(a.dchdate))),2) AS "bed_occupancy",
         ROUND(((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(a.dchdate)))*?)/100,2) AS "active_bed",
-		ROUND(SUM(i.adjrw)/COUNT(DISTINCT i.an),2) AS cmi,
-        ROUND(SUM(i.adjrw),2) AS adjrw ,SUM(a.income-a.rcpt_money)/SUM(i.adjrw) AS "income_rw"  
-        FROM an_stat a INNER JOIN ipt i ON a.an=i.an
-        WHERE i.dchdate BETWEEN ? AND DATE(NOW())
-        AND a.pdx NOT IN ("Z290","Z208") AND i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")
-        GROUP BY MONTH(i.dchdate)
-        ORDER BY YEAR(i.dchdate) , MONTH(i.dchdate)',[$bed_qty,$bed_qty,$bed_qty,$start_date]);
+		ROUND(SUM(a.rw)/COUNT(DISTINCT a.an),2) AS cmi,
+        ROUND(SUM(a.rw),2) AS adjrw ,SUM(a.income-a.rcpt_money)/SUM(a.rw) AS "income_rw"  
+        FROM an_stat a 
+        INNER JOIN iptadm ia ON ia.an = a.an
+        WHERE a.dchdate BETWEEN ? AND DATE(NOW())
+        AND a.pdx NOT IN ("Z290","Z208") 
+        AND ia.roomno IN (SELECT roomno FROM roomno WHERE roomtype IN (1,2))  
+        GROUP BY MONTH(a.dchdate)
+        ORDER BY YEAR(a.dchdate) , MONTH(a.dchdate)',[$bed_qty,$bed_qty,$bed_qty,$start_date]);
 
     $ip_homeward = DB::connection('hosxp')->select('
-        SELECT CASE WHEN MONTH(i.dchdate)="10" THEN CONCAT("ต.ค. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="11" THEN CONCAT("พ.ย. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="12" THEN CONCAT("ธ.ค. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="1" THEN CONCAT("ม.ค ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="2" THEN CONCAT("ก.พ. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="3" THEN CONCAT("มี.ค. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="4" THEN CONCAT("เม.ย. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="5" THEN CONCAT("พ.ค. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="6" THEN CONCAT("มิ.ย. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="7" THEN CONCAT("ก.ค. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="8" THEN CONCAT("ส.ค. ",YEAR(i.dchdate)+543)
-        WHEN MONTH(i.dchdate)="9" THEN CONCAT("ก.ย. ",YEAR(i.dchdate)+543)
-        END AS "month",COUNT(DISTINCT i.an) AS an ,sum(a.admdate) AS admdate,        
-        ROUND((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(i.dchdate))),2) AS "bed_occupancy",
+        SELECT CASE WHEN MONTH(a.dchdate)="10" THEN CONCAT("ต.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="11" THEN CONCAT("พ.ย. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="12" THEN CONCAT("ธ.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="1" THEN CONCAT("ม.ค ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="2" THEN CONCAT("ก.พ. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="3" THEN CONCAT("มี.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="4" THEN CONCAT("เม.ย. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="5" THEN CONCAT("พ.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="6" THEN CONCAT("มิ.ย. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="7" THEN CONCAT("ก.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="8" THEN CONCAT("ส.ค. ",YEAR(a.dchdate)+543)
+        WHEN MONTH(a.dchdate)="9" THEN CONCAT("ก.ย. ",YEAR(a.dchdate)+543)
+        END AS "month",COUNT(DISTINCT a.an) AS an ,sum(a.admdate) AS admdate,        
+        ROUND((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(a.dchdate))),2) AS "bed_occupancy",
         ROUND(((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(a.dchdate)))*?)/100,2) AS "active_bed",
-		ROUND(SUM(i.adjrw)/COUNT(DISTINCT i.an),2) AS cmi,
-        ROUND(SUM(i.adjrw),2) AS adjrw ,SUM(a.income-a.rcpt_money)/SUM(i.adjrw) AS "income_rw"  
-        FROM an_stat a INNER JOIN ipt i ON a.an=i.an
-        WHERE i.dchdate BETWEEN ? AND DATE(NOW())
-        AND a.pdx NOT IN ("Z290","Z208") AND i.ward IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")
-        GROUP BY MONTH(i.dchdate)
-        ORDER BY YEAR(i.dchdate) , MONTH(i.dchdate)',[$bed_qty,$bed_qty,$bed_qty,$start_date]);
+		ROUND(SUM(a.rw)/COUNT(DISTINCT a.an),2) AS cmi,
+        ROUND(SUM(a.rw),2) AS adjrw ,SUM(a.income-a.rcpt_money)/SUM(a.rw) AS "income_rw"  
+        FROM an_stat a 
+        INNER JOIN iptadm ia ON ia.an = a.an
+        WHERE a.dchdate BETWEEN ? AND DATE(NOW())
+        AND a.pdx NOT IN ("Z290","Z208") 
+        AND ia.roomno IN (SELECT roomno FROM roomno WHERE roomtype IN (3))       
+        GROUP BY MONTH(a.dchdate)
+        ORDER BY YEAR(a.dchdate) , MONTH(a.dchdate)',[$bed_qty,$bed_qty,$bed_qty,$start_date]);
     $month = array_column($ip_all,'month');  
     $bed_occupancy = array_column($ip_all,'bed_occupancy');
 
-    return view('home',compact('budget_year','opd_total','endpoint','ofc','ofc_edc','non_authen','non_hmain',
+    return view('home',compact('budget_year_select','budget_year','opd_total','endpoint','ofc','ofc_edc','non_authen','non_hmain',
         'uc_anywhere','uc_anywhere_endpoint','uc_cr','uc_cr_endpoint','uc_herb','uc_herb_endpoint',
         'uc_healthmed','uc_healthmed_endpoint','ppfs','ppfs_endpoint','admit_homeward','admit_homeward_endpoint','non_diagtext','non_icd10','not_transfer',
         'wait_paid_money','sum_wait_paid_money','ip_all','ip_normal','ip_homeward','month','bed_occupancy','admit_now'));
@@ -813,7 +837,7 @@ public function ipd_homeward(Request $request )
     return view('home_detail.ipd_homeward',compact('start_date','end_date','sql'));
 }
 ##############################################################################################
-public function ipd_non_dchsummary(Request $request )
+public function ipd_non_dchsummary(Request $request)
 {
     $budget_year_now = DB::table('budget_year')
         ->where('DATE_END', '>=', date('Y-m-d'))

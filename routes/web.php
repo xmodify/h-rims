@@ -58,7 +58,7 @@ Route::get('/', function () {
 Auth::routes();
 
 //home-----------------------------------------------------------------------------------------------------------------------------
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+Route::match(['get','post'],'/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 Route::post('nhso_endpoint_pull', [HomeController::class, 'nhso_endpoint_pull']);
 Route::get('nhso_endpoint_pull/{vstdate}/{cid}',[HomeController::class,'nhso_endpoint_pull_indiv']);
 Route::get('nhso_endpoint_pull_yesterday', [HomeController::class, 'nhso_endpoint_pull_yesterday'])->name('nhso_endpoint_pull_yesterday');

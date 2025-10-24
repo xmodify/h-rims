@@ -20,5 +20,4 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();   
 });
 
-Route::post('/send_opinsurance', [SendOpinsurance::class, 'send']);
 Route::post('/amnosend', [AmnosendController::class, 'send']);

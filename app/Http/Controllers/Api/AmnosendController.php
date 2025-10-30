@@ -61,8 +61,12 @@ class AmnosendController extends Controller
 			SUM(CASE WHEN physic = "Y" THEN 1 ELSE 0 END) AS visit_physic,
 			SUM(CASE WHEN referout_inprov = "Y" THEN 1 ELSE 0 END) AS visit_referout_inprov,
 			SUM(CASE WHEN referout_outprov = "Y" THEN 1 ELSE 0 END) AS visit_referout_outprov,
+            SUM(CASE WHEN referout_inprov_ipd = "Y" THEN 1 ELSE 0 END) AS visit_referout_inprov_ipd,
+			SUM(CASE WHEN referout_outprov_ipd = "Y" THEN 1 ELSE 0 END) AS visit_referout_outprov_ipd,
             SUM(CASE WHEN referin_inprov = "Y" THEN 1 ELSE 0 END) AS visit_referin_inprov,
 			SUM(CASE WHEN referin_outprov = "Y" THEN 1 ELSE 0 END) AS visit_referin_outprov,
+            SUM(CASE WHEN referback_inprov = "Y" THEN 1 ELSE 0 END) AS visit_referback_inprov,
+		    SUM(CASE WHEN referback_outprov = "Y" THEN 1 ELSE 0 END) AS visit_referback_outprov,
             SUM(income) AS inc_total,
             SUM(inc03) AS inc_lab_total,
             SUM(inc12) AS inc_drug_total,
@@ -110,8 +114,11 @@ class AmnosendController extends Controller
             COALESCE(inc_ppfs.inc, 0) AS inc_ppfs,COALESCE(inc_uccr.inc, 0) AS inc_uccr,COALESCE(inc_herb.inc, 0) AS inc_herb,
 			IF(dt.vn IS NOT NULL,"Y","") AS dent,IF(pl.vn IS NOT NULL,"Y","") AS physic,IF(hm.vn IS NOT NULL,"Y","") AS healthmed,
 			IF(r.vn IS NOT NULL,"Y","") AS referout_inprov,IF(r1.vn IS NOT NULL,"Y","") AS referout_outprov,
-            IF(ri.vn IS NOT NULL,"Y","") AS referin_inprov,IF(ri1.vn IS NOT NULL,"Y","") AS referin_outprov
+            IF(re.vn IS NOT NULL,"Y","") AS referout_inprov_ipd,IF(re1.vn IS NOT NULL,"Y","") AS referout_outprov_ipd,
+            IF(ri.vn IS NOT NULL,"Y","") AS referin_inprov,IF(ri1.vn IS NOT NULL,"Y","") AS referin_outprov,
+			IF(rb.vn IS NOT NULL,"Y","") AS referback_inprov,IF(rb1.vn IS NOT NULL,"Y","") AS referback_outprov
             FROM vn_stat v
+            LEFT JOIN ipt i ON i.vn=v.vn
             LEFT JOIN pttype p ON p.pttype=v.pttype
             LEFT JOIN visit_pttype vp ON vp.vn =v.vn 
                 AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
@@ -127,8 +134,12 @@ class AmnosendController extends Controller
 			LEFT JOIN dtmain dt ON dt.vn=v.vn
 			LEFT JOIN referout r ON r.vn=v.vn AND r.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
 			LEFT JOIN referout r1 ON r1.vn=v.vn AND r1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+            LEFT JOIN referout re ON re.vn=i.an AND re.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+			LEFT JOIN referout re1 ON re1.vn=i.an AND re1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
             LEFT JOIN referin ri ON ri.vn=v.vn AND ri.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
 			LEFT JOIN referin ri1 ON ri1.vn=v.vn AND ri1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+           	LEFT JOIN refer_reply rb ON rb.vn=v.vn AND rb.dest_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+			LEFT JOIN refer_reply rb1 ON rb1.vn=v.vn AND rb1.dest_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
             LEFT JOIN hrims.lookup_icd10 i ON i.icd10=v.pdx AND i.pp="Y"
 			LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=v.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN (SELECT o.vn,SUM(o.sum_price) AS inc FROM opitemrece o
@@ -173,10 +184,14 @@ class AmnosendController extends Controller
                 'visit_healthmed'      => (int)$r->visit_healthmed,
                 'visit_dent'           => (int)$r->visit_dent,
                 'visit_physic'         => (int)$r->visit_physic,
-                'visit_referout_inprov'    => (int)$r->visit_referout_inprov,
-                'visit_referout_outprov'   => (int)$r->visit_referout_outprov,
-                'visit_referin_inprov'     => (int)$r->visit_referin_inprov,
-                'visit_referin_outprov'    => (int)$r->visit_referin_outprov,
+                'visit_referout_inprov'         => (int)$r->visit_referout_inprov,                
+                'visit_referout_outprov'        => (int)$r->visit_referout_outprov,
+                'visit_referout_inprov_ipd'     => (int)$r->visit_referout_inprov_ipd,
+                'visit_referout_outprov_ipd'    => (int)$r->visit_referout_outprov_ipd,
+                'visit_referin_inprov'          => (int)$r->visit_referin_inprov,
+                'visit_referin_outprov'         => (int)$r->visit_referin_outprov,
+                'visit_referback_inprov'        => (int)$r->visit_referback_inprov,
+                'visit_referback_outprov'       => (int)$r->visit_referback_outprov,
                 'inc_total'            => (float)$r->inc_total,
                 'inc_lab_total'        => (float)$r->inc_lab_total,
                 'inc_drug_total'       => (float)$r->inc_drug_total,
@@ -269,13 +284,39 @@ class AmnosendController extends Controller
         $rowshospital = DB::connection('hosxp')->select($sqlhospital, [$hospcode]);
 
         $hospitalRecords = array_map(function ($r) use ($hospcode) {
-        return [
-            'hospcode' => $hospcode,
-            'bed_qty'  => (int)($r->bed_qty ?? $bed_qty ?? 0),
-            'bed_use'  => (int)($r->bed_use ?? 0),
-        ];
-    }, $rowshospital);
+            return [
+                'hospcode' => $hospcode,
+                'bed_qty'  => (int)($r->bed_qty ?? $bed_qty ?? 0),
+                'bed_use'  => (int)($r->bed_use ?? 0),
+            ];
+        }, $rowshospital);
 
+    // 3.4 ข้อมูล IPD_bed-----------------------------------------------------------------------------------------------------------
+        $sqlIpd_bed = '
+            SELECT ? AS hospcode,b.export_code AS bed_code,
+            IFNULL(COUNT(DISTINCT b.bedno),0) AS bed_qty,
+            IFNULL(b1.bed_use,0) AS bed_use
+            FROM bedno b
+            LEFT JOIN (SELECT b.export_code,COUNT(DISTINCT b.bedno) AS bed_use
+            FROM ipt i
+            INNER JOIN iptadm ia ON ia.an=i.an
+            LEFT JOIN bedno b ON b.bedno=ia.bedno
+            WHERE b.export_code IS NOT NULL AND b.export_code <>""
+            AND (i.dchdate IS NULL OR i.dchdate >= CURDATE())
+            GROUP BY b.export_code) b1 ON b1.export_code=b.export_code
+            WHERE b.export_code IS NOT NULL AND b.export_code <>""
+            GROUP BY b.export_code 
+            ORDER BY b.export_code';
+
+        $rowsIpd_bed = DB::connection('hosxp')->select($sqlIpd_bed, [$hospcode]);
+
+        $ipdbedRecords = array_map(function ($r) {
+            return [
+                'bed_code' => (string)$r->bed_code,
+                'bed_qty'  => (int)$r->bed_qty,
+                'bed_use'  => (int)$r->bed_use,              
+            ];
+        }, $rowsIpd_bed);
 
     // 4) ส่งข้อมูลไปยัง API ปลายทาง-----------------------------------------------------------------------------------------------
 
@@ -290,6 +331,11 @@ class AmnosendController extends Controller
         //$urlIpd = config('services.opoh.ipd_url', 'http://127.0.0.1:8837/api/ipd');
         $urlIpd = config('services.opoh.ipd_url', 'http://1.179.128.29:3394/api/ipd');
         $summaryIpd = $this->sendChunks($ipdRecords, $urlIpd, $token, $hospcode, 'IPD', $chunkSize);
+
+        // ---- IPD BED ----
+        //$urlIpd_bed = config('services.opoh.ipd_bed_url', 'http://127.0.0.1:8837/api/ipd_bed_dep');
+        $urlIpd = config('services.opoh.ipd_bed_url', 'http://1.179.128.29:3394/api/ipd_bed_dep');
+        $summaryIpd_bed = $this->sendChunks($ipdbedRecords, $urlIpd_bed, $token, $hospcode, 'IPD_BED', $chunkSize);
 
         // ---- HOSPITAL ----
         //$urlhospital = config('services.opoh.hospital_url', 'http://127.0.0.1:8837/api/hospital_config');
@@ -307,24 +353,30 @@ class AmnosendController extends Controller
     // 5) สรุปผลรวม
         // =====================================================
         return response()->json([
-            'ok'         => $summaryOpd['failed'] === 0 && $summaryIpd['failed'] === 0 && $summaryHospital['failed'] === 0,
+            'ok'         => $summaryOpd['failed'] === 0 
+                        && $summaryIpd['failed'] === 0 
+                        && $summaryIpd_bed['failed'] === 0 
+                        && $summaryHospital['failed'] === 0,
             'hospcode'   => $hospcode,
             'start_date' => $start,
             'end_date'   => $end,
             'received'   => [
                 'opd' => count($opdRecords),
                 'ipd' => count($ipdRecords),
+                'ipd_bed' => count($ipdbedRecords),
                 'hospital' => count($hospitalRecords),
             ],
             'summary'    => [
                 'opd' => $summaryOpd,
                 'ipd' => $summaryIpd,
+                'ipd_bed' => $summaryIpd_bed,
                 'hospital' => $summaryHospital,
             ],
             'sample'     => [
                 'opd' => $opdRecords[0] ?? null,
                 'ipd' => $ipdRecords[0] ?? null,
-                'ipd' => $hospitalRecords[0] ?? null,
+                'ipd_bed' => $ipdbedRecords[0] ?? null,
+                'hospital' => $hospitalRecords[0] ?? null,
             ],
         ], 200);
     }

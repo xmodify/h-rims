@@ -334,7 +334,7 @@ class AmnosendController extends Controller
 
         // ---- IPD BED ----
         //$urlIpd_bed = config('services.opoh.ipd_bed_url', 'http://127.0.0.1:8837/api/ipd_bed_dep');
-        $urlIpd = config('services.opoh.ipd_bed_url', 'http://1.179.128.29:3394/api/ipd_bed_dep');
+        $urlIpd_bed = config('services.opoh.ipd_bed_url', 'http://1.179.128.29:3394/api/ipd_bed_dep');
         $summaryIpd_bed = $this->sendChunks($ipdbedRecords, $urlIpd_bed, $token, $hospcode, 'IPD_BED', $chunkSize);
 
         // ---- HOSPITAL ----

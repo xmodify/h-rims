@@ -118,7 +118,7 @@ class AmnosendController extends Controller
             IF(ri.vn IS NOT NULL,"Y","") AS referin_inprov,IF(ri1.vn IS NOT NULL,"Y","") AS referin_outprov,
 			IF(rb.vn IS NOT NULL,"Y","") AS referback_inprov,IF(rb1.vn IS NOT NULL,"Y","") AS referback_outprov
             FROM vn_stat v
-            LEFT JOIN ipt i ON i.vn=v.vn
+            LEFT JOIN ipt ip ON ip.vn=v.vn
             LEFT JOIN pttype p ON p.pttype=v.pttype
             LEFT JOIN visit_pttype vp ON vp.vn =v.vn 
                 AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
@@ -134,8 +134,8 @@ class AmnosendController extends Controller
 			LEFT JOIN dtmain dt ON dt.vn=v.vn
 			LEFT JOIN referout r ON r.vn=v.vn AND r.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
 			LEFT JOIN referout r1 ON r1.vn=v.vn AND r1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-            LEFT JOIN referout re ON re.vn=i.an AND re.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-			LEFT JOIN referout re1 ON re1.vn=i.an AND re1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+            LEFT JOIN referout re ON re.vn=ip.an AND re.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+			LEFT JOIN referout re1 ON re1.vn=ip.an AND re1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
             LEFT JOIN referin ri ON ri.vn=v.vn AND ri.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
 			LEFT JOIN referin ri1 ON ri1.vn=v.vn AND ri1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
            	LEFT JOIN refer_reply rb ON rb.vn=v.vn AND rb.dest_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")

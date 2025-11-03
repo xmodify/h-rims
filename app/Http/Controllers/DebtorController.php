@@ -1390,7 +1390,6 @@ class DebtorController extends Controller
                 AND p.hipdata_code = "UCS" 
                 AND o1.vn IS NULL				
                 AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-                AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y") 
                 AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL) 
             GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]); 
 
@@ -1563,7 +1562,6 @@ class DebtorController extends Controller
                 AND p.hipdata_code = "UCS" 
                 AND o1.vn IS NULL 				
                 AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-                AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")  
                 AND o.vn IN ('.$checkbox_string.') 
             GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]); 
         

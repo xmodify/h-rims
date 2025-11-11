@@ -57,8 +57,11 @@ class AmnosendController extends Controller
                 SUM(CASE WHEN hipdata_code IN ("STP") AND paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_stp,
                 SUM(CASE WHEN (paidst IN ("01","03") OR hipdata_code IN ("A1","A9")) THEN 1 ELSE 0 END) AS visit_pay,
                 SUM(CASE WHEN ppfs = "Y" THEN 1 ELSE 0 END) AS visit_ppfs,
+		        SUM(CASE WHEN ppfs_claim = "Y" THEN 1 ELSE 0 END) AS visit_ppfs_claim,
                 SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND uccr = "Y" THEN 1 ELSE 0 END) AS visit_ucs_cr,
+		        SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND uccr_claim = "Y" THEN 1 ELSE 0 END) AS visit_ucs_cr_claim,
                 SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND herb = "Y" THEN 1 ELSE 0 END) AS visit_ucs_herb,
+		        SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND herb_claim = "Y" THEN 1 ELSE 0 END) AS visit_ucs_herb_claim,
                 SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND healthmed = "Y" THEN 1 ELSE 0 END) AS visit_ucs_healthmed,
                 SUM(CASE WHEN healthmed = "Y" THEN 1 ELSE 0 END) AS visit_healthmed,
                 SUM(CASE WHEN dent = "Y" THEN 1 ELSE 0 END) AS visit_dent,
@@ -110,8 +113,14 @@ class AmnosendController extends Controller
                 SUM(CASE WHEN (hipdata_code IN ("A1","A9") OR paidst IN ("01","03")) THEN inc03 ELSE 0 END) AS inc_lab_pay, 
                 SUM(CASE WHEN (hipdata_code IN ("A1","A9") OR paidst IN ("01","03")) THEN inc12 ELSE 0 END) AS inc_drug_pay,
                 SUM(inc_ppfs) AS inc_ppfs,
+                SUM(inc_ppfs_claim) AS inc_ppfs_claim,
+		        SUM(inc_ppfs_receive) AS inc_ppfs_receive,
                 SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc_uccr ELSE 0 END) AS inc_uccr,
-                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc_herb ELSE 0 END) AS inc_herb
+                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc_uccr_claim ELSE 0 END) AS inc_uccr_claim,
+		        SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc_uccr_receive ELSE 0 END) AS inc_uccr_receive,
+                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc_herb ELSE 0 END) AS inc_herb,
+                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc_herb_claim ELSE 0 END) AS inc_herb_claim,
+		        SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc_herb_receive ELSE 0 END) AS inc_herb_receive
             FROM (SELECT v.vstdate, v.vn, v.hn, v.pttype, p.hipdata_code, p.paidst,
                     v.income, v.inc03, v.inc12, v.pdx,
                     IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"), "Y", NULL) AS endpoint,
@@ -119,12 +128,21 @@ class AmnosendController extends Controller
                     IF(vp.hospmain IS NOT NULL, "Y", "") AS incup,
                     IF(vp1.hospmain IS NOT NULL, "Y", "") AS inprov,
                     IF(vp2.hospmain IS NOT NULL, "Y", "") AS outprov,
-                    IF(op.vn IS NOT NULL, "Y", "") AS ppfs,
-                    IF(op1.vn IS NOT NULL, "Y", "") AS uccr,
-                    IF(op2.vn IS NOT NULL, "Y", "") AS herb,
-                    COALESCE(inc_ppfs.inc, 0) AS inc_ppfs,
-                    COALESCE(inc_uccr.inc, 0) AS inc_uccr,
-                    COALESCE(inc_herb.inc, 0) AS inc_herb,
+                    IF(ppfs.vn IS NOT NULL, "Y", "") AS ppfs,
+				    IF(ppfs.vn_claim ="Y", "Y", "") AS ppfs_claim,
+                    IF(uccr.vn IS NOT NULL, "Y", "") AS uccr,
+				    IF(uccr.vn_claim ="Y", "Y", "") AS uccr_claim,
+                    IF(herb.vn IS NOT NULL, "Y", "") AS herb,
+				    IF(herb.vn_claim ="Y", "Y", "") AS herb_claim,
+                    COALESCE(ppfs.inc, 0) AS inc_ppfs,
+				    COALESCE(ppfs.inc_claim, 0) AS inc_ppfs_claim,
+				    COALESCE(ppfs.inc_receive, 0) AS inc_ppfs_receive,
+                    COALESCE(uccr.inc, 0) AS inc_uccr,
+				    COALESCE(uccr.inc_claim, 0) AS inc_uccr_claim,
+				    COALESCE(uccr.inc_receive, 0) AS inc_uccr_receive,
+                    COALESCE(herb.inc, 0) AS inc_herb,
+				    COALESCE(herb.inc_claim, 0) AS inc_herb_claim,
+				    COALESCE(herb.inc_receive, 0) AS inc_herb_receive,
                     IF(dt.vn IS NOT NULL, "Y", "") AS dent,
                     IF(pl.vn IS NOT NULL, "Y", "") AS physic,
                     IF(hm.vn IS NOT NULL, "Y", "") AS healthmed,
@@ -144,10 +162,7 @@ class AmnosendController extends Controller
                 LEFT JOIN visit_pttype vp1 ON vp1.vn = v.vn 
                     AND vp1.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y" AND (hmain_ucs IS NULL OR hmain_ucs = ""))
                 LEFT JOIN visit_pttype vp2 ON vp2.vn = v.vn 
-                    AND vp2.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-                LEFT JOIN opitemrece op ON op.vn = v.vn AND op.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs = "Y")
-                LEFT JOIN opitemrece op1 ON op1.vn = v.vn AND op1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE uc_cr = "Y")
-                LEFT JOIN opitemrece op2 ON op2.vn = v.vn AND op2.icode IN (SELECT icode FROM hrims.lookup_icode WHERE herb32 = "Y")
+                    AND vp2.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")                
                 LEFT JOIN health_med_service hm ON hm.vn = v.vn
                 LEFT JOIN physic_list pl ON pl.vn = v.vn
                 LEFT JOIN dtmain dt ON dt.vn = v.vn
@@ -161,18 +176,36 @@ class AmnosendController extends Controller
                 LEFT JOIN referin rii1 ON rii1.vn = ip.vn AND rii1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
                 LEFT JOIN hrims.lookup_icd10 i ON i.icd10 = v.pdx AND i.pp = "Y"
                 LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = v.cid AND ep.vstdate = v.vstdate AND ep.claimCode LIKE "EP%"
-                LEFT JOIN (SELECT o.vn, SUM(o.sum_price) AS inc FROM opitemrece o
+                LEFT JOIN (SELECT o.vn,CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN "Y" ELSE "N" END AS vn_claim,
+                    SUM(o.sum_price) AS inc,SUM(CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN o.sum_price ELSE 0 END) AS inc_claim,
+                    SUM(stm.receive_pp) AS inc_receive FROM opitemrece o
                     INNER JOIN hrims.lookup_icode li ON o.icode = li.icode
-                    WHERE o.vstdate BETWEEN ? AND ? AND li.ppfs = "Y"
-                    GROUP BY o.vn) inc_ppfs ON inc_ppfs.vn = v.vn
-                LEFT JOIN (SELECT o.vn, SUM(o.sum_price) AS inc FROM opitemrece o
+                    LEFT JOIN patient pt ON pt.hn=o.hn
+                    LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn  
+                    LEFT JOIN rep_eclaim_detail rep ON rep.vn = o.vn
+                    LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
+                    WHERE o.vstdate BETWEEN ? AND ? AND o.vn IS NOT NULL  AND li.ppfs = "Y" 
+                    GROUP BY o.vn) ppfs ON ppfs.vn = v.vn
+                LEFT JOIN (SELECT o.vn,CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN "Y" ELSE "N" END AS vn_claim,
+                    SUM(o.sum_price) AS inc,SUM(CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN o.sum_price ELSE 0 END) AS inc_claim,
+                    SUM(stm.receive_pp) AS inc_receive FROM opitemrece o
                     INNER JOIN hrims.lookup_icode li ON o.icode = li.icode
-                    WHERE o.vstdate BETWEEN ? AND ? AND li.uc_cr = "Y"
-                    GROUP BY o.vn) inc_uccr ON inc_uccr.vn = v.vn
-                LEFT JOIN (SELECT o.vn, SUM(o.sum_price) AS inc FROM opitemrece o
+                    LEFT JOIN patient pt ON pt.hn=o.hn
+                    LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn  
+                    LEFT JOIN rep_eclaim_detail rep ON rep.vn = o.vn
+                    LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
+                    WHERE o.vstdate BETWEEN ? AND ? AND o.vn IS NOT NULL  AND li.uc_cr = "Y" 
+                    GROUP BY o.vn) uccr ON uccr.vn = v.vn
+                LEFT JOIN (SELECT o.vn,CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN "Y" ELSE "N" END AS vn_claim,
+                    SUM(o.sum_price) AS inc,SUM(CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN o.sum_price ELSE 0 END) AS inc_claim,
+                    SUM(stm.receive_pp) AS inc_receive FROM opitemrece o
                     INNER JOIN hrims.lookup_icode li ON o.icode = li.icode
-                    WHERE o.vstdate BETWEEN ? AND ? AND li.herb32 = "Y"
-                    GROUP BY o.vn) inc_herb ON inc_herb.vn = v.vn
+                    LEFT JOIN patient pt ON pt.hn=o.hn
+                    LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn  
+                    LEFT JOIN rep_eclaim_detail rep ON rep.vn = o.vn
+                    LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
+                    WHERE o.vstdate BETWEEN ? AND ? AND o.vn IS NOT NULL  AND li.ppfs = "Y" 
+                    GROUP BY o.vn) herb ON herb.vn = v.vn
                 WHERE v.vstdate BETWEEN ? AND ?
                 GROUP BY v.vn) a
             LEFT JOIN refer_reply rb ON DATE(rb.reply_date_time) = a.vstdate
@@ -200,8 +233,11 @@ class AmnosendController extends Controller
                 'visit_stp'            => (int)$r->visit_stp,
                 'visit_pay'            => (int)$r->visit_pay,
                 'visit_ppfs'           => (int)$r->visit_ppfs,
+                'visit_ppfs_claim'     => (int)$r->visit_ppfs_claim,
                 'visit_ucs_cr'         => (int)$r->visit_ucs_cr,
-                'visit_ucs_herb'       => (int)$r->visit_ucs_herb,
+                'visit_ucs_cr_claim'   => (int)$r->visit_ucs_cr_claim,
+                'visit_ucs_herb'            => (int)$r->visit_ucs_herb,
+                'visit_ucs_herb_claim'      => (int)$r->visit_ucs_herb_claim,
                 'visit_ucs_healthmed'  => (int)$r->visit_ucs_healthmed,
                 'visit_healthmed'      => (int)$r->visit_healthmed,
                 'visit_dent'           => (int)$r->visit_dent,
@@ -253,8 +289,14 @@ class AmnosendController extends Controller
                 'inc_lab_pay'          => (float)$r->inc_lab_pay,
                 'inc_drug_pay'         => (float)$r->inc_drug_pay,
                 'inc_ppfs'             => (float)$r->inc_ppfs,
+                'inc_ppfs_claim'       => (float)$r->inc_ppfs_claim,
+                'inc_ppfs_receive'     => (float)$r->inc_ppfs_receive,
                 'inc_uccr'             => (float)$r->inc_uccr,
+                'inc_uccr_claim'       => (float)$r->inc_uccr_claim,
+                'inc_uccr_receive'     => (float)$r->inc_uccr_receive,
                 'inc_herb'             => (float)$r->inc_herb,
+                'inc_herb_claim'       => (float)$r->inc_herb_claim,
+                'inc_herb_receive'     => (float)$r->inc_herb_receive,
             ];
         }, $rowsOpd);
         
@@ -265,12 +307,13 @@ class AmnosendController extends Controller
                 THEN DAY(CURDATE()) ELSE DAY(LAST_DAY(a.dchdate))END), 2) AS bed_occupancy,
             ROUND((SUM(a.admdate) / CASE WHEN YEAR(a.dchdate) = YEAR(CURDATE()) AND MONTH(a.dchdate) = MONTH(CURDATE()) 
                 THEN DAY(CURDATE()) ELSE DAY(LAST_DAY(a.dchdate)) END), 2) AS active_bed, 
-			ROUND(SUM(rw)/COUNT(DISTINCT an),2) AS cmi,ROUND(SUM(rw),5) AS adjrw, 
+			ROUND(SUM(adjrw)/COUNT(DISTINCT an),2) AS cmi,ROUND(SUM(adjrw),5) AS adjrw, 
             SUM(income) AS inc_total,
 			SUM(inc03) AS inc_lab_total,
             SUM(inc12) AS inc_drug_total
-			FROM (SELECT a.dchdate,a.an,a.admdate,a.rw,a.income,a.inc03,inc12
-			FROM an_stat a 
+			FROM (SELECT a.dchdate,a.an,a.admdate,i.adjrw,a.income,a.inc03,inc12
+			FROM ipt i
+			LEFT JOIN an_stat a ON a.an=i.an
 			LEFT JOIN pttype p ON p.pttype=a.pttype
             WHERE a.dchdate BETWEEN ? AND ?
             AND a.pdx NOT IN ("Z290","Z208")

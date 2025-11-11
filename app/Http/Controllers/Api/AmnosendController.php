@@ -428,7 +428,7 @@ class AmnosendController extends Controller
                         && $summaryHospital['failed'] === 0,
             'hospcode'   => $hospcode,
             'start_date' => $request->start_date, 
-            'end_date' => $request->end_date,
+            'end_date'   => $request->end_date,
             'received'   => [
                 'opd' => count($opdRecords),
                 'ipd' => count($ipdRecords),

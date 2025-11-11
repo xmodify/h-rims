@@ -86,7 +86,6 @@
             <input type="date" id="end_date" class="form-control" required>
             </div>
         </div>
-
         <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
             <button type="button" class="btn btn-success" id="sendAOPODBtn">ส่งข้อมูล</button>

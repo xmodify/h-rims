@@ -178,7 +178,7 @@ class AmnosendController extends Controller
                 LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = v.cid AND ep.vstdate = v.vstdate AND ep.claimCode LIKE "EP%"
                 LEFT JOIN (SELECT o.vn,CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN "Y" ELSE "N" END AS vn_claim,
                     SUM(o.sum_price) AS inc,SUM(CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN o.sum_price ELSE 0 END) AS inc_claim,
-                    SUM(stm.receive_pp) AS inc_receive FROM opitemrece o
+                    stm.receive_pp AS inc_receive FROM opitemrece o
                     INNER JOIN hrims.lookup_icode li ON o.icode = li.icode
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn  
@@ -188,7 +188,7 @@ class AmnosendController extends Controller
                     GROUP BY o.vn) ppfs ON ppfs.vn = v.vn
                 LEFT JOIN (SELECT o.vn,CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN "Y" ELSE "N" END AS vn_claim,
                     SUM(o.sum_price) AS inc,SUM(CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN o.sum_price ELSE 0 END) AS inc_claim,
-                    SUM(stm.receive_pp) AS inc_receive FROM opitemrece o
+                    (stm.receive_inst+stm.receive_op+stm.receive_palliative+stm.receive_dmis_drug+stm.receive_hc_drug+stm.receive_hc_hc) AS inc_receive FROM opitemrece o
                     INNER JOIN hrims.lookup_icode li ON o.icode = li.icode
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn  
@@ -198,13 +198,13 @@ class AmnosendController extends Controller
                     GROUP BY o.vn) uccr ON uccr.vn = v.vn
                 LEFT JOIN (SELECT o.vn,CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN "Y" ELSE "N" END AS vn_claim,
                     SUM(o.sum_price) AS inc,SUM(CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN o.sum_price ELSE 0 END) AS inc_claim,
-                    SUM(stm.receive_pp) AS inc_receive FROM opitemrece o
+                    IF(stm.receive_hc_drug=0,stm.receive_hc_hc,stm.receive_hc_drug) AS inc_receive FROM opitemrece o
                     INNER JOIN hrims.lookup_icode li ON o.icode = li.icode
                     LEFT JOIN patient pt ON pt.hn=o.hn
                     LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn  
                     LEFT JOIN rep_eclaim_detail rep ON rep.vn = o.vn
                     LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
-                    WHERE o.vstdate BETWEEN ? AND ? AND o.vn IS NOT NULL  AND li.ppfs = "Y" 
+                    WHERE o.vstdate BETWEEN ? AND ? AND o.vn IS NOT NULL  AND li.herb32 = "Y" 
                     GROUP BY o.vn) herb ON herb.vn = v.vn
                 WHERE v.vstdate BETWEEN ? AND ?
                 GROUP BY v.vn) a

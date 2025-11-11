@@ -7,6 +7,10 @@
         @csrf
         <button type="submit" class="btn btn-primary" onclick="confirmAction(event)">Upgrade Structure</button>
     </form>
+    <!-- ปุ่มใหม่: ส่งข้อมูล AOPOD -->
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#sendAOPODModal">
+        ส่งข้อมูล AOPOD
+    </button>
     <pre id="gitOutput" style="background: #eeee; padding: 1rem; margin-top: 1rem;"></pre>
     
     <h3 class="text-primary">Main Setting</h3>
@@ -61,6 +65,34 @@
                 </div>
             </form>
         </div>
+    </div>
+    <br>
+    <!-- Modal เลือกช่วงวันที่ -->
+    <div class="modal fade" id="sendAOPODModal" tabindex="-1" aria-labelledby="sendAOPODLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+            <h5 class="modal-title">ส่งข้อมูล AOPOD</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+            <div class="mb-3">
+            <label for="start_date" class="form-label">วันที่เริ่มต้น</label>
+            <input type="date" id="start_date" class="form-control" required>
+            </div>
+            <div class="mb-3">
+            <label for="end_date" class="form-label">วันที่สิ้นสุด</label>
+            <input type="date" id="end_date" class="form-control" required>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+            <button type="button" class="btn btn-success" id="sendAOPODBtn">ส่งข้อมูล</button>
+        </div>
+        </div>
+    </div>
     </div>
     <br>
     <!-- แจ้ง Git Pull -->
@@ -138,6 +170,97 @@
 
                 document.getElementById('editValue').value = value;
                 document.getElementById('editForm').action = `/admin/main_setting/${id}`;
+            });
+        });
+    </script>
+
+    <!-- JavaScript ส่งข้อมูล AOPOD-->
+    <script>
+        document.getElementById('sendAOPODBtn').addEventListener('click', function() {
+            const start = document.getElementById('start_date').value;
+            const end = document.getElementById('end_date').value;
+
+            if (!start || !end) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'กรุณาเลือกวันที่ให้ครบ',
+                    confirmButtonText: 'ตกลง'
+                });
+                return;
+            }
+
+            Swal.fire({
+                title: 'ยืนยันการส่งข้อมูล?',
+                text: `ช่วงวันที่ ${start} ถึง ${end}`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'ส่งข้อมูล',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#d33'
+            }).then((result) => {
+                if (result.isConfirmed) {
+
+                    // 🌀 แสดงสถานะหมุนระหว่างรอ
+                    Swal.fire({
+                        title: 'กำลังส่งข้อมูล...',
+                        html: 'กรุณารอสักครู่',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    fetch(`{{ url('api/amnosend') }}?start_date=${start}&end_date=${end}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(async response => {
+                        const text = await response.text();
+                        try {
+                            const data = JSON.parse(text);
+
+                            // ✅ แสดงเฉพาะข้อมูลสำคัญ
+                            const summaryText = `
+                                <b>Hospcode:</b> ${data.hospcode}<br>
+                                <b>ช่วงวันที่:</b> ${data.start_date} ถึง ${data.end_date}<br>
+                                <b>สถานะ:</b> ${data.ok ? '✅ สำเร็จ' : '❌ ล้มเหลว'}<br>
+                                <b>จำนวนข้อมูลที่ส่ง:</b><br>
+                                - OPD: ${data.received.opd}<br>
+                                - IPD: ${data.received.ipd}<br>
+                                - IPD Bed: ${data.received.ipd_bed}<br>
+                                - Hospital: ${data.received.hospital}
+                            `;
+
+                            Swal.fire({
+                                icon: data.ok ? 'success' : 'warning',
+                                title: 'ส่งข้อมูลสำเร็จ ✅',
+                                html: summaryText,
+                                confirmButtonText: 'ปิด',  // 🟢 เพิ่มปุ่มปิด
+                                showConfirmButton: true
+                            });
+
+                        } catch (e) {
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'ผลการทำงาน',
+                                html: `<pre style="text-align:left;white-space:pre-wrap;">${text}</pre>`,
+                                confirmButtonText: 'ปิด',
+                                showConfirmButton: true
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: error,
+                            confirmButtonText: 'ปิด'
+                        });
+                    });
+                }
             });
         });
     </script>

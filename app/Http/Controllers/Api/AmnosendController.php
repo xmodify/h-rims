@@ -427,26 +427,14 @@ class AmnosendController extends Controller
                         && $summaryIpd_bed['failed'] === 0 
                         && $summaryHospital['failed'] === 0,
             'hospcode'   => $hospcode,
-            'start_date' => $start,
-            'end_date'   => $end,
+            'start_date' => $request->start_date, 
+            'end_date' => $request->end_date,
             'received'   => [
                 'opd' => count($opdRecords),
                 'ipd' => count($ipdRecords),
                 'ipd_bed' => count($ipdbedRecords),
                 'hospital' => count($hospitalRecords),
-            ],
-            'summary'    => [
-                'opd' => $summaryOpd,
-                'ipd' => $summaryIpd,
-                'ipd_bed' => $summaryIpd_bed,
-                'hospital' => $summaryHospital,
-            ],
-            'sample'     => [
-                'opd' => $opdRecords[0] ?? null,
-                'ipd' => $ipdRecords[0] ?? null,
-                'ipd_bed' => $ipdbedRecords[0] ?? null,
-                'hospital' => $hospitalRecords[0] ?? null,
-            ],
+            ],            
         ], 200);
     }
 

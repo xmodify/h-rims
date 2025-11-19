@@ -217,8 +217,8 @@ class AmnosendController extends Controller
                     LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
                     WHERE o.vstdate BETWEEN ? AND ? AND o.vn IS NOT NULL  AND li.herb32 = "Y" 
                     GROUP BY o.vn) herb ON herb.vn = ov.vn
-                WHERE v.vstdate BETWEEN ? AND ?
-                GROUP BY v.vn) a
+                WHERE ov.vstdate BETWEEN ? AND ?
+                GROUP BY ov.vn) a
             LEFT JOIN refer_reply rb ON DATE(rb.reply_date_time) = a.vstdate
             LEFT JOIN operation_list o ON (o.vn = a.vn OR o.an = a.an) AND o.request_date BETWEEN ? AND ?
             GROUP BY a.vstdate ';

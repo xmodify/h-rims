@@ -688,7 +688,7 @@ class ClaimIpController extends Controller
             LEFT JOIN an_stat a ON a.an=i.an            
             LEFT JOIN hrims.stm_ofc stm ON stm.an=i.an 
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
-            AND p.hipdata_code = "BKK" GROUP BY i.an ) AS a
+            AND p.hipdata_code = "BMT" GROUP BY i.an ) AS a
 			GROUP BY YEAR(dchdate), MONTH(dchdate)
             ORDER BY YEAR(dchdate), MONTH(dchdate) ',[$start_date_b,$end_date_b]);
         $month = array_column($sum_month,'month');  

@@ -66,6 +66,9 @@ class AmnosendController extends Controller
                 SUM(CASE WHEN healthmed = "Y" THEN 1 ELSE 0 END) AS visit_healthmed,
                 SUM(CASE WHEN dent = "Y" THEN 1 ELSE 0 END) AS visit_dent,
                 SUM(CASE WHEN physic = "Y" THEN 1 ELSE 0 END) AS visit_physic,
+                SUM(CASE WHEN anc = "Y" THEN 1 ELSE 0 END) AS visit_anc,
+		        SUM(CASE WHEN telehealth = "Y" THEN 1 ELSE 0 END) AS visit_telehealth,
+		        SUM(CASE WHEN moph_oapp = "Y" THEN 1 ELSE 0 END) AS visit_moph_oapp,
                 SUM(CASE WHEN referout_inprov = "Y" THEN 1 ELSE 0 END) AS visit_referout_inprov,
                 SUM(CASE WHEN referout_outprov = "Y" THEN 1 ELSE 0 END) AS visit_referout_outprov,
                 SUM(CASE WHEN referout_inprov_ipd = "Y" THEN 1 ELSE 0 END) AS visit_referout_inprov_ipd,
@@ -76,6 +79,7 @@ class AmnosendController extends Controller
                 SUM(CASE WHEN referin_outprov_ipd = "Y" THEN 1 ELSE 0 END) AS visit_referin_outprov_ipd,
                 COUNT(DISTINCT CASE WHEN rb.dest_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y") THEN rb.vn END) AS visit_referback_inprov,
                 COUNT(DISTINCT CASE WHEN rb.dest_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y") THEN rb.vn END) AS visit_referback_outprov,
+                COUNT(DISTINCT o.operation_id) AS visit_operation,
                 SUM(income) AS inc_total,
                 SUM(inc03) AS inc_lab_total,
                 SUM(inc12) AS inc_drug_total,
@@ -121,7 +125,7 @@ class AmnosendController extends Controller
                 SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc_herb ELSE 0 END) AS inc_herb,
                 SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc_herb_claim ELSE 0 END) AS inc_herb_claim,
 		        SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc_herb_receive ELSE 0 END) AS inc_herb_receive
-            FROM (SELECT v.vstdate, v.vn, v.hn, v.pttype, p.hipdata_code, p.paidst,
+            FROM (SELECT ov.vstdate, ov.vn, ip.an, ov.hn, ov.pttype, p.hipdata_code, p.paidst,
                     v.income, v.inc03, v.inc12, v.pdx,
                     IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"), "Y", NULL) AS endpoint,
                     IF(i.icd10 IS NULL, "OP", "PP") AS diagtype,
@@ -146,6 +150,9 @@ class AmnosendController extends Controller
                     IF(dt.vn IS NOT NULL, "Y", "") AS dent,
                     IF(pl.vn IS NOT NULL, "Y", "") AS physic,
                     IF(hm.vn IS NOT NULL, "Y", "") AS healthmed,
+                    IF(anc.vn IS NOT NULL, "Y", "") AS anc,
+				    IF(oi.export_code =5, "Y", "") AS telehealth,
+				    IF(ma.cid IS NOT NULL, "Y", "") AS moph_oapp,
                     IF(r.vn IS NOT NULL, "Y", "") AS referout_inprov,
                     IF(r1.vn IS NOT NULL, "Y", "") AS referout_outprov,
                     IF(re.vn IS NOT NULL, "Y", "") AS referout_inprov_ipd,
@@ -154,24 +161,28 @@ class AmnosendController extends Controller
                     IF(ri1.vn IS NOT NULL AND ip.vn IS NULL, "Y", "") AS referin_outprov,
                     IF(rii.vn IS NOT NULL AND ip.vn IS NOT NULL, "Y", "") AS referin_inprov_ipd,
                     IF(rii1.vn IS NOT NULL AND ip.vn IS NOT NULL, "Y", "") AS referin_outprov_ipd
-                FROM vn_stat v
-                LEFT JOIN ipt ip ON ip.vn = v.vn
-                LEFT JOIN pttype p ON p.pttype = v.pttype
-                LEFT JOIN visit_pttype vp ON vp.vn = v.vn 
+                FROM ovst ov
+		        LEFT JOIN ovstist oi ON oi.ovstist = ov.ovstist
+		        LEFT JOIN vn_stat v ON v.vn = ov.vn
+                LEFT JOIN ipt ip ON ip.vn = ov.vn
+                LEFT JOIN pttype p ON p.pttype = ov.pttype
+                LEFT JOIN visit_pttype vp ON vp.vn = ov.vn 
                     AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
-                LEFT JOIN visit_pttype vp1 ON vp1.vn = v.vn 
+                LEFT JOIN visit_pttype vp1 ON vp1.vn = ov.vn 
                     AND vp1.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y" AND (hmain_ucs IS NULL OR hmain_ucs = ""))
-                LEFT JOIN visit_pttype vp2 ON vp2.vn = v.vn 
+                LEFT JOIN visit_pttype vp2 ON vp2.vn = ov.vn 
                     AND vp2.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")                
-                LEFT JOIN health_med_service hm ON hm.vn = v.vn
-                LEFT JOIN physic_list pl ON pl.vn = v.vn
-                LEFT JOIN dtmain dt ON dt.vn = v.vn
-                LEFT JOIN referout r ON r.vn = v.vn AND r.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-                LEFT JOIN referout r1 ON r1.vn = v.vn AND r1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+                LEFT JOIN health_med_service hm ON hm.vn = ov.vn
+                LEFT JOIN physic_list pl ON pl.vn = ov.vn
+                LEFT JOIN dtmain dt ON dt.vn = ov.vn
+                LEFT JOIN (SELECT DISTINCT vn FROM person_anc_service) anc ON anc.vn = ov.vn
+                LEFT JOIN moph_appointment_list ma ON ma.cid=v.cid AND ma.appointment_date = ov.vstdate
+                LEFT JOIN referout r ON r.vn = ov.vn AND r.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+                LEFT JOIN referout r1 ON r1.vn = ov.vn AND r1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
                 LEFT JOIN referout re ON re.vn = ip.an AND re.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
                 LEFT JOIN referout re1 ON re1.vn = ip.an AND re1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-                LEFT JOIN referin ri ON ri.vn = v.vn AND ri.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-                LEFT JOIN referin ri1 ON ri1.vn = v.vn AND ri1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+                LEFT JOIN referin ri ON ri.vn = ov.vn AND ri.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+                LEFT JOIN referin ri1 ON ri1.vn = ov.vn AND ri1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
                 LEFT JOIN referin rii ON rii.vn = ip.vn AND rii.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
                 LEFT JOIN referin rii1 ON rii1.vn = ip.vn AND rii1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
                 LEFT JOIN hrims.lookup_icd10 i ON i.icd10 = v.pdx AND i.pp = "Y"
@@ -185,7 +196,7 @@ class AmnosendController extends Controller
                     LEFT JOIN rep_eclaim_detail rep ON rep.vn = o.vn
                     LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
                     WHERE o.vstdate BETWEEN ? AND ? AND o.vn IS NOT NULL  AND li.ppfs = "Y" 
-                    GROUP BY o.vn) ppfs ON ppfs.vn = v.vn
+                    GROUP BY o.vn) ppfs ON ppfs.vn = ov.vn
                 LEFT JOIN (SELECT o.vn,CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN "Y" ELSE "N" END AS vn_claim,
                     SUM(o.sum_price) AS inc,SUM(CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN o.sum_price ELSE 0 END) AS inc_claim,
                     (stm.receive_inst+stm.receive_op+stm.receive_palliative+stm.receive_dmis_drug+stm.receive_hc_drug+stm.receive_hc_hc) AS inc_receive FROM opitemrece o
@@ -195,7 +206,7 @@ class AmnosendController extends Controller
                     LEFT JOIN rep_eclaim_detail rep ON rep.vn = o.vn
                     LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
                     WHERE o.vstdate BETWEEN ? AND ? AND o.vn IS NOT NULL  AND li.uc_cr = "Y" 
-                    GROUP BY o.vn) uccr ON uccr.vn = v.vn
+                    GROUP BY o.vn) uccr ON uccr.vn = ov.vn
                 LEFT JOIN (SELECT o.vn,CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN "Y" ELSE "N" END AS vn_claim,
                     SUM(o.sum_price) AS inc,SUM(CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN o.sum_price ELSE 0 END) AS inc_claim,
                     IF(stm.receive_hc_drug=0,stm.receive_hc_hc,stm.receive_hc_drug) AS inc_receive FROM opitemrece o
@@ -205,13 +216,14 @@ class AmnosendController extends Controller
                     LEFT JOIN rep_eclaim_detail rep ON rep.vn = o.vn
                     LEFT JOIN hrims.stm_ucs stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate	AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
                     WHERE o.vstdate BETWEEN ? AND ? AND o.vn IS NOT NULL  AND li.herb32 = "Y" 
-                    GROUP BY o.vn) herb ON herb.vn = v.vn
+                    GROUP BY o.vn) herb ON herb.vn = ov.vn
                 WHERE v.vstdate BETWEEN ? AND ?
                 GROUP BY v.vn) a
             LEFT JOIN refer_reply rb ON DATE(rb.reply_date_time) = a.vstdate
+            LEFT JOIN operation_list o ON (o.vn = a.vn OR o.an = a.an) AND o.request_date BETWEEN ? AND ?
             GROUP BY a.vstdate ';
 
-        $rowsOpd = DB::connection('hosxp')->select($sqlOpd, [$hospcode, $start, $end, $start, $end, $start, $end, $start, $end]);
+        $rowsOpd = DB::connection('hosxp')->select($sqlOpd, [$hospcode, $start, $end, $start, $end, $start, $end, $start, $end , $start, $end]);
 
         $opdRecords = array_map(function ($r) {
             return [
@@ -238,10 +250,14 @@ class AmnosendController extends Controller
                 'visit_ucs_cr_claim'   => (int)$r->visit_ucs_cr_claim,
                 'visit_ucs_herb'            => (int)$r->visit_ucs_herb,
                 'visit_ucs_herb_claim'      => (int)$r->visit_ucs_herb_claim,
-                'visit_ucs_healthmed'  => (int)$r->visit_ucs_healthmed,
-                'visit_healthmed'      => (int)$r->visit_healthmed,
-                'visit_dent'           => (int)$r->visit_dent,
-                'visit_physic'         => (int)$r->visit_physic,
+                'visit_ucs_healthmed'       => (int)$r->visit_ucs_healthmed,
+                'visit_healthmed'           => (int)$r->visit_healthmed,
+                'visit_dent'                => (int)$r->visit_dent,
+                'visit_physic'              => (int)$r->visit_physic,
+                'visit_anc'                 => (int)$r->visit_anc,
+                'visit_telehealth'          => (int)$r->visit_telehealth,
+                'visit_moph_oapp'           => (int)$r->visit_moph_oapp,
+                'visit_operation'           => (int)$r->visit_operation,
                 'visit_referout_inprov'         => (int)$r->visit_referout_inprov,                
                 'visit_referout_outprov'        => (int)$r->visit_referout_outprov,
                 'visit_referout_inprov_ipd'     => (int)$r->visit_referout_inprov_ipd,

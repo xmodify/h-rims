@@ -72,7 +72,8 @@ class ClaimIpController extends Controller
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
             p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,a.income,a.rcpt_money,a.income-a.rcpt_money AS claim_price,
             CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
-            IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,i.data_ok 
+            IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,i.data_ok ,
+            fdh.status_message_th AS fdh_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
@@ -86,10 +87,12 @@ class ClaimIpController extends Controller
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
+            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
             LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL") AND ip.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             AND i.data_exp_date IS NULL 
+            AND fdh.status = "500"
             AND stm.an IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
@@ -97,7 +100,8 @@ class ClaimIpController extends Controller
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
             p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,a.income,a.rcpt_money,a.income-a.rcpt_money AS claim_price,
             CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
-            rep.rep_eclaim_detail_error_code AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno
+            rep.rep_eclaim_detail_error_code AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
+            fdh.status_message_th AS fdh_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
@@ -111,10 +115,11 @@ class ClaimIpController extends Controller
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
+            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
             LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL") AND ip.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
-            AND (i.data_exp_date IS NOT NULL OR stm.an IS NOT NULL)
+            AND (i.data_exp_date IS NOT NULL OR fdh.status <> "500" OR stm.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
         return view('claim_ip.ucs_incup',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search','claim'));
@@ -179,7 +184,8 @@ class ClaimIpController extends Controller
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
             p.`name` AS pttype,ip.hospmain,a.diag_text_list,id.icd10,idx.icd9,a.income,a.rcpt_money,a.income-a.rcpt_money AS claim_price,
             CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
-            IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,i.data_ok 
+            IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,i.data_ok ,
+            fdh.status_message_th AS fdh_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
@@ -193,10 +199,12 @@ class ClaimIpController extends Controller
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
+            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
             LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL") AND ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             AND i.data_exp_date IS NULL 
+            AND fdh.status = "500"
             AND stm.an IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
@@ -204,7 +212,8 @@ class ClaimIpController extends Controller
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
             p.`name` AS pttype,ip.hospmain,a.diag_text_list,id.icd10,idx.icd9,a.income,a.rcpt_money,a.income-a.rcpt_money AS claim_price,
             CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
-            rep.rep_eclaim_detail_error_code AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno
+            rep.rep_eclaim_detail_error_code AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
+            fdh.status_message_th AS fdh_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
@@ -218,10 +227,11 @@ class ClaimIpController extends Controller
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
+            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
             LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL") AND ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
-            AND (i.data_exp_date IS NOT NULL OR stm.an IS NOT NULL)
+            AND (i.data_exp_date IS NOT NULL OR fdh.status <> "500" OR stm.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
         return view('claim_ip.ucs_outcup',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search','claim'));

@@ -83,6 +83,8 @@
                 <th class="text-center">Authen</th>      
                 <th class="text-center">สรุป Chart</th>
                 <th class="text-center">พร้อมส่ง</th>
+                <th class="text-center">FDH Status</th> 
+                <th class="text-center" width="6%">Action</th>
               </tr>
             </thead> 
             <tbody> 
@@ -122,6 +124,14 @@
                   @elseif($row->data_ok == 'N') style="color:red" @endif>
                   <strong>{{ $row->data_ok }}</strong>
                 </td>
+                <td align="left">{{ $row->fdh_status }}</td>  
+                  <td class="text-center">
+                    <button 
+                        class="btn btn-sm btn-outline-success"
+                        onclick="checkFdh('{{ $row->hn }}','{{ $row->an }}')">
+                        FDH
+                    </button> 
+                  </td>
               </tr>
               <?php $count++; ?>
               <?php $sum_income += $row->income ; ?>
@@ -170,6 +180,8 @@
                   <th class="text-center">ชดเชยทั้งหมด</th> 
                   <th class="text-center">ส่วนต่าง</th> 
                   <th class="text-center">REP No.</th> 
+                  <th class="text-center">FDH Status</th> 
+                  <th class="text-center" width="6%">Action</th>
                 </tr>
               </thead> 
               <tbody> 
@@ -210,6 +222,14 @@
                     {{ number_format($row->receive_total-$row->claim_price,2) }}
                   </td>
                   <td align="center">{{ $row->repno }}</td>
+                  <td align="left">{{ $row->fdh_status }}</td>  
+                  <td class="text-center">
+                    <button 
+                        class="btn btn-sm btn-outline-success"
+                        onclick="checkFdh('{{ $row->hn }}','{{ $row->an }}')">
+                        FDH
+                    </button> 
+                  </td>
                 </tr>
                 <?php $count++; ?>
                 <?php $sum_income += $row->income ; ?>
@@ -256,6 +276,47 @@
   }
   function fetchData() {
       showLoading();
+  }
+</script>
+
+{{-- ✅ FDH Check Claim------------------------------------------------------------ --}}
+<script>
+  function checkFdh(hn, an) {
+      Swal.fire({
+          title: 'กำลังตรวจสอบสถานะ...',
+          text: 'กรุณารอสักครู่',
+          allowOutsideClick: false,
+          didOpen: () => {
+              Swal.showLoading();
+          }
+      });
+      $.ajax({
+          url: "{{ url('/api/fdh/check-claim-indiv') }}",
+          type: "POST",
+          data: {
+              hn: hn,
+              an: an,
+              _token: "{{ csrf_token() }}"
+          },
+          success: function (res) {
+              Swal.fire({
+                  icon: 'success',
+                  title: 'ตรวจสอบสำเร็จ',
+                  timer: 1800,
+                  showConfirmButton: false
+              }).then(() => {
+                  location.reload();   // ⬅⬅ รีเฟรชตรงนี้!
+              });
+          },
+          error: function (xhr) {
+              Swal.fire({
+                  icon: 'error',
+                  title: 'เกิดข้อผิดพลาด',
+                  text: xhr.responseJSON?.message ?? 'ไม่สามารถตรวจสอบได้',
+                  confirmButtonText: 'ปิด'
+              });
+          }
+      });
   }
 </script>
 

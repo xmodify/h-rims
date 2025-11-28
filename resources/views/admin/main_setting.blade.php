@@ -27,11 +27,18 @@
             @foreach ($data as $row)
                 <tr>
                     <td>{{ $row->name_th }}</td>
-                    <td>{{ $row->value }}</td>
+                    <td>
+                        @if(in_array($row->name, ['fdh_pass', 'fdh_secretKey']))
+                            •••••••••••••••
+                        @else
+                            {{ $row->value }}
+                        @endif
+                    </td>
                     <td>
                         <!-- ปุ่ม Edit -->
                         <button class="btn btn-warning btn-sm btn-edit" 
                             data-id="{{ $row->id }}"    
+                            data-name="{{ $row->name }}"
                             data-value="{{ $row->value }}"   
                             data-bs-toggle="modal"
                             data-bs-target="#editModal">
@@ -165,10 +172,17 @@
         document.querySelectorAll('.btn-edit').forEach(button => {
             button.addEventListener('click', function () {
                 const id = this.dataset.id;
-                const value = this.dataset.value;                
+                const name = this.dataset.name;
+                let value = this.dataset.value;    
+                
+                // ถ้าเป็นข้อมูลลับ → ไม่เอาค่าไปโชว์
+                if (name === 'fdh_pass' || name === 'fdh_secretKey') {
+                    value = "******";
+                }
 
                 document.getElementById('editValue').value = value;
-                document.getElementById('editForm').action = `/admin/main_setting/${id}`;
+                // document.getElementById('editForm').action = `/admin/main_setting/${id}`;
+                document.getElementById('editForm').action = "{{ url('admin/main_setting') }}/" + id;
             });
         });
     </script>

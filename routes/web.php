@@ -100,6 +100,7 @@ Route::match(['get','post'],'import/stm_sss_kidneydetail',[ImportController::cla
 
 //Check------------------------------------------------------------------------------------------------------------------------------
 Route::match(['get','post'],'check/nhso_endpoint',[CheckController::class,'nhso_endpoint']);
+Route::match(['get','post'],'check/fdh_claim_status',[CheckController::class,'fdh_claim_status']);
 Route::post('check/drug_cat_nhso_save',[CheckController::class,'drug_cat_nhso_save']);
 Route::get('check/drug_cat',[CheckController::class,'drug_cat'])->name('drug_cat');;
 Route::get('check/drug_cat_non_nhso',[CheckController::class,'drug_cat_non_nhso']);

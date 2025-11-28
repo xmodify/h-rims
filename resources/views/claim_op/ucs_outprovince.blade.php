@@ -81,6 +81,8 @@
                   <th class="text-center">ER Type</th> 
                   <th class="text-center">Project</th>                  
                   <th class="text-center">Claim AE</th> 
+                  <th class="text-center">FDH Status</th> 
+                  <th class="text-center" width="6%">Action</th>  
               </tr>
             </thead> 
             <tbody> 
@@ -116,7 +118,15 @@
                 <td align="right">{{ number_format($row->refer,2) }}</td>
                 <td align="center">{{ $row->er }}</td>
                 <td align="center">{{ $row->project }}</td>
-                <td align="center">{{ $row->ae }}</td>         
+                <td align="center">{{ $row->ae }}</td>
+                <td align="left">{{ $row->fdh_status }}</td>         
+                <td class="text-center">
+                  <button 
+                      class="btn btn-sm btn-outline-success"
+                      onclick="checkFdh('{{ $row->hn }}','{{ $row->seq }}')">
+                      FDH
+                  </button> 
+                </td> 
               </tr>
               <?php $count++; ?>
               <?php $sum_income += $row->income ; ?>
@@ -156,7 +166,9 @@
                     <th class="text-center text-primary">Error</th> 
                     <th class="text-center text-primary">STM ชดเชย</th> 
                     <th class="text-center text-primary">ผลต่าง</th> 
-                    <th class="text-center text-primary">REP</th>  
+                    <th class="text-center text-primary">REP</th> 
+                    <th class="text-center text-primary">FDH Status</th> 
+                    <th class="text-center text-primary" width="6%">Action</th>   
                 </tr>
               </thead> 
               <tbody> 
@@ -192,7 +204,15 @@
                     <td align="right" @if($row->receive_total-$row->income-$row->rcpt_money > 0) style="color:green" 
                         @elseif($row->receive_total-$row->income-$row->rcpt_money < 0) style="color:red" @endif>
                         {{ number_format($row->receive_total-$row->income-$row->rcpt_money,2) }}</td>
-                    <td align="right">{{ $row->repno }}</td> 
+                    <td align="right">{{ $row->repno }}</td>
+                    <td align="left">{{ $row->fdh_status }}</td> 
+                    <td class="text-center">
+                      <button 
+                          class="btn btn-sm btn-outline-success"
+                          onclick="checkFdh('{{ $row->hn }}','{{ $row->seq }}')">
+                          FDH
+                      </button> 
+                    </td> 
                 </tr>
                 <?php $count++; ?>
                 <?php $sum_income += $row->income ; ?>
@@ -236,6 +256,47 @@
   }
   function fetchData() {
       showLoading();
+  }
+</script>
+
+{{-- ✅ FDH Check Claim------------------------------------------------------------ --}}
+<script>
+  function checkFdh(hn, seq) {
+      Swal.fire({
+          title: 'กำลังตรวจสอบสถานะ...',
+          text: 'กรุณารอสักครู่',
+          allowOutsideClick: false,
+          didOpen: () => {
+              Swal.showLoading();
+          }
+      });
+      $.ajax({
+          url: "{{ url('/api/fdh/check-claim-indiv') }}",
+          type: "POST",
+          data: {
+              hn: hn,
+              seq: seq,
+              _token: "{{ csrf_token() }}"
+          },
+          success: function (res) {
+              Swal.fire({
+                  icon: 'success',
+                  title: 'ตรวจสอบสำเร็จ',
+                  timer: 1800,
+                  showConfirmButton: false
+              }).then(() => {
+                  location.reload();   // ⬅⬅ รีเฟรชตรงนี้!
+              });
+          },
+          error: function (xhr) {
+              Swal.fire({
+                  icon: 'error',
+                  title: 'เกิดข้อผิดพลาด',
+                  text: xhr.responseJSON?.message ?? 'ไม่สามารถตรวจสอบได้',
+                  confirmButtonText: 'ปิด'
+              });
+          }
+      });
   }
 </script>
 

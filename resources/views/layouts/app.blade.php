@@ -140,6 +140,9 @@
                                     <a class="link-primary dropdown-item text-white" href="{{ url('check/nhso_endpoint') }}">
                                         ปิดสิทธิ สปสช.
                                     </a>
+                                    <a class="link-primary dropdown-item text-white" href="{{ url('check/fdh_claim_status') }}">
+                                        FDH Claim Status
+                                    </a>
                                     <a class="link-primary dropdown-item text-white" href="{{ url('check/drug_cat') }}">
                                         Drug Catalog สปสช.
                                     </a>
@@ -468,7 +471,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li > 
                             <div class="btn text-info">
-                                V. 68-11-19 22:00
+                                V. 68-11-28 15:00
                             </div>   
                         </li>                         
                         <!-- Authentication Links -->

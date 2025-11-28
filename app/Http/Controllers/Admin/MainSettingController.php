@@ -23,7 +23,7 @@ class MainSettingController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([           
-            'value' => 'required|string',
+            'value' => 'nullable|string',
         ]);
 
         $setting = MainSetting::findOrFail($id);        
@@ -36,7 +36,7 @@ class MainSettingController extends Controller
 // UP Structure -----------------------------------------------------------------------------------------------------------------------    
     public function up_structure(Request $request)
     {
-    //Table main_setting-----------------------------------------------------------------------------------------------------------
+    //Update Table main_setting-----------------------------------------------------------------------------------------------------------
         $main_setting = [
             ['id' => 1, 'name_th' => 'IPD จำนวนเตียง', 'name' => 'bed_qty', 'value' => ''],
             ['id' => 2, 'name_th' => 'Token Authen Kiosk สปสช.', 'name' => 'token_authen_kiosk_nhso', 'value' => ''],
@@ -58,6 +58,9 @@ class MainSettingController extends Controller
             ['id' => 18, 'name_th' => 'ชื่อโรงพยาบาล', 'name' => 'hospital_name', 'value' => 'โรงพยาบาลหัวตะพาน'],
             ['id' => 19, 'name_th' => 'รหัส 5 หลักโรงพยาบาล', 'name' => 'hospital_code', 'value' => '10989'],
             ['id' => 20, 'name_th' => 'OPOH Token', 'name' => 'opoh_token', 'value' => ''],
+            ['id' => 21, 'name_th' => 'FDH User', 'name' => 'fdh_user', 'value' => ''],
+            ['id' => 22, 'name_th' => 'FDH Pass', 'name' => 'fdh_pass', 'value' => ''],
+            ['id' => 23, 'name_th' => 'FDH Secret Key', 'name' => 'fdh_secretKey', 'value' => '$jwt@moph#'],
         ];
         
         foreach ($main_setting as $row) {
@@ -90,7 +93,6 @@ class MainSettingController extends Controller
                 ['name' => 'bed_qty', 'definition' => 'INT UNSIGNED NULL AFTER `ward_homeward`']
             ],
         ];
-
         try {
             foreach ($tables as $table => $columns) {
                 foreach ($columns as $col) {
@@ -100,6 +102,28 @@ class MainSettingController extends Controller
                 }
             }
 
+    // CREATE TABLE fdh_claim_status ----------------------------------------------------------------------------------------
+        if (!Schema::hasTable('fdh_claim_status')) {
+            DB::statement("
+                CREATE TABLE `fdh_claim_status` (
+                    `id` BIGINT(20) NOT NULL AUTO_INCREMENT,
+                    `hn` VARCHAR(50) NOT NULL,
+                    `seq` VARCHAR(50) DEFAULT NULL,
+                    `an` VARCHAR(50) DEFAULT NULL,
+                    `hcode` VARCHAR(10) NOT NULL,
+                    `status` VARCHAR(50) NOT NULL,
+                    `process_status` VARCHAR(10) DEFAULT NULL,
+                    `status_message_th` VARCHAR(255) DEFAULT NULL,
+                    `stm_period` VARCHAR(50) DEFAULT NULL,
+                    `created_at` TIMESTAMP NULL DEFAULT NULL,
+                    `updated_at` TIMESTAMP NULL DEFAULT NULL,
+                    PRIMARY KEY (`id`),
+                    KEY `idx_hn` (`hn`),
+                    KEY `idx_an` (`an`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            ");
+        }
+        // END --------------------------------------------------------------------------------------------------------
             return redirect()->route('admin.main_setting')
                 ->with('success', 'Upgrade Structure สำเร็จ');
 

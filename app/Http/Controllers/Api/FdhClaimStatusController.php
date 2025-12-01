@@ -217,36 +217,45 @@ class FdhClaimStatusController extends Controller
 
     public function check_indiv(Request $request)
     {
-        // อนุญาตให้รันยาว
         ini_set('max_execution_time', 0);
         ini_set('memory_limit', '-1');
-        
+
+        // Validation
         $request->validate([
             'hn'  => 'required|string',
             'seq' => 'nullable|string',
             'an'  => 'nullable|string',
         ]);
 
+        // ❗ ถ้าไม่ส่ง seq หรือ an → ตอบ HTTP 200 + status 400
         if (!$request->an && !$request->seq) {
             return response()->json([
-                'error' => 'seq_or_an_required'
-            ], 400);
+                'status' => 400,
+                'error'  => 'seq_or_an_required',
+                'saved'  => false,
+            ], 200);
         }
 
-        // โหลด hcode
-        $settings = DB::table('main_setting')
-            ->pluck('value', 'name')
-            ->toArray();
-
+        // โหลด setting
+        $settings = DB::table('main_setting')->pluck('value', 'name')->toArray();
         $hcode = $settings['hospital_code'] ?? null;
+
         if (!$hcode) {
-            return response()->json(['error' => 'hospital_code_not_found'], 400);
+            return response()->json([
+                'status' => 400,
+                'error'  => 'hospital_code_not_found',
+                'saved'  => false,
+            ], 200);
         }
 
         // Token
         $token = $this->getToken();
         if (!$token) {
-            return response()->json(['error' => 'token_unavailable'], 500);
+            return response()->json([
+                'status' => 500,
+                'error'  => 'token_unavailable',
+                'saved'  => false,
+            ], 200);
         }
 
         // Payload
@@ -254,20 +263,17 @@ class FdhClaimStatusController extends Controller
             'hcode' => $hcode,
             'hn'    => $request->hn,
         ];
-
-        if (!empty($request->an)) {
-            $payload['an'] = $request->an;     // IPD
+        if ($request->an) {
+            $payload['an'] = $request->an;
         } else {
-            $payload['seq'] = $request->seq;   // OPD
+            $payload['seq'] = $request->seq;
         }
 
         $apiUrl = 'https://fdh.moph.go.th/api/v1/ucs/track_trans';
 
-        // ยิง API
+        // API call
         try {
-            $response = Http::withOptions([
-                    'verify' => false
-                ])
+            $response = Http::withOptions(['verify' => false])
                 ->withToken($token)
                 ->retry(3, 2000)
                 ->timeout(60)
@@ -277,81 +283,51 @@ class FdhClaimStatusController extends Controller
             $body   = $response->json();
 
         } catch (\Exception $e) {
-            $status = 500;
-            $body = [
-                'error' => 'request_failed',
-                'message' => $e->getMessage()
-            ];
+            return response()->json([
+                'status'  => 500,
+                'error'   => 'request_failed',
+                'message' => $e->getMessage(),
+                'saved'   => false,
+            ], 200);
         }
 
-        // ✔️ บันทึกเฉพาะเมื่อ status = 200 ---------------------------------------------------------------
-        // if ($status == 200 && isset($body['data'][0])) {
+        // บันทึกเฉพาะ 200 + มี data
+        $saved = false;
 
-        //     $d = $body['data'][0];
+        if ($status == 200 && isset($body['data'][0])) {
 
-        //     DB::table('fdh_claim_status')->updateOrInsert(
-        //         [
-        //             'hn'  => $d['hn'] ?? $request->hn,
-        //             'seq' => $d['seq'] ?? $request->seq,   
-        //             'an'  => $d['an']  ?? $request->an,
-        //         ],
-        //         [
-        //             'hcode'             => $d['hcode']             ?? $hcode,
-        //             'status'            => $d['status']            ?? null,
-        //             'process_status'    => $d['process_status']    ?? null,
-        //             'status_message_th' => $d['status_message_th'] ?? null,
-        //             'updated_at'        => now(),
-        //             'created_at'        => DB::raw('COALESCE(created_at, NOW())'),
-        //         ]
-        //     );
-        // }
-        //----------------------------------------------------------------------------------------------
+            $d   = $body['data'][0];
 
-    // บันทึกทุกสถานะ-------------------------------------------------------------------------------------
-        $d = $body['data'][0] ?? [];
+            $hn  = $d['hn']  ?? $request->hn;
+            $seq = $d['seq'] ?? $request->seq;
+            $an  = $d['an']  ?? $request->an;
 
-        // คีย์หลัก (ใช้ request เป็น fallback)
-        $hn  = $request->hn;
-        $seq = $request->seq;
-        $an  = $request->an;
+            DB::table('fdh_claim_status')->updateOrInsert(
+                [
+                    'hn'  => $hn,
+                    'seq' => $seq,
+                    'an'  => $an,
+                ],
+                [
+                    'hcode'             => $d['hcode']             ?? $hcode,
+                    'status'            => $d['status']            ?? null,
+                    'process_status'    => $d['process_status']    ?? null,
+                    'status_message_th' => $d['status_message_th'] ?? null,
+                    'stm_period'        => $d['stm_period']        ?? null,
+                    'updated_at'        => now(),
+                    'created_at'        => DB::raw('COALESCE(created_at, NOW())'),
+                ]
+            );
 
-        if (!empty($d['an'])) {
-            $an = $d['an'];
+            $saved = true;
         }
 
-        // 🟩 จัดการข้อความไทยตามสถานะ
-        if ($status == 500) {
-            // ถ้า API error → บันทึกเฉพาะคำนี้
-            $status_message_th = "ไม่มีรายการนี้ส่ง";
-        } else {
-            // สถานะอื่น: 200 / 400 / 404 / 409 ฯลฯ
-            $status_message_th = $d['status_message_th'] 
-                                ?? ($body['message'] ?? null);
-        }
-        // บันทึกข้อมูล   
-        DB::table('fdh_claim_status')->updateOrInsert(
-            [
-                'hn'  => $hn,
-                'seq' => $seq,
-                'an'  => $an,
-            ],
-            [
-                'hcode'             => $d['hcode']             ?? $hcode,
-                'status'            => $d['status']            ?? $status,  
-                'process_status'    => $d['process_status']    ?? null,
-                'status_message_th' => $status_message_th,
-                'stm_period'        => $d['stm_period']    ?? null,
-                'updated_at'        => now(),
-                'created_at'        => DB::raw('COALESCE(created_at, NOW())'),
-            ]
-        ); 
-        //----------------------------------------------------------------------------------------------
+        // ส่งผลกลับไป — HTTP 200 เท่านั้น!
         return response()->json([
-            'input'   => $payload,
-            'status'  => $status,
-            'body'    => $body,
-            'saved'   => ($status == 200),
-        ]);
+            'status' => $status,  // = 200, 404, 400, 500 (ของ FDH)
+            'body'   => $body,
+            'saved'  => $saved,
+        ], 200);
     }
     
 }

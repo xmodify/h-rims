@@ -27,8 +27,8 @@
     </div>    
   </div>
   <canvas id="sum_month" style="max-height: 400px;"></canvas> 
-  <hr>
-  <form method="POST" enctype="multipart/form-data"> 
+  <hr> 
+  <form method="POST" enctype="multipart/form-data">
       @csrf            
       <div class="row" >
               <label class="col-md-3 col-form-label text-md-end my-1">{{ __('วันที่') }}</label>
@@ -62,7 +62,8 @@
           <table id="t_search" class="table table-striped table-bordered" width = "100%">
             <thead>
               <tr class="table-primary">
-                  <th class="text-center">ลำดับ</th> 
+                  <th class="text-center">ลำดับ</th>
+                  <th class="text-center" width="6%">Action</th>
                   <th class="text-center">Authen</th>
                   <th class="text-center">ปิดสิทธิ</th>
                   <th class="text-center">ประสงค์เบิก</th> 
@@ -80,9 +81,7 @@
                   <th class="text-center">ค่ารถ Refer</th>
                   <th class="text-center">ER Type</th> 
                   <th class="text-center">Project</th>                  
-                  <th class="text-center">Claim AE</th> 
-                  <th class="text-center">FDH Status</th> 
-                  <th class="text-center" width="6%">Action</th>  
+                  <th class="text-center">Claim AE</th>
               </tr>
             </thead> 
             <tbody> 
@@ -93,6 +92,13 @@
               @foreach($search as $row) 
               <tr>
                 <td align="center">{{ $count }}</td>
+                <td class="text-center">
+                  <button 
+                      class="btn btn-sm btn-outline-success"
+                      onclick="checkFdh('{{ $row->hn }}','{{ $row->seq }}')">
+                      FDH
+                  </button> 
+                </td>
                 <td align="center" @if($row->auth_code == 'Y') style="color:green"
                     @elseif($row->auth_code == 'N') style="color:red" @endif>
                     <strong>{{ $row->auth_code }}</strong></td>
@@ -119,14 +125,6 @@
                 <td align="center">{{ $row->er }}</td>
                 <td align="center">{{ $row->project }}</td>
                 <td align="center">{{ $row->ae }}</td>
-                <td align="left">{{ $row->fdh_status }}</td>         
-                <td class="text-center">
-                  <button 
-                      class="btn btn-sm btn-outline-success"
-                      onclick="checkFdh('{{ $row->hn }}','{{ $row->seq }}')">
-                      FDH
-                  </button> 
-                </td> 
               </tr>
               <?php $count++; ?>
               <?php $sum_income += $row->income ; ?>
@@ -148,7 +146,9 @@
             <table id="t_claim" class="table table-striped table-bordered" width = "100%">
               <thead>
                 <tr class="table-primary">
-                    <th class="text-center">ลำดับ</th>                      
+                    <th class="text-center">ลำดับ</th>  
+                    <th class="text-center text-primary" width="6%">Action</th>
+                    <th class="text-center text-primary">FDH Status</th>                    
                     <th class="text-center" width = "5%">วันที่รับบริการ</th>  
                     <th class="text-center">Queue</th>     
                     <th class="text-center" width = "10%">ชื่อ-สกุล</th>
@@ -166,9 +166,7 @@
                     <th class="text-center text-primary">Error</th> 
                     <th class="text-center text-primary">STM ชดเชย</th> 
                     <th class="text-center text-primary">ผลต่าง</th> 
-                    <th class="text-center text-primary">REP</th> 
-                    <th class="text-center text-primary">FDH Status</th> 
-                    <th class="text-center text-primary" width="6%">Action</th>   
+                    <th class="text-center text-primary">REP</th>
                 </tr>
               </thead> 
               <tbody> 
@@ -182,7 +180,15 @@
                 <?php $sum_receive_total = 0 ; ?> 
                 @foreach($claim as $row) 
                 <tr>
-                    <td align="center">{{ $count }}</td>                   
+                    <td align="center">{{ $count }}</td>
+                    <td class="text-center">
+                      <button 
+                          class="btn btn-sm btn-outline-success"
+                          onclick="checkFdh('{{ $row->hn }}','{{ $row->seq }}')">
+                          FDH
+                      </button> 
+                    </td> 
+                    <td align="left">{{ $row->fdh_status }}</td>                  
                     <td align="left" width = "5%">{{ DateThai($row->vstdate) }} {{$row->vsttime}}</td>            
                     <td align="center">{{ $row->oqueue }}</td>   
                     <td align="left" width = "10%">{{$row->ptname}}</td> 
@@ -205,14 +211,6 @@
                         @elseif($row->receive_total-$row->income-$row->rcpt_money < 0) style="color:red" @endif>
                         {{ number_format($row->receive_total-$row->income-$row->rcpt_money,2) }}</td>
                     <td align="right">{{ $row->repno }}</td>
-                    <td align="left">{{ $row->fdh_status }}</td> 
-                    <td class="text-center">
-                      <button 
-                          class="btn btn-sm btn-outline-success"
-                          onclick="checkFdh('{{ $row->hn }}','{{ $row->seq }}')">
-                          FDH
-                      </button> 
-                    </td> 
                 </tr>
                 <?php $count++; ?>
                 <?php $sum_income += $row->income ; ?>
@@ -259,17 +257,17 @@
   }
 </script>
 
-{{-- ✅ FDH Check Claim------------------------------------------------------------ --}}
+{{-- ✅ FDH Check Claim ------------------------------------------------------------ --}}
 <script>
   function checkFdh(hn, seq) {
+
       Swal.fire({
           title: 'กำลังตรวจสอบสถานะ...',
           text: 'กรุณารอสักครู่',
           allowOutsideClick: false,
-          didOpen: () => {
-              Swal.showLoading();
-          }
+          didOpen: () => Swal.showLoading()
       });
+
       $.ajax({
           url: "{{ url('/api/fdh/check-claim-indiv') }}",
           type: "POST",
@@ -279,21 +277,51 @@
               _token: "{{ csrf_token() }}"
           },
           success: function (res) {
-              Swal.fire({
-                  icon: 'success',
-                  title: 'ตรวจสอบสำเร็จ',
-                  timer: 1800,
-                  showConfirmButton: false
-              }).then(() => {
-                  location.reload();   // ⬅⬅ รีเฟรชตรงนี้!
-              });
+
+              // ------------------------------
+              // ✔ FDH ตอบสำเร็จ (200)
+              // ------------------------------
+              if (res.status === 200) {
+                  Swal.fire({
+                      icon: 'success',
+                      title: 'ตรวจสอบสำเร็จ',
+                      text: 'พบข้อมูลในระบบ FDH',
+                      timer: 1500,
+                      showConfirmButton: false
+                  }).then(() => location.reload());
+                  return;
+              }
+
+              // ------------------------------
+              // ✔ ไม่พบข้อมูล FDH (404)
+              // ------------------------------
+              if (res.status === 404 || res.status === 500) {
+                  Swal.fire({
+                      icon: 'warning',
+                      title: 'ไม่พบข้อมูลในระบบ FDH',
+                      text: res.body?.message_th ?? "ไม่มีรายการนี้ส่ง"
+                  });
+                  return;
+              }
+
+              // ------------------------------
+              // ✔ ปัญหาฝั่งระบบ หรือ token/validate
+              // ------------------------------
+              if (res.status === 400) {
+                  Swal.fire({
+                      icon: 'error',
+                      title: 'เกิดข้อผิดพลาด',
+                      text: res.body?.message ?? res.error ?? 'ไม่สามารถตรวจสอบได้'
+                  });
+                  return;
+              }
           },
-          error: function (xhr) {
+
+          error: function () {
               Swal.fire({
                   icon: 'error',
-                  title: 'เกิดข้อผิดพลาด',
-                  text: xhr.responseJSON?.message ?? 'ไม่สามารถตรวจสอบได้',
-                  confirmButtonText: 'ปิด'
+                  title: 'การเชื่อมต่อล้มเหลว',
+                  text: 'ไม่สามารถเรียก API ได้ (Network Error)'
               });
           }
       });

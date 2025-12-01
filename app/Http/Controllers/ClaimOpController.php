@@ -123,7 +123,7 @@ class ClaimOpController extends Controller
                 AND o1.vn IS NOT NULL 
                 AND oe.moph_finance_upload_status IS NULL 
                 AND rep.vn IS NULL 
-                AND (fdh.seq IS NULL OR fdh.status = "500")
+                AND fdh.seq IS NULL
                 AND stm.cid IS NULL 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
@@ -167,7 +167,7 @@ class ClaimOpController extends Controller
                 AND p.hipdata_code IN ("UCS","WEL") 
                 AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
                 AND o1.vn IS NOT NULL 
-                AND (oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR (fdh.seq IS NOT NULL AND fdh.status <> "500") OR stm.cid IS NOT NULL )
+                AND (oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR stm.cid IS NOT NULL )
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);
 
         return view('claim_op.ucs_incup',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search','claim'));
@@ -282,7 +282,7 @@ class ClaimOpController extends Controller
                 AND o1.vn IS NOT NULL 
                 AND oe.moph_finance_upload_status IS NULL
                 AND rep.vn IS NULL 
-                AND (fdh.seq IS NULL OR fdh.status = "500")
+                AND fdh.seq IS NULL
                 AND stm.cid IS NULL 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
@@ -326,7 +326,7 @@ class ClaimOpController extends Controller
                 AND o.vstdate BETWEEN ? AND ?            
                 AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y" AND (hmain_ucs IS NULL OR hmain_ucs ="")) 
                 AND o1.vn IS NOT NULL 
-                AND (oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR (fdh.seq IS NOT NULL AND fdh.status <> "500") OR stm.cid IS NOT NULL )
+                AND (oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR stm.cid IS NOT NULL )
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);
 
         return view('claim_op.ucs_inprovince',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search','claim'));
@@ -498,7 +498,7 @@ class ClaimOpController extends Controller
             AND kidney.vn IS NULL 
             AND oe.moph_finance_upload_status IS NULL 
             AND rep.vn IS NULL 
-            AND (fdh.seq IS NULL OR fdh.status = "500")
+            AND fdh.seq IS NULL 
             AND stm.cid IS NULL 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date]);
 
@@ -537,7 +537,7 @@ class ClaimOpController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
             AND kidney.vn IS NULL 
-            AND (oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR (fdh.seq IS NOT NULL AND fdh.status <> "500") OR stm.cid IS NOT NULL )
+            AND (oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR stm.cid IS NOT NULL )
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date]);
 
         return view('claim_op.ucs_outprovince',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search','claim'));

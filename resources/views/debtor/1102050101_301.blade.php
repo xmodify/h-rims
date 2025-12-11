@@ -49,7 +49,11 @@
                             <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDelete()">ลบลูกหนี้</button>
                         </th>
                         <th class="text-left text-primary" colspan = "9">1102050101.301-ลูกหนี้ค่ารักษา ประกันสังคม OP-เครือข่าย วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</th> 
-                        <th class="text-center text-primary" colspan = "7">การชดเชย</th>                                                 
+                        <th class="text-center text-primary" colspan = "7">การชดเชย
+                            <button type="button" class="btn btn-success btn-sm float-end" data-bs-toggle="modal" data-bs-target="#modalAverageReceive">
+                                กระทบยอดแบบกลุ่ม
+                            </button> 
+                        </th>                                                 
                     </tr>
                     <tr class="table-success">
                         <th class="text-center"><input type="checkbox" onClick="toggle_d(this)"> All</th> 
@@ -218,18 +222,49 @@
         
     </div>
 
-<!-- สำเร็จ -->
-    @if (session('success'))
-        <script>
-            Swal.fire({
-                icon: 'success',
-                title: 'สำเร็จ',
-                text: '{{ session('success') }}',
-                timer: 2000,
-                showConfirmButton: false
-            });
-        </script>
-    @endif
+<!-- Modal กระทบยอด (AJAX Version) -->
+    <div class="modal fade" id="modalAverageReceive" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">        
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">กระทบยอดแบบกลุ่ม</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+                <form id="averageReceiveForm">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="mb-2">
+                            <label>วันที่เริ่มต้น</label>
+                            <input type="date" name="date_start" class="form-control" required>
+                        </div>
+                        <div class="mb-2">
+                            <label>วันที่สิ้นสุด</label>
+                            <input type="date" name="date_end" class="form-control" required>
+                        </div>
+                        <div class="mb-2">
+                            <label>เลขที่ใบเสร็จ</label>
+                            <input type="text" name="repno" class="form-control" required>
+                        </div>
+                        <div class="mb-2">
+                            <label>ยอดชดเชย (บาท)</label>
+                            <input type="number" step="0.01" name="total_receive" class="form-control" required>
+                        </div>
+                        <!-- ข้อความผลลัพธ์ -->
+                        <div id="avgResultMessage" class="mt-2 d-none"></div>
+                        <!-- Loading -->
+                        <div id="avgLoadingSpinner" class="text-center d-none">
+                            <div class="spinner-border text-success"></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-success" id="avgSubmitBtn">ยืนยัน</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
  <!-- กำลังโหลด -->
     <script>
         function showLoading() {
@@ -297,11 +332,54 @@
 
 @endsection
 
-<!-- Modal -->
-<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Bootstrap 5 -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 @push('scripts')
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const form = document.getElementById("averageReceiveForm");
+            const modalEl = document.getElementById("modalAverageReceive");
+            const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+            // เปิด modal → reset ฟอร์ม
+            modalEl.addEventListener("show.bs.modal", function () {
+                form.reset();
+            });
+
+            // submit AJAX
+            form.addEventListener("submit", function(e){
+                e.preventDefault();
+
+                let data = new FormData(form);
+
+                fetch("{{ url('debtor/1102050101_301_average_receive') }}", {
+                    method: "POST",
+                    body: data      // ❗ ห้ามมี headers
+                })
+                .then(res => res.json())
+                .then(response => {
+
+                    Swal.fire({
+                        icon: response.status === "success" ? "success" : "error",
+                        html: response.message,
+                        confirmButtonText: "ตกลง",
+                    }).then(() => {
+                        bsModal.hide();
+
+                        modalEl.addEventListener("hidden.bs.modal", function () {
+                            location.reload();
+                        }, { once: true });
+                    });
+
+                })
+                .catch(err => {
+                    Swal.fire("Error", "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้", "error");
+                });
+
+            });
+        });
+    </script>
     <script>
         $(document).ready(function () {
             $('#debtor').DataTable({

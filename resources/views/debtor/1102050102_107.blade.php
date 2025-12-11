@@ -15,6 +15,14 @@
             }
         }
     </script>    
+    <script>
+        function toggle_iclaim(source) {
+            checkboxes = document.getElementsByName('checkbox_iclaim[]');
+            for (var i = 0; i < checkboxes.length; i++) {
+                checkboxes[i].checked = source.checked;
+            }
+        }
+    </script> 
 @section('content')
     <div class="container-fluid">        
         <form method="POST" enctype="multipart/form-data">
@@ -232,13 +240,13 @@
 
             <div class="tab-pane fade" id="iclaim" role="tabpanel" aria-labelledby="iclaim-tab">
                 <div style="overflow-x:auto;">
-                    <form action="{{ url('finance_debtor/1102050102_107_confirm_iclaim') }}" method="POST" enctype="multipart/form-data"> 
+                    <form action="{{ url('debtor/1102050102_107_confirm_iclaim') }}" method="POST" enctype="multipart/form-data"> 
                         @csrf                
                         <table id="debtor_search_iclaim" class="table table-bordered table-striped my-3" width="100%">
                             <thead>
                             <tr class="table-secondary">
                                 <th class="text-center" width="5%">
-                                    <button type="submit" class="btn btn-outline-success btn-sm"  onclick="return confirm('ต้องการยืนยันลูกหนี้')">ยืนยันลูกหนี้</button></th>
+                                    <button type="button" class="btn btn-outline-success btn-sm"  onclick="confirmSubmit_iclaim()">ยืนยันลูกหนี้</button></th>
                                 <th class="text-center" colspan = "14">ผู้มารับบริการใช้ประกันชีวิต iClaim วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>      
                             </tr>
                             <tr class="table-secondary">
@@ -441,6 +449,29 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     document.querySelector("form[action='{{ url('debtor/1102050102_107_confirm') }}']").submit();
+                }
+            });
+        }
+    </script>
+    <script>
+        function confirmSubmit_iclaim() {
+            const selected = [...document.querySelectorAll('input[name="checkbox_iclaim[]"]:checked')].map(e => e.value);    
+            if (selected.length === 0) {
+                Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะยืนยัน', 'warning');
+                return;
+            }
+            Swal.fire({
+                title: 'ยืนยัน?',
+                text: "ต้องการยืนยันลูกหนี้รายการที่เลือกใช่หรือไม่?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.querySelector("form[action='{{ url('debtor/1102050102_107_confirm_iclaim') }}']").submit();
                 }
             });
         }

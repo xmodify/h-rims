@@ -332,51 +332,42 @@
 
 @endsection
 
-<!-- Bootstrap 5 -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
 @push('scripts')
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const form = document.getElementById("averageReceiveForm");
             const modalEl = document.getElementById("modalAverageReceive");
-            const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
-
-            // เปิด modal → reset ฟอร์ม
+            // เปิด modal → reset form
             modalEl.addEventListener("show.bs.modal", function () {
                 form.reset();
             });
-
             // submit AJAX
             form.addEventListener("submit", function(e){
                 e.preventDefault();
-
                 let data = new FormData(form);
-
                 fetch("{{ url('debtor/1102050101_301_average_receive') }}", {
                     method: "POST",
-                    body: data      // ❗ ห้ามมี headers
+                    body: data // ห้ามใส่ headers
                 })
                 .then(res => res.json())
                 .then(response => {
-
                     Swal.fire({
                         icon: response.status === "success" ? "success" : "error",
                         html: response.message,
                         confirmButtonText: "ตกลง",
                     }).then(() => {
-                        bsModal.hide();
-
-                        modalEl.addEventListener("hidden.bs.modal", function () {
+                        // ✅ ปิด modal แบบไม่มี bsModal instance
+                        $("#modalAverageReceive").modal("hide");
+                        // ✅ reload หน้าเมื่อ modal ปิดจริง
+                        $("#modalAverageReceive").on("hidden.bs.modal", function () {
                             location.reload();
-                        }, { once: true });
-                    });
+                        });
 
+                    });
                 })
                 .catch(err => {
                     Swal.fire("Error", "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้", "error");
                 });
-
             });
         });
     </script>

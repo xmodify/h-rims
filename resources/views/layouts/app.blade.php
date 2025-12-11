@@ -57,7 +57,7 @@
                             </a>
                             <ul class="bg-success dropdown-menu dropdown-menu-end"> 
                                 <!-- ชี้ขวา -->
-                                <li class="dropend">
+                                <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         STM-UCS [OP-IP]
                                     </a>
@@ -67,7 +67,7 @@
                                     </ul>
                                 </li> 
                                 @if($hasLookupIcode_kidney) 
-                                <li class="dropend">
+                                <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         STM-UCS [ฟอกไต]
                                     </a>
@@ -77,7 +77,7 @@
                                     </ul>
                                 </li>  
                                 @endif
-                                <li class="dropend">
+                                <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         STM-OFC:BKK:BMT [OP-IP]
                                     </a>
@@ -87,7 +87,7 @@
                                     </ul>
                                 </li> 
                                 @if($hasLookupIcode_kidney) 
-                                <li class="dropend">
+                                <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         STM-OFC [ฟอกไต]
                                     </a>
@@ -97,7 +97,7 @@
                                     </ul>
                                 </li>  
                                 @endif
-                                <li class="dropend">
+                                <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         STM-LGO [OP-IP]
                                     </a>
@@ -107,7 +107,7 @@
                                     </ul>
                                 </li>
                                 @if($hasLookupIcode_kidney) 
-                                <li class="dropend">
+                                <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         STM-LGO [ฟอกไต]
                                     </a>
@@ -118,7 +118,7 @@
                                 </li>  
                                 @endif
                                 @if($hasLookupIcode_kidney) 
-                                <li class="dropend">
+                                <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         STM-SSS [ฟอกไต]
                                     </a>
@@ -148,7 +148,7 @@
                                     </a>
                                 </li>
                                 <!-- ชี้ขวา -->
-                                <li class="dropend">
+                                <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         สิทธิการรักษา
                                     </a>
@@ -171,7 +171,7 @@
                                     </a>
                                 </li>
                                 <!-- ชี้ขวา -->
-                                <li class="dropend">
+                                <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         OP-รายโรคสำคัญ
                                     </a>
@@ -196,7 +196,7 @@
                             </a>
                             <ul class="bg-success dropdown-menu dropdown-menu-end"> 
                                 <!-- ชี้ขวา -->
-                                <li class="dropend">
+                                <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         OP-UCS ประกันสุขภาพ
                                     </a>
@@ -221,7 +221,7 @@
                                     </ul>
                                 </li>
                                 <!-- ชี้ขวา -->
-                                <li class="dropend">
+                                <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         OP-STP บุคคลที่มีปัญหาสถานะและสิทธิ 
                                     </a>
@@ -235,7 +235,7 @@
                                     </ul>
                                 </li>
                                 <!-- ชี้ขวา -->
-                                <li class="dropend">
+                                <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         OP-OFC กรมบัญชีกลาง
                                     </a>
@@ -251,7 +251,7 @@
                                     </ul>
                                 </li>
                                  <!-- ชี้ขวา -->
-                                <li class="dropend">
+                                <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         OP-LGO อปท.
                                     </a>
@@ -276,7 +276,7 @@
                                     </a>  
                                 </li>
                                 <!-- ชี้ขวา -->
-                                <li class="dropend">
+                                <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         OP-SSS ประกันสังคม
                                     </a>
@@ -314,7 +314,7 @@
                             </a>
                             <ul class="bg-success dropdown-menu dropdown-menu-end"> 
                                 <!-- ชี้ขวา -->
-                                <li class="dropend">
+                                <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         IP-UCS ประกันสุขภาพ
                                     </a>
@@ -346,7 +346,7 @@
                                     </a>
                                 </li>
                                 <!-- ชี้ขวา -->
-                                <li class="dropend">
+                                <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         IP-SSS ประกันสังคม
                                     </a>
@@ -379,7 +379,7 @@
                             </a>
                             <ul class="bg-success dropdown-menu dropdown-menu-end"> 
                                 <!-- ชี้ขวา -->
-                                <li class="dropend">
+                                <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         บริการผู้ป่วยนอก
                                     </a>
@@ -404,7 +404,7 @@
                                         </li> 
                                     </ul>
                                 </li>
-                                <li class="dropend">
+                                <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         บริการค่าใช้จ่ายสูง
                                     </a>
@@ -423,7 +423,7 @@
                                         </li> 
                                     </ul>
                                 </li>
-                                <li class="dropend">
+                                <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         การส่งเสริมป้องกันโรค
                                     </a>
@@ -471,7 +471,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li > 
                             <div class="btn text-info">
-                                V. 68-12-11 15:00
+                                V. 68-12-11 18:00
                             </div>   
                         </li>                         
                         <!-- Authentication Links -->
@@ -541,7 +541,7 @@
     <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
 
     <!-- JSZip (required for Excel export) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>   
 
     <!-- Stack for per-page script -->
     @stack('scripts')

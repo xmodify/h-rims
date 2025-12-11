@@ -422,44 +422,42 @@
 <!-- Modal -->
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
-<!-- Bootstrap 5 -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 @push('scripts')
-<script>
+    <script>
         document.addEventListener("DOMContentLoaded", function () {
             const form = document.getElementById("averageReceiveForm");
             const modalEl = document.getElementById("modalAverageReceive");
-            const bsModal = bootstrap.Modal.getOrCreateInstance(modalEl);
-            // Reset form ทุกครั้งที่เปิด modal
+            // เปิด modal → reset form
             modalEl.addEventListener("show.bs.modal", function () {
                 form.reset();
             });
-            // AJAX submit
+            // submit AJAX
             form.addEventListener("submit", function(e){
                 e.preventDefault();
-                const data = new FormData(form);
+                let data = new FormData(form);
                 fetch("{{ url('debtor/1102050101_203_average_receive') }}", {
                     method: "POST",
-                    headers: { "X-CSRF-TOKEN": "{{ csrf_token() }}" },
-                    body: data
+                    body: data // ห้ามใส่ headers
                 })
                 .then(res => res.json())
                 .then(response => {
-
-                    // แสดง SweetAlert พร้อมปุ่ม OK
                     Swal.fire({
-                        icon: "success",                   
+                        icon: response.status === "success" ? "success" : "error",
                         html: response.message,
                         confirmButtonText: "ตกลง",
                     }).then(() => {
-                        // ผู้ใช้กด OK → ปิด modal
-                        bsModal.hide();                    
-                        // reload หน้าเมื่อ modal ปิด
-                        modalEl.addEventListener("hidden.bs.modal", function () {
+                        // ✅ ปิด modal แบบไม่มี bsModal instance
+                        $("#modalAverageReceive").modal("hide");
+                        // ✅ reload หน้าเมื่อ modal ปิดจริง
+                        $("#modalAverageReceive").on("hidden.bs.modal", function () {
                             location.reload();
-                        }, { once: true });
+                        });
+
                     });
+                })
+                .catch(err => {
+                    Swal.fire("Error", "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้", "error");
                 });
             });
         });

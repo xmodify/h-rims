@@ -230,7 +230,8 @@ public function index(Request $request )
         INNER JOIN iptadm ia ON ia.an = a.an
         WHERE a.dchdate BETWEEN ? AND DATE(NOW())
         AND a.pdx NOT IN ("Z290","Z208") 
-        AND ia.roomno IN (SELECT roomno FROM roomno WHERE roomtype IN (1,2))  
+        AND (ia.roomno IN (SELECT roomno FROM roomno WHERE roomtype IN (1,2))
+            OR a.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y"))  
         GROUP BY MONTH(a.dchdate)
         ORDER BY YEAR(a.dchdate) , MONTH(a.dchdate)',[$bed_qty,$bed_qty,$bed_qty,$start_date]);
 
@@ -256,7 +257,8 @@ public function index(Request $request )
         INNER JOIN iptadm ia ON ia.an = a.an
         WHERE a.dchdate BETWEEN ? AND DATE(NOW())
         AND a.pdx NOT IN ("Z290","Z208") 
-        AND ia.roomno IN (SELECT roomno FROM roomno WHERE roomtype IN (3))       
+        AND (ia.roomno IN (SELECT roomno FROM roomno WHERE roomtype IN (3)) 
+            OR a.ward IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y"))      
         GROUP BY MONTH(a.dchdate)
         ORDER BY YEAR(a.dchdate) , MONTH(a.dchdate)',[$bed_qty,$bed_qty,$bed_qty,$start_date]);
     $month = array_column($ip_all,'month');  

@@ -92,6 +92,27 @@ class MainSettingController extends Controller
                 ['name' => 'ward_normal', 'definition' => 'VARCHAR(1) NULL AFTER `ward_name`'],
                 ['name' => 'bed_qty', 'definition' => 'INT UNSIGNED NULL AFTER `ward_homeward`']
             ],
+            'stm_lgo' => [               
+                ['name' => 'receive_no', 'definition' => 'VARCHAR(20) NULL AFTER `stm_filename`']
+            ],
+            'stm_lgo_kidney' => [               
+                ['name' => 'receive_no', 'definition' => 'VARCHAR(20) NULL AFTER `stm_filename`']
+            ],
+            'stm_ofc' => [               
+                ['name' => 'receive_no', 'definition' => 'VARCHAR(20) NULL AFTER `stm_filename`']
+            ],
+            'stm_ofc_kidney' => [               
+                ['name' => 'receive_no', 'definition' => 'VARCHAR(20) NULL AFTER `hdflag`']
+            ],
+            'stm_sss_kidney' => [               
+                ['name' => 'receive_no', 'definition' => 'VARCHAR(20) NULL AFTER `hdflag`']
+            ],
+            'stm_ucs' => [               
+                ['name' => 'receive_no', 'definition' => 'VARCHAR(20) NULL AFTER `stm_filename`']
+            ],
+            'stm_ucs_kidney' => [               
+                ['name' => 'receive_no', 'definition' => 'VARCHAR(20) NULL AFTER `stm_filename`']
+            ],
         ];
         try {
             foreach ($tables as $table => $columns) {

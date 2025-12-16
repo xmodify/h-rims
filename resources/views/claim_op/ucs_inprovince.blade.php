@@ -168,8 +168,6 @@
                     <th class="text-center text-primary">STM ชดเชย</th> 
                     <th class="text-center text-primary">ผลต่าง</th> 
                     <th class="text-center text-primary">REP</th> 
-                    <th class="text-center text-primary">FDH Status</th> 
-                    <th class="text-center text-primary" width="6%">Action</th> 
                 </tr>
               </thead> 
               <tbody> 

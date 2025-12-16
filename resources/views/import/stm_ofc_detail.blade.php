@@ -60,7 +60,7 @@
                                 <td align="left">{{ $row->pt_name }}</td>
                                 <td align="right">{{ $row->datetimeadm }}</td>
                                 <td align="right">{{ $row->datetimedch }}</td>
-                                <td align="right">{{ number_format($row->adjrw,4) }}</td>  
+                                <td align="right">{{ number_format((float)($row->adjrw ?? 0), 4) }}</td>  
                                 <td align="right">{{ number_format($row->charge,2) }}</td> 
                                 <td align="right">{{ number_format($row->act,2) }}</td>  
                                 <td align="right">{{ number_format($row->receive_room,2) }}</td>  
@@ -114,7 +114,7 @@
                                 <td align="left">{{ $row->pt_name }}</td>
                                 <td align="right">{{ $row->datetimeadm }}</td>
                                 <td align="right">{{ $row->datetimedch }}</td>
-                                <td align="right">{{ number_format($row->adjrw,4) }}</td>  
+                                <td align="right">{{ number_format((float)($row->adjrw ?? 0), 4) }}</td>                                  
                                 <td align="right">{{ number_format($row->charge,2) }}</td> 
                                 <td align="right">{{ number_format($row->act,2) }}</td>  
                                 <td align="right">{{ number_format($row->receive_room,2) }}</td>  

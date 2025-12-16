@@ -42,23 +42,25 @@
             <table id="stm_ucs" class="table table-bordered table-striped my-3">
                 <thead>
                     <tr class="table-primary">
+                        <th class="text-center" width = "15%">ชื่อ File</th> 
                         <th class="text-center">Dep</th>
-                        <th class="text-center">Filename</th> 
+                        <th class="text-center">เลขงวด</th> 
                         <th class="text-center">จำนวน REP</th> 
                         <th class="text-center">จำนวนราย</th>
                         <th class="text-center">เรียกเก็บ</th>                                     
-                        <th class="text-center">ชดเชยสุทธิ</th>   
+                        <th class="text-center">ชดเชยสุทธิ</th>                           
                     </tr>     
                     </thead> 
                     <?php $count = 1 ; ?>  
                     @foreach($stm_ucs as $row) 
                     <tr>
+                        <td align="right">{{ $row->stm_filename }}</td> 
                         <td align="center">{{ $row->dep }}</td> 
-                        <td align="right">{{ $row->stm_filename }}</td>
+                        <td align="right">{{ $row->round_no }}</td>
                         <td align="right">{{ $row->repno }}</td>                            
                         <td align="right">{{ number_format($row->count_cid) }}</td>                                   
                         <td align="right">{{ number_format($row->charge,2) }}</td>                                     
-                        <td align="right">{{ number_format($row->receive_total,2) }}</td>  
+                        <td align="right">{{ number_format($row->receive_total,2) }}</td>                         
                     </tr>                
                     <?php $count++; ?>  
                     @endforeach   
@@ -127,35 +129,36 @@
 
 @push('scripts')
   <script>
-    $(document).ready(function () {
-      $('#stm_ucs').DataTable({
-        dom: '<"row mb-3"' +
-                '<"col-md-6"l>' + // Show รายการ
-                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
-              '>' +
-              'rt' +
-              '<"row mt-3"' +
-                '<"col-md-6"i>' + // Info
-                '<"col-md-6"p>' + // Pagination
-              '>',
-        buttons: [
-            {
-              extend: 'excelHtml5',
-              text: 'Excel',
-              className: 'btn btn-success',
-              title: 'ข้อมูล Statement ประกันสุขภาพ UCS [OP-IP]'
-            }
-        ],
-        language: {
-            search: "ค้นหา:",
-            lengthMenu: "แสดง _MENU_ รายการ",
-            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-            paginate: {
-              previous: "ก่อนหน้า",
-              next: "ถัดไป"
-            }
-        }
-      });
-    });
-  </script>  
+        $(document).ready(function () {
+            $('#stm_ucs').DataTable({
+                ordering: false,   // 🔥 ปิด sorting
+                dom: '<"row mb-3"' +
+                        '<"col-md-6"l>' +
+                        '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' +
+                    '>' +
+                    'rt' +
+                    '<"row mt-3"' +
+                        '<"col-md-6"i>' +
+                        '<"col-md-6"p>' +
+                    '>',
+                buttons: [
+                {
+                    extend: 'excelHtml5',
+                    text: 'Excel',
+                    className: 'btn btn-success',
+                    title: 'ข้อมูล Statement ประกันสุขภาพ UCS [OP-IP]'
+                }
+                ],
+                language: {
+                search: "ค้นหา:",
+                lengthMenu: "แสดง _MENU_ รายการ",
+                info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                paginate: {
+                    previous: "ก่อนหน้า",
+                    next: "ถัดไป"
+                }
+                }
+            });
+        });
+    </script>
 @endpush

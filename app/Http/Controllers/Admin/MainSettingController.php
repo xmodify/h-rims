@@ -85,40 +85,82 @@ class MainSettingController extends Controller
 
     //After Table-----------------------------------------------------------------------------------------------------------
         $tables = [
+
+            // ---------------- lookup ----------------
             'lookup_icode' => [
-                ['name' => 'ems', 'definition' => 'VARCHAR(1) NULL AFTER `kidney`'],
+                ['name' => 'ems', 'type' => 'VARCHAR(1) NULL', 'after' => 'kidney'],
             ],
-            'lookup_ward' => [               
-                ['name' => 'ward_normal', 'definition' => 'VARCHAR(1) NULL AFTER `ward_name`'],
-                ['name' => 'bed_qty', 'definition' => 'INT UNSIGNED NULL AFTER `ward_homeward`']
+            'lookup_ward' => [
+                ['name' => 'ward_normal', 'type' => 'VARCHAR(1) NULL', 'after' => 'ward_name'],
+                ['name' => 'bed_qty', 'type' => 'INT UNSIGNED NULL', 'after' => 'ward_homeward'],
             ],
-            'stm_lgo' => [               
-                ['name' => 'receive_no', 'definition' => 'VARCHAR(20) NULL AFTER `stm_filename`']
+            // ---------------- STM ----------------
+            'stm_lgo' => [
+                ['name' => 'round_no',   'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+                ['name' => 'receive_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'stm_filename'],
             ],
-            'stm_lgo_kidney' => [               
-                ['name' => 'receive_no', 'definition' => 'VARCHAR(20) NULL AFTER `stm_filename`']
+            'stm_lgo_kidney' => [
+                ['name' => 'round_no',   'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+                ['name' => 'receive_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'stm_filename'],
             ],
-            'stm_ofc' => [               
-                ['name' => 'receive_no', 'definition' => 'VARCHAR(20) NULL AFTER `stm_filename`']
+            'stm_ofc' => [
+                ['name' => 'round_no',   'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+                ['name' => 'receive_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'stm_filename'],
             ],
-            'stm_ofc_kidney' => [               
-                ['name' => 'receive_no', 'definition' => 'VARCHAR(20) NULL AFTER `hdflag`']
+            'stm_ofc_kidney' => [
+                ['name' => 'round_no',   'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+                ['name' => 'receive_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'hdflag'],
             ],
-            'stm_sss_kidney' => [               
-                ['name' => 'receive_no', 'definition' => 'VARCHAR(20) NULL AFTER `hdflag`']
+            'stm_sss_kidney' => [
+                ['name' => 'round_no',   'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+                ['name' => 'receive_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'hdflag'],
             ],
-            'stm_ucs' => [               
-                ['name' => 'receive_no', 'definition' => 'VARCHAR(20) NULL AFTER `stm_filename`']
+            'stm_ucs' => [
+                ['name' => 'round_no',   'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+                ['name' => 'receive_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'stm_filename'],
             ],
-            'stm_ucs_kidney' => [               
-                ['name' => 'receive_no', 'definition' => 'VARCHAR(20) NULL AFTER `stm_filename`']
+            'stm_ucs_kidney' => [
+                ['name' => 'round_no',   'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+                ['name' => 'receive_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'stm_filename'],
+            ],
+            // ---------------- STM EXCEL (staging) ----------------
+            'stm_lgo_kidneyexcel' => [
+                ['name' => 'round_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+            ],
+            'stm_lgoexcel' => [
+                ['name' => 'round_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+            ],
+            'stm_ofcexcel' => [
+                ['name' => 'round_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+            ],
+            'stm_ucs_kidneyexcel' => [
+                ['name' => 'round_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+            ],
+            'stm_ucsexcel' => [
+                ['name' => 'round_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
             ],
         ];
         try {
             foreach ($tables as $table => $columns) {
+                // ✅ ต้องมี table ก่อน
+                if (!Schema::hasTable($table)) {
+                    continue;
+                }
                 foreach ($columns as $col) {
                     if (!Schema::hasColumn($table, $col['name'])) {
-                        DB::statement("ALTER TABLE `$table` ADD COLUMN `{$col['name']}` {$col['definition']}");
+                        // ตำแหน่ง column
+                        $afterSql = '';
+                        if (
+                            isset($col['after']) &&
+                            $col['after'] !== '' &&
+                            Schema::hasColumn($table, $col['after'])
+                        ) {
+                            $afterSql = " AFTER `{$col['after']}`";
+                        }
+                        DB::statement("
+                            ALTER TABLE `$table`
+                            ADD COLUMN `{$col['name']}` {$col['type']}{$afterSql}
+                        ");
                     }
                 }
             }

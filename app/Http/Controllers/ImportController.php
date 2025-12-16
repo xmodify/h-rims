@@ -32,11 +32,11 @@ public function __construct()
 //stm_ucs-----------------------------------------------------------------------------------------------------
 public function stm_ucs(Request $request)
     {  
-        $stm_ucs=DB::select('
-            SELECT IF(SUBSTRING(stm_filename,11) LIKE "O%","OPD","IPD") AS dep,
-            stm_filename,COUNT(DISTINCT repno) AS repno,COUNT(cid) AS count_cid,SUM(charge) AS charge,
+        $stm_ucs=DB::select("
+            SELECT IF(SUBSTRING(stm_filename,11) LIKE 'O%','OPD','IPD') AS dep,stm_filename,
+            round_no,COUNT(DISTINCT repno) AS repno,COUNT(cid) AS count_cid,SUM(charge) AS charge,
             SUM(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_total) AS receive_total FROM stm_ucs 
-            GROUP BY stm_filename ORDER BY stm_filename DESC');
+            GROUP BY round_no ORDER BY SUBSTRING(round_no, 1, 4) DESC , dep DESC");
 
         return view('import.stm_ucs',compact('stm_ucs'));
     }
@@ -67,8 +67,13 @@ public function stm_ucs(Request $request)
                 $allFileNames[] = $file_name;
 
                 $spreadsheet = IOFactory::load($the_file->getRealPath());
-                $sheet       = $spreadsheet->setActiveSheetIndex(2);
 
+                // ---------- Sheet2 : round_no ----------
+                $sheetRound = $spreadsheet->setActiveSheetIndex(1);
+                $round_no = trim($sheetRound->getCell('A16')->getValue());
+
+                // ---------- Sheet3 : detail ----------
+                $sheet       = $spreadsheet->setActiveSheetIndex(2);
                 $row_limit = $sheet->getHighestDataRow();
                 $startRow  = 15;
 
@@ -98,13 +103,14 @@ public function stm_ucs(Request $request)
                     }
 
                     $data[] = [
-                        'repno'   => $sheet->getCell('A'.$row)->getValue(),
-                        'no'      => $sheet->getCell('B'.$row)->getValue(),
-                        'tran_id' => $sheet->getCell('C'.$row)->getValue(),
-                        'hn'      => $sheet->getCell('D'.$row)->getValue(),
-                        'an'      => $sheet->getCell('E'.$row)->getValue(),
-                        'cid'     => $sheet->getCell('F'.$row)->getValue(),
-                        'pt_name' => $sheet->getCell('G'.$row)->getValue(),
+                        'round_no'  => $round_no,
+                        'repno'     => $sheet->getCell('A'.$row)->getValue(),
+                        'no'        => $sheet->getCell('B'.$row)->getValue(),
+                        'tran_id'   => $sheet->getCell('C'.$row)->getValue(),
+                        'hn'        => $sheet->getCell('D'.$row)->getValue(),
+                        'an'        => $sheet->getCell('E'.$row)->getValue(),
+                        'cid'       => $sheet->getCell('F'.$row)->getValue(),
+                        'pt_name'   => $sheet->getCell('G'.$row)->getValue(),
 
                         'datetimeadm' => $datetimeadm,
                         'vstdate'     => date('Y-m-d', strtotime($datetimeadm)),
@@ -171,76 +177,78 @@ public function stm_ucs(Request $request)
                     Stm_ucs::where('repno', $value->repno)
                         ->where('no', $value->no)
                         ->update([
-                            'datetimeadm' => $value->datetimeadm,
-                            'vstdate'     => $value->vstdate,
-                            'vsttime'     => $value->vsttime,
-                            'datetimedch' => $value->datetimedch,
-                            'dchdate'     => $value->dchdate,
-                            'dchtime'     => $value->dchtime,
-                            'charge'      => $value->charge,
-                            'receive_op'  => $value->receive_op,
-                            'receive_ip_compensate_pay' => $value->receive_ip_compensate_pay,
-                            'receive_hc_hc'    => $value->receive_hc_hc,
-                            'receive_hc_drug'  => $value->receive_hc_drug,
-                            'receive_ae_ae'    => $value->receive_ae_ae,
-                            'receive_ae_drug'  => $value->receive_ae_drug,
-                            'receive_inst'     => $value->receive_inst,
-                            'receive_dmis_compensate_pay' => $value->receive_dmis_compensate_pay,
-                            'receive_dmis_drug' => $value->receive_dmis_drug,
-                            'receive_palliative'=> $value->receive_palliative,
-                            'receive_pp'        => $value->receive_pp,
-                            'receive_fs'        => $value->receive_fs,
-                            'receive_total'     => $value->receive_total,
-                            'stm_filename'      => $value->stm_filename,
+                            'round_no'                      => $value->round_no,
+                            'datetimeadm'                   => $value->datetimeadm,
+                            'vstdate'                       => $value->vstdate,
+                            'vsttime'                       => $value->vsttime,
+                            'datetimedch'                   => $value->datetimedch,
+                            'dchdate'                       => $value->dchdate,
+                            'dchtime'                       => $value->dchtime,
+                            'charge'                        => $value->charge,
+                            'receive_op'                    => $value->receive_op,
+                            'receive_ip_compensate_pay'     => $value->receive_ip_compensate_pay,
+                            'receive_hc_hc'                 => $value->receive_hc_hc,
+                            'receive_hc_drug'               => $value->receive_hc_drug,
+                            'receive_ae_ae'                 => $value->receive_ae_ae,
+                            'receive_ae_drug'               => $value->receive_ae_drug,
+                            'receive_inst'                  => $value->receive_inst,
+                            'receive_dmis_compensate_pay'   => $value->receive_dmis_compensate_pay,
+                            'receive_dmis_drug'             => $value->receive_dmis_drug,
+                            'receive_palliative'            => $value->receive_palliative,
+                            'receive_pp'                    => $value->receive_pp,
+                            'receive_fs'                    => $value->receive_fs,
+                            'receive_total'                 => $value->receive_total,
+                            'stm_filename'                  => $value->stm_filename,
                         ]);
                 } else {
                     $add = new Stm_ucs();
-                    $add->repno   = $value->repno;
-                    $add->no      = $value->no;
-                    $add->tran_id = $value->tran_id;
-                    $add->hn      = $value->hn;
-                    $add->an      = $value->an;
-                    $add->cid     = $value->cid;
-                    $add->pt_name = $value->pt_name;
-                    $add->datetimeadm = $value->datetimeadm;
-                    $add->vstdate     = $value->vstdate;
-                    $add->vsttime     = $value->vsttime;
-                    $add->datetimedch = $value->datetimedch;
-                    $add->dchdate     = $value->dchdate;
-                    $add->dchtime     = $value->dchtime;
-                    $add->maininscl = $value->maininscl;
-                    $add->projcode  = $value->projcode;
-                    $add->charge    = $value->charge;
-                    $add->fund_ip_act    = $value->fund_ip_act;
-                    $add->fund_ip_adjrw  = $value->fund_ip_adjrw;
-                    $add->fund_ip_ps     = $value->fund_ip_ps;
-                    $add->fund_ip_ps2    = $value->fund_ip_ps2;
-                    $add->fund_ip_ccuf   = $value->fund_ip_ccuf;
-                    $add->fund_ip_adjrw2 = $value->fund_ip_adjrw2;
-                    $add->fund_ip_payrate        = $value->fund_ip_payrate;
-                    $add->fund_ip_salary         = $value->fund_ip_salary;
-                    $add->fund_compensate_salary = $value->fund_compensate_salary;
-                    $add->receive_op                 = $value->receive_op;
-                    $add->receive_ip_compensate_cal  = $value->receive_ip_compensate_cal;
-                    $add->receive_ip_compensate_pay  = $value->receive_ip_compensate_pay;
-                    $add->receive_hc_hc              = $value->receive_hc_hc;
-                    $add->receive_hc_drug            = $value->receive_hc_drug;
-                    $add->receive_ae_ae              = $value->receive_ae_ae;
-                    $add->receive_ae_drug            = $value->receive_ae_drug;
-                    $add->receive_inst               = $value->receive_inst;
-                    $add->receive_dmis_compensate_cal= $value->receive_dmis_compensate_cal;
-                    $add->receive_dmis_compensate_pay= $value->receive_dmis_compensate_pay;
-                    $add->receive_dmis_drug          = $value->receive_dmis_drug;
-                    $add->receive_palliative         = $value->receive_palliative;
-                    $add->receive_dmishd             = $value->receive_dmishd;
-                    $add->receive_pp                 = $value->receive_pp;
-                    $add->receive_fs                 = $value->receive_fs;
-                    $add->receive_opbkk              = $value->receive_opbkk;
-                    $add->receive_total              = $value->receive_total;
-                    $add->va        = $value->va;
-                    $add->covid     = $value->covid;
-                    $add->resources = $value->resources;
-                    $add->stm_filename = $value->stm_filename;
+                    $add->round_no                      = $value->round_no;
+                    $add->repno                         = $value->repno;
+                    $add->no                            = $value->no;
+                    $add->tran_id                       = $value->tran_id;
+                    $add->hn                            = $value->hn;
+                    $add->an                            = $value->an;
+                    $add->cid                           = $value->cid;
+                    $add->pt_name                       = $value->pt_name;
+                    $add->datetimeadm                   = $value->datetimeadm;
+                    $add->vstdate                       = $value->vstdate;
+                    $add->vsttime                       = $value->vsttime;
+                    $add->datetimedch                   = $value->datetimedch;
+                    $add->dchdate                       = $value->dchdate;
+                    $add->dchtime                       = $value->dchtime;
+                    $add->maininscl                     = $value->maininscl;
+                    $add->projcode                      = $value->projcode;
+                    $add->charge                        = $value->charge;
+                    $add->fund_ip_act                   = $value->fund_ip_act;
+                    $add->fund_ip_adjrw                 = $value->fund_ip_adjrw;
+                    $add->fund_ip_ps                    = $value->fund_ip_ps;
+                    $add->fund_ip_ps2                   = $value->fund_ip_ps2;
+                    $add->fund_ip_ccuf                  = $value->fund_ip_ccuf;
+                    $add->fund_ip_adjrw2                = $value->fund_ip_adjrw2;
+                    $add->fund_ip_payrate               = $value->fund_ip_payrate;
+                    $add->fund_ip_salary                = $value->fund_ip_salary;
+                    $add->fund_compensate_salary        = $value->fund_compensate_salary;
+                    $add->receive_op                    = $value->receive_op;
+                    $add->receive_ip_compensate_cal     = $value->receive_ip_compensate_cal;
+                    $add->receive_ip_compensate_pay     = $value->receive_ip_compensate_pay;
+                    $add->receive_hc_hc                 = $value->receive_hc_hc;
+                    $add->receive_hc_drug               = $value->receive_hc_drug;
+                    $add->receive_ae_ae                 = $value->receive_ae_ae;
+                    $add->receive_ae_drug               = $value->receive_ae_drug;
+                    $add->receive_inst                  = $value->receive_inst;
+                    $add->receive_dmis_compensate_cal   = $value->receive_dmis_compensate_cal;
+                    $add->receive_dmis_compensate_pay   = $value->receive_dmis_compensate_pay;
+                    $add->receive_dmis_drug             = $value->receive_dmis_drug;
+                    $add->receive_palliative            = $value->receive_palliative;
+                    $add->receive_dmishd                = $value->receive_dmishd;
+                    $add->receive_pp                    = $value->receive_pp;
+                    $add->receive_fs                    = $value->receive_fs;
+                    $add->receive_opbkk                 = $value->receive_opbkk;
+                    $add->receive_total                 = $value->receive_total;
+                    $add->va                            = $value->va;
+                    $add->covid                         = $value->covid;
+                    $add->resources                     = $value->resources;
+                    $add->stm_filename                  = $value->stm_filename;
                     $add->save();
                 }
             }

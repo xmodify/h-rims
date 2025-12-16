@@ -13,6 +13,7 @@ class Stm_ucsexcel extends Model
     protected $primaryKey = 'id';
     protected $fillable = [
         'id',
+        'round_no',
         'repno',  
         'no', 
         'tran_id', 

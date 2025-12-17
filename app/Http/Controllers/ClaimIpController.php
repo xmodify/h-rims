@@ -89,8 +89,10 @@ class ClaimIpController extends Controller
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
             LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
-            WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
-            AND p.hipdata_code IN ("UCS","WEL") AND ip.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
+            WHERE i.confirm_discharge = "Y" 
+            AND i.dchdate BETWEEN ? AND ?
+            AND p.hipdata_code IN ("UCS","WEL") 
+            AND ip.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             AND i.data_exp_date IS NULL 
             AND fdh.an IS NULL
             AND stm.an IS NULL
@@ -118,9 +120,11 @@ class ClaimIpController extends Controller
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
             LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
-            WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
-            AND p.hipdata_code IN ("UCS","WEL") AND ip.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")            
-            AND (i.data_exp_date IS NOT NULL OR fdh.an IS NOT NULL OR (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")))
+            WHERE i.confirm_discharge = "Y" 
+            AND i.dchdate BETWEEN ? AND ?
+            AND p.hipdata_code IN ("UCS","WEL") 
+            AND ip.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")            
+            AND (i.data_exp_date IS NOT NULL OR fdh.an IS NOT NULL OR stm.an IS NOT NULL OR (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")))
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
         return view('claim_ip.ucs_incup',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search','claim'));
@@ -171,7 +175,8 @@ class ClaimIpController extends Controller
             LEFT JOIN pttype p ON p.pttype=ip.pttype           
             LEFT JOIN an_stat a ON a.an=i.an            
             LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
-            WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
+            WHERE i.confirm_discharge = "Y" 
+            AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL") 
             AND ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             GROUP BY i.an ) AS a
@@ -202,8 +207,10 @@ class ClaimIpController extends Controller
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
             LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
-            WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
-            AND p.hipdata_code IN ("UCS","WEL") AND ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
+            WHERE i.confirm_discharge = "Y" 
+            AND i.dchdate BETWEEN ? AND ?
+            AND p.hipdata_code IN ("UCS","WEL") 
+            AND ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             AND i.data_exp_date IS NULL 
             AND fdh.an IS NULL
             AND stm.an IS NULL
@@ -231,9 +238,11 @@ class ClaimIpController extends Controller
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
             LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
-            WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
-            AND p.hipdata_code IN ("UCS","WEL") AND ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")            
-            AND (i.data_exp_date IS NOT NULL OR fdh.an IS NOT NULL OR (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5"))) 
+            WHERE i.confirm_discharge = "Y" 
+            AND i.dchdate BETWEEN ? AND ?
+            AND p.hipdata_code IN ("UCS","WEL") 
+            AND ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")            
+            AND (i.data_exp_date IS NOT NULL OR fdh.an IS NOT NULL OR stm.an IS NOT NULL OR (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5"))) 
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
         return view('claim_ip.ucs_outcup',compact('budget_year_select','budget_year','start_date','end_date','month','claim_price','receive_total','search','claim'));

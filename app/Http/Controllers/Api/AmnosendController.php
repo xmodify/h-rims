@@ -68,7 +68,7 @@ class AmnosendController extends Controller
                 COUNT(DISTINCT CASE WHEN physic = "Y" THEN a.vn END) AS visit_physic,
                 COUNT(DISTINCT CASE WHEN anc = "Y" THEN a.vn END) AS visit_anc,
                 COUNT(DISTINCT CASE WHEN telehealth = "Y" THEN a.vn END) AS visit_telehealth,
-                COUNT(DISTINCT ma_all.cid) AS visit_moph_oapp_booking,
+                COALESCE(ma_all.moph_oapp_booking,0) AS visit_moph_oapp_booking,
                 COUNT(DISTINCT CASE WHEN moph_oapp = "Y" THEN a.cid END) AS visit_moph_oapp,
                 COUNT(DISTINCT CASE WHEN referout_inprov = "Y" THEN a.vn END) AS visit_referout_inprov,
                 COUNT(DISTINCT CASE WHEN referout_outprov = "Y" THEN a.vn END) AS visit_referout_outprov,
@@ -246,12 +246,28 @@ class AmnosendController extends Controller
 
             WHERE ov.vstdate BETWEEN ? AND ?
             GROUP BY ov.vn) a
-            LEFT JOIN refer_reply rb ON DATE(rb.reply_date_time) = a.vstdate
-            LEFT JOIN moph_appointment_list ma_all ON ma_all.appointment_date = a.vstdate
-            LEFT JOIN operation_list o ON (o.vn = a.vn OR o.an = a.an) AND o.request_date BETWEEN ? AND ?
+            
+            LEFT JOIN ( SELECT DATE(reply_date_time) AS vstdate,vn, dest_hospcode
+                FROM refer_reply
+                WHERE reply_date_time BETWEEN ? AND ?
+                GROUP BY DATE(reply_date_time), vn, dest_hospcode
+            ) rb ON rb.vstdate = a.vstdate
+            
+            LEFT JOIN ( SELECT appointment_date, COUNT(DISTINCT cid) AS moph_oapp_booking
+                FROM moph_appointment_list
+                WHERE appointment_date BETWEEN ? AND ?
+                GROUP BY appointment_date
+            ) ma_all ON ma_all.appointment_date = a.vstdate
+            
+            LEFT JOIN ( SELECT request_date,vn,an,operation_id
+                FROM operation_list
+                WHERE request_date BETWEEN ? AND ?
+                GROUP BY request_date, vn, an, operation_id
+            ) o ON o.request_date = a.vstdate AND (o.vn = a.vn OR o.an = a.an)
+
             GROUP BY a.vstdate';
 
-        $rowsOpd = DB::connection('hosxp')->select($sqlOpd, [$hospcode, $start, $end, $start, $end, $start, $end, $start, $end , $start, $end]);
+        $rowsOpd = DB::connection('hosxp')->select($sqlOpd, [$hospcode, $start, $end, $start, $end, $start, $end, $start, $end , $start, $end , $start, $end , $start, $end]);
 
         $opdRecords = array_map(function ($r) {
             return [

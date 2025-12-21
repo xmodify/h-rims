@@ -35,21 +35,48 @@
             @endif
         </div>
     </form>
-    <div class="alert alert-success text-primary" role="alert"><strong>ข้อมูล Statement ประกันสุขภาพ UCS [OP-IP]</strong></div> 
+    <div class="row justify-content-center">      
+        <div class="col-md-12">
+            <form method="POST" enctype="multipart/form-data">
+            @csrf
+            <div class="row">                          
+                <div class="col-md-9" align="left"></div>
+                <div class="col-lg-3 d-flex justify-content-lg-end">
+                    <div class="d-flex align-items-center gap-2">
+                    <select class="form-select" name="budget_year">
+                        @foreach ($budget_year_select as $row)
+                        <option value="{{ $row->LEAVE_YEAR_ID }}"
+                            {{ (int)$budget_year === (int)$row->LEAVE_YEAR_ID ? 'selected' : '' }}>
+                            {{ $row->LEAVE_YEAR_NAME }}
+                        </option> 
+                        @endforeach
+                    </select>
+                    <button type="submit" class="btn btn-primary">{{ __('ค้นหา') }}</button>
+                    </div>
+                </div>
+            </div>
+            </form>
+        </div>    
+    </div>
+    
+    <div class="alert alert-success text-primary" role="alert">
+        <strong>ข้อมูล Statement ประกันสุขภาพ UCS [OP-IP] ปีงบประมาณ {{$budget_year}} </strong>
+    </div> 
 
     <div class="card-body">
         <div style="overflow-x:auto;">   
             <table id="stm_ucs" class="table table-bordered table-striped my-3">
                 <thead>
                     <tr class="table-primary">
-                        <th class="text-center" width = "15%">ชื่อ File</th> 
+                        <th class="text-center" width = "17%">ชื่อ File</th> 
                         <th class="text-center">Dep</th>
                         <th class="text-center">เลขงวด</th> 
                         <th class="text-center">จำนวน REP</th> 
                         <th class="text-center">จำนวนราย</th>
                         <th class="text-center">เรียกเก็บ</th>                                     
-                        <th class="text-center">ชดเชยสุทธิ</th>                           
-                    </tr>     
+                        <th class="text-center">ชดเชยสุทธิ</th>   
+                        <th class="text-center">ออกใบเสร็จ</th>                      
+                    </tr> 
                     </thead> 
                     <?php $count = 1 ; ?>  
                     @foreach($stm_ucs as $row) 
@@ -60,8 +87,22 @@
                         <td align="right">{{ $row->repno }}</td>                            
                         <td align="right">{{ number_format($row->count_cid) }}</td>                                   
                         <td align="right">{{ number_format($row->charge,2) }}</td>                                     
-                        <td align="right">{{ number_format($row->receive_total,2) }}</td>                         
-                    </tr>                
+                        <td align="right">{{ number_format($row->receive_total,2) }}</td>   
+                        <td class="text-end">
+                            @if(!empty($row->round_no))
+                                {{ $row->receive_no }} 
+                                <button type="button"
+                                    class="btn btn-sm {{ $row->receive_no ? 'btn-warning btn-edit-receipt' : 'btn-danger btn-new-receipt' }}"
+                                    data-round="{{ $row->round_no }}"
+                                    data-receive="{{ $row->receive_no }}"
+                                    data-date="{{ $row->receipt_date }}"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#receiptModal">
+                                    {{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}
+                                </button>
+                                @endif
+                        </td>                          
+                    </tr>                     
                     <?php $count++; ?>  
                     @endforeach   
             </table>
@@ -70,18 +111,136 @@
  
 </div> 
 
+{{-- Modal ออกใบเสร็จ --}}
+<div class="modal fade" id="receiptModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="receiptModalTitle">
+                    ออกใบเสร็จรับเงิน
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="round_no">
+                <div class="mb-2">
+                    <label class="form-label">เลขที่ใบเสร็จ</label>
+                    <input type="text" class="form-control" id="receive_no">
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">วันที่ออกใบเสร็จ</label>
+                    <input type="date" class="form-control" id="receipt_date">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" id="btnSaveReceipt">
+                    บันทึก
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    ยกเลิก
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{{-- End Modal --}}
+
+<!-- SweetAlert: Success -->
 @if (session('success'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            Swal.fire({
+                icon: 'success',
+                title: 'นำเข้าสำเร็จ',
+                text: @json(session('success')),
+                confirmButtonText: 'ปิด'
+            }).then(() => {
+                location.reload();
+            });
+        });
+    </script>
+@endif
+<!-- SweetAlert: Error -->
+@if (session('error'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            Swal.fire({
+                icon: 'error',
+                title: 'ผิดพลาด',
+                text: @json(session('error')),
+                confirmButtonText: 'ปิด'
+            });
+        });
+    </script>
+@endif
+    
+@endsection
+
 <script>
-    Swal.fire({
-        title: 'นำเข้าสำเร็จ!',
-        text: '{{ session('success') }}',
-        icon: 'success',
-        confirmButtonText: 'ตกลง'
+    document.addEventListener("DOMContentLoaded", function () {
+        /* ===== เปิด modal (ออกใหม่ / แก้ไข) ===== */
+        document.querySelectorAll('.btn-new-receipt, .btn-edit-receipt')
+            .forEach(btn => {
+                btn.addEventListener('click', function () {
+
+                    document.getElementById('round_no').value =
+                        this.dataset.round;
+
+                    document.getElementById('receive_no').value =
+                        this.dataset.receive ?? '';
+
+                    document.getElementById('receipt_date').value =
+                        this.dataset.date ?? '';
+                });
+            });
+        /* ===== บันทึก (AJAX) ===== */
+        document.getElementById('btnSaveReceipt')
+            .addEventListener('click', function () {
+
+                let round_no     = document.getElementById('round_no').value;
+                let receive_no   = document.getElementById('receive_no').value;
+                let receipt_date = document.getElementById('receipt_date').value;
+                if (!receive_no || !receipt_date) {
+                    Swal.fire('แจ้งเตือน','กรุณากรอกข้อมูลให้ครบ','warning');
+                    return;
+                }
+                fetch("{{ url('import/stm_ucs_updateReceipt') }}", {
+                    method: "POST",
+                    headers: {
+                        "X-CSRF-TOKEN": document
+                            .querySelector('meta[name=\"csrf-token\"]')
+                            .getAttribute('content'),
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    },
+                    body: JSON.stringify({
+                        round_no: round_no,
+                        receive_no: receive_no,
+                        receipt_date: receipt_date
+                    })
+                })
+                .then(res => res.json())
+                .then(res => {
+                    if (res.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'บันทึกสำเร็จ',
+                            html: `
+                                <p><strong>เลขที่ใบเสร็จ:</strong> ${res.receive_no}</p>
+                                <p><strong>วันที่ออก:</strong> ${res.receipt_date}</p>
+                            `,
+                            confirmButtonText: 'ปิด'
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire('ผิดพลาด', res.message, 'error');
+                    }
+                });
+            });
+
     });
 </script>
-@endif
-
-@endsection
 
 <script>
     function showLoadingAlert() {

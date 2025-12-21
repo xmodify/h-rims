@@ -13,6 +13,7 @@ class Stm_ofc_kidney extends Model
     protected $primaryKey = 'id';
     protected $fillable = [
         'id',
+        'round_no',
         'hcode', 
         'hname', 
         'stmdoc',
@@ -27,6 +28,7 @@ class Stm_ofc_kidney extends Model
         'paid',
         'rid',
         'hdflag',
+        'receive_no',
     ];
     public $timestamps = false;   
 }

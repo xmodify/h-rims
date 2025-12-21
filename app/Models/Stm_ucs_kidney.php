@@ -13,6 +13,7 @@ class Stm_ucs_kidney extends Model
     protected $primaryKey = 'id';
     protected $fillable = [
         'id',
+        'round_no',
         'no',
         'repno', 
         'hn', 
@@ -24,7 +25,8 @@ class Stm_ucs_kidney extends Model
         'charge_total',
         'receive_total',
         'note',
-        'stm_filename',        
+        'stm_filename', 
+        'receive_no',       
     ];
     public $timestamps = false;   
 }

@@ -13,6 +13,7 @@ class Stm_ofc extends Model
     protected $primaryKey = 'id';
     protected $fillable = [
         'id',
+        'round_no',
         'repno',  
         'no', 
         'hn', 
@@ -38,6 +39,7 @@ class Stm_ofc extends Model
         'receive_other',
         'receive_total',
         'stm_filename',
+        'receive_no',
     ];
     public $timestamps = false;   
 }

@@ -13,7 +13,7 @@ class Stm_ucs extends Model
     protected $primaryKey = 'id';
     protected $fillable = [
         'id',
-        'round_no',
+        'round_no', 
         'repno',  
         'no', 
         'tran_id', 
@@ -60,6 +60,9 @@ class Stm_ucs extends Model
         'covid',
         'resources',
         'stm_filename',
+        'receive_no',
+        'receipt_date',
+        'receipt_by',
     ];
     public $timestamps = false;   
 }

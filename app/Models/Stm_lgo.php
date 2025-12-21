@@ -13,6 +13,7 @@ class Stm_lgo extends Model
     protected $primaryKey = 'id';
     protected $fillable = [
         'id',
+        'round_no', 
         'repno',  
         'no', 
         'tran_id', 
@@ -74,6 +75,7 @@ class Stm_lgo extends Model
         'va',
         'audit_results',
         'stm_filename',
+        'receive_no',
     ];
     public $timestamps = false;   
 }

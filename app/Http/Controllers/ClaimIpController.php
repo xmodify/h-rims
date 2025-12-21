@@ -57,7 +57,8 @@ class ClaimIpController extends Controller
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
             LEFT JOIN pttype p ON p.pttype=ip.pttype           
             LEFT JOIN an_stat a ON a.an=i.an            
-            LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
+            LEFT JOIN (SELECT an,MAX(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay,
+                SUM(receive_total) AS receive_total,MAX(repno) AS repno  FROM hrims.stm_ucs GROUP BY an) stm ON stm.an = i.an  
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL") 
             AND ip.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
@@ -88,7 +89,8 @@ class ClaimIpController extends Controller
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
-            LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
+            LEFT JOIN (SELECT an,MAX(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay,
+                SUM(receive_total) AS receive_total,MAX(repno) AS repno  FROM hrims.stm_ucs GROUP BY an) stm ON stm.an = i.an  
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL") 
@@ -119,7 +121,8 @@ class ClaimIpController extends Controller
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
-            LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
+            LEFT JOIN (SELECT an,MAX(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay,
+                SUM(receive_total) AS receive_total,MAX(repno) AS repno  FROM hrims.stm_ucs GROUP BY an) stm ON stm.an = i.an  
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL") 
@@ -174,7 +177,8 @@ class ClaimIpController extends Controller
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
             LEFT JOIN pttype p ON p.pttype=ip.pttype           
             LEFT JOIN an_stat a ON a.an=i.an            
-            LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
+            LEFT JOIN (SELECT an,MAX(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay,
+                SUM(receive_total) AS receive_total,MAX(repno) AS repno  FROM hrims.stm_ucs GROUP BY an) stm ON stm.an = i.an
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL") 
@@ -206,7 +210,8 @@ class ClaimIpController extends Controller
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
-            LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
+            LEFT JOIN (SELECT an,MAX(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay,
+                SUM(receive_total) AS receive_total,MAX(repno) AS repno  FROM hrims.stm_ucs GROUP BY an) stm ON stm.an = i.an
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL") 
@@ -237,7 +242,8 @@ class ClaimIpController extends Controller
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
-            LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
+            LEFT JOIN (SELECT an,MAX(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay,
+                SUM(receive_total) AS receive_total,MAX(repno) AS repno  FROM hrims.stm_ucs GROUP BY an) stm ON stm.an = i.an
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL") 
@@ -292,7 +298,8 @@ class ClaimIpController extends Controller
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
             LEFT JOIN pttype p ON p.pttype=ip.pttype           
             LEFT JOIN an_stat a ON a.an=i.an            
-            LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
+            LEFT JOIN (SELECT an,MAX(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay,
+                SUM(receive_total) AS receive_total,MAX(repno) AS repno  FROM hrims.stm_ucs GROUP BY an) stm ON stm.an = i.an
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "STP"             
@@ -321,7 +328,8 @@ class ClaimIpController extends Controller
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
-            LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
+            LEFT JOIN (SELECT an,MAX(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay,
+                SUM(receive_total) AS receive_total,MAX(repno) AS repno  FROM hrims.stm_ucs GROUP BY an) stm ON stm.an = i.an
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "STP" 
             AND i.data_exp_date IS NULL
@@ -345,7 +353,8 @@ class ClaimIpController extends Controller
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
-            LEFT JOIN hrims.stm_ucs stm ON stm.an=i.an
+            LEFT JOIN (SELECT an,MAX(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay,
+                SUM(receive_total) AS receive_total,MAX(repno) AS repno  FROM hrims.stm_ucs GROUP BY an) stm ON stm.an = i.an
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "STP" 
             AND i.data_exp_date IS NOT NULL 

@@ -59,7 +59,7 @@ class Stm_ucsexcel extends Model
         'va',
         'covid',
         'resources',
-        'stm_filename',
+        'stm_filename',        
     ];
     public $timestamps = false;   
 }

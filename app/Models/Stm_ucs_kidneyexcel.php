@@ -13,6 +13,7 @@ class Stm_ucs_kidneyexcel extends Model
     protected $primaryKey = 'id';
     protected $fillable = [
         'id',
+        'round_no',
         'no',
         'repno', 
         'hn', 

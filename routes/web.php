@@ -78,6 +78,7 @@ Route::match(['get','post'],'ipd_finance_chk_wait_rcpt_money',[HomeController::c
 //Import---------------------------------------------------------------------------------------------------------------------------
 Route::match(['get','post'],'import/stm_ucs',[ImportController::class,'stm_ucs'])->name('stm_ucs');
 Route::post('import/stm_ucs_save',[ImportController::class,'stm_ucs_save']);
+Route::post('import/stm_ucs_updateReceipt',[ImportController::class,'stm_ucs_updateReceipt']);
 Route::match(['get','post'],'import/stm_ucs_detail',[ImportController::class,'stm_ucs_detail']);
 Route::match(['get','post'],'import/stm_ucs_kidney',[ImportController::class,'stm_ucs_kidney'])->name('stm_ucs_kidney');
 Route::post('import/stm_ucs_kidney_save',[ImportController::class,'stm_ucs_kidney_save']);

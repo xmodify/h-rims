@@ -13,6 +13,7 @@ class Stm_ofcexcel extends Model
     protected $primaryKey = 'id';
     protected $fillable = [
         'id',
+        'round_no',
         'repno',  
         'no', 
         'hn', 

@@ -65,12 +65,12 @@ class ImportController extends Controller
             FROM stm_ucs
             WHERE (CAST(SUBSTRING(stm_filename, LOCATE('25', stm_filename), 4) AS UNSIGNED)
                 + (CAST(SUBSTRING(stm_filename, LOCATE('25', stm_filename) + 4, 2) AS UNSIGNED) >= 10)) = ?
-            GROUP BY stm_filename, round_no
+            GROUP BY stm_filename, round_no            
             ORDER BY CASE WHEN round_no IS NOT NULL AND round_no <> '' 
                 THEN (CAST(LEFT(round_no,2) AS UNSIGNED) + 2500) * 100
-                + CAST(SUBSTRING(round_no,3,2) AS UNSIGNED)  
-                ELSE CAST(REGEXP_SUBSTR(stm_filename, '[0-9]{6}') AS UNSIGNED) END DESC,
-                stm_filename DESC, dep DESC ", [$budget_year]);
+                + CAST(SUBSTRING(round_no,3,2) AS UNSIGNED)
+                ELSE CAST(SUBSTRING( stm_filename, LOCATE('25', stm_filename), 6) AS UNSIGNED )END DESC,
+            stm_filename DESC, dep DESC ", [$budget_year]);
 
         return view(
             'import.stm_ucs',

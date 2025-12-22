@@ -964,7 +964,7 @@ class ClaimOpController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype 
 			LEFT JOIN vn_stat v ON v.vn = o.vn 	
             LEFT JOIN opitemrece kidney ON kidney.vn=o.vn AND kidney.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney = "Y")
-            LEFT JOIN hrims.stm_ofc stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)           
+            LEFT JOIN hrims.stm_ofc stm ON stm.hn=pt.hn AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)           
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code = "OFC" 
             AND o.vstdate BETWEEN ? AND ?
@@ -1001,14 +1001,15 @@ class ClaimOpController extends Controller
                 INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
                 WHERE op.vstdate BETWEEN ? AND ? AND li.ppfs = "Y" GROUP BY op.vn) o2 ON o2.vn=o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
-            LEFT JOIN hrims.stm_ofc stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
+            LEFT JOIN hrims.stm_ofc stm ON stm.hn=pt.hn AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code = "OFC" 
             AND o.vstdate BETWEEN ? AND ?
             AND p.pttype NOT IN ('.$pttype_checkup.')
             AND v.income <>"0" 
             AND kidney.vn IS NULL 
-            AND oe.upload_datetime IS NULL AND stm.cid IS NULL
+            AND oe.upload_datetime IS NULL 
+            AND stm.cid IS NULL
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
         $claim=DB::connection('hosxp')->select('
@@ -1035,7 +1036,7 @@ class ClaimOpController extends Controller
             INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
                 WHERE op.vstdate BETWEEN ? AND ? AND li.ppfs = "Y" GROUP BY op.vn) o2 ON o2.vn=o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
-            LEFT JOIN hrims.stm_ofc stm ON stm.cid=pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
+            LEFT JOIN hrims.stm_ofc stm ON stm.hn=pt.hn AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) =LEFT(o.vsttime,5)
             LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp
                 FROM hrims.stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) stm_uc ON stm_uc.cid=pt.cid
                 AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
@@ -1045,7 +1046,7 @@ class ClaimOpController extends Controller
             AND p.pttype NOT IN ('.$pttype_checkup.')
             AND v.income <>"0" 
             AND kidney.vn IS NULL
-             AND (oe.upload_datetime IS NOT NULL OR stm.cid IS NOT NULL)
+            AND (oe.upload_datetime IS NOT NULL OR stm.cid IS NOT NULL)
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
 
         return view('claim_op.ofc',compact('budget_year_select','budget_year','start_date','end_date','search','claim','month','claim_price','receive_total'));

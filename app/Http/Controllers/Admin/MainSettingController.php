@@ -141,6 +141,11 @@ class MainSettingController extends Controller
             'stm_ucsexcel' => [
                 ['name' => 'round_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
             ],
+            // ---------------- Debtor ----------------
+            'debtor_1102050101_209' => [
+                ['name' => 'receive',   'type' => 'DOUBLE(15,2) NULL', 'after' => 'status'],
+                ['name' => 'repno', 'type' => 'VARCHAR(15) NULL', 'after' => 'receive'], 
+            ],
         ];
         try {
             foreach ($tables as $table => $columns) {

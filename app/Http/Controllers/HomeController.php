@@ -153,15 +153,14 @@ public function index(Request $request )
         } 
 
     $ipd_dchsummary = DB::connection('hosxp')->select('
-        SELECT SUM(CASE WHEN (a.diag_text_list ="" OR a.diag_text_list IS NULL ) THEN 1 ELSE 0 END) AS non_diagtext,
-        SUM(CASE WHEN (id.icd10 ="" OR id.icd10 IS NULL OR a.pdx = "" OR a.pdx IS NULL) THEN 1 ELSE 0 END) AS non_icd10
+        SELECT SUM(CASE WHEN (diag_text_list IS NULL OR diag_text_list ="") THEN 1 ELSE 0 END) AS non_diagtext,
+        SUM(CASE WHEN (dx IS NOT NULL OR dx <>"") AND (pdx ="" OR pdx IS NULL) THEN 1 ELSE 0 END) AS non_icd10
+        FROM (SELECT i.an,i.regdate,i.dchdate,id.diag_text AS dx,a.pdx,a.diag_text_list,i.adjrw,i.ward
         FROM ipt i
-        LEFT JOIN iptdiag id ON id.an = i.an AND id.diagtype = 1
-		LEFT JOIN an_stat a ON a.an=i.an
-        WHERE i.dchdate >= ? AND  i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y") 
-        AND (a.diag_text_list ="" OR a.diag_text_list IS NULL 				
-		OR id.icd10 ="" OR id.icd10 IS NULL
-		OR a.pdx = "" OR a.pdx IS NULL)',[$start_date]);        
+        LEFT JOIN ipt_doctor_diag id ON id.an = i.an	AND id.diagtype = 1          
+        LEFT JOIN an_stat a ON a.an=i.an						
+        WHERE i.dchdate BETWEEN ? AND ?
+        GROUP BY i.an) AS a',[$start_date,$end_date]);        
         foreach ($ipd_dchsummary as $row){ 
             $non_diagtext=$row->non_diagtext;
             $non_icd10=$row->non_icd10;
@@ -200,9 +199,10 @@ public function index(Request $request )
         END AS "month",COUNT(DISTINCT a.an) AS an ,sum(a.admdate) AS admdate,        
         ROUND((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(a.dchdate))),2) AS "bed_occupancy",
         ROUND(((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(a.dchdate)))*?)/100,2) AS "active_bed",
-		ROUND(SUM(a.rw)/COUNT(DISTINCT a.an),2) AS cmi,
-        ROUND(SUM(a.rw),2) AS adjrw ,SUM(a.income-a.rcpt_money)/SUM(a.rw) AS "income_rw"  
-        FROM an_stat a        
+		ROUND(SUM(i.adjrw)/COUNT(DISTINCT a.an),2) AS cmi,
+        ROUND(SUM(i.adjrw),2) AS adjrw ,SUM(a.income-a.rcpt_money)/SUM(i.adjrw) AS "income_rw"  
+        FROM ipt i
+        LEFT JOIN an_stat a ON a.an=i.an      
         WHERE a.dchdate BETWEEN ? AND DATE(NOW())
         AND a.pdx NOT IN ("Z290","Z208")
         GROUP BY MONTH(a.dchdate)
@@ -224,9 +224,10 @@ public function index(Request $request )
         END AS "month",COUNT(DISTINCT a.an) AS an ,sum(a.admdate) AS admdate,        
         ROUND((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(a.dchdate))),2) AS "bed_occupancy",
         ROUND(((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(a.dchdate)))*?)/100,2) AS "active_bed",
-		ROUND(SUM(a.rw)/COUNT(DISTINCT a.an),2) AS cmi,
-        ROUND(SUM(a.rw),2) AS adjrw ,SUM(a.income-a.rcpt_money)/SUM(a.rw) AS "income_rw"  
-        FROM an_stat a 
+		ROUND(SUM(i.adjrw)/COUNT(DISTINCT a.an),2) AS cmi,
+        ROUND(SUM(i.adjrw),2) AS adjrw ,SUM(a.income-a.rcpt_money)/SUM(i.adjrw) AS "income_rw"  
+        FROM ipt i
+        LEFT JOIN an_stat a ON a.an = i.an 
         INNER JOIN iptadm ia ON ia.an = a.an
         WHERE a.dchdate BETWEEN ? AND DATE(NOW())
         AND a.pdx NOT IN ("Z290","Z208") 
@@ -251,9 +252,10 @@ public function index(Request $request )
         END AS "month",COUNT(DISTINCT a.an) AS an ,sum(a.admdate) AS admdate,        
         ROUND((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(a.dchdate))),2) AS "bed_occupancy",
         ROUND(((SUM(a.admdate)*100)/(?*DAY(LAST_DAY(a.dchdate)))*?)/100,2) AS "active_bed",
-		ROUND(SUM(a.rw)/COUNT(DISTINCT a.an),2) AS cmi,
-        ROUND(SUM(a.rw),2) AS adjrw ,SUM(a.income-a.rcpt_money)/SUM(a.rw) AS "income_rw"  
-        FROM an_stat a 
+		ROUND(SUM(i.adjrw)/COUNT(DISTINCT a.an),2) AS cmi,
+        ROUND(SUM(i.adjrw),2) AS adjrw ,SUM(a.income-a.rcpt_money)/SUM(i.adjrw) AS "income_rw"  
+        FROM ipt i
+        LEFT JOIN an_stat a ON a.an =i.an
         INNER JOIN iptadm ia ON ia.an = a.an
         WHERE a.dchdate BETWEEN ? AND DATE(NOW())
         AND a.pdx NOT IN ("Z290","Z208") 
@@ -864,10 +866,10 @@ public function ipd_non_dchsummary(Request $request)
         LEFT JOIN ipt_doctor_list il ON il.an = i.an AND il.ipt_doctor_type_id = 1 AND il.active_doctor = "Y"
         LEFT JOIN doctor d ON d.`code` = il.doctor
         LEFT JOIN an_stat a ON a.an=i.an
-        WHERE i.dchdate >= ? AND  i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y") 
+        WHERE i.dchdate BETWEEN ? AND ?        
         AND (a.diag_text_list ="" OR a.diag_text_list IS NULL)
         GROUP BY i.an
-        ORDER BY d.`name`,dch_day DESC',[$start_date]);  
+        ORDER BY d.`name`,dch_day DESC',[$start_date,$end_date]);  
 
     $non_dchsummary_sum=DB::connection('hosxp')->select('
         SELECT d.`name` AS owner_doctor_name,COUNT(i.an) AS total
@@ -876,10 +878,10 @@ public function ipd_non_dchsummary(Request $request)
         LEFT JOIN ipt_doctor_list il ON il.an = i.an AND il.ipt_doctor_type_id = 1 AND il.active_doctor = "Y"
         LEFT JOIN doctor d ON d.`code` = il.doctor
         LEFT JOIN an_stat a ON a.an=i.an
-        WHERE i.dchdate >= ? AND  i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y") 
+        WHERE i.dchdate BETWEEN ? AND ? 
         AND (a.diag_text_list ="" OR a.diag_text_list IS NULL)
         GROUP BY d.`name` 
-        ORDER BY total DESC',[$start_date]); 
+        ORDER BY total DESC',[$start_date,$end_date]); 
     $owner_doctor_name = array_column($non_dchsummary_sum,'owner_doctor_name');
     $owner_doctor_total = array_column($non_dchsummary_sum,'total');
     

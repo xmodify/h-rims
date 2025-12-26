@@ -1306,7 +1306,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.ptname, d.hipdata_code, d.pttype, d.hospmain,d.pdx, d.income,  
-                    d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,s.receive_pp AS receive, s.repno, d.status, d.debtor_lock
+                    d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,s.receive_pp, d.receive, s.repno, d.status, d.debtor_lock
                 FROM debtor_1102050101_209 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
@@ -1316,7 +1316,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.ptname, d.hipdata_code, d.pttype, d.hospmain, d.pdx,d.income,
-                     d.rcpt_money, d.ppfs, d.pp, d.other,d.debtor,s.receive_pp AS receive, s.repno, d.status, d.debtor_lock
+                     d.rcpt_money, d.ppfs, d.pp, d.other,d.debtor,s.receive_pp, d.receive, s.repno, d.status, d.debtor_lock
                 FROM debtor_1102050101_209 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
@@ -5147,9 +5147,9 @@ class DebtorController extends Controller
  
         if ($search) {
             $debtor = DB::select('
-                SELECT d.*,stm.fund_ip_payrate,(stm.receive_total-stm.receive_ip_compensate_pay)+sk.receive_total AS receive,
+                SELECT d.*,(stm.receive_total-stm.receive_ip_compensate_pay)+IFNULL(sk.receive_total,0) AS receive,
 				    stm.repno,sk.repno AS repno_kidney,
-                    CASE WHEN IFNULL((stm.receive_total-stm.receive_ip_compensate_pay)+sk.receive_total,0) - IFNULL(d.debtor, 0) >= 0
+                    CASE WHEN IFNULL((stm.receive_total-stm.receive_ip_compensate_pay)+IFNULL(sk.receive_total,0),0) - IFNULL(d.debtor, 0) >= 0
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_217 d
                 LEFT JOIN (SELECT an,MAX(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_total) AS receive_total,
@@ -5161,9 +5161,9 @@ class DebtorController extends Controller
                 GROUP BY d.an', [$search,$search,$search,$start_date,$end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.*,stm.fund_ip_payrate,(stm.receive_total-stm.receive_ip_compensate_pay)+sk.receive_total AS receive,
+                SELECT d.*,(stm.receive_total-stm.receive_ip_compensate_pay)+IFNULL(sk.receive_total,0) AS receive,
 					stm.repno,sk.repno AS repno_kidney,
-                    CASE WHEN IFNULL((stm.receive_total-stm.receive_ip_compensate_pay)+sk.receive_total,0) - IFNULL(d.debtor, 0) >= 0
+                    CASE WHEN IFNULL((stm.receive_total-stm.receive_ip_compensate_pay)+IFNULL(sk.receive_total,0),0) - IFNULL(d.debtor, 0) >= 0
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_217 d
                 LEFT JOIN (SELECT an,MAX(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_total) AS receive_total,

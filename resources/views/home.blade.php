@@ -261,7 +261,7 @@
                   <th class="text-center">อัตราครองเตียง</th>
                   <th class="text-center">ActiveBase</th>
                   <th class="text-center">CMI</th>
-                  <th class="text-center">RW</th>             
+                  <th class="text-center">AdjRW</th>             
               </tr>
               </thead>        
               @foreach($ip_all as $row)
@@ -293,7 +293,7 @@
                   <th class="text-center">อัตราครองเตียง</th>
                   <th class="text-center">ActiveBase</th>
                   <th class="text-center">CMI</th>
-                  <th class="text-center">RW</th>                 
+                  <th class="text-center">AdjRW</th>                 
               </tr>
               </thead>        
               @foreach($ip_normal as $row)
@@ -322,7 +322,7 @@
                   <th class="text-center">อัตราครองเตียง</th>
                   <th class="text-center">ActiveBase</th>
                   <th class="text-center">CMI</th>
-                  <th class="text-center">RW</th>            
+                  <th class="text-center">AdjRW</th>            
               </tr>
               </thead>        
               @foreach($ip_homeward as $row)

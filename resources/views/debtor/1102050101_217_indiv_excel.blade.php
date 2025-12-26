@@ -32,7 +32,6 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <th class="text-center">ชำระเอง</th>
                 <th class="text-center">บริการเฉพาะ</th>
                 <th class="text-center">ลูกหนี้</th>
-                <th class="text-center text-primary">อัตราจ่าย/RW</th>
                 <th class="text-center text-primary">ชดเชย</th> 
                 <th class="text-center text-primary">ผลต่าง</th> 
                 <th class="text-center text-primary">REP</th> 
@@ -59,8 +58,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="right">{{ number_format($row->income,2) }}</td>
                 <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
                 <td align="right">{{ number_format($row->cr,2) }}</td>
-                <td align="right">{{ number_format($row->debtor,2) }}</td>  
-                <td align="right">{{ number_format($row->fund_ip_payrate,2) }}</td>
+                <td align="right">{{ number_format($row->debtor,2) }}</td>
                 <td align="right">{{ number_format($row->receive,2) }}</td>
                 <td align="right" @if(($row->receive-$row->debtor) > 0) style="color:green" 
                     @elseif(($row->receive-$row->debtor) < 0) style="color:red" @endif>
@@ -87,7 +85,6 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="right"><strong>{{number_format($sum_rcpt_money,2)}}&nbsp;</strong></td>  
                 <td align="right"><strong>{{number_format($sum_cr,2)}}&nbsp;</strong></td>  
                 <td align="right"><strong>{{number_format($sum_debtor,2)}}&nbsp;</strong></td>
-                <td align="right"><strong></strong></td>
                 <td align="right"><strong>{{number_format($sum_receive,2)}}&nbsp;</strong></td> 
                 <td align="right"><strong>{{number_format($sum_receive-$sum_debtor,2)}}&nbsp;</strong></td>
             </tr>          

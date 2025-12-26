@@ -218,7 +218,7 @@
                         <td align="left" width = "5%">{{ $row->pttype }}</td>
                         <td align="center">{{ DateThai($row->dchdate) }}</td>
                         <td align="center">{{ $row->admdate }}</td>
-                        <td align="left"><font color="#b0120a"> {{ $row->rw }}</font> </td>
+                        <td align="left"><font color="#b0120a"> {{ $row->adjrw }}</font> </td>
                         <td align="left" width = "9%"><font color="#0d6efd">{{ $row->icd10_t1 }}</font>|<font color="#6610f2">{{ $row->icd10_t2 }}</font>|
                             <font color="#6610f2">{{ $row->icd10_t3 }}</font>|<font color="#6610f2">{{ $row->icd10_t4 }}</font>|<font color="#fd7e14">{{ $row->icd10_t5}}</font></td>  
                         <td align="left" width = "10%">{{ $row->owner_doctor_name }}</td>

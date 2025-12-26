@@ -32,8 +32,7 @@ public function wait_doctor_dchsummary(Request $request)
             LEFT JOIN ipt_doctor_list il ON il.an = i.an AND il.ipt_doctor_type_id = 1 AND il.active_doctor = "Y"
             LEFT JOIN doctor d ON d.`code` = il.doctor
             LEFT JOIN an_stat a ON a.an=i.an
-            WHERE i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")
-            AND i.dchdate BETWEEN ? AND ?
+            WHERE i.dchdate BETWEEN ? AND ?
             AND (a.diag_text_list ="" OR a.diag_text_list IS NULL)
             GROUP BY i.an
             ORDER BY d.`name`,dch_day DESC',[$start_date,$end_date]);  
@@ -45,8 +44,7 @@ public function wait_doctor_dchsummary(Request $request)
             LEFT JOIN ipt_doctor_list il ON il.an = i.an AND il.ipt_doctor_type_id = 1 AND il.active_doctor = "Y"
             LEFT JOIN doctor d ON d.`code` = il.doctor
             LEFT JOIN an_stat a ON a.an=i.an
-            WHERE i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y") 
-            AND i.dchdate BETWEEN ? AND ?
+            WHERE i.dchdate BETWEEN ? AND ?
             AND (a.diag_text_list ="" OR a.diag_text_list IS NULL)
             GROUP BY d.`name` 
             ORDER BY total DESC',[$start_date,$end_date]); 
@@ -76,7 +74,7 @@ public function wait_icd_coder(Request $request)
                     OR dx4_audit IS NOT NULL OR dx4_audit <>"" OR dx5_audit IS NOT NULL OR dx5_audit <>"") THEN 1 ELSE 0 END) AS sum_dchsummary_audit
                 FROM (SELECT i.an,i.regdate,i.dchdate,id1.diag_text AS dx1,id2.diag_text AS dx2,id3.diag_text AS dx3,id4.diag_text AS dx4,id5.diag_text AS dx5,
                 id1.audit_diag_text AS dx1_audit,id2.audit_diag_text AS dx2_audit,id3.audit_diag_text AS dx3_audit,id4.audit_diag_text AS dx4_audit,
-                id5.audit_diag_text AS dx5_audit,a.pdx,a.diag_text_list,a.rw
+                id5.audit_diag_text AS dx5_audit,a.pdx,a.diag_text_list,i.adjrw
                 FROM ipt i
                 LEFT JOIN ipt_doctor_diag id1 ON id1.an = i.an	AND id1.diagtype = 1 
                 LEFT JOIN ipt_doctor_diag id2 ON id2.an = i.an	AND id2.diagtype = 2
@@ -84,8 +82,7 @@ public function wait_icd_coder(Request $request)
                 LEFT JOIN ipt_doctor_diag id4 ON id4.an = i.an	AND id4.diagtype = 4
                 LEFT JOIN ipt_doctor_diag id5 ON id5.an = i.an	AND id5.diagtype = 5
                 LEFT JOIN an_stat a ON a.an=i.an
-                WHERE i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")
-                AND i.dchdate BETWEEN ? AND ?
+                WHERE i.dchdate BETWEEN ? AND ?
                 GROUP BY i.an) AS a',[$start_date,$end_date]); 
         foreach ($sql as $row){
                 $sum_discharge = $row->sum_discharge;
@@ -102,29 +99,27 @@ public function wait_icd_coder(Request $request)
         $base_rate_lgo = (float) DB::table('main_setting')->where('name','base_rate_lgo')->value('value');
         $base_rate_sss = (float) DB::table('main_setting')->where('name','base_rate_sss')->value('value');
         $adjrw=DB::connection('hosxp')->select('
-            SELECT COUNT(an) AS sum_discharge,SUM(rw) AS rw_all,
+            SELECT COUNT(an) AS sum_discharge,SUM(adjrw) AS rw_all,
             SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y") 
-			    THEN rw ELSE 0 END) AS rw_ucs,
+			    THEN adjrw ELSE 0 END) AS rw_ucs,
             SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
-			    THEN rw * ? * ? ELSE 0 END) AS rw_receive_ucs,
+			    THEN adjrw * ? * ? ELSE 0 END) AS rw_receive_ucs,
 		    SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE (hmain_ucs IS NULL OR hmain_ucs ="")) 
-			    THEN rw ELSE 0 END) AS rw_ucs2,
+			    THEN adjrw ELSE 0 END) AS rw_ucs2,
             SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE (hmain_ucs IS NULL OR hmain_ucs =""))
-			    THEN rw * ? ELSE 0 END) AS rw_receive_ucs2,
-		    SUM(CASE WHEN hipdata_code = "OFC" THEN rw ELSE 0 END) AS rw_ofc,
-            SUM(CASE WHEN hipdata_code = "OFC" THEN rw * ? ELSE 0 END) AS rw_receive_ofc,
-		    SUM(CASE WHEN hipdata_code = "LGO" THEN rw ELSE 0 END) AS rw_lgo,
-            SUM(CASE WHEN hipdata_code = "LGO" THEN rw * ? ELSE 0 END) AS rw_receive_lgo,
-		    SUM(CASE WHEN hipdata_code = "SSS" THEN rw ELSE 0 END) AS rw_sss,
-            SUM(CASE WHEN hipdata_code = "SSS" THEN rw * ? ELSE 0 END) AS rw_receive_sss
-            FROM (SELECT i.an,i.regdate,i.dchdate,p.hipdata_code,ip.pttype,ip.hospmain,a.pdx,a.rw,w.ward
+			    THEN adjrw * ? ELSE 0 END) AS rw_receive_ucs2,
+		    SUM(CASE WHEN hipdata_code = "OFC" THEN adjrw ELSE 0 END) AS rw_ofc,
+            SUM(CASE WHEN hipdata_code = "OFC" THEN adjrw * ? ELSE 0 END) AS rw_receive_ofc,
+		    SUM(CASE WHEN hipdata_code = "LGO" THEN adjrw ELSE 0 END) AS rw_lgo,
+            SUM(CASE WHEN hipdata_code = "LGO" THEN adjrw * ? ELSE 0 END) AS rw_receive_lgo,
+		    SUM(CASE WHEN hipdata_code = "SSS" THEN adjrw ELSE 0 END) AS rw_sss,
+            SUM(CASE WHEN hipdata_code = "SSS" THEN adjrw * ? ELSE 0 END) AS rw_receive_sss
+            FROM (SELECT i.an,i.regdate,i.dchdate,p.hipdata_code,ip.pttype,ip.hospmain,a.pdx,i.adjrw
                 FROM ipt i	
 		        LEFT JOIN ipt_pttype ip ON ip.an=i.an
                 LEFT JOIN pttype p ON p.pttype = ip.pttype
-                LEFT JOIN an_stat a ON a.an = i.an
-		        LEFT JOIN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y") w ON w.ward=i.ward
-                WHERE w.ward IS NULL
-                AND i.dchdate BETWEEN ? AND ?
+                LEFT JOIN an_stat a ON a.an = i.an		        
+                WHERE i.dchdate BETWEEN ? AND ?
                 GROUP BY i.an) AS a ', [$k_value,$base_rate,$base_rate2,$base_rate_ofc,$base_rate_lgo,$base_rate_sss,$start_date,$end_date]); 
         foreach ($adjrw as $row){
                 $rw_all = $row->rw_all;
@@ -149,7 +144,7 @@ public function wait_icd_coder(Request $request)
                 id4.diag_text AS dx4,d4.`name` AS dx4_doctor,id4.audit_diag_text AS dx4_audit,d4_a.`name` AS dx4_doctor_audit,
                 id5.diag_text AS dx5,d5.`name` AS dx5_doctor,id5.audit_diag_text AS dx5_audit,d5_a.`name` AS dx5_doctor_audit,
                 id_t1.icd10 AS icd10_t1, GROUP_CONCAT(DISTINCT id_t2.icd10) AS icd10_t2 ,GROUP_CONCAT(DISTINCT id_t3.icd10) AS icd10_t3,
-                GROUP_CONCAT(DISTINCT id_t4.icd10) AS icd10_t4,GROUP_CONCAT(DISTINCT id_t5.icd10) AS icd10_t5,a.rw       
+                GROUP_CONCAT(DISTINCT id_t4.icd10) AS icd10_t4,GROUP_CONCAT(DISTINCT id_t5.icd10) AS icd10_t5,i.adjrw      
                 FROM ipt i
                 LEFT JOIN patient pt ON pt.hn=i.hn
                 LEFT JOIN pttype p ON p.pttype=i.pttype
@@ -177,8 +172,7 @@ public function wait_icd_coder(Request $request)
                 LEFT JOIN iptdiag id_t3 ON id_t3.an=i.an AND id_t3.diagtype = 3
                 LEFT JOIN iptdiag id_t4 ON id_t4.an=i.an AND id_t4.diagtype = 4
                 LEFT JOIN iptdiag id_t5 ON id_t5.an=i.an AND id_t5.diagtype = 5
-                WHERE i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")
-                AND i.dchdate BETWEEN ? AND ?
+                WHERE i.dchdate BETWEEN ? AND ?
                 AND (id1.diag_text <> "" OR id1.diag_text IS NOT NULL) AND (a.pdx = "" OR a.pdx IS NULL)                
                 GROUP BY i.an',[$start_date,$end_date]); 
 
@@ -207,7 +201,7 @@ public function dchsummary(Request $request)
                 OR dx4_audit IS NOT NULL OR dx4_audit <>"" OR dx5_audit IS NOT NULL OR dx5_audit <>"") THEN 1 ELSE 0 END) AS sum_dchsummary_audit
             FROM (SELECT i.an,i.regdate,i.dchdate,id1.diag_text AS dx1,id2.diag_text AS dx2,id3.diag_text AS dx3,id4.diag_text AS dx4,id5.diag_text AS dx5,
             id1.audit_diag_text AS dx1_audit,id2.audit_diag_text AS dx2_audit,id3.audit_diag_text AS dx3_audit,id4.audit_diag_text AS dx4_audit,
-            id5.audit_diag_text AS dx5_audit,a.pdx,a.diag_text_list,a.rw 
+            id5.audit_diag_text AS dx5_audit,a.pdx,a.diag_text_list,i.adjrw
             FROM ipt i
             LEFT JOIN ipt_doctor_diag id1 ON id1.an = i.an	AND id1.diagtype = 1 
             LEFT JOIN ipt_doctor_diag id2 ON id2.an = i.an	AND id2.diagtype = 2
@@ -215,8 +209,7 @@ public function dchsummary(Request $request)
             LEFT JOIN ipt_doctor_diag id4 ON id4.an = i.an	AND id4.diagtype = 4
             LEFT JOIN ipt_doctor_diag id5 ON id5.an = i.an	AND id5.diagtype = 5
             LEFT JOIN an_stat a ON a.an=i.an
-            WHERE i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")
-            AND i.dchdate BETWEEN ? AND ?
+            WHERE i.dchdate BETWEEN ? AND ?
             GROUP BY i.an) AS a',[$start_date,$end_date]); 
         foreach ($sql as $row){
             $sum_discharge = $row->sum_discharge;
@@ -233,29 +226,27 @@ public function dchsummary(Request $request)
         $base_rate_lgo = (float) DB::table('main_setting')->where('name','base_rate_lgo')->value('value');
         $base_rate_sss = (float) DB::table('main_setting')->where('name','base_rate_sss')->value('value');
         $adjrw=DB::connection('hosxp')->select('
-            SELECT COUNT(an) AS sum_discharge,SUM(rw) AS rw_all,
+            SELECT COUNT(an) AS sum_discharge,SUM(adjrw) AS rw_all,
             SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y") 
-			    THEN rw ELSE 0 END) AS rw_ucs,
+			    THEN adjrw ELSE 0 END) AS rw_ucs,
             SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
-			    THEN rw * ? * ? ELSE 0 END) AS rw_receive_ucs,
+			    THEN adjrw * ? * ? ELSE 0 END) AS rw_receive_ucs,
 		    SUM(CASE WHEN hipdata_code = "UCS" AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE (hmain_ucs IS NULL OR hmain_ucs ="")) 
-			    THEN rw ELSE 0 END) AS rw_ucs2,
+			    THEN adjrw ELSE 0 END) AS rw_ucs2,
             SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE (hmain_ucs IS NULL OR hmain_ucs =""))
-			    THEN rw * ? ELSE 0 END) AS rw_receive_ucs2,
-		    SUM(CASE WHEN hipdata_code = "OFC" THEN rw ELSE 0 END) AS rw_ofc,
-            SUM(CASE WHEN hipdata_code = "OFC" THEN rw * ? ELSE 0 END) AS rw_receive_ofc,
-		    SUM(CASE WHEN hipdata_code = "LGO" THEN rw ELSE 0 END) AS rw_lgo,
-            SUM(CASE WHEN hipdata_code = "LGO" THEN rw * ? ELSE 0 END) AS rw_receive_lgo,
-		    SUM(CASE WHEN hipdata_code = "SSS" THEN rw ELSE 0 END) AS rw_sss,
-            SUM(CASE WHEN hipdata_code = "SSS" THEN rw * ? ELSE 0 END) AS rw_receive_sss
-            FROM (SELECT i.an,i.regdate,i.dchdate,p.hipdata_code,ip.pttype,ip.hospmain,a.pdx,a.rw,w.ward
+			    THEN adjrw * ? ELSE 0 END) AS rw_receive_ucs2,
+		    SUM(CASE WHEN hipdata_code = "OFC" THEN adjrw ELSE 0 END) AS rw_ofc,
+            SUM(CASE WHEN hipdata_code = "OFC" THEN adjrw * ? ELSE 0 END) AS rw_receive_ofc,
+		    SUM(CASE WHEN hipdata_code = "LGO" THEN adjrw ELSE 0 END) AS rw_lgo,
+            SUM(CASE WHEN hipdata_code = "LGO" THEN adjrw * ? ELSE 0 END) AS rw_receive_lgo,
+		    SUM(CASE WHEN hipdata_code = "SSS" THEN adjrw ELSE 0 END) AS rw_sss,
+            SUM(CASE WHEN hipdata_code = "SSS" THEN adjrw * ? ELSE 0 END) AS rw_receive_sss
+            FROM (SELECT i.an,i.regdate,i.dchdate,p.hipdata_code,ip.pttype,ip.hospmain,a.pdx,i.adjrw
                 FROM ipt i	
 		        LEFT JOIN ipt_pttype ip ON ip.an=i.an
                 LEFT JOIN pttype p ON p.pttype = ip.pttype
-                LEFT JOIN an_stat a ON a.an = i.an
-		        LEFT JOIN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y") w ON w.ward=i.ward
-                WHERE w.ward IS NULL
-                AND i.dchdate BETWEEN ? AND ?
+                LEFT JOIN an_stat a ON a.an = i.an		        
+                WHERE i.dchdate BETWEEN ? AND ?
                 GROUP BY i.an) AS a ', [$k_value,$base_rate,$base_rate2,$base_rate_ofc,$base_rate_lgo,$base_rate_sss,$start_date,$end_date]); 
         foreach ($adjrw as $row){
                 $rw_all = $row->rw_all;
@@ -280,7 +271,7 @@ public function dchsummary(Request $request)
                 id4.diag_text AS dx4,d4.`name` AS dx4_doctor,id4.audit_diag_text AS dx4_audit,d4_a.`name` AS dx4_doctor_audit,
                 id5.diag_text AS dx5,d5.`name` AS dx5_doctor,id5.audit_diag_text AS dx5_audit,d5_a.`name` AS dx5_doctor_audit,
                 id_t1.icd10 AS icd10_t1, GROUP_CONCAT(DISTINCT id_t2.icd10) AS icd10_t2 ,GROUP_CONCAT(DISTINCT id_t3.icd10) AS icd10_t3,
-                GROUP_CONCAT(DISTINCT id_t4.icd10) AS icd10_t4,GROUP_CONCAT(DISTINCT id_t5.icd10) AS icd10_t5,a.rw       
+                GROUP_CONCAT(DISTINCT id_t4.icd10) AS icd10_t4,GROUP_CONCAT(DISTINCT id_t5.icd10) AS icd10_t5,i.adjrw      
                 FROM ipt i
                 LEFT JOIN patient pt ON pt.hn=i.hn
                 LEFT JOIN pttype p ON p.pttype=i.pttype
@@ -308,8 +299,7 @@ public function dchsummary(Request $request)
                 LEFT JOIN iptdiag id_t3 ON id_t3.an=i.an AND id_t3.diagtype = 3
                 LEFT JOIN iptdiag id_t4 ON id_t4.an=i.an AND id_t4.diagtype = 4
                 LEFT JOIN iptdiag id_t5 ON id_t5.an=i.an AND id_t5.diagtype = 5
-                WHERE i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")
-                AND i.dchdate BETWEEN ? AND ?
+                WHERE i.dchdate BETWEEN ? AND ?
                 AND (id1.an IS NOT NULL OR id1.an <>"") AND a.pdx <> "" AND a.pdx IS NOT NULL                 
                 GROUP BY i.an',[$start_date,$end_date]); 
 
@@ -337,7 +327,7 @@ public function dchsummary_audit(Request $request)
                     OR dx4_audit IS NOT NULL OR dx4_audit <>"" OR dx5_audit IS NOT NULL OR dx5_audit <>"") THEN 1 ELSE 0 END) AS sum_dchsummary_audit
                 FROM (SELECT i.an,i.regdate,i.dchdate,id1.diag_text AS dx1,id2.diag_text AS dx2,id3.diag_text AS dx3,id4.diag_text AS dx4,id5.diag_text AS dx5,
                 id1.audit_diag_text AS dx1_audit,id2.audit_diag_text AS dx2_audit,id3.audit_diag_text AS dx3_audit,id4.audit_diag_text AS dx4_audit,
-                id5.audit_diag_text AS dx5_audit,a.pdx,a.diag_text_list,a.rw 
+                id5.audit_diag_text AS dx5_audit,a.pdx,a.diag_text_list,i.adjrw
                 FROM ipt i
                 LEFT JOIN ipt_doctor_diag id1 ON id1.an = i.an	AND id1.diagtype = 1 
                 LEFT JOIN ipt_doctor_diag id2 ON id2.an = i.an	AND id2.diagtype = 2
@@ -345,8 +335,7 @@ public function dchsummary_audit(Request $request)
                 LEFT JOIN ipt_doctor_diag id4 ON id4.an = i.an	AND id4.diagtype = 4
                 LEFT JOIN ipt_doctor_diag id5 ON id5.an = i.an	AND id5.diagtype = 5
                 LEFT JOIN an_stat a ON a.an=i.an
-                WHERE i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")
-                AND i.dchdate BETWEEN ? AND ?
+                WHERE i.dchdate BETWEEN ? AND ?
                 GROUP BY i.an) AS a',[$start_date,$end_date]); 
         foreach ($sql as $row){
                 $sum_discharge = $row->sum_discharge;
@@ -363,33 +352,31 @@ public function dchsummary_audit(Request $request)
         $base_rate_lgo = (float) DB::table('main_setting')->where('name','base_rate_lgo')->value('value');
         $base_rate_sss = (float) DB::table('main_setting')->where('name','base_rate_sss')->value('value');
         $adjrw=DB::connection('hosxp')->select('
-            SELECT COUNT(an) AS sum_discharge,SUM(rw) AS rw_all,
+            SELECT COUNT(an) AS sum_discharge,SUM(adjrw) AS rw_all,
             SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y") 
-			    THEN rw ELSE 0 END) AS rw_ucs,
+			    THEN adjrw ELSE 0 END) AS rw_ucs,
             SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
-			    THEN rw * ? * ? ELSE 0 END) AS rw_receive_ucs,
+			    THEN adjrw * ? * ? ELSE 0 END) AS rw_receive_ucs,
 		    SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE (hmain_ucs IS NULL OR hmain_ucs ="")) 
-			    THEN rw ELSE 0 END) AS rw_ucs2,
+			    THEN adjrw ELSE 0 END) AS rw_ucs2,
             SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE (hmain_ucs IS NULL OR hmain_ucs =""))
-			    THEN rw * ? ELSE 0 END) AS rw_receive_ucs2,
-		    SUM(CASE WHEN hipdata_code = "OFC" THEN rw ELSE 0 END) AS rw_ofc,
-            SUM(CASE WHEN hipdata_code = "OFC" THEN rw * ? ELSE 0 END) AS rw_receive_ofc,
-		    SUM(CASE WHEN hipdata_code = "LGO" THEN rw ELSE 0 END) AS rw_lgo,
-            SUM(CASE WHEN hipdata_code = "LGO" THEN rw * ? ELSE 0 END) AS rw_receive_lgo,
-		    SUM(CASE WHEN hipdata_code = "SSS" THEN rw ELSE 0 END) AS rw_sss,
-            SUM(CASE WHEN hipdata_code = "SSS" THEN rw * ? ELSE 0 END) AS rw_receive_sss
-            FROM (SELECT i.an,i.regdate,i.dchdate,p.hipdata_code,ip.pttype,ip.hospmain,a.pdx,a.rw,w.ward
+			    THEN adjrw * ? ELSE 0 END) AS rw_receive_ucs2,
+		    SUM(CASE WHEN hipdata_code = "OFC" THEN adjrw ELSE 0 END) AS rw_ofc,
+            SUM(CASE WHEN hipdata_code = "OFC" THEN adjrw * ? ELSE 0 END) AS rw_receive_ofc,
+		    SUM(CASE WHEN hipdata_code = "LGO" THEN adjrw ELSE 0 END) AS rw_lgo,
+            SUM(CASE WHEN hipdata_code = "LGO" THEN adjrw * ? ELSE 0 END) AS rw_receive_lgo,
+		    SUM(CASE WHEN hipdata_code = "SSS" THEN adjrw ELSE 0 END) AS rw_sss,
+            SUM(CASE WHEN hipdata_code = "SSS" THEN adjrw * ? ELSE 0 END) AS rw_receive_sss
+            FROM (SELECT i.an,i.regdate,i.dchdate,p.hipdata_code,ip.pttype,ip.hospmain,a.pdx,i.adjrw
                 FROM ipt i	
 		        LEFT JOIN ipt_pttype ip ON ip.an=i.an
                 LEFT JOIN pttype p ON p.pttype = ip.pttype
-                LEFT JOIN an_stat a ON a.an = i.an
-		        LEFT JOIN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y") w ON w.ward=i.ward
-                WHERE w.ward IS NULL
-                AND i.dchdate BETWEEN ? AND ?
+                LEFT JOIN an_stat a ON a.an = i.an		        
+                WHERE i.dchdate BETWEEN ? AND ?
                 GROUP BY i.an) AS a ', [$k_value,$base_rate,$base_rate2,$base_rate_ofc,$base_rate_lgo,$base_rate_sss,$start_date,$end_date]); 
         foreach ($adjrw as $row){
                 $rw_all = $row->rw_all;
-                $rw_ucs = $row->rw_ucs;
+                $rw_ucs = $row->rw_ucs; 
                 $rw_receive_ucs = $row->rw_receive_ucs;
                 $rw_ucs2 = $row->rw_ucs2;
                 $rw_receive_ucs2 = $row->rw_receive_ucs2;
@@ -410,7 +397,7 @@ public function dchsummary_audit(Request $request)
                 id4.diag_text AS dx4,d4.`name` AS dx4_doctor,id4.audit_diag_text AS dx4_audit,d4_a.`name` AS dx4_doctor_audit,
                 id5.diag_text AS dx5,d5.`name` AS dx5_doctor,id5.audit_diag_text AS dx5_audit,d5_a.`name` AS dx5_doctor_audit,
                 id_t1.icd10 AS icd10_t1, GROUP_CONCAT(DISTINCT id_t2.icd10) AS icd10_t2 ,GROUP_CONCAT(DISTINCT id_t3.icd10) AS icd10_t3,
-                GROUP_CONCAT(DISTINCT id_t4.icd10) AS icd10_t4,GROUP_CONCAT(DISTINCT id_t5.icd10) AS icd10_t5,a.rw       
+                GROUP_CONCAT(DISTINCT id_t4.icd10) AS icd10_t4,GROUP_CONCAT(DISTINCT id_t5.icd10) AS icd10_t5,i.adjrw     
                 FROM ipt i
                 LEFT JOIN patient pt ON pt.hn=i.hn
                 LEFT JOIN pttype p ON p.pttype=i.pttype
@@ -438,8 +425,7 @@ public function dchsummary_audit(Request $request)
                 LEFT JOIN iptdiag id_t3 ON id_t3.an=i.an AND id_t3.diagtype = 3
                 LEFT JOIN iptdiag id_t4 ON id_t4.an=i.an AND id_t4.diagtype = 4
                 LEFT JOIN iptdiag id_t5 ON id_t5.an=i.an AND id_t5.diagtype = 5
-                WHERE i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")                
-                AND i.dchdate BETWEEN ? AND ?
+                WHERE i.dchdate BETWEEN ? AND ?
                 AND ((id1.audit_diag_text IS NOT NULL OR id1.audit_diag_text <>"") 
                   OR (id2.audit_diag_text IS NOT NULL OR id2.audit_diag_text <>"")
                   OR (id3.audit_diag_text IS NOT NULL OR id3.audit_diag_text <>"")

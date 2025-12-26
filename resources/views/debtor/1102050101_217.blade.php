@@ -65,7 +65,6 @@
                         <th class="text-center">ชำระเอง</th>
                         <th class="text-center">บริการเฉพาะ</th>
                         <th class="text-center text-primary">ลูกหนี้</th>
-                        <th class="text-center text-primary">อัตราจ่าย/RW</th>
                         <th class="text-center text-primary">ชดเชย</th> 
                         <th class="text-center text-primary">ผลต่าง</th>
                         <th class="text-center text-primary">REP</th>  
@@ -93,11 +92,7 @@
                         <td align="right">{{ number_format($row->income,2) }}</td>
                         <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
                         <td align="right">{{ number_format($row->cr,2) }}</td>
-                        <td align="right" class="text-primary">{{ number_format($row->debtor,2) }}</td>  
-                        <td align="right" @if($row->fund_ip_payrate > 0) style="color:green" 
-                            @elseif($row->fund_ip_payrate < 0) style="color:red" @endif>
-                            {{ number_format($row->fund_ip_payrate,2) }}
-                        </td>                        
+                        <td align="right" class="text-primary">{{ number_format($row->debtor,2) }}</td> 
                         <td align="right" @if($row->receive > 0) style="color:green" 
                             @elseif($row->receive < 0) style="color:red" @endif>
                             {{ number_format($row->receive,2) }}

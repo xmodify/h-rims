@@ -491,16 +491,55 @@ public function stm_ucs_kidneydetail(Request $request)
 //stm_ofc-----------------------------------------------------------------------------------------------------------------------------
 public function stm_ofc(Request $request)
     {  
-        $stm_ofc=DB::select('
-            SELECT  stm_filename,COUNT(DISTINCT repno) AS count_repno,COUNT(cid) AS count_cid,
-            SUM(adjrw) AS sum_adjrw,SUM(charge) AS sum_charge,SUM(act) AS sum_act,
-            SUM(receive_room) AS sum_receive_room,SUM(receive_instument) AS sum_receive_instument,
-            SUM(receive_drug) AS sum_receive_drug,SUM(receive_treatment) AS sum_receive_treatment,
-            SUM(receive_car) AS sum_receive_car,SUM(receive_waitdch) AS sum_receive_waitdch,
-            SUM(receive_other) AS sum_receive_other,SUM(receive_total) AS sum_receive_total
-            FROM stm_ofc GROUP BY stm_filename ORDER BY repno');    
+        ini_set('max_execution_time', 300);
 
-        return view('import.stm_ofc',compact('stm_ofc'));
+        /* ---------------- ปีงบ (dropdown) ---------------- */
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
+            ->orderByDesc('LEAVE_YEAR_ID')
+            ->limit(7)
+            ->get();
+
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');
+
+        $budget_year = $request->budget_year ?: $budget_year_now;
+
+        /* ---------------- Query หลัก (เหมือน UCS) ---------------- */
+        $stm_ofc = DB::select("
+            SELECT
+            IF(SUBSTRING(stm_filename,11) LIKE 'O%','OPD','IPD') AS dep,
+            stm_filename,
+            round_no,
+            COUNT(DISTINCT repno) AS repno,
+            COUNT(cid) AS count_cid,
+            SUM(adjrw) AS sum_adjrw,
+            SUM(charge) AS sum_charge,
+            SUM(act) AS sum_act,
+            SUM(receive_room) AS sum_receive_room,
+            SUM(receive_instument) AS sum_receive_instument,
+            SUM(receive_drug) AS sum_receive_drug,
+            SUM(receive_treatment) AS sum_receive_treatment,
+            SUM(receive_car) AS sum_receive_car,
+            SUM(receive_waitdch) AS sum_receive_waitdch,
+            SUM(receive_other) AS sum_receive_other,
+            SUM(receive_total) AS sum_receive_total,
+            MAX(receive_no)   AS receive_no,
+            MAX(receipt_date) AS receipt_date,
+            MAX(receipt_by)   AS receipt_by
+            FROM stm_ofc
+            WHERE (CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename), 4) AS UNSIGNED) + 543
+				+ (CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename) + 4, 2) AS UNSIGNED) >= 10)) = ?
+            GROUP BY stm_filename, round_no
+            ORDER BY CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename), 6) AS UNSIGNED ) DESC,   
+				CASE WHEN round_no IS NOT NULL AND round_no <> ''
+				THEN (CAST(LEFT(round_no,2) AS UNSIGNED) + 2500) * 100
+				+ CAST(SUBSTRING(round_no,3,2) AS UNSIGNED)  ELSE 0 END DESC,
+				stm_filename DESC, dep DESC ", [$budget_year]);
+
+        return view('import.stm_ofc',compact('stm_ofc', 'budget_year_select', 'budget_year'));
     }
 
 //stm_ofc_save---------------------------------------------------------------------------------------------------------------------------
@@ -531,6 +570,10 @@ public function stm_ofc(Request $request)
                 $sheet       = $spreadsheet->setActiveSheetIndex(0);
                 $row_limit   = $sheet->getHighestDataRow();
 
+                // ✅ round_no อยู่ที่ A6 เริ่มอักษรที่ 12 จากซ้าย
+                $roundText = $sheet->getCell('A6')->getCalculatedValue();
+                $round_no  = trim(mb_substr((string) $roundText, 13, null, 'UTF-8'));  
+
                 $data = [];
                 for ($row = 12; $row <= $row_limit; $row++) {
 
@@ -550,31 +593,32 @@ public function stm_ofc(Request $request)
                     $datetimedch = $dchyear.'-'.$dchmo.'-'.$dchday.' '.$dchtime;
 
                     $data[] = [
-                        'repno'              => $sheet->getCell('A'.$row)->getValue(),
-                        'no'                 => $sheet->getCell('B'.$row)->getValue(),
-                        'hn'                 => $sheet->getCell('C'.$row)->getValue(),
-                        'an'                 => $sheet->getCell('D'.$row)->getValue(),
-                        'cid'                => $sheet->getCell('E'.$row)->getValue(),
-                        'pt_name'            => $sheet->getCell('F'.$row)->getValue(),
-                        'datetimeadm'        => $datetimeadm,
-                        'vstdate'            => date('Y-m-d', strtotime($datetimeadm)),
-                        'vsttime'            => date('H:i:s', strtotime($datetimeadm)),
-                        'datetimedch'        => $datetimedch,
-                        'dchdate'            => date('Y-m-d', strtotime($datetimedch)),
-                        'dchtime'            => date('H:i:s', strtotime($datetimedch)),
-                        'projcode'           => $sheet->getCell('I'.$row)->getValue(),
-                        'adjrw'              => $sheet->getCell('J'.$row)->getValue(),
-                        'charge'             => $sheet->getCell('K'.$row)->getValue(),
-                        'act'                => $sheet->getCell('L'.$row)->getValue(),
-                        'receive_room'       => $sheet->getCell('M'.$row)->getValue(),
-                        'receive_instument'  => $sheet->getCell('N'.$row)->getValue(),
-                        'receive_drug'       => $sheet->getCell('O'.$row)->getValue(),
-                        'receive_treatment'  => $sheet->getCell('P'.$row)->getValue(),
-                        'receive_car'        => $sheet->getCell('Q'.$row)->getValue(),
-                        'receive_waitdch'    => $sheet->getCell('R'.$row)->getValue(),
-                        'receive_other'      => $sheet->getCell('S'.$row)->getValue(),
-                        'receive_total'      => $sheet->getCell('T'.$row)->getValue(),
-                        'stm_filename'       => $file_name,
+                        'round_no'              => $round_no,
+                        'repno'                 => $sheet->getCell('A'.$row)->getValue(),
+                        'no'                    => $sheet->getCell('B'.$row)->getValue(),
+                        'hn'                    => $sheet->getCell('C'.$row)->getValue(),
+                        'an'                    => $sheet->getCell('D'.$row)->getValue(),
+                        'cid'                   => $sheet->getCell('E'.$row)->getValue(),
+                        'pt_name'               => $sheet->getCell('F'.$row)->getValue(),
+                        'datetimeadm'           => $datetimeadm,
+                        'vstdate'               => date('Y-m-d', strtotime($datetimeadm)),
+                        'vsttime'               => date('H:i:s', strtotime($datetimeadm)),
+                        'datetimedch'           => $datetimedch,
+                        'dchdate'               => date('Y-m-d', strtotime($datetimedch)),
+                        'dchtime'               => date('H:i:s', strtotime($datetimedch)),
+                        'projcode'              => $sheet->getCell('I'.$row)->getValue(),
+                        'adjrw'                 => $sheet->getCell('J'.$row)->getValue(),
+                        'charge'                => $sheet->getCell('K'.$row)->getValue(),
+                        'act'                   => $sheet->getCell('L'.$row)->getValue(),
+                        'receive_room'          => $sheet->getCell('M'.$row)->getValue(),
+                        'receive_instument'     => $sheet->getCell('N'.$row)->getValue(),
+                        'receive_drug'          => $sheet->getCell('O'.$row)->getValue(),
+                        'receive_treatment'     => $sheet->getCell('P'.$row)->getValue(),
+                        'receive_car'           => $sheet->getCell('Q'.$row)->getValue(),
+                        'receive_waitdch'       => $sheet->getCell('R'.$row)->getValue(),
+                        'receive_other'         => $sheet->getCell('S'.$row)->getValue(),
+                        'receive_total'         => $sheet->getCell('T'.$row)->getValue(),
+                        'stm_filename'          => $file_name,
                     ];
                 }
 
@@ -597,6 +641,7 @@ public function stm_ofc(Request $request)
                     Stm_ofc::where('repno', $value->repno)
                         ->where('no', $value->no)
                         ->update([
+                            'round_no'          => $value->round_no,
                             'datetimeadm'       => $value->datetimeadm,
                             'vstdate'           => $value->vstdate,
                             'vsttime'           => $value->vsttime,
@@ -616,6 +661,7 @@ public function stm_ofc(Request $request)
                         ]);
                 } else {
                     Stm_ofc::create([
+                        'round_no'          => $value->round_no,
                         'repno'              => $value->repno,
                         'no'                 => $value->no,
                         'hn'                 => $value->hn,
@@ -659,7 +705,32 @@ public function stm_ofc(Request $request)
             return back()->withErrors('There was a problem uploading the data!');
         }
     }
+//Create stm_ofc_updateReceipt------------------------------------------------------------------------------------------------------------- 
+    public function stm_ofc_updateReceipt(Request $request)
+    {
+        $request->validate([
+            'round_no'     => 'required',
+            'receive_no'   => 'required|max:20',
+            'receipt_date' => 'required|date',
+        ]);
 
+        DB::table('stm_ofc')
+            ->where('round_no', $request->round_no)
+            ->update([
+                'receive_no'   => $request->receive_no,
+                'receipt_date' => $request->receipt_date,
+                'receipt_by'   => auth()->user()->name ?? 'system',
+                'updated_at'   => now(),
+            ]);
+
+        return response()->json([
+            'status'       => 'success',
+            'message'      => 'ออกใบเสร็จเรียบร้อยแล้ว',
+            'round_no'     => $request->round_no,
+            'receive_no'   => $request->receive_no,
+            'receipt_date' => $request->receipt_date,
+        ]);
+    }
 //stm_ofc_detail----------------------------------------------------------------------------------------------------------------
 public function stm_ofc_detail(Request $request)
     {  

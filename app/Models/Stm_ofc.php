@@ -40,6 +40,8 @@ class Stm_ofc extends Model
         'receive_total',
         'stm_filename',
         'receive_no',
+        'receipt_date',
+        'receipt_by',
     ];
     public $timestamps = false;   
 }

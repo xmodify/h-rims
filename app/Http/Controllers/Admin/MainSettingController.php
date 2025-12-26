@@ -96,50 +96,52 @@ class MainSettingController extends Controller
             ],
             // ---------------- STM ----------------
             'stm_lgo' => [
-                ['name' => 'round_no',   'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+                ['name' => 'round_no',   'type' => 'VARCHAR(30) NULL', 'after' => 'id'],
                 ['name' => 'receive_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'stm_filename'], 
             ],
             'stm_lgo_kidney' => [
-                ['name' => 'round_no',   'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+                ['name' => 'round_no',   'type' => 'VARCHAR(30) NULL', 'after' => 'id'],
                 ['name' => 'receive_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'stm_filename'],
             ],
             'stm_ofc' => [
-                ['name' => 'round_no',   'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+                ['name' => 'round_no',   'type' => 'VARCHAR(30) NULL', 'after' => 'id'],
                 ['name' => 'receive_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'stm_filename'],
+                ['name' => 'receipt_date','type' => 'DATE NULL',        'after' => 'receive_no'],
+                ['name' => 'receipt_by',  'type' => 'VARCHAR(100) NULL','after' => 'receipt_date'],
             ],
             'stm_ofc_kidney' => [
-                ['name' => 'round_no',   'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+                ['name' => 'round_no',   'type' => 'VARCHAR(30) NULL', 'after' => 'id'],
                 ['name' => 'receive_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'hdflag'],
             ],
             'stm_sss_kidney' => [
-                ['name' => 'round_no',   'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+                ['name' => 'round_no',   'type' => 'VARCHAR(30) NULL', 'after' => 'id'],
                 ['name' => 'receive_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'hdflag'],
             ],
             'stm_ucs' => [
-                ['name' => 'round_no',    'type' => 'VARCHAR(20) NULL', 'after' => 'id'], 
+                ['name' => 'round_no',    'type' => 'VARCHAR(30) NULL', 'after' => 'id'], 
                 ['name' => 'receive_no',  'type' => 'VARCHAR(20) NULL', 'after' => 'stm_filename'],
                 ['name' => 'receipt_date','type' => 'DATE NULL',        'after' => 'receive_no'],
                 ['name' => 'receipt_by',  'type' => 'VARCHAR(100) NULL','after' => 'receipt_date'],
             ],
             'stm_ucs_kidney' => [
-                ['name' => 'round_no',   'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+                ['name' => 'round_no',   'type' => 'VARCHAR(30) NULL', 'after' => 'id'],
                 ['name' => 'receive_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'stm_filename'],
             ],
             // ---------------- STM EXCEL (staging) ----------------
             'stm_lgo_kidneyexcel' => [
-                ['name' => 'round_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+                ['name' => 'round_no', 'type' => 'VARCHAR(30) NULL', 'after' => 'id'],
             ],
             'stm_lgoexcel' => [
-                ['name' => 'round_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+                ['name' => 'round_no', 'type' => 'VARCHAR(30) NULL', 'after' => 'id'],
             ],
             'stm_ofcexcel' => [
-                ['name' => 'round_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+                ['name' => 'round_no', 'type' => 'VARCHAR(30) NULL', 'after' => 'id'],
             ],
             'stm_ucs_kidneyexcel' => [
-                ['name' => 'round_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+                ['name' => 'round_no', 'type' => 'VARCHAR(30) NULL', 'after' => 'id'],
             ],
             'stm_ucsexcel' => [
-                ['name' => 'round_no', 'type' => 'VARCHAR(20) NULL', 'after' => 'id'],
+                ['name' => 'round_no', 'type' => 'VARCHAR(30) NULL', 'after' => 'id'],
             ],
             // ---------------- Debtor ----------------
             'debtor_1102050101_209' => [
@@ -154,8 +156,18 @@ class MainSettingController extends Controller
                     continue;
                 }
                 foreach ($columns as $col) {
-                    if (!Schema::hasColumn($table, $col['name'])) {
-                        // ตำแหน่ง column
+                    // ====== กรณี column มีอยู่แล้ว → MODIFY ======
+                    if (Schema::hasColumn($table, $col['name'])) {
+
+                        DB::statement("
+                            ALTER TABLE `$table`
+                            MODIFY COLUMN `{$col['name']}` {$col['type']}
+                        ");
+
+                    }
+                    // ====== กรณี column ยังไม่มี → ADD ======
+                    else {
+
                         $afterSql = '';
                         if (
                             isset($col['after']) &&
@@ -164,6 +176,7 @@ class MainSettingController extends Controller
                         ) {
                             $afterSql = " AFTER `{$col['after']}`";
                         }
+
                         DB::statement("
                             ALTER TABLE `$table`
                             ADD COLUMN `{$col['name']}` {$col['type']}{$afterSql}

@@ -69,12 +69,12 @@
                 <thead>
                     <tr class="table-primary">
                         <th class="text-center" width = "17%">ชื่อ File</th> 
-                        <th class="text-center">Dep</th>
-                        <th class="text-center">เลขงวด</th> 
+                        <th class="text-center">Dep</th>                         
                         <th class="text-center">จำนวน REP</th> 
                         <th class="text-center">จำนวนราย</th>
                         <th class="text-center">เรียกเก็บ</th>                                     
-                        <th class="text-center">ชดเชยสุทธิ</th>   
+                        <th class="text-center">ชดเชยสุทธิ</th> 
+                        <th class="text-center">เลขงวด</th>  
                         <th class="text-center">ออกใบเสร็จ</th>                      
                     </tr> 
                     </thead> 
@@ -82,12 +82,12 @@
                     @foreach($stm_ucs as $row) 
                     <tr>
                         <td align="right">{{ $row->stm_filename }}</td> 
-                        <td align="center">{{ $row->dep }}</td> 
-                        <td align="right">{{ $row->round_no }}</td>
+                        <td align="center">{{ $row->dep }}</td>                         
                         <td align="right">{{ $row->repno }}</td>                            
                         <td align="right">{{ number_format($row->count_cid) }}</td>                                   
                         <td align="right">{{ number_format($row->charge,2) }}</td>                                     
-                        <td align="right">{{ number_format($row->receive_total,2) }}</td>   
+                        <td align="right" class="text-success">{{ number_format($row->receive_total,2) }}</td>   
+                        <td align="right" class="text-primary">{{ $row->round_no }}</td>
                         <td class="text-end">
                             @if(!empty($row->round_no))
                                 {{ $row->receive_no }} 

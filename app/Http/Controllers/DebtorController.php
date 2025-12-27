@@ -178,7 +178,8 @@ class DebtorController extends Controller
         $_1102050102_801 = DB::select('
             SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,SUM(IFNULL(s.compensate_treatment,0)+IFNULL(sk.compensate_kidney,0)) AS receive
             FROM debtor_1102050102_801 d   
-                LEFT JOIN stm_lgo s ON s.hn=d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime,5) =LEFT(d.vsttime,5)
+            LEFT JOIN (SELECT hn,vstdate, LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment
+                FROM stm_lgo GROUP BY hn, vstdate, LEFT(vsttime,5)) s ON s.hn = d.hn AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
             LEFT JOIN stm_lgo_kidney sk ON sk.hn=d.hn AND sk.datetimeadm = d.vstdate AND d.kidney IS NOT NULL
             WHERE d.vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
         $_1102050102_803 = DB::select('
@@ -253,7 +254,8 @@ class DebtorController extends Controller
             SELECT COUNT(DISTINCT an) AS anvn,SUM(debtor) AS debtor,SUM(receive_total) AS receive
             FROM (SELECT d.*,s.compensate_treatment+IFNULL(SUM(sk.compensate_kidney),0) AS receive_total 
             FROM debtor_1102050102_802 d    
-            LEFT JOIN stm_lgo s ON s.an=d.an
+            LEFT JOIN ( SELECT an, SUM(compensate_treatment) AS compensate_treatment
+                FROM stm_lgo GROUP BY an) s ON s.an = d.an
             LEFT JOIN stm_lgo_kidney sk ON sk.cid=d.cid AND sk.datetimeadm BETWEEN d.regdate AND d.dchdate
             WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an ) AS a' ,[$start_date,$end_date]);
         $_1102050102_804 = DB::select('
@@ -4482,7 +4484,9 @@ class DebtorController extends Controller
                     CASE WHEN (IFNULL(s.compensate_treatment,0)+IFNULL(sk.receive_total,0)+IFNULL(su.receive_pp,0)) - IFNULL(d.debtor, 0)>= 0 
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_801 d   
-                LEFT JOIN stm_lgo s ON s.cid = d.cid AND s.vstdate = d.vstdate AND LEFT(s.vsttime, 5) = LEFT(d.vsttime, 5)
+                LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment,
+                    GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno FROM stm_lgo GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid
+                    AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
 				LEFT JOIN (SELECT cid,datetimeadm,sum(compensate_kidney) AS receive_total,repno FROM stm_lgo_kidney
 				WHERE datetimeadm BETWEEN ? AND ? GROUP BY cid,datetimeadm) sk ON sk.cid=d.cid AND sk.datetimeadm = d.vstdate
 				LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp 
@@ -4499,7 +4503,9 @@ class DebtorController extends Controller
                     CASE WHEN (IFNULL(s.compensate_treatment,0)+IFNULL(sk.receive_total,0)+IFNULL(su.receive_pp,0)) - IFNULL(d.debtor, 0)>= 0 
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_801 d   
-                LEFT JOIN stm_lgo s ON s.cid = d.cid AND s.vstdate = d.vstdate AND LEFT(s.vsttime, 5) = LEFT(d.vsttime, 5)
+                LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment,
+                    GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno FROM stm_lgo GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid
+                    AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
 				LEFT JOIN (SELECT cid,datetimeadm,sum(compensate_kidney) AS receive_total,repno FROM stm_lgo_kidney
 				WHERE datetimeadm BETWEEN ? AND ? GROUP BY cid,datetimeadm) sk ON sk.cid=d.cid AND sk.datetimeadm = d.vstdate
 				LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp 
@@ -4683,7 +4689,8 @@ class DebtorController extends Controller
             FROM (SELECT d.vstdate,d.vn,d.hn,d.debtor,IFNULL(s.compensate_treatment,0) AS receive_lgo,
 			IFNULL(sk.receive_total,0) AS receive_kidney
             FROM debtor_1102050102_801 d   
-            LEFT JOIN stm_lgo s ON s.cid = d.cid AND s.vstdate = d.vstdate AND LEFT(s.vsttime, 5) = LEFT(d.vsttime, 5)
+            LEFT JOIN ( SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment
+                FROM stm_lgo GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
 			LEFT JOIN (SELECT cid,datetimeadm,sum(compensate_kidney) AS receive_total,repno FROM stm_lgo_kidney
 				WHERE datetimeadm BETWEEN ? AND ? GROUP BY cid,datetimeadm) sk ON sk.cid=d.cid AND sk.datetimeadm = d.vstdate
 			LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp 
@@ -7623,7 +7630,8 @@ class DebtorController extends Controller
                     CASE WHEN (s.compensate_treatment+IFNULL(SUM(s1.compensate_kidney),0)) - IFNULL(d.debtor, 0)>= 0 
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_802 d    
-                LEFT JOIN stm_lgo s ON s.an=d.an
+                LEFT JOIN (SELECT an,SUM(compensate_treatment) AS compensate_treatment,
+                    GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno FROM stm_lgo GROUP BY an) s ON s.an = d.an
 				LEFT JOIN stm_lgo_kidney s1 ON s1.cid=d.cid AND s1.datetimeadm BETWEEN d.regdate AND d.dchdate
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
                 AND d.dchdate BETWEEN ? AND ?
@@ -7636,7 +7644,8 @@ class DebtorController extends Controller
                     CASE WHEN (s.compensate_treatment+IFNULL(SUM(s1.compensate_kidney),0)) - IFNULL(d.debtor, 0)>= 0 
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_802 d    
-                LEFT JOIN stm_lgo s ON s.an=d.an
+                LEFT JOIN (SELECT an,SUM(compensate_treatment) AS compensate_treatment,
+                    GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno FROM stm_lgo GROUP BY an) s ON s.an = d.an
 				LEFT JOIN stm_lgo_kidney s1 ON s1.cid=d.cid AND s1.datetimeadm BETWEEN d.regdate AND d.dchdate
                 WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an', [$start_date,$end_date]);
         }
@@ -7777,9 +7786,10 @@ class DebtorController extends Controller
             SELECT dchdate AS vstdate,COUNT(DISTINCT an) AS anvn,SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM (SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,d.income,
             d.rcpt_money,d.kidney,d.debtor,debtor_lock,s.compensate_treatment+IFNULL(SUM(s1.compensate_kidney),0) AS receive,
-            s.compensate_treatment AS receive_lgo,SUM(s1.compensate_kidney) AS receive_kidney,s.repno,s1.repno AS repno_kidney
+            s.compensate_treatment AS receive_lgo,SUM(s1.compensate_kidney) AS receive_kidney
             FROM debtor_1102050102_802 d    
-            LEFT JOIN stm_lgo s ON s.an=d.an
+            LEFT JOIN (SELECT an,SUM(compensate_treatment) AS compensate_treatment
+                FROM stm_lgo GROUP BY an) s ON s.an = d.an
 			LEFT JOIN stm_lgo_kidney s1 ON s1.cid=d.cid AND s1.datetimeadm BETWEEN d.regdate AND d.dchdate
             WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an) AS a
 		    GROUP BY dchdate ORDER BY dchdate',[$start_date,$end_date]);

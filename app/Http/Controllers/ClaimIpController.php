@@ -510,7 +510,8 @@ class ClaimIpController extends Controller
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
             LEFT JOIN pttype p ON p.pttype=ip.pttype          
             LEFT JOIN an_stat a ON a.an=i.an            
-            LEFT JOIN hrims.stm_lgo stm ON stm.an=i.an 
+            LEFT JOIN (SELECT an,SUM(case_iplg) AS case_iplg,SUM(compensate_treatment) AS compensate_treatment,
+                GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno FROM hrims.stm_lgo GROUP BY an) stm ON stm.an = i.an
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "LGO" GROUP BY i.an ) AS a
 			GROUP BY YEAR(dchdate), MONTH(dchdate)
@@ -536,11 +537,13 @@ class ClaimIpController extends Controller
             LEFT JOIN iptoprt idx ON idx.an=i.an
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
-            LEFT JOIN hrims.stm_lgo stm ON stm.an=i.an 
-            WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
+            LEFT JOIN (SELECT an,SUM(case_iplg) AS case_iplg,SUM(compensate_treatment) AS compensate_treatment,
+                GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno FROM hrims.stm_lgo GROUP BY an) stm ON stm.an = i.an
+            WHERE i.confirm_discharge = "Y" 
+            AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "LGO" 
-            AND (ic.an IS NULL OR (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id NOT IN ("4","5"))) 
             AND stm.an IS NULL
+            AND (ic.an IS NULL OR (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id NOT IN ("4","5")))
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);
 
         $claim=DB::connection('hosxp')->select('
@@ -560,8 +563,10 @@ class ClaimIpController extends Controller
             LEFT JOIN iptoprt idx ON idx.an=i.an
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
-            LEFT JOIN hrims.stm_lgo stm ON stm.an=i.an 
-            WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
+            LEFT JOIN (SELECT an,SUM(case_iplg) AS case_iplg,SUM(compensate_treatment) AS compensate_treatment,
+                GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno FROM hrims.stm_lgo GROUP BY an) stm ON stm.an = i.an
+            WHERE i.confirm_discharge = "Y" 
+            AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "LGO" 
             AND ((ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) OR stm.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date]);

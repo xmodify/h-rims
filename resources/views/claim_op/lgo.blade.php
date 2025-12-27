@@ -152,7 +152,7 @@
                   <th class="text-center">ppfs</th>
                   <th class="text-center" width = "5%">ส่ง Claim</th>   
                   <th class="text-center">เรียกเก็บ</th>
-                  <th class="text-center">ชดเชย OFC</th>
+                  <th class="text-center">ชดเชย LGO</th>
                   <th class="text-center">ชดเชย PP</th>
                   <th class="text-center">ผลต่าง</th> 
                   <th class="text-center">RepNo.</th>        
@@ -214,7 +214,7 @@
               ชำระเอง: <strong>{{ number_format($sum_rcpt_money,2)}}</strong> บาท |
               PPFS: <strong>{{ number_format($sum_ppfs,2)}}</strong> บาท |
               เรียกเก็บ: <strong>{{ number_format($sum_debtor,2)}}</strong> บาท |
-              ชดเชย OFC: <strong  @if($sum_receive_total > 0) style="color:green" 
+              ชดเชย LGO: <strong  @if($sum_receive_total > 0) style="color:green" 
                         @elseif($sum_receive_total < 0) style="color:red" @endif>
                         {{ number_format($sum_receive_total,2)}}</strong> บาท |
               ชดเชย PP: <strong  @if($sum_receive_pp > 0) style="color:green" 

@@ -29,6 +29,8 @@ class Stm_sss_kidney extends Model
         'rid',
         'hdflag',
         'receive_no',
+        'receipt_date',
+        'receipt_by',
     ];
     public $timestamps = false;   
 }

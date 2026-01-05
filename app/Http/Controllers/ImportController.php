@@ -888,14 +888,54 @@ public function stm_ofc_kidneydetail(Request $request)
 //stm_lgo-----------------------------------------------------------------------------------------------------------------------------
     public function stm_lgo(Request $request)
     {  
-        $stm_lgo=DB::select('
-            SELECT dep,stm_filename,repno,COUNT(repno) AS count_no,SUM(adjrw) AS adjrw,SUM(payrate) AS payrate,
-            SUM(charge_treatment) AS charge_treatment,SUM(compensate_treatment) AS compensate_treatment,
-            SUM(case_iplg) AS case_iplg,SUM(case_oplg) AS case_oplg,SUM(case_palg) AS case_palg,
-            SUM(case_inslg) AS case_inslg,SUM(case_otlg) AS case_otlg,SUM(case_pp) AS case_pp,SUM(case_drug) AS case_drug
-            FROM stm_lgo GROUP BY stm_filename,repno ORDER BY dep DESC,repno');
+        ini_set('max_execution_time', 300);
 
-        return view('import.stm_lgo',compact('stm_lgo'));
+        /* ---------------- ปีงบ (dropdown) ---------------- */
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
+            ->orderByDesc('LEAVE_YEAR_ID')
+            ->limit(7)
+            ->get();
+
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');
+
+        $budget_year = $request->budget_year ?: $budget_year_now;
+
+        $stm_lgo = DB::select("
+            SELECT 
+            IF(SUBSTRING(stm_filename,14) LIKE 'O%','OPD','IPD') AS dep,
+            stm_filename,
+            round_no,
+            COUNT(DISTINCT repno)       AS repno,
+            COUNT(cid)                  AS count_cid,
+            SUM(adjrw)                  AS sum_adjrw,
+            SUM(payrate)                AS sum_payrate,
+            SUM(charge_treatment)       AS sum_charge_treatment,
+            SUM(compensate_treatment)   AS sum_compensate_treatment,
+            SUM(case_iplg)              AS sum_case_iplg,
+            SUM(case_oplg)              AS sum_case_oplg,
+            SUM(case_palg)              AS sum_case_palg,
+            SUM(case_inslg)             AS sum_case_inslg,
+            SUM(case_otlg)              AS sum_case_otlg,
+            SUM(case_pp)                AS sum_case_pp,
+            SUM(case_drug)              AS sum_case_drug,
+            MAX(receive_no)             AS receive_no,
+            MAX(receipt_date)           AS receipt_date,
+            MAX(receipt_by)             AS receipt_by
+            FROM stm_lgo
+            WHERE (CAST(LEFT(SUBSTRING_INDEX(SUBSTRING_INDEX(stm_filename, '_', -2), '_', 1 ), 4) AS UNSIGNED)  
+				+ (CAST(SUBSTRING(SUBSTRING_INDEX(SUBSTRING_INDEX(stm_filename, '_', -2),'_', 1), 5, 2) AS UNSIGNED) >= 10)) = ?
+            GROUP BY stm_filename, round_no
+            ORDER BY CAST(LEFT(SUBSTRING_INDEX(SUBSTRING_INDEX(stm_filename, '_', -2),'_', 1), 6) AS UNSIGNED) DESC,
+				CASE WHEN round_no IS NOT NULL AND round_no <> ''
+				THEN (CAST(LEFT(round_no,2) AS UNSIGNED) + 2500) * 100
+				+ CAST(SUBSTRING(round_no,3,2) AS UNSIGNED) ELSE 0 END DESC,    
+				stm_filename DESC,round_no DESC; ", [$budget_year]);
+
+        return view('import.stm_lgo',compact('stm_lgo', 'budget_year_select', 'budget_year'));
     }
 
 //stm_lgo_save------------------------------------------------------------------------------------------------------------------------
@@ -1026,6 +1066,7 @@ public function stm_ofc_kidneydetail(Request $request)
                     Stm_lgo::where('repno', $value->repno)
                         ->where('no', $value->no)
                         ->update([
+                            'round_no'             => $value->repno,
                             'datetimeadm'          => $value->datetimeadm,
                             'vstdate'              => $value->vstdate,
                             'vsttime'              => $value->vsttime,
@@ -1048,6 +1089,7 @@ public function stm_ofc_kidneydetail(Request $request)
                         ]);
                 } else {
                     Stm_lgo::create([
+                        'round_no'             => $value->repno,
                         'repno'                => $value->repno,
                         'no'                   => $value->no,
                         'tran_id'              => $value->tran_id,
@@ -1126,7 +1168,32 @@ public function stm_ofc_kidneydetail(Request $request)
             return back()->withErrors('There was a problem uploading the data!');
         }
     }
-        
+//Create stm_lgo_updateReceipt------------------------------------------------------------------------------------------------------------- 
+    public function stm_lgo_updateReceipt(Request $request)
+    {
+        $request->validate([
+            'round_no'     => 'required',
+            'receive_no'   => 'required|max:30',
+            'receipt_date' => 'required|date',
+        ]);
+
+        DB::table('stm_lgo')
+            ->where('round_no', $request->round_no)
+            ->update([
+                'receive_no'   => $request->receive_no,
+                'receipt_date' => $request->receipt_date,
+                'receipt_by'   => auth()->user()->name ?? 'system',
+                'updated_at'   => now(),
+            ]);
+
+        return response()->json([
+            'status'       => 'success',
+            'message'      => 'ออกใบเสร็จเรียบร้อยแล้ว',
+            'round_no'     => $request->round_no,
+            'receive_no'   => $request->receive_no,
+            'receipt_date' => $request->receipt_date,
+        ]);
+    }      
 //stm_lgo_detail---------------------------------------------------------------------------------------------------------------
 public function stm_lgo_detail(Request $request)
     {  

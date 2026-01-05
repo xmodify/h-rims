@@ -26,7 +26,9 @@ class Stm_ucs_kidney extends Model
         'receive_total',
         'note',
         'stm_filename', 
-        'receive_no',       
+        'receive_no',  
+        'receipt_date',
+        'receipt_by',     
     ];
     public $timestamps = false;   
 }

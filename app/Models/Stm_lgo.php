@@ -76,6 +76,8 @@ class Stm_lgo extends Model
         'audit_results',
         'stm_filename',
         'receive_no',
+        'receipt_date',
+        'receipt_by',
     ];
     public $timestamps = false;   
 }

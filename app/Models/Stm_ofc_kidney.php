@@ -29,6 +29,8 @@ class Stm_ofc_kidney extends Model
         'rid',
         'hdflag',
         'receive_no',
+        'receipt_date',
+        'receipt_by',
     ];
     public $timestamps = false;   
 }

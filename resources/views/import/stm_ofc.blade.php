@@ -67,14 +67,14 @@
                                 <th class="text-center">Dep</th>                                
                                 <th class="text-center">จำนวน REP</th> 
                                 <th class="text-center">จำนวนราย</th> 
-                                <th class="text-center">AdjRW</th>                      
-                                <th class="text-center">เรียกเก็บ</th>                                            
+                                <th class="text-center">AdjRW</th>         
                                 <th class="text-center">ค่าห้อง</th>
                                 <th class="text-center">ค่าอวัยวะ</th>                  
                                 <th class="text-center">ค่ายา</th> 
                                 <th class="text-center">ค่ารักษา</th>
                                 <th class="text-center">ค่ารถ</th>                     
                                 <th class="text-center">ค่าบริการอื่นๆ</th>
+                                <th class="text-center">เรียกเก็บ</th> 
                                 <th class="text-center">พึงรับทั้งหมด</th>
                                 <th class="text-center">เลขที่เอกสาร</th>
                                 <th class="text-center">ออกใบเสร็จ</th>
@@ -87,14 +87,14 @@
                                 <td align="center">{{ $row->dep }}</td>                                
                                 <td align="right">{{ number_format($row->repno) }}</td>
                                 <td align="right">{{ number_format($row->count_cid) }}</td>
-                                <td align="right">{{ number_format($row->sum_adjrw,4) }}</td>  
-                                <td align="right">{{ number_format($row->sum_charge,2) }}</td> 
+                                <td align="right">{{ number_format($row->sum_adjrw,4) }}</td>
                                 <td align="right">{{ number_format($row->sum_receive_room,2) }}</td>  
                                 <td align="right">{{ number_format($row->sum_receive_instument,2) }}</td>  
                                 <td align="right">{{ number_format($row->sum_receive_drug,2) }}</td> 
                                 <td align="right">{{ number_format($row->sum_receive_treatment,2) }}</td>   
                                 <td align="right">{{ number_format($row->sum_receive_car,2) }}</td>  
-                                <td align="right">{{ number_format($row->sum_receive_other,2) }}</td>   
+                                <td align="right">{{ number_format($row->sum_receive_other,2) }}</td> 
+                                <td align="right">{{ number_format($row->sum_charge,2) }}</td>   
                                 <td align="right" class="text-success">{{ number_format($row->sum_receive_total,2) }}</td>  
                                 <td align="right" class="text-primary">{{ $row->round_no }}</td>
                                 <td class="text-end">

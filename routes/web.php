@@ -89,15 +89,19 @@ Route::post('import/stm_ofc_updateReceipt',[ImportController::class,'stm_ofc_upd
 Route::match(['get','post'],'import/stm_ofc_detail',[ImportController::class,'stm_ofc_detail']);
 Route::match(['get','post'],'import/stm_ofc_kidney',[ImportController::class,'stm_ofc_kidney'])->name('stm_ofc_kidney');
 Route::post('import/stm_ofc_kidney_save',[ImportController::class,'stm_ofc_kidney_save']);
+Route::post('import/stm_ofc_kidney_updateReceipt',[ImportController::class,'stm_ofc_kidney_updateReceipt']);
 Route::match(['get','post'],'import/stm_ofc_kidneydetail',[ImportController::class,'stm_ofc_kidneydetail']);
 Route::match(['get','post'],'import/stm_lgo',[ImportController::class,'stm_lgo'])->name('stm_lgo');
 Route::post('import/stm_lgo_save',[ImportController::class,'stm_lgo_save']);
+Route::post('import/stm_lgo_updateReceipt',[ImportController::class,'stm_lgo_updateReceipt']);
 Route::match(['get','post'],'import/stm_lgo_detail',[ImportController::class,'stm_lgo_detail']);
 Route::match(['get','post'],'import/stm_lgo_kidney',[ImportController::class,'stm_lgo_kidney'])->name('stm_lgo_kidney');
 Route::post('import/stm_lgo_kidney_save',[ImportController::class,'stm_lgo_kidney_save']);
+Route::post('import/stm_lgo_kidney_updateReceipt',[ImportController::class,'stm_lgo_kidney_updateReceipt']);
 Route::match(['get','post'],'import/stm_lgo_kidneydetail',[ImportController::class,'stm_lgo_kidneydetail']);
 Route::match(['get','post'],'import/stm_sss_kidney',[ImportController::class,'stm_sss_kidney'])->name('stm_sss_kidney');
 Route::post('import/stm_sss_kidney_save',[ImportController::class,'stm_sss_kidney_save']);
+Route::post('import/stm_sss_kidney_updateReceipt',[ImportController::class,'stm_sss_kidney_updateReceipt']);
 Route::match(['get','post'],'import/stm_sss_kidneydetail',[ImportController::class,'stm_sss_kidneydetail']);
 
 //Check------------------------------------------------------------------------------------------------------------------------------

@@ -4166,7 +4166,7 @@ class DebtorController extends Controller
         return view('debtor.1102050102_108',compact('start_date','end_date','search','debtor','debtor_search'));
     }
 //_1102050102_108_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050108_108_confirm(Request $request )
+    public function _1102050102_108_confirm(Request $request )
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');

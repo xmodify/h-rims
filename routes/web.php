@@ -82,6 +82,7 @@ Route::post('import/stm_ucs_updateReceipt',[ImportController::class,'stm_ucs_upd
 Route::match(['get','post'],'import/stm_ucs_detail',[ImportController::class,'stm_ucs_detail']);
 Route::match(['get','post'],'import/stm_ucs_kidney',[ImportController::class,'stm_ucs_kidney'])->name('stm_ucs_kidney');
 Route::post('import/stm_ucs_kidney_save',[ImportController::class,'stm_ucs_kidney_save']);
+Route::post('import/stm_ucs_kidney_updateReceipt',[ImportController::class,'stm_ucs_kidney_updateReceipt']);
 Route::match(['get','post'],'import/stm_ucs_kidneydetail',[ImportController::class,'stm_ucs_kidneydetail']);
 Route::match(['get','post'],'import/stm_ofc',[ImportController::class,'stm_ofc'])->name('stm_ofc');
 Route::post('import/stm_ofc_save',[ImportController::class,'stm_ofc_save']);

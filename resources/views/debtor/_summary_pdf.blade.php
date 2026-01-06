@@ -506,6 +506,22 @@
                             @endforeach     
                         </tr>  
                         <tr>
+                            <?php $sum_1102050102_110_debtor = 0 ; ?>
+                            <?php $sum_1102050102_110_receive = 0 ; ?>
+                            @foreach($_1102050102_110 as $row)
+                            <td align="center">14</td>
+                            <td align="right">1102050102.110</td>
+                            <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น OP</td>
+                            <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
+                            <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
+                            <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
+                            <td align="right">{{number_format($row->receive-$row->debtor,2)}}&nbsp;</td>  
+       
+                            <?php $sum_1102050102_110_debtor += $row->debtor ; ?>
+                            <?php $sum_1102050102_110_receive += $row->receive ; ?>
+                            @endforeach     
+                        </tr> 
+                        <tr>
                             <?php $sum_1102050102_602_debtor = 0 ; ?>
                             <?php $sum_1102050102_602_receive = 0 ; ?>
                             @foreach($_1102050102_602 as $row)
@@ -746,6 +762,22 @@
                             @endforeach     
                         </tr>  
                         <tr>
+                            <?php $sum_1102050102_111_debtor = 0 ; ?>
+                            <?php $sum_1102050102_111_receive = 0 ; ?>
+                            @foreach($_1102050102_111 as $row)
+                            <td align="center">28</td>
+                            <td align="right">1102050102.111</td>
+                            <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น IP</td>
+                            <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
+                            <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
+                            <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
+                            <td align="right">{{number_format($row->receive-$row->debtor,2)}}&nbsp;</td>  
+     
+                            <?php $sum_1102050102_111_debtor += $row->debtor ; ?>
+                            <?php $sum_1102050102_111_receive += $row->receive ; ?>
+                            @endforeach     
+                        </tr>  
+                        <tr>
                             <?php $sum_1102050102_603_debtor = 0 ; ?>
                             <?php $sum_1102050102_603_receive = 0 ; ?>
                             @foreach($_1102050102_603 as $row)
@@ -796,39 +828,39 @@
                         <tr> 
                             <td align="right" colspan = "4"><strong>รวมลูกหนี้ค่ารักษาพยาบาลทั้งสิ้น &nbsp;</strong><br></td>   
                             <td align="right" class="text-primary"><strong>{{number_format($sum_1102050101_103_debtor+$sum_1102050101_109_debtor+$sum_1102050101_201_debtor
-                            +$sum_1102050101_203_debtor+$sum_1102050101_209_debtor+$sum_1102050101_216_debtor+$sum_1102050101_301_debtor+$sum_1102050101_303_debtor
-                            +$sum_1102050101_307_debtor+$sum_1102050101_309_debtor+$sum_1102050101_401_debtor+$sum_1102050101_501_debtor+$sum_1102050101_503_debtor
-                            +$sum_1102050101_701_debtor+$sum_1102050101_702_debtor+$sum_1102050101_703_debtor+$sum_1102050102_106_debtor
-                            +$sum_1102050102_108_debtor+$sum_1102050102_602_debtor+$sum_1102050102_801_debtor+$sum_1102050102_803_debtor+$sum_1102050101_202_debtor
-                            +$sum_1102050101_217_debtor+$sum_1102050101_302_debtor+$sum_1102050101_304_debtor+$sum_1102050101_308_debtor+$sum_1102050101_310_debtor
-                            +$sum_1102050101_402_debtor+$sum_1102050101_502_debtor+$sum_1102050101_504_debtor+$sum_1102050101_704_debtor+$sum_1102050102_107_debtor
-                            +$sum_1102050102_109_debtor+$sum_1102050102_603_debtor+$sum_1102050102_802_debtor+$sum_1102050102_804_debtor,2)}}&nbsp;</strong>
+                                +$sum_1102050101_203_debtor+$sum_1102050101_209_debtor+$sum_1102050101_216_debtor+$sum_1102050101_301_debtor+$sum_1102050101_303_debtor
+                                +$sum_1102050101_307_debtor+$sum_1102050101_309_debtor+$sum_1102050101_401_debtor+$sum_1102050101_501_debtor+$sum_1102050101_503_debtor
+                                +$sum_1102050101_701_debtor+$sum_1102050101_702_debtor+$sum_1102050101_703_debtor+$sum_1102050102_106_debtor+$sum_1102050102_108_debtor
+                                +$sum_1102050102_110_debtor+$sum_1102050102_602_debtor+$sum_1102050102_801_debtor+$sum_1102050102_803_debtor+$sum_1102050101_202_debtor
+                                +$sum_1102050101_217_debtor+$sum_1102050101_302_debtor+$sum_1102050101_304_debtor+$sum_1102050101_308_debtor+$sum_1102050101_310_debtor
+                                +$sum_1102050101_402_debtor+$sum_1102050101_502_debtor+$sum_1102050101_504_debtor+$sum_1102050101_704_debtor+$sum_1102050102_107_debtor
+                                +$sum_1102050102_109_debtor+$sum_1102050102_111_debtor+$sum_1102050102_603_debtor+$sum_1102050102_802_debtor+$sum_1102050102_804_debtor,2)}}&nbsp;</strong>
                             </td>
                             <td align="right" class="text-success"><strong>{{number_format($sum_1102050101_103_receive+$sum_1102050101_109_receive+$sum_1102050101_201_receive
                                 +$sum_1102050101_203_receive+$sum_1102050101_209_receive+$sum_1102050101_216_receive+$sum_1102050101_301_receive+$sum_1102050101_303_receive
                                 +$sum_1102050101_307_receive+$sum_1102050101_309_receive+$sum_1102050101_401_receive+$sum_1102050101_501_receive+$sum_1102050101_503_debtor
-                                +$sum_1102050101_701_debtor+$sum_1102050101_702_debtor+$sum_1102050101_703_receive+$sum_1102050102_106_receive
-                                +$sum_1102050102_108_receive+$sum_1102050102_602_receive+$sum_1102050102_801_receive+$sum_1102050102_803_receive+$sum_1102050101_202_receive
+                                +$sum_1102050101_701_debtor+$sum_1102050101_702_debtor+$sum_1102050101_703_receive+$sum_1102050102_106_receive+$sum_1102050102_108_receive
+                                +$sum_1102050102_110_receive+$sum_1102050102_602_receive+$sum_1102050102_801_receive+$sum_1102050102_803_receive+$sum_1102050101_202_receive
                                 +$sum_1102050101_217_receive+$sum_1102050101_302_receive+$sum_1102050101_304_receive+$sum_1102050101_308_receive+$sum_1102050101_310_receive
                                 +$sum_1102050101_402_receive+$sum_1102050101_502_receive+$sum_1102050101_504_receive+$sum_1102050101_704_receive+$sum_1102050102_107_receive
-                                +$sum_1102050102_109_receive+$sum_1102050102_603_receive+$sum_1102050102_802_receive+$sum_1102050102_804_receive,2)}}&nbsp;</strong>
+                                +$sum_1102050102_109_receive+$sum_1102050102_111_receive+$sum_1102050102_603_receive+$sum_1102050102_802_receive+$sum_1102050102_804_receive,2)}}&nbsp;</strong>
                             </td> 
                             <td align="right" style="color:red"><strong>{{number_format(($sum_1102050101_103_receive+$sum_1102050101_109_receive+$sum_1102050101_201_receive
                                 +$sum_1102050101_203_receive+$sum_1102050101_209_receive+$sum_1102050101_216_receive+$sum_1102050101_301_receive+$sum_1102050101_303_receive
                                 +$sum_1102050101_307_receive+$sum_1102050101_309_receive+$sum_1102050101_401_receive+$sum_1102050101_501_receive+$sum_1102050101_503_debtor
-                                +$sum_1102050101_701_debtor+$sum_1102050101_702_debtor+$sum_1102050101_703_receive+$sum_1102050102_106_receive
-                                +$sum_1102050102_108_receive+$sum_1102050102_602_receive+$sum_1102050102_801_receive+$sum_1102050102_803_receive+$sum_1102050101_202_receive
+                                +$sum_1102050101_701_debtor+$sum_1102050101_702_debtor+$sum_1102050101_703_receive+$sum_1102050102_106_receive+$sum_1102050102_108_receive
+                                +$sum_1102050102_110_receive+$sum_1102050102_602_receive+$sum_1102050102_801_receive+$sum_1102050102_803_receive+$sum_1102050101_202_receive
                                 +$sum_1102050101_217_receive+$sum_1102050101_302_receive+$sum_1102050101_304_receive+$sum_1102050101_308_receive+$sum_1102050101_310_receive
                                 +$sum_1102050101_402_receive+$sum_1102050101_502_receive+$sum_1102050101_504_receive+$sum_1102050101_704_receive+$sum_1102050102_107_receive
-                                +$sum_1102050102_109_receive+$sum_1102050102_603_receive+$sum_1102050102_802_receive+$sum_1102050102_804_receive)
+                                +$sum_1102050102_109_receive+$sum_1102050102_111_receive+$sum_1102050102_603_receive+$sum_1102050102_802_receive+$sum_1102050102_804_receive)
                                 -($sum_1102050101_103_debtor+$sum_1102050101_109_debtor+$sum_1102050101_201_debtor+$sum_1102050101_203_debtor+$sum_1102050101_209_debtor
                                 +$sum_1102050101_216_debtor+$sum_1102050101_301_debtor+$sum_1102050101_303_debtor+$sum_1102050101_307_debtor+$sum_1102050101_309_debtor
                                 +$sum_1102050101_401_debtor+$sum_1102050101_501_debtor+$sum_1102050101_503_debtor+$sum_1102050101_701_debtor+$sum_1102050101_702_debtor
-                                +$sum_1102050101_703_debtor+$sum_1102050102_106_debtor+$sum_1102050102_108_debtor+$sum_1102050102_602_debtor+$sum_1102050102_801_debtor
-                                +$sum_1102050102_803_debtor+$sum_1102050101_202_debtor+$sum_1102050101_217_debtor+$sum_1102050101_302_debtor+$sum_1102050101_304_debtor
-                                +$sum_1102050101_308_debtor+$sum_1102050101_310_debtor+$sum_1102050101_402_debtor+$sum_1102050101_502_debtor+$sum_1102050101_504_debtor
-                                +$sum_1102050101_704_debtor+$sum_1102050102_107_debtor+$sum_1102050102_109_debtor+$sum_1102050102_603_debtor+$sum_1102050102_802_debtor
-                                +$sum_1102050102_804_debtor),2)}}&nbsp;</strong>
+                                +$sum_1102050101_703_debtor+$sum_1102050102_106_debtor+$sum_1102050102_108_debtor+$sum_1102050102_110_debtor+$sum_1102050102_602_debtor
+                                +$sum_1102050102_801_debtor+$sum_1102050102_803_debtor+$sum_1102050101_202_debtor+$sum_1102050101_217_debtor+$sum_1102050101_302_debtor
+                                +$sum_1102050101_304_debtor+$sum_1102050101_308_debtor+$sum_1102050101_310_debtor+$sum_1102050101_402_debtor+$sum_1102050101_502_debtor
+                                +$sum_1102050101_504_debtor+$sum_1102050101_704_debtor+$sum_1102050102_107_debtor+$sum_1102050102_109_debtor+$sum_1102050102_111_debtor
+                                +$sum_1102050102_603_debtor+$sum_1102050102_802_debtor+$sum_1102050102_804_debtor),2)}}&nbsp;</strong>
                             </td>                       
                         </tr> 
                     </table> 

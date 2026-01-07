@@ -40,26 +40,43 @@
                                 <th class="text-center">ชำระเงินแล้ว</th>
                                 <th class="text-center">ลูกหนี้</th>
                             </tr>        
-                        </thead> 
-                        <?php $count = 1 ; ?>
-                        @foreach($check as $row)          
-                        <tr>
-                            <td align="center">{{ $row->dep }}</td>  
-                            <td align="center">{{ DateThai($row->serv_date) }}</td>  
-                            <td align="right">{{ $row->vnan }}</td>
-                            <td align="center">{{ $row->hn }}</td>  
-                            <td align="left">{{ $row->ptname }}</td> 
-                            <td align="right">{{ $row->hipdata_code }}</td>
-                            <td align="left">{{ $row->pttype }}</td> 
-                            <td align="center">{{ $row->hospmain }}</td> 
-                            <td align="right">{{ $row->pdx }}</td>
-                            <td align="right">{{ number_format($row->income,2) }}</td>  
-                            <td align="right">{{ number_format($row->paid_money,2) }}</td> 
-                            <td align="right">{{ number_format($row->rcpt_money,2) }}</td> 
-                            <td align="right">{{ number_format($row->debtor,2) }}</td> 
-                        </tr>
-                        <?php $count++; ?>
-                        @endforeach 
+                        </thead>
+                        <tbody>
+                            <?php $sum_income = 0 ; ?>
+                            <?php $sum_paid_money = 0 ; ?>
+                            <?php $sum_rcpt_money = 0 ; ?>
+                            <?php $sum_debtor = 0 ; ?>
+                            @foreach($check as $row)          
+                            <tr>
+                                <td align="center">{{ $row->dep }}</td>  
+                                <td align="center">{{ DateThai($row->serv_date) }}</td>  
+                                <td align="right">{{ $row->vnan }}</td>
+                                <td align="center">{{ $row->hn }}</td>  
+                                <td align="left">{{ $row->ptname }}</td> 
+                                <td align="right">{{ $row->hipdata_code }}</td>
+                                <td align="left">{{ $row->pttype }}</td> 
+                                <td align="center">{{ $row->hospmain }}</td> 
+                                <td align="right">{{ $row->pdx }}</td>
+                                <td align="right">{{ number_format($row->income,2) }}</td>  
+                                <td align="right">{{ number_format($row->paid_money,2) }}</td> 
+                                <td align="right">{{ number_format($row->rcpt_money,2) }}</td> 
+                                <td align="right">{{ number_format($row->debtor,2) }}</td> 
+                            </tr>     
+                            <?php $sum_income += $row->income ; ?>
+                            <?php $sum_paid_money += $row->paid_money ; ?>
+                            <?php $sum_rcpt_money += $row->rcpt_money ; ?>
+                            <?php $sum_debtor += $row->debtor ; ?>                       
+                            @endforeach                            
+                        </tbody> 
+                        <tfoot>
+                            <tr class="table-primary fw-bold">
+                                <th colspan="9" class="text-end">รวม</th>
+                                <th class="text-end">{{ number_format($sum_income,2) }}</th>
+                                <th class="text-end">{{ number_format($sum_paid_money,2) }}</th>
+                                <th class="text-end">{{ number_format($sum_rcpt_money,2) }}</th>
+                                <th class="text-end">{{ number_format($sum_debtor,2) }}</th>
+                            </tr>
+                        </tfoot>
                     </table> 
                 </div>                
             </div>

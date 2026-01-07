@@ -3,11 +3,12 @@
 @section('content')
   <div class="container-fluid">
     <div class="card-body">
-    <div class="alert alert-success text-primary" role="alert"><strong>ลูกหนี้ค่ารักษาพยาบาล{{$hospital_name}} ({{$hospital_code}})</strong></div>
+    <div class="alert alert-primary text-primary" role="alert"><strong>ลูกหนี้ค่ารักษาพยาบาล{{$hospital_name}} ({{$hospital_code}})</strong></div>
 
       <div class="row">            
         <div class="col-md-12">
-          <a class="btn btn-outline-danger" href="{{ url('debtor/check_income') }}" target="_blank">Check HOSxP</a> 
+          <a class="btn btn-warning" href="{{ url('debtor/check_income') }}" target="_blank">ตรวจสอบค่ารักษาพยาบาล</a> 
+          <a class="btn btn-outline-danger" href="{{ url('debtor/check_nondebtor') }}" target="_blank">รอยืนยันลูกหนี้</a>
           <a class="btn btn-outline-success" href="{{ url('debtor/summary') }}" target="_blank">สรุปบัญชีลูกหนี้ค่ารักษาพยาบาลแยกตามผังบัญชี</a>  
         </div>  
       </div>
@@ -17,7 +18,7 @@
         <div class="col-md-6">
           <table class="table table-hover">
             <thead>
-              <tr class="table-primary">
+              <tr class="table-success">
                   <th class="text-left text-primary">ผู้ป่วยนอก</th>            
               </tr>  
             </thead> 
@@ -109,7 +110,7 @@
         <div class="col-md-6">
           <table class="table table-hover">
             <thead>
-              <tr class="table-primary">
+              <tr class="table-danger">
                   <th class="text-left text-primary">ผู้ป่วยใน</th>            
               </tr>  
             </thead> 

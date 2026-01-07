@@ -1,0 +1,104 @@
+@extends('layouts.app')
+
+@section('content')
+    <div class="container-fluid">
+        <div class="card-body">            
+            <form method="POST" enctype="multipart/form-data">
+                @csrf            
+                <div class="row" >
+                    <label class="col-md-3 col-form-label text-md-end my-1">{{ __('วันที่') }}</label>
+                    <div class="col-md-2">
+                    <input type="date" name="start_date" class="form-control my-1" placeholder="Date" value="{{ $start_date }}" > 
+                    </div>
+                    <label class="col-md-1 col-form-label text-md-end my-1">{{ __('ถึง') }}</label>
+                    <div class="col-md-2">
+                    <input type="date" name="end_date" class="form-control my-1" placeholder="Date" value="{{ $end_date }}" > 
+                    </div>
+                    <div class="col-md-2" >                            
+                        <button type="submit" class="btn btn-primary my-1 ">{{ __('ค้นหา') }}</button>                        
+                    </div>
+                </div>
+            </form> 
+            <br>
+            <div class="alert alert-success text-primary" role="alert"><strong>รายชื่อผู้มารับบริการที่ยังไม่ยืนยันลูกหนี้ วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</strong></div>
+            <div class="row">
+                <div class="col-md-12">   
+                    <table id="nondebtor" class="table table-bordered table-striped">
+                        <thead> 
+                            <tr class="table-primary">
+                                <th class="text-center">ประเภท</th>
+                                <th class="text-center">วันที่มารับริการ/จำหน่าย</th>
+                                <th class="text-center">VN/AN</th>
+                                <th class="text-center">HN</th>  
+                                <th class="text-center">ชื่อ-สกุล</th> 
+                                <th class="text-center">INSCL</th>                           
+                                <th class="text-center">สิทธิการรักษา</th>
+                                <th class="text-center">สถานพยาบาลหลัก</th>
+                                <th class="text-center">PDX</th>
+                                <th class="text-center">ค่ารักษาทั้งหมด</th>
+                                <th class="text-center">ต้องชำระเงิน</th>
+                                <th class="text-center">ชำระเงินแล้ว</th>
+                                <th class="text-center">ลูกหนี้</th>
+                            </tr>        
+                        </thead> 
+                        <?php $count = 1 ; ?>
+                        @foreach($check as $row)          
+                        <tr>
+                            <td align="center">{{ $row->dep }}</td>  
+                            <td align="center">{{ DateThai($row->serv_date) }}</td>  
+                            <td align="right">{{ $row->vnan }}</td>
+                            <td align="center">{{ $row->hn }}</td>  
+                            <td align="left">{{ $row->ptname }}</td> 
+                            <td align="right">{{ $row->hipdata_code }}</td>
+                            <td align="left">{{ $row->pttype }}</td> 
+                            <td align="center">{{ $row->hospmain }}</td> 
+                            <td align="right">{{ $row->pdx }}</td>
+                            <td align="right">{{ number_format($row->income,2) }}</td>  
+                            <td align="right">{{ number_format($row->paid_money,2) }}</td> 
+                            <td align="right">{{ number_format($row->rcpt_money,2) }}</td> 
+                            <td align="right">{{ number_format($row->debtor,2) }}</td> 
+                        </tr>
+                        <?php $count++; ?>
+                        @endforeach 
+                    </table> 
+                </div>                
+            </div>
+        </div>    
+    </div>
+@endsection
+
+@push('scripts')    
+    <script>
+        $(document).ready(function () {
+        $('#nondebtor').DataTable({
+            dom: '<"row mb-3"' +
+                    '<"col-md-6"l>' + // Show รายการ
+                    '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
+                '>' +
+                'rt' +
+                '<"row mt-3"' +
+                    '<"col-md-6"i>' + // Info
+                    '<"col-md-6"p>' + // Pagination
+                '>',
+            buttons: [
+                {
+                extend: 'excelHtml5',
+                text: 'Excel',
+                className: 'btn btn-success btn-sm',
+                title: 'รายชื่อผู้มารับบริการที่ยังไม่ยืนยันลูกหนี้ วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+                }
+            ],
+            language: {
+                search: "ค้นหา:",
+                lengthMenu: "แสดง _MENU_ รายการ",
+                info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                paginate: {
+                previous: "ก่อนหน้า",
+                next: "ถัดไป"
+                }
+            }
+        });
+        });
+    </script>
+@endpush
+

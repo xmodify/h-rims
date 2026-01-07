@@ -68,23 +68,96 @@ class DebtorController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d', strtotime("first day of this month"));
         $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));   
 
-        $check_income = DB::connection('hosxp')->select('
-            SELECT (SELECT SUM(income) FROM vn_stat WHERE vstdate BETWEEN ? AND ?) AS vn_stat,
-            (SELECT SUM(paid_money) FROM vn_stat WHERE vstdate BETWEEN ? AND ?) AS vn_stat_paid,
-            (SELECT SUM(sum_price) FROM opitemrece WHERE vstdate BETWEEN ? AND ? AND (an IS NULL OR an ="")) AS opitemrece,
-            (SELECT SUM(sum_price) FROM opitemrece WHERE vstdate BETWEEN ? AND ? AND (an IS NULL OR an ="") AND paidst IN ("01","03")) AS opitemrece_paid,
-            IF((SELECT SUM(income) FROM vn_stat WHERE vstdate BETWEEN ? AND ?)<>(SELECT SUM(sum_price) FROM opitemrece WHERE vstdate BETWEEN ? AND ? AND (an IS NULL OR an =""))
-            ,"Resync VN","Success") AS status_check',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);
+        $check_income = DB::connection('hosxp')->select("
+            SELECT o.op_income,o.op_paid,v.vn_income,v.vn_paid,v.vn_rcpt,v.vn_income-v.vn_rcpt AS vn_debtor,
+            IF(v.vn_income <> o.op_income, 'Resync VN', 'Success') AS status_check
+            FROM (SELECT SUM(income) AS vn_income,SUM(paid_money) AS vn_paid,SUM(rcpt_money) AS vn_rcpt
+                FROM vn_stat WHERE vstdate BETWEEN ? AND ?) v
+            CROSS JOIN
+                (SELECT SUM(sum_price) AS op_income,SUM(CASE WHEN paidst IN ('01','03') THEN sum_price ELSE 0 END) AS op_paid
+                FROM opitemrece WHERE vstdate BETWEEN ? AND ?  AND (an IS NULL OR an = '')) o",[$start_date,$end_date,$start_date,$end_date]);
 
-        $check_income_ipd = DB::connection('hosxp')->select('
-            SELECT (SELECT SUM(income) FROM an_stat WHERE dchdate BETWEEN ? AND ?) AS an_stat,
-            (SELECT SUM(paid_money) FROM an_stat WHERE dchdate BETWEEN ? AND ?) AS an_stat_paid,
-            (SELECT SUM(sum_price) FROM opitemrece o ,ipt i WHERE o.an = i.an AND i.dchdate BETWEEN ? AND ?) AS opitemrece,
-            (SELECT SUM(sum_price) FROM opitemrece o ,ipt i WHERE o.an = i.an AND i.dchdate BETWEEN ? AND ? AND paidst IN ("01","03")) AS opitemrece_paid,
-            IF((SELECT SUM(income) FROM an_stat WHERE dchdate BETWEEN ? AND ?)<>(SELECT  SUM(sum_price) FROM opitemrece o ,ipt i WHERE o.an = i.an AND i.dchdate BETWEEN ? AND ?)
-            ,"Resync AN","Success") AS status_check',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);  
+        $check_income_ipd = DB::connection('hosxp')->select("
+            SELECT o.op_income,o.op_paid,v.an_income,v.an_paid,v.an_rcpt,v.an_income-v.an_rcpt AS an_debtor,
+            IF(v.an_income <> o.op_income, 'Resync AN', 'Success') AS status_check
+            FROM (SELECT SUM(income) AS an_income,SUM(paid_money) AS an_paid,SUM(rcpt_money) AS an_rcpt
+                FROM an_stat WHERE dchdate BETWEEN ? AND ?) v
+            CROSS JOIN
+                (SELECT SUM(o.sum_price) AS op_income,SUM(CASE WHEN o.paidst IN ('01','03') THEN o.sum_price ELSE 0 END) AS op_paid
+                FROM opitemrece o INNER JOIN ipt i ON i.an = o.an WHERE i.dchdate BETWEEN ? AND ?) o",[$start_date,$end_date,$start_date,$end_date]);  
 
         return view('debtor._check_income',compact('start_date','end_date','check_income','check_income_ipd'));
+    }
+//_check_nondebtor---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+    public function _check_nondebtor(Request $request )
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');   
+
+        $check = DB::connection('hosxp')->select("
+            SELECT * FROM (SELECT 'OPD' AS dep,v.vstdate AS serv_date,v.vn AS vnan,v.hn,CONCAT(pt.pname,pt.fname,' ',pt.lname) AS ptname,
+                    p.hipdata_code,p.name AS pttype,vp.hospmain,v.pdx,v.income,v.paid_money,v.rcpt_money, v.income - v.rcpt_money AS debtor
+                FROM vn_stat v
+                LEFT JOIN ipt i ON i.vn = v.vn
+                LEFT JOIN visit_pttype vp ON vp.vn = v.vn
+                LEFT JOIN pttype p ON p.pttype = vp.pttype
+                LEFT JOIN patient pt ON pt.hn = v.hn
+                WHERE v.vstdate BETWEEN ? AND ?
+                AND (i.an IS NULL OR i.an = '')
+                AND v.income <> 0
+                AND v.income - v.rcpt_money <> 0
+                AND v.vn NOT IN ( SELECT vn FROM hrims.debtor_1102050101_103
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_109
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_201
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_203
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_209
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_216
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_301
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_303
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_307
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_309
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_401
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_501
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_503
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_701
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_702
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050102_106
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050102_108
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050102_110
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050102_602
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050102_801
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050102_803
+                ) GROUP BY v.vn
+                    
+                UNION ALL    
+                    
+                SELECT 'IPD' AS dep,a.dchdate AS serv_date,a.an AS vnan,a.hn,CONCAT(pt.pname,pt.fname,' ',pt.lname) AS ptname,
+                    p.hipdata_code,p.name AS pttype,ip.hospmain,a.pdx,a.income,a.paid_money,a.rcpt_money,a.income - a.rcpt_money AS debtor
+                FROM an_stat a
+                LEFT JOIN ipt_pttype ip ON ip.an = a.an
+                LEFT JOIN pttype p ON p.pttype = ip.pttype
+                LEFT JOIN patient pt ON pt.hn = a.hn
+                WHERE a.dchdate BETWEEN ? AND ?
+                AND a.an NOT IN (SELECT an FROM hrims.debtor_1102050101_202
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_217
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_302
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_304
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_308
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_310
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_402
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_502
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_504
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_704
+                    UNION ALL SELECT an FROM hrims.debtor_1102050102_107
+                    UNION ALL SELECT an FROM hrims.debtor_1102050102_109
+                    UNION ALL SELECT an FROM hrims.debtor_1102050102_111
+                    UNION ALL SELECT an FROM hrims.debtor_1102050102_603
+                    UNION ALL SELECT an FROM hrims.debtor_1102050102_802
+                    UNION ALL SELECT an FROM hrims.debtor_1102050102_804
+                )  GROUP BY a.an ) x
+            ORDER BY dep DESC,hipdata_code, serv_date ",[$start_date,$end_date,$start_date,$end_date]);        
+
+        return view('debtor._check_nondebtor',compact('start_date','end_date','check'));
     }
 //_summary-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     public function _summary(Request $request )
@@ -1328,9 +1401,9 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.ptname, d.hipdata_code, d.pttype, d.hospmain,d.pdx, d.income,  
-                    d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,s.receive_pp, d.receive, s.repno, d.status, d.debtor_lock
+                    d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,s.receive_total, d.receive, s.repno, d.status, d.debtor_lock
                 FROM debtor_1102050101_209 d   
-                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
+                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_total) AS receive_total,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
                     AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%"))
@@ -1338,9 +1411,9 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.ptname, d.hipdata_code, d.pttype, d.hospmain, d.pdx,d.income,
-                     d.rcpt_money, d.ppfs, d.pp, d.other,d.debtor,s.receive_pp, d.receive, s.repno, d.status, d.debtor_lock
+                     d.rcpt_money, d.ppfs, d.pp, d.other,d.debtor,s.receive_total, d.receive, s.repno, d.status, d.debtor_lock
                 FROM debtor_1102050101_209 d   
-                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
+                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_total) AS receive_total,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
                     AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
                 WHERE d.vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
@@ -1370,7 +1443,6 @@ class DebtorController extends Controller
 			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode			
             WHERE (o.an IS NULL OR o.an ="")
                 AND v.income-v.rcpt_money <> "0" 
-                AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <> "0" 
                 AND o.vstdate BETWEEN ? AND ?
                 AND p.hipdata_code NOT IN ("OFC","LGO")	
                 AND vp.pttype NOT IN ('.$pttype_checkup.')               
@@ -1424,7 +1496,6 @@ class DebtorController extends Controller
 			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode		
             WHERE (o.an IS NULL OR o.an ="") 
                 AND v.income-v.rcpt_money <> "0"
-                AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <> "0" 
                 AND o.vstdate BETWEEN ? AND ?
                 AND p.hipdata_code NOT IN ("OFC","LGO")	
                 AND vp.pttype NOT IN ('.$pttype_checkup.')
@@ -1489,14 +1560,11 @@ class DebtorController extends Controller
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = DB::select('
-            SELECT d.vstdate,COUNT(DISTINCT d.vn) AS anvn,
-            SUM(d.debtor) AS debtor,SUM(s.receive_pp) AS receive
-            FROM debtor_1102050101_209 d   
-            LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
-                FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
-                AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
-            WHERE d.vstdate BETWEEN ? AND ?
-            GROUP BY d.vstdate ORDER BY d.vstdate ',[$start_date,$end_date]);
+            SELECT vstdate,COUNT(DISTINCT vn) AS anvn,
+            SUM(debtor) AS debtor,SUM(receive) AS receive
+            FROM debtor_1102050101_209 d               
+            WHERE vstdate BETWEEN ? AND ?
+            GROUP BY vstdate ORDER BY d.vstdate ',[$start_date,$end_date]);
 
         $pdf = PDF::loadView('debtor.1102050101_209_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
                     ->setPaper('A4', 'portrait');

@@ -91,8 +91,8 @@ class DebtorController extends Controller
 //_check_nondebtor---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
     public function _check_nondebtor(Request $request )
     {
-        $start_date = $request->start_date ?: date('Y-m-d');
-        $end_date = $request->end_date ?: date('Y-m-d');   
+        $start_date = $request->start_date ?: date('Y-m-d', strtotime('-1 day'));
+        $end_date   = $request->end_date   ?: date('Y-m-d', strtotime('-1 day'));
 
         $check = DB::connection('hosxp')->select("
             SELECT * FROM (SELECT 'OPD' AS dep,v.vstdate AS serv_date,v.vn AS vnan,v.hn,CONCAT(pt.pname,pt.fname,' ',pt.lname) AS ptname,

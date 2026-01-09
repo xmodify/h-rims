@@ -269,7 +269,7 @@
                             <?php $sum_1102050101_203_debtor = 0 ; ?>
                             <?php $sum_1102050101_203_receive = 0 ; ?>
                             @foreach($_1102050101_203 as $row)
-                            <td align="center">3</td>
+                            <td align="center">4</td>
                             <td align="right">1102050101.203</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา UC-OP นอก CUP (ในจังหวัดสังกัด สธ.)</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -285,7 +285,7 @@
                             <?php $sum_1102050101_209_debtor = 0 ; ?>
                             <?php $sum_1102050101_209_receive = 0 ; ?>
                             @foreach($_1102050101_209 as $row)
-                            <td align="center">4</td>
+                            <td align="center">5</td>
                             <td align="right">1102050101.209</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา ด้านการสร้างเสริมสุขภาพและป้องกันโรค (P&P)</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -301,7 +301,7 @@
                             <?php $sum_1102050101_216_debtor = 0 ; ?>
                             <?php $sum_1102050101_216_receive = 0 ; ?>
                             @foreach($_1102050101_216 as $row)
-                            <td align="center">5</td>
+                            <td align="center">6</td>
                             <td align="right">1102050101.216</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR)</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -317,7 +317,7 @@
                             <?php $sum_1102050101_301_debtor = 0 ; ?>
                             <?php $sum_1102050101_301_receive = 0 ; ?>
                             @foreach($_1102050101_301 as $row)
-                            <td align="center">6</td>
+                            <td align="center">7</td>
                             <td align="right">1102050101.301</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม OP-เครือข่าย</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -333,7 +333,7 @@
                             <?php $sum_1102050101_303_debtor = 0 ; ?>
                             <?php $sum_1102050101_303_receive = 0 ; ?>
                             @foreach($_1102050101_303 as $row)
-                            <td align="center">7</td>
+                            <td align="center">8</td>
                             <td align="right">1102050101.303</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม OP-นอกเครือข่าย สังกัด สป.สธ.</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -349,7 +349,7 @@
                             <?php $sum_1102050101_307_debtor = 0 ; ?>
                             <?php $sum_1102050101_307_receive = 0 ; ?>
                             @foreach($_1102050101_307 as $row)
-                            <td align="center">8</td>
+                            <td align="center">9</td>
                             <td align="right">1102050101.307</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม-กองทุนทดแทน</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -365,7 +365,7 @@
                             <?php $sum_1102050101_309_debtor = 0 ; ?>
                             <?php $sum_1102050101_309_receive = 0 ; ?>
                             @foreach($_1102050101_309 as $row)
-                            <td align="center">9</td>
+                            <td align="center">10</td>
                             <td align="right">1102050101.309</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม-ค่าใช้จ่ายสูง/อุบัติเหตุ/ฉุกเฉิน OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -381,7 +381,7 @@
                             <?php $sum_1102050101_401_debtor = 0 ; ?>
                             <?php $sum_1102050101_401_receive = 0 ; ?>
                             @foreach($_1102050101_401 as $row)
-                            <td align="center">10</td>
+                            <td align="center">11</td>
                             <td align="right">1102050101.401</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรงกรมบัญชีกลาง OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -397,7 +397,7 @@
                             <?php $sum_1102050101_501_debtor = 0 ; ?>
                             <?php $sum_1102050101_501_receive = 0 ; ?>
                             @foreach($_1102050101_501 as $row)
-                            <td align="center">11</td>
+                            <td align="center">12</td>
                             <td align="right">1102050101.501</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -413,7 +413,7 @@
                             <?php $sum_1102050101_503_debtor = 0 ; ?>
                             <?php $sum_1102050101_503_receive = 0 ; ?>
                             @foreach($_1102050101_503 as $row)
-                            <td align="center">11</td>
+                            <td align="center">13</td>
                             <td align="right">1102050101.503</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP นอก CUP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -429,7 +429,7 @@
                             <?php $sum_1102050101_701_debtor = 0 ; ?>
                             <?php $sum_1102050101_701_receive = 0 ; ?>
                             @foreach($_1102050101_701 as $row)
-                            <td align="center">12</td>
+                            <td align="center">14</td>
                             <td align="right">1102050101.701</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP ใน CUP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -445,7 +445,7 @@
                             <?php $sum_1102050101_702_debtor = 0 ; ?>
                             <?php $sum_1102050101_702_receive = 0 ; ?>
                             @foreach($_1102050101_702 as $row)
-                            <td align="center">12</td>
+                            <td align="center">15</td>
                             <td align="right">1102050101.702</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP นอก CUP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -461,7 +461,7 @@
                             <?php $sum_1102050101_703_debtor = 0 ; ?>
                             <?php $sum_1102050101_703_receive = 0 ; ?>
                             @foreach($_1102050101_703 as $row)
-                            <td align="center">12</td>
+                            <td align="center">16</td>
                             <td align="right">1102050101.703</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ เบิกจากส่วนกลาง OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -477,7 +477,7 @@
                             <?php $sum_1102050102_106_debtor = 0 ; ?>
                             <?php $sum_1102050102_106_receive = 0 ; ?>
                             @foreach($_1102050102_106 as $row)
-                            <td align="center">13</td>
+                            <td align="center">17</td>
                             <td align="right">1102050102.106</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา ชําระเงิน OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -493,7 +493,7 @@
                             <?php $sum_1102050102_108_debtor = 0 ; ?>
                             <?php $sum_1102050102_108_receive = 0 ; ?>
                             @foreach($_1102050102_108 as $row)
-                            <td align="center">14</td>
+                            <td align="center">18</td>
                             <td align="right">1102050102.108</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา เบิกต้นสังกัด OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -509,7 +509,7 @@
                             <?php $sum_1102050102_110_debtor = 0 ; ?>
                             <?php $sum_1102050102_110_receive = 0 ; ?>
                             @foreach($_1102050102_110 as $row)
-                            <td align="center">14</td>
+                            <td align="center">19</td>
                             <td align="right">1102050102.110</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -525,7 +525,7 @@
                             <?php $sum_1102050102_602_debtor = 0 ; ?>
                             <?php $sum_1102050102_602_receive = 0 ; ?>
                             @foreach($_1102050102_602 as $row)
-                            <td align="center">15</td>
+                            <td align="center">20</td>
                             <td align="right">1102050102.602</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา พรบ.รถ OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -541,7 +541,7 @@
                             <?php $sum_1102050102_801_debtor = 0 ; ?>
                             <?php $sum_1102050102_801_receive = 0 ; ?>
                             @foreach($_1102050102_801 as $row)
-                            <td align="center">16</td>
+                            <td align="center">21</td>
                             <td align="right">1102050102.801</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -557,7 +557,7 @@
                             <?php $sum_1102050102_803_debtor = 0 ; ?>
                             <?php $sum_1102050102_803_receive = 0 ; ?>
                             @foreach($_1102050102_803 as $row)
-                            <td align="center">17</td>
+                            <td align="center">22</td>
                             <td align="right">1102050102.803</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -573,7 +573,7 @@
                             <?php $sum_1102050101_202_debtor = 0 ; ?>
                             <?php $sum_1102050101_202_receive = 0 ; ?>
                             @foreach($_1102050101_202 as $row)
-                            <td align="center">18</td>
+                            <td align="center">23</td>
                             <td align="right">1102050101.202</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา UC-IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -589,7 +589,7 @@
                             <?php $sum_1102050101_217_debtor = 0 ; ?>
                             <?php $sum_1102050101_217_receive = 0 ; ?>
                             @foreach($_1102050101_217 as $row)
-                            <td align="center">19</td>
+                            <td align="center">24</td>
                             <td align="right">1102050101.217</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา UC-IP บริการเฉพาะ (CR)</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -605,7 +605,7 @@
                             <?php $sum_1102050101_302_debtor = 0 ; ?>
                             <?php $sum_1102050101_302_receive = 0 ; ?>
                             @foreach($_1102050101_302 as $row)
-                            <td align="center">20</td>
+                            <td align="center">25</td>
                             <td align="right">1102050101.302</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม IP เครือข่าย</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -621,7 +621,7 @@
                             <?php $sum_1102050101_304_debtor = 0 ; ?>
                             <?php $sum_1102050101_304_receive = 0 ; ?>
                             @foreach($_1102050101_304 as $row)
-                            <td align="center">21</td>
+                            <td align="center">26</td>
                             <td align="right">1102050101.304</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม IP นอกเครือข่าย สังกัด สป.สธ.</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -637,7 +637,7 @@
                             <?php $sum_1102050101_308_debtor = 0 ; ?>
                             <?php $sum_1102050101_308_receive = 0 ; ?>
                             @foreach($_1102050101_308 as $row)
-                            <td align="center">22</td>
+                            <td align="center">27</td>
                             <td align="right">1102050101.308</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม 72 ชั่วโมงแรก</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -653,7 +653,7 @@
                             <?php $sum_1102050101_310_debtor = 0 ; ?>
                             <?php $sum_1102050101_310_receive = 0 ; ?>
                             @foreach($_1102050101_310 as $row)
-                            <td align="center">23</td>
+                            <td align="center">28</td>
                             <td align="right">1102050101.310</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม ค่าใช้จ่ายสูง IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -669,7 +669,7 @@
                             <?php $sum_1102050101_402_debtor = 0 ; ?>
                             <?php $sum_1102050101_402_receive = 0 ; ?>
                             @foreach($_1102050101_402 as $row)
-                            <td align="center">24</td>
+                            <td align="center">29</td>
                             <td align="right">1102050101.402</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา-เบิกจ่ายตรง กรมบัญชีกลาง IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -685,7 +685,7 @@
                             <?php $sum_1102050101_502_debtor = 0 ; ?>
                             <?php $sum_1102050101_502_receive = 0 ; ?>
                             @foreach($_1102050101_502 as $row)
-                            <td align="center">25</td>
+                            <td align="center">30</td>
                             <td align="right">1102050101.502</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -701,7 +701,7 @@
                             <?php $sum_1102050101_504_debtor = 0 ; ?>
                             <?php $sum_1102050101_504_receive = 0 ; ?>
                             @foreach($_1102050101_504 as $row)
-                            <td align="center">25</td>
+                            <td align="center">31</td>
                             <td align="right">1102050101.504</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP นอก CUP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -717,7 +717,7 @@
                             <?php $sum_1102050101_704_debtor = 0 ; ?>
                             <?php $sum_1102050101_704_receive = 0 ; ?>
                             @foreach($_1102050101_704 as $row)
-                            <td align="center">26</td>
+                            <td align="center">32</td>
                             <td align="right">1102050101.704</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ เบิกจากส่วนกลาง IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -733,7 +733,7 @@
                             <?php $sum_1102050102_107_debtor = 0 ; ?>
                             <?php $sum_1102050102_107_receive = 0 ; ?>
                             @foreach($_1102050102_107 as $row)
-                            <td align="center">27</td>
+                            <td align="center">33</td>
                             <td align="right">1102050102.107</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา ชําระเงิน IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -749,7 +749,7 @@
                             <?php $sum_1102050102_109_debtor = 0 ; ?>
                             <?php $sum_1102050102_109_receive = 0 ; ?>
                             @foreach($_1102050102_109 as $row)
-                            <td align="center">28</td>
+                            <td align="center">34</td>
                             <td align="right">1102050102.109</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา เบิกต้นสังกัด IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -765,7 +765,7 @@
                             <?php $sum_1102050102_111_debtor = 0 ; ?>
                             <?php $sum_1102050102_111_receive = 0 ; ?>
                             @foreach($_1102050102_111 as $row)
-                            <td align="center">28</td>
+                            <td align="center">35</td>
                             <td align="right">1102050102.111</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -781,7 +781,7 @@
                             <?php $sum_1102050102_603_debtor = 0 ; ?>
                             <?php $sum_1102050102_603_receive = 0 ; ?>
                             @foreach($_1102050102_603 as $row)
-                            <td align="center">29</td>
+                            <td align="center">36</td>
                             <td align="right">1102050102.603</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา พรบ.รถ IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -797,7 +797,7 @@
                             <?php $sum_1102050102_802_debtor = 0 ; ?>
                             <?php $sum_1102050102_802_receive = 0 ; ?>
                             @foreach($_1102050102_802 as $row)
-                            <td align="center">30</td>
+                            <td align="center">37</td>
                             <td align="right">1102050102.802</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
@@ -813,7 +813,7 @@
                             <?php $sum_1102050102_804_debtor = 0 ; ?>
                             <?php $sum_1102050102_804_receive = 0 ; ?>
                             @foreach($_1102050102_804 as $row)
-                            <td align="center">31</td>
+                            <td align="center">38</td>
                             <td align="right">1102050102.804</td>
                             <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>

@@ -68,25 +68,97 @@ class DebtorController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d', strtotime("first day of this month"));
         $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));   
 
-        $check_income = DB::connection('hosxp')->select("
+       $check_income = DB::connection('hosxp')->select("
             SELECT o.op_income,o.op_paid,v.vn_income,v.vn_paid,v.vn_rcpt,v.vn_income-v.vn_rcpt AS vn_debtor,
             IF(v.vn_income <> o.op_income, 'Resync VN', 'Success') AS status_check
-            FROM (SELECT SUM(income) AS vn_income,SUM(paid_money) AS vn_paid,SUM(rcpt_money) AS vn_rcpt
-                FROM vn_stat WHERE vstdate BETWEEN ? AND ?) v
+            FROM (SELECT SUM(v.income) AS vn_income,SUM(v.paid_money) AS vn_paid, SUM(v.rcpt_money) AS vn_rcpt
+                FROM vn_stat v
+                LEFT JOIN ipt i ON i.vn = v.vn
+                WHERE v.vstdate BETWEEN ? AND ?
+                AND i.vn IS NULL) v
             CROSS JOIN
-                (SELECT SUM(sum_price) AS op_income,SUM(CASE WHEN paidst IN ('01','03') THEN sum_price ELSE 0 END) AS op_paid
-                FROM opitemrece WHERE vstdate BETWEEN ? AND ?  AND (an IS NULL OR an = '')) o",[$start_date,$end_date,$start_date,$end_date]);
-
+                (SELECT SUM(o.sum_price) AS op_income,SUM(CASE WHEN o.paidst IN ('01','03') THEN o.sum_price ELSE 0 END) AS op_paid
+                FROM opitemrece o
+                LEFT JOIN ipt i ON i.vn = o.vn
+                WHERE o.vstdate BETWEEN ? AND ?
+                AND (o.an IS NULL OR o.an = '')
+                AND i.vn IS NULL) o"
+            ,[$start_date,$end_date,$start_date,$end_date]);
+        
+        $check_income_pttype = DB::connection('hosxp')->select('
+            SELECT p.hipdata_code AS inscl,
+            CASE WHEN p.hipdata_code = "A1" THEN "ชำระเงิน"
+            WHEN p.hipdata_code = "A9" THEN "พรบ." 
+            WHEN p.hipdata_code = "BKK" THEN "กทม." 
+            WHEN p.hipdata_code = "BMT" THEN "ขสมก." 
+            WHEN p.hipdata_code = "GOF" THEN "เบิกต้นสังกัด" 
+            WHEN p.hipdata_code = "LGO" THEN "อปท." 
+            WHEN p.hipdata_code = "NRD" THEN "ต่างด้าวไม่ขึ้นทะเบียน" 
+            WHEN p.hipdata_code = "NRH" THEN "ต่างด้าวขึ้นทะเบียน" 
+            WHEN p.hipdata_code = "OFC" THEN "กรมบัญชีกลาง" 
+            WHEN p.hipdata_code = "SSI" THEN "ปกส.ทุพพลภาพ" 
+            WHEN p.hipdata_code = "SSS" THEN "ปกส." 
+            WHEN p.hipdata_code = "STP" THEN "ผู้มีปัญหาสถานะสิทธิ" 
+            WHEN p.hipdata_code = "UCS" THEN "ประกันสุขภาพ" 
+            WHEN p.hipdata_code NOT IN ("A1","A9","BKK","BMT","GOF","LGO","NRD","NRH","OFC","SSI","SSS","STP","UCS")
+                THEN "ไม่พบเงื่อนไข" END AS pttype_group,
+            SUM(v.income) AS income,
+            SUM(v.paid_money) AS paid_money,
+            SUM(v.rcpt_money) AS rcpt_money,
+            SUM(v.income)-SUM(v.rcpt_money) AS debtor
+            FROM vn_stat v
+            LEFT JOIN ipt i ON i.vn = v.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = v.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            WHERE v.vstdate BETWEEN ? AND ?
+            AND i.vn IS NULL
+            GROUP BY p.hipdata_code',[$start_date,$end_date]);
+        
         $check_income_ipd = DB::connection('hosxp')->select("
             SELECT o.op_income,o.op_paid,v.an_income,v.an_paid,v.an_rcpt,v.an_income-v.an_rcpt AS an_debtor,
             IF(v.an_income <> o.op_income, 'Resync AN', 'Success') AS status_check
             FROM (SELECT SUM(income) AS an_income,SUM(paid_money) AS an_paid,SUM(rcpt_money) AS an_rcpt
-                FROM an_stat WHERE dchdate BETWEEN ? AND ?) v
+                FROM an_stat 
+                WHERE dchdate BETWEEN ? AND ?) v
             CROSS JOIN
                 (SELECT SUM(o.sum_price) AS op_income,SUM(CASE WHEN o.paidst IN ('01','03') THEN o.sum_price ELSE 0 END) AS op_paid
-                FROM opitemrece o INNER JOIN ipt i ON i.an = o.an WHERE i.dchdate BETWEEN ? AND ?) o",[$start_date,$end_date,$start_date,$end_date]);  
+                FROM opitemrece o 
+                INNER JOIN an_stat a ON a.an = o.an 
+                WHERE a.dchdate BETWEEN ? AND ?) o"
+            ,[$start_date,$end_date,$start_date,$end_date]); 
+            
+        $check_income_ipd_pttype = DB::connection('hosxp')->select('
+            SELECT p.hipdata_code AS inscl,
+                CASE WHEN p.hipdata_code = "A1" THEN "ชำระเงิน"
+                    WHEN p.hipdata_code = "A9" THEN "พรบ."
+                    WHEN p.hipdata_code = "BKK" THEN "กทม."
+                    WHEN p.hipdata_code = "BMT" THEN "ขสมก."
+                    WHEN p.hipdata_code = "GOF" THEN "เบิกต้นสังกัด"
+                    WHEN p.hipdata_code = "LGO" THEN "อปท."
+                    WHEN p.hipdata_code = "NRD" THEN "ต่างด้าวไม่ขึ้นทะเบียน"
+                    WHEN p.hipdata_code = "NRH" THEN "ต่างด้าวขึ้นทะเบียน"
+                    WHEN p.hipdata_code = "OFC" THEN "กรมบัญชีกลาง"
+                    WHEN p.hipdata_code = "SSI" THEN "ปกส.ทุพพลภาพ"
+                    WHEN p.hipdata_code = "SSS" THEN "ปกส."
+                    WHEN p.hipdata_code = "STP" THEN "ผู้มีปัญหาสถานะสิทธิ"
+                    WHEN p.hipdata_code = "UCS" THEN "ประกันสุขภาพ"
+                    ELSE "ไม่พบเงื่อนไข"
+                END AS pttype_group,
+                SUM(a.income) AS income,
+                SUM(a.paid_money) AS paid_money,
+                SUM(a.rcpt_money) AS rcpt_money,
+                SUM(a.income - a.rcpt_money) AS debtor
+            FROM an_stat a
+            LEFT JOIN ( SELECT an, MAX(pttype) AS pttype
+                FROM ipt_pttype
+                GROUP BY an ) ip ON ip.an = a.an
+            LEFT JOIN pttype p ON p.pttype = ip.pttype
+            WHERE a.dchdate BETWEEN ? AND ?
+            GROUP BY p.hipdata_code
+            ORDER BY p.hipdata_code',[$start_date,$end_date]);
 
-        return view('debtor._check_income',compact('start_date','end_date','check_income','check_income_ipd'));
+        return view('debtor._check_income',compact('start_date','end_date','check_income',
+            'check_income_pttype','check_income_ipd_pttype','check_income_ipd'));
     }
 //_check_nondebtor---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
     public function _check_nondebtor(Request $request )
@@ -301,7 +373,7 @@ class DebtorController extends Controller
             WHERE dchdate BETWEEN ? AND ?',[$start_date,$end_date]);
         $_1102050101_402 = DB::select('
             SELECT COUNT(DISTINCT an) AS anvn,SUM(debtor) AS debtor,SUM(receive_total) AS receive
-            FROM (SELECT d.*,s.receive_total+IFNULL(SUM(sk.amount),0) AS receive_total 
+            FROM (SELECT d.*,IFNULL(s.receive_total,0)+IFNULL(SUM(sk.amount),0) AS receive_total 
             FROM debtor_1102050101_402 d    
             LEFT JOIN stm_ofc s ON s.an=d.an
             LEFT JOIN stm_ofc_kidney sk ON sk.hn=d.hn AND sk.vstdate BETWEEN d.regdate AND d.dchdate
@@ -339,7 +411,7 @@ class DebtorController extends Controller
             WHERE dchdate BETWEEN ? AND ?',[$start_date,$end_date]);
         $_1102050102_802 = DB::select('
             SELECT COUNT(DISTINCT an) AS anvn,SUM(debtor) AS debtor,SUM(receive_total) AS receive
-            FROM (SELECT d.*,s.compensate_treatment+IFNULL(SUM(sk.compensate_kidney),0) AS receive_total 
+            FROM (SELECT d.*,IFNULL(s.compensate_treatment,0)+IFNULL(SUM(sk.compensate_kidney),0) AS receive_total 
             FROM debtor_1102050102_802 d    
             LEFT JOIN ( SELECT an, SUM(compensate_treatment) AS compensate_treatment
                 FROM stm_lgo GROUP BY an) s ON s.an = d.an
@@ -1667,26 +1739,39 @@ class DebtorController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]); 
 
         $debtor_search_anywhere = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,o.vsttime,
-                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,v.income-v.rcpt_money AS debtor,
-                "ยืนยันลูกหนี้" AS status,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","")  AS send_claim 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
+                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
+                COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
+                v.income-v.rcpt_money-COALESCE(o1.other_price, 0) AS debtor,GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
+                GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","")  AS send_claim  
             FROM ovst o    
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn=o.vn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN opitemrece o1 ON o1.vn=o.vn 
-			    AND o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney="Y")
-            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn 
-            WHERE (o.an IS NULL OR o.an ="") 
-                AND v.income-v.rcpt_money <>"0"               
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code = "UCS" 
-                AND o1.vn IS NULL				
-                AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-                AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]); 
+			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
+				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems ="Y" 
+				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
+			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
+				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
+				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
+			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y" )	
+			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
+			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
+			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
+			LEFT JOIN opitemrece kidney ON kidney.vn=o.vn 
+				AND kidney.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney="Y")
+			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn 
+            WHERE (o.an IS NULL OR o.an ="")
+            AND v.income-v.rcpt_money <>"0"		
+            AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <>"0"					
+            AND o.vstdate BETWEEN ? AND ?
+            AND p.hipdata_code = "UCS" 		
+			AND kidney.vn IS NULL			
+            AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+            AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL) 
+            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -1843,22 +1928,38 @@ class DebtorController extends Controller
         $debtor = DB::connection('hosxp')->select('
            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
                 o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                v.income-v.rcpt_money AS debtor,"ยืนยันลูกหนี้" AS status  
+                COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
+                v.income-v.rcpt_money-COALESCE(o1.other_price, 0) AS debtor,GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
+                GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","")  AS send_claim  
             FROM ovst o    
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn=o.vn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN opitemrece o1 ON o1.vn=o.vn 
-			    AND o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney="Y")
+			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
+				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems ="Y" 
+				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
+			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
+				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
+				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
+			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y" )	
+			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
+			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
+			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
+			LEFT JOIN opitemrece kidney ON kidney.vn=o.vn 
+				AND kidney.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney="Y")
+			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn 
             WHERE (o.an IS NULL OR o.an ="")
-                AND v.income-v.rcpt_money <>"0"                
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code = "UCS" 
-                AND o1.vn IS NULL 				
-                AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+            AND v.income-v.rcpt_money <>"0"		
+            AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <>"0"					
+            AND o.vstdate BETWEEN ? AND ?
+            AND p.hipdata_code = "UCS" 		
+			AND kidney.vn IS NULL			
+            AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+            AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL)
                 AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]); 
+            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050101_216::insert([
@@ -6480,9 +6581,9 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,d.income,
-                    d.rcpt_money,d.kidney,d.debtor,d.debtor_lock,s.receive_total+IFNULL(SUM(s1.amount),0) AS receive,
+                    d.rcpt_money,d.kidney,d.debtor,d.debtor_lock,IFNULL(s.receive_total,0)+IFNULL(SUM(s1.amount),0) AS receive,
                     s.receive_total AS receive_ofc,SUM(s1.amount) AS receive_kidney,s.repno,s1.rid AS repno_kidney,
-                    CASE WHEN (s.receive_total+IFNULL(SUM(s1.amount),0)) - IFNULL(d.debtor,0) >= 0 THEN 0
+                    CASE WHEN (IFNULL(s.receive_total,0)+IFNULL(SUM(s1.amount),0)) - IFNULL(d.debtor,0) >= 0 THEN 0
                     ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_402 d    
                 LEFT JOIN hrims.stm_ofc s ON s.an=d.an
@@ -6493,9 +6594,9 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,d.income,
-                    d.rcpt_money,d.kidney,d.debtor,debtor_lock,s.receive_total+IFNULL(SUM(s1.amount),0) AS receive,
+                    d.rcpt_money,d.kidney,d.debtor,debtor_lock,IFNULL(s.receive_total,0)+IFNULL(SUM(s1.amount),0) AS receive,
                     s.receive_total AS receive_ofc,SUM(s1.amount) AS receive_kidney,s.repno,s1.rid AS repno_kidney,
-                    CASE WHEN (s.receive_total+IFNULL(SUM(s1.amount),0)) - IFNULL(d.debtor,0) >= 0 THEN 0
+                    CASE WHEN (IFNULL(s.receive_total,0)+IFNULL(SUM(s1.amount),0)) - IFNULL(d.debtor,0) >= 0 THEN 0
                     ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_402 d    
                 LEFT JOIN hrims.stm_ofc s ON s.an=d.an
@@ -6506,7 +6607,7 @@ class DebtorController extends Controller
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
-                a.income,a.rcpt_money,COALESCE(kidney.kidney_price,0) AS kidney,a.income-a.rcpt_money-COALESCE(kidney.kidney_price,0) AS debtor,
+                a.income,a.rcpt_money,COALESCE(kidney.kidney_price,0) AS kidney,a.income-a.rcpt_money AS debtor,
                 GROUP_CONCAT(DISTINCT s.`name`) AS kidney_list,ict.ipt_coll_status_type_name,i.data_ok 
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -6554,7 +6655,7 @@ class DebtorController extends Controller
         $debtor = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
-                a.income,a.rcpt_money,COALESCE(kidney.kidney_price,0) AS kidney,a.income-a.rcpt_money-COALESCE(kidney.kidney_price,0) AS debtor,
+                a.income,a.rcpt_money,COALESCE(kidney.kidney_price,0) AS kidney,a.income-a.rcpt_money AS debtor,
                 GROUP_CONCAT(DISTINCT s.`name`) AS kidney_list,ict.ipt_coll_status_type_name,i.data_ok 
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -6639,7 +6740,7 @@ class DebtorController extends Controller
         $debtor = DB::select('
             SELECT dchdate AS vstdate,COUNT(DISTINCT an) AS anvn,
             SUM(debtor) AS debtor,SUM(receive_total) AS receive
-            FROM (SELECT d.*,s.receive_total+IFNULL(SUM(sk.amount),0) AS receive_total 
+            FROM (SELECT d.*,IFNULL(s.receive_total,0)+IFNULL(SUM(sk.amount),0) AS receive_total 
             FROM debtor_1102050101_402 d    
             LEFT JOIN hrims.stm_ofc s ON s.an=d.an
             LEFT JOIN hrims.stm_ofc_kidney sk ON sk.hn=d.hn AND sk.vstdate BETWEEN d.regdate AND d.dchdate
@@ -8138,9 +8239,9 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,d.income,
-                    d.rcpt_money,d.kidney,d.debtor,debtor_lock,s.compensate_treatment+IFNULL(SUM(s1.compensate_kidney),0) AS receive,
+                    d.rcpt_money,d.kidney,d.debtor,debtor_lock,IFNULL(s.compensate_treatment,0)+IFNULL(SUM(s1.compensate_kidney),0) AS receive,
                     s.compensate_treatment AS receive_lgo,SUM(s1.compensate_kidney) AS receive_kidney,s.repno,s1.repno AS repno_kidney,
-                    CASE WHEN (s.compensate_treatment+IFNULL(SUM(s1.compensate_kidney),0)) - IFNULL(d.debtor, 0)>= 0 
+                    CASE WHEN (IFNULL(s.compensate_treatment,0)+IFNULL(SUM(s1.compensate_kidney),0)) - IFNULL(d.debtor, 0)>= 0 
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_802 d    
                 LEFT JOIN (SELECT an,SUM(compensate_treatment) AS compensate_treatment,
@@ -8152,9 +8253,9 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,d.income,
-                    d.rcpt_money,d.kidney,d.debtor,debtor_lock,s.compensate_treatment+IFNULL(SUM(s1.compensate_kidney),0) AS receive,
+                    d.rcpt_money,d.kidney,d.debtor,debtor_lock,IFNULL(s.compensate_treatment,0)+IFNULL(SUM(s1.compensate_kidney),0) AS receive,
                     s.compensate_treatment AS receive_lgo,SUM(s1.compensate_kidney) AS receive_kidney,s.repno,s1.repno AS repno_kidney,
-                    CASE WHEN (s.compensate_treatment+IFNULL(SUM(s1.compensate_kidney),0)) - IFNULL(d.debtor, 0)>= 0 
+                    CASE WHEN (IFNULL(s.compensate_treatment,0)+IFNULL(SUM(s1.compensate_kidney),0)) - IFNULL(d.debtor, 0)>= 0 
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_802 d    
                 LEFT JOIN (SELECT an,SUM(compensate_treatment) AS compensate_treatment,
@@ -8166,7 +8267,7 @@ class DebtorController extends Controller
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
-                a.income,a.rcpt_money,COALESCE(kidney.kidney_price,0) AS kidney,a.income-a.rcpt_money-COALESCE(kidney.kidney_price,0) AS debtor,
+                a.income,a.rcpt_money,COALESCE(kidney.kidney_price,0) AS kidney,a.income-a.rcpt_money AS debtor,
                 GROUP_CONCAT(DISTINCT s.`name`) AS kidney_list,ict.ipt_coll_status_type_name,i.data_ok 
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -8214,7 +8315,7 @@ class DebtorController extends Controller
         $debtor = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
-                a.income,a.rcpt_money,COALESCE(kidney.kidney_price,0) AS kidney,a.income-a.rcpt_money-COALESCE(kidney.kidney_price,0) AS debtor,
+                a.income,a.rcpt_money,COALESCE(kidney.kidney_price,0) AS kidney,a.income-a.rcpt_money AS debtor,
                 GROUP_CONCAT(DISTINCT s.`name`) AS kidney_list,ict.ipt_coll_status_type_name,i.data_ok 
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -8298,7 +8399,7 @@ class DebtorController extends Controller
         $debtor = DB::select('
             SELECT dchdate AS vstdate,COUNT(DISTINCT an) AS anvn,SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM (SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,d.income,
-            d.rcpt_money,d.kidney,d.debtor,debtor_lock,s.compensate_treatment+IFNULL(SUM(s1.compensate_kidney),0) AS receive,
+            d.rcpt_money,d.kidney,d.debtor,debtor_lock,IFNULL(s.compensate_treatment,0)+IFNULL(SUM(s1.compensate_kidney),0) AS receive,
             s.compensate_treatment AS receive_lgo,SUM(s1.compensate_kidney) AS receive_kidney
             FROM debtor_1102050102_802 d    
             LEFT JOIN (SELECT an,SUM(compensate_treatment) AS compensate_treatment

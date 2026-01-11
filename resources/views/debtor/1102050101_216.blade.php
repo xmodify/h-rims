@@ -292,7 +292,7 @@
                             <tr class="table-secondary">
                                 <th class="text-center" width="6%">
                                     <button type="button" class="btn btn-outline-success btn-sm"  onclick="confirmSubmit_anywhere()">ยืนยันลูกหนี้</button></th>
-                                <th class="text-left text-primary" colspan = "12">ผู้มารับบริการ UC-OP บริการเฉพาะ (CR) OP Anywhere วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                                                          
+                                <th class="text-left text-primary" colspan = "13">ผู้มารับบริการ UC-OP บริการเฉพาะ (CR) OP Anywhere วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                                                          
                             </tr>
                             <tr class="table-secondary">
                                 <th class="text-center"><input type="checkbox" onClick="toggle_anywhere(this)"> All</th>  
@@ -302,8 +302,12 @@
                                 <th class="text-center" width="10%">สิทธิ</th>
                                 <th class="text-center">ICD10</th>
                                 <th class="text-center">ค่ารักษาทั้งหมด</th>  
-                                <th class="text-center">ชำระเอง</th>                        
-                                <th class="text-center">เรียกเก็บ</th>
+                                <th class="text-center">ชำระเอง</th>
+                                <th class="text-center">กองทุนอื่น</th>   
+                                <th class="text-center">PPFS</th>                         
+                                <th class="text-center">ลูกหนี้</th>
+                                <th class="text-center" width = "10%">รายการกองทุนอื่น</th> 
+                                <th class="text-center" width = "10%">รายการ PPFS</th>
                                 <th class="text-center">ส่ง Claim</th>
                             </tr>
                             </thead>
@@ -318,7 +322,11 @@
                                 <td align="right">{{ $row->pdx }}</td>                  
                                 <td align="right">{{ number_format($row->income,2) }}</td>
                                 <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
+                                <td align="right">{{ number_format($row->other,2) }}</td>
+                                <td align="right">{{ number_format($row->ppfs,2) }}</td>
                                 <td align="right">{{ number_format($row->debtor,2) }}</td>
+                                <td align="left" width="10%">{{ $row->other_list }}</td>
+                                <td align="left" width="10%">{{ $row->ppfs_list }}</td>
                                 <td align="center" style="color:green">{{ $row->send_claim }}</td> 
                             <?php $count++; ?>
                             @endforeach 

@@ -221,11 +221,11 @@
                     <table class="table table-sm table-bordered w-100" id="detailTable">
                         <thead class="table-primary">
                             <tr>
-                                <th id="th-date" class="text-center">วันที่</th>
-                                <th id="th-anvn" class="text-center">AN / VN</th>
+                                <th id="th-date" class="text-center"></th>
+                                <th id="th-anvn" class="text-center"></th>
                                 <th class="text-center">HN</th>
-                                <th class="text-end">Income</th>
-                                <th class="text-end">SumPrice</th>
+                                <th id="th-stat" class="text-end"></th>
+                                <th class="text-end">opitemrece [ใบสั่งยา]</th>
                                 <th class="text-end">Diff</th>
                             </tr>
                         </thead>
@@ -262,10 +262,12 @@
                 $('#detailModalTitle').text('รายละเอียดรายตัว (OPD)');
                 $('#th-date').text('วันที่รับบริการ');
                 $('#th-anvn').text('VN');
+                $('#th-stat').text('vn_stat [สรุป]');
             } else {
                 $('#detailModalTitle').text('รายละเอียดรายตัว (IPD)');
                 $('#th-date').text('วันที่จำหน่าย');
                 $('#th-anvn').text('AN');
+                $('#th-stat').text('an_stat [สรุป]');
             }
             // ถ้ามี DataTable เดิม → destroy
             if (detailDT) {

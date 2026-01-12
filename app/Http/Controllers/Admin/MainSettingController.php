@@ -14,10 +14,12 @@ class MainSettingController extends Controller
 
     public function index()
     {
+        $hospcode = DB::table('lookup_hospcode')->value('hospcode');
+
         $notify_summary=route('notify_summary');   
         $nhso_endpoint_pull_yesterday=route('nhso_endpoint_pull_yesterday');      
         $data = MainSetting::orderBy('name_th', 'asc')->get();
-        return view('admin.main_setting', compact('data','notify_summary','nhso_endpoint_pull_yesterday'));
+        return view('admin.main_setting', compact('data','notify_summary','nhso_endpoint_pull_yesterday','hospcode'));
     }
 // Update Table main_setting------------------------------------------------------------------------------
     public function update(Request $request, $id)

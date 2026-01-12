@@ -65,8 +65,8 @@ class DebtorController extends Controller
 //_check_income---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
     public function _check_income(Request $request )
     {
-        $start_date = $request->start_date ?: date('Y-m-d', strtotime("first day of this month"));
-        $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));   
+        $start_date = $request->start_date ?: date('Y-m-d', strtotime("-1 day"));
+        $end_date = $request->end_date ?: date('Y-m-d', strtotime("-1 day"));   
 
        $check_income = DB::connection('hosxp')->select("
             SELECT o.op_income,o.op_paid,v.vn_income,v.vn_paid,v.vn_rcpt,v.vn_income-v.vn_rcpt AS vn_debtor,
@@ -157,8 +157,52 @@ class DebtorController extends Controller
             GROUP BY p.hipdata_code
             ORDER BY p.hipdata_code',[$start_date,$end_date]);
 
+        Session::put('start_date', $request->start_date);
+        Session::put('end_date', $request->end_date);
+
         return view('debtor._check_income',compact('start_date','end_date','check_income',
             'check_income_pttype','check_income_ipd_pttype','check_income_ipd'));
+    }
+//_check_income_detail--------------------------------------------------------------------------------------------------------------------------
+    public function _check_income_detail(Request $request)
+    {
+        $type = $request->type; // opd | ipd
+        $start_date = Session::get('start_date') ?: date('Y-m-d', strtotime("-1 day"));
+        $end_date   = Session::get('end_date') ?: date('Y-m-d', strtotime("-1 day"));
+
+        if ($type === 'opd') {
+            // ---------------- OPD ----------------
+            $data = DB::connection('hosxp')->select("
+                SELECT v.vstdate AS date_serv,v.vn AS anvn,v.hn,v.income,
+                IFNULL(o.sumprice,0) AS sum_price,v.income - IFNULL(o.sumprice,0) AS diff
+                FROM vn_stat v
+                LEFT JOIN (SELECT vn,SUM(sum_price) AS sumprice
+                    FROM opitemrece
+                    WHERE rxdate BETWEEN ? and ?
+                    AND (an IS NULL OR an = '') GROUP BY vn) o ON o.vn = v.vn
+                WHERE v.vstdate BETWEEN ? and ?
+                AND v.income <> IFNULL(o.sumprice,0)
+                ORDER BY diff DESC ",[$start_date,$end_date,$start_date,$end_date]);
+
+        } else {
+            // ---------------- IPD ----------------
+            $data = DB::connection('hosxp')->select("
+                SELECT a.dchdate AS date_serv,a.an AS anvn,a.hn,a.income,
+                IFNULL(o.sum_price,0) AS sum_price,a.income - IFNULL(o.sum_price,0) AS diff
+                FROM (SELECT dchdate,an,hn,SUM(income) AS income
+                    FROM an_stat
+                    WHERE dchdate BETWEEN ? and ?
+                    GROUP BY dchdate,an,hn) a
+                LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS sum_price
+                    FROM opitemrece o
+                    INNER JOIN an_stat a2 ON a2.an = o.an
+                    WHERE a2.dchdate BETWEEN ? and ?
+                    GROUP BY o.an) o ON o.an = a.an
+                WHERE a.income <> IFNULL(o.sum_price,0)
+                ORDER BY a.an ",[$start_date,$end_date,$start_date,$end_date]);
+        }
+
+        return response()->json($data);
     }
 //_check_nondebtor---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
     public function _check_nondebtor(Request $request )

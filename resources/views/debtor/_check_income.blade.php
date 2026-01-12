@@ -25,7 +25,7 @@
                     <table class="table table-bordered table-striped">
                         <thead>
                         <tr class="table-success">
-                            <th class="text-center" colspan = "7">ผู้ป่วยนอก</th>            
+                            <th class="text-center" colspan = "8">ผู้ป่วยนอก</th>            
                         </tr>  
                         <tr class="table-secondary">
                             <th class="text-center">ค่าใช้จ่ายทั้งหมด [ใบสั่งยา]</th>
@@ -35,6 +35,7 @@
                             <th class="text-center">ชำระเงินแล้ว [สรุป]</th> 
                             <th class="text-center">ลูกหนี้ [สรุป]</th>                           
                             <th class="text-center">สถานะ</th>
+                            <th class="text-center">รายตัว</th>
                         </tr>     
                         </thead>                         
                         @foreach($check_income as $row)          
@@ -55,13 +56,22 @@
                                 @elseif($row->status_check == 'Resync VN') style="color:red" @endif>
                                 {{ $row->status_check }}
                             </td>
+                            <td class="text-center">
+                                <button type="button"
+                                    class="btn btn-warning btn-sm btn-detail"
+                                    data-type="opd"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#detailModal">
+                                    ตรวจสอบ
+                                </button>
+                            </td>
                         </tr>                        
                         @endforeach 
                     </table> 
                     <table class="table table-bordered table-striped">
                         <thead>
                         <tr class="table-success">
-                            <th class="text-center" colspan = "7">ผู้ป่วยนอก แยกกลุ่มสิทธิ</th>            
+                            <th class="text-center" colspan = "6">ผู้ป่วยนอก แยกกลุ่มสิทธิ</th>            
                         </tr>  
                         <tr class="table-secondary">
                             <th class="text-center">INSCL</th>
@@ -107,7 +117,7 @@
                     <table class="table table-bordered table-striped">
                         <thead>
                         <tr class="table-danger">
-                            <th class="text-center" colspan = "7">ผู้ป่วยใน</th>            
+                            <th class="text-center" colspan = "8">ผู้ป่วยใน</th>            
                         </tr>  
                         <tr class="table-secondary">
                             <th class="text-center">ค่าใช้จ่ายทั้งหมด [ใบสั่งยา]</th>
@@ -117,6 +127,7 @@
                             <th class="text-center">ชำระเงินแล้ว [สรุป]</th> 
                             <th class="text-center">ลูกหนี้ [สรุป]</th>                           
                             <th class="text-center">สถานะ</th>
+                            <th class="text-center">รายตัว</th>
                         </tr>         
                         </thead>
                         @foreach($check_income_ipd as $row)          
@@ -137,13 +148,22 @@
                                 @elseif($row->status_check == 'Resync AN') style="color:red" @endif>
                                 {{ $row->status_check }}
                             </td>
+                            <td class="text-center">
+                                <button type="button"
+                                class="btn btn-warning btn-sm btn-detail"
+                                data-type="ipd"
+                                data-bs-toggle="modal"
+                                data-bs-target="#detailModal">
+                                ตรวจสอบ
+                            </button>
+                            </td>
                         </tr>
                         @endforeach 
                     </table> 
                     <table class="table table-bordered table-striped">
                         <thead>
                         <tr class="table-danger">
-                            <th class="text-center" colspan = "7">ผู้ป่วยใน แยกกลุ่มสิทธิ</th>            
+                            <th class="text-center" colspan = "6">ผู้ป่วยใน แยกกลุ่มสิทธิ</th>            
                         </tr>  
                         <tr class="table-secondary">
                             <th class="text-center">INSCL</th>
@@ -188,6 +208,112 @@
             </div>
         </div>    
     </div>
+
+{{-- Modal --}}
+    <div class="modal fade" id="detailModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title text-primary" id="detailModalTitle">รายละเอียดรายตัว</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-sm table-bordered w-100" id="detailTable">
+                        <thead class="table-primary">
+                            <tr>
+                                <th id="th-date" class="text-center">วันที่</th>
+                                <th id="th-anvn" class="text-center">AN / VN</th>
+                                <th class="text-center">HN</th>
+                                <th class="text-end">Income</th>
+                                <th class="text-end">SumPrice</th>
+                                <th class="text-end">Diff</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">
+                                    กำลังโหลดข้อมูล...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{{-- End Modal --}}
+
 @endsection
 
+<script>
+    let detailDT = null;
+    let currentType = null;
+    document.addEventListener("DOMContentLoaded", function () {
+        // จำ type ตอนกดปุ่ม
+        document.querySelectorAll('.btn-detail').forEach(btn => {
+            btn.addEventListener('click', function () {
+                currentType = this.dataset.type; // opd | ipd
+            });
+        });
+        // เมื่อ modal แสดงเสร็จแล้ว
+        $('#detailModal').on('shown.bs.modal', function () {
+            // ตั้งหัวตาราง
+            if (currentType === 'opd') {
+                $('#detailModalTitle').text('รายละเอียดรายตัว (OPD)');
+                $('#th-date').text('วันที่รับบริการ');
+                $('#th-anvn').text('VN');
+            } else {
+                $('#detailModalTitle').text('รายละเอียดรายตัว (IPD)');
+                $('#th-date').text('วันที่จำหน่าย');
+                $('#th-anvn').text('AN');
+            }
+            // ถ้ามี DataTable เดิม → destroy
+            if (detailDT) {
+                detailDT.destroy();
+                detailDT = null;
+            }
+            let tbody = $('#detailTable tbody');
+            tbody.html('<tr><td colspan="6" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>');
+
+            fetch("{{ url('debtor/check_income_detail') }}?type=" + currentType)
+                .then(res => res.json())
+                .then(data => {
+                    tbody.empty();
+                    if (!data.length) {
+                        tbody.html('<tr><td colspan="6" class="text-center text-muted">ไม่พบข้อมูล</td></tr>');
+                        return;
+                    }
+                    data.forEach(row => {
+                        tbody.append(`
+                            <tr>
+                                <td class="text-center">${row.date_serv}</td>
+                                <td class="text-center">${row.anvn}</td>
+                                <td class="text-center">${row.hn}</td>
+                                <td class="text-end">${Number(row.income).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                                <td class="text-end">${Number(row.sum_price).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                                <td class="text-end text-danger">${Number(row.diff).toLocaleString(undefined,{minimumFractionDigits:2})}</td>
+                            </tr>
+                        `);
+                    });
+                    // init DataTable หลัง data มาแล้ว
+                    detailDT = $('#detailTable').DataTable({
+                        paging: true,
+                        searching: true,
+                        ordering: true,
+                        pageLength: 10,
+                        autoWidth: false,
+                        responsive: true
+                    });
+                });
+        });
+        // ปิด modal → destroy
+        $('#detailModal').on('hidden.bs.modal', function () {
+            if (detailDT) {
+                detailDT.destroy();
+                detailDT = null;
+            }
+            $('#detailTable tbody').empty();
+        });
+    });
+</script>
 

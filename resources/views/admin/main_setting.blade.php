@@ -8,9 +8,12 @@
         <button type="submit" class="btn btn-primary" onclick="confirmAction(event)">Upgrade Structure</button>
     </form>
     <!-- ปุ่มใหม่: ส่งข้อมูล AOPOD -->
-    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#sendAOPODModal">
-        ส่งข้อมูล AOPOD
-    </button>
+    @if($hospcode === '00025')
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#sendAOPODModal">
+            ส่งข้อมูล AOPOD
+        </button>
+    @endif
+
     <pre id="gitOutput" style="background: #eeee; padding: 1rem; margin-top: 1rem;"></pre>
     
     <h3 class="text-primary">Main Setting</h3>

@@ -38,15 +38,17 @@
                             <th class="text-center">รายตัว</th>
                         </tr>     
                         </thead>                         
-                        @foreach($check_income as $row)          
+                        @foreach($check_income as $row) 
+                        @php
+                            $op = number_format($row->op_income ?? 0, 2, '.', '');
+                            $vn = number_format($row->vn_income ?? 0, 2, '.', '');
+                        @endphp           
                         <tr>  
-                            <td align="right" @if( (float)($row->op_income ?? 0) == (float)($row->vn_income ?? 0) ) style="color:green"
-                                @elseif( (float)($row->op_income ?? 0) !== (float)($row->vn_income ?? 0) ) style="color:red" @endif>
+                            <td align="right" style="color: {{ $op === $vn ? 'green' : 'red' }}">
                                 {{ number_format($row->op_income,2) }}
                             </td>
                             <td align="right">{{ number_format($row->op_paid,2) }}</td>
-                            <td align="right" @if( (float)($row->op_income ?? 0) == (float)($row->vn_income ?? 0) ) style="color:green"
-                                @elseif( (float)($row->op_income ?? 0) !== (float)($row->vn_income ?? 0) ) style="color:red" @endif>
+                            <td align="right" style="color: {{ $op === $vn ? 'green' : 'red' }}">
                                 {{ number_format($row->vn_income,2) }}
                             </td>
                             <td align="right">{{ number_format($row->vn_paid,2) }}</td>  
@@ -130,15 +132,17 @@
                             <th class="text-center">รายตัว</th>
                         </tr>         
                         </thead>
-                        @foreach($check_income_ipd as $row)          
-                        <tr>  
-                            <td align="right" @if( (float)($row->op_income ?? 0) == (float)($row->an_income ?? 0) ) style="color:green"
-                                @elseif( (float)($row->op_income ?? 0) !== (float)($row->an_income ?? 0) ) style="color:red" @endif>
+                        @foreach($check_income_ipd as $row) 
+                        @php
+                            $op = number_format($row->op_income ?? 0, 2, '.', '');
+                            $an = number_format($row->an_income ?? 0, 2, '.', '');
+                        @endphp         
+                        <tr> 
+                            <td align="right" style="color: {{ $op === $an ? 'green' : 'red' }}">
                                 {{ number_format($row->op_income,2) }}
                             </td>
                             <td align="right">{{ number_format($row->op_paid,2) }}</td>
-                            <td align="right" @if( (float)($row->op_income ?? 0) == (float)($row->an_income ?? 0) ) style="color:green"
-                                @elseif( (float)($row->op_income ?? 0) !== (float)($row->an_income ?? 0) ) style="color:red" @endif>
+                            <td align="right" style="color: {{ $op === $an ? 'green' : 'red' }}">
                                 {{ number_format($row->an_income,2) }}
                             </td>
                             <td align="right">{{ number_format($row->an_paid,2) }}</td>  

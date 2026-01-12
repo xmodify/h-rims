@@ -96,7 +96,7 @@ class MainSettingController extends Controller
                 ['name' => 'ward_normal', 'type' => 'VARCHAR(1) NULL', 'after' => 'ward_name'],
                 ['name' => 'bed_qty', 'type' => 'INT UNSIGNED NULL', 'after' => 'ward_homeward'],
             ],
-            'lookup_hospcod' => [
+            'lookup_hospcode' => [
                 ['name' => 'created_at',    'type' => 'TIMESTAMP NULL', 'after' => 'in_province'],
                 ['name' => 'updated_at',    'type' => 'TIMESTAMP NULL', 'after' => 'created_at'],
             ],

@@ -5,15 +5,19 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Reader\Exception;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use Carbon\Carbon;
 use App\Models\Stm_ucs;
 use App\Models\Stm_ucsexcel;
 use App\Models\Stm_ucs_kidney;
 use App\Models\Stm_ucs_kidneyexcel;
 use App\Models\Stm_ofc;
 use App\Models\Stm_ofcexcel;
+use App\Models\Stm_ofc_csop;
+use App\Models\Stm_ofc_cipn;
 use App\Models\Stm_ofc_kidney;
 use App\Models\Stm_lgo;
 use App\Models\Stm_lgoexcel;
@@ -817,6 +821,422 @@ public function stm_ofc_detail(Request $request)
 
         return view('import.stm_ofc_detail',compact('start_date','end_date','stm_ofc_list','stm_ofc_list_ip'));
     }
+//stm_ofc_csop--------------------------------------------------------------------------------------------------------------
+    public function stm_ofc_csop(Request $request)
+    {  
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
+        /* ---------------- ปีงบ (dropdown) ---------------- */
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
+            ->orderByDesc('LEAVE_YEAR_ID')
+            ->limit(7)
+            ->get();
+
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');
+
+        $budget_year = $request->budget_year ?: $budget_year_now;
+
+        $stm_ofc_csop = DB::select("
+            SELECT
+                stm_filename,
+                station,
+                COUNT(*) AS count_no,
+                round_no,
+                SUM(amount) AS amount,
+                MAX(receive_no)   AS receive_no,
+                MAX(receipt_date) AS receipt_date,
+                MAX(receipt_by)   AS receipt_by
+            FROM stm_ofc_csop
+            WHERE (CAST(LEFT(RIGHT(round_no, 8), 4) AS UNSIGNED) + 543
+                + (CAST(SUBSTRING(RIGHT(round_no, 8), 5, 2) AS UNSIGNED) >= 10)) = ?
+            GROUP BY round_no
+            ORDER BY round_no DESC,CAST(LEFT(RIGHT(round_no, 8), 6) AS UNSIGNED) DESC, round_no", [$budget_year]);      
+
+        return view('import.stm_ofc_csop',compact('stm_ofc_csop', 'budget_year_select', 'budget_year'));
+    }
+
+//stm_ofc_csop_save-------------------------------------------------------------------------------------------------------------
+    public function stm_ofc_csop_save(Request $request)
+    {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
+        $request->validate([
+            'files'   => 'required|array|max:5',
+            'files.*' => 'file|mimes:zip'
+        ]);
+
+        $docCounts = []; // [STMdoc => count]
+
+        DB::beginTransaction();
+
+        try {
+
+            foreach ($request->file('files') as $zipFile) {
+
+                $zip = new \ZipArchive;
+                if ($zip->open($zipFile->getPathname()) !== true) {
+                    continue;
+                }
+
+                for ($i = 0; $i < $zip->numFiles; $i++) {
+
+                    $innerName = $zip->statIndex($i)['name'];
+
+                    // ใช้เฉพาะ COCDSTM.xml
+                    if (!preg_match('/COCDSTM.*\.xml$/i', $innerName)) {
+                        continue;
+                    }
+
+                    $xmlString = $zip->getFromIndex($i);
+                    if (!$xmlString) {
+                        continue;
+                    }
+
+                    libxml_use_internal_errors(true);
+                    $xml = simplexml_load_string($xmlString);
+                    if ($xml === false || $xml->getName() !== 'STMSTM') {
+                        continue;
+                    }
+
+                    if (!isset($xml->TBills)) {
+                        continue;
+                    }
+
+                    $STMdoc = trim((string)$xml->STMdoc);
+
+                    if (!isset($docCounts[$STMdoc])) {
+                        $docCounts[$STMdoc] = 0;
+                    }
+
+                    /*
+                    * ====================================================
+                    *  COCDSTM มี TBills ได้หลายชุด (OPD + HD)
+                    * ====================================================
+                    */
+                    foreach ($xml->TBills as $tbills) {
+
+                        if (!isset($tbills->TBill)) {
+                            continue;
+                        }
+
+                        foreach ($tbills->TBill as $bill) {
+
+                            $invno = trim((string)$bill->invno);
+                            if ($invno === '') {
+                                continue;
+                            }
+
+                            // วันที่รับบริการ
+                            $vstdate = null;
+                            $vsttime = null;
+                            if ((string)$bill->dttran !== '') {
+                                try {
+                                    $dt = Carbon::parse((string)$bill->dttran);
+                                    $vstdate = $dt->toDateString();
+                                    $vsttime = $dt->format('H:i:s');
+                                } catch (\Exception $e) {}
+                            }
+
+                            // ExtP
+                            $extpCode   = null;
+                            $extpAmount = 0;
+                            if (isset($bill->ExtP)) {
+                                $extpCode   = (string)$bill->ExtP['code'];
+                                $extpAmount = (float)$bill->ExtP;
+                            }
+
+                            DB::table('stm_ofc_csop')->updateOrInsert(
+                                [
+                                    'round_no' => $STMdoc,
+                                    'invno'    => $invno,
+                                    'station'  => (string)$bill->station,
+                                    'sys'      => (string)$bill->sys,
+                                    'hdflag'   => (string)$bill->HDflag,
+                                ],
+                                [
+                                    'stm_type'     => 'COCDSTM',
+                                    'stm_filename' => $innerName,
+                                    'hcode'        => (string)$xml->hcode,
+                                    'hname'        => (string)$xml->hname,
+                                    'acc_period'   => (string)$xml->AccPeriod,
+                                    'hreg'         => (string)$bill->hreg,
+                                    'hn'           => (string)$bill->hn,
+                                    'pt_name'      => (string)$bill->namepat,
+                                    'vstdate'      => $vstdate,
+                                    'vsttime'      => $vsttime,
+                                    'amount'       => (float)$bill->amount,
+                                    'paid'         => (float)$bill->paid,
+                                    'extp_code'    => $extpCode,
+                                    'extp_amount'  => $extpAmount,
+                                    'rid'          => (string)$bill->rid,
+                                    'cstat'        => (string)$bill->cstat,
+                                    'updated_at'   => now(),
+                                ]
+                            );
+
+                            $docCounts[$STMdoc]++;
+                        }
+                    }
+                }
+
+                $zip->close();
+            }
+
+            DB::commit();
+
+            // ===== สรุปผล =====
+            $lines = [];
+            foreach ($docCounts as $doc => $count) {
+                $lines[] = $doc . ' (' . number_format($count) . ' รายการ)';
+            }
+
+            return redirect()
+                ->route('stm_ofc_csop')
+                ->with('success', implode("\n", $lines));
+
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+            return back()->withErrors($e->getMessage());
+        }
+    }
+//Create stm_ofc_csop_updateReceipt------------------------------------------------------------------------------------------------------------- 
+    public function stm_ofc_csop_updateReceipt(Request $request)
+    {
+        $request->validate([
+            'round_no'     => 'required',
+            'receive_no'   => 'required|max:30',
+            'receipt_date' => 'required|date',
+        ]);
+
+        DB::table('stm_ofc_csop')
+            ->where('round_no', $request->round_no)
+            ->update([
+                'receive_no'   => $request->receive_no,
+                'receipt_date' => $request->receipt_date,
+                'receipt_by'   => auth()->user()->name ?? 'system',
+                'updated_at'   => now(),
+            ]);
+
+        return response()->json([
+            'status'       => 'success',
+            'message'      => 'ออกใบเสร็จเรียบร้อยแล้ว',
+            'round_no'     => $request->round_no,
+            'receive_no'   => $request->receive_no,
+            'receipt_date' => $request->receipt_date,
+        ]);
+    }              
+//stm_ofc_csopdetail-------------------------------------------------------------------------------------------------------------------
+    public function stm_ofc_csopdetail(Request $request)
+    {  
+        $start_date = $request->start_date ?: date('Y-m-d', strtotime("first day of this month"));
+        $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));
+
+        $stm_ofc_csop_list=DB::select('
+            SELECT stm_filename,hcode,hname,round_no,station,hreg,hn,pt_name,invno,
+            vstdate,vsttime,paid,rid,amount,receive_no
+            FROM stm_ofc_csop  
+            WHERE vstdate BETWEEN ? AND ?
+            ORDER BY station ,round_no',[$start_date,$end_date]);
+
+        return view('import.stm_ofc_csopdetail',compact('start_date','end_date','stm_ofc_csop_list'));
+    }
+//stm_ofc_cipn--------------------------------------------------------------------------------------------------------------
+    public function stm_ofc_cipn(Request $request)
+    {  
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
+        /* ---------------- ปีงบ (dropdown) ---------------- */
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
+            ->orderByDesc('LEAVE_YEAR_ID')
+            ->limit(7)
+            ->get();
+
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');
+
+        $budget_year = $request->budget_year ?: $budget_year_now;
+
+        $stm_ofc_cipn = DB::select("
+            SELECT
+            stm_filename,
+            COUNT(*) AS count_no,
+            round_no,
+            SUM(gtotal) AS gtotal,
+            MAX(receive_no)   AS receive_no,
+            MAX(receipt_date) AS receipt_date,
+            MAX(receipt_by)   AS receipt_by
+            FROM stm_ofc_cipn
+            WHERE (CAST(LEFT(RIGHT(round_no, 6), 4) AS UNSIGNED) + 543
+                + (CAST(RIGHT(round_no, 2) AS UNSIGNED) >= 10)) = ?
+            GROUP BY round_no
+            ORDER BY CAST(RIGHT(round_no, 6) AS UNSIGNED) DESC, round_no DESC", [$budget_year]);     
+
+        return view('import.stm_ofc_cipn',compact('stm_ofc_cipn', 'budget_year_select', 'budget_year'));
+    }
+
+//stm_ofc_cipn_save-------------------------------------------------------------------------------------------------------------
+    public function stm_ofc_cipn_save(Request $request)
+    {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
+        $request->validate([
+            'files'   => 'required|array',
+            'files.*' => 'file|mimes:zip'
+        ]);
+
+        // ===== ตัวนับผลลัพธ์ =====
+        $docCounts = [];
+
+        DB::beginTransaction();
+
+        try {
+
+            foreach ($request->file('files') as $zipFile) {
+
+                $zip = new \ZipArchive;
+                if ($zip->open($zipFile->getPathname()) !== true) {
+                    continue;
+                }
+
+                for ($i = 0; $i < $zip->numFiles; $i++) {
+
+                    $innerName = $zip->statIndex($i)['name'];
+                    if (!preg_match('/\.xml$/i', $innerName)) continue;
+
+                    $xmlString = $zip->getFromIndex($i);
+                    if (!$xmlString) continue;
+
+                    libxml_use_internal_errors(true);
+                    $xml = simplexml_load_string($xmlString);
+                    if ($xml === false) continue;
+
+                    // ===== ต้องเป็น STMLIST =====
+                    if ($xml->getName() !== 'STMLIST') continue;
+
+                    // ===== round_no (stmno) =====
+                    $round_no = (string)($xml->stmdat->stmno ?? '');
+                    if ($round_no === '') continue;
+
+                    // init counter
+                    if (!isset($docCounts[$round_no])) {
+                        $docCounts[$round_no] = 0;
+                    }
+
+                    // ===== loop รายผู้ป่วย =====
+                    foreach ($xml->thismonip as $row) {
+
+                        $an = trim((string)$row->an);
+                        if ($an === '') continue;
+
+                        // วันที่
+                        $datedsc = null;
+                        if ((string)$row->datedsc !== '') {
+                            try {
+                                $datedsc = Carbon::parse((string)$row->datedsc)->toDateString();
+                            } catch (\Exception $e) {}
+                        }
+
+                        DB::table('stm_ofc_cipn')->updateOrInsert(
+                            [
+                                'round_no' => $round_no,
+                                'an'       => $an,
+                            ],
+                            [
+                                'stm_filename' => basename($innerName),
+                                'rid'      => (string)$row->rid ?: null,
+                                'namepat'  => (string)$row->namepat,
+                                'datedsc'  => $datedsc,
+                                'ptype'    => (string)$row->ptype ?: null,
+                                'drg'      => (string)$row->drg ?: null,
+                                'adjrw'    => (float)$row->adjrw ?: 0,
+                                'amreimb'  => (float)$row->amreimb ?: 0,
+                                'amlim'    => (float)$row->amlim ?: 0,
+                                'pamreim'  => (float)$row->pamreim ?: 0,
+                                'gtotal'   => (float)$row->gtotal ?: 0,
+                                'updated_at' => now(),
+                            ]
+                        );
+
+                        // ===== นับผล =====
+                        $docCounts[$round_no]++;
+                    }
+                }
+
+                $zip->close();
+            }
+
+            DB::commit();
+
+            // ===== สรุปผล =====
+            $lines = [];
+            foreach ($docCounts as $doc => $count) {
+                $lines[] = $doc . ' (' . number_format($count) . ' รายการ)';
+            }
+
+            return redirect()
+                ->route('stm_ofc_cipn')  
+                ->with('success', implode("\n", $lines));
+
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+            return back()->withErrors($e->getMessage());
+        }
+    }
+
+//Create stm_ofc_cipn_updateReceipt------------------------------------------------------------------------------------------------------------- 
+    public function stm_ofc_cipn_updateReceipt(Request $request)
+    {
+        $request->validate([
+            'round_no'     => 'required',
+            'receive_no'   => 'required|max:30',
+            'receipt_date' => 'required|date',
+        ]);
+
+        DB::table('stm_ofc_cipn')
+            ->where('round_no', $request->round_no)
+            ->update([
+                'receive_no'   => $request->receive_no,
+                'receipt_date' => $request->receipt_date,
+                'receipt_by'   => auth()->user()->name ?? 'system',
+                'updated_at'   => now(),
+            ]);
+
+        return response()->json([
+            'status'       => 'success',
+            'message'      => 'ออกใบเสร็จเรียบร้อยแล้ว',
+            'round_no'     => $request->round_no,
+            'receive_no'   => $request->receive_no,
+            'receipt_date' => $request->receipt_date,
+        ]);
+    }              
+//stm_ofc_cipndetail-------------------------------------------------------------------------------------------------------------------
+    public function stm_ofc_cipndetail(Request $request)
+    {  
+        $start_date = $request->start_date ?: date('Y-m-d', strtotime("first day of this month"));
+        $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));
+
+        $stm_ofc_cipn_list=DB::select('
+            SELECT stm_filename,an, namepat,datedsc,ptype,drg,adjrw,amreimb,amlim,pamreim,gtotal,rid,receive_no
+            FROM stm_ofc_cipn  
+            WHERE datedsc BETWEEN ? AND ?
+            ORDER BY datedsc, round_no',[$start_date,$end_date]);
+
+        return view('import.stm_ofc_cipndetail',compact('start_date','end_date','stm_ofc_cipn_list'));
+    }
+
 //stm_ofc_kidney--------------------------------------------------------------------------------------------------------------
     public function stm_ofc_kidney(Request $request)
     {  

@@ -65,10 +65,13 @@ class DebtorController extends Controller
 //_check_income---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
     public function _check_income(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: date('Y-m-d', strtotime("-1 day"));
         $end_date = $request->end_date ?: date('Y-m-d', strtotime("-1 day"));   
 
-       $check_income = DB::connection('hosxp')->select("
+        $check_income = DB::connection('hosxp')->select("
             SELECT o.op_income,o.op_paid,v.vn_income,v.vn_paid,v.vn_rcpt,v.vn_income-v.vn_rcpt AS vn_debtor,
             IF(v.vn_income <> o.op_income, 'Resync VN', 'Success') AS status_check
             FROM (SELECT SUM(v.income) AS vn_income,SUM(v.paid_money) AS vn_paid, SUM(v.rcpt_money) AS vn_rcpt
@@ -166,6 +169,9 @@ class DebtorController extends Controller
 //_check_income_detail--------------------------------------------------------------------------------------------------------------------------
     public function _check_income_detail(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $type = $request->type; // opd | ipd
         $start_date = Session::get('start_date') ?: date('Y-m-d', strtotime("-1 day"));
         $end_date   = Session::get('end_date') ?: date('Y-m-d', strtotime("-1 day"));
@@ -207,6 +213,9 @@ class DebtorController extends Controller
 //_check_nondebtor---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
     public function _check_nondebtor(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: date('Y-m-d', strtotime('-1 day'));
         $end_date   = $request->end_date   ?: date('Y-m-d', strtotime('-1 day'));
 
@@ -277,7 +286,10 @@ class DebtorController extends Controller
     }
 //_summary-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
     public function _summary(Request $request )
-        {
+    {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
 
@@ -328,10 +340,14 @@ class DebtorController extends Controller
             WHERE d.vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
         $_1102050101_401 = DB::select('
             SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,
-            SUM(IFNULL(d.receive,0))+SUM(IFNULL(s.receive_total,0)+IFNULL(sk.amount,0)) AS receive
+            SUM(IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0)) AS receive
             FROM debtor_1102050101_401 d 
-            LEFT JOIN stm_ofc s ON s.hn=d.hn AND s.vstdate = d.vstdate	AND LEFT(s.vsttime,5) =LEFT(d.vsttime,5)
-            LEFT JOIN stm_ofc_kidney sk ON sk.hn=d.hn AND sk.vstdate = d.vstdate AND d.kidney IS NOT NULL 
+            LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                FROM hrims.stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
+                AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)   
+            LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
+                FROM hrims.stm_ofc_csop GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = d.hn
+                AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5)  
             WHERE d.vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
         $_1102050101_501 = DB::select('
             SELECT COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
@@ -363,27 +379,40 @@ class DebtorController extends Controller
             FROM debtor_1102050102_108 
             WHERE vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
         $_1102050102_110 = DB::select('
-            SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,SUM(IFNULL(s.receive_total,0)+IFNULL(sk.amount,0)) AS receive
+            SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,
+            SUM(IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0)) AS receive
             FROM debtor_1102050102_110 d   
-                LEFT JOIN stm_ofc s ON s.hn=d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime,5) =LEFT(d.vsttime,5)
-            LEFT JOIN stm_ofc_kidney sk ON sk.hn=d.hn AND sk.vstdate = d.vstdate AND d.kidney IS NOT NULL
+            LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                FROM hrims.stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
+                AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)   
+            LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
+                FROM hrims.stm_ofc_csop GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = d.hn
+                AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5)  
             WHERE d.vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
         $_1102050102_602 = DB::select('
             SELECT COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
             FROM debtor_1102050102_602 
             WHERE vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
         $_1102050102_801 = DB::select('
-            SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,SUM(IFNULL(s.compensate_treatment,0)+IFNULL(sk.compensate_kidney,0)) AS receive
+            SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,
+                SUM(IFNULL(s.compensate_treatment,0)+ IFNULL(sk.compensate_kidney,0)) AS receive
             FROM debtor_1102050102_801 d   
-            LEFT JOIN (SELECT hn,vstdate, LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment
-                FROM stm_lgo GROUP BY hn, vstdate, LEFT(vsttime,5)) s ON s.hn = d.hn AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
-            LEFT JOIN stm_lgo_kidney sk ON sk.hn=d.hn AND sk.datetimeadm = d.vstdate AND d.kidney IS NOT NULL
+            LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime,SUM(compensate_treatment) AS compensate_treatment
+                FROM stm_lgo GROUP BY hn, vstdate, LEFT(vsttime,5)) s ON s.hn = d.hn
+                AND s.vstdate = d.vstdate AND s.vsttime = LEFT(d.vsttime,5)
+            LEFT JOIN (SELECT cid,datetimeadm,SUM(compensate_kidney) AS compensate_kidney
+                FROM stm_lgo_kidney GROUP BY cid, datetimeadm) sk ON sk.cid = d.cid AND sk.datetimeadm = d.vstdate            
             WHERE d.vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
         $_1102050102_803 = DB::select('
-            SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,SUM(IFNULL(s.receive_total,0)+IFNULL(sk.amount,0)) AS receive
+            SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,
+            SUM(IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0)) AS receive
             FROM debtor_1102050102_803 d   
-                LEFT JOIN stm_ofc s ON s.hn=d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime,5) =LEFT(d.vsttime,5)
-            LEFT JOIN stm_ofc_kidney sk ON sk.hn=d.hn AND sk.vstdate = d.vstdate AND d.kidney IS NOT NULL
+            LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                FROM hrims.stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
+                AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)   
+            LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
+                FROM hrims.stm_ofc_csop GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = d.hn
+                AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5)  
             WHERE d.vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
         $_1102050101_202 = DB::select('
             SELECT COUNT(an) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive_ip_compensate_pay),0) AS receive
@@ -454,13 +483,15 @@ class DebtorController extends Controller
             FROM debtor_1102050102_603  
             WHERE dchdate BETWEEN ? AND ?',[$start_date,$end_date]);
         $_1102050102_802 = DB::select('
-            SELECT COUNT(DISTINCT an) AS anvn,SUM(debtor) AS debtor,SUM(receive_total) AS receive
-            FROM (SELECT d.*,IFNULL(s.compensate_treatment,0)+IFNULL(SUM(sk.compensate_kidney),0) AS receive_total 
-            FROM debtor_1102050102_802 d    
-            LEFT JOIN ( SELECT an, SUM(compensate_treatment) AS compensate_treatment
-                FROM stm_lgo GROUP BY an) s ON s.an = d.an
-            LEFT JOIN stm_lgo_kidney sk ON sk.cid=d.cid AND sk.datetimeadm BETWEEN d.regdate AND d.dchdate
-            WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an ) AS a' ,[$start_date,$end_date]);
+            SELECT COUNT(DISTINCT an) AS anvn, SUM(debtor) AS debtor, SUM(receive_total) AS receive
+            FROM ( SELECT d.an,d.debtor,IFNULL(s.compensate_treatment,0)+ IFNULL(sk.compensate_kidney,0) AS receive_total
+                FROM debtor_1102050102_802 d      
+                LEFT JOIN (SELECT an, SUM(compensate_treatment) AS compensate_treatment
+                    FROM stm_lgo GROUP BY an) s ON s.an = d.an   
+                LEFT JOIN (SELECT datetimeadm,cid,SUM(compensate_kidney) AS compensate_kidney
+                    FROM stm_lgo_kidney GROUP BY cid) sk ON sk.cid = d.cid
+                    AND sk.datetimeadm BETWEEN d.regdate AND d.dchdate
+                WHERE d.dchdate BETWEEN ? AND ?) a' ,[$start_date,$end_date]);
         $_1102050102_804 = DB::select('
             SELECT COUNT(DISTINCT an) AS anvn, SUM(debtor) AS debtor,SUM(receive_total) AS receive
                 FROM (SELECT d.*,s.receive_total
@@ -520,6 +551,9 @@ class DebtorController extends Controller
 //_summary_pdf--------------------------------------------------------------------------------------------------------------------------------------------------
     public function _summary_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');     
         $start_date = Session::get('start_date');
@@ -575,6 +609,9 @@ class DebtorController extends Controller
 //_1102050101_103--------------------------------------------------------------------------------------------------------------
     public function _1102050101_103(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
@@ -624,6 +661,9 @@ class DebtorController extends Controller
 //_1102050101_103_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_103_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');        
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value'); 
@@ -717,6 +757,9 @@ class DebtorController extends Controller
 //1102050101_103_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_103_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value'); 
         $start_date = Session::get('start_date');
@@ -745,6 +788,9 @@ class DebtorController extends Controller
 //_1102050101_109--------------------------------------------------------------------------------------------------------------
     public function _1102050101_109(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');              
@@ -794,6 +840,9 @@ class DebtorController extends Controller
 //_1102050101_109_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_109_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');        
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value'); 
@@ -890,6 +939,9 @@ class DebtorController extends Controller
 //1102050101_109_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_109_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value'); 
         $start_date = Session::get('start_date');
@@ -918,6 +970,9 @@ class DebtorController extends Controller
 //_1102050101_201--------------------------------------------------------------------------------------------------------------
     public function _1102050101_201(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');     
@@ -987,6 +1042,9 @@ class DebtorController extends Controller
 //_1102050101_201_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_201_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');  
         $request->validate([
@@ -1080,6 +1138,9 @@ class DebtorController extends Controller
 //1102050101_201_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_201_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -1200,6 +1261,9 @@ class DebtorController extends Controller
 //_1102050101_203--------------------------------------------------------------------------------------------------------------
     public function _1102050101_203(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');              
@@ -1279,6 +1343,9 @@ class DebtorController extends Controller
 //_1102050101_203_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_203_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');        
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value'); 
@@ -1389,6 +1456,9 @@ class DebtorController extends Controller
 //1102050101_203_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_203_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -1509,6 +1579,9 @@ class DebtorController extends Controller
 //_1102050101_209--------------------------------------------------------------------------------------------------------------
     public function _1102050101_209(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
@@ -1577,6 +1650,9 @@ class DebtorController extends Controller
 //_1102050101_209_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_209_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');        
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value'); 
@@ -1671,6 +1747,9 @@ class DebtorController extends Controller
 //1102050101_209_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_209_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -1699,6 +1778,9 @@ class DebtorController extends Controller
 //_1102050101_216--------------------------------------------------------------------------------------------------------------
     public function _1102050101_216(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
@@ -1829,6 +1911,9 @@ class DebtorController extends Controller
 //_1102050101_216_confirm_kidney-------------------------------------------------------------------------------------------------------
     public function _1102050101_216_confirm_kidney(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');    
         $request->validate([
@@ -1893,6 +1978,9 @@ class DebtorController extends Controller
 //_1102050101_216_confirm_cr-------------------------------------------------------------------------------------------------------
     public function _1102050101_216_confirm_cr(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');    
         $request->validate([
@@ -1959,6 +2047,9 @@ class DebtorController extends Controller
 //_1102050101_216_confirm_anywhere-------------------------------------------------------------------------------------------------------
     public function _1102050101_216_confirm_anywhere(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');    
         $request->validate([
@@ -2056,6 +2147,9 @@ class DebtorController extends Controller
 //1102050101_216_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_216_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -2090,6 +2184,9 @@ class DebtorController extends Controller
 //_1102050101_301--------------------------------------------------------------------------------------------------------------
     public function _1102050101_301(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');
@@ -2165,6 +2262,9 @@ class DebtorController extends Controller
 //_1102050101_301_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_301_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');        
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value'); 
@@ -2260,6 +2360,9 @@ class DebtorController extends Controller
 //1102050101_301_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_301_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -2380,6 +2483,9 @@ class DebtorController extends Controller
 //_1102050101_303--------------------------------------------------------------------------------------------------------------
     public function _1102050101_303(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');
@@ -2455,6 +2561,9 @@ class DebtorController extends Controller
 //_1102050101_303_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_303_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');        
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value'); 
@@ -2566,6 +2675,9 @@ class DebtorController extends Controller
 //1102050101_303_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_303_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -2594,6 +2706,9 @@ class DebtorController extends Controller
 //_1102050101_307--------------------------------------------------------------------------------------------------------------
     public function _1102050101_307(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');
@@ -2686,6 +2801,9 @@ class DebtorController extends Controller
 //_1102050101_307_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_307_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');        
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value'); 
@@ -2760,6 +2878,9 @@ class DebtorController extends Controller
 //_1102050101_307_confirm_ip-------------------------------------------------------------------------------------------------------
     public function _1102050101_307_confirm_ip(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');        
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value'); 
@@ -2869,6 +2990,9 @@ class DebtorController extends Controller
 //1102050101_307_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_307_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -2897,6 +3021,9 @@ class DebtorController extends Controller
 //_1102050101_309--------------------------------------------------------------------------------------------------------------
     public function _1102050101_309(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');                  
@@ -2956,6 +3083,9 @@ class DebtorController extends Controller
 //_1102050101_309_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_309_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');        
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value'); 
@@ -3055,6 +3185,9 @@ class DebtorController extends Controller
 //1102050101_309_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_309_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -3085,6 +3218,9 @@ class DebtorController extends Controller
 //_1102050101_401--------------------------------------------------------------------------------------------------------------
     public function _1102050101_401(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');
@@ -3092,37 +3228,45 @@ class DebtorController extends Controller
 
         if ($search) {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,d.rcpt_money,  
-                    d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
-                    IFNULL(s.receive_total,0) AS receive_ofc,IFNULL(sk.receive_total,0) AS receive_kidney,IFNULL(su.receive_pp,0) AS receive_ppfs,
-                    IFNULL(d.receive,0)+IFNULL(s.receive_total,0)+IFNULL(sk.receive_total,0) AS receive,d.status,s.repno,sk.repno AS repno1,d.debtor_lock,
-                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(s.receive_total,0)+IFNULL(sk.receive_total,0)) - IFNULL(d.debtor, 0)>= 0 
+                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,
+                    d.pttype,d.hospmain,d.pdx,d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,
+                    d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
+                    (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0)) AS receive,
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,stm.repno,csop.rid, d.debtor_lock,
+                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0)) >= IFNULL(d.debtor,0)
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_401 d   
-                LEFT JOIN stm_ofc s ON s.hn = d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime, 5) = LEFT(d.vsttime, 5)
-				LEFT JOIN (SELECT hn,vstdate,sum(amount) AS receive_total,rid AS repno FROM stm_ofc_kidney
-				WHERE vstdate BETWEEN ? AND ? GROUP BY hn,vstdate) sk ON sk.hn=d.hn AND sk.vstdate = d.vstdate
+                LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                    FROM hrims.stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
+                    AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)   
+                LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
+                    FROM hrims.stm_ofc_csop GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = d.hn
+                    AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5) 
 				LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp 
                     FROM stm_ucs GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn 
                     AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%"))
-                AND d.vstdate BETWEEN ? AND ?', [$start_date,$end_date,$search, $search,$start_date,$end_date]);
+                AND d.vstdate BETWEEN ? AND ?', [$start_date,$end_date,$search]);
         } else {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,d.rcpt_money,  
-                    d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
-                    IFNULL(s.receive_total,0) AS receive_ofc,IFNULL(sk.receive_total,0) AS receive_kidney,IFNULL(su.receive_pp,0) AS receive_ppfs,
-                    IFNULL(d.receive,0)+IFNULL(s.receive_total,0)+IFNULL(sk.receive_total,0)AS receive,d.status,s.repno,sk.repno AS repno1,d.debtor_lock,
-                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(s.receive_total,0)+IFNULL(sk.receive_total,0)) - IFNULL(d.debtor, 0)>= 0 
+                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,
+                    d.pttype,d.hospmain,d.pdx,d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,
+                    d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
+                    (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0)) AS receive,
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,stm.repno,csop.rid, d.debtor_lock,
+                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0)) >= IFNULL(d.debtor,0)
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_401 d   
-                LEFT JOIN stm_ofc s ON s.hn = d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime, 5) = LEFT(d.vsttime, 5)
-				LEFT JOIN (SELECT hn,vstdate,sum(amount) AS receive_total,rid AS repno FROM stm_ofc_kidney
-				WHERE vstdate BETWEEN ? AND ? GROUP BY hn,vstdate) sk ON sk.hn=d.hn AND sk.vstdate = d.vstdate
+                LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                    FROM hrims.stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
+                    AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)   
+                LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
+                    FROM hrims.stm_ofc_csop GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = d.hn
+                    AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5) 
 				LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp 
                     FROM stm_ucs GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn 
                     AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
-                WHERE d.vstdate BETWEEN ? AND ?', [$start_date,$end_date,$start_date, $end_date]);
+                WHERE d.vstdate BETWEEN ? AND ?', [$start_date,$end_date]);
         }
 
         $debtor_search = DB::connection('hosxp')->select('
@@ -3173,6 +3317,9 @@ class DebtorController extends Controller
 //_1102050101_401_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_401_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');        
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
@@ -3290,22 +3437,25 @@ class DebtorController extends Controller
 //1102050101_401_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_401_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = DB::select('
             SELECT vstdate,COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,
-                SUM(IFNULL(receive,0)+IFNULL(receive_s,0)+IFNULL(receive_sk,0)) AS receive
-            FROM (SELECT d.vstdate,d.vn,d.hn,d.debtor,d.receive,s.receive_total AS receive_s,sk.receive_sk ,su.receive_pp 
+                SUM(IFNULL(receive,0)+IFNULL(receive_total,0)+IFNULL(amount,0)) AS receive
+                FROM (SELECT d.vstdate,d.vn,d.hn,d.debtor,d.receive,stm.receive_total ,csop.amount
             FROM debtor_1102050101_401 d   
-            LEFT JOIN stm_ofc s ON s.hn = d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime, 5) = LEFT(d.vsttime, 5)
-			LEFT JOIN (SELECT hn,vstdate,sum(amount) AS receive_sk,rid AS repno FROM stm_ofc_kidney
-				WHERE vstdate BETWEEN ? AND ? GROUP BY hn,vstdate) sk ON sk.hn=d.hn AND sk.vstdate = d.vstdate
-			LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp 
-                FROM stm_ucs GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn 
-                AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
-            WHERE d.vstdate BETWEEN ? AND ? GROUP BY d.vn ) AS a GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date,$start_date,$end_date]);
+            LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                FROM hrims.stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
+                AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)   
+            LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
+                FROM hrims.stm_ofc_csop GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = d.hn
+                AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5) 
+            WHERE d.vstdate BETWEEN ? AND ? GROUP BY d.vn ) AS a GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date]);
 
         $pdf = PDF::loadView('debtor.1102050101_401_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
                     ->setPaper('A4', 'portrait');
@@ -3324,6 +3474,9 @@ class DebtorController extends Controller
 //_1102050101_501--------------------------------------------------------------------------------------------------------------
     public function _1102050101_501(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
@@ -3371,6 +3524,9 @@ class DebtorController extends Controller
 //_1102050101_501_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_501_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $request->validate([
@@ -3464,6 +3620,9 @@ class DebtorController extends Controller
 //1102050101_501_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_501_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -3492,6 +3651,9 @@ class DebtorController extends Controller
 //_1102050101_503--------------------------------------------------------------------------------------------------------------
     public function _1102050101_503(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');       
@@ -3532,6 +3694,9 @@ class DebtorController extends Controller
 //_1102050101_503_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_503_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');        
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value'); 
@@ -3627,6 +3792,9 @@ class DebtorController extends Controller
 //1102050101_503_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_503_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -3655,6 +3823,9 @@ class DebtorController extends Controller
 //_1102050101_701--------------------------------------------------------------------------------------------------------------
     public function _1102050101_701(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
@@ -3723,6 +3894,9 @@ class DebtorController extends Controller
 //_1102050101_701_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_701_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $request->validate([
@@ -3815,6 +3989,9 @@ class DebtorController extends Controller
 //1102050101_701_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_701_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -3843,6 +4020,9 @@ class DebtorController extends Controller
 //_1102050101_702--------------------------------------------------------------------------------------------------------------
     public function _1102050101_702(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
@@ -3912,6 +4092,9 @@ class DebtorController extends Controller
 //_1102050101_702_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_702_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $request->validate([
@@ -4005,6 +4188,9 @@ class DebtorController extends Controller
 //1102050101_702_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_702_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -4033,6 +4219,9 @@ class DebtorController extends Controller
 //_1102050102_106--------------------------------------------------------------------------------------------------------------
     public function _1102050102_106(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
@@ -4116,6 +4305,9 @@ class DebtorController extends Controller
 //_1102050102_106_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050102_106_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $request->validate([
@@ -4183,6 +4375,9 @@ class DebtorController extends Controller
 //_1102050102_106_confirm_iclaim-------------------------------------------------------------------------------------------------------
     public function _1102050102_106_confirm_iclaim(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $pttype_iclaim = DB::table('main_setting')->where('name', 'pttype_iclaim')->value('value'); 
@@ -4282,6 +4477,9 @@ class DebtorController extends Controller
 //1102050102_106_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_106_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -4350,6 +4548,9 @@ class DebtorController extends Controller
 //_1102050102_108--------------------------------------------------------------------------------------------------------------
     public function _1102050102_108(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
@@ -4401,6 +4602,9 @@ class DebtorController extends Controller
 //_1102050102_108_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050102_108_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $request->validate([
@@ -4499,6 +4703,9 @@ class DebtorController extends Controller
 //1102050102_108_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_108_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -4527,6 +4734,9 @@ class DebtorController extends Controller
 //_1102050102_110--------------------------------------------------------------------------------------------------------------
     public function _1102050102_110(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');
@@ -4534,37 +4744,45 @@ class DebtorController extends Controller
  
         if ($search) {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,d.rcpt_money,  
-                    d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
-                    IFNULL(s.receive_total,0) AS receive_ofc,IFNULL(sk.receive_total,0) AS receive_kidney,IFNULL(su.receive_pp,0) AS receive_ppfs,
-                    IFNULL(d.receive,0)+IFNULL(s.receive_total,0)+IFNULL(sk.receive_total,0) AS receive,d.status,IFNULL(s.repno,sk.repno) AS repno,d.debtor_lock,
-                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(s.receive_total,0)+IFNULL(sk.receive_total,0)) - IFNULL(d.debtor, 0)>= 0 
+                SELECT  d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,
+                    d.pttype,d.hospmain,d.pdx,d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,
+                    d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
+                    (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0)) AS receive,
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,stm.repno,csop.rid, d.debtor_lock,
+                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0)) >= IFNULL(d.debtor,0)
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_110 d   
-                LEFT JOIN stm_ofc s ON s.hn = d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime, 5) = LEFT(d.vsttime, 5)
-				LEFT JOIN (SELECT hn,vstdate,sum(amount) AS receive_total,rid AS repno FROM stm_ofc_kidney
-				WHERE vstdate BETWEEN ? AND ? GROUP BY hn,vstdate) sk ON sk.hn=d.hn AND sk.vstdate = d.vstdate
+                LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                    FROM hrims.stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
+                    AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)   
+                LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
+                    FROM hrims.stm_ofc_csop GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = d.hn
+                    AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5) 
 				LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp 
                     FROM stm_ucs GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn 
                     AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%"))
-                AND d.vstdate BETWEEN ? AND ?', [$start_date,$end_date,$search, $search,$start_date,$end_date]);
+                AND d.vstdate BETWEEN ? AND ?', [$start_date,$end_date,$search]);
         } else {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,d.rcpt_money,  
-                    d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
-                    IFNULL(s.receive_total,0) AS receive_ofc,IFNULL(sk.receive_total,0) AS receive_kidney,IFNULL(su.receive_pp,0) AS receive_ppfs,
-                    IFNULL(d.receive,0)+IFNULL(s.receive_total,0)+IFNULL(sk.receive_total,0)AS receive,d.status,IFNULL(s.repno,sk.repno) AS repno,d.debtor_lock,
-                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(s.receive_total,0)+IFNULL(sk.receive_total,0)) - IFNULL(d.debtor, 0)>= 0 
+                SELECT  d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,
+                    d.pttype,d.hospmain,d.pdx,d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,
+                    d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
+                    (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0)) AS receive,
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,stm.repno,csop.rid, d.debtor_lock,
+                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0)) >= IFNULL(d.debtor,0)
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_110 d   
-                LEFT JOIN stm_ofc s ON s.hn = d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime, 5) = LEFT(d.vsttime, 5)
-				LEFT JOIN (SELECT hn,vstdate,sum(amount) AS receive_total,rid AS repno FROM stm_ofc_kidney
-				WHERE vstdate BETWEEN ? AND ? GROUP BY hn,vstdate) sk ON sk.hn=d.hn AND sk.vstdate = d.vstdate
+                LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                    FROM hrims.stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
+                    AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)   
+                LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
+                    FROM hrims.stm_ofc_csop GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = d.hn
+                    AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5) 
 				LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp 
                     FROM stm_ucs GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn 
                     AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
-                WHERE d.vstdate BETWEEN ? AND ?', [$start_date,$end_date,$start_date, $end_date]);
+                WHERE d.vstdate BETWEEN ? AND ?', [$start_date,$end_date]);
         }
 
         $debtor_search = DB::connection('hosxp')->select('
@@ -4615,6 +4833,9 @@ class DebtorController extends Controller
 //_1102050102_110_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050102_110_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');        
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
@@ -4732,22 +4953,25 @@ class DebtorController extends Controller
 //1102050102_110_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_110_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = DB::select('
             SELECT vstdate,COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,
-                SUM(IFNULL(receive,0)+IFNULL(receive_s,0)+IFNULL(receive_sk,0)) AS receive
-            FROM (SELECT d.vstdate,d.vn,d.hn,d.debtor,d.receive,s.receive_total AS receive_s,sk.receive_sk ,su.receive_pp 
+                SUM(IFNULL(receive,0)+IFNULL(receive_total,0)+IFNULL(amount,0)) AS receive
+                FROM (SELECT d.vstdate,d.vn,d.hn,d.debtor,d.receive,stm.receive_total ,csop.amount 
             FROM debtor_1102050102_110 d   
-            LEFT JOIN stm_ofc s ON s.hn = d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime, 5) = LEFT(d.vsttime, 5)
-			LEFT JOIN (SELECT hn,vstdate,sum(amount) AS receive_sk,rid AS repno FROM stm_ofc_kidney
-				WHERE vstdate BETWEEN ? AND ? GROUP BY hn,vstdate) sk ON sk.hn=d.hn AND sk.vstdate = d.vstdate
-			LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp 
-                FROM stm_ucs GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn 
-                AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
-            WHERE d.vstdate BETWEEN ? AND ? GROUP BY d.vn ) AS a GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date,$start_date,$end_date]);
+            LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                FROM hrims.stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
+                AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)   
+            LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
+                FROM hrims.stm_ofc_csop GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = d.hn
+                AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5) 
+            WHERE d.vstdate BETWEEN ? AND ? GROUP BY d.vn ) AS a GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date]);
 
         $pdf = PDF::loadView('debtor.1102050102_110_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
                     ->setPaper('A4', 'portrait');
@@ -4766,6 +4990,9 @@ class DebtorController extends Controller
 //_1102050102_602--------------------------------------------------------------------------------------------------------------
     public function _1102050102_602(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');    
@@ -4816,6 +5043,9 @@ class DebtorController extends Controller
 //_1102050102_602_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050102_602_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $pttype_act = DB::table('main_setting')->where('name', 'pttype_act')->value('value');     
@@ -4914,6 +5144,9 @@ class DebtorController extends Controller
 //1102050102_602_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_602_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -4942,6 +5175,9 @@ class DebtorController extends Controller
 //_1102050102_801--------------------------------------------------------------------------------------------------------------
     public function _1102050102_801(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');
@@ -4949,41 +5185,47 @@ class DebtorController extends Controller
 
         if ($search) {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,d.rcpt_money,  
-                    d.lgo,d.kidney,d.ppfs,d.other,d.debtor,IFNULL(s.compensate_treatment,0) AS receive_lgo,IFNULL(sk.receive_total,0) AS receive_kidney,
-                    IFNULL(su.receive_pp,0) AS receive_ppfs,IFNULL(s.compensate_treatment,0)+IFNULL(sk.receive_total,0)+IFNULL(su.receive_pp,0) AS receive,
-                    d.status,IFNULL(s.repno,sk.repno) AS repno,d.debtor_lock,
-                    CASE WHEN (IFNULL(s.compensate_treatment,0)+IFNULL(sk.receive_total,0)+IFNULL(su.receive_pp,0)) - IFNULL(d.debtor, 0)>= 0 
+                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,
+                    d.rcpt_money,d.lgo,d.kidney,d.ppfs,d.other,d.debtor,IFNULL(s.compensate_treatment,0) AS receive_lgo,
+                    IFNULL(sk.receive_kidney,0) AS receive_kidney,IFNULL(su.receive_pp,0) AS receive_ppfs,
+                    IFNULL(s.compensate_treatment,0) + IFNULL(sk.receive_kidney,0)+ IFNULL(su.receive_pp,0) AS receive,
+                    d.status,s.repno, sk.rid, d.debtor_lock,
+                    CASE WHEN (IFNULL(s.compensate_treatment,0)+IFNULL(sk.receive_kidney,0)+IFNULL(su.receive_pp,0)) >= IFNULL(d.debtor,0)
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_801 d   
-                LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment,
-                    GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno FROM stm_lgo GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid
-                    AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
-				LEFT JOIN (SELECT cid,datetimeadm,sum(compensate_kidney) AS receive_total,repno FROM stm_lgo_kidney
-				WHERE datetimeadm BETWEEN ? AND ? GROUP BY cid,datetimeadm) sk ON sk.cid=d.cid AND sk.datetimeadm = d.vstdate
+                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment,
+                    GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno
+                    FROM stm_lgo GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid
+                    AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)				
+                LEFT JOIN (SELECT cid, datetimeadm,SUM(compensate_kidney) AS receive_kidney,
+                    GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS rid
+                    FROM stm_lgo_kidney GROUP BY cid, datetimeadm) sk ON sk.cid = d.cid AND sk.datetimeadm = d.vstdate
 				LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp 
                     FROM stm_ucs GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn 
                     AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%"))
-                AND d.vstdate BETWEEN ? AND ?', [$start_date,$end_date,$search, $search,$start_date,$end_date]);
+                AND d.vstdate BETWEEN ? AND ?', [$search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,d.rcpt_money,  
-                    d.lgo,d.kidney,d.ppfs,d.other,d.debtor,IFNULL(s.compensate_treatment,0) AS receive_lgo,IFNULL(sk.receive_total,0) AS receive_kidney,
-                    IFNULL(su.receive_pp,0) AS receive_ppfs,IFNULL(s.compensate_treatment,0)+IFNULL(sk.receive_total,0)+IFNULL(su.receive_pp,0) AS receive,
-                    d.status,IFNULL(s.repno,sk.repno) AS repno,d.debtor_lock,
-                    CASE WHEN (IFNULL(s.compensate_treatment,0)+IFNULL(sk.receive_total,0)+IFNULL(su.receive_pp,0)) - IFNULL(d.debtor, 0)>= 0 
+                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,
+                    d.rcpt_money,d.lgo,d.kidney,d.ppfs,d.other,d.debtor,IFNULL(s.compensate_treatment,0) AS receive_lgo,
+                    IFNULL(sk.receive_kidney,0) AS receive_kidney,IFNULL(su.receive_pp,0) AS receive_ppfs,
+                    IFNULL(s.compensate_treatment,0) + IFNULL(sk.receive_kidney,0)+ IFNULL(su.receive_pp,0) AS receive,
+                    d.status, s.repno, sk.rid, d.debtor_lock,
+                    CASE WHEN (IFNULL(s.compensate_treatment,0)+IFNULL(sk.receive_kidney,0)+IFNULL(su.receive_pp,0)) >= IFNULL(d.debtor,0)
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_801 d   
-                LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment,
-                    GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno FROM stm_lgo GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid
-                    AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
-				LEFT JOIN (SELECT cid,datetimeadm,sum(compensate_kidney) AS receive_total,repno FROM stm_lgo_kidney
-				WHERE datetimeadm BETWEEN ? AND ? GROUP BY cid,datetimeadm) sk ON sk.cid=d.cid AND sk.datetimeadm = d.vstdate
+                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment,
+                    GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno
+                    FROM stm_lgo GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid
+                    AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)				
+                LEFT JOIN (SELECT cid, datetimeadm,SUM(compensate_kidney) AS receive_kidney,
+                    GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS rid
+                    FROM stm_lgo_kidney GROUP BY cid, datetimeadm) sk ON sk.cid = d.cid AND sk.datetimeadm = d.vstdate
 				LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp 
                     FROM stm_ucs GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn 
                     AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
-                WHERE d.vstdate BETWEEN ? AND ?', [$start_date,$end_date,$start_date, $end_date]);
+                WHERE d.vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         }
 
         $debtor_search = DB::connection('hosxp')->select('
@@ -5034,6 +5276,9 @@ class DebtorController extends Controller
 //_1102050102_801_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050102_801_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');        
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
@@ -5151,24 +5396,29 @@ class DebtorController extends Controller
 //1102050102_801_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_801_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = DB::select('
-            SELECT vstdate,COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,
-                SUM(IFNULL(receive_lgo,0)+IFNULL(receive_kidney,0)) AS receive
-            FROM (SELECT d.vstdate,d.vn,d.hn,d.debtor,IFNULL(s.compensate_treatment,0) AS receive_lgo,
-			IFNULL(sk.receive_total,0) AS receive_kidney
-            FROM debtor_1102050102_801 d   
-            LEFT JOIN ( SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment
-                FROM stm_lgo GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
-			LEFT JOIN (SELECT cid,datetimeadm,sum(compensate_kidney) AS receive_total,repno FROM stm_lgo_kidney
-				WHERE datetimeadm BETWEEN ? AND ? GROUP BY cid,datetimeadm) sk ON sk.cid=d.cid AND sk.datetimeadm = d.vstdate
-			LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp 
-                FROM stm_ucs GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn 
-                AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
-            WHERE d.vstdate BETWEEN ? AND ? GROUP BY d.vn ) AS a GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date,$start_date,$end_date]);
+            SELECT vstdate,COUNT(DISTINCT vn) AS anvn, SUM(debtor) AS debtor,
+                SUM(IFNULL(receive_lgo,0) + IFNULL(receive_kidney,0)) AS receive
+            FROM (SELECT d.vstdate,d.vn,d.hn,d.debtor,
+                    IFNULL(s.compensate_treatment,0) AS receive_lgo,
+                    IFNULL(sk.receive_kidney,0) AS receive_kidney
+                FROM debtor_1102050102_801 d   
+                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment
+                    FROM stm_lgo GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid
+                    AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
+                LEFT JOIN (SELECT cid,datetimeadm,SUM(compensate_kidney) AS receive_kidney
+                    FROM stm_lgo_kidney GROUP BY cid, datetimeadm) sk ON sk.cid = d.cid  AND sk.datetimeadm = d.vstdate
+                WHERE d.vstdate BETWEEN ? AND ?
+                GROUP BY d.vn, d.vstdate, d.hn, d.debtor) a
+                GROUP BY vstdate
+                ORDER BY vstdate',[$start_date,$end_date]);
 
         $pdf = PDF::loadView('debtor.1102050102_801_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
                     ->setPaper('A4', 'portrait');
@@ -5187,6 +5437,9 @@ class DebtorController extends Controller
 //_1102050102_803--------------------------------------------------------------------------------------------------------------
     public function _1102050102_803(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');
@@ -5194,37 +5447,45 @@ class DebtorController extends Controller
  
         if ($search) {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,d.rcpt_money,  
-                    d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
-                    IFNULL(s.receive_total,0) AS receive_ofc,IFNULL(sk.receive_total,0) AS receive_kidney,IFNULL(su.receive_pp,0) AS receive_ppfs,
-                    IFNULL(d.receive,0)+IFNULL(s.receive_total,0)+IFNULL(sk.receive_total,0) AS receive,d.status,IFNULL(s.repno,sk.repno) AS repno,d.debtor_lock,
-                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(s.receive_total,0)+IFNULL(sk.receive_total,0)) - IFNULL(d.debtor, 0)>= 0 
+                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,
+                    d.pttype,d.hospmain,d.pdx,d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,
+                    d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
+                    (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0)) AS receive,
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,stm.repno,csop.rid, d.debtor_lock,
+                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0)) >= IFNULL(d.debtor,0)
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_803 d   
-                LEFT JOIN stm_ofc s ON s.hn = d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime, 5) = LEFT(d.vsttime, 5)
-				LEFT JOIN (SELECT hn,vstdate,sum(amount) AS receive_total,rid AS repno FROM stm_ofc_kidney
-				WHERE vstdate BETWEEN ? AND ? GROUP BY hn,vstdate) sk ON sk.hn=d.hn AND sk.vstdate = d.vstdate
+                LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                    FROM hrims.stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
+                    AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)   
+                LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
+                    FROM hrims.stm_ofc_csop GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = d.hn
+                    AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5) 
 				LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp 
                     FROM stm_ucs GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn 
                     AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%"))
-                AND d.vstdate BETWEEN ? AND ?', [$start_date,$end_date,$search, $search,$start_date,$end_date]);
+                AND d.vstdate BETWEEN ? AND ?', [$start_date,$end_date,$search]);
         } else {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,d.rcpt_money,  
-                    d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
-                    IFNULL(s.receive_total,0) AS receive_ofc,IFNULL(sk.receive_total,0) AS receive_kidney,IFNULL(su.receive_pp,0) AS receive_ppfs,
-                    IFNULL(d.receive,0)+IFNULL(s.receive_total,0)+IFNULL(sk.receive_total,0)AS receive,d.status,IFNULL(s.repno,sk.repno) AS repno,d.debtor_lock,
-                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(s.receive_total,0)+IFNULL(sk.receive_total,0)) - IFNULL(d.debtor, 0)>= 0 
+                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,
+                    d.pttype,d.hospmain,d.pdx,d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,
+                    d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
+                    (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0)) AS receive,
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,stm.repno,csop.rid, d.debtor_lock,
+                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0)) >= IFNULL(d.debtor,0)
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_803 d   
-                LEFT JOIN stm_ofc s ON s.hn = d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime, 5) = LEFT(d.vsttime, 5)
-				LEFT JOIN (SELECT hn,vstdate,sum(amount) AS receive_total,rid AS repno FROM stm_ofc_kidney
-				WHERE vstdate BETWEEN ? AND ? GROUP BY hn,vstdate) sk ON sk.hn=d.hn AND sk.vstdate = d.vstdate
+                LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                    FROM hrims.stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
+                    AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)   
+                LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
+                    FROM hrims.stm_ofc_csop GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = d.hn
+                    AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5) 
 				LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp 
                     FROM stm_ucs GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn 
                     AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
-                WHERE d.vstdate BETWEEN ? AND ?', [$start_date,$end_date,$start_date, $end_date]);
+                WHERE d.vstdate BETWEEN ? AND ?', [$start_date,$end_date]);
         }
 
         $debtor_search = DB::connection('hosxp')->select('
@@ -5275,6 +5536,9 @@ class DebtorController extends Controller
 //_1102050102_803_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050102_803_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');        
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
@@ -5392,22 +5656,25 @@ class DebtorController extends Controller
 //1102050102_803_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_803_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = DB::select('
             SELECT vstdate,COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,
-                SUM(IFNULL(receive,0)+IFNULL(receive_s,0)+IFNULL(receive_sk,0)) AS receive
-            FROM (SELECT d.vstdate,d.vn,d.hn,d.debtor,d.receive,s.receive_total AS receive_s,sk.receive_sk ,su.receive_pp 
+                SUM(IFNULL(receive,0)+IFNULL(receive_total,0)+IFNULL(amount,0)) AS receive
+            FROM (SELECT d.vstdate,d.vn,d.hn,d.debtor,d.receive,stm.receive_total ,csop.amount
             FROM debtor_1102050102_803 d   
-            LEFT JOIN stm_ofc s ON s.hn = d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime, 5) = LEFT(d.vsttime, 5)
-			LEFT JOIN (SELECT hn,vstdate,sum(amount) AS receive_sk,rid AS repno FROM stm_ofc_kidney
-				WHERE vstdate BETWEEN ? AND ? GROUP BY hn,vstdate) sk ON sk.hn=d.hn AND sk.vstdate = d.vstdate
-			LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp 
-                FROM stm_ucs GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn 
-                AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
-            WHERE d.vstdate BETWEEN ? AND ? GROUP BY d.vn ) AS a GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date,$start_date,$end_date]);
+             LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                FROM hrims.stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
+                AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)   
+            LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
+                FROM hrims.stm_ofc_csop GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = d.hn
+                AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5) 
+            WHERE d.vstdate BETWEEN ? AND ? GROUP BY d.vn ) AS a GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date,]);
 
         $pdf = PDF::loadView('debtor.1102050102_803_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
                     ->setPaper('A4', 'portrait');
@@ -5426,6 +5693,9 @@ class DebtorController extends Controller
 //_1102050101_202--------------------------------------------------------------------------------------------------------------
     public function _1102050101_202(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
@@ -5495,6 +5765,9 @@ class DebtorController extends Controller
 //_1102050101_202_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_202_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+        
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date'); 
         $request->validate([
@@ -5588,6 +5861,9 @@ class DebtorController extends Controller
 //1102050101_202_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_202_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -5620,6 +5896,9 @@ class DebtorController extends Controller
 //_1102050101_217--------------------------------------------------------------------------------------------------------------
     public function _1102050101_217(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
@@ -5694,6 +5973,9 @@ class DebtorController extends Controller
 //_1102050101_217_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_217_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date'); 
         $request->validate([
@@ -5788,6 +6070,9 @@ class DebtorController extends Controller
 //1102050101_217_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_217_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -5821,6 +6106,9 @@ class DebtorController extends Controller
 //_1102050101_302--------------------------------------------------------------------------------------------------------------
     public function _1102050101_302(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
@@ -5884,6 +6172,9 @@ class DebtorController extends Controller
 //_1102050101_302_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_302_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date'); 
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
@@ -5997,6 +6288,9 @@ class DebtorController extends Controller
 //1102050101_302_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_302_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -6024,6 +6318,9 @@ class DebtorController extends Controller
 //_1102050101_304--------------------------------------------------------------------------------------------------------------
     public function _1102050101_304(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
@@ -6087,6 +6384,9 @@ class DebtorController extends Controller
 //_1102050101_304_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_304_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date'); 
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
@@ -6200,6 +6500,9 @@ class DebtorController extends Controller
 //1102050101_304_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_304_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -6227,6 +6530,9 @@ class DebtorController extends Controller
 //_1102050101_308--------------------------------------------------------------------------------------------------------------
     public function _1102050101_308(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
@@ -6286,6 +6592,9 @@ class DebtorController extends Controller
 //_1102050101_308_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_308_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date'); 
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
@@ -6396,6 +6705,9 @@ class DebtorController extends Controller
 //1102050101_308_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_308_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -6423,6 +6735,9 @@ class DebtorController extends Controller
 //_1102050101_310--------------------------------------------------------------------------------------------------------------
     public function _1102050101_310(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
@@ -6482,6 +6797,9 @@ class DebtorController extends Controller
 //_1102050101_310_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_310_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $request->validate([
@@ -6591,6 +6909,9 @@ class DebtorController extends Controller
 //1102050101_310_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_310_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -6618,6 +6939,9 @@ class DebtorController extends Controller
 //_1102050101_402--------------------------------------------------------------------------------------------------------------
     public function _1102050101_402(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
@@ -6686,6 +7010,9 @@ class DebtorController extends Controller
 //_1102050101_402_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_402_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date'); 
         $request->validate([
@@ -6777,6 +7104,9 @@ class DebtorController extends Controller
 //1102050101_402_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_402_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -6808,6 +7138,9 @@ class DebtorController extends Controller
 //_1102050101_502--------------------------------------------------------------------------------------------------------------
     public function _1102050101_502(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
@@ -6867,6 +7200,9 @@ class DebtorController extends Controller
 //_1102050101_502_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_502_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date'); 
         $request->validate([
@@ -6976,6 +7312,9 @@ class DebtorController extends Controller
 //1102050101_502_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_502_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -7003,6 +7342,9 @@ class DebtorController extends Controller
 //_1102050101_504--------------------------------------------------------------------------------------------------------------
     public function _1102050101_504(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
@@ -7063,6 +7405,9 @@ class DebtorController extends Controller
 //_1102050101_504_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_504_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date'); 
         $request->validate([
@@ -7173,6 +7518,9 @@ class DebtorController extends Controller
 //1102050101_504_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_504_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -7200,6 +7548,9 @@ class DebtorController extends Controller
 //_1102050101_704--------------------------------------------------------------------------------------------------------------
     public function _1102050101_704(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
@@ -7250,6 +7601,9 @@ class DebtorController extends Controller
 //_1102050101_704_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_704_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $request->validate([
@@ -7358,6 +7712,9 @@ class DebtorController extends Controller
 //1102050101_704_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_704_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -7385,6 +7742,9 @@ class DebtorController extends Controller
 //_1102050102_107--------------------------------------------------------------------------------------------------------------
     public function _1102050102_107(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
@@ -7466,6 +7826,9 @@ class DebtorController extends Controller
 //_1102050102_107_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050102_107_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $request->validate([
@@ -7532,6 +7895,9 @@ class DebtorController extends Controller
 //_1102050102_107_confirm_iclaim-------------------------------------------------------------------------------------------------------
     public function _1102050102_107_confirm_iclaim(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $pttype_iclaim = DB::table('main_setting')->where('name', 'pttype_iclaim')->value('value'); 
@@ -7632,6 +7998,9 @@ class DebtorController extends Controller
 //1102050102_107_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_107_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -7701,6 +8070,9 @@ class DebtorController extends Controller
 //_1102050102_109--------------------------------------------------------------------------------------------------------------
     public function _1102050102_109(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
@@ -7759,6 +8131,9 @@ class DebtorController extends Controller
 //_1102050102_109_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050102_109_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $request->validate([
@@ -7867,6 +8242,9 @@ class DebtorController extends Controller
 //1102050102_109_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_109_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -7894,6 +8272,9 @@ class DebtorController extends Controller
 //_1102050102_111--------------------------------------------------------------------------------------------------------------
     public function _1102050102_111(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
@@ -7958,6 +8339,9 @@ class DebtorController extends Controller
 //_1102050102_111_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050102_111_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date'); 
         $request->validate([
@@ -8049,6 +8433,9 @@ class DebtorController extends Controller
 //1102050102_111_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_111_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -8080,6 +8467,9 @@ class DebtorController extends Controller
 //_1102050102_603--------------------------------------------------------------------------------------------------------------
     public function _1102050102_603(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
@@ -8139,6 +8529,9 @@ class DebtorController extends Controller
 //_1102050102_603_confirm------------------------------------------------------------------------------------------------------- 
     public function _1102050102_603_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $pttype_act = DB::table('main_setting')->where('name', 'pttype_act')->value('value');
@@ -8249,6 +8642,9 @@ class DebtorController extends Controller
 //1102050102_603_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_603_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -8276,6 +8672,9 @@ class DebtorController extends Controller
 //_1102050102_802--------------------------------------------------------------------------------------------------------------
     public function _1102050102_802(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
@@ -8346,6 +8745,9 @@ class DebtorController extends Controller
 //_1102050102_802_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050102_802_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date'); 
         $request->validate([
@@ -8436,6 +8838,9 @@ class DebtorController extends Controller
 //1102050102_802_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_802_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
@@ -8469,6 +8874,9 @@ class DebtorController extends Controller
 //_1102050102_804--------------------------------------------------------------------------------------------------------------
     public function _1102050102_804(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search');        
@@ -8533,6 +8941,9 @@ class DebtorController extends Controller
 //_1102050102_804_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050102_804_confirm(Request $request )
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date'); 
         $request->validate([
@@ -8624,6 +9035,9 @@ class DebtorController extends Controller
 //1102050102_804_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_804_daily_pdf(Request $request)
     {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
         $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');

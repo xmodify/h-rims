@@ -64,15 +64,13 @@
                         <th class="text-center">ฟอกไต</th>
                         <th class="text-center">PPFS</th>
                         <th class="text-center">กองทุนอื่น</th>       
-                        <th class="text-center text-primary">ลูกหนี้</th>
-                        <th class="text-center text-primary">ชดเชย OFC</th>
-                        <th class="text-center text-primary">ชดเชย ฟอกไต</th>                        
-                        <th class="text-center text-primary">ชดเชยรวม</th>                      
+                        <th class="text-center text-primary">ลูกหนี้</th>                  
+                        <th class="text-center text-primary">ชดเชย</th>                      
                         <th class="text-center text-primary">ผลต่าง</th>
                         <th class="text-center text-primary">ชดเชย PPFS</th>
+                        <th class="text-center text-primary">REP</th>
                         <th class="text-center text-primary" width="5%">สถานะ</th> 
-                        <th class="text-center text-primary" width="5%">Action</th>
-                        <th class="text-center text-primary">REP</th>  
+                        <th class="text-center text-primary" width="5%">Action</th>                          
                         <th class="text-center text-primary">อายุหนี้</th> 
                         <th class="text-center text-primary">Lock</th>                                       
                     </tr>
@@ -84,9 +82,7 @@
                     <?php $sum_kidney = 0 ; ?>
                     <?php $sum_ppfs = 0 ; ?>
                     <?php $sum_other = 0 ; ?>
-                    <?php $sum_debtor = 0 ; ?>
-                    <?php $sum_receive_ofc = 0 ; ?>
-                    <?php $sum_receive_kidney = 0 ; ?>                    
+                    <?php $sum_debtor = 0 ; ?>                  
                     <?php $sum_receive = 0 ; ?>
                     <?php $sum_receive_ppfs = 0 ; ?>
                     @foreach($debtor as $row) 
@@ -103,15 +99,7 @@
                         <td align="right">{{ number_format($row->kidney,2) }}</td>
                         <td align="right">{{ number_format($row->ppfs,2) }}</td>
                         <td align="right">{{ number_format($row->other,2) }}</td>
-                        <td align="right" class="text-primary">{{ number_format($row->debtor,2) }}</td> 
-                        <td align="right" @if($row->receive_ofc > 0) style="color:green" 
-                            @elseif($row->receive_ofc < 0) style="color:red" @endif>
-                            {{ number_format($row->receive_ofc,2) }} 
-                        </td> 
-                        <td align="right" @if($row->receive_kidney > 0) style="color:green" 
-                            @elseif($row->receive_kidney < 0) style="color:red" @endif>
-                            {{ number_format($row->receive_kidney,2) }}
-                        </td> 
+                        <td align="right" class="text-primary">{{ number_format($row->debtor,2) }}</td>
                         <td align="right" @if($row->receive > 0) style="color:green" 
                             @elseif($row->receive < 0) style="color:red" @endif>
                             {{ number_format($row->receive,2) }}
@@ -124,13 +112,13 @@
                             @elseif($row->receive_ppfs < 0) style="color:red" @endif>
                             {{ number_format($row->receive_ppfs,2) }}
                         </td>
+                        <td align="right">{{ $row->repno }} {{ $row->rid }}</td>
                         <td align="right">{{ $row->status }}</td> 
                         <td align="center">         
                             <button type="button" class="btn btn-outline-warning btn-sm text-primary receive" data-toggle="modal" data-target="#receive-{{ $row->vn }}"  data-id="{{ $row->vn }}" > 
                                 บันทึกชดเชย
                             </button>                            
-                        </td>  
-                        <td align="right">{{ $row->repno }} {{ $row->repno1 }}</td>
+                        </td> 
                         <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  {{-- เขียวอ่อน --}}
                             @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" {{-- เหลือง --}}
                             @else style="background-color: #FF7F7F;" {{-- แดง --}} @endif >
@@ -144,9 +132,7 @@
                     <?php $sum_kidney += $row->kidney ; ?> 
                     <?php $sum_ppfs += $row->ppfs ; ?>
                     <?php $sum_other += $row->other ; ?>  
-                    <?php $sum_debtor += $row->debtor ; ?> 
-                    <?php $sum_receive_ofc += $row->receive_ofc ; ?> 
-                    <?php $sum_receive_kidney += $row->receive_kidney ; ?>
+                    <?php $sum_debtor += $row->debtor ; ?>                    
                     <?php $sum_receive += $row->receive ; ?>
                     <?php $sum_receive_ppfs += $row->receive_ppfs ; ?>        
                     @endforeach 
@@ -165,9 +151,7 @@
                     <th class="text-center">PPFS</th>
                     <th class="text-center">กองทุนอื่น</th>
                     <th class="text-center">ลูกหนี้</th>
-                    <th class="text-center">ชดเชย OFC</th>
-                    <th class="text-center">ชดเชย ฟอกไต</th>
-                    <th class="text-center">ชดเชยรวม</th>                       
+                    <th class="text-center">ชดเชย</th>                       
                     <th class="text-center">ผลต่าง</th> 
                     <th class="text-center">ชดเชย PPFS</th>
                     <th class="text-center">รายงาน</th>                
@@ -182,15 +166,7 @@
                     <td class="text-primary" align="right">{{ number_format($sum_kidney,2)}}</td>
                     <td class="text-primary" align="right">{{ number_format($sum_ppfs,2)}}</td>
                     <td class="text-primary" align="right">{{ number_format($sum_other,2)}}</td>
-                    <td class="text-primary" align="right"><strong>{{ number_format($sum_debtor,2)}}</strong></td>
-                    <td align="right" @if($sum_receive_ofc > 0) style="color:green"
-                        @elseif($sum_receive_ofc < 0) style="color:red" @endif>
-                        <strong>{{ number_format($sum_receive_ofc,2)}}</strong>
-                    </td>
-                    <td align="right" @if($sum_receive_kidney > 0) style="color:green"
-                        @elseif($sum_receive_kidney < 0) style="color:red" @endif>
-                        <strong>{{ number_format($sum_receive_kidney,2)}}</strong>
-                    </td>
+                    <td class="text-primary" align="right"><strong>{{ number_format($sum_debtor,2)}}</strong></td>                    
                     <td align="right" @if($sum_receive > 0) style="color:green"
                         @elseif($sum_receive < 0) style="color:red" @endif>
                         <strong>{{ number_format($sum_receive,2)}}</strong>

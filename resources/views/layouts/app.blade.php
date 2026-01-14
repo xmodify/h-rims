@@ -89,14 +89,23 @@
                                 @if($hasLookupIcode_kidney) 
                                 <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
-                                        STM-OFC [ฟอกไต]
+                                        STM-OFC [CSOP-ฟอกไต]
                                     </a>
                                     <ul class="bg-success dropdown-menu">
-                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_ofc_kidney') }}">นำเข้าข้อมูล</a></li>
-                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_ofc_kidneydetail') }}">รายละเอียด</a></li>                                       
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_ofc_csop') }}">นำเข้าข้อมูล</a></li>
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_ofc_csopdetail') }}">รายละเอียด</a></li>                                       
                                     </ul>
                                 </li>  
                                 @endif
+                                <li class="dropend position-relative">
+                                    <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
+                                        STM-OFC [CIPN]
+                                    </a>
+                                    <ul class="bg-success dropdown-menu">
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_ofc_cipn') }}">นำเข้าข้อมูล</a></li>
+                                        <li><a class="dropdown-item link-primary text-white" href="{{ url('/import/stm_ofc_cipndetail') }}">รายละเอียด</a></li>                                       
+                                    </ul>
+                                </li>  
                                 <li class="dropend position-relative">
                                     <a class="link-primary dropdown-item dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">
                                         STM-LGO [OP-IP]
@@ -471,7 +480,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li > 
                             <div class="btn text-info">
-                                V. 69-01-12 12:00
+                                V. 69-01-15 02:00
                             </div>   
                         </li>                         
                         <!-- Authentication Links -->

@@ -101,7 +101,7 @@
                             @elseif(($row->receive-$row->debtor) < 0) style="color:red" @endif>
                             {{ number_format($row->receive-$row->debtor,2) }}
                         </td>                        
-                        <td align="center">{{ $row->repno }}</td>
+                        <td align="center">{{ $row->repno }} {{ $row->rid }}</td>
                         <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  {{-- เขียวอ่อน --}}
                             @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" {{-- เหลือง --}}
                             @else style="background-color: #FF7F7F;" {{-- แดง --}} @endif >

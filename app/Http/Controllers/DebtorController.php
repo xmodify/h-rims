@@ -447,12 +447,12 @@ class DebtorController extends Controller
             WHERE dchdate BETWEEN ? AND ?',[$start_date,$end_date]);
         $_1102050101_402 = DB::select('
             SELECT COUNT(DISTINCT a.an) AS anvn,SUM(a.debtor) AS debtor,SUM(a.receive_total) AS receive
-            FROM (SELECT d.an,d.debtor,IFNULL(stm.receive_total,0)+ IFNULL(csop.amount,0) AS receive_total
+                FROM (SELECT d.an,d.debtor,IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) 
+                + IFNULL(( SELECT SUM(c.amount) FROM hrims.stm_ofc_csop c WHERE c.hn = d.hn 
+                AND c.vstdate BETWEEN d.regdate AND d.dchdate),0) AS receive_total
             FROM debtor_1102050101_402 d 
             LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total FROM hrims.stm_ofc GROUP BY an) stm ON stm.an = d.an
-            LEFT JOIN (SELECT hn, vstdate, SUM(amount) AS amount
-                FROM hrims.stm_ofc_csop GROUP BY hn, vstdate) csop ON csop.hn = d.hn 
-                AND csop.vstdate BETWEEN d.regdate AND d.dchdate
+            LEFT JOIN (SELECT an, SUM(gtotal) AS gtotal FROM hrims.stm_ofc_cipn GROUP BY an) cipn ON cipn.an = d.an
             WHERE d.dchdate BETWEEN ? AND ?) AS a ' ,[$start_date,$end_date]);
         $_1102050101_502 = DB::select('
             SELECT COUNT(DISTINCT an) AS anvn, SUM(debtor) AS debtor,SUM(receive) AS receive
@@ -477,12 +477,10 @@ class DebtorController extends Controller
             WHERE dchdate BETWEEN ? AND ?',[$start_date,$end_date]);
         $_1102050102_111 = DB::select('
             SELECT COUNT(DISTINCT a.an) AS anvn,SUM(a.debtor) AS debtor,SUM(a.receive_total) AS receive
-            FROM (SELECT d.an,d.debtor,IFNULL(stm.receive_total,0)+ IFNULL(csop.amount,0) AS receive_total
+                FROM (SELECT d.an,d.debtor,IFNULL(stm.receive_total,0)+ IFNULL(cipn.gtotal,0) AS receive_total
             FROM debtor_1102050102_111 d    
             LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total FROM hrims.stm_ofc GROUP BY an) stm ON stm.an = d.an
-            LEFT JOIN (SELECT hn, vstdate, SUM(amount) AS amount
-                FROM hrims.stm_ofc_csop GROUP BY hn, vstdate) csop ON csop.hn = d.hn 
-                AND csop.vstdate BETWEEN d.regdate AND d.dchdate
+            LEFT JOIN (SELECT an, SUM(gtotal) AS gtotal FROM hrims.stm_ofc_cipn GROUP BY an) cipn ON cipn.an = d.an
             WHERE d.dchdate BETWEEN ? AND ? ) AS a ' ,[$start_date,$end_date]);
         $_1102050102_603 = DB::select('
             SELECT COUNT(DISTINCT an) AS anvn, SUM(debtor) AS debtor,SUM(receive) AS receive
@@ -500,12 +498,10 @@ class DebtorController extends Controller
                 WHERE d.dchdate BETWEEN ? AND ?) a' ,[$start_date,$end_date]);
         $_1102050102_804 = DB::select('
             SELECT COUNT(DISTINCT a.an) AS anvn,SUM(a.debtor) AS debtor,SUM(a.receive_total) AS receive
-            FROM (SELECT d.an,d.debtor,IFNULL(stm.receive_total,0)+ IFNULL(csop.amount,0) AS receive_total
+                FROM (SELECT d.an,d.debtor,IFNULL(stm.receive_total,0)+ IFNULL(cipn.gtotal,0) AS receive_total
             FROM debtor_1102050102_804 d    
             LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total FROM hrims.stm_ofc GROUP BY an) stm ON stm.an = d.an
-            LEFT JOIN (SELECT hn, vstdate, SUM(amount) AS amount
-                FROM hrims.stm_ofc_csop GROUP BY hn, vstdate) csop ON csop.hn = d.hn 
-                AND csop.vstdate BETWEEN d.regdate AND d.dchdate 
+            LEFT JOIN (SELECT an, SUM(gtotal) AS gtotal FROM hrims.stm_ofc_cipn GROUP BY an) cipn ON cipn.an = d.an
             WHERE d.dchdate BETWEEN ? AND ? ) AS a ' ,[$start_date,$end_date]);
 
         $request->session()->put('start_date',$start_date);
@@ -6959,30 +6955,42 @@ class DebtorController extends Controller
  
         if ($search) {
             $debtor = DB::select('
-                SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,d.income,d.rcpt_money,
-                    d.kidney,d.debtor,d.debtor_lock,IFNULL(stm.receive_total,0) + IFNULL(csop.amount,0) AS receive,stm.repno,
-                    csop.rid,CASE WHEN (IFNULL(stm.receive_total,0) + IFNULL(csop.amount,0)) - IFNULL(d.debtor,0) >= 0 
-                    THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+                SELECT  d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,
+                    d.pdx,d.adjrw,d.income,d.rcpt_money,d.kidney,d.debtor,d.debtor_lock,
+                    IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) + IFNULL(csop.amount,0) AS receive,
+                    stm.repno,cipn.rid AS cipn_rid, csop.rid AS csop_rid,    
+                    CASE WHEN (IFNULL(stm.receive_total,0)+IFNULL(cipn.gtotal,0)+ IFNULL(csop.amount,0)
+                    - IFNULL(d.debtor,0)) >= 0 THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate)  END AS days
                 FROM debtor_1102050101_402 d    
                 LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total,MAX(repno) AS repno 
 					FROM hrims.stm_ofc GROUP BY an) stm ON stm.an = d.an
-                LEFT JOIN (SELECT hn, vstdate, SUM(amount) AS amount,MAX(rid) AS rid
-                    FROM hrims.stm_ofc_csop GROUP BY hn, vstdate) csop ON csop.hn = d.hn 
-                    AND csop.vstdate BETWEEN d.regdate AND d.dchdate
+                LEFT JOIN (SELECT an, SUM(gtotal) AS gtotal ,MAX(rid) AS rid 
+                    FROM hrims.stm_ofc_cipn GROUP BY an) cipn ON cipn.an = d.an
+                LEFT JOIN (SELECT d2.an,SUM(c.amount) AS amount,MAX(c.rid) AS rid
+                    FROM debtor_1102050101_402 d2 
+                    JOIN hrims.stm_ofc_csop c ON c.hn = d2.hn
+                    AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
+                    GROUP BY d2.an) csop ON csop.an = d.an
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
                 AND d.dchdate BETWEEN ? AND ?', [$search,$search,$search,$start_date,$end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,d.income,d.rcpt_money,
-                    d.kidney,d.debtor,d.debtor_lock,IFNULL(stm.receive_total,0) + IFNULL(csop.amount,0) AS receive,stm.repno,
-                    csop.rid,CASE WHEN (IFNULL(stm.receive_total,0) + IFNULL(csop.amount,0)) - IFNULL(d.debtor,0) >= 0 
-                    THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+                SELECT  d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,
+                    d.pdx,d.adjrw,d.income,d.rcpt_money,d.kidney,d.debtor,d.debtor_lock,
+                    IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) + IFNULL(csop.amount,0) AS receive,
+                    stm.repno,cipn.rid AS cipn_rid, csop.rid AS csop_rid,    
+                    CASE WHEN (IFNULL(stm.receive_total,0)+IFNULL(cipn.gtotal,0)+ IFNULL(csop.amount,0)
+                    - IFNULL(d.debtor,0)) >= 0 THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate)  END AS days
                 FROM debtor_1102050101_402 d    
                 LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total,MAX(repno) AS repno 
 					FROM hrims.stm_ofc GROUP BY an) stm ON stm.an = d.an
-                LEFT JOIN (SELECT hn, vstdate, SUM(amount) AS amount,MAX(rid) AS rid
-                    FROM hrims.stm_ofc_csop GROUP BY hn, vstdate) csop ON csop.hn = d.hn 
-                    AND csop.vstdate BETWEEN d.regdate AND d.dchdate
+                LEFT JOIN (SELECT an, SUM(gtotal) AS gtotal ,MAX(rid) AS rid 
+                    FROM hrims.stm_ofc_cipn GROUP BY an) cipn ON cipn.an = d.an
+                LEFT JOIN (SELECT d2.an,SUM(c.amount) AS amount,MAX(c.rid) AS rid
+                    FROM debtor_1102050101_402 d2 
+                    JOIN hrims.stm_ofc_csop c ON c.hn = d2.hn
+                    AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
+                    GROUP BY d2.an) csop ON csop.an = d.an
                 WHERE d.dchdate BETWEEN ? AND ? ', [$start_date,$end_date]);
         }
 
@@ -7128,13 +7136,14 @@ class DebtorController extends Controller
         $debtor = DB::select('
             SELECT a.dchdate AS vstdate,COUNT(DISTINCT a.an) AS anvn,
                 SUM(a.debtor) AS debtor,SUM(a.receive_total) AS receive
-            FROM (SELECT d.dchdate,d.an,d.debtor,IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0) AS receive_total
+            FROM (SELECT d.dchdate,d.an,d.debtor,IFNULL(stm.receive_total,0)+IFNULL(cipn.gtotal,0)
+                    + IFNULL(( SELECT SUM(c.amount) FROM hrims.stm_ofc_csop c WHERE c.hn = d.hn 
+                    AND c.vstdate BETWEEN d.regdate AND d.dchdate),0) AS receive_total
                 FROM debtor_1102050101_402 d    
                 LEFT JOIN (SELECT an,SUM(receive_total) AS receive_total
                     FROM stm_ofc GROUP BY an) stm ON stm.an = d.an
-                LEFT JOIN (SELECT hn,vstdate,SUM(amount) AS amount    
-                    FROM stm_ofc_csop GROUP BY hn, vstdate) csop ON csop.hn = d.hn 
-                    AND csop.vstdate BETWEEN d.regdate AND d.dchdate
+                LEFT JOIN (SELECT an, SUM(gtotal) AS gtotal 
+                    FROM hrims.stm_ofc_cipn GROUP BY an) cipn ON cipn.an = d.an
             WHERE d.dchdate BETWEEN ? AND ? ) AS a
             GROUP BY a.dchdate
             ORDER BY a.dchdate',[$start_date,$end_date]);
@@ -8300,29 +8309,27 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,d.income,d.rcpt_money,
-                    d.kidney,d.debtor,d.debtor_lock,IFNULL(stm.receive_total,0) + IFNULL(csop.amount,0) AS receive,stm.repno,
-                    csop.rid,CASE WHEN (IFNULL(stm.receive_total,0) + IFNULL(csop.amount,0)) - IFNULL(d.debtor,0) >= 0 
+                    d.kidney,d.debtor,d.debtor_lock,IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) AS receive,stm.repno,
+                    cipn.rid,CASE WHEN (IFNULL(stm.receive_total,0)+IFNULL(cipn.gtotal,0)-IFNULL(d.debtor,0)) >= 0
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_111 d    
                 LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total,MAX(repno) AS repno 
 					FROM hrims.stm_ofc GROUP BY an) stm ON stm.an = d.an
-                LEFT JOIN (SELECT hn, vstdate, SUM(amount) AS amount,MAX(rid) AS rid
-                    FROM hrims.stm_ofc_csop GROUP BY hn, vstdate) csop ON csop.hn = d.hn 
-                    AND csop.vstdate BETWEEN d.regdate AND d.dchdate              
+                LEFT JOIN (SELECT an, SUM(gtotal) AS gtotal ,MAX(rid) AS rid 
+                    FROM hrims.stm_ofc_cipn GROUP BY an) cipn ON cipn.an = d.an         
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
                 AND d.dchdate BETWEEN ? AND ?', [$search,$search,$search,$start_date,$end_date]);
         } else {
             $debtor = DB::select('
                 SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,d.income,d.rcpt_money,
-                    d.kidney,d.debtor,d.debtor_lock,IFNULL(stm.receive_total,0) + IFNULL(csop.amount,0) AS receive,stm.repno,
-                    csop.rid,CASE WHEN (IFNULL(stm.receive_total,0) + IFNULL(csop.amount,0)) - IFNULL(d.debtor,0) >= 0 
+                    d.kidney,d.debtor,d.debtor_lock,IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) AS receive,stm.repno,
+                    cipn.rid,CASE WHEN (IFNULL(stm.receive_total,0)+IFNULL(cipn.gtotal,0)-IFNULL(d.debtor,0)) >= 0
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_111 d    
                 LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total,MAX(repno) AS repno 
 					FROM hrims.stm_ofc GROUP BY an) stm ON stm.an = d.an
-                LEFT JOIN (SELECT hn, vstdate, SUM(amount) AS amount,MAX(rid) AS rid
-                    FROM hrims.stm_ofc_csop GROUP BY hn, vstdate) csop ON csop.hn = d.hn 
-                    AND csop.vstdate BETWEEN d.regdate AND d.dchdate                 
+                LEFT JOIN (SELECT an, SUM(gtotal) AS gtotal ,MAX(rid) AS rid 
+                    FROM hrims.stm_ofc_cipn GROUP BY an) cipn ON cipn.an = d.an                 
                 WHERE d.dchdate BETWEEN ? AND ?', [$start_date,$end_date]);
         }
 
@@ -8468,13 +8475,12 @@ class DebtorController extends Controller
         $debtor = DB::select('
             SELECT a.dchdate AS vstdate,COUNT(DISTINCT a.an) AS anvn,
                 SUM(a.debtor) AS debtor,SUM(a.receive_total) AS receive
-            FROM (SELECT d.dchdate,d.an,d.debtor,IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0) AS receive_total
+            FROM (SELECT d.dchdate,d.an,d.debtor,IFNULL(stm.receive_total,0)+IFNULL(cipn.gtotal,0) AS receive_total
             FROM debtor_1102050102_111 d    
             LEFT JOIN (SELECT an,SUM(receive_total) AS receive_total
-                FROM stm_ofc GROUP BY an) stm ON stm.an = d.an
-            LEFT JOIN (SELECT hn,vstdate,SUM(amount) AS amount    
-                FROM stm_ofc_csop GROUP BY hn, vstdate) csop ON csop.hn = d.hn 
-                AND csop.vstdate BETWEEN d.regdate AND d.dchdate
+                    FROM stm_ofc GROUP BY an) stm ON stm.an = d.an
+                LEFT JOIN (SELECT an, SUM(gtotal) AS gtotal 
+                    FROM hrims.stm_ofc_cipn GROUP BY an) cipn ON cipn.an = d.an
             WHERE d.dchdate BETWEEN ? AND ? ) AS a
             GROUP BY a.dchdate
             ORDER BY a.dchdate',[$start_date,$end_date]);
@@ -8920,29 +8926,27 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,d.income,d.rcpt_money,
-                    d.kidney,d.debtor,d.debtor_lock,IFNULL(stm.receive_total,0) + IFNULL(csop.amount,0) AS receive,stm.repno,
-                    csop.rid,CASE WHEN (IFNULL(stm.receive_total,0) + IFNULL(csop.amount,0)) - IFNULL(d.debtor,0) >= 0 
+                    d.kidney,d.debtor,d.debtor_lock,IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) AS receive,stm.repno,
+                    cipn.rid,CASE WHEN (IFNULL(stm.receive_total,0)+IFNULL(cipn.gtotal,0)-IFNULL(d.debtor,0)) >= 0
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_804 d    
                 LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total,MAX(repno) AS repno 
 					FROM hrims.stm_ofc GROUP BY an) stm ON stm.an = d.an
-                LEFT JOIN (SELECT hn, vstdate, SUM(amount) AS amount,MAX(rid) AS rid
-                    FROM hrims.stm_ofc_csop GROUP BY hn, vstdate) csop ON csop.hn = d.hn 
-                    AND csop.vstdate BETWEEN d.regdate AND d.dchdate              
+                LEFT JOIN (SELECT an, SUM(gtotal) AS gtotal ,MAX(rid) AS rid 
+                    FROM hrims.stm_ofc_cipn GROUP BY an) cipn ON cipn.an = d.an   
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
                 AND d.dchdate BETWEEN ? AND ?', [$search,$search,$search,$start_date,$end_date]);
         } else {
             $debtor = DB::select('
                 SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,d.income,d.rcpt_money,
-                    d.kidney,d.debtor,d.debtor_lock,IFNULL(stm.receive_total,0) + IFNULL(csop.amount,0) AS receive,stm.repno,
-                    csop.rid,CASE WHEN (IFNULL(stm.receive_total,0) + IFNULL(csop.amount,0)) - IFNULL(d.debtor,0) >= 0 
+                    d.kidney,d.debtor,d.debtor_lock,IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) AS receive,stm.repno,
+                    cipn.rid,CASE WHEN (IFNULL(stm.receive_total,0)+IFNULL(cipn.gtotal,0)-IFNULL(d.debtor,0)) >= 0
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_804 d    
                 LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total,MAX(repno) AS repno 
 					FROM hrims.stm_ofc GROUP BY an) stm ON stm.an = d.an
-                LEFT JOIN (SELECT hn, vstdate, SUM(amount) AS amount,MAX(rid) AS rid
-                    FROM hrims.stm_ofc_csop GROUP BY hn, vstdate) csop ON csop.hn = d.hn 
-                    AND csop.vstdate BETWEEN d.regdate AND d.dchdate               
+                LEFT JOIN (SELECT an, SUM(gtotal) AS gtotal ,MAX(rid) AS rid 
+                    FROM hrims.stm_ofc_cipn GROUP BY an) cipn ON cipn.an = d.an                
                 WHERE d.dchdate BETWEEN ? AND ?', [$start_date,$end_date]);
         }
 
@@ -9088,13 +9092,12 @@ class DebtorController extends Controller
         $debtor = DB::select('
             SELECT a.dchdate AS vstdate,COUNT(DISTINCT a.an) AS anvn,
                 SUM(a.debtor) AS debtor,SUM(a.receive_total) AS receive
-            FROM (SELECT d.dchdate,d.an,d.debtor,IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0) AS receive_total
+            FROM (SELECT d.dchdate,d.an,d.debtor,IFNULL(stm.receive_total,0)+IFNULL(cipn.gtotal,0) AS receive_total
             FROM debtor_1102050102_804 d    
             LEFT JOIN (SELECT an,SUM(receive_total) AS receive_total
-                    FROM stm_ofc GROUP BY an) stm ON stm.an = d.an
-                LEFT JOIN (SELECT hn,vstdate,SUM(amount) AS amount    
-                    FROM stm_ofc_csop GROUP BY hn, vstdate) csop ON csop.hn = d.hn 
-                    AND csop.vstdate BETWEEN d.regdate AND d.dchdate
+                FROM stm_ofc GROUP BY an) stm ON stm.an = d.an
+            LEFT JOIN (SELECT an, SUM(gtotal) AS gtotal 
+                FROM hrims.stm_ofc_cipn GROUP BY an) cipn ON cipn.an = d.an
             WHERE d.dchdate BETWEEN ? AND ? ) AS a
             GROUP BY a.dchdate
             ORDER BY a.dchdate',[$start_date,$end_date]);

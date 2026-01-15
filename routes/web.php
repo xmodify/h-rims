@@ -265,6 +265,7 @@ Route::get('debtor/1102050101_307_daily_pdf',[DebtorController::class,'_11020501
 Route::get('debtor/1102050101_307_indiv_excel',[DebtorController::class,'_1102050101_307_indiv_excel']);
 Route::match(['get','post'],'debtor/1102050101_309',[DebtorController::class,'_1102050101_309']);
 Route::post('debtor/1102050101_309_confirm',[DebtorController::class,'_1102050101_309_confirm']);
+Route::post('debtor/1102050101_309_confirm_ae',[DebtorController::class,'_1102050101_309_confirm_ae']);
 Route::delete('debtor/1102050101_309_delete',[DebtorController::class,'_1102050101_309_delete']);
 Route::put('debtor/1102050101_309/update/{vn}',[DebtorController::class,'_1102050101_309_update']);
 Route::get('debtor/1102050101_309_daily_pdf',[DebtorController::class,'_1102050101_309_daily_pdf']);

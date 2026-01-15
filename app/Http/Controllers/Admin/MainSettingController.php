@@ -63,6 +63,7 @@ class MainSettingController extends Controller
             ['id' => 21, 'name_th' => 'FDH User', 'name' => 'fdh_user', 'value' => ''],
             ['id' => 22, 'name_th' => 'FDH Pass', 'name' => 'fdh_pass', 'value' => ''],
             ['id' => 23, 'name_th' => 'FDH Secret Key', 'name' => 'fdh_secretKey', 'value' => '$jwt@moph#'],
+            ['id' => 24, 'name_th' => 'สิทธิ ปกส. อุบัติเหตุ/ฉุกเฉิน (รหัสสิทธิ HOSxP)', 'name' => 'pttype_sss_ae', 'value' => '36'],
         ];
         
         foreach ($main_setting as $row) {

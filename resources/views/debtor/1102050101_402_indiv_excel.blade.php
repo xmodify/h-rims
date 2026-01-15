@@ -33,9 +33,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <th class="text-center">ชำระเอง</th>
                 <th class="text-center">ฟอกไต</th>
                 <th class="text-center text-primary">ลูกหนี้</th>
-                <th class="text-center text-primary">ชดเชย OFC</th> 
-                <th class="text-center text-primary">ชดเชย ฟอกไต</th>
-                <th class="text-center text-primary">ชดเชย ทั้งหมด</th>
+                <th class="text-center text-primary">ชดเชย</th>
                 <th class="text-center text-primary">ผลต่าง</th>
                 <th class="text-center text-primary">REP</th>   
                 <th class="text-center text-primary">อายุหนี้</th>  
@@ -46,8 +44,6 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
             <?php $sum_rcpt_money = 0 ; ?>
             <?php $sum_kidney = 0 ; ?>
             <?php $sum_debtor = 0 ; ?>
-            <?php $sum_receive_ofc = 0 ; ?>
-            <?php $sum_receive_kidney = 0 ; ?>
             <?php $sum_receive = 0 ; ?>
             @foreach($debtor as $row)          
             <tr>
@@ -63,15 +59,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="right">{{ number_format($row->income,2) }}</td>
                 <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
                 <td align="right">{{ number_format($row->kidney,2) }}</td> 
-                <td align="right" class="text-primary">{{ number_format($row->debtor,2) }}</td> 
-                <td align="right" @if($row->receive_ofc > 0) style="color:green" 
-                    @elseif($row->receive_ofc < 0) style="color:red" @endif>
-                    {{ number_format($row->receive_ofc,2) }}
-                </td>
-                <td align="right" @if($row->receive_kidney > 0) style="color:green" 
-                    @elseif($row->receive_kidney < 0) style="color:red" @endif>
-                    {{ number_format($row->receive_kidney,2) }}
-                </td>
+                <td align="right" class="text-primary">{{ number_format($row->debtor,2) }}</td>                 
                 <td align="right" @if($row->receive > 0) style="color:green" 
                     @elseif($row->receive < 0) style="color:red" @endif>
                     {{ number_format($row->receive,2) }}
@@ -80,7 +68,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                     @elseif(($row->receive-$row->debtor) < 0) style="color:red" @endif>
                     {{ number_format($row->receive-$row->debtor,2) }}
                 </td>                        
-                <td align="center">{{ $row->repno }} {{ $row->repno_kidney }}</td>
+                <td align="center">{{ $row->repno }} {{ $row->rid }}</td>
                 <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  {{-- เขียวอ่อน --}}
                     @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" {{-- เหลือง --}}
                     @else style="background-color: #FF7F7F;" {{-- แดง --}} @endif >
@@ -92,8 +80,6 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
             <?php $sum_rcpt_money += $row->rcpt_money ; ?>
             <?php $sum_kidney += $row->kidney ; ?>
             <?php $sum_debtor += $row->debtor ; ?> 
-            <?php $sum_receive_ofc += $row->receive_ofc ; ?>      
-            <?php $sum_receive_kidney += $row->receive_kidney ; ?>  
             <?php $sum_receive += $row->receive ; ?>      
             @endforeach   
             <tr>
@@ -102,8 +88,6 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="right"><strong>{{number_format($sum_rcpt_money,2)}}&nbsp;</strong></td>  
                 <td align="right"><strong>{{number_format($sum_kidney,2)}}&nbsp;</strong></td>  
                 <td align="right"><strong>{{number_format($sum_debtor,2)}}&nbsp;</strong></td>
-                <td align="right"><strong>{{number_format($sum_receive_ofc,2)}}&nbsp;</strong></td> 
-                <td align="right"><strong>{{number_format($sum_receive_kidney,2)}}&nbsp;</strong></td> 
                 <td align="right"><strong>{{number_format($sum_receive,2)}}&nbsp;</strong></td>  
                 <td align="right"><strong>{{number_format($sum_receive-$sum_debtor,2)}}&nbsp;</strong></td>
             </tr>          

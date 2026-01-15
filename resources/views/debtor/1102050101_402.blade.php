@@ -65,9 +65,7 @@
                         <th class="text-center">ชำระเอง</th>
                         <th class="text-center">ฟอกไต</th>
                         <th class="text-center text-primary">ลูกหนี้</th>
-                        <th class="text-center text-primary">ชดเชย OFC</th> 
-                        <th class="text-center text-primary">ชดเชย ฟอกไต</th>
-                        <th class="text-center text-primary">ชดเชย ทั้งหมด</th>
+                        <th class="text-center text-primary">ชดเชย</th>
                         <th class="text-center text-primary">ผลต่าง</th>
                         <th class="text-center text-primary">REP</th>
                         <th class="text-center text-primary">อายุหนี้</th>                
@@ -79,8 +77,6 @@
                     <?php $sum_rcpt_money = 0 ; ?>
                     <?php $sum_kidney = 0 ; ?>
                     <?php $sum_debtor = 0 ; ?>
-                    <?php $sum_receive_ofc = 0 ; ?>
-                    <?php $sum_receive_kidney  = 0 ; ?>
                     <?php $sum_receive  = 0 ; ?>
                     @foreach($debtor as $row)
                     <tr>
@@ -96,15 +92,7 @@
                         <td align="right">{{ number_format($row->income,2) }}</td>
                         <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
                         <td align="right">{{ number_format($row->kidney,2) }}</td>
-                        <td align="right" class="text-primary">{{ number_format($row->debtor,2) }}</td>                          
-                        <td align="right" @if($row->receive_ofc > 0) style="color:green" 
-                            @elseif($row->receive_ofc < 0) style="color:red" @endif>
-                            {{ number_format($row->receive_ofc,2) }}
-                        </td>
-                        <td align="right" @if($row->receive_kidney > 0) style="color:green" 
-                            @elseif($row->receive_kidney < 0) style="color:red" @endif>
-                            {{ number_format($row->receive_kidney,2) }}
-                        </td>
+                        <td align="right" class="text-primary">{{ number_format($row->debtor,2) }}</td> 
                         <td align="right" @if($row->receive > 0) style="color:green" 
                             @elseif($row->receive < 0) style="color:red" @endif>
                             {{ number_format($row->receive,2) }}
@@ -113,7 +101,7 @@
                             @elseif(($row->receive-$row->debtor) < 0) style="color:red" @endif>
                             {{ number_format($row->receive-$row->debtor,2) }}
                         </td>                        
-                        <td align="center">{{ $row->repno }} {{ $row->repno_kidney }}</td>
+                        <td align="center">{{ $row->repno }} {{ $row->rid }}</td>
                         <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  {{-- เขียวอ่อน --}}
                             @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" {{-- เหลือง --}}
                             @else style="background-color: #FF7F7F;" {{-- แดง --}} @endif >
@@ -125,8 +113,6 @@
                     <?php $sum_rcpt_money += $row->rcpt_money ; ?>
                     <?php $sum_kidney += $row->kidney ; ?> 
                     <?php $sum_debtor += $row->debtor ; ?> 
-                    <?php $sum_receive_ofc += $row->receive_ofc ; ?> 
-                    <?php $sum_receive_kidney += $row->receive_kidney ; ?> 
                     <?php $sum_receive += $row->receive ; ?>        
                     @endforeach 
                     </tr>   
@@ -140,10 +126,8 @@
                     <th class="text-center">ค่ารักษาพยาบาล</th>
                     <th class="text-center">ชำระเอง</th>
                     <th class="text-center">ฟอกไต</th>
-                    <th class="text-center">ลูกหนี้</th> 
-                    <th class="text-center">ชดเชย OFC</th>  
-                    <th class="text-center">ชดเชย ฟอกไต</th>  
-                    <th class="text-center">ชดเชย ทั้งหมด</th>   
+                    <th class="text-center">ลูกหนี้</th>  
+                    <th class="text-center">ชดเชย</th>   
                     <th class="text-center">ผลต่าง</th> 
                     <th class="text-center">รายงาน</th>                
                 </tr>
@@ -154,15 +138,7 @@
                     <td class="text-primary" align="right">{{ number_format($sum_income,2)}}</td>
                     <td class="text-primary" align="right">{{ number_format($sum_rcpt_money,2)}}</td>
                     <td class="text-primary" align="right">{{ number_format($sum_kidney,2)}}</td>
-                    <td class="text-primary" align="right"><strong>{{ number_format($sum_debtor,2)}}</strong></td>
-                    <td align="right" @if($sum_receive_ofc > 0) style="color:green" 
-                        @elseif($sum_receive_ofc < 0) style="color:red" @endif>
-                        <strong>{{ number_format($sum_receive_ofc,2)}}</strong>
-                    </td>
-                    <td align="right" @if($sum_receive_kidney > 0) style="color:green" 
-                        @elseif($sum_receive_kidney < 0) style="color:red" @endif>
-                        <strong>{{ number_format($sum_receive_kidney,2)}}</strong>
-                    </td>
+                    <td class="text-primary" align="right"><strong>{{ number_format($sum_debtor,2)}}</strong></td>                    
                     <td align="right" @if($sum_receive > 0) style="color:green" 
                         @elseif($sum_receive < 0) style="color:red" @endif>
                         <strong>{{ number_format($sum_receive,2)}}</strong>

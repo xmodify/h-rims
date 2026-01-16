@@ -1039,7 +1039,7 @@ public function stm_ofc_detail(Request $request)
         $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));
 
         $stm_ofc_csop_list=DB::select('
-            SELECT stm_filename,hcode,hname,round_no,station,hreg,hn,pt_name,invno,
+            SELECT stm_filename,hcode,hname,round_no,station,sys,hreg,hn,pt_name,invno,
             vstdate,vsttime,paid,rid,amount,receive_no
             FROM stm_ofc_csop  
             WHERE vstdate BETWEEN ? AND ?

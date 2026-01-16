@@ -1120,7 +1120,7 @@ class ClaimOpController extends Controller
             LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price	FROM opitemrece op
             INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
                 WHERE op.vstdate BETWEEN ? AND ? AND li.kidney = "Y" GROUP BY op.vn) kidney ON kidney.vn=o.vn            
-            LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
+            LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,3) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
                 FROM hrims.stm_ofc_csop WHERE sys = "HD" GROUP BY hn, vstdate, LEFT(vsttime,3)) csop ON csop.hn = pt.hn
                 AND csop.vstdate = o.vstdate AND csop.vsttime = LEFT(o.vsttime,3)  
             WHERE p.hipdata_code = "OFC" 
@@ -1151,7 +1151,7 @@ class ClaimOpController extends Controller
             INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
                 WHERE op.vstdate BETWEEN ? AND ? AND li.kidney = "Y" GROUP BY op.vn) kidney ON kidney.vn=o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
-            LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
+            LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,3) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
                 FROM hrims.stm_ofc_csop WHERE sys = "HD" GROUP BY hn, vstdate, LEFT(vsttime,3)) csop ON csop.hn = pt.hn
                 AND csop.vstdate = o.vstdate AND csop.vsttime = LEFT(o.vsttime,3)  
             WHERE p.hipdata_code = "OFC" 

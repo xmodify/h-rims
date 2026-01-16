@@ -1442,7 +1442,7 @@ class ClaimOpController extends Controller
                 FROM hrims.stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) stm_uc ON stm_uc.cid=pt.cid
                 AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL) 
-            AND p.hipdata_code = "BKK" 
+            AND p.hipdata_code IN ("BKK","PTY")
             AND o.vstdate BETWEEN ? AND ?
             AND v.income <>"0" 
             AND kidney.vn IS NULL GROUP BY o.vn ) AS a
@@ -1476,7 +1476,7 @@ class ClaimOpController extends Controller
                 WHERE op.vstdate BETWEEN ? AND ? AND li.ppfs = "Y" GROUP BY op.vn) o2 ON o2.vn=o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             WHERE (o.an ="" OR o.an IS NULL) 
-            AND p.hipdata_code = "BKK" 
+            AND p.hipdata_code IN ("BKK","PTY") 
             AND o.vstdate BETWEEN ? AND ?
             AND v.income <>"0" 
             AND kidney.vn IS NULL 
@@ -1514,7 +1514,7 @@ class ClaimOpController extends Controller
                 FROM hrims.stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) stm_uc ON stm_uc.cid=pt.cid
                 AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL) 
-            AND p.hipdata_code = "BKK" 
+            AND p.hipdata_code IN ("BKK","PTY") 
             AND o.vstdate BETWEEN ? AND ?
             AND v.income <>"0" 
             AND kidney.vn IS NULL 

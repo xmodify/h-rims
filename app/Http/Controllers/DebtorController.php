@@ -93,6 +93,7 @@ class DebtorController extends Controller
             CASE WHEN p.hipdata_code IN ("A1","CSH") THEN "ชำระเงิน"
             WHEN p.hipdata_code = "A9" THEN "พรบ." 
             WHEN p.hipdata_code = "BKK" THEN "กทม." 
+            WHEN p.hipdata_code = "PTY" THEN "พัทยา" 
             WHEN p.hipdata_code = "BMT" THEN "ขสมก." 
             WHEN p.hipdata_code = "GOF" THEN "เบิกต้นสังกัด" 
             WHEN p.hipdata_code = "LGO" THEN "อปท." 
@@ -103,7 +104,7 @@ class DebtorController extends Controller
             WHEN p.hipdata_code = "SSS" THEN "ปกส." 
             WHEN p.hipdata_code = "STP" THEN "ผู้มีปัญหาสถานะสิทธิ" 
             WHEN p.hipdata_code = "UCS" THEN "ประกันสุขภาพ" 
-            WHEN p.hipdata_code NOT IN ("A1","A9","BKK","BMT","GOF","LGO","NRD","NRH","OFC","SSI","SSS","STP","UCS")
+            WHEN p.hipdata_code NOT IN ("A1","A9","BKK","PTY","BMT","GOF","LGO","NRD","NRH","OFC","SSI","SSS","STP","UCS")
                 THEN "ไม่พบเงื่อนไข" END AS pttype_group,
             SUM(v.income) AS income,
             SUM(v.paid_money) AS paid_money,
@@ -135,6 +136,7 @@ class DebtorController extends Controller
                 CASE WHEN p.hipdata_code IN ("A1","CSH") THEN "ชำระเงิน"
                     WHEN p.hipdata_code = "A9" THEN "พรบ."
                     WHEN p.hipdata_code = "BKK" THEN "กทม."
+                    WHEN p.hipdata_code = "PTY" THEN "พัทยา"
                     WHEN p.hipdata_code = "BMT" THEN "ขสมก."
                     WHEN p.hipdata_code = "GOF" THEN "เบิกต้นสังกัด"
                     WHEN p.hipdata_code = "LGO" THEN "อปท."
@@ -5614,7 +5616,7 @@ class DebtorController extends Controller
 			LEFT JOIN s_drugitems sd2 ON sd2.icode=o6.icode
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             WHERE (o.an IS NULL OR o.an ="")
-			    AND p.hipdata_code IN ("BKK")
+			    AND p.hipdata_code IN ("BKK","PTY")
                 AND v.income-v.rcpt_money <>"0"		
 			    AND v.income-v.rcpt_money-COALESCE(o3.other_price, 0) <>"0"				
                 AND o.vstdate BETWEEN ? AND ?
@@ -5675,7 +5677,7 @@ class DebtorController extends Controller
 			LEFT JOIN opitemrece o6 ON o6.vn=o.vn AND o6.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y")	
 			LEFT JOIN s_drugitems sd2 ON sd2.icode=o6.icode
             WHERE (o.an IS NULL OR o.an ="")
-			    AND p.hipdata_code IN ("BKK")
+			    AND p.hipdata_code IN ("BKK","PTY")
                 AND v.income-v.rcpt_money <>"0"		
 			    AND v.income-v.rcpt_money-COALESCE(o3.other_price, 0) <>"0"				
                 AND o.vstdate BETWEEN ? AND ?
@@ -9062,7 +9064,7 @@ class DebtorController extends Controller
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             WHERE i.confirm_discharge = "Y" 
-            AND p.hipdata_code IN ("BKK") 
+            AND p.hipdata_code IN ("BKK","PTY") 
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_804 WHERE an IS NOT NULL) 
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date,$start_date,$end_date]); 
@@ -9113,7 +9115,7 @@ class DebtorController extends Controller
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             WHERE i.confirm_discharge = "Y" 
-            AND p.hipdata_code IN ("BKK")
+            AND p.hipdata_code IN ("BKK","PTY")
             AND i.dchdate BETWEEN ? AND ?
             AND i.an IN ('.$checkbox_string.') 
             GROUP BY i.an ORDER BY i.ward,i.dchdate',[$start_date,$end_date,$start_date,$end_date]); 

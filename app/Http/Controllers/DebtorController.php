@@ -90,7 +90,7 @@ class DebtorController extends Controller
         
         $check_income_pttype = DB::connection('hosxp')->select('
             SELECT p.hipdata_code AS inscl,
-            CASE WHEN p.hipdata_code = "A1" THEN "ชำระเงิน"
+            CASE WHEN p.hipdata_code IN ("A1","CSH") THEN "ชำระเงิน"
             WHEN p.hipdata_code = "A9" THEN "พรบ." 
             WHEN p.hipdata_code = "BKK" THEN "กทม." 
             WHEN p.hipdata_code = "BMT" THEN "ขสมก." 
@@ -132,7 +132,7 @@ class DebtorController extends Controller
             
         $check_income_ipd_pttype = DB::connection('hosxp')->select('
             SELECT p.hipdata_code AS inscl,
-                CASE WHEN p.hipdata_code = "A1" THEN "ชำระเงิน"
+                CASE WHEN p.hipdata_code IN ("A1","CSH") THEN "ชำระเงิน"
                     WHEN p.hipdata_code = "A9" THEN "พรบ."
                     WHEN p.hipdata_code = "BKK" THEN "กทม."
                     WHEN p.hipdata_code = "BMT" THEN "ขสมก."

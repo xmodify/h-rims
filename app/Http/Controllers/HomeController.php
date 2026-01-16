@@ -64,7 +64,7 @@ public function index(Request $request )
         SELECT COUNT(vn) AS total,IFNULL(SUM(CASE WHEN endpoint<>"" THEN 1 ELSE 0 END),0) AS "endpoint",
         IFNULL(SUM(CASE WHEN hipdata_code="OFC" THEN 1 ELSE 0 END),0) AS "ofc",
         IFNULL(SUM(CASE WHEN hipdata_code="OFC" AND edc_approve_list_text <> "" THEN 1 ELSE 0 END),0) AS "ofc_edc",
-        IFNULL(SUM(CASE WHEN (auth_code ="" OR auth_code IS NULL) AND cid NOT LIKE "0%" THEN 1 ELSE 0 END),0) AS "non_authen",
+        IFNULL(SUM(CASE WHEN (auth_code="" OR auth_code IS NULL)  AND cid NOT LIKE "0%" THEN 1 ELSE 0 END),0) AS "non_authen",
         IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL","SSS","STP") AND (hospmain="" OR hospmain IS NULL) THEN 1 ELSE 0 END),0) AS "non_hmain",
         IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
             THEN 1 ELSE 0 END),0) AS "uc_anywhere",

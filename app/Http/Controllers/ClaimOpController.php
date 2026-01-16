@@ -969,7 +969,7 @@ class ClaimOpController extends Controller
                 FROM hrims.stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = pt.hn
                 AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
             LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount
-                FROM hrims.stm_ofc_csop GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = pt.hn
+                FROM hrims.stm_ofc_csop WHERE sys <> "HD" GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = pt.hn
                 AND csop.vstdate = o.vstdate AND csop.vsttime = LEFT(o.vsttime,5)       
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code = "OFC" 
@@ -1011,7 +1011,7 @@ class ClaimOpController extends Controller
                 FROM hrims.stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = pt.hn
                 AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
             LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount, MAX(rid) AS rid
-                FROM hrims.stm_ofc_csop GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = pt.hn
+                FROM hrims.stm_ofc_csop WHERE sys <> "HD" GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = pt.hn
                 AND csop.vstdate = o.vstdate AND csop.vsttime = LEFT(o.vsttime,5)      
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code = "OFC" 
@@ -1053,7 +1053,7 @@ class ClaimOpController extends Controller
                 FROM hrims.stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = pt.hn
                 AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
             LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
-                FROM hrims.stm_ofc_csop GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = pt.hn
+                FROM hrims.stm_ofc_csop WHERE sys <> "HD" GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = pt.hn
                 AND csop.vstdate = o.vstdate AND csop.vsttime = LEFT(o.vsttime,5)  
             LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp
                 FROM hrims.stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) stm_uc ON stm_uc.cid=pt.cid
@@ -1121,7 +1121,7 @@ class ClaimOpController extends Controller
             INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
                 WHERE op.vstdate BETWEEN ? AND ? AND li.kidney = "Y" GROUP BY op.vn) kidney ON kidney.vn=o.vn            
             LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
-                FROM hrims.stm_ofc_csop GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = pt.hn
+                FROM hrims.stm_ofc_csop WHERE sys = "HD" GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = pt.hn
                 AND csop.vstdate = o.vstdate AND csop.vsttime = LEFT(o.vsttime,5)  
             WHERE p.hipdata_code = "OFC" 
             AND o.vstdate BETWEEN ? AND ?
@@ -1152,7 +1152,7 @@ class ClaimOpController extends Controller
                 WHERE op.vstdate BETWEEN ? AND ? AND li.kidney = "Y" GROUP BY op.vn) kidney ON kidney.vn=o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
-                FROM hrims.stm_ofc_csop GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = pt.hn
+                FROM hrims.stm_ofc_csop WHERE sys = "HD" GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = pt.hn
                 AND csop.vstdate = o.vstdate AND csop.vsttime = LEFT(o.vsttime,5)  
             WHERE p.hipdata_code = "OFC" 
             AND o.vstdate BETWEEN ? AND ?

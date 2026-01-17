@@ -87,13 +87,16 @@ public function index(Request $request )
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,v.income,v.paid_money
         FROM ovst o
         LEFT JOIN patient pt ON pt.hn=o.hn
-        LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+        LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
         LEFT JOIN pttype p ON p.pttype=vp.pttype
         LEFT JOIN ovst_seq os ON os.vn=o.vn
         LEFT JOIN vn_stat v ON v.vn=o.vn
-        LEFT JOIN opitemrece ppfs ON ppfs.vn=o.vn AND ppfs.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs = "Y")
-        LEFT JOIN opitemrece uc_cr ON uc_cr.vn=o.vn AND uc_cr.icode IN (SELECT icode FROM hrims.lookup_icode WHERE uc_cr = "Y")
-        LEFT JOIN opitemrece herb ON herb.vn=o.vn AND herb.icode IN (SELECT icode FROM hrims.lookup_icode WHERE herb32 = "Y")
+        LEFT JOIN (SELECT DISTINCT vn FROM opitemrece WHERE rxdate = DATE(NOW()) 
+			AND icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs = "Y")) ppfs ON ppfs.vn = o.vn
+        LEFT JOIN (SELECT DISTINCT vn FROM opitemrece WHERE rxdate = DATE(NOW())
+            AND icode IN (SELECT icode FROM hrims.lookup_icode WHERE uc_cr = "Y")) uc_cr ON uc_cr.vn = o.vn
+        LEFT JOIN (SELECT DISTINCT vn FROM opitemrece WHERE rxdate = DATE(NOW())
+			AND icode IN (SELECT icode FROM hrims.lookup_icode WHERE herb32 = "Y")) herb ON herb.vn = o.vn
         LEFT JOIN health_med_service healthmed ON healthmed.vn=o.vn
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
         WHERE o.vstdate = DATE(NOW()) AND (o.an ="" OR o.an IS NULL) GROUP BY o.vn) AS a');
@@ -581,7 +584,7 @@ public function opd_ofc(Request $request )
         IFNULL(vp.Claim_Code,os.edc_approve_list_text) AS edc,IF(ppfs.vn <>"","Y",NULL) AS ppfs
         FROM ovst o
         LEFT JOIN patient pt ON pt.hn=o.hn
-        LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+        LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
 		LEFT JOIN pttype p ON p.pttype=vp.pttype
         LEFT JOIN ovst_seq os ON os.vn = o.vn
         LEFT JOIN vn_stat v ON v.vn = o.vn
@@ -604,7 +607,7 @@ public function opd_non_authen(Request $request )
         FROM ovst o
         LEFT JOIN vn_stat v ON v.vn=o.vn
         LEFT JOIN patient p ON p.hn=o.hn
-        LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+        LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
         LEFT JOIN pttype p1 ON p1.pttype=vp.pttype
         LEFT JOIN kskdepartment k ON k.depcode=o.main_dep
         WHERE o.vstdate BETWEEN ? AND ?        
@@ -626,7 +629,7 @@ public function opd_non_hospmain(Request $request )
         pt.cid,pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain        
         FROM ovst o
         LEFT JOIN patient pt ON pt.hn=o.hn
-        LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+        LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
         LEFT JOIN pttype p ON p.pttype=vp.pttype
         WHERE o.vstdate BETWEEN ? AND ?
         AND p.hipdata_code IN ("UCS","WEL","SSS","STP") 
@@ -650,7 +653,7 @@ public function opd_ucs_anywhere(Request $request )
         rep.rep_eclaim_detail_nhso AS rep_nhso,rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno        
         FROM ovst o
         LEFT JOIN patient pt ON pt.hn=o.hn
-        LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+        LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
         LEFT JOIN pttype p ON p.pttype=vp.pttype
         LEFT JOIN er_regist e ON e.vn=o.vn 
         LEFT JOIN er_pt_type et ON et.er_pt_type=e.er_pt_type AND et.ucae IN ("A","E")        
@@ -687,7 +690,7 @@ public function opd_ucs_cr(Request $request )
         FROM ovst o    
         LEFT JOIN patient pt ON pt.hn=o.hn
         LEFT JOIN vn_stat v ON v.vn=o.vn
-        LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+        LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
         LEFT JOIN pttype p ON p.pttype=vp.pttype
         LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode JOIN hrims.lookup_icode li 
             ON o1.icode = li.icode AND li.uc_cr = "Y" 
@@ -727,7 +730,7 @@ public function opd_ucs_herb(Request $request )
         FROM ovst o    
         LEFT JOIN patient pt ON pt.hn=o.hn
         LEFT JOIN vn_stat v ON v.vn=o.vn
-        LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+        LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
         LEFT JOIN pttype p ON p.pttype=vp.pttype
         LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode JOIN hrims.lookup_icode li 
             ON o1.icode = li.icode AND li.herb32 = "Y" 
@@ -763,7 +766,7 @@ public function opd_ucs_healthmed(Request $request )
 			GROUP_CONCAT(DISTINCT healthmed.health_med_operation) AS operation
         FROM ovst o
         LEFT JOIN patient pt ON pt.hn=o.hn
-        LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+        LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
         LEFT JOIN pttype p ON p.pttype=vp.pttype
         LEFT JOIN kskdepartment k ON k.depcode = o.cur_dep				
         LEFT JOIN vn_stat v ON v.vn = o.vn
@@ -798,7 +801,7 @@ public function opd_ppfs(Request $request )
         FROM ovst o    
         LEFT JOIN patient pt ON pt.hn=o.hn
         LEFT JOIN vn_stat v ON v.vn=o.vn
-        LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+        LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
         LEFT JOIN pttype p ON p.pttype=vp.pttype
         LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode JOIN hrims.lookup_icode li 
             ON o1.icode = li.icode AND li.ppfs = "Y" 
@@ -830,7 +833,7 @@ public function ipd_homeward(Request $request )
         FROM ovst o
         LEFT JOIN vn_stat v ON v.vn=o.vn
         LEFT JOIN patient p ON p.hn=o.hn
-        LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+        LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
         LEFT JOIN pttype p1 ON p1.pttype=vp.pttype				
         LEFT JOIN kskdepartment k ON k.depcode=o.main_dep
 		LEFT JOIN ipt i ON i.an=o.an AND i.ward IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")

@@ -112,7 +112,7 @@
                             @elseif($row->receive_ppfs < 0) style="color:red" @endif>
                             {{ number_format($row->receive_ppfs,2) }}
                         </td>
-                        <td align="right">{{ $row->repno }} {{ $row->rid }}</td>
+                        <td align="right">{{ $row->repno }} {{ $row->rid }} {{ $row->rid_hd }}</td>
                         <td align="right">{{ $row->status }}</td> 
                         <td align="center">         
                             <button type="button" class="btn btn-outline-warning btn-sm text-primary receive" data-toggle="modal" data-target="#receive-{{ $row->vn }}"  data-id="{{ $row->vn }}" > 

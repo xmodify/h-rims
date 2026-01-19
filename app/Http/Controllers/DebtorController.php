@@ -2571,9 +2571,10 @@ class DebtorController extends Controller
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
+                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.paid_money,v.rcpt_money,
                 COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-                v.income-v.rcpt_money-COALESCE(o1.other_price, 0) AS debtor,GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
+                v.income-v.paid_money-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
+                GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
                 GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status  
             FROM ovst o    
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -2591,8 +2592,7 @@ class DebtorController extends Controller
 			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
 			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
             WHERE (o.an IS NULL OR o.an ="")
-                AND v.income-v.rcpt_money <>"0"
-                AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <>"0"							
+                AND v.income-v.paid_money-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) > "0"  						
                 AND o.vstdate BETWEEN ? AND ?
                 AND p.hipdata_code = "SSS" 
                 AND p.pttype NOT IN ('.$pttype_sss_fund.')	
@@ -2630,9 +2630,10 @@ class DebtorController extends Controller
        
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-            o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
+            o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.paid_money,v.rcpt_money,
             COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-			v.income-v.rcpt_money-COALESCE(o1.other_price, 0) AS debtor,GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
+			v.income-v.paid_money-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
+            GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
 			GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status  
             FROM ovst o    
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -2650,8 +2651,7 @@ class DebtorController extends Controller
 			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
 			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
             WHERE (o.an IS NULL OR o.an ="")
-                AND v.income-v.rcpt_money <>"0"		
-                AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <>"0"			
+                AND v.income-v.paid_money-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) > "0"     		
                 AND o.vstdate BETWEEN ? AND ?
                 AND p.hipdata_code = "SSS" 
                 AND p.pttype NOT IN ('.$pttype_sss_fund.')		

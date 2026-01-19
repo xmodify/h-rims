@@ -192,7 +192,8 @@
                         <th class="text-center">ชื่อ-สกุล</th>
                         <th class="text-center">สิทธิ</th>
                         <th class="text-center">ICD10</th>
-                        <th class="text-center">ค่ารักษาทั้งหมด</th>  
+                        <th class="text-center">ค่ารักษาทั้งหมด</th>
+                        <th class="text-center">ต้องชำระ</th>   
                         <th class="text-center">ชำระเอง</th>    
                         <th class="text-center">กองทุนอื่น</th>   
                         <th class="text-center">PPFS</th>                                     
@@ -211,6 +212,7 @@
                         <td align="left">{{ $row->pttype }} [{{ $row->hospmain }}]</td>
                         <td align="right">{{ $row->pdx }}</td>                  
                         <td align="right">{{ number_format($row->income,2) }}</td>
+                        <td align="right">{{ number_format($row->paid_money,2) }}</td>
                         <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
                         <td align="right">{{ number_format($row->other,2) }}</td>
                         <td align="right">{{ number_format($row->ppfs,2) }}</td>

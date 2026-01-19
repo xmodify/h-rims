@@ -65,7 +65,6 @@
                         <th class="text-center">ชำระเอง</th>
                         <th class="text-center">บริการเฉพาะ</th>
                         <th class="text-center text-primary">ลูกหนี้</th>
-                        <th class="text-center text-primary">อัตราจ่าย/RW</th>
                         <th class="text-center text-primary">ชดเชย RW</th> 
                         <th class="text-center text-primary">ชดเชย CR</th>
                         <th class="text-center text-primary">ชดเชย ทั้งหมด</th>
@@ -96,11 +95,7 @@
                         <td align="right">{{ number_format($row->income,2) }}</td>
                         <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
                         <td align="right">{{ number_format($row->other,2) }}</td>
-                        <td align="right" class="text-primary">{{ number_format($row->debtor,2) }}</td>  
-                        <td align="right" @if($row->fund_ip_payrate > 0) style="color:green" 
-                            @elseif($row->fund_ip_payrate < 0) style="color:red" @endif>
-                            {{ number_format($row->fund_ip_payrate,2) }}
-                        </td>
+                        <td align="right" class="text-primary">{{ number_format($row->debtor,2) }}</td>
                         <td align="right" @if($row->receive_ip_compensate_pay > 0) style="color:green" 
                             @elseif($row->receive_ip_compensate_pay < 0) style="color:red" @endif>
                             {{ number_format($row->receive_ip_compensate_pay,2) }}
@@ -113,9 +108,9 @@
                             @elseif($row->receive_total < 0) style="color:red" @endif>
                             {{ number_format($row->receive_total,2) }}
                         </td>
-                        <td align="right" @if(($row->receive_total-$row->debtor) > 0) style="color:green" 
-                            @elseif(($row->receive_total-$row->debtor) < 0) style="color:red" @endif>
-                            {{ number_format($row->receive_total-$row->debtor,2) }}
+                        <td align="right" @if(($row->receive_ip_compensate_pay-$row->debtor) > 0) style="color:green" 
+                            @elseif(($row->receive_ip_compensate_pay-$row->debtor) < 0) style="color:red" @endif>
+                            {{ number_format($row->receive_ip_compensate_pay-$row->debtor,2) }}
                         </td>                                                
                         <td align="center">{{ $row->repno }}</td>
                         <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  {{-- เขียวอ่อน --}}

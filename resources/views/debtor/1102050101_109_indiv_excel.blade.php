@@ -30,7 +30,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <th class="text-center">ลูกหนี้</th>
                 <th class="text-center text-primary">ชดเชย</th> 
                 <th class="text-center text-primary">ผลต่าง</th> 
-                <th class="text-center text-primary">REP</th>
+                <th class="text-center text-primary">เลขที่ใบเสร็จ</th>
                 <th class="text-center text-primary">อายุหนี้</th>   
             </tr>     
             </thead> 

@@ -107,7 +107,7 @@
                             @elseif(($row->receive-$row->debtor) < 0) style="color:red" @endif>
                             {{ number_format($row->receive-$row->debtor,2) }}
                         </td>
-                        <td align="right">{{ $row->repno_pp }}</td>  
+                        <td align="right">{{ $row->repno}} {{ $row->repno_pp }}</td>  
                         <td align="center" style="color:blue">{{ $row->debtor_lock }}</td>                            
                     <?php $count++; ?>
                     <?php $sum_income += $row->income ; ?>
@@ -121,7 +121,7 @@
                     </tr>   
                 </table>
             </form>
-            <table class="table table-bordered ">
+            <table class="table table-bordered " width="100%">
                 <thead>
                 <tr class="table-primary" >
                     <th class="text-center">รหัสผังบัญชี</th>

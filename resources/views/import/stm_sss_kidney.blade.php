@@ -77,7 +77,7 @@
                             <?php $count = 1 ; ?>  
                             @foreach($stm_sss_kidney as $row)          
                             <tr>
-                                <td align="right">{{ $row->stmdoc }}</td>
+                                <td align="right">{{ $row->stm_filename }}</td>
                                 <td align="right">{{ $row->station }}</td>
                                 <td align="right">{{ number_format($row->count_no) }}</td> 
                                 <td align="right">{{ number_format($row->amount,2) }}</td>

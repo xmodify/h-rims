@@ -1969,7 +1969,7 @@ public function stm_lgo_kidneydetail(Request $request)
 
         $stm_sss_kidney = DB::select("
             SELECT
-                stmdoc,
+                stm_filename,
                 station,
                 COUNT(*) AS count_no,
                 round_no,
@@ -1981,15 +1981,15 @@ public function stm_lgo_kidneydetail(Request $request)
                 MAX(receipt_date) AS receipt_date,
                 MAX(receipt_by)   AS receipt_by
             FROM stm_sss_kidney
-            WHERE (CAST(LEFT(RIGHT(stmdoc, 8), 4) AS UNSIGNED) + 543
-                + (CAST(SUBSTRING(RIGHT(stmdoc, 8), 5, 2) AS UNSIGNED) >= 10)) = ?
-            GROUP BY stmdoc
-            ORDER BY stmdoc DESC, CAST(LEFT(RIGHT(stmdoc, 8), 6) AS UNSIGNED) DESC, stmdoc ", [$budget_year]);  
+            WHERE (CAST(LEFT(RIGHT(round_no, 8), 4) AS UNSIGNED) + 543
+                + (CAST(SUBSTRING(RIGHT(round_no, 8), 5, 2) AS UNSIGNED) >= 10)) = ?
+            GROUP BY round_no
+            ORDER BY round_no DESC, CAST(LEFT(RIGHT(round_no, 8), 6) AS UNSIGNED) DESC, round_no ", [$budget_year]);  
 
         return view('import.stm_sss_kidney',compact('stm_sss_kidney', 'budget_year_select', 'budget_year'));
     }
 //stm_sss_kidney------------------------------------------------------------------------------------------------
-    public function stm_sss_kidney_save(Request $request)
+    public function stm_sss_kidney_save (Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
@@ -2065,15 +2065,15 @@ public function stm_lgo_kidneydetail(Request $request)
                         }
 
                         foreach ($TBills as $row) {
-                            $hreg    = $row['hreg']    ?? null;
-                            $station = $row['station'] ?? null;
-                            $invno   = $row['invno']   ?? null;
-                            $hn      = $row['hn']      ?? null;
-                            $amount  = $row['amount']  ?? null;
-                            $paid    = $row['paid']    ?? null;
-                            $rid     = $row['rid']     ?? null;
-                            $HDflag  = $row['HDflag']  ?? ($row['hdflag'] ?? null);
-                            $dttran  = $row['dttran']  ?? null;
+                            $hreg           = $row['hreg']    ?? null;                           
+                            $station        = $row['station'] ?? null;
+                            $invno          = $row['invno']   ?? null;
+                            $hn             = $row['hn']      ?? null;                           
+                            $amount         = $row['amount']  ?? null;
+                            $paid           = $row['paid']    ?? null;
+                            $rid            = $row['rid']     ?? null;
+                            $HDflag         = $row['HDflag']  ?? ($row['hdflag'] ?? null);
+                            $dttran         = $row['dttran']  ?? null;
 
                             // แยกวันที่เวลาแบบ ISO: 2024-07-01T12:34:56
                             $dttdate = null; $dtttime = null;
@@ -2088,25 +2088,26 @@ public function stm_lgo_kidneydetail(Request $request)
                             // upsert ตามคีย์เดิม: cid + vstdate
                             if ($cid && $dttdate) {
                                 $dataRow = [
-                                    'round_no'  => $STMdoc,
-                                    'hcode'  => $hcode,
-                                    'hname'  => $hname,
-                                    'stmdoc' => $STMdoc,
-                                    'station'=> $station,
-                                    'hreg'   => $hreg,
-                                    'hn'     => $hn,
-                                    'cid'    => $cid,
-                                    'invno'  => $invno,
-                                    'dttran' => $dttran,
-                                    'vstdate'=> $dttdate,
-                                    'vsttime'=> $dtttime,
-                                    'amount' => $amount,
-                                    'epopay' => $epopay,
-                                    'epoadm' => $epoadm,
-                                    'paid'   => $paid,
-                                    'rid'    => $rid,
+                                    'stm_filename'  => $innerName,
+                                    'round_no'      => $STMdoc,
+                                    'hcode'         => $hcode,
+                                    'hname'         => $hname,       
+                                    'station'       => $station,
+                                    'hreg'          => $hreg,
+                                    'hn'            => $hn,
+                                    'pt_name'       => $name,
+                                    'cid'           => $cid,
+                                    'invno'         => $invno,
+                                    'dttran'        => $dttran,
+                                    'vstdate'       => $dttdate,
+                                    'vsttime'       => $dtttime,
+                                    'amount'        => $amount,
+                                    'epopay'        => $epopay,
+                                    'epoadm'        => $epoadm,
+                                    'paid'          => $paid,
+                                    'rid'           => $rid,
                                     // เก็บชื่อคอลัมน์ให้ตรงกับ schema ของคุณ
-                                    'hdflag' => $HDflag,
+                                    'hdflag'        => $HDflag,
                                 ];
 
                                 $exists = Stm_sss_kidney::where('cid', $cid)
@@ -2139,7 +2140,7 @@ public function stm_lgo_kidneydetail(Request $request)
             // report($e); // ถ้าต้องการ debug
             return back()->withErrors('There was a problem uploading the data!');
         }
-    }    
+    }
 //Create stm_sss_kidney_updateReceipt------------------------------------------------------------------------------------------------------------- 
     public function stm_sss_kidney_updateReceipt(Request $request)
     {
@@ -2173,8 +2174,8 @@ public function stm_sss_kidneydetail(Request $request)
     $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));
 
     $stm_sss_kidney_list=DB::select('
-        SELECT hcode,hname,stmdoc,station,hreg,hn,cid,
-        dttran,paid,rid,amount,epopay,epoadm 
+        SELECT stm_filename,hcode,hname,stmdoc,station,hreg,hn,cid,pt_name,
+        dttran,paid,rid,amount,epopay,epoadm,amount+epopay+epoadm AS receive ,receive_no
         FROM stm_sss_kidney 
         WHERE DATE(dttran) BETWEEN ? AND ?
         ORDER BY station ,stmdoc',[$start_date,$end_date]);

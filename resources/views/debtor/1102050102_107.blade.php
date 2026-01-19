@@ -74,11 +74,11 @@
                         <th class="text-center">ชำระเอง</th>
                         <th class="text-center text-primary">ลูกหนี้</th>
                         <th class="text-center text-primary">ชดเชย</th> 
-                        <th class="text-center text-primary">ผลต่าง</th>  
-                        <th class="text-center text-primary">ใบเสร็จ</th>     
+                        <th class="text-center text-primary">ผลต่าง</th> 
                         <th class="text-center text-primary" width="6%">สถานะ</th> 
-                        <th class="text-center text-primary" width="6%">Action</th> 
+                        <th class="text-center text-primary">เลขที่ใบเสร็จ</th>   
                         <th class="text-center text-primary">อายุหนี้</th>   
+                        <th class="text-center text-primary" width="6%">Action</th> 
                         <th class="text-center text-primary">Lock</th>   
                     </tr>
                     </thead>
@@ -113,6 +113,11 @@
                         </td> 
                         <td align="center">{{ $row->repno }}</td>                    
                         <td align="right" width="7%">{{ $row->status }}</td> 
+                        <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  {{-- เขียวอ่อน --}}
+                            @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" {{-- เหลือง --}}
+                            @else style="background-color: #FF7F7F;" {{-- แดง --}} @endif >
+                            {{ $row->days }} วัน
+                        </td>   
                         <td align="right" width="9%">
                             @if($row->bill_amount == '')          
                             <button type="button" class="btn btn-outline-warning btn-sm text-primary" data-toggle="modal" data-target="#receive-{{ $row->an }}"> 
@@ -120,12 +125,7 @@
                             </button>
                         @endif 
                         <a class="btn btn-outline-info btn-sm" href="{{ url('debtor/1102050102_107/tracking', $row->an) }}" target="_blank">ติดตาม {{ $row->visit }}</a> 
-                        </td>   
-                        <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  {{-- เขียวอ่อน --}}
-                            @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" {{-- เหลือง --}}
-                            @else style="background-color: #FF7F7F;" {{-- แดง --}} @endif >
-                            {{ $row->days }} วัน
-                        </td>   
+                        </td> 
                         <td align="center" style="color:blue">{{ $row->debtor_lock }}</td>                         
                     <?php $count++; ?>
                     <?php $sum_income += $row->income ; ?>

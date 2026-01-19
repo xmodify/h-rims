@@ -66,10 +66,10 @@
                         <th class="text-center text-primary">ชดเชย</th>
                         <th class="text-center text-primary">ชดเชย PPFS</th>                        
                         <th class="text-center text-primary">ผลต่าง</th>
-                        <th class="text-center text-primary" width="9%">สถานะ</th> 
-                        <th class="text-center text-primary" width="6%">Action</th>
-                        <th class="text-center text-primary">REP</th>  
+                        <th class="text-center text-primary" width="9%">สถานะ</th>
+                        <th class="text-center text-primary">เลขที่ใบเสร็จ</th>  
                         <th class="text-center text-primary">อายุหนี้</th> 
+                        <th class="text-center text-primary" width="6%">Action</th>
                         <th class="text-center text-primary">Lock</th>                                       
                     </tr>
                     </thead>
@@ -106,17 +106,17 @@
                             @elseif(($row->receive-$row->debtor) < 0) style="color:red" @endif>
                             {{ number_format($row->receive-$row->debtor,2) }}
                         </td>
-                        <td align="right">{{ $row->status }}</td> 
-                        <td align="center">         
-                            <button type="button" class="btn btn-outline-warning btn-sm text-primary receive" data-toggle="modal" data-target="#receive-{{ $row->vn }}"  data-id="{{ $row->vn }}" > 
-                                บันทึกชดเชย
-                            </button>                            
-                        </td>  
-                        <td align="right">{{ $row->repno_pp }}</td>  
+                        <td align="right">{{ $row->status }}</td>                          
+                        <td align="right">{{ $row->repno }} {{ $row->repno_pp }}</td>  
                         <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  {{-- เขียวอ่อน --}}
                             @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" {{-- เหลือง --}}
                             @else style="background-color: #FF7F7F;" {{-- แดง --}} @endif >
                             {{ $row->days }} วัน
+                        </td> 
+                        <td align="center">         
+                            <button type="button" class="btn btn-outline-warning btn-sm text-primary receive" data-toggle="modal" data-target="#receive-{{ $row->vn }}"  data-id="{{ $row->vn }}" > 
+                                บันทึกชดเชย
+                            </button>                            
                         </td> 
                         <td align="center" style="color:blue">{{ $row->debtor_lock }}</td>                            
                     <?php $count++; ?>
@@ -131,7 +131,7 @@
                     </tr>   
                 </table>
             </form>
-            <table class="table table-bordered ">
+            <table class="table table-bordered "  width="100%">
                 <thead>
                 <tr class="table-primary" >
                     <th class="text-center">รหัสผังบัญชี</th>

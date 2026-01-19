@@ -117,7 +117,7 @@
                     </tr>   
                 </table>
             </form>
-            <table class="table table-bordered ">
+            <table class="table table-bordered " width="100%">
                 <thead>
                 <tr class="table-primary" >
                     <th class="text-center">รหัสผังบัญชี</th>

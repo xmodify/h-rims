@@ -28,35 +28,39 @@
                     <table id="stm_sss_kidney_list" class="table table-bordered table-striped my-3">
                         <thead>
                             <tr class="table-primary">
+                                <th class="text-center">FileName</th> 
                                 <th class="text-center">Hcode</th>
                                 <th class="text-center">Hname</th> 
-                                <th class="text-center">FileName</th> 
                                 <th class="text-center">Station</th> 
                                 <th class="text-center">Hreg</th>                      
                                 <th class="text-center">HN</th>
-                                <th class="text-center">CID</th>                    
+                                <th class="text-center">CID</th> 
+                                <th class="text-center">ชื่อ-สกุล</th>                    
                                 <th class="text-center">วันที่รับบริการ</th>
                                 <th class="text-center">เอกสารตอบรับ</th>                  
                                 <th class="text-center">ค่าฟอกเลือดล้างไต</th> 
                                 <th class="text-center">ค่ายา EPOETIN</th> 
-                                <th class="text-center">ค่าฉีดยา EPOETIN</th> 
+                                <th class="text-center">ค่าฉีดยา EPOETIN</th>
+                                <th class="text-center">เลขที่ใบเสร็จ</th>  
                             </tr>     
                             </thead> 
                             <?php $count = 1 ; ?>  
                             @foreach($stm_sss_kidney_list as $row)          
-                            <tr>
+                            <tr>      
+                                <td align="right">{{ $row->stm_filename }}</td>                          
                                 <td align="center">{{ $row->hcode }}</td> 
                                 <td align="right">{{ $row->hname }}</td>
-                                <td align="right">{{ $row->stmdoc }}</td>
                                 <td align="right">{{ $row->station }}</td>
                                 <td align="right">{{ $row->hreg }}</td>
                                 <td align="left">{{ $row->hn }}</td>
                                 <td align="right">{{ $row->cid }}</td>
+                                <td align="right">{{ $row->pt_name }}</td>
                                 <td align="right">{{ $row->dttran }}</td>
                                 <td align="right">{{ $row->rid }}</td>
                                 <td align="right">{{ number_format($row->amount,2) }}</td> 
                                 <td align="right">{{ number_format($row->epopay,2) }}</td>
                                 <td align="right">{{ number_format($row->epoadm,2) }}</td>
+                                <td align="right">{{ $row->receive_no }}</td>
                             </tr>                
                             <?php $count++; ?>  
                             @endforeach   

@@ -42,14 +42,14 @@
             <form action="{{ url('debtor/1102050101_103_delete') }}" method="POST" enctype="multipart/form-data">
                 @csrf   
                 @method('DELETE')
-                <table id="debtor" class="table table-bordered table-striped my-3">
+                <table id="debtor" class="table table-bordered table-striped my-3" width="100%">
                     <thead>
                     <tr class="table-success">
                         <th class="text-center">
                             <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDelete()">ลบลูกหนี้</button>
                         </th>
                         <th class="text-left text-primary" colspan = "7">1102050101.103-ลูกหนี้ค่าตรวจสุขภาพ หน่วยงานภาครัฐ วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</th> 
-                        <th class="text-center text-primary" colspan = "7">การชดเชย</th>                                                 
+                        <th class="text-center text-primary" colspan = "8">การชดเชย</th>                                                 
                     </tr>
                     <tr class="table-success">
                         <th class="text-center"><input type="checkbox" onClick="toggle_d(this)"> All</th> 
@@ -63,9 +63,10 @@
                         <th class="text-center text-primary">ลูกหนี้</th>
                         <th class="text-center text-primary">ชดเชย</th> 
                         <th class="text-center text-primary">ผลต่าง</th> 
-                        <th class="text-center text-primary" width="8%">สถานะ</th> 
-                        <th class="text-center text-primary" width="5%">Action</th>
+                        <th class="text-center text-primary" width="8%">สถานะ</th>
+                        <th class="text-center text-primary">เลขที่ใบเสร็จ</th>                            
                         <th class="text-center text-primary">อายุหนี้</th>   
+                        <th class="text-center text-primary" width="5%">Action</th>
                         <th class="text-center text-primary">Lock</th>                                       
                     </tr>
                     </thead>
@@ -93,17 +94,18 @@
                             @elseif(($row->receive-$row->debtor) < 0) style="color:red" @endif>
                             {{ number_format($row->receive-$row->debtor,2) }}
                         </td>         
-                        <td align="right">{{ $row->status }}</td> 
-                        <td align="center">         
-                            <button type="button" class="btn btn-outline-warning btn-sm text-primary receive" data-toggle="modal" data-target="#receive-{{ $row->vn }}"  data-id="{{ $row->vn }}" > 
-                                บันทึกชดเชย
-                            </button>                            
-                        </td> 
+                        <td align="right">{{ $row->status }}</td>
+                        <td align="right">{{ $row->repno }}</td>
                         <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  {{-- เขียวอ่อน --}}
                             @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" {{-- เหลือง --}}
                             @else style="background-color: #FF7F7F;" {{-- แดง --}} @endif >
                             {{ $row->days }} วัน
                         </td>      
+                        <td align="center">         
+                            <button type="button" class="btn btn-outline-warning btn-sm text-primary receive" data-toggle="modal" data-target="#receive-{{ $row->vn }}"  data-id="{{ $row->vn }}" > 
+                                บันทึกชดเชย
+                            </button>                            
+                        </td> 
                         <td align="center" style="color:blue">{{ $row->debtor_lock }}</td>                            
                     <?php $count++; ?>
                     <?php $sum_income += $row->income ; ?>
@@ -114,7 +116,7 @@
                     </tr>   
                 </table>
             </form>
-            <table class="table table-bordered ">
+            <table class="table table-bordered " width="100%">
                 <thead>
                 <tr class="table-primary" >
                     <th class="text-center">รหัสผังบัญชี</th>
@@ -152,7 +154,7 @@
         <div style="overflow-x:auto;">
             <form action="{{ url('debtor/1102050101_103_confirm') }}" method="POST" enctype="multipart/form-data">
                 @csrf                
-                <table id="debtor_search" class="table table-bordered table-striped my-3">
+                <table id="debtor_search" class="table table-bordered table-striped my-3" width="100%">
                     <thead>
                     <tr class="table-secondary">
                         <th class="text-center">

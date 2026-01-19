@@ -67,8 +67,8 @@
                         <th class="text-center text-primary">ลูกหนี้</th>
                         <th class="text-center text-primary">ชดเชย</th>
                         <th class="text-center text-primary">ผลต่าง</th>
-                        <th class="text-center text-primary">REP</th>  
                         <th class="text-center text-primary" width="5%">สถานะ</th> 
+                        <th class="text-center text-primary">REP</th>
                         <th class="text-center text-primary" width="5%">Action</th>               
                         <th class="text-center text-primary">Lock</th> 
                     </tr>
@@ -101,9 +101,9 @@
                         <td align="right" @if(($row->receive-$row->debtor) > 0) style="color:green" 
                             @elseif(($row->receive-$row->debtor) < 0) style="color:red" @endif>
                             {{ number_format($row->receive-$row->debtor,2) }}
-                        </td>                        
+                        </td>  
+                        <td align="right">{{ $row->status }}</td>                       
                         <td align="center">{{ $row->repno }}</td>
-                        <td align="right">{{ $row->status }}</td> 
                         <td align="center">         
                             <button type="button" class="btn btn-outline-warning btn-sm text-primary receive" data-toggle="modal" data-target="#receive-{{ $row->an }}"  data-id="{{ $row->an }}" > 
                                 บันทึกชดเชย

@@ -60,7 +60,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="right">{{ number_format($row->receive,2) }}</td>
                 <td align="right">{{ number_format($row->receive_pp,2) }}</td>
                 <td align="right">{{ number_format($row->receive-$row->debtor,2) }}</td>
-                <td align="center">{{ $row->repno }}</td>
+                <td align="center">{{ $row->repno }}{{ $row->repno_pp }}</td>
             </tr>                
             <?php $count++; ?>
             <?php $sum_income += $row->income ; ?>

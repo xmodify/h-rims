@@ -271,6 +271,7 @@ class DebtorController extends Controller
                     UNION ALL SELECT an FROM hrims.debtor_1102050101_217
                     UNION ALL SELECT an FROM hrims.debtor_1102050101_302
                     UNION ALL SELECT an FROM hrims.debtor_1102050101_304
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_307
                     UNION ALL SELECT an FROM hrims.debtor_1102050101_308
                     UNION ALL SELECT an FROM hrims.debtor_1102050101_310
                     UNION ALL SELECT an FROM hrims.debtor_1102050101_402

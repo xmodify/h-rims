@@ -4994,7 +4994,7 @@ class DebtorController extends Controller
 			LEFT JOIN s_drugitems sd2 ON sd2.icode=o6.icode
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             WHERE (o.an IS NULL OR o.an ="")
-			    AND p.hipdata_code IN ("BMT","KKT")
+			    AND p.hipdata_code IN ("BMT","KKT","SRT")
                 AND v.income-v.rcpt_money <>"0"		
 			    AND v.income-v.rcpt_money-COALESCE(o3.other_price, 0) <>"0"				
                 AND o.vstdate BETWEEN ? AND ?
@@ -5055,7 +5055,7 @@ class DebtorController extends Controller
 			LEFT JOIN opitemrece o6 ON o6.vn=o.vn AND o6.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y")	
 			LEFT JOIN s_drugitems sd2 ON sd2.icode=o6.icode
             WHERE (o.an IS NULL OR o.an ="")
-			    AND p.hipdata_code IN ("BMT","KKT")
+			    AND p.hipdata_code IN ("BMT","KKT","SRT")
                 AND v.income-v.rcpt_money <>"0"		
 			    AND v.income-v.rcpt_money-COALESCE(o3.other_price, 0) <>"0"				
                 AND o.vstdate BETWEEN ? AND ?

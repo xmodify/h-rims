@@ -37,7 +37,7 @@ Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(
     Route::resource('users', UserController::class);
     Route::get('main_setting', [MainSettingController::class, 'index'])->name('main_setting');
     Route::put('main_setting/{id}', [MainSettingController::class, 'update']);
-    Route::post('main_setting/up_structure', [MainSettingController::class, 'up_structure'])->name('up_structure');;
+    Route::post('main_setting/up_structure', [MainSettingController::class, 'up_structure'])->name('up_structure');
     Route::resource('lookup_icode', LookupIcodeController::class)->parameters(['lookup_icode' => 'icode']);
     Route::post('insert_lookup_uc_cr', [LookupIcodeController::class, 'insert_lookup_uc_cr'])->name('insert_lookup_uc_cr');
     Route::post('insert_lookup_ppfs', [LookupIcodeController::class, 'insert_lookup_ppfs'])->name('insert_lookup_ppfs');

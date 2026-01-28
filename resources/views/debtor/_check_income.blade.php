@@ -73,7 +73,7 @@
                     <table class="table table-bordered table-striped">
                         <thead>
                         <tr class="table-success">
-                            <th class="text-center" colspan = "6">ผู้ป่วยนอก แยกกลุ่มสิทธิ</th>            
+                            <th class="text-center" colspan = "7">ผู้ป่วยนอก แยกกลุ่มสิทธิ</th>            
                         </tr>  
                         <tr class="table-secondary">
                             <th class="text-center">INSCL</th>
@@ -81,6 +81,7 @@
                             <th class="text-center">ค่าใช้จ่ายทั้งหมด</th>
                             <th class="text-center">ต้องชำระเงิน</th>  
                             <th class="text-center">ชำระเงินแล้ว</th> 
+                            <th class="text-center">PPFS</th> 
                             <th class="text-center">ลูกหนี้</th> 
                         </tr>     
                         </thead>
@@ -88,6 +89,7 @@
                             $sum_income = 0;
                             $sum_paid = 0;
                             $sum_rcpt = 0;
+                            $sum_ppfs = 0;
                             $sum_debtor = 0;
                         @endphp
                         @foreach($check_income_pttype as $row)          
@@ -96,13 +98,15 @@
                             <td class="text-left">{{ $row->pttype_group }}</td>
                             <td align="right">{{ number_format($row->income,2) }}</td>
                             <td align="right">{{ number_format($row->paid_money,2) }}</td>  
-                            <td align="right">{{ number_format($row->rcpt_money,2) }}</td> 
+                            <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
+                            <td align="right">{{ number_format($row->ppfs,2) }}</td>  
                             <td align="right" class="text-success">{{ number_format($row->debtor,2) }}</td> 
                         </tr>
                         @php
                             $sum_income += $row->income;
                             $sum_paid += $row->paid_money;
                             $sum_rcpt += $row->rcpt_money;
+                            $sum_ppfs += $row->ppfs;
                             $sum_debtor += $row->debtor;
                         @endphp
                         @endforeach 
@@ -111,6 +115,7 @@
                             <td align="right"><strong>{{ number_format($sum_income,2) }}</strong></td>
                             <td align="right"><strong>{{ number_format($sum_paid,2) }}</strong></td>
                             <td align="right"><strong>{{ number_format($sum_rcpt,2) }}</strong></td>
+                            <td align="right"><strong>{{ number_format($sum_ppfs,2) }}</strong></td>
                             <td align="right" class="text-success"><strong>{{ number_format($sum_debtor,2) }}</strong></td>
                         </tr>
                     </table> 

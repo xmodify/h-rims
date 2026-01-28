@@ -91,33 +91,38 @@ class DebtorController extends Controller
         $check_income_pttype = DB::connection('hosxp')->select('
             SELECT p.hipdata_code AS inscl,
             CASE WHEN p.hipdata_code IN ("A1","CSH") THEN "ชำระเงิน"
-            WHEN p.hipdata_code = "A9" THEN "พรบ." 
-            WHEN p.hipdata_code = "BKK" THEN "กทม." 
-            WHEN p.hipdata_code = "PTY" THEN "พัทยา" 
-            WHEN p.hipdata_code = "BMT" THEN "ขสมก." 
-            WHEN p.hipdata_code = "KKT" THEN "กกต."
-            WHEN p.hipdata_code = "GOF" THEN "เบิกต้นสังกัด" 
-            WHEN p.hipdata_code = "LGO" THEN "อปท." 
-            WHEN p.hipdata_code = "NRD" THEN "ต่างด้าวไม่ขึ้นทะเบียน" 
-            WHEN p.hipdata_code = "NRH" THEN "ต่างด้าวขึ้นทะเบียน" 
-            WHEN p.hipdata_code = "OFC" THEN "กรมบัญชีกลาง" 
-            WHEN p.hipdata_code = "SSI" THEN "ปกส.ทุพพลภาพ" 
-            WHEN p.hipdata_code = "SSS" THEN "ปกส." 
-            WHEN p.hipdata_code = "STP" THEN "ผู้มีปัญหาสถานะสิทธิ" 
-            WHEN p.hipdata_code = "UCS" THEN "ประกันสุขภาพ" 
-            WHEN p.hipdata_code NOT IN ("A1","CSH","A9","BKK","PTY","BMT","KKT","GOF","LGO","NRD","NRH","OFC","SSI","SSS","STP","UCS")
-                THEN "ไม่พบเงื่อนไข" END AS pttype_group,
+                WHEN p.hipdata_code = "A9" THEN "พรบ."
+                WHEN p.hipdata_code = "BKK" THEN "กทม."
+                WHEN p.hipdata_code = "PTY" THEN "พัทยา"
+                WHEN p.hipdata_code = "BMT" THEN "ขสมก."
+                WHEN p.hipdata_code = "KKT" THEN "กกต."
+                WHEN p.hipdata_code = "GOF" THEN "เบิกต้นสังกัด"
+                WHEN p.hipdata_code = "LGO" THEN "อปท."
+                WHEN p.hipdata_code = "NRD" THEN "ต่างด้าวไม่ขึ้นทะเบียน"
+                WHEN p.hipdata_code = "NRH" THEN "ต่างด้าวขึ้นทะเบียน"
+                WHEN p.hipdata_code = "OFC" THEN "กรมบัญชีกลาง"
+                WHEN p.hipdata_code = "SSI" THEN "ปกส.ทุพพลภาพ"
+                WHEN p.hipdata_code = "SSS" THEN "ปกส."
+                WHEN p.hipdata_code = "STP" THEN "ผู้มีปัญหาสถานะสิทธิ"
+                WHEN p.hipdata_code = "UCS" THEN "ประกันสุขภาพ"
+                ELSE "ไม่พบเงื่อนไข" END AS pttype_group,
             SUM(v.income) AS income,
             SUM(v.paid_money) AS paid_money,
             SUM(v.rcpt_money) AS rcpt_money,
-            SUM(v.income)-SUM(v.rcpt_money) AS debtor
-            FROM vn_stat v
-            LEFT JOIN ipt i ON i.vn = v.vn
-            LEFT JOIN visit_pttype vp ON vp.vn = v.vn
-            LEFT JOIN pttype p ON p.pttype = vp.pttype
-            WHERE v.vstdate BETWEEN ? AND ?
-            AND i.vn IS NULL
-            GROUP BY p.hipdata_code',[$start_date,$end_date]);
+                SUM(IFNULL(pp.ppfs_price,0)) AS ppfs,
+            SUM(v.income) - SUM(v.rcpt_money) - SUM(IFNULL(pp.ppfs_price,0)) AS debtor 
+        FROM vn_stat v
+        LEFT JOIN ipt i ON i.vn = v.vn
+        LEFT JOIN visit_pttype vp ON vp.vn = v.vn
+        LEFT JOIN pttype p ON p.pttype = vp.pttype
+        LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS ppfs_price
+            FROM opitemrece op
+            INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs = "Y"
+            WHERE op.paidst = "02" AND op.vstdate BETWEEN ? AND ?
+            GROUP BY op.vn) pp ON pp.vn = v.vn
+        WHERE v.vstdate BETWEEN ? AND ?
+        AND i.vn IS NULL 
+        GROUP BY p.hipdata_code',[$start_date,$end_date,$start_date,$end_date]);
         
         $check_income_ipd = DB::connection('hosxp')->select("
             SELECT o.op_income,o.op_paid,v.an_income,v.an_paid,v.an_rcpt,v.an_income-v.an_rcpt AS an_debtor,
@@ -149,8 +154,7 @@ class DebtorController extends Controller
                     WHEN p.hipdata_code = "SSS" THEN "ปกส."
                     WHEN p.hipdata_code = "STP" THEN "ผู้มีปัญหาสถานะสิทธิ"
                     WHEN p.hipdata_code = "UCS" THEN "ประกันสุขภาพ"
-                    WHEN p.hipdata_code NOT IN ("A1","CSH","A9","BKK","PTY","BMT","KKT","GOF","LGO","NRD","NRH","OFC","SSI","SSS","STP","UCS")
-                    THEN "ไม่พบเงื่อนไข" END AS pttype_group,
+                    ELSE "ไม่พบเงื่อนไข" END AS pttype_group,
                 SUM(a.income) AS income,
                 SUM(a.paid_money) AS paid_money,
                 SUM(a.rcpt_money) AS rcpt_money,

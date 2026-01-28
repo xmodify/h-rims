@@ -3137,6 +3137,7 @@ class DebtorController extends Controller
 			LEFT JOIN opitemrece o2 ON o2.vn=o.vn AND o2.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney ="Y")	
 			LEFT JOIN s_drugitems sd ON sd.icode=o2.icode	
             WHERE p.hipdata_code IN ("SSS","SSI")	
+            AND COALESCE(o1.kidney_price, 0)-v.rcpt_money > 0
 			AND o1.vn IS NOT NULL	
             AND o.vstdate BETWEEN ? AND ?
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_309 WHERE vn IS NOT NULL) 

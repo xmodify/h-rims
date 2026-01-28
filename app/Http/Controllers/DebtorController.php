@@ -2975,7 +2975,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
@@ -3031,7 +3031,7 @@ class DebtorController extends Controller
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
             LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
-                FROM rcpt_print r              
+                FROM rcpt_print r             
                 WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
             LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
                 SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
@@ -3119,7 +3119,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
@@ -6313,7 +6313,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
@@ -6373,7 +6373,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                    WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name) AS other_list
             FROM opitemrece o
             INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
@@ -6732,7 +6732,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                    WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
@@ -6797,7 +6797,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                    WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
@@ -6963,7 +6963,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
@@ -7028,7 +7028,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
@@ -7193,7 +7193,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
@@ -7256,7 +7256,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                    WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
@@ -7643,7 +7643,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                    WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.name) AS kidney_list
                 FROM opitemrece o
                 INNER JOIN ipt i4 ON i4.an = o.an AND i4.dchdate BETWEEN ? AND ?
@@ -7703,7 +7703,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                    WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.name) AS kidney_list
                 FROM opitemrece o
                 INNER JOIN ipt i4 ON i4.an = o.an AND i4.dchdate BETWEEN ? AND ?
@@ -7856,7 +7856,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
@@ -7917,7 +7917,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
@@ -8079,7 +8079,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
@@ -8141,7 +8141,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
@@ -8296,7 +8296,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
@@ -8356,7 +8356,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
@@ -8859,7 +8859,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
@@ -8919,7 +8919,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
@@ -9101,7 +9101,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.name) AS kidney_list
                 FROM opitemrece o
                 INNER JOIN ipt i4 ON i4.an = o.an AND i4.dchdate BETWEEN ? AND ?
@@ -9162,7 +9162,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.name) AS kidney_list
                 FROM opitemrece o
                 INNER JOIN ipt i4 ON i4.an = o.an AND i4.dchdate BETWEEN ? AND ?
@@ -9318,7 +9318,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
@@ -9380,7 +9380,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
@@ -9561,7 +9561,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.name) AS kidney_list
                 FROM opitemrece o
                 INNER JOIN ipt i4 ON i4.an = o.an AND i4.dchdate BETWEEN ? AND ?
@@ -9622,7 +9622,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.name) AS kidney_list
                 FROM opitemrece o
                 INNER JOIN ipt i4 ON i4.an = o.an AND i4.dchdate BETWEEN ? AND ?
@@ -9797,7 +9797,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.name) AS kidney_list
                 FROM opitemrece o
                 INNER JOIN ipt i4 ON i4.an = o.an AND i4.dchdate BETWEEN ? AND ?
@@ -9858,7 +9858,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.name) AS kidney_list
                 FROM opitemrece o
                 INNER JOIN ipt i4 ON i4.an = o.an AND i4.dchdate BETWEEN ? AND ?

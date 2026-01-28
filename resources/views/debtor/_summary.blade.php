@@ -29,7 +29,7 @@
                         <th class="text-center">รหัสผังบัญชี</th>
                         <th class="text-center">ชื่อผังบัญชี</th>
                         <th class="text-center">จำนวน</th>
-                        <th class="text-center">เรียกเก็บ</th> 
+                        <th class="text-center">ลูกหนี้</th> 
                         <th class="text-center">ชดเชย</th>
                         <th class="text-center">ผลต่าง</th>
                         <th class="text-center"><a class="btn btn-outline-danger" href="{{ url('debtor/summary_pdf')}}" target="_blank">พิมพ์สรุป</a></th>

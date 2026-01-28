@@ -212,7 +212,7 @@
                             <td align="center" width="5%"><strong>รหัสผังบัญชี</strong></td>                   
                             <td align="center" width="35%"><strong>ชื่อผังบัญชี</strong></td>
                             <td align="center" width="10%"><strong>จำนวน</strong></td>
-                            <td align="center" width="15%"><strong>เรียกเก็บ</strong></td>
+                            <td align="center" width="15%"><strong>ลูกหนี้</strong></td>
                             <td align="center" width="15%"><strong>ชดเชย</strong></td>
                             <td align="center" width="15%"><strong>ผลต่าง</strong></td>
                         </tr>     

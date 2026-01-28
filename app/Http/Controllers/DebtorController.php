@@ -105,7 +105,7 @@ class DebtorController extends Controller
             WHEN p.hipdata_code = "SSS" THEN "ปกส." 
             WHEN p.hipdata_code = "STP" THEN "ผู้มีปัญหาสถานะสิทธิ" 
             WHEN p.hipdata_code = "UCS" THEN "ประกันสุขภาพ" 
-            WHEN p.hipdata_code NOT IN ("A1","A9","BKK","PTY","BMT","KKT","GOF","LGO","NRD","NRH","OFC","SSI","SSS","STP","UCS")
+            WHEN p.hipdata_code NOT IN ("A1","CSH","A9","BKK","PTY","BMT","KKT","GOF","LGO","NRD","NRH","OFC","SSI","SSS","STP","UCS")
                 THEN "ไม่พบเงื่อนไข" END AS pttype_group,
             SUM(v.income) AS income,
             SUM(v.paid_money) AS paid_money,
@@ -149,8 +149,8 @@ class DebtorController extends Controller
                     WHEN p.hipdata_code = "SSS" THEN "ปกส."
                     WHEN p.hipdata_code = "STP" THEN "ผู้มีปัญหาสถานะสิทธิ"
                     WHEN p.hipdata_code = "UCS" THEN "ประกันสุขภาพ"
-                    ELSE "ไม่พบเงื่อนไข"
-                END AS pttype_group,
+                    WHEN p.hipdata_code NOT IN ("A1","CSH","A9","BKK","PTY","BMT","KKT","GOF","LGO","NRD","NRH","OFC","SSI","SSS","STP","UCS")
+                    THEN "ไม่พบเงื่อนไข" END AS pttype_group,
                 SUM(a.income) AS income,
                 SUM(a.paid_money) AS paid_money,
                 SUM(a.rcpt_money) AS rcpt_money,

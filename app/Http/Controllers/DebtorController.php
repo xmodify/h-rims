@@ -106,6 +106,7 @@ class DebtorController extends Controller
                 WHEN p.hipdata_code = "STP" THEN "ผู้มีปัญหาสถานะสิทธิ"
                 WHEN p.hipdata_code = "UCS" THEN "ประกันสุขภาพ"
                 ELSE "ไม่พบเงื่อนไข" END AS pttype_group,
+            COUNT(DISTINCT v.vn) AS visit,
             SUM(v.income) AS income,
             SUM(v.paid_money) AS paid_money,
             SUM(v.rcpt_money) AS rcpt_money,
@@ -155,6 +156,7 @@ class DebtorController extends Controller
                     WHEN p.hipdata_code = "STP" THEN "ผู้มีปัญหาสถานะสิทธิ"
                     WHEN p.hipdata_code = "UCS" THEN "ประกันสุขภาพ"
                     ELSE "ไม่พบเงื่อนไข" END AS pttype_group,
+                COUNT(DISTINCT a.an) AS an,
                 SUM(a.income) AS income,
                 SUM(a.paid_money) AS paid_money,
                 SUM(a.rcpt_money) AS rcpt_money,

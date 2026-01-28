@@ -73,11 +73,12 @@
                     <table class="table table-bordered table-striped">
                         <thead>
                         <tr class="table-success">
-                            <th class="text-center" colspan = "7">ผู้ป่วยนอก แยกกลุ่มสิทธิ</th>            
+                            <th class="text-center" colspan = "8">ผู้ป่วยนอก แยกกลุ่มสิทธิ</th>            
                         </tr>  
                         <tr class="table-secondary">
                             <th class="text-center">INSCL</th>
                             <th class="text-center">กลุ่มสิทธิ</th>
+                            <th class="text-center">จำนวน</th>
                             <th class="text-center">ค่าใช้จ่ายทั้งหมด</th>
                             <th class="text-center">ต้องชำระเงิน</th>  
                             <th class="text-center">ชำระเงินแล้ว</th> 
@@ -86,6 +87,7 @@
                         </tr>     
                         </thead>
                         @php
+                            $sum_visit = 0;
                             $sum_income = 0;
                             $sum_paid = 0;
                             $sum_rcpt = 0;
@@ -96,6 +98,7 @@
                         <tr>  
                             <td class="text-center">{{ $row->inscl }}</td>
                             <td class="text-left">{{ $row->pttype_group }}</td>
+                            <td class="text-end">{{ number_format($row->visit) }}</td>
                             <td align="right">{{ number_format($row->income,2) }}</td>
                             <td align="right">{{ number_format($row->paid_money,2) }}</td>  
                             <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
@@ -103,6 +106,7 @@
                             <td align="right" class="text-success">{{ number_format($row->debtor,2) }}</td> 
                         </tr>
                         @php
+                            $sum_visit += $row->visit;
                             $sum_income += $row->income;
                             $sum_paid += $row->paid_money;
                             $sum_rcpt += $row->rcpt_money;
@@ -112,6 +116,7 @@
                         @endforeach 
                         <tr>
                             <td class="text-end" colspan="2"><strong>รวม</strong></td>
+                            <td align="right"><strong>{{ number_format($sum_visit) }}</strong></td>
                             <td align="right"><strong>{{ number_format($sum_income,2) }}</strong></td>
                             <td align="right"><strong>{{ number_format($sum_paid,2) }}</strong></td>
                             <td align="right"><strong>{{ number_format($sum_rcpt,2) }}</strong></td>
@@ -172,11 +177,12 @@
                     <table class="table table-bordered table-striped">
                         <thead>
                         <tr class="table-danger">
-                            <th class="text-center" colspan = "6">ผู้ป่วยใน แยกกลุ่มสิทธิ</th>            
+                            <th class="text-center" colspan = "7">ผู้ป่วยใน แยกกลุ่มสิทธิ</th>            
                         </tr>  
                         <tr class="table-secondary">
                             <th class="text-center">INSCL</th>
                             <th class="text-center">กลุ่มสิทธิ</th>
+                            <th class="text-center">จำนวน</th>
                             <th class="text-center">ค่าใช้จ่ายทั้งหมด</th>
                             <th class="text-center">ต้องชำระเงิน</th>  
                             <th class="text-center">ชำระเงินแล้ว</th> 
@@ -184,6 +190,7 @@
                         </tr>     
                         </thead>
                         @php
+                            $sum_an = 0;
                             $sum_income = 0;
                             $sum_paid = 0;
                             $sum_rcpt = 0;
@@ -193,12 +200,14 @@
                         <tr>  
                             <td class="text-center">{{ $row->inscl }}</td>
                             <td class="text-left">{{ $row->pttype_group }}</td>
+                            <td align="right">{{ number_format($row->an) }}</td>
                             <td align="right">{{ number_format($row->income,2) }}</td>
                             <td align="right">{{ number_format($row->paid_money,2) }}</td>  
                             <td align="right">{{ number_format($row->rcpt_money,2) }}</td> 
                             <td align="right" class="text-success">{{ number_format($row->debtor,2) }}</td> 
                         </tr>
                         @php
+                            $sum_an += $row->an;
                             $sum_income += $row->income;
                             $sum_paid += $row->paid_money;
                             $sum_rcpt += $row->rcpt_money;
@@ -207,6 +216,7 @@
                         @endforeach 
                         <tr>
                             <td class="text-end" colspan="2"><strong>รวม</strong></td>
+                            <td align="right"><strong>{{ number_format($sum_an) }}</strong></td>
                             <td align="right"><strong>{{ number_format($sum_income,2) }}</strong></td>
                             <td align="right"><strong>{{ number_format($sum_paid,2) }}</strong></td>
                             <td align="right"><strong>{{ number_format($sum_rcpt,2) }}</strong></td>

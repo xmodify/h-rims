@@ -1644,7 +1644,6 @@ class DebtorController extends Controller
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search  =  $request->search ?: Session::get('search'); 
-        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
         
         if ($search) {
             $debtor = DB::select('
@@ -1692,8 +1691,7 @@ class DebtorController extends Controller
             WHERE (o.an IS NULL OR o.an ="")
                 AND v.income-v.rcpt_money <> "0" 
                 AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code NOT IN ("OFC","LGO")	
-                AND vp.pttype NOT IN ('.$pttype_checkup.')               
+                AND p.hipdata_code IN ("WEL","UCS")	             
                 AND v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
                 AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_209 WHERE vn IS NOT NULL) 
             GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
@@ -1713,8 +1711,7 @@ class DebtorController extends Controller
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');        
-        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value'); 
+        $end_date = Session::get('end_date');   
         $request->validate([
         'checkbox' => 'required|array',
         ], [
@@ -1748,8 +1745,7 @@ class DebtorController extends Controller
             WHERE (o.an IS NULL OR o.an ="") 
                 AND v.income-v.rcpt_money <> "0"
                 AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code NOT IN ("OFC","LGO")	
-                AND vp.pttype NOT IN ('.$pttype_checkup.')
+                AND p.hipdata_code IN ("WEL","UCS")	
                 AND v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
                 AND o.vn IN ('.$checkbox_string.') 
             GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 

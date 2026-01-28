@@ -64,7 +64,7 @@
                         <th class="text-center" width="6%">
                             <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDelete()">ลบลูกหนี้</button>
                         </th>
-                        <th class="text-left text-primary" colspan = "10">1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR) วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</th> 
+                        <th class="text-left text-primary" colspan = "11">1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR) วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</th> 
                         <th class="text-center text-primary" colspan = "6">การชดเชย</th>                                                 
                     </tr>
                     <tr class="table-success" >
@@ -78,7 +78,8 @@
                         <th class="text-center">ชำระเอง</th>  
                         <th class="text-center">ฟอกไต</th>   
                         <th class="text-center">บริการเฉพาะ</th>
-                        <th class="text-center">OP Anywhere</th>        
+                        <th class="text-center">OP Anywhere</th> 
+                        <th class="text-center">PPFS</th>       
                         <th class="text-center text-primary">ลูกหนี้</th>
                         <th class="text-center text-primary">ชดเชย</th> 
                         <th class="text-center text-primary">ผลต่าง</th>
@@ -93,6 +94,7 @@
                     <?php $sum_kidney = 0 ; ?>
                     <?php $sum_cr = 0 ; ?>
                     <?php $sum_anywhere = 0 ; ?>
+                    <?php $sum_ppfs = 0 ; ?>
                     <?php $sum_debtor = 0 ; ?>
                     <?php $sum_receive = 0 ; ?>
                     @foreach($debtor as $row) 
@@ -108,6 +110,7 @@
                         <td align="right">{{ number_format($row->kidney,2) }}</td>
                         <td align="right">{{ number_format($row->cr,2) }}</td>
                         <td align="right">{{ number_format($row->anywhere,2) }}</td>
+                        <td align="right">{{ number_format($row->ppfs,2) }}</td>
                         <td align="right" class="text-primary">{{ number_format($row->debtor,2) }}</td>  
                         <td align="right" @if($row->receive > 0) style="color:green" 
                             @elseif($row->receive < 0) style="color:red" @endif>
@@ -130,6 +133,7 @@
                     <?php $sum_kidney += $row->kidney ; ?> 
                     <?php $sum_cr += $row->cr ; ?> 
                     <?php $sum_anywhere += $row->anywhere ; ?> 
+                    <?php $sum_ppfs += $row->ppfs ; ?> 
                     <?php $sum_debtor += $row->debtor ; ?> 
                     <?php $sum_receive += $row->receive ; ?>       
                     @endforeach 
@@ -146,6 +150,7 @@
                     <th class="text-center">ฟอกไต</th>
                     <th class="text-center">บริการเฉพาะ</th>
                     <th class="text-center">OP Anywhere</th>
+                    <th class="text-center">PPFS</th>
                     <th class="text-center">ลูกหนี้</th> 
                     <th class="text-center">ชดเชย</th>   
                     <th class="text-center">ผลต่าง</th> 
@@ -160,6 +165,7 @@
                     <td class="text-primary" align="right">{{ number_format($sum_kidney,2)}}</td>
                     <td class="text-primary" align="right">{{ number_format($sum_cr,2)}}</td>
                     <td class="text-primary" align="right">{{ number_format($sum_anywhere,2)}}</td>
+                    <td class="text-primary" align="right">{{ number_format($sum_ppfs,2)}}</td>
                     <td class="text-primary" align="right"><strong>{{ number_format($sum_debtor,2)}}</strong></td>
                     <td align="right" @if($sum_receive > 0) style="color:green"
                         @elseif($sum_receive < 0) style="color:red" @endif>

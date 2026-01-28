@@ -167,6 +167,13 @@ class MainSettingController extends Controller
                 ['name' => 'receive',   'type' => 'DOUBLE(15,2) NULL', 'after' => 'status'],
                 ['name' => 'repno', 'type' => 'VARCHAR(15) NULL', 'after' => 'receive'], 
             ],
+            'debtor_1102050101_216' => [
+                ['name' => 'ppfs',   'type' => 'DOUBLE(15,2) NULL', 'after' => 'anywhere'],
+            ],
+            'debtor_1102050101_309' => [
+                ['name' => 'other',   'type' => 'DOUBLE(15,2) NULL', 'after' => 'rcpt_money'],
+                ['name' => 'ppfs',   'type' => 'DOUBLE(15,2) NULL', 'after' => 'kidney'],
+            ],
         ];
         try {
             foreach ($tables as $table => $columns) {

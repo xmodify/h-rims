@@ -690,20 +690,28 @@ class DebtorController extends Controller
                     });
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                v.income-v.rcpt_money AS debtor ,"ยืนยันลูกหนี้" AS status  
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,o.vstdate,
+                o.vsttime,v.pdx,p.`name` AS pttype,vp.hospmain,p.hipdata_code,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS debtor,
+                "ยืนยันลูกหนี้" AS status  
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype    
-            WHERE (o.an IS NULL OR o.an ="") 
-                AND o.vstdate BETWEEN ? AND ?
-                AND v.income-v.rcpt_money <>"0" 
-                AND vp.pttype IN ('.$pttype_checkup.')
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_103 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]); 
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype    
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "") 
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) <> 0
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_103 WHERE vn IS NOT NULL)
+            AND vp.pttype IN ('.$pttype_checkup.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -731,20 +739,29 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                v.income-v.rcpt_money AS debtor ,"ยืนยันลูกหนี้" AS status   
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,o.vstdate,
+                o.vsttime,v.pdx,p.`name` AS pttype,vp.hospmain,p.hipdata_code,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS debtor,
+                "ยืนยันลูกหนี้" AS status  
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype    
-            WHERE (o.an IS NULL OR o.an ="") 
-                AND o.vstdate BETWEEN ? AND ?
-                AND v.income-v.rcpt_money <>"0" 
-                AND vp.pttype IN ('.$pttype_checkup.')
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]); 
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype    
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "") 
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) <> 0
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_103 WHERE vn IS NOT NULL)
+            AND vp.pttype IN ('.$pttype_checkup.')
+            AND o.vn IN ('.$checkbox_string.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050101_103::insert([
@@ -866,23 +883,32 @@ class DebtorController extends Controller
                     });
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,p.cid,CONCAT(p.pname,p.fname,SPACE(1),p.lname) AS ptname,o.vstdate,
-                o.vsttime,p1.`name` AS pttype,vp.hospmain,p1.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                COALESCE(ems.claim_price, 0) AS debtor ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient p ON p.hn=o.hn
+            SELECT o.vn,o.hn,o.an,p.cid,CONCAT(p.pname, p.fname, " ", p.lname) AS ptname,o.vstdate,v.pdx,
+                o.vsttime,p1.`name` AS pttype,vp.hospmain,p1.hipdata_code,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ems.claim_price,0) AS debtor,ems.claim_list AS claim_list,
+                "ยืนยันลูกหนี้" AS status  
+            FROM ovst o  
+            LEFT JOIN patient p ON p.hn = o.hn
             LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p1 ON p1.pttype=vp.pttype
-			INNER JOIN opitemrece o1 ON o1.vn=o.vn
-			INNER JOIN hrims.lookup_icode li ON o1.icode = li.icode AND li.ems = "Y"	
-			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
-				WHERE op.vstdate BETWEEN ? AND ? AND li.ems = "Y" GROUP BY op.vn) ems ON ems.vn=o.vn			
-            WHERE o.vstdate BETWEEN ? AND ?            
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_109 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]); 
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p1 ON p1.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype, SUM(op.sum_price) AS income
+                FROM opitemrece op 
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            INNER JOIN (SELECT op.vn,SUM(op.sum_price) AS claim_price,
+                GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list    
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems = "Y"
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) ems ON ems.vn = o.vn
+            WHERE o.vstdate BETWEEN ? AND ?
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_109 WHERE vn IS NOT NULL)
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -899,8 +925,7 @@ class DebtorController extends Controller
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');        
-        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value'); 
+        $end_date = Session::get('end_date');   
         $request->validate([
         'checkbox' => 'required|array',
         ], [
@@ -910,23 +935,33 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,p.cid,CONCAT(p.pname,p.fname,SPACE(1),p.lname) AS ptname,o.vstdate,
-                o.vsttime,p1.`name` AS pttype,vp.hospmain,p1.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                COALESCE(ems.claim_price, 0) AS debtor ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient p ON p.hn=o.hn
+            SELECT o.vn,o.hn,o.an,p.cid,CONCAT(p.pname, p.fname, " ", p.lname) AS ptname,o.vstdate,v.pdx,
+                o.vsttime,p1.`name` AS pttype,vp.hospmain,p1.hipdata_code,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ems.claim_price,0) AS debtor,ems.claim_list AS claim_list,
+                "ยืนยันลูกหนี้" AS status  
+            FROM ovst o  
+            LEFT JOIN patient p ON p.hn = o.hn
             LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p1 ON p1.pttype=vp.pttype
-			INNER JOIN opitemrece o1 ON o1.vn=o.vn
-			INNER JOIN hrims.lookup_icode li ON o1.icode = li.icode AND li.ems = "Y"	
-			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
-				WHERE op.vstdate BETWEEN ? AND ? AND li.ems = "Y" GROUP BY op.vn) ems ON ems.vn=o.vn			
-            WHERE o.vstdate BETWEEN ? AND ?            
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]); 
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p1 ON p1.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype, SUM(op.sum_price) AS income
+                FROM opitemrece op 
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            INNER JOIN (SELECT op.vn,SUM(op.sum_price) AS claim_price,
+                GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list    
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems = "Y"
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) ems ON ems.vn = o.vn
+            WHERE o.vstdate BETWEEN ? AND ?
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_109 WHERE vn IS NOT NULL)
+            AND o.vn IN ('.$checkbox_string.') 
+            GROUP BY o.vn, vp.pttype    
+            ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050101_109::insert([
@@ -1056,36 +1091,40 @@ class DebtorController extends Controller
         }
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-                v.income-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
-                GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
-                GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.ppfs ="" OR li.ppfs IS NULL)
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE (ppfs IS NULL OR ppfs =""))	
-			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
-            WHERE (o.an IS NULL OR o.an ="")
-                AND v.income-v.rcpt_money <>"0"		
-                AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <>"0"					
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code IN ("UCS","WEL") 					
-                AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
-                AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_201 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,
+                o.vstdate,o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other,IFNULL(ch.ppfs_price,0) AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)- IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status  
+            FROM ovst o  
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn        
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn, op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ? 
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money 
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ppfs IS NULL OR li.ppfs = "" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM( CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs IS NULL OR li.ppfs = "" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op 
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode  
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) <> 0
+            AND p.hipdata_code IN ("UCS","WEL")
+            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
+            AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_201 WHERE vn IS NOT NULL)
+            GROUP BY o.vn, vp.pttype 
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -1112,36 +1151,41 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-            o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-            COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-			v.income-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
-			GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.ppfs ="" OR li.ppfs IS NULL)
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE (ppfs IS NULL OR ppfs =""))	
-			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
-            WHERE (o.an IS NULL OR o.an ="")
-                AND v.income-v.rcpt_money <>"0"		
-                AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <>"0"					
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code IN ("UCS","WEL")			
-                AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
-                AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,
+                o.vstdate,o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other,IFNULL(ch.ppfs_price,0) AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)- IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status  
+            FROM ovst o  
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn        
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn, op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ? 
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money 
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ppfs IS NULL OR li.ppfs = "" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM( CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs IS NULL OR li.ppfs = "" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op 
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode  
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) <> 0
+            AND p.hipdata_code IN ("UCS","WEL")
+            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
+            AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_201 WHERE vn IS NOT NULL)
+            AND o.vn IN ('.$checkbox_string.')
+            GROUP BY o.vn, vp.pttype 
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);
         
         foreach ($debtor as $row) {
             Debtor_1102050101_201::insert([
@@ -1359,36 +1403,40 @@ class DebtorController extends Controller
         }
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-            o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-            COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-			v.income-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
-			GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.ppfs ="" OR li.ppfs IS NULL)
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE (ppfs IS NULL OR ppfs =""))	
-			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
-            WHERE (o.an IS NULL OR o.an ="")
-                AND v.income-v.rcpt_money <>"0"		
-                AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <>"0"					
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code IN ("UCS","WEL") 					
-                AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs ="")) 
-                AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_203 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,
+                o.vstdate,o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other,IFNULL(ch.ppfs_price,0) AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)- IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status  
+            FROM ovst o  
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn        
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn, op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ? 
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money 
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ppfs IS NULL OR li.ppfs = "" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM( CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs IS NULL OR li.ppfs = "" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op 
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode  
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) <> 0
+            AND p.hipdata_code IN ("UCS","WEL")
+            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs ="")) 
+            AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_203 WHERE vn IS NOT NULL)
+            GROUP BY o.vn, vp.pttype 
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -1416,36 +1464,41 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-            o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-            COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-			v.income-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
-			GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.ppfs ="" OR li.ppfs IS NULL)
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE (ppfs IS NULL OR ppfs =""))	
-			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
-            WHERE (o.an IS NULL OR o.an ="")
-                AND v.income-v.rcpt_money <>"0"		
-                AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <>"0"					
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code IN ("UCS","WEL") 				
-                AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs ="")) 
-                AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,
+                o.vstdate,o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other,IFNULL(ch.ppfs_price,0) AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)- IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status  
+            FROM ovst o  
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn        
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn, op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ? 
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money 
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ppfs IS NULL OR li.ppfs = "" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM( CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs IS NULL OR li.ppfs = "" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op 
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode  
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) <> 0
+            AND p.hipdata_code IN ("UCS","WEL")
+            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs ="")) 
+            AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_203 WHERE vn IS NOT NULL)
+            AND o.vn IN ('.$checkbox_string.')
+            GROUP BY o.vn, vp.pttype 
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050101_203::insert([
@@ -1667,34 +1720,39 @@ class DebtorController extends Controller
         }
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-            o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-            COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-			v.income-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
-			GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.ppfs ="" OR li.ppfs IS NULL)
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE (ppfs IS NULL OR ppfs =""))	
-			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode			
-            WHERE (o.an IS NULL OR o.an ="")
-                AND v.income-v.rcpt_money <> "0" 
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code IN ("UCS","WEL")        
-                AND v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_209 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,
+                o.vstdate,o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other,IFNULL(ch.ppfs_price,0) AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)- IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status  
+            FROM ovst o  
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn        
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn, op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ? 
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money 
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ppfs IS NULL OR li.ppfs = "" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM( CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs IS NULL OR li.ppfs = "" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op 
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode  
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) <> 0
+            AND p.hipdata_code IN ("UCS","WEL")            
+            AND v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_209 WHERE vn IS NOT NULL)
+            GROUP BY o.vn, vp.pttype 
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -1721,34 +1779,40 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-            o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-            COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-			v.income-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
-			GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.ppfs ="" OR li.ppfs IS NULL)
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE (ppfs IS NULL OR ppfs =""))	
-			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode		
-            WHERE (o.an IS NULL OR o.an ="") 
-                AND v.income-v.rcpt_money <> "0"
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code IN ("UCS","WEL") 
-                AND v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,
+                o.vstdate,o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other,IFNULL(ch.ppfs_price,0) AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)- IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status  
+            FROM ovst o  
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn        
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn, op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ? 
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money 
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ppfs IS NULL OR li.ppfs = "" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM( CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs IS NULL OR li.ppfs = "" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op 
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode  
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) <> 0
+            AND p.hipdata_code IN ("UCS","WEL")            
+            AND v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_209 WHERE vn IS NOT NULL)
+            AND o.vn IN ('.$checkbox_string.')
+            GROUP BY o.vn, vp.pttype 
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);  
         
         foreach ($debtor as $row) {
             Debtor_1102050101_209::insert([
@@ -1844,7 +1908,7 @@ class DebtorController extends Controller
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,MAX(d.ptname) AS ptname,MAX(d.hipdata_code) AS hipdata_code,MAX(d.pttype) AS pttype,
                     MAX(d.hospmain) AS hospmain,MAX(d.pdx) AS pdx,MAX(d.income) AS income,MAX(d.rcpt_money) AS rcpt_money,
-                    MAX(d.kidney) AS kidney,MAX(d.cr) AS cr, MAX(d.anywhere) AS anywhere,MAX(d.debtor) AS debtor,
+                    MAX(d.kidney) AS kidney,MAX(d.cr) AS cr, MAX(d.anywhere) AS anywhere,MAX(d.ppfs) AS ppfs,MAX(d.debtor) AS debtor,
                     IFNULL(MAX(s.receive_total),0)+CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(MAX(sk.receive_total),0) ELSE 0 END AS receive,
                     MAX(s.repno) AS repno,MAX(sk.repno) AS rid,MAX(d.debtor_lock) AS debtor_lock,
                     CASE WHEN (IFNULL(MAX(s.receive_total),0)+CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(MAX(sk.receive_total),0) ELSE 0 END
@@ -1862,7 +1926,7 @@ class DebtorController extends Controller
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,MAX(d.ptname) AS ptname,MAX(d.hipdata_code) AS hipdata_code,MAX(d.pttype) AS pttype,
                     MAX(d.hospmain) AS hospmain,MAX(d.pdx) AS pdx,MAX(d.income) AS income,MAX(d.rcpt_money) AS rcpt_money,
-                    MAX(d.kidney) AS kidney,MAX(d.cr) AS cr, MAX(d.anywhere) AS anywhere,MAX(d.debtor) AS debtor,
+                    MAX(d.kidney) AS kidney,MAX(d.cr) AS cr, MAX(d.anywhere) AS anywhere,MAX(d.ppfs) AS ppfs,MAX(d.debtor) AS debtor,
                     IFNULL(MAX(s.receive_total),0)+CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(MAX(sk.receive_total),0) ELSE 0 END AS receive,
                     MAX(s.repno) AS repno,MAX(sk.repno) AS rid,MAX(d.debtor_lock) AS debtor_lock,
                     CASE WHEN (IFNULL(MAX(s.receive_total),0)+CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(MAX(sk.receive_total),0) ELSE 0 END
@@ -1878,88 +1942,104 @@ class DebtorController extends Controller
         }
 
         $debtor_search_kidney = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                v.income-v.rcpt_money-COALESCE(o1.claim_price, 0) AS other,COALESCE(o1.claim_price, 0) AS debtor,
-                GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,"ยืนยันลูกหนี้" AS status  
+            SELECT o.vn,o.hn,o.an, pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+                IFNULL(kid.claim_price,0) AS kidney_amount,IFNULL(kid.claim_price,0) AS debtor, kid.claim_list,"ยืนยันลูกหนี้" AS status  
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.kidney ="Y"
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn			
-			LEFT JOIN opitemrece o2 ON o2.vn=o.vn AND o2.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney="Y")	
-			LEFT JOIN s_drugitems sd ON sd.icode=o2.icode	
-            WHERE (o.an IS NULL OR o.an ="")                
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code IN ("UCS","WEL")
-				AND o1.vn IS NOT NULL 
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]); 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money    
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            INNER JOIN (SELECT op.vn,SUM(op.sum_price) AS claim_price,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list
+                FROM opitemrece op 
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.kidney = "Y"
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) kid ON kid.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND p.hipdata_code IN ("UCS","WEL")
+            AND IFNULL(rc.rcpt_money,0) <> IFNULL(kid.claim_price,0)
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL) 
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $debtor_search_cr = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                v.income-v.rcpt_money-COALESCE(o1.claim_price, 0) AS other,COALESCE(o1.claim_price, 0) AS debtor,
-                GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,"ยืนยันลูกหนี้" AS status,
-                IF(oe.moph_finance_upload_status IS NOT NULL,"Y","")  AS send_claim   
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.uc_cr ="Y" OR li.herb32 = "Y")
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn			
-			LEFT JOIN opitemrece o2 ON o2.vn=o.vn 
-                AND o2.icode IN (SELECT icode FROM hrims.lookup_icode WHERE (uc_cr ="Y" OR herb32 = "Y"))	
-			LEFT JOIN s_drugitems sd ON sd.icode=o2.icode
-            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn 	
-            WHERE (o.an IS NULL OR o.an ="")                                
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code IN ("UCS","WEL")
-				AND o1.vn IS NOT NULL 
-                AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y") 
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+                IFNULL(uc.claim_price,0) AS uc_amount,IFNULL(uc.claim_price,0) AS debtor,uc.claim_list,
+                IF(oe.moph_finance_upload_status IS NOT NULL, "Y", "") AS send_claim,"ยืนยันลูกหนี้" AS status 
+            FROM ovst o  
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v  ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            INNER JOIN (SELECT op.vn,SUM(op.sum_price) AS claim_price, GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.uc_cr = "Y" OR li.herb32 = "Y")
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) uc ON uc.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "") 
+            AND o.vstdate BETWEEN ? AND ?
+            AND p.hipdata_code IN ("UCS","WEL")
+            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL)
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $debtor_search_anywhere = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-                v.income-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
-                GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
-                GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","")  AS send_claim  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y" )	
-			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
-			LEFT JOIN opitemrece kidney ON kidney.vn=o.vn 
-				AND kidney.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney="Y")
-			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn 
-            WHERE (o.an IS NULL OR o.an ="")
-            AND v.income-v.rcpt_money <>"0"		
-            AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <>"0"					
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other,IFNULL(ch.ppfs_price,0) AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS send_claim,"ยืนยันลูกหนี้" AS status 
+            FROM ovst o   
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn, SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
             AND o.vstdate BETWEEN ? AND ?
-            AND p.hipdata_code IN ("UCS","WEL") 	
-			AND kidney.vn IS NULL			
-            AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) <> 0
+            AND p.hipdata_code IN ("UCS","WEL")
+            AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")  
             AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
-            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL)
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -1987,26 +2067,35 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                v.income-v.rcpt_money-COALESCE(o1.claim_price, 0) AS other,COALESCE(o1.claim_price, 0) AS debtor,
-                GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,"ยืนยันลูกหนี้" AS status  
+            SELECT o.vn,o.hn,o.an, pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+                IFNULL(kid.claim_price,0) AS kidney_amount,IFNULL(kid.claim_price,0) AS debtor, kid.claim_list,"ยืนยันลูกหนี้" AS status  
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.kidney ="Y"
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn			
-			LEFT JOIN opitemrece o2 ON o2.vn=o.vn AND o2.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney="Y")	
-			LEFT JOIN s_drugitems sd ON sd.icode=o2.icode	
-            WHERE (o.an IS NULL OR o.an ="")                
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code IN ("UCS","WEL") 
-				AND o1.vn IS NOT NULL 
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]); 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money    
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            INNER JOIN (SELECT op.vn,SUM(op.sum_price) AS claim_price,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list
+                FROM opitemrece op 
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.kidney = "Y"
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) kid ON kid.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND p.hipdata_code IN ("UCS","WEL")
+            AND IFNULL(rc.rcpt_money,0) <> IFNULL(kid.claim_price,0)
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL) 
+            AND o.vn IN ('.$checkbox_string.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050101_216::insert([
@@ -2054,28 +2143,37 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                v.income-v.rcpt_money-COALESCE(o1.claim_price, 0) AS other,COALESCE(o1.claim_price, 0) AS debtor,
-                GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.uc_cr ="Y" OR li.herb32 = "Y")
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn			
-			LEFT JOIN opitemrece o2 ON o2.vn=o.vn 
-                AND o2.icode IN (SELECT icode FROM hrims.lookup_icode WHERE (uc_cr ="Y" OR herb32 = "Y"))	
-			LEFT JOIN s_drugitems sd ON sd.icode=o2.icode	
-            WHERE (o.an IS NULL OR o.an ="")                                                     
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code IN ("UCS","WEL") 
-				AND o1.vn IS NOT NULL 
-                AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")  
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+                IFNULL(uc.claim_price,0) AS uc_amount,IFNULL(uc.claim_price,0) AS debtor,uc.claim_list,
+                IF(oe.moph_finance_upload_status IS NOT NULL, "Y", "") AS send_claim,"ยืนยันลูกหนี้" AS status 
+            FROM ovst o  
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v  ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            INNER JOIN (SELECT op.vn,SUM(op.sum_price) AS claim_price, GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.uc_cr = "Y" OR li.herb32 = "Y")
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) uc ON uc.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "") 
+            AND o.vstdate BETWEEN ? AND ?
+            AND p.hipdata_code IN ("UCS","WEL")
+            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL)
+            AND o.vn IN ('.$checkbox_string.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);
         
         foreach ($debtor as $row) {
             Debtor_1102050101_216::insert([
@@ -2123,41 +2221,43 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-           SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-                v.income-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
-                GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
-                GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","")  AS send_claim  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y" )	
-			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
-			LEFT JOIN opitemrece kidney ON kidney.vn=o.vn 
-				AND kidney.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney="Y")
-			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn 
-            WHERE (o.an IS NULL OR o.an ="")
-            AND v.income-v.rcpt_money <>"0"		
-            AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <>"0"					
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other,IFNULL(ch.ppfs_price,0) AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS send_claim,"ยืนยันลูกหนี้" AS status 
+            FROM ovst o   
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn, SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
             AND o.vstdate BETWEEN ? AND ?
-            AND p.hipdata_code IN ("UCS","WEL") 
-			AND kidney.vn IS NULL			
-            AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) <> 0
+            AND p.hipdata_code IN ("UCS","WEL")
+            AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")  
             AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL)
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            AND o.vn IN ('.$checkbox_string.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050101_216::insert([
@@ -2174,6 +2274,7 @@ class DebtorController extends Controller
                 'income'          => $row->income,  
                 'rcpt_money'      => $row->rcpt_money,
                 'anywhere'        => $row->debtor,
+                'ppfs'            => $row->ppfs,
                 'debtor'          => $row->debtor,  
                 'status'          => $row->status,          
             ]);            
@@ -2283,36 +2384,40 @@ class DebtorController extends Controller
         }
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-                v.income-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
-                GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
-                GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.kidney ="Y" OR li.ems ="Y")
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE (kidney ="Y" OR ems ="Y"))	
-			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
-            WHERE (o.an IS NULL OR o.an ="")
-                AND v.income-v.rcpt_money <>"0"
-                AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <>"0"							
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code = "SSS" 
-                AND p.pttype NOT IN ('.$pttype_sss_fund.')					
-                AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss ="Y")
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_301 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other,IFNULL(ch.ppfs_price,0)  AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status  
+            FROM ovst o 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op WHERE op.vstdate BETWEEN ? AND ?    
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money   
+                FROM rcpt_print r              
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) <> 0
+            AND p.hipdata_code = "SSS"            
+            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_301 WHERE vn IS NOT NULL)
+            AND p.pttype NOT IN ('.$pttype_sss_fund.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -2340,36 +2445,41 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-            o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-            COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-			v.income-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
-			GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.kidney ="Y" OR li.ems ="Y")
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE (kidney ="Y" OR ems ="Y"))	
-			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
-            WHERE (o.an IS NULL OR o.an ="")
-                AND v.income-v.rcpt_money <>"0"		
-                AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <>"0"			
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code = "SSS" 
-                AND p.pttype NOT IN ('.$pttype_sss_fund.')					
-                AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss ="Y")
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other,IFNULL(ch.ppfs_price,0)  AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status  
+            FROM ovst o 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op WHERE op.vstdate BETWEEN ? AND ?    
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money   
+                FROM rcpt_print r              
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) <> 0
+            AND p.hipdata_code = "SSS"            
+            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_301 WHERE vn IS NOT NULL)
+            AND p.pttype NOT IN ('.$pttype_sss_fund.')
+            AND o.vn IN ('.$checkbox_string.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050101_301::insert([
@@ -2583,36 +2693,41 @@ class DebtorController extends Controller
         }
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.paid_money,v.rcpt_money,
-                COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-                v.income-v.paid_money-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
-                GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
-                GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.kidney ="Y" OR li.ems ="Y")
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE (kidney ="Y" OR ems ="Y"))	
-			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
-            WHERE (o.an IS NULL OR o.an ="")
-                AND v.income-v.paid_money-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) > "0"  						
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code = "SSS" 
-                AND p.pttype NOT IN ('.$pttype_sss_fund.')	
-                AND p.pttype NOT IN ('.$pttype_sss_ae.')					
-                AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss ="Y")
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_303 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,v.paid_money,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other,IFNULL(ch.ppfs_price,0)  AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status  
+            FROM ovst o 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op WHERE op.vstdate BETWEEN ? AND ?    
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money   
+                FROM rcpt_print r              
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(v.paid_money,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) > 0
+            AND p.hipdata_code = "SSS"            
+            AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_303 WHERE vn IS NOT NULL)
+            AND p.pttype NOT IN ('.$pttype_sss_fund.')
+            AND p.pttype NOT IN ('.$pttype_sss_ae.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -2641,36 +2756,42 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-            o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.paid_money,v.rcpt_money,
-            COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-			v.income-v.paid_money-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
-			GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.kidney ="Y" OR li.ems ="Y")
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE (kidney ="Y" OR ems ="Y"))	
-			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
-            WHERE (o.an IS NULL OR o.an ="")
-                AND v.income-v.paid_money-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) > "0"     		
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code = "SSS" 
-                AND p.pttype NOT IN ('.$pttype_sss_fund.')		
-                AND p.pttype NOT IN ('.$pttype_sss_ae.')				
-                AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss ="Y")
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,v.paid_money,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other,IFNULL(ch.ppfs_price,0)  AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status  
+            FROM ovst o 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op WHERE op.vstdate BETWEEN ? AND ?    
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money   
+                FROM rcpt_print r              
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(v.paid_money,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) > 0
+            AND p.hipdata_code = "SSS"            
+            AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_303 WHERE vn IS NOT NULL)
+            AND p.pttype NOT IN ('.$pttype_sss_fund.')
+            AND p.pttype NOT IN ('.$pttype_sss_ae.')
+            AND o.vn IN ('.$checkbox_string.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050101_303::insert([
@@ -2799,61 +2920,75 @@ class DebtorController extends Controller
             });
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-                v.income-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
-                GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
-                GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status  
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate, o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other, IFNULL(ch.ppfs_price,0)  AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status  
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.kidney ="Y" OR li.ems ="Y")
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE (kidney ="Y" OR ems ="Y"))	
-			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
-            WHERE (o.an IS NULL OR o.an ="")
-                AND v.income-v.rcpt_money <>"0"
-                AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <>"0"							
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.pttype IN ('.$pttype_sss_fund.')
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_307 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r              
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) <> 0
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_307 WHERE vn IS NOT NULL)
+            AND p.pttype IN ('.$pttype_sss_fund.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         $debtor_search_ip = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
-                p.`name` AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
-                a.income,a.rcpt_money,COALESCE(other.other_price,0) AS other,a.income-a.rcpt_money-COALESCE(other.other_price,0) AS debtor,
-                GROUP_CONCAT(DISTINCT s.`name`) AS other_list,ict.ipt_coll_status_type_name,i.data_ok ,"ยืนยันลูกหนี้" AS status  
-            FROM ipt i 
-            LEFT JOIN patient pt ON pt.hn=i.hn
-            LEFT JOIN ipt_pttype ip ON ip.an=i.an
-            LEFT JOIN pttype p ON p.pttype=ip.pttype
-            LEFT JOIN ward w ON w.ward=i.ward
-            LEFT JOIN an_stat a ON a.an=i.an
-            LEFT JOIN (SELECT op.an, SUM(op.sum_price) AS other_price	
-                FROM opitemrece op INNER JOIN ipt ON ipt.an=op.an
-            LEFT JOIN hrims.lookup_icode li ON op.icode = li.icode
-                LEFT JOIN nondrugitems n ON n.icode=op.icode 
-                WHERE op.an IS NOT NULL AND ipt.dchdate BETWEEN ? AND ?  AND li.kidney = "Y"
-                GROUP BY op.an) other ON other.an=i.an
-            LEFT JOIN opitemrece o ON o.an=i.an AND o.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney = "Y")
-            LEFT JOIN s_drugitems s ON s.icode=o.icode
-            LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
-            LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
-            WHERE i.confirm_discharge = "Y" 
-			AND p.pttype IN ('.$pttype_sss_fund.')
-            AND i.dchdate BETWEEN ? AND ?
+            SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
+                p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
+                COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
+                COALESCE(inc.income,0)-COALESCE(rc.rcpt_money,0)-COALESCE(oth.other_price,0) AS debtor,oth.other_list,
+                ict.ipt_coll_status_type_name,i.data_ok,"ยืนยันลูกหนี้" AS status
+            FROM ipt i
+            LEFT JOIN patient pt ON pt.hn = i.hn
+            LEFT JOIN ipt_pttype ip ON ip.an = i.an
+            LEFT JOIN pttype p ON p.pttype = ip.pttype
+            LEFT JOIN ward w ON w.ward = i.ward
+            LEFT JOIN an_stat a ON a.an = i.an     
+            LEFT JOIN ipt_coll_stat ic ON ic.an = i.an
+            LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id = ic.ipt_coll_status_type_id
+            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS income
+                FROM opitemrece o
+                INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
+                GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
+                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
+                FROM opitemrece o
+                INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
+                LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
+                LEFT JOIN s_drugitems s ON s.icode = o.icode WHERE li.kidney = "Y"
+                GROUP BY o.an, o.pttype) oth ON oth.an = i.an AND oth.pttype = ip.pttype
+            WHERE i.confirm_discharge = "Y"
+            AND i.dchdate BETWEEN ? AND ?            
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_307 WHERE an IS NOT NULL)
-            GROUP BY i.an,ip.pttype ORDER BY i.ward,i.dchdate',[$start_date,$end_date,$start_date,$end_date]); 
+			AND ip.pttype IN ('.$pttype_sss_fund.') 
+            GROUP BY i.an, ip.pttype
+            ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
+            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -2881,34 +3016,40 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-            o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-            COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-			v.income-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
-			GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status  
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate, o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other, IFNULL(ch.ppfs_price,0)  AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status  
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.kidney ="Y" OR li.ems ="Y")
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE (kidney ="Y" OR ems ="Y"))	
-			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
-            WHERE (o.an IS NULL OR o.an ="")
-                AND v.income-v.rcpt_money <>"0"		
-                AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <>"0"			
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.pttype IN ('.$pttype_sss_fund.')	
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r              
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) <> 0
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_307 WHERE vn IS NOT NULL)
+            AND p.pttype IN ('.$pttype_sss_fund.')
+            AND o.vn IN ('.$checkbox_string.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050101_307::insert([
@@ -2958,31 +3099,41 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox_ip); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
-                p.`name` AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
-                a.income,a.rcpt_money,COALESCE(other.other_price,0) AS other,a.income-a.rcpt_money-COALESCE(other.other_price,0) AS debtor,
-                GROUP_CONCAT(DISTINCT s.`name`) AS other_list,ict.ipt_coll_status_type_name,i.data_ok ,"ยืนยันลูกหนี้" AS status  
-            FROM ipt i 
-            LEFT JOIN patient pt ON pt.hn=i.hn
-            LEFT JOIN ipt_pttype ip ON ip.an=i.an
-            LEFT JOIN pttype p ON p.pttype=ip.pttype
-            LEFT JOIN ward w ON w.ward=i.ward
-            LEFT JOIN an_stat a ON a.an=i.an
-            LEFT JOIN (SELECT op.an, SUM(op.sum_price) AS other_price	
-                FROM opitemrece op INNER JOIN ipt ON ipt.an=op.an
-            LEFT JOIN hrims.lookup_icode li ON op.icode = li.icode
-                LEFT JOIN nondrugitems n ON n.icode=op.icode 
-                WHERE op.an IS NOT NULL AND ipt.dchdate BETWEEN ? AND ?  AND li.kidney = "Y"
-                GROUP BY op.an) other ON other.an=i.an
-            LEFT JOIN opitemrece o ON o.an=i.an AND o.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney = "Y")
-            LEFT JOIN s_drugitems s ON s.icode=o.icode
-            LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
-            LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
-            WHERE i.confirm_discharge = "Y" 
-			AND p.pttype IN ('.$pttype_sss_fund.')
-            AND i.dchdate BETWEEN ? AND ?
-            AND i.an IN ('.$checkbox_string.') 
-            GROUP BY i.an,ip.pttype ORDER BY i.ward,i.dchdate',[$start_date,$end_date,$start_date,$end_date]);  
+            SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
+                p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
+                COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
+                COALESCE(inc.income,0)-COALESCE(rc.rcpt_money,0)-COALESCE(oth.other_price,0) AS debtor,oth.other_list,
+                ict.ipt_coll_status_type_name,i.data_ok,"ยืนยันลูกหนี้" AS status
+            FROM ipt i
+            LEFT JOIN patient pt ON pt.hn = i.hn
+            LEFT JOIN ipt_pttype ip ON ip.an = i.an
+            LEFT JOIN pttype p ON p.pttype = ip.pttype
+            LEFT JOIN ward w ON w.ward = i.ward
+            LEFT JOIN an_stat a ON a.an = i.an     
+            LEFT JOIN ipt_coll_stat ic ON ic.an = i.an
+            LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id = ic.ipt_coll_status_type_id
+            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS income
+                FROM opitemrece o
+                INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
+                GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
+                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
+                FROM opitemrece o
+                INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
+                LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
+                LEFT JOIN s_drugitems s ON s.icode = o.icode WHERE li.kidney = "Y"
+                GROUP BY o.an, o.pttype) oth ON oth.an = i.an AND oth.pttype = ip.pttype
+            WHERE i.confirm_discharge = "Y"
+            AND i.dchdate BETWEEN ? AND ?            
+            AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_307 WHERE an IS NOT NULL)
+			AND ip.pttype IN ('.$pttype_sss_fund.') 
+            AND i.an IN ('.$checkbox_string.')
+            GROUP BY i.an, ip.pttype
+            ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
+            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050101_307::insert([
@@ -3122,45 +3273,70 @@ class DebtorController extends Controller
         }
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                COALESCE(o1.kidney_price, 0) AS kidney,COALESCE(o1.kidney_price, 0) AS debtor,
-			    GROUP_CONCAT(DISTINCT sd.`name`) AS kidney_list,"ยืนยันลูกหนี้" AS status  
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(kid.kidney_price,0) AS kidney,
+                IFNULL(kid.kidney_price,0) AS debtor,kid.kidney_list,"ยืนยันลูกหนี้" AS status  
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS kidney_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.kidney ="Y"
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn	
-			LEFT JOIN opitemrece o2 ON o2.vn=o.vn AND o2.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney ="Y")	
-			LEFT JOIN s_drugitems sd ON sd.icode=o2.icode	
-            WHERE p.hipdata_code IN ("SSS","SSI")	
-            AND COALESCE(o1.kidney_price, 0)-v.rcpt_money > 0
-			AND o1.vn IS NOT NULL	
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income  
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            INNER JOIN (SELECT op.vn,SUM(op.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT sd.`name`) AS kidney_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.kidney = "Y"
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) kid ON kid.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
             AND o.vstdate BETWEEN ? AND ?
-            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_309 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]); 
+            AND p.hipdata_code IN ("SSS","SSI")
+            AND IFNULL(rc.rcpt_money,0) < IFNULL(kid.kidney_price,0)
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_309 WHERE vn IS NOT NULL)
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $debtor_search_ae = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                IFNULL(SUM(o1.sum_price),0) AS other,GROUP_CONCAT(s.`name`) AS other_list,
-                v.income-v.rcpt_money-IFNULL(o1.sum_price,0) AS debtor ,"ยืนยันลูกหนี้" AS status  
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate, o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other, IFNULL(ch.ppfs_price,0)  AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status  
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-            LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y") 
-            LEFT JOIN s_drugitems s ON s.icode = o1.icode   
-            WHERE (o.an IS NULL OR o.an ="") 
-                AND o.vstdate BETWEEN ? AND ?
-                AND v.income-v.rcpt_money <> "0" 
-                AND vp.pttype IN ('.$pttype_sss_ae.')
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_309 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]); 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r              
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) <> 0
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_309 WHERE vn IS NOT NULL)
+            AND p.pttype IN ('.$pttype_sss_ae.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -3187,25 +3363,36 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                COALESCE(o1.kidney_price, 0) AS kidney,COALESCE(o1.kidney_price, 0) AS debtor,
-			    GROUP_CONCAT(DISTINCT sd.`name`) AS kidney_list,"ยืนยันลูกหนี้" AS status  
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(kid.kidney_price,0) AS kidney,
+                IFNULL(kid.kidney_price,0) AS debtor,kid.kidney_list,"ยืนยันลูกหนี้" AS status  
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS kidney_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.kidney ="Y"
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn	
-			LEFT JOIN opitemrece o2 ON o2.vn=o.vn AND o2.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney ="Y")	
-			LEFT JOIN s_drugitems sd ON sd.icode=o2.icode	
-            WHERE p.hipdata_code IN ("SSS","SSI")	
-			AND o1.vn IS NOT NULL	
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income  
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            INNER JOIN (SELECT op.vn,SUM(op.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT sd.`name`) AS kidney_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.kidney = "Y"
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) kid ON kid.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
             AND o.vstdate BETWEEN ? AND ?
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]); 
+            AND p.hipdata_code IN ("SSS","SSI")
+            AND IFNULL(rc.rcpt_money,0) < IFNULL(kid.kidney_price,0)
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_309 WHERE vn IS NOT NULL)
+            AND o.vn IN ('.$checkbox_string.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050101_309::insert([
@@ -3255,23 +3442,40 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                IFNULL(SUM(o1.sum_price),0) AS other,GROUP_CONCAT(s.`name`) AS other_list,
-                v.income-v.rcpt_money-IFNULL(o1.sum_price,0) AS debtor ,"ยืนยันลูกหนี้" AS status  
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate, o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other, IFNULL(ch.ppfs_price,0)  AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status  
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-            LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y") 
-            LEFT JOIN s_drugitems s ON s.icode = o1.icode   
-            WHERE (o.an IS NULL OR o.an ="") 
-                AND o.vstdate BETWEEN ? AND ?
-                AND v.income-v.rcpt_money <> "0" 
-                AND vp.pttype IN ('.$pttype_sss_ae.')                         
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]); 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r              
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) <> 0
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_309 WHERE vn IS NOT NULL)
+            AND p.pttype IN ('.$pttype_sss_ae.')
+            AND o.vn IN ('.$checkbox_string.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050101_309::insert([
@@ -3286,7 +3490,9 @@ class DebtorController extends Controller
                 'hipdata_code'    => $row->hipdata_code,   
                 'pdx'             => $row->pdx,  
                 'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,               
+                'rcpt_money'      => $row->rcpt_money,  
+                'other'           => $row->other, 
+                'ppfs'            => $row->ppfs,              
                 'debtor'          => $row->debtor,  
                 'status'          => $row->status,          
             ]);           
@@ -3430,41 +3636,44 @@ class DebtorController extends Controller
         }
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,oe.upload_datetime AS claim,								        
-                v.income-v.rcpt_money-COALESCE(o1.kidney_price, 0)-COALESCE(o2.ppfs_price, 0)-COALESCE(o3.other_price, 0) AS ofc,
-                COALESCE(o1.kidney_price, 0) AS kidney,COALESCE(o2.ppfs_price, 0) AS ppfs,COALESCE(o3.other_price, 0) AS other,
-                v.income-v.rcpt_money-COALESCE(o2.ppfs_price, 0)-COALESCE(o3.other_price, 0) AS debtor,GROUP_CONCAT(DISTINCT sd.`name`) AS kidney_list,
-                GROUP_CONCAT(DISTINCT sd1.`name`) AS ppfs_list,GROUP_CONCAT(DISTINCT sd2.`name`) AS other_list,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS kidney_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.kidney ="Y"
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn				
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o3 ON o3.vn=o.vn				
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney ="Y")	
-			LEFT JOIN s_drugitems sd ON sd.icode=o4.icode	
-			LEFT JOIN opitemrece o5 ON o5.vn=o.vn AND o5.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd1 ON sd1.icode=o5.icode
-			LEFT JOIN opitemrece o6 ON o6.vn=o.vn AND o6.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o6.icode
-            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
-            WHERE (o.an IS NULL OR o.an ="")
-			    AND p.hipdata_code = "OFC"
-                AND v.income-v.rcpt_money <>"0"		
-			    AND v.income-v.rcpt_money-COALESCE(o3.other_price, 0) <>"0"				
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.pttype NOT IN ('.$pttype_checkup.')
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_401 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+                IFNULL(ch.kidney_price,0) AS kidney,IFNULL(ch.ppfs_price,0) AS ppfs,IFNULL(ch.other_price,0)  AS other,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.kidney_price,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0) AS ofc,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0) AS debtor,
+                ch.kidney_list,ch.ppfs_list,ch.other_list,oe.upload_datetime AS claim,"ยืนยันลูกหนี้" AS status  
+            FROM ovst o 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS kidney_price,
+                SUM(CASE WHEN li.ppfs   = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                SUM(CASE WHEN li.ems    = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN sd.`name` END) AS kidney_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs   = "Y" THEN sd.`name` END) AS ppfs_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems    = "Y" THEN sd.`name` END) AS other_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND p.hipdata_code = "OFC"             
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0)) > 0
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_401 WHERE vn IS NOT NULL)
+            AND p.pttype NOT IN ('.$pttype_checkup.')   
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -3492,40 +3701,45 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,								        
-                v.income-v.rcpt_money-COALESCE(o1.kidney_price, 0)-COALESCE(o2.ppfs_price, 0)-COALESCE(o3.other_price, 0) AS ofc,
-                COALESCE(o1.kidney_price, 0) AS kidney,COALESCE(o2.ppfs_price, 0) AS ppfs,COALESCE(o3.other_price, 0) AS other,
-                v.income-v.rcpt_money-COALESCE(o2.ppfs_price, 0)-COALESCE(o3.other_price, 0) AS debtor,GROUP_CONCAT(DISTINCT sd.`name`) AS kidney_list,
-                GROUP_CONCAT(DISTINCT sd1.`name`) AS ppfs_list,GROUP_CONCAT(DISTINCT sd2.`name`) AS other_list,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS kidney_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.kidney ="Y"
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn				
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o3 ON o3.vn=o.vn				
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney ="Y")	
-			LEFT JOIN s_drugitems sd ON sd.icode=o4.icode	
-			LEFT JOIN opitemrece o5 ON o5.vn=o.vn AND o5.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd1 ON sd1.icode=o5.icode
-			LEFT JOIN opitemrece o6 ON o6.vn=o.vn AND o6.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o6.icode
-            WHERE (o.an IS NULL OR o.an ="")
-			    AND p.hipdata_code = "OFC"
-                AND v.income-v.rcpt_money <>"0"		
-			    AND v.income-v.rcpt_money-COALESCE(o3.other_price, 0) <>"0"				
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.pttype NOT IN ('.$pttype_checkup.')
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+                IFNULL(ch.kidney_price,0) AS kidney,IFNULL(ch.ppfs_price,0) AS ppfs,IFNULL(ch.other_price,0)  AS other,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.kidney_price,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0) AS ofc,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0) AS debtor,
+                ch.kidney_list,ch.ppfs_list,ch.other_list,oe.upload_datetime AS claim,"ยืนยันลูกหนี้" AS status  
+            FROM ovst o 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS kidney_price,
+                SUM(CASE WHEN li.ppfs   = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                SUM(CASE WHEN li.ems    = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN sd.`name` END) AS kidney_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs   = "Y" THEN sd.`name` END) AS ppfs_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems    = "Y" THEN sd.`name` END) AS other_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND p.hipdata_code = "OFC"            
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0)) > 0
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_401 WHERE vn IS NOT NULL)
+            AND p.pttype NOT IN ('.$pttype_checkup.') 
+            AND o.vn IN ('.$checkbox_string.')   
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050101_401::insert([
@@ -3662,21 +3876,36 @@ class DebtorController extends Controller
                     }); 
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                v.income-v.rcpt_money AS debtor ,"ยืนยันลูกหนี้" AS status  
+            SELECT o.vn,o.hn,o.an, pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money, IFNULL(ch.other_price,0) AS other,ch.other_list,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0) AS debtor,"ยืนยันลูกหนี้" AS status  
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype    
-            WHERE (o.an IS NULL OR o.an ="") 
-                AND o.vstdate BETWEEN ? AND ?
-                AND v.income-v.rcpt_money <>"0" 
-                AND p.hipdata_code = "NRH"
-                AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_501 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]); 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS other_price,GROUP_CONCAT(DISTINCT sd.`name`) AS other_list
+                FROM opitemrece op  
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems = "Y"
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+            WHERE op.vstdate BETWEEN ? AND ?
+            ROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
+            AND p.hipdata_code = "NRH"    
+            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_501 WHERE vn IS NOT NULL)
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -3703,21 +3932,37 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                v.income-v.rcpt_money AS debtor ,"ยืนยันลูกหนี้" AS status   
+            SELECT o.vn,o.hn,o.an, pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money, IFNULL(ch.other_price,0) AS other,ch.other_list,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0) AS debtor,"ยืนยันลูกหนี้" AS status  
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype    
-            WHERE (o.an IS NULL OR o.an ="") 
-                AND o.vstdate BETWEEN ? AND ?
-                AND v.income-v.rcpt_money <>"0" 
-                AND p.hipdata_code = "NRH"
-                AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]); 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS other_price,GROUP_CONCAT(DISTINCT sd.`name`) AS other_list
+                FROM opitemrece op  
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems = "Y"
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+            WHERE op.vstdate BETWEEN ? AND ?
+            ROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
+            AND p.hipdata_code = "NRH"    
+            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_501 WHERE vn IS NOT NULL)
+            AND o.vn IN ('.$checkbox_string.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050101_501::insert([
@@ -3831,22 +4076,37 @@ class DebtorController extends Controller
                     ->orderBy('vstdate')->get();
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                v.income-v.rcpt_money AS debtor ,"ยืนยันลูกหนี้" AS status  
+            SELECT o.vn,o.hn,o.an, pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money, IFNULL(ch.other_price,0) AS other,ch.other_list,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0) AS debtor,"ยืนยันลูกหนี้" AS status  
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype    
-            WHERE (o.an IS NULL OR o.an ="") 
-                AND o.vstdate BETWEEN ? AND ?
-                AND v.income-v.rcpt_money <>"0" 
-                AND p.hipdata_code = "NRH"
-                AND (vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
-                    OR vp.hospmain IS NULL OR vp.hospmain ="")
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_503 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]); 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS other_price,GROUP_CONCAT(DISTINCT sd.`name`) AS other_list
+                FROM opitemrece op  
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems = "Y"
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+            WHERE op.vstdate BETWEEN ? AND ?
+            ROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
+            AND p.hipdata_code = "NRH"    
+            AND (vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
+                OR vp.hospmain IS NULL OR vp.hospmain ="")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_503 WHERE vn IS NOT NULL)
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -3874,22 +4134,38 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                v.income-v.rcpt_money AS debtor ,"ยืนยันลูกหนี้" AS status   
+            SELECT o.vn,o.hn,o.an, pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money, IFNULL(ch.other_price,0) AS other,ch.other_list,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0) AS debtor,"ยืนยันลูกหนี้" AS status  
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype    
-            WHERE (o.an IS NULL OR o.an ="") 
-                AND o.vstdate BETWEEN ? AND ?
-                AND v.income-v.rcpt_money <>"0" 
-                AND p.hipdata_code = "NRH"
-                AND (vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
-                    OR vp.hospmain IS NULL OR vp.hospmain ="")
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]); 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS other_price,GROUP_CONCAT(DISTINCT sd.`name`) AS other_list
+                FROM opitemrece op  
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems = "Y"
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+            WHERE op.vstdate BETWEEN ? AND ?
+            ROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
+            AND p.hipdata_code = "NRH"    
+            AND (vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
+                OR vp.hospmain IS NULL OR vp.hospmain ="")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_503 WHERE vn IS NOT NULL)
+            AND o.vn IN ('.$checkbox_string.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050101_503::insert([
@@ -4019,35 +4295,40 @@ class DebtorController extends Controller
         }
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-                v.income-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
-                GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
-                GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status  
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other,IFNULL(ch.ppfs_price,0)  AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status 
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.kidney ="Y" OR li.ems ="Y")
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE (kidney ="Y" OR ems ="Y"))	
-			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
-            WHERE (o.an IS NULL OR o.an ="")
-                AND v.income-v.rcpt_money <>"0"
-                AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <>"0"							
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code = "STP"                 				
-                AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")                
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_701 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v  ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money   
+                FROM rcpt_print r
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ems = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?    
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) > 0
+            AND p.hipdata_code = "STP"
+            AND vp.hospmain IN ( SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_701 WHERE vn IS NOT NULL)
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -4074,35 +4355,41 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-            o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-            COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-			v.income-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
-			GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status  
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other,IFNULL(ch.ppfs_price,0)  AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status 
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.kidney ="Y" OR li.ems ="Y")
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE (kidney ="Y" OR ems ="Y"))	
-			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
-            WHERE (o.an IS NULL OR o.an ="")
-                AND v.income-v.rcpt_money <>"0"		
-                AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <>"0"			
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code = "STP" 			
-                AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v  ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money   
+                FROM rcpt_print r
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ems = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?    
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) > 0
+            AND p.hipdata_code = "STP"
+            AND vp.hospmain IN ( SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_701 WHERE vn IS NOT NULL)
+            AND o.vn IN ('.$checkbox_string.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050101_701::insert([
@@ -4218,36 +4505,41 @@ class DebtorController extends Controller
         }
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-                v.income-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
-                GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
-                GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status  
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other,IFNULL(ch.ppfs_price,0)  AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status 
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.kidney ="Y" OR li.ems ="Y")
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE (kidney ="Y" OR ems ="Y"))	
-			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
-            WHERE (o.an IS NULL OR o.an ="")
-                AND v.income-v.rcpt_money <>"0"
-                AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <>"0"							
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code = "STP"                 				
-                AND (vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
-                    OR vp.hospmain IS NULL OR vp.hospmain ="")               
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_702 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v  ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money   
+                FROM rcpt_print r
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ems = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?    
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) > 0
+            AND p.hipdata_code = "STP"
+            AND (vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
+                OR vp.hospmain IS NULL OR vp.hospmain ="")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_702 WHERE vn IS NOT NULL)
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -4274,36 +4566,42 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-            o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-            COALESCE(o1.other_price, 0) AS other,COALESCE(o2.ppfs_price, 0) AS ppfs,
-			v.income-v.rcpt_money-COALESCE(o1.other_price, 0)-COALESCE(o2.ppfs_price, 0) AS debtor,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
-			GROUP_CONCAT(DISTINCT sd2.`name`) AS ppfs_list,"ยืนยันลูกหนี้" AS status  
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other,IFNULL(ch.ppfs_price,0)  AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status 
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND (li.kidney ="Y" OR li.ems ="Y")
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE (kidney ="Y" OR ems ="Y"))	
-			LEFT JOIN s_drugitems sd ON sd.icode=o3.icode			
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o4.icode	
-            WHERE (o.an IS NULL OR o.an ="")
-                AND v.income-v.rcpt_money <>"0"		
-                AND v.income-v.rcpt_money-COALESCE(o1.other_price, 0) <>"0"			
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.hipdata_code = "STP" 			
-                AND (vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
-                    OR vp.hospmain IS NULL OR vp.hospmain ="")  
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v  ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money   
+                FROM rcpt_print r
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ems = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" THEN sd.`name` END) AS other_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?    
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) > 0
+            AND p.hipdata_code = "STP"
+            AND (vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
+                OR vp.hospmain IS NULL OR vp.hospmain ="")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_702 WHERE vn IS NOT NULL)
+            AND o.vn IN ('.$checkbox_string.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050101_702::insert([
@@ -4752,24 +5050,42 @@ class DebtorController extends Controller
                     }); 
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                IFNULL(SUM(o1.sum_price),0) AS other,GROUP_CONCAT(s.`name`) AS other_list,
-                v.income-v.rcpt_money-IFNULL(o1.sum_price,0) AS debtor ,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-            LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y") 
-            LEFT JOIN s_drugitems s ON s.icode = o1.icode   
-            WHERE (o.an IS NULL OR o.an ="") 
-                AND o.vstdate BETWEEN ? AND ?
-                AND v.income <> "0" 
-                AND v.paid_money = "0" 
-                AND p.hipdata_code IN ("BFC","GOF","PVT","WVO")
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_108 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.kidney_price,0) AS kidney,
+                IFNULL(ch.other_price,0)  AS other,IFNULL(ch.ppfs_price,0) AS ppfs, 
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.kidney_list,ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status  
+            FROM ovst o  
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v  ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS kidney_price,
+                SUM(CASE WHEN li.ppfs   = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                SUM(CASE WHEN li.ems    = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN sd.`name` END) AS kidney_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs   = "Y" THEN sd.`name` END) AS ppfs_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems    = "Y" THEN sd.`name` END) AS other_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) > 0
+            AND p.hipdata_code IN ("BFC","GOF","PVT","WVO")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_108 WHERE vn IS NOT NULL)
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -4796,24 +5112,43 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                IFNULL(SUM(o1.sum_price),0) AS other,GROUP_CONCAT(s.`name`) AS other_list,
-                v.income-v.rcpt_money-IFNULL(o1.sum_price,0) AS debtor ,"ยืนยันลูกหนี้" AS status    
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype 
-            LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y") 
-            LEFT JOIN s_drugitems s ON s.icode = o1.icode      
-            WHERE (o.an IS NULL OR o.an ="") 
-                AND o.vstdate BETWEEN ? AND ?
-                AND v.income <> "0" 
-                AND v.paid_money = "0" 
-                AND p.hipdata_code IN ("BFC","GOF","PVT","WVO")
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.kidney_price,0) AS kidney,
+                IFNULL(ch.other_price,0)  AS other,IFNULL(ch.ppfs_price,0) AS ppfs, 
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0) AS debtor,
+                ch.kidney_list,ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status  
+            FROM ovst o  
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v  ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS kidney_price,
+                SUM(CASE WHEN li.ppfs   = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                SUM(CASE WHEN li.ems    = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN sd.`name` END) AS kidney_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs   = "Y" THEN sd.`name` END) AS ppfs_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems    = "Y" THEN sd.`name` END) AS other_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)-IFNULL(ch.ppfs_price,0)) > 0
+            AND p.hipdata_code IN ("BFC","GOF","PVT","WVO")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_108 WHERE vn IS NOT NULL)
+            AND o.vn IN ('.$checkbox_string.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050102_108::insert([
@@ -4971,41 +5306,44 @@ class DebtorController extends Controller
         }
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,oe.upload_datetime AS claim,								        
-                v.income-v.rcpt_money-COALESCE(o1.kidney_price, 0)-COALESCE(o2.ppfs_price, 0)-COALESCE(o3.other_price, 0) AS ofc,
-                COALESCE(o1.kidney_price, 0) AS kidney,COALESCE(o2.ppfs_price, 0) AS ppfs,COALESCE(o3.other_price, 0) AS other,
-                v.income-v.rcpt_money-COALESCE(o2.ppfs_price, 0)-COALESCE(o3.other_price, 0) AS debtor,GROUP_CONCAT(DISTINCT sd.`name`) AS kidney_list,
-                GROUP_CONCAT(DISTINCT sd1.`name`) AS ppfs_list,GROUP_CONCAT(DISTINCT sd2.`name`) AS other_list,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS kidney_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.kidney ="Y"
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn				
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o3 ON o3.vn=o.vn				
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney ="Y")	
-			LEFT JOIN s_drugitems sd ON sd.icode=o4.icode	
-			LEFT JOIN opitemrece o5 ON o5.vn=o.vn AND o5.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd1 ON sd1.icode=o5.icode
-			LEFT JOIN opitemrece o6 ON o6.vn=o.vn AND o6.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o6.icode
-            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
-            WHERE (o.an IS NULL OR o.an ="")
-			    AND p.hipdata_code IN ("BMT","KKT","SRT")
-                AND v.income-v.rcpt_money <>"0"		
-			    AND v.income-v.rcpt_money-COALESCE(o3.other_price, 0) <>"0"				
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.pttype NOT IN ('.$pttype_checkup.')
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_110 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+                IFNULL(ch.kidney_price,0) AS kidney,IFNULL(ch.ppfs_price,0) AS ppfs,IFNULL(ch.other_price,0)  AS other,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.kidney_price,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0) AS ofc,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0) AS debtor,
+                ch.kidney_list,ch.ppfs_list,ch.other_list,oe.upload_datetime AS claim,"ยืนยันลูกหนี้" AS status  
+            FROM ovst o 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS kidney_price,
+                SUM(CASE WHEN li.ppfs   = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                SUM(CASE WHEN li.ems    = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN sd.`name` END) AS kidney_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs   = "Y" THEN sd.`name` END) AS ppfs_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems    = "Y" THEN sd.`name` END) AS other_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND p.hipdata_code IN ("BMT","KKT","SRT")         
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0)) > 0
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_110 WHERE vn IS NOT NULL)
+            AND p.pttype NOT IN ('.$pttype_checkup.')   
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -5033,40 +5371,45 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,								        
-                v.income-v.rcpt_money-COALESCE(o1.kidney_price, 0)-COALESCE(o2.ppfs_price, 0)-COALESCE(o3.other_price, 0) AS ofc,
-                COALESCE(o1.kidney_price, 0) AS kidney,COALESCE(o2.ppfs_price, 0) AS ppfs,COALESCE(o3.other_price, 0) AS other,
-                v.income-v.rcpt_money-COALESCE(o2.ppfs_price, 0)-COALESCE(o3.other_price, 0) AS debtor,GROUP_CONCAT(DISTINCT sd.`name`) AS kidney_list,
-                GROUP_CONCAT(DISTINCT sd1.`name`) AS ppfs_list,GROUP_CONCAT(DISTINCT sd2.`name`) AS other_list,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS kidney_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.kidney ="Y"
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn				
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o3 ON o3.vn=o.vn				
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney ="Y")	
-			LEFT JOIN s_drugitems sd ON sd.icode=o4.icode	
-			LEFT JOIN opitemrece o5 ON o5.vn=o.vn AND o5.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd1 ON sd1.icode=o5.icode
-			LEFT JOIN opitemrece o6 ON o6.vn=o.vn AND o6.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o6.icode
-            WHERE (o.an IS NULL OR o.an ="")
-			    AND p.hipdata_code IN ("BMT","KKT","SRT")
-                AND v.income-v.rcpt_money <>"0"		
-			    AND v.income-v.rcpt_money-COALESCE(o3.other_price, 0) <>"0"				
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.pttype NOT IN ('.$pttype_checkup.')
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+                IFNULL(ch.kidney_price,0) AS kidney,IFNULL(ch.ppfs_price,0) AS ppfs,IFNULL(ch.other_price,0)  AS other,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.kidney_price,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0) AS ofc,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0) AS debtor,
+                ch.kidney_list,ch.ppfs_list,ch.other_list,oe.upload_datetime AS claim,"ยืนยันลูกหนี้" AS status  
+            FROM ovst o 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS kidney_price,
+                SUM(CASE WHEN li.ppfs   = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                SUM(CASE WHEN li.ems    = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN sd.`name` END) AS kidney_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs   = "Y" THEN sd.`name` END) AS ppfs_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems    = "Y" THEN sd.`name` END) AS other_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND p.hipdata_code IN ("BMT","KKT","SRT")         
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0)) > 0
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_110 WHERE vn IS NOT NULL)
+            AND p.pttype NOT IN ('.$pttype_checkup.')   
+            AND o.vn IN ('.$checkbox_string.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050102_110::insert([
@@ -5204,23 +5547,35 @@ class DebtorController extends Controller
                     });
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,
-                IFNULL(SUM(o1.sum_price),0) AS other,GROUP_CONCAT(s.`name`) AS other_list,
-                v.income-v.rcpt_money-IFNULL(o1.sum_price,0) AS debtor ,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-            LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y") 
-            LEFT JOIN s_drugitems s ON s.icode = o1.icode   
-            WHERE (o.an IS NULL OR o.an ="") 
-                AND o.vstdate BETWEEN ? AND ?
-                AND v.income-v.rcpt_money <> "0" 
-                AND vp.pttype IN ('.$pttype_act.')
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_602 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ems.other_price,0) AS other,ems.other_list,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ems.other_price,0) AS debtor,"ยืนยันลูกหนี้" AS status  
+            FROM ovst o  
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money  
+                FROM rcpt_print r
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS other_price,GROUP_CONCAT(DISTINCT sd.`name`) AS other_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems = "Y"
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode    
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ems ON ems.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ems.other_price,0)) > 0           
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_602 WHERE vn IS NOT NULL)
+            AND vp.pttype IN ('.$pttype_act.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -5416,41 +5771,45 @@ class DebtorController extends Controller
         }
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,oe.upload_datetime AS claim,								        
-                v.income-v.rcpt_money-COALESCE(o1.kidney_price, 0)-COALESCE(o2.ppfs_price, 0)-COALESCE(o3.other_price, 0) AS lgo,
-                COALESCE(o1.kidney_price, 0) AS kidney,COALESCE(o2.ppfs_price, 0) AS ppfs,COALESCE(o3.other_price, 0) AS other,
-                v.income-v.rcpt_money-COALESCE(o2.ppfs_price, 0)-COALESCE(o3.other_price, 0) AS debtor,GROUP_CONCAT(DISTINCT sd.`name`) AS kidney_list,
-                GROUP_CONCAT(DISTINCT sd1.`name`) AS ppfs_list,GROUP_CONCAT(DISTINCT sd2.`name`) AS other_list,"ยืนยันลูกหนี้" AS status  
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.kidney_price,0) AS kidney,
+                IFNULL(ch.ppfs_price,0) AS ppfs,IFNULL(ch.other_price,0)  AS other,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.kidney_price,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0) AS lgo,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0) AS debtor,
+                ch.kidney_list,ch.ppfs_list,ch.other_list,oe.upload_datetime AS claim,"ยืนยันลูกหนี้" AS status  
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS kidney_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.kidney ="Y"
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn				
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o3 ON o3.vn=o.vn				
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney ="Y")	
-			LEFT JOIN s_drugitems sd ON sd.icode=o4.icode	
-			LEFT JOIN opitemrece o5 ON o5.vn=o.vn AND o5.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd1 ON sd1.icode=o5.icode
-			LEFT JOIN opitemrece o6 ON o6.vn=o.vn AND o6.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o6.icode
-            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
-            WHERE (o.an IS NULL OR o.an ="")
-			    AND p.hipdata_code = "LGO"
-                AND v.income-v.rcpt_money <>"0"		
-			    AND v.income-v.rcpt_money-COALESCE(o3.other_price, 0) <>"0"				
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.pttype NOT IN ('.$pttype_checkup.')
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_801 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money 
+                FROM rcpt_print r              
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS kidney_price,
+                SUM(CASE WHEN li.ppfs   = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                SUM(CASE WHEN li.ems    = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN sd.`name` END) AS kidney_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs   = "Y" THEN sd.`name` END) AS ppfs_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems    = "Y" THEN sd.`name` END) AS other_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND p.hipdata_code = "LGO"            
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0)) > 0
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_801 WHERE vn IS NOT NULL)
+            AND p.pttype NOT IN ('.$pttype_checkup.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -5478,40 +5837,46 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,								        
-                v.income-v.rcpt_money-COALESCE(o1.kidney_price, 0)-COALESCE(o2.ppfs_price, 0)-COALESCE(o3.other_price, 0) AS lgo,
-                COALESCE(o1.kidney_price, 0) AS kidney,COALESCE(o2.ppfs_price, 0) AS ppfs,COALESCE(o3.other_price, 0) AS other,
-                v.income-v.rcpt_money-COALESCE(o2.ppfs_price, 0)-COALESCE(o3.other_price, 0) AS debtor,GROUP_CONCAT(DISTINCT sd.`name`) AS kidney_list,
-                GROUP_CONCAT(DISTINCT sd1.`name`) AS ppfs_list,GROUP_CONCAT(DISTINCT sd2.`name`) AS other_list,"ยืนยันลูกหนี้" AS status  
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.kidney_price,0) AS kidney,
+                IFNULL(ch.ppfs_price,0) AS ppfs,IFNULL(ch.other_price,0)  AS other,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.kidney_price,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0) AS lgo,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0) AS debtor,
+                ch.kidney_list,ch.ppfs_list,ch.other_list,oe.upload_datetime AS claim,"ยืนยันลูกหนี้" AS status  
             FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS kidney_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.kidney ="Y"
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn				
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o3 ON o3.vn=o.vn				
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney ="Y")	
-			LEFT JOIN s_drugitems sd ON sd.icode=o4.icode	
-			LEFT JOIN opitemrece o5 ON o5.vn=o.vn AND o5.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd1 ON sd1.icode=o5.icode
-			LEFT JOIN opitemrece o6 ON o6.vn=o.vn AND o6.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o6.icode
-            WHERE (o.an IS NULL OR o.an ="")
-			    AND p.hipdata_code = "LGO"
-                AND v.income-v.rcpt_money <>"0"		
-			    AND v.income-v.rcpt_money-COALESCE(o3.other_price, 0) <>"0"				
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.pttype NOT IN ('.$pttype_checkup.')
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money 
+                FROM rcpt_print r              
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS kidney_price,
+                SUM(CASE WHEN li.ppfs   = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                SUM(CASE WHEN li.ems    = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN sd.`name` END) AS kidney_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs   = "Y" THEN sd.`name` END) AS ppfs_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems    = "Y" THEN sd.`name` END) AS other_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND p.hipdata_code = "LGO"            
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0)) > 0
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_801 WHERE vn IS NOT NULL)
+            AND p.pttype NOT IN ('.$pttype_checkup.')
+            AND o.vn IN ('.$checkbox_string.')
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);  
         
         foreach ($debtor as $row) {
             Debtor_1102050102_801::insert([
@@ -5678,41 +6043,44 @@ class DebtorController extends Controller
         }
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,oe.upload_datetime AS claim,								        
-                v.income-v.rcpt_money-COALESCE(o1.kidney_price, 0)-COALESCE(o2.ppfs_price, 0)-COALESCE(o3.other_price, 0) AS ofc,
-                COALESCE(o1.kidney_price, 0) AS kidney,COALESCE(o2.ppfs_price, 0) AS ppfs,COALESCE(o3.other_price, 0) AS other,
-                v.income-v.rcpt_money-COALESCE(o2.ppfs_price, 0)-COALESCE(o3.other_price, 0) AS debtor,GROUP_CONCAT(DISTINCT sd.`name`) AS kidney_list,
-                GROUP_CONCAT(DISTINCT sd1.`name`) AS ppfs_list,GROUP_CONCAT(DISTINCT sd2.`name`) AS other_list,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS kidney_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.kidney ="Y"
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn				
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o3 ON o3.vn=o.vn				
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney ="Y")	
-			LEFT JOIN s_drugitems sd ON sd.icode=o4.icode	
-			LEFT JOIN opitemrece o5 ON o5.vn=o.vn AND o5.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd1 ON sd1.icode=o5.icode
-			LEFT JOIN opitemrece o6 ON o6.vn=o.vn AND o6.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o6.icode
-            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
-            WHERE (o.an IS NULL OR o.an ="")
-			    AND p.hipdata_code IN ("BKK","PTY")
-                AND v.income-v.rcpt_money <>"0"		
-			    AND v.income-v.rcpt_money-COALESCE(o3.other_price, 0) <>"0"				
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.pttype NOT IN ('.$pttype_checkup.')
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_803 WHERE vn IS NOT NULL) 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+                IFNULL(ch.kidney_price,0) AS kidney,IFNULL(ch.ppfs_price,0) AS ppfs,IFNULL(ch.other_price,0)  AS other,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.kidney_price,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0) AS ofc,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0) AS debtor,
+                ch.kidney_list,ch.ppfs_list,ch.other_list,oe.upload_datetime AS claim,"ยืนยันลูกหนี้" AS status  
+            FROM ovst o 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS kidney_price,
+                SUM(CASE WHEN li.ppfs   = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                SUM(CASE WHEN li.ems    = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN sd.`name` END) AS kidney_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs   = "Y" THEN sd.`name` END) AS ppfs_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems    = "Y" THEN sd.`name` END) AS other_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND p.hipdata_code IN ("BKK","PTY")        
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0)) > 0
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_803 WHERE vn IS NOT NULL)
+            AND p.pttype NOT IN ('.$pttype_checkup.')   
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
@@ -5740,40 +6108,45 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,
-                o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,								        
-                v.income-v.rcpt_money-COALESCE(o1.kidney_price, 0)-COALESCE(o2.ppfs_price, 0)-COALESCE(o3.other_price, 0) AS ofc,
-                COALESCE(o1.kidney_price, 0) AS kidney,COALESCE(o2.ppfs_price, 0) AS ppfs,COALESCE(o3.other_price, 0) AS other,
-                v.income-v.rcpt_money-COALESCE(o2.ppfs_price, 0)-COALESCE(o3.other_price, 0) AS debtor,GROUP_CONCAT(DISTINCT sd.`name`) AS kidney_list,
-                GROUP_CONCAT(DISTINCT sd1.`name`) AS ppfs_list,GROUP_CONCAT(DISTINCT sd2.`name`) AS other_list,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o    
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS kidney_price FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.kidney ="Y"
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o1 ON o1.vn=o.vn				
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS ppfs_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o2 ON o2.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price	FROM opitemrece op
-				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems ="Y" 
-				WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) o3 ON o3.vn=o.vn				
-			LEFT JOIN opitemrece o4 ON o4.vn=o.vn AND o4.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney ="Y")	
-			LEFT JOIN s_drugitems sd ON sd.icode=o4.icode	
-			LEFT JOIN opitemrece o5 ON o5.vn=o.vn AND o5.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs ="Y")	
-			LEFT JOIN s_drugitems sd1 ON sd1.icode=o5.icode
-			LEFT JOIN opitemrece o6 ON o6.vn=o.vn AND o6.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y")	
-			LEFT JOIN s_drugitems sd2 ON sd2.icode=o6.icode
-            WHERE (o.an IS NULL OR o.an ="")
-			    AND p.hipdata_code IN ("BKK","PTY")
-                AND v.income-v.rcpt_money <>"0"		
-			    AND v.income-v.rcpt_money-COALESCE(o3.other_price, 0) <>"0"				
-                AND o.vstdate BETWEEN ? AND ?
-                AND p.pttype NOT IN ('.$pttype_checkup.')
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate,o.vsttime,
+                p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+                IFNULL(ch.kidney_price,0) AS kidney,IFNULL(ch.ppfs_price,0) AS ppfs,IFNULL(ch.other_price,0)  AS other,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.kidney_price,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0) AS ofc,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0) AS debtor,
+                ch.kidney_list,ch.ppfs_list,ch.other_list,oe.upload_datetime AS claim,"ยืนยันลูกหนี้" AS status  
+            FROM ovst o 
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS kidney_price,
+                SUM(CASE WHEN li.ppfs   = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                SUM(CASE WHEN li.ems    = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN sd.`name` END) AS kidney_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs   = "Y" THEN sd.`name` END) AS ppfs_list,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.ems    = "Y" THEN sd.`name` END) AS other_list
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND p.hipdata_code IN ("BKK","PTY")        
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0)) > 0
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_803 WHERE vn IS NOT NULL)
+            AND p.pttype NOT IN ('.$pttype_checkup.') 
+            AND o.vn IN ('.$checkbox_string.')  
+            GROUP BY o.vn, vp.pttype
+            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050102_803::insert([
@@ -5940,12 +6313,12 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate 
-                    WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+                WHERE i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name) AS other_list
-            FROM opitemrece o
-            INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
-            LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode LEFT JOIN nondrugitems n ON n.icode = o.icode
-            LEFT JOIN s_drugitems s ON s.icode = o.icode 
+                FROM opitemrece o
+                INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
+                LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode LEFT JOIN nondrugitems n ON n.icode = o.icode
+                LEFT JOIN s_drugitems s ON s.icode = o.icode 
                 WHERE (li.kidney = "Y" OR li.ems = "Y" OR li.uc_cr = "Y"OR n.nhso_adp_code IN ("S1801","S1802"))
             GROUP BY o.an, o.pttype) oth ON oth.an = i.an AND oth.pttype = ip.pttype
             WHERE i.confirm_discharge = "Y"

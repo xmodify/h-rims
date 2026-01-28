@@ -28,6 +28,7 @@ class Debtor_1102050101_216 extends Model
         'kidney',
         'cr',
         'anywhere',
+        'ppfs',
         'debtor',
         'debtor_change',
         'status', 

@@ -29,7 +29,8 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <th class="text-center">ชำระเอง</th>  
                 <th class="text-center">ฟอกไต</th>   
                 <th class="text-center">บริการเฉพาะ</th>
-                <th class="text-center">OP Anywhere</th>        
+                <th class="text-center">OP Anywhere</th>
+                <th class="text-center">PPFS</th>        
                 <th class="text-center text-primary">ลูกหนี้</th>
                 <th class="text-center text-primary">ชดเชย</th> 
                 <th class="text-center text-primary">ผลต่าง</th>
@@ -43,6 +44,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
             <?php $sum_kidney = 0 ; ?>
             <?php $sum_cr = 0 ; ?>
             <?php $sum_anywhere = 0 ; ?>
+            <?php $sum_ppfs = 0 ; ?>
             <?php $sum_debtor = 0 ; ?>
             <?php $sum_receive = 0 ; ?>
             @foreach($debtor as $row)          
@@ -58,6 +60,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="right">{{ number_format($row->kidney,2) }}</td>
                 <td align="right">{{ number_format($row->cr,2) }}</td>
                 <td align="right">{{ number_format($row->anywhere,2) }}</td>
+                <td align="right">{{ number_format($row->ppfs,2) }}</td>
                 <td align="right" class="text-primary">{{ number_format($row->debtor,2) }}</td>  
                 <td align="right" @if($row->receive > 0) style="color:green" 
                     @elseif($row->receive < 0) style="color:red" @endif>
@@ -80,6 +83,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
             <?php $sum_kidney += $row->kidney ; ?> 
             <?php $sum_cr += $row->cr ; ?> 
             <?php $sum_anywhere += $row->anywhere ; ?> 
+            <?php $sum_ppfs += $row->ppfs ; ?> 
             <?php $sum_debtor += $row->debtor ; ?> 
             <?php $sum_receive += $row->receive ; ?>  
             @endforeach   
@@ -90,6 +94,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="right"><strong>{{number_format($sum_kidney,2)}}&nbsp;</strong></td>
                 <td align="right"><strong>{{number_format($sum_cr,2)}}&nbsp;</strong></td>
                 <td align="right"><strong>{{number_format($sum_anywhere,2)}}&nbsp;</strong></td>
+                <td align="right"><strong>{{number_format($sum_ppfs,2)}}&nbsp;</strong></td>
                 <td align="right"><strong>{{number_format($sum_debtor,2)}}&nbsp;</strong></td>
                 <td align="right"><strong>{{number_format($sum_receive,2)}}&nbsp;</strong></td> 
                 <td align="right"><strong>{{number_format($sum_receive-$sum_debtor,2)}}&nbsp;</strong></td>

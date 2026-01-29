@@ -240,7 +240,7 @@ class DebtorController extends Controller
 
         $check = DB::connection('hosxp')->select("
             SELECT * FROM (SELECT 'OPD' AS dep,v.vstdate AS serv_date,v.vn AS vnan,v.hn,CONCAT(pt.pname,pt.fname,' ',pt.lname) AS ptname,
-                    p.hipdata_code,p.name AS pttype,vp.hospmain,v.pdx,v.income,v.paid_money,IFNULL(rc.rcpt_money,0),
+                    p.hipdata_code,p.name AS pttype,vp.hospmain,v.pdx,v.income,v.paid_money,IFNULL(rc.rcpt_money,0) AS rcpt_money,
                      v.income - IFNULL(rc.rcpt_money,0) AS debtor
                 FROM vn_stat v
                 LEFT JOIN ipt i ON i.vn = v.vn
@@ -249,7 +249,7 @@ class DebtorController extends Controller
                 LEFT JOIN patient pt ON pt.hn = v.hn
                 LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    WHERE r.`status` = 'OK' GROUP BY r.vn) rc ON rc.vn = o.vn
+                    WHERE r.`status` = 'OK' GROUP BY r.vn) rc ON rc.vn = v.vn
                 WHERE v.vstdate BETWEEN ? AND ?
                 AND (i.an IS NULL OR i.an = '')
                 AND v.income <> 0

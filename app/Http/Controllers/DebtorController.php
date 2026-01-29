@@ -7427,33 +7427,38 @@ class DebtorController extends Controller
             });  
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
-                a.income,a.rcpt_money,COALESCE(kidney.kidney_price,0) AS kidney,COALESCE(kidney.kidney_price,0) AS debtor,
-                GROUP_CONCAT(DISTINCT s.`name`) AS kidney_list,ict.ipt_coll_status_type_name,i.data_ok ,"ยืนยันลูกหนี้" AS status  
+                IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(kid.kidney_price,0) AS kidney,
+                IFNULL(kid.kidney_price,0) AS debtor,kid.kidney_list,ict.ipt_coll_status_type_name,i.data_ok,"ยืนยันลูกหนี้" AS status  
             FROM ipt i 
-            LEFT JOIN patient pt ON pt.hn=i.hn
-            LEFT JOIN ipt_pttype ip ON ip.an=i.an
-            LEFT JOIN pttype p ON p.pttype=ip.pttype
-            LEFT JOIN ward w ON w.ward=i.ward
-            LEFT JOIN an_stat a ON a.an=i.an
-            LEFT JOIN (SELECT op.an, SUM(op.sum_price) AS kidney_price	
-                FROM opitemrece op INNER JOIN ipt ON ipt.an=op.an
-                LEFT JOIN hrims.lookup_icode li ON op.icode = li.icode
-                LEFT JOIN nondrugitems n ON n.icode=op.icode 
-                WHERE op.an IS NOT NULL AND ipt.dchdate BETWEEN ? AND ?  AND li.kidney = "Y"
-                GROUP BY op.an) kidney ON kidney.an=i.an
-            LEFT JOIN opitemrece o ON o.an=i.an AND o.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney = "Y")
-            LEFT JOIN s_drugitems s ON s.icode=o.icode
-            LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
-            LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
-            WHERE i.confirm_discharge = "Y" 
-			AND p.hipdata_code IN ("SSS","SSI") 
-            AND COALESCE(kidney.kidney_price,0)<>"0"
-            AND i.dchdate BETWEEN ? AND ?            
+            LEFT JOIN patient pt ON pt.hn = i.hn
+            LEFT JOIN ipt_pttype ip ON ip.an = i.an
+            LEFT JOIN pttype p ON p.pttype = ip.pttype
+            LEFT JOIN ward w ON w.ward = i.ward
+            LEFT JOIN an_stat a ON a.an = i.an 
+            LEFT JOIN ipt_coll_stat ic ON ic.an = i.an
+            LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id = ic.ipt_coll_status_type_id
+            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS income   
+                FROM opitemrece o
+                INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
+                GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+            INNER JOIN (SELECT op.an,SUM(op.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.`name`) AS kidney_list
+                FROM opitemrece op
+                INNER JOIN ipt i4 ON i4.an = op.an AND i4.confirm_discharge = "Y" AND i4.dchdate BETWEEN ? AND ?
+                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.kidney = "Y"
+                LEFT JOIN s_drugitems s ON s.icode = op.icode
+                GROUP BY op.an) kid ON kid.an = i.an
+            WHERE i.confirm_discharge = "Y"
+            AND p.hipdata_code IN ("SSS","SSI")
+            AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_310 WHERE an IS NOT NULL)
-            GROUP BY i.an,ip.pttype ORDER BY i.ward,i.dchdate',[$start_date,$end_date,$start_date,$end_date]); 
-
+            GROUP BY i.an, ip.pttype 
+            ORDER BY i.ward, i.dchdate',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         $request->session()->put('start_date',$start_date);
         $request->session()->put('end_date',$end_date);
         $request->session()->put('search',$search);
@@ -7479,32 +7484,39 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
-                a.income,a.rcpt_money,COALESCE(kidney.kidney_price,0) AS kidney,COALESCE(kidney.kidney_price,0) AS debtor,
-                GROUP_CONCAT(DISTINCT s.`name`) AS kidney_list,ict.ipt_coll_status_type_name,i.data_ok ,"ยืนยันลูกหนี้" AS status  
+                IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(kid.kidney_price,0) AS kidney,
+                IFNULL(kid.kidney_price,0) AS debtor,kid.kidney_list,ict.ipt_coll_status_type_name,i.data_ok,"ยืนยันลูกหนี้" AS status  
             FROM ipt i 
-            LEFT JOIN patient pt ON pt.hn=i.hn
-            LEFT JOIN ipt_pttype ip ON ip.an=i.an
-            LEFT JOIN pttype p ON p.pttype=ip.pttype
-            LEFT JOIN ward w ON w.ward=i.ward
-            LEFT JOIN an_stat a ON a.an=i.an
-            LEFT JOIN (SELECT op.an, SUM(op.sum_price) AS kidney_price	
-                FROM opitemrece op INNER JOIN ipt ON ipt.an=op.an
-                LEFT JOIN hrims.lookup_icode li ON op.icode = li.icode
-                LEFT JOIN nondrugitems n ON n.icode=op.icode 
-                WHERE op.an IS NOT NULL AND ipt.dchdate BETWEEN ? AND ?  AND li.kidney = "Y"
-                GROUP BY op.an) kidney ON kidney.an=i.an
-            LEFT JOIN opitemrece o ON o.an=i.an AND o.icode IN (SELECT icode FROM hrims.lookup_icode WHERE kidney = "Y")
-            LEFT JOIN s_drugitems s ON s.icode=o.icode
-            LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
-            LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
-            WHERE i.confirm_discharge = "Y" 
-			AND p.hipdata_code IN ("SSS","SSI") 
-            AND COALESCE(kidney.kidney_price,0)<>"0"
-            AND i.dchdate BETWEEN ? AND ?   			
-            AND i.an IN ('.$checkbox_string.') 
-            GROUP BY i.an,ip.pttype ORDER BY i.ward,i.dchdate',[$start_date,$end_date,$start_date,$end_date]); 
+            LEFT JOIN patient pt ON pt.hn = i.hn
+            LEFT JOIN ipt_pttype ip ON ip.an = i.an
+            LEFT JOIN pttype p ON p.pttype = ip.pttype
+            LEFT JOIN ward w ON w.ward = i.ward
+            LEFT JOIN an_stat a ON a.an = i.an 
+            LEFT JOIN ipt_coll_stat ic ON ic.an = i.an
+            LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id = ic.ipt_coll_status_type_id
+            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS income   
+                FROM opitemrece o
+                INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
+                GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn) rc ON rc.an = i.an
+            INNER JOIN (SELECT op.an,SUM(op.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.`name`) AS kidney_list
+                FROM opitemrece op
+                INNER JOIN ipt i4 ON i4.an = op.an AND i4.confirm_discharge = "Y" AND i4.dchdate BETWEEN ? AND ?
+                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.kidney = "Y"
+                LEFT JOIN s_drugitems s ON s.icode = op.icode
+                GROUP BY op.an) kid ON kid.an = i.an
+            WHERE i.confirm_discharge = "Y"
+            AND p.hipdata_code IN ("SSS","SSI")
+            AND i.dchdate BETWEEN ? AND ?
+            AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_310 WHERE an IS NOT NULL)
+            AND i.an IN ('.$checkbox_string.')
+            GROUP BY i.an, ip.pttype 
+            ORDER BY i.ward, i.dchdate',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050101_310::insert([

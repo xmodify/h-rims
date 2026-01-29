@@ -90,56 +90,6 @@ class DebtorController extends Controller
         
         $check_income_pttype = DB::connection('hosxp')->select('
             SELECT p.hipdata_code AS inscl,
-            CASE WHEN p.hipdata_code IN ("A1","CSH") THEN "ชำระเงิน"
-                WHEN p.hipdata_code = "A9" THEN "พรบ."
-                WHEN p.hipdata_code = "BKK" THEN "กทม."
-                WHEN p.hipdata_code = "PTY" THEN "พัทยา"
-                WHEN p.hipdata_code = "BMT" THEN "ขสมก."
-                WHEN p.hipdata_code = "KKT" THEN "กกต."
-                WHEN p.hipdata_code = "GOF" THEN "เบิกต้นสังกัด"
-                WHEN p.hipdata_code = "LGO" THEN "อปท."
-                WHEN p.hipdata_code = "NRD" THEN "ต่างด้าวไม่ขึ้นทะเบียน"
-                WHEN p.hipdata_code = "NRH" THEN "ต่างด้าวขึ้นทะเบียน"
-                WHEN p.hipdata_code = "OFC" THEN "กรมบัญชีกลาง"
-                WHEN p.hipdata_code = "SSI" THEN "ปกส.ทุพพลภาพ"
-                WHEN p.hipdata_code = "SSS" THEN "ปกส."
-                WHEN p.hipdata_code = "STP" THEN "ผู้มีปัญหาสถานะสิทธิ"
-                WHEN p.hipdata_code = "UCS" THEN "ประกันสุขภาพ"
-                ELSE "ไม่พบเงื่อนไข" END AS pttype_group,
-            COUNT(DISTINCT v.vn) AS visit,
-            SUM(v.income) AS income,
-            SUM(v.paid_money) AS paid_money,
-            SUM(v.rcpt_money) AS rcpt_money,
-                SUM(IFNULL(pp.ppfs_price,0)) AS ppfs,
-            SUM(v.income) - SUM(v.rcpt_money) - SUM(IFNULL(pp.ppfs_price,0)) AS debtor 
-        FROM vn_stat v
-        LEFT JOIN ipt i ON i.vn = v.vn
-        LEFT JOIN visit_pttype vp ON vp.vn = v.vn
-        LEFT JOIN pttype p ON p.pttype = vp.pttype
-        LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS ppfs_price
-            FROM opitemrece op
-            INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs = "Y"
-            WHERE op.paidst = "02" AND op.vstdate BETWEEN ? AND ?
-            GROUP BY op.vn) pp ON pp.vn = v.vn
-        WHERE v.vstdate BETWEEN ? AND ?
-        AND i.vn IS NULL 
-        GROUP BY p.hipdata_code',[$start_date,$end_date,$start_date,$end_date]);
-        
-        $check_income_ipd = DB::connection('hosxp')->select("
-            SELECT o.op_income,o.op_paid,v.an_income,v.an_paid,v.an_rcpt,v.an_income-v.an_rcpt AS an_debtor,
-            IF(v.an_income <> o.op_income, 'Resync AN', 'Success') AS status_check
-            FROM (SELECT SUM(income) AS an_income,SUM(paid_money) AS an_paid,SUM(rcpt_money) AS an_rcpt
-                FROM an_stat 
-                WHERE dchdate BETWEEN ? AND ?) v
-            CROSS JOIN
-                (SELECT SUM(o.sum_price) AS op_income,SUM(CASE WHEN o.paidst IN ('01','03') THEN o.sum_price ELSE 0 END) AS op_paid
-                FROM opitemrece o 
-                INNER JOIN an_stat a ON a.an = o.an 
-                WHERE a.dchdate BETWEEN ? AND ?) o"
-            ,[$start_date,$end_date,$start_date,$end_date]); 
-            
-        $check_income_ipd_pttype = DB::connection('hosxp')->select('
-            SELECT p.hipdata_code AS inscl,
                 CASE WHEN p.hipdata_code IN ("A1","CSH") THEN "ชำระเงิน"
                     WHEN p.hipdata_code = "A9" THEN "พรบ."
                     WHEN p.hipdata_code = "BKK" THEN "กทม."
@@ -156,19 +106,83 @@ class DebtorController extends Controller
                     WHEN p.hipdata_code = "STP" THEN "ผู้มีปัญหาสถานะสิทธิ"
                     WHEN p.hipdata_code = "UCS" THEN "ประกันสุขภาพ"
                     ELSE "ไม่พบเงื่อนไข" END AS pttype_group,
-                COUNT(DISTINCT a.an) AS an,
-                SUM(a.income) AS income,
-                SUM(a.paid_money) AS paid_money,
-                SUM(a.rcpt_money) AS rcpt_money,
-                SUM(a.income - a.rcpt_money) AS debtor
-            FROM an_stat a
-            LEFT JOIN ( SELECT an, MAX(pttype) AS pttype
-                FROM ipt_pttype
-                GROUP BY an ) ip ON ip.an = a.an
-            LEFT JOIN pttype p ON p.pttype = ip.pttype
-            WHERE a.dchdate BETWEEN ? AND ?
+                COUNT(DISTINCT o.vn) AS vn,
+                SUM(IFNULL(inc.income,0)) AS income,
+                SUM(IFNULL(v.paid_money ,0)) AS paid_money ,
+                SUM(IFNULL(rc.rcpt_money,0)) AS rcpt_money,
+                SUM(IFNULL(pp.ppfs_price,0)) AS ppfs,
+                SUM(IFNULL(inc.income,0))-SUM(IFNULL(rc.rcpt_money,0))-SUM(IFNULL(pp.ppfs_price,0)) AS debtor
+            FROM ovst o
+            LEFT JOIN ipt i ON i.vn = o.vn
+            LEFT JOIN vn_stat v ON v.vn=o.vn   
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS ppfs_price
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = "Y"
+                WHERE op.paidst = "02" AND op.vstdate BETWEEN ? AND ? GROUP BY op.vn ) pp ON pp.vn = o.vn
+            WHERE o.vstdate BETWEEN ? AND ?
+            AND i.vn IS NULL 
             GROUP BY p.hipdata_code
-            ORDER BY p.hipdata_code',[$start_date,$end_date]);
+            ORDER BY p.hipdata_code',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);
+        
+        $check_income_ipd = DB::connection('hosxp')->select("
+            SELECT o.op_income,o.op_paid,v.an_income,v.an_paid,v.an_rcpt,v.an_income-v.an_rcpt AS an_debtor,
+            IF(v.an_income <> o.op_income, 'Resync AN', 'Success') AS status_check
+            FROM (SELECT SUM(income) AS an_income,SUM(paid_money) AS an_paid,SUM(rcpt_money) AS an_rcpt
+                FROM an_stat 
+                WHERE dchdate BETWEEN ? AND ?) v
+            CROSS JOIN
+                (SELECT SUM(o.sum_price) AS op_income,SUM(CASE WHEN o.paidst IN ('01','03') THEN o.sum_price ELSE 0 END) AS op_paid
+                FROM opitemrece o 
+                INNER JOIN an_stat a ON a.an = o.an 
+                WHERE a.dchdate BETWEEN ? AND ?) o"
+            ,[$start_date,$end_date,$start_date,$end_date]); 
+            
+        $check_income_ipd_pttype = DB::connection('hosxp')->select('
+            SELECT p.hipdata_code AS inscl,
+                CASE WHEN p.hipdata_code = "A1"  THEN "ชำระเงิน"
+                    WHEN p.hipdata_code = "A9"  THEN "พรบ."
+                    WHEN p.hipdata_code = "BKK" THEN "กทม."
+                    WHEN p.hipdata_code = "BMT" THEN "ขสมก."
+                    WHEN p.hipdata_code = "GOF" THEN "เบิกต้นสังกัด"
+                    WHEN p.hipdata_code = "LGO" THEN "อปท."
+                    WHEN p.hipdata_code = "NRD" THEN "ต่างด้าวไม่ขึ้นทะเบียน"
+                    WHEN p.hipdata_code = "NRH" THEN "ต่างด้าวขึ้นทะเบียน"
+                    WHEN p.hipdata_code = "OFC" THEN "กรมบัญชีกลาง"
+                    WHEN p.hipdata_code = "SSI" THEN "ปกส.ทุพพลภาพ"
+                    WHEN p.hipdata_code = "SSS" THEN "ปกส."
+                    WHEN p.hipdata_code = "STP" THEN "ผู้มีปัญหาสถานะสิทธิ"
+                    WHEN p.hipdata_code = "UCS" THEN "ประกันสุขภาพ"
+                    ELSE "ไม่พบเงื่อนไข" END AS pttype_group,
+                COUNT(DISTINCT a.an) AS an,
+                SUM(IFNULL(inc.income,0)) AS income,
+                SUM(IFNULL(a.paid_money,0)) AS paid_money,   
+                SUM(IFNULL(rc.rcpt_money,0)) AS rcpt_money,
+                SUM(IFNULL(inc.income,0))-SUM(IFNULL(rc.rcpt_money,0)) AS debtor
+            FROM ipt i
+            LEFT JOIN an_stat a ON a.an = i.an
+            LEFT JOIN ipt_pttype ip ON ip.an = i.an       
+            LEFT JOIN pttype p ON p.pttype = ip.pttype
+            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS income
+                FROM opitemrece o
+                INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
+                GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
+                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn ) rc ON rc.an = i.an
+            WHERE i.confirm_discharge = "Y"
+            AND i.dchdate BETWEEN ? AND ?
+            GROUP BY p.hipdata_code
+            ORDER BY p.hipdata_code',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);
 
         Session::put('start_date', $request->start_date);
         Session::put('end_date', $request->end_date);

@@ -1760,7 +1760,7 @@ class DebtorController extends Controller
                 WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) ch ON ch.vn = o.vn
             WHERE (o.an IS NULL OR o.an = "")
             AND o.vstdate BETWEEN ? AND ?
-            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) <> 0
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)) <> 0
             AND p.hipdata_code IN ("UCS","WEL")            
             AND v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_209 WHERE vn IS NOT NULL)
@@ -1819,7 +1819,7 @@ class DebtorController extends Controller
                 WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) ch ON ch.vn = o.vn
             WHERE (o.an IS NULL OR o.an = "")
             AND o.vstdate BETWEEN ? AND ?
-            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) <> 0
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)) <> 0
             AND p.hipdata_code IN ("UCS","WEL")            
             AND v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_209 WHERE vn IS NOT NULL)

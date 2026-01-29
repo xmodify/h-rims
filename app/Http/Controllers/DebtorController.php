@@ -107,23 +107,16 @@ class DebtorController extends Controller
                     WHEN p.hipdata_code = "UCS" THEN "ประกันสุขภาพ"
                     ELSE "ไม่พบเงื่อนไข" END AS pttype_group,
                 COUNT(DISTINCT o.vn) AS vn,
-                SUM(IFNULL(inc.income,0)) AS income,
+                SUM(IFNULL(v.income,0)) AS income,
                 SUM(IFNULL(v.paid_money ,0)) AS paid_money ,
-                SUM(IFNULL(rc.rcpt_money,0)) AS rcpt_money,
+                SUM(IFNULL(v.rcpt_money,0)) AS rcpt_money,
                 SUM(IFNULL(pp.ppfs_price,0)) AS ppfs,
-                SUM(IFNULL(inc.income,0))-SUM(IFNULL(rc.rcpt_money,0))-SUM(IFNULL(pp.ppfs_price,0)) AS debtor
+                SUM(IFNULL(v.income,0))-SUM(IFNULL(v.rcpt_money,0))-SUM(IFNULL(pp.ppfs_price,0)) AS debtor
             FROM ovst o
             LEFT JOIN ipt i ON i.vn = o.vn
             LEFT JOIN vn_stat v ON v.vn=o.vn   
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
-            LEFT JOIN pttype p ON p.pttype = vp.pttype
-            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
-                FROM opitemrece op
-                WHERE op.vstdate BETWEEN ? AND ?
-                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
-                FROM rcpt_print r
-                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype            
             LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS ppfs_price
                 FROM opitemrece op
                 INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = "Y"
@@ -131,7 +124,7 @@ class DebtorController extends Controller
             WHERE o.vstdate BETWEEN ? AND ?
             AND i.vn IS NULL 
             GROUP BY p.hipdata_code
-            ORDER BY p.hipdata_code',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);
+            ORDER BY p.hipdata_code',[$start_date,$end_date,$start_date,$end_date]);
         
         $check_income_ipd = DB::connection('hosxp')->select("
             SELECT o.op_income,o.op_paid,v.an_income,v.an_paid,v.an_rcpt,v.an_income-v.an_rcpt AS an_debtor,
@@ -163,26 +156,18 @@ class DebtorController extends Controller
                     WHEN p.hipdata_code = "UCS" THEN "ประกันสุขภาพ"
                     ELSE "ไม่พบเงื่อนไข" END AS pttype_group,
                 COUNT(DISTINCT a.an) AS an,
-                SUM(IFNULL(inc.income,0)) AS income,
+                SUM(IFNULL(a.income,0)) AS income,
                 SUM(IFNULL(a.paid_money,0)) AS paid_money,   
-                SUM(IFNULL(rc.rcpt_money,0)) AS rcpt_money,
-                SUM(IFNULL(inc.income,0))-SUM(IFNULL(rc.rcpt_money,0)) AS debtor
+                SUM(IFNULL(a.rcpt_money,0)) AS rcpt_money,
+                SUM(IFNULL(a.income,0))-SUM(IFNULL(a.rcpt_money,0)) AS debtor
             FROM ipt i
             LEFT JOIN an_stat a ON a.an = i.an
             LEFT JOIN ipt_pttype ip ON ip.an = i.an       
-            LEFT JOIN pttype p ON p.pttype = ip.pttype
-            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS income
-                FROM opitemrece o
-                INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
-                GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money
-                FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
-                WHERE r.`status` = "OK" AND i3.dchdate BETWEEN ? AND ? GROUP BY r.vn ) rc ON rc.an = i.an
+            LEFT JOIN pttype p ON p.pttype = ip.pttype            
             WHERE i.confirm_discharge = "Y"
             AND i.dchdate BETWEEN ? AND ?
             GROUP BY p.hipdata_code
-            ORDER BY p.hipdata_code',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);
+            ORDER BY p.hipdata_code',[$start_date,$end_date]);
 
         Session::put('start_date', $request->start_date);
         Session::put('end_date', $request->end_date);

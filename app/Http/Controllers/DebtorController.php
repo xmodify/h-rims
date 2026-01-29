@@ -72,21 +72,26 @@ class DebtorController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d', strtotime("-1 day"));   
 
         $check_income = DB::connection('hosxp')->select("
-            SELECT o.op_income,o.op_paid,v.vn_income,v.vn_paid,v.vn_rcpt,v.vn_income-v.vn_rcpt AS vn_debtor,
-            IF(v.vn_income <> o.op_income, 'Resync VN', 'Success') AS status_check
-            FROM (SELECT SUM(v.income) AS vn_income,SUM(v.paid_money) AS vn_paid, SUM(v.rcpt_money) AS vn_rcpt
+            SELECT o.op_income,o.op_paid,v.vn_income,v.vn_paid,v.vn_rcpt,v.vn_income - v.vn_rcpt AS vn_debtor,
+                IF(v.vn_income <> o.op_income, 'Resync VN', 'Success') AS status_check
+            FROM(SELECT SUM(v.income) AS vn_income,SUM(v.paid_money) AS vn_paid,SUM(IFNULL(rc.rcpt_money,0)) AS vn_rcpt
                 FROM vn_stat v
                 LEFT JOIN ipt i ON i.vn = v.vn
+                LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money
+                    FROM rcpt_print r
+                    WHERE r.`status` = 'OK' GROUP BY r.vn ) rc ON rc.vn = v.vn
                 WHERE v.vstdate BETWEEN ? AND ?
                 AND i.vn IS NULL) v
+                
             CROSS JOIN
-                (SELECT SUM(o.sum_price) AS op_income,SUM(CASE WHEN o.paidst IN ('01','03') THEN o.sum_price ELSE 0 END) AS op_paid
+            
+            (SELECT SUM(o.sum_price) AS op_income,
+                SUM(CASE WHEN o.paidst IN ('01','03') THEN o.sum_price ELSE 0 END) AS op_paid
                 FROM opitemrece o
                 LEFT JOIN ipt i ON i.vn = o.vn
                 WHERE o.vstdate BETWEEN ? AND ?
                 AND (o.an IS NULL OR o.an = '')
-                AND i.vn IS NULL) o"
-            ,[$start_date,$end_date,$start_date,$end_date]);
+                AND i.vn IS NULL) o"  ,[$start_date,$end_date,$start_date,$end_date]);
         
         $check_income_pttype = DB::connection('hosxp')->select('
             SELECT p.hipdata_code AS inscl,  
@@ -109,9 +114,9 @@ class DebtorController extends Controller
                 COUNT(DISTINCT o.vn) AS vn,
                 SUM(v.income)      AS income,
                 SUM(v.paid_money) AS paid_money,
-                SUM(v.rcpt_money) AS rcpt_money,
+                SUM(IFNULL(rc.rcpt_money,0)) AS rcpt_money,
                 SUM(IFNULL(pp.ppfs_price,0)) AS ppfs,
-                SUM(v.income) - SUM(v.rcpt_money) - SUM(IFNULL(pp.ppfs_price,0)) AS debtor
+                SUM(v.income) - SUM(IFNULL(rc.rcpt_money,0)) - SUM(IFNULL(pp.ppfs_price,0)) AS debtor
             FROM ovst o
             LEFT JOIN ipt i ON i.vn = o.vn
             LEFT JOIN (SELECT vn, MAX(income) AS income, MAX(paid_money) AS paid_money, MAX(rcpt_money) AS rcpt_money
@@ -119,6 +124,9 @@ class DebtorController extends Controller
                 WHERE vstdate BETWEEN ? AND ?  GROUP BY vn) v ON v.vn = o.vn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
             LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money 
+                FROM rcpt_print r                 
+                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn
             LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS ppfs_price
                 FROM opitemrece op
                 INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = "Y" WHERE op.vstdate BETWEEN ? AND ?
@@ -4733,27 +4741,30 @@ class DebtorController extends Controller
         }
 
         $debtor_search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,o.vn,o.an,o.hn,v.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-                pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.paid_money,
-                v.rcpt_money,v.paid_money-v.rcpt_money AS debtor,r.rcpno,p2.arrear_date,p2.amount AS arrear_amount,
-                r1.bill_amount AS paid_arrear,r1.rcpno AS rcpno_arrear,fd.deposit_amount,fd1.debit_amount
-            FROM ovst o 
-                LEFT JOIN patient pt ON pt.hn=o.hn		
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-            LEFT JOIN patient_arrear p2 ON p2.vn=o.vn
+            SELECT o.vstdate, o.vsttime, o.oqueue,o.vn, o.an,o.hn,v.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+                pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income, v.paid_money,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,v.paid_money - IFNULL(rc.rcpt_money,0) AS debtor,rc.rcpno,
+                p2.arrear_date,p2.amount AS arrear_amount,r1.bill_amount AS paid_arrear,r1.rcpno AS rcpno_arrear,
+                fd.deposit_amount,fd1.debit_amount,"ยืนยันลูกหนี้" AS status
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN patient_arrear p2 ON p2.vn = o.vn
             LEFT JOIN patient_finance_deposit fd ON fd.anvn = o.vn
             LEFT JOIN patient_finance_debit fd1 ON fd1.anvn = o.vn
-            LEFT JOIN rcpt_print r ON r.vn = o.vn AND r.`status` ="OK" AND r.department="OPD" AND r.bill_date=o.vstdate
-            LEFT JOIN rcpt_print r1 ON r1.vn = p2.vn AND r1.`status` ="OK" AND r1.department="OPD" 
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN hospcode h ON h.hospcode=vp.hospmain
-            WHERE (o.an IS NULL OR o.an ="")
-                AND v.paid_money <>"0" 
-                AND v.rcpt_money <> v.paid_money 
-                AND o.vstdate BETWEEN ? AND ?
-                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_106 WHERE vn IS NOT NULL)    
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue ',[$start_date,$end_date]); 
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money,GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
+                FROM rcpt_print r
+                WHERE r.`status` = "OK" AND r.department = "OPD" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN rcpt_print r1 ON r1.vn = p2.vn AND r1.`status` = "OK" AND r1.department = "OPD"
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN hospcode h ON h.hospcode = vp.hospmain
+            WHERE (o.an IS NULL OR o.an = "")
+            AND v.paid_money <> "0"
+            AND v.paid_money - IFNULL(rc.rcpt_money,0) > 0
+            AND o.vstdate BETWEEN ? AND ?
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_106 WHERE vn IS NOT NULL)
+            ORDER BY o.vstdate, o.oqueue ',[$start_date,$end_date]); 
 
         $debtor_search_iclaim = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.oqueue,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,o.vsttime,
@@ -4797,27 +4808,31 @@ class DebtorController extends Controller
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
        
         $debtor = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,o.vn,o.an,o.hn,v.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-                pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.paid_money,
-                v.rcpt_money,v.paid_money-v.rcpt_money AS debtor,r.rcpno,p2.arrear_date,p2.amount AS arrear_amount,
-                r1.bill_amount AS paid_arrear,r1.rcpno AS rcpno_arrear,fd.deposit_amount,fd1.debit_amount,"ยืนยันลูกหนี้" AS status  
-            FROM ovst o 
-                LEFT JOIN patient pt ON pt.hn=o.hn		
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-            LEFT JOIN patient_arrear p2 ON p2.vn=o.vn
+            SELECT o.vstdate, o.vsttime, o.oqueue,o.vn, o.an,o.hn,v.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+                pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income, v.paid_money,
+                IFNULL(rc.rcpt_money,0) AS rcpt_money,v.paid_money - IFNULL(rc.rcpt_money,0) AS debtor,rc.rcpno,
+                p2.arrear_date,p2.amount AS arrear_amount,r1.bill_amount AS paid_arrear,r1.rcpno AS rcpno_arrear,
+                fd.deposit_amount,fd1.debit_amount,"ยืนยันลูกหนี้" AS status
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN patient_arrear p2 ON p2.vn = o.vn
             LEFT JOIN patient_finance_deposit fd ON fd.anvn = o.vn
             LEFT JOIN patient_finance_debit fd1 ON fd1.anvn = o.vn
-            LEFT JOIN rcpt_print r ON r.vn = o.vn AND r.`status` ="OK" AND r.department="OPD" AND r.bill_date=o.vstdate
-            LEFT JOIN rcpt_print r1 ON r1.vn = p2.vn AND r1.`status` ="OK" AND r1.department="OPD" 
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN hospcode h ON h.hospcode=vp.hospmain
-            WHERE (o.an IS NULL OR o.an ="")
-                AND v.paid_money <>"0" 
-                AND v.rcpt_money <> v.paid_money 
-                AND o.vstdate BETWEEN ? AND ?  
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date]); 
+            LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money,GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
+                FROM rcpt_print r
+                WHERE r.`status` = "OK" AND r.department = "OPD" GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN rcpt_print r1 ON r1.vn = p2.vn AND r1.`status` = "OK" AND r1.department = "OPD"
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN hospcode h ON h.hospcode = vp.hospmain
+            WHERE (o.an IS NULL OR o.an = "")
+            AND v.paid_money <> "0"
+            AND v.paid_money - IFNULL(rc.rcpt_money,0) > 0
+            AND o.vstdate BETWEEN ? AND ?
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_106 WHERE vn IS NOT NULL)
+            AND o.vn IN ('.$checkbox_string.')
+            ORDER BY o.vstdate, o.oqueue ',[$start_date,$end_date]); 
         
         foreach ($debtor as $row) {
             Debtor_1102050102_106::insert([

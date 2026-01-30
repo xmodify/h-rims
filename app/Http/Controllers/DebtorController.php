@@ -96,7 +96,7 @@ class DebtorController extends Controller
         $check_income_pttype = DB::connection('hosxp')->select('
             SELECT p.hipdata_code AS inscl,  
                 CASE WHEN p.hipdata_code IN ("A1","CSH") THEN "ชำระเงิน"
-                    WHEN p.hipdata_code = "A9" THEN "พรบ."
+                    WHEN p.hipdata_code IN ("A9","INS") THEN "พรบ."
                     WHEN p.hipdata_code = "BKK" THEN "กทม."
                     WHEN p.hipdata_code = "PTY" THEN "พัทยา"
                     WHEN p.hipdata_code = "BMT" THEN "ขสมก."
@@ -110,6 +110,8 @@ class DebtorController extends Controller
                     WHEN p.hipdata_code = "SSS" THEN "ปกส."
                     WHEN p.hipdata_code = "STP" THEN "ผู้มีปัญหาสถานะสิทธิ"
                     WHEN p.hipdata_code = "UCS" THEN "ประกันสุขภาพ"
+                    WHEN p.hipdata_code = "SRT" THEN "การรถไฟแห่งประเทศไทย"
+                    WHEN p.hipdata_code = "NHS" THEN "สิทธิ สปสช."
                     ELSE "ไม่พบเงื่อนไข" END AS pttype_group,
                 COUNT(DISTINCT o.vn) AS vn,
                 SUM(v.income)      AS income,
@@ -151,10 +153,12 @@ class DebtorController extends Controller
             
         $check_income_ipd_pttype = DB::connection('hosxp')->select('
             SELECT p.hipdata_code AS inscl,
-                CASE WHEN p.hipdata_code = "A1"  THEN "ชำระเงิน"
-                    WHEN p.hipdata_code = "A9"  THEN "พรบ."
+                CASE WHEN p.hipdata_code IN ("A1","CSH") THEN "ชำระเงิน"
+                    WHEN p.hipdata_code IN ("A9","INS") THEN "พรบ."
                     WHEN p.hipdata_code = "BKK" THEN "กทม."
+                    WHEN p.hipdata_code = "PTY" THEN "พัทยา"
                     WHEN p.hipdata_code = "BMT" THEN "ขสมก."
+                    WHEN p.hipdata_code = "KKT" THEN "กกต."
                     WHEN p.hipdata_code = "GOF" THEN "เบิกต้นสังกัด"
                     WHEN p.hipdata_code = "LGO" THEN "อปท."
                     WHEN p.hipdata_code = "NRD" THEN "ต่างด้าวไม่ขึ้นทะเบียน"
@@ -164,6 +168,8 @@ class DebtorController extends Controller
                     WHEN p.hipdata_code = "SSS" THEN "ปกส."
                     WHEN p.hipdata_code = "STP" THEN "ผู้มีปัญหาสถานะสิทธิ"
                     WHEN p.hipdata_code = "UCS" THEN "ประกันสุขภาพ"
+                    WHEN p.hipdata_code = "SRT" THEN "การรถไฟแห่งประเทศไทย"
+                    WHEN p.hipdata_code = "NHS" THEN "สิทธิ สปสช."
                     ELSE "ไม่พบเงื่อนไข" END AS pttype_group,
                 COUNT(DISTINCT a.an) AS an,
                 SUM(IFNULL(a.income,0)) AS income,

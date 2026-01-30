@@ -19,7 +19,7 @@
                     </div>
                 </div>
             </form> 
-            <br>
+            <br> 
             <div class="alert alert-success text-primary" role="alert"><strong>รายชื่อผู้มารับบริการที่ยังไม่ยืนยันลูกหนี้ วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</strong></div>
             <div class="row">
                 <div class="col-md-12">   
@@ -38,13 +38,16 @@
                                 <th class="text-center">ค่ารักษาทั้งหมด</th>
                                 <th class="text-center">ต้องชำระเงิน</th>
                                 <th class="text-center">ชำระเงินแล้ว</th>
+                                <th class="text-center">PPFS</th>
                                 <th class="text-center">ลูกหนี้</th>
+                                <th class="text-center">รายการ PPFS</th>
                             </tr>        
                         </thead>
                         <tbody>
                             <?php $sum_income = 0 ; ?>
                             <?php $sum_paid_money = 0 ; ?>
                             <?php $sum_rcpt_money = 0 ; ?>
+                            <?php $sum_ppfs_price = 0 ; ?>
                             <?php $sum_debtor = 0 ; ?>
                             @foreach($check as $row)          
                             <tr>
@@ -60,11 +63,14 @@
                                 <td align="right">{{ number_format($row->income,2) }}</td>  
                                 <td align="right">{{ number_format($row->paid_money,2) }}</td> 
                                 <td align="right">{{ number_format($row->rcpt_money,2) }}</td> 
+                                <td align="right">{{ number_format($row->ppfs_price,2) }}</td> 
                                 <td align="right">{{ number_format($row->debtor,2) }}</td> 
+                                <td align="left">{{ $row->ppfs_list }}</td> 
                             </tr>     
                             <?php $sum_income += $row->income ; ?>
                             <?php $sum_paid_money += $row->paid_money ; ?>
                             <?php $sum_rcpt_money += $row->rcpt_money ; ?>
+                            <?php $sum_ppfs_price += $row->ppfs_price ; ?>
                             <?php $sum_debtor += $row->debtor ; ?>                       
                             @endforeach                            
                         </tbody> 
@@ -74,7 +80,9 @@
                                 <th class="text-end">{{ number_format($sum_income,2) }}</th>
                                 <th class="text-end">{{ number_format($sum_paid_money,2) }}</th>
                                 <th class="text-end">{{ number_format($sum_rcpt_money,2) }}</th>
+                                <th class="text-end">{{ number_format($sum_ppfs_price,2) }}</th>
                                 <th class="text-end">{{ number_format($sum_debtor,2) }}</th>
+                                <th class="text-end"></th>
                             </tr>
                         </tfoot>
                     </table> 

@@ -126,9 +126,9 @@ class DebtorController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
             LEFT JOIN pttype p ON p.pttype = vp.pttype
             LEFT JOIN ( SELECT r.vn,SUM(r.bill_amount) AS rcpt_money 
-                    FROM rcpt_print r
-                    WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
-                    GROUP BY r.vn) rc ON rc.vn = o.vn
+                FROM rcpt_print r
+                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                GROUP BY r.vn) rc ON rc.vn = o.vn
             LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS ppfs_price
                 FROM opitemrece op
                 INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = "Y" WHERE op.vstdate BETWEEN ? AND ?
@@ -9143,7 +9143,8 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+                GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn
                 AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
@@ -9205,7 +9206,8 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+                GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn
                 AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
@@ -9389,7 +9391,8 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+                GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn
                 AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
@@ -9452,7 +9455,8 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+                GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn
                 AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
@@ -9610,7 +9614,8 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+                GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn
                 AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
@@ -9674,7 +9679,8 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+                GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn
                 AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
@@ -9857,7 +9863,8 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+                GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn
                 AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
@@ -9920,7 +9927,8 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+                GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn
                 AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
@@ -10097,7 +10105,8 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+                GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn
                 AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
@@ -10160,7 +10169,8 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+                GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 INNER JOIN ipt i3 ON i3.an = r.vn
                 AND r.bill_date BETWEEN i3.regdate AND i3.dchdate

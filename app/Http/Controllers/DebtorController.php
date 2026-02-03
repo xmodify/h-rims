@@ -4793,8 +4793,7 @@ class DebtorController extends Controller
             LEFT JOIN patient_finance_deposit fd ON fd.anvn = o.vn
             LEFT JOIN patient_finance_debit fd1 ON fd1.anvn = o.vn
             LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money,GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
-                FROM rcpt_print r
-                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn            
+                FROM rcpt_print r GROUP BY r.vn) rc ON rc.vn = o.vn            
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN hospcode h ON h.hospcode = vp.hospmain
             WHERE (o.an IS NULL OR o.an = "")
@@ -4858,8 +4857,7 @@ class DebtorController extends Controller
             LEFT JOIN patient_finance_deposit fd ON fd.anvn = o.vn
             LEFT JOIN patient_finance_debit fd1 ON fd1.anvn = o.vn
             LEFT JOIN (SELECT r.vn,SUM(r.bill_amount) AS rcpt_money,GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
-                FROM rcpt_print r
-                WHERE r.`status` = "OK" GROUP BY r.vn) rc ON rc.vn = o.vn            
+                FROM rcpt_print r GROUP BY r.vn) rc ON rc.vn = o.vn            
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN hospcode h ON h.hospcode = vp.hospmain
             WHERE (o.an IS NULL OR o.an = "")

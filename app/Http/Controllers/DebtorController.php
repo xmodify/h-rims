@@ -343,7 +343,7 @@ class DebtorController extends Controller
                 )  GROUP BY a.an ) x
             ORDER BY dep DESC,hipdata_code, serv_date "
             ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date
-            ,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);        
+            ,$start_date,$end_date,$start_date,$end_date]);        
 
         return view('debtor._check_nondebtor',compact('start_date','end_date','check'));
     }

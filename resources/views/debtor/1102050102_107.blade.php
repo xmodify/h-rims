@@ -208,9 +208,13 @@
                                 <th class="text-center" width ="6%">Discharge</th>
                                 <th class="text-center">ICD10</th>
                                 <th class="text-center">AdjRW</th>
-                                <th class="text-center" width ="5%">ค่ารักษาทั้งหมด</th>  
-                                <th class="text-center">ชำระเอง</th>
-                                <th class="text-center">ลูกหนี้</th> 
+                                <th class="text-center">ค่ารักษาทั้งหมด</th>  
+                                <th class="text-center">ต้องชำระ</th>   
+                                <th class="text-center">ชำระเอง</th>                                      
+                                <th class="text-center">ลูกหนี้</th>
+                                <th class="text-center">ค้างชำระ</th>
+                                <th class="text-center">ฝากมัดจำ</th>
+                                <th class="text-center">ถอนมัดจำ</th>
                             </tr>
                             </thead>
                             <?php $count = 1 ; ?>
@@ -227,9 +231,13 @@
                                 <td align="right" width ="6%">{{ DateThai($row->dchdate) }}</td>
                                 <td align="right">{{ $row->pdx }}</td>      
                                 <td align="right">{{ $row->adjrw }}</td>                        
-                                <td align="right" width ="5%">{{ number_format($row->income,2) }}</td>
-                                <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
-                                <td align="right">{{ number_format($row->debtor,2) }}</td>
+                                <td align="right">{{ number_format($row->income,2) }}</td>
+                                <td align="right">{{ number_format($row->paid_money,2) }}</td>  
+                                <td align="right">{{ number_format($row->rcpt_money,2) }}</td>  
+                                <td align="right">{{ number_format($row->paid_money-$row->rcpt_money,2) }}</td>
+                                <td align="right">{{ number_format($row->arrear_amount,2) }}</td>               
+                                <td align="right">{{ number_format($row->deposit_amount,2) }}</td>    
+                                <td align="right">{{ number_format($row->debit_amount,2) }}</td>   
                             <?php $count++; ?>
                             @endforeach 
                             </tr> 

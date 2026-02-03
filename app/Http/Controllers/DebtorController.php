@@ -122,9 +122,7 @@ class DebtorController extends Controller
                 SUM(v.income) - SUM(IFNULL(rc.rcpt_money,0)) - SUM(IFNULL(pp.ppfs_price,0)) AS debtor
             FROM ovst o
             LEFT JOIN ipt i ON i.vn = o.vn
-            LEFT JOIN (SELECT vn, MAX(income) AS income, MAX(paid_money) AS paid_money, MAX(rcpt_money) AS rcpt_money
-                FROM vn_stat
-                WHERE vstdate BETWEEN ? AND ?  GROUP BY vn) v ON v.vn = o.vn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
             LEFT JOIN pttype p ON p.pttype = vp.pttype
             LEFT JOIN ( SELECT r.vn,SUM(r.bill_amount) AS rcpt_money 
@@ -138,7 +136,7 @@ class DebtorController extends Controller
             WHERE o.vstdate BETWEEN ? AND ?
             AND i.vn IS NULL
             GROUP BY p.hipdata_code
-            ORDER BY p.hipdata_code',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);
+            ORDER BY p.hipdata_code',[$start_date,$end_date,$start_date,$end_date]);
         
         $check_income_ipd = DB::connection('hosxp')->select("
             SELECT o.op_income,o.op_paid,v.an_income,v.an_paid,v.an_rcpt,v.an_income-v.an_rcpt AS an_debtor,

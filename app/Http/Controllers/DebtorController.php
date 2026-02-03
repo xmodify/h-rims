@@ -115,11 +115,11 @@ class DebtorController extends Controller
                     WHEN p.hipdata_code = "NHS" THEN "สิทธิ สปสช."
                     ELSE "ไม่พบเงื่อนไข" END AS pttype_group,
                 COUNT(DISTINCT o.vn) AS vn,
-                SUM(v.income)      AS income,
-                SUM(v.paid_money) AS paid_money,
+                SUM(IFNULL(v.income,0)) AS income,
+                SUM(IFNULL(v.paid_money,0)) AS paid_money,
                 SUM(IFNULL(rc.rcpt_money,0)) AS rcpt_money,
                 SUM(IFNULL(pp.ppfs_price,0)) AS ppfs,
-                SUM(v.income) - SUM(IFNULL(rc.rcpt_money,0)) - SUM(IFNULL(pp.ppfs_price,0)) AS debtor
+                SUM(IFNULL(v.income,0)) - SUM(IFNULL(rc.rcpt_money,0)) - SUM(IFNULL(pp.ppfs_price,0)) AS debtor
             FROM ovst o
             LEFT JOIN ipt i ON i.vn = o.vn
             LEFT JOIN vn_stat v ON v.vn = o.vn

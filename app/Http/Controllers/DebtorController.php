@@ -122,8 +122,9 @@ class DebtorController extends Controller
                 SUM(IFNULL(v.income,0)) - SUM(IFNULL(rc.rcpt_money,0)) - SUM(IFNULL(pp.ppfs_price,0)) AS debtor
             FROM ovst o
             LEFT JOIN ipt i ON i.vn = o.vn
-            LEFT JOIN vn_stat v ON v.vn = o.vn            
-            LEFT JOIN pttype p ON p.pttype = v.pttype
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
             LEFT JOIN ( SELECT r.vn,SUM(r.bill_amount) AS rcpt_money 
                     FROM rcpt_print r
                     WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)

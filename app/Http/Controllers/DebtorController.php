@@ -8584,7 +8584,7 @@ class DebtorController extends Controller
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM hrims.debtor_1102050102_107 d
                 LEFT JOIN (SELECT vn,bill_date,SUM(bill_amount) AS bill_amount,GROUP_CONCAT(rcpno) AS rcpno
-                    FROM rcpt_print WHERE status = "OK" GROUP BY vn,bill_date) r ON r.vn = d.an
+                    FROM rcpt_print GROUP BY vn,bill_date) r ON r.vn = d.an
                     AND r.bill_date <> d.dchdate
                 LEFT JOIN (SELECT an, COUNT(*) AS visit FROM hrims.debtor_1102050102_107_tracking 
                     GROUP BY an) t ON t.an = d.an
@@ -8602,7 +8602,7 @@ class DebtorController extends Controller
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM hrims.debtor_1102050102_107 d
                 LEFT JOIN (SELECT vn,bill_date,SUM(bill_amount) AS bill_amount,GROUP_CONCAT(rcpno) AS rcpno
-                    FROM rcpt_print WHERE status = "OK" GROUP BY vn,bill_date) r ON r.vn = d.an
+                    FROM rcpt_print GROUP BY vn,bill_date) r ON r.vn = d.an
                     AND r.bill_date <> d.dchdate
                 LEFT JOIN (SELECT an, COUNT(*) AS visit FROM hrims.debtor_1102050102_107_tracking 
                     GROUP BY an) t ON t.an = d.an

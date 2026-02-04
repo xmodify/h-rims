@@ -3318,11 +3318,13 @@ class DebtorController extends Controller
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = DB::select('
-            SELECT vstdate,COUNT(DISTINCT vn) AS anvn,
-            SUM(debtor) AS debtor,SUM(receive) AS receive
-            FROM debtor_1102050101_307  
-            WHERE vstdate BETWEEN ? AND ?
-            GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date]);
+            SELECT COALESCE(dchdate, vstdate) AS vstdate,
+                COUNT(DISTINCT IF(an IS NOT NULL AND an <> "", an, vn)) AS anvn,
+                SUM(debtor) AS debtor,SUM(receive) AS receive
+            FROM debtor_1102050101_307
+            WHERE COALESCE(dchdate, vstdate) BETWEEN ? AND ?
+            GROUP BY COALESCE(dchdate, vstdate)
+            ORDER BY vstdate;',[$start_date,$end_date]);
 
         $pdf = PDF::loadView('debtor.1102050101_307_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
                     ->setPaper('A4', 'portrait');

@@ -132,7 +132,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS ppfs_price
                 FROM opitemrece op
                 INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = "Y" 
-                WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
+                WHERE op.vstdate BETWEEN ? AND ? AND op.paidst NOT IN ("01","03")
                 GROUP BY op.vn) pp ON pp.vn = o.vn 
             WHERE o.vstdate BETWEEN ? AND ?
             AND i.vn IS NULL

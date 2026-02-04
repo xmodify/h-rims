@@ -394,9 +394,10 @@ class DebtorController extends Controller
             FROM debtor_1102050101_303 
             WHERE vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
         $_1102050101_307 = DB::select('
-            SELECT COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
-            FROM debtor_1102050101_307 
-            WHERE vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            SELECT COUNT(DISTINCT IF(an IS NOT NULL AND an <> "", an, vn)) AS anvn,
+                SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
+                FROM debtor_1102050101_307
+                WHERE COALESCE(dchdate, vstdate) BETWEEN ? AND ?',[$start_date,$end_date]);
         $_1102050101_309 = DB::select('
             SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,
                 SUM(IFNULL(d.receive,0)) + SUM(IFNULL(s.receive,0)) AS receive

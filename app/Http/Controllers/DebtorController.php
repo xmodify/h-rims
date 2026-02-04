@@ -131,7 +131,8 @@ class DebtorController extends Controller
                 GROUP BY r.vn) rc ON rc.vn = o.vn
             LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS ppfs_price
                 FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = "Y" WHERE op.vstdate BETWEEN ? AND ?
+                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = "Y" 
+                WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
                 GROUP BY op.vn) pp ON pp.vn = o.vn 
             WHERE o.vstdate BETWEEN ? AND ?
             AND i.vn IS NULL
@@ -396,8 +397,8 @@ class DebtorController extends Controller
         $_1102050101_307 = DB::select('
             SELECT COUNT(DISTINCT IF(an IS NOT NULL AND an <> "", an, vn)) AS anvn,
                 SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
-                FROM debtor_1102050101_307
-                WHERE COALESCE(dchdate, vstdate) BETWEEN ? AND ?',[$start_date,$end_date]);
+            FROM debtor_1102050101_307
+            WHERE COALESCE(dchdate, vstdate) BETWEEN ? AND ?',[$start_date,$end_date]);
         $_1102050101_309 = DB::select('
             SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,
                 SUM(IFNULL(d.receive,0)) + SUM(IFNULL(s.receive,0)) AS receive
@@ -3324,7 +3325,7 @@ class DebtorController extends Controller
             FROM debtor_1102050101_307
             WHERE COALESCE(dchdate, vstdate) BETWEEN ? AND ?
             GROUP BY COALESCE(dchdate, vstdate)
-            ORDER BY vstdate;',[$start_date,$end_date]);
+            ORDER BY vstdate',[$start_date,$end_date]);
 
         $pdf = PDF::loadView('debtor.1102050101_307_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
                     ->setPaper('A4', 'portrait');

@@ -888,8 +888,8 @@ public function stm_ofc_detail(Request $request)
 
                     $innerName = $zip->statIndex($i)['name'];
 
-                    // ใช้เฉพาะ COCDSTM.xml
-                    if (!preg_match('/COCDSTM.*\.xml$/i', $innerName)) {
+                    // ใช้เฉพาะ STM.xml
+                    if (!preg_match('/STM.*\.xml$/i', $innerName)) {
                         continue;
                     }
 
@@ -951,6 +951,12 @@ public function stm_ofc_detail(Request $request)
                                 $extpAmount = (float)$bill->ExtP;
                             }
 
+                            $stmType = null;
+
+                            if (preg_match('/([A-Z]{2}CDSTM)/i', $innerName, $m)) {
+                                $stmType = strtoupper($m[1]);
+                            }
+
                             DB::table('stm_ofc_csop')->updateOrInsert(
                                 [
                                     'round_no' => $STMdoc,
@@ -960,7 +966,7 @@ public function stm_ofc_detail(Request $request)
                                     'hdflag'   => (string)$bill->HDflag,
                                 ],
                                 [
-                                    'stm_type'     => 'COCDSTM',
+                                    'stm_type'     => $stmType,
                                     'stm_filename' => $innerName,
                                     'hcode'        => (string)$xml->hcode,
                                     'hname'        => (string)$xml->hname,

@@ -55,7 +55,7 @@
             </div> 
 
             <div class="alert alert-success text-primary" role="alert">
-                <strong>ข้อมูล Statement สวัสดิการข้าราชการ CSOP </strong>
+                <strong>ข้อมูล Statement สวัสดิการข้าราชการ CSOP, กกต, ฟอกไต OFC </strong>
             </div>
             
             <div class="card-body">

@@ -6,11 +6,23 @@
     <div class="alert alert-primary text-primary" role="alert"><strong>ลูกหนี้ค่ารักษาพยาบาล{{$hospital_name}} ({{$hospital_code}})</strong></div>
 
       <div class="row">            
-        <div class="col-md-12">
+        <div class="col-md-8">
           <a class="btn btn-warning" href="{{ url('debtor/check_income') }}" target="_blank">ตรวจสอบค่ารักษาพยาบาล</a> 
           <a class="btn btn-outline-danger" href="{{ url('debtor/check_nondebtor') }}" target="_blank">รอยืนยันลูกหนี้</a>
           <a class="btn btn-outline-success" href="{{ url('debtor/summary') }}" target="_blank">สรุปบัญชีลูกหนี้ค่ารักษาพยาบาลแยกตามผังบัญชี</a>  
         </div>  
+        <div class="col-md-4 text-end">
+          @auth
+            @if(auth()->user()->status === 'admin')
+              <button type="button"
+                class="btn btn-danger"
+                data-bs-toggle="modal"
+                data-bs-target="#LockdebtorModal">
+                🔒 Lock ลูกหนี้
+              </button>
+            @endif
+          @endauth
+        </div> 
       </div>
       <br>
       <!-- Row -->
@@ -176,4 +188,91 @@
       <!-- Row -->
     </div> 
   </div>
+
+  {{-- Modal Lock ลูกหนี้ --}}
+  <div class="modal fade" id="LockdebtorModal" tabindex="-1">
+      <div class="modal-dialog">
+          <div class="modal-content">
+              <div class="modal-header bg-danger text-white">
+                  <h5 class="modal-title">Lock ลูกหนี้</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body">
+                  <div class="mb-3">
+                      <label class="form-label">วันที่เริ่มต้น</label>
+                      <input type="date" id="start_date" class="form-control" required>
+                  </div>
+                  <div class="mb-3">
+                      <label class="form-label">วันที่สิ้นสุด</label>
+                      <input type="date" id="end_date" class="form-control" required>
+                  </div>
+              </div>
+              <div class="modal-footer">
+                  <button class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                  <button class="btn btn-danger" id="lockDebtorBtn">ยืนยัน Lock</button>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  {{-- Script Lock ลูกหนี้ --}}
+  <script>
+    document.getElementById('lockDebtorBtn').addEventListener('click', function () {
+        const start = document.getElementById('start_date').value;
+        const end = document.getElementById('end_date').value;
+
+        if (!start || !end) {
+            Swal.fire('แจ้งเตือน', 'กรุณาเลือกวันที่ให้ครบ', 'warning');
+            return;
+        }
+
+        Swal.fire({
+            title: 'ยืนยัน Lock ลูกหนี้?',
+            text: `ช่วงวันที่ ${start} ถึง ${end}`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Lock',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#dc3545'
+        }).then((result) => {
+            if (result.isConfirmed) {
+
+                Swal.fire({
+                    title: 'กำลังดำเนินการ...',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                fetch(`{{ url('admin/debtor/lock_debtor') }}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        start_date: start,
+                        end_date: end
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'สำเร็จ',
+                        html: `
+                            Lock ลูกหนี้เรียบร้อย<br>
+                            <b>ช่วงวันที่:</b> ${data.start_date} - ${data.end_date}<br>
+                            <b>จำนวนตารางที่อัปเดต:</b> ${data.tables}<br>
+                            <b>จำนวนรายการที่ถูก Lock:</b> ${data.rows}
+                        `
+                    });
+                })
+                .catch(err => {
+                    Swal.fire('ผิดพลาด', err.toString(), 'error');
+                });
+            }
+        });
+    });
+  </script>
+
 @endsection

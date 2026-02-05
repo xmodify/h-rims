@@ -10285,5 +10285,90 @@ class DebtorController extends Controller
         
         return view('debtor.1102050102_804_indiv_excel',compact('start_date','end_date','debtor'));
     } 
+    
+//#####################################################################################################################
+    public function lock_debtor(Request $request)
+    {
+        $request->validate([
+            'start_date' => 'required|date',
+            'end_date'   => 'required|date'
+        ]);
+
+        $start = $request->start_date;
+        $end   = $request->end_date;
+
+        // ตารางที่ใช้ vstdate
+        $vstTables = [
+            'debtor_1102050101_103','debtor_1102050101_109','debtor_1102050101_201',
+            'debtor_1102050101_203','debtor_1102050101_209','debtor_1102050101_216',
+            'debtor_1102050101_301','debtor_1102050101_303','debtor_1102050101_307',
+            'debtor_1102050101_309','debtor_1102050101_401','debtor_1102050101_501',
+            'debtor_1102050101_503','debtor_1102050101_701','debtor_1102050101_702',
+            'debtor_1102050101_703','debtor_1102050102_106','debtor_1102050102_108',
+            'debtor_1102050102_110','debtor_1102050102_602','debtor_1102050102_801',
+            'debtor_1102050102_803'
+        ];
+
+        // ตารางที่ใช้ dchdate
+        $dchTables = [
+            'debtor_1102050101_202','debtor_1102050101_217','debtor_1102050101_302',
+            'debtor_1102050101_304','debtor_1102050101_308','debtor_1102050101_310',
+            'debtor_1102050101_402','debtor_1102050101_502','debtor_1102050101_504',
+            'debtor_1102050101_704','debtor_1102050102_107','debtor_1102050102_109',
+            'debtor_1102050102_111','debtor_1102050102_603','debtor_1102050102_802',
+            'debtor_1102050102_804'
+        ];
+
+        $affected = 0;
+
+        DB::beginTransaction();
+        try {
+
+            foreach ($vstTables as $table) {
+                $affected += DB::table($table)
+                    ->whereBetween('vstdate', [$start, $end])
+                    ->where(function ($q) {
+                        $q->whereNull('debtor_lock')
+                          ->orWhere('debtor_lock', '!=', 'Y');
+                    })
+                    ->update([
+                        'debtor_lock' => 'Y',
+                        'updated_at'  => now()
+                    ]);
+            }
+
+            foreach ($dchTables as $table) {
+                $affected += DB::table($table)
+                    ->whereBetween('dchdate', [$start, $end])
+                    ->where(function ($q) {
+                        $q->whereNull('debtor_lock')
+                          ->orWhere('debtor_lock', '!=', 'Y');
+                    })
+                    ->update([
+                        'debtor_lock' => 'Y',
+                        'updated_at'  => now()
+                    ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'ok' => true,
+                'start_date' => $start,
+                'end_date' => $end,
+                'rows' => $affected,
+                'tables' => count($vstTables) + count($dchTables)
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'ok' => false,
+                'message' => $e->getMessage()
+            ], 500);
+            
+        }
+    }
 
 }

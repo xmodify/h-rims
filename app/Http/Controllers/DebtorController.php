@@ -380,7 +380,8 @@ class DebtorController extends Controller
             SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,
                 SUM(IFNULL(s.receive_total,0)+CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END) AS receive
             FROM debtor_1102050101_216 d   
-            LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_total) AS receive_total
+            LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5, 
+                SUM(receive_total) - SUM(receive_pp) AS receive_total
                 FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid
                 AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
             LEFT JOIN (SELECT cid,datetimeadm AS vstdate,SUM(receive_total) AS receive_total
@@ -1133,7 +1134,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,s.receive_pp,d.repno,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock
                 FROM debtor_1102050101_201 d   
                 LEFT JOIN ( SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
@@ -1772,9 +1773,9 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.ptname, d.hipdata_code, d.pttype, d.hospmain,d.pdx, d.income,  
-                    d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,s.receive_total, d.receive, s.repno, d.status, d.debtor_lock
+                    d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,s.receive_pp, d.receive, s.repno, d.status, d.debtor_lock
                 FROM debtor_1102050101_209 d   
-                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
                     AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%"))
@@ -1782,9 +1783,9 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.ptname, d.hipdata_code, d.pttype, d.hospmain, d.pdx,d.income,
-                     d.rcpt_money, d.ppfs, d.pp, d.other,d.debtor,s.receive_total, d.receive, s.repno, d.status, d.debtor_lock
+                     d.rcpt_money, d.ppfs, d.pp, d.other,d.debtor,s.receive_pp, d.receive, s.repno, d.status, d.debtor_lock
                 FROM debtor_1102050101_209 d   
-                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
                     AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
                 WHERE d.vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
@@ -1989,7 +1990,8 @@ class DebtorController extends Controller
                     CASE WHEN (IFNULL(MAX(s.receive_total),0)+CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(MAX(sk.receive_total),0) ELSE 0 END
                     - MAX(d.debtor)) >= 0 THEN 0 ELSE DATEDIFF(CURDATE(), MAX(d.vstdate)) END AS days
                 FROM debtor_1102050101_216 d   
-                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,
+                    SUM(receive_total) - SUM(receive_pp) AS receive_total,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
                     AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
                 LEFT JOIN (SELECT cid,datetimeadm AS vstdate,SUM(receive_total) AS receive_total,MAX(repno) AS repno
@@ -2007,7 +2009,8 @@ class DebtorController extends Controller
                     CASE WHEN (IFNULL(MAX(s.receive_total),0)+CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(MAX(sk.receive_total),0) ELSE 0 END
                     - MAX(d.debtor)) >= 0 THEN 0 ELSE DATEDIFF(CURDATE(), MAX(d.vstdate)) END AS days
                 FROM debtor_1102050101_216 d   
-                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,
+                    SUM(receive_total) - SUM(receive_pp) AS receive_total,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
                     AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
                 LEFT JOIN (SELECT cid,datetimeadm AS vstdate,sum(receive_total) AS receive_total,repno
@@ -2076,8 +2079,8 @@ class DebtorController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
             WHERE (o.an IS NULL OR o.an = "") 
             AND o.vstdate BETWEEN ? AND ?
-            AND p.hipdata_code IN ("UCS","WEL")
-            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
+            AND p.hipdata_code IN ("UCS","WEL")            
+            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL)
             GROUP BY o.vn, vp.pttype
             ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
@@ -2253,8 +2256,8 @@ class DebtorController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
             WHERE (o.an IS NULL OR o.an = "") 
             AND o.vstdate BETWEEN ? AND ?
-            AND p.hipdata_code IN ("UCS","WEL")
-            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
+            AND p.hipdata_code IN ("UCS","WEL")            
+            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL)
             AND o.vn IN ('.$checkbox_string.')
             GROUP BY o.vn, vp.pttype
@@ -2410,7 +2413,8 @@ class DebtorController extends Controller
             FROM (SELECT d.vn,d.vstdate,d.debtor,IFNULL(s.receive_total,0) + CASE  WHEN d.kidney > 0
                     THEN IFNULL(sk.receive_total,0) ELSE 0 END AS receive
                 FROM debtor_1102050101_216 d
-                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_total) AS receive_total
+                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,
+                    SUM(receive_total) - SUM(receive_pp) AS receive_total
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid
                     AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
                 LEFT JOIN (SELECT cid,datetimeadm AS vstdate, SUM(receive_total) AS receive_total

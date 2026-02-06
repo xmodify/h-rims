@@ -153,6 +153,9 @@
                                     <a class="link-primary dropdown-item text-white" href="{{ url('check/drug_cat') }}">
                                         Drug Catalog สปสช.
                                     </a>
+                                    <a class="link-primary dropdown-item text-white" href="{{ url('check/nondrugitems') }}">
+                                        ค่ารักษาพยาบาล
+                                    </a>
                                 </li>
                                 <!-- ชี้ขวา -->
                                 <li class="dropend position-relative">
@@ -478,7 +481,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li > 
                             <div class="btn text-info">
-                                V. 69-02-05 16:00
+                                V. 69-02-06 10:00
                             </div>   
                         </li>                         
                         <!-- Authentication Links -->

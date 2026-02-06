@@ -321,5 +321,32 @@ class CheckController extends Controller
 
         return view('check.nhso_subinscl',compact('subinscl'));            
     }
+
+//สิทธิการักษา nhso_subinscl---------------------------------------------------------------------------------------------------------------------------
+    public function nondrugitems()
+    {
+        $nondrugitems =  DB::connection('hosxp')->select('
+            SELECT i.`name` AS income,n.icode,n.`name`,n.price,n.billcode,
+                nc.nhso_adp_code,nc.nhso_adp_code_name,nt.nhso_adp_type_name
+            FROM nondrugitems n
+            LEFT JOIN income i ON i.income = n.income
+            LEFT JOIN nhso_adp_code nc ON nc.nhso_adp_code = n.nhso_adp_code
+            LEFT JOIN nhso_adp_type nt ON nt.nhso_adp_type_id=n.nhso_adp_type_id
+            WHERE n.istatus = "Y"
+            ORDER BY n.income');
+
+        $nondrugitems_non =  DB::connection('hosxp')->select('
+            SELECT i.`name` AS income,n.icode,n.`name`,n.price,n.billcode,
+                nc.nhso_adp_code,nc.nhso_adp_code_name,nt.nhso_adp_type_name
+            FROM nondrugitems n
+            LEFT JOIN income i ON i.income = n.income
+            LEFT JOIN nhso_adp_code nc ON nc.nhso_adp_code = n.nhso_adp_code
+            LEFT JOIN nhso_adp_type nt ON nt.nhso_adp_type_id=n.nhso_adp_type_id
+            WHERE n.istatus <> "Y"
+            ORDER BY n.income');
+
+
+        return view('check.nondrugitems',compact('nondrugitems','nondrugitems_non'));            
+    }
   
 }

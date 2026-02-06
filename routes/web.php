@@ -130,6 +130,7 @@ Route::get('check/drug_cat_nhso_code24_notmatch_hosxp',[CheckController::class,'
 Route::get('check/drug_cat_herb',[CheckController::class,'drug_cat_herb']);
 Route::get('check/pttype',[CheckController::class,'pttype']);
 Route::get('check/nhso_subinscl',[CheckController::class,'nhso_subinscl']);
+Route::get('check/nondrugitems',[CheckController::class,'nondrugitems']);
 
 //OPD------------------------------------------------------------------------------------------------------------------------------
 Route::match(['get','post'],'opd/oppp_visit',[OpdController::class,'oppp_visit']);

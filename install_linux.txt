@@ -47,83 +47,28 @@
 	sudo systemctl enable httpd
 	sudo systemctl start httpd
 
-10.If you're using Node.js for frontend (Laravel 11+ requires Node >= 18):
+10.Node.js Setup:
 	sudo dnf module reset nodejs -y
 	sudo dnf module enable nodejs:20 -y
 	sudo dnf install -y nodejs
-	
-	# แก้ไขสิทธิ์ npm cache สำหรับ user apache
-	sudo chown -R apache:apache /usr/share/httpd
-	
 	cd /var/www/html/rims
 	sudo -u apache npm install
 	sudo -u apache npm run build
 
-	ตัวอย่างไฟล์ VirtualHost (เช่น /etc/httpd/conf.d/laravel.conf)
-		Listen 8883
-		<VirtualHost *:8883>
-			ServerName yourdomain.com
-			DocumentRoot /var/www/html/rims/public
-
-			<Directory /var/www/html/rims/public>
-				AllowOverride All
-				Require all granted
-			</Directory>
-
-			ErrorLog logs/h-rims-error.log
-			CustomLog logs/h-rims-access.log combined
-		</VirtualHost>
-
-	จากนั้น:
-		sudo systemctl restart httpd
-
-	เปิด firewall (ถ้ายังไม่ได้เปิด):
-		sudo systemctl start firewalld
-		sudo systemctl enable firewalld
-		sudo systemctl status firewalld
-
-		sudo firewall-cmd --permanent --add-port=8883/tcp
-		sudo firewall-cmd --reload
-		sudo firewall-cmd --permanent --list-all
-
-	ตรวจสอบ SElinux สำหรับ Port พิเศษ (สำคัญ):
-		sudo semanage port -a -t http_port_t -p tcp 8883
-
-	ตรวจสอบว่า SELinux ไม่ block ไฟล์ Laravel:
-		sudo setsebool -P httpd_can_network_connect 1
-
-
-up laravel
-
-cd /var/www/html/rims
-sudo -u apache git pull origin main
-sudo -u apache /usr/local/bin/composer install --no-dev --optimize-autoloader
-sudo -u apache php artisan optimize:clear
-sudo -u apache rm -f bootstrap/cache/*.php
-sudo systemctl restart httpd
-# ถ้าใช้ php-fpm ให้รีสตาร์ทด้วยครับ
-sudo systemctl restart php-fpm
-
 ###########################################################
 # 11. การตั้งค่าแบบ Option B (แนะนำ - เลียนแบบ /gtw/)
 ###########################################################
-วิธีนี้คือการทำให้ทั้ง "พอร์ต 80" และ "พอร์ต 8883" มองเห็นโฟลเดอร์เป็น /rims เหมือนกัน
 
 1. แก้ไขไฟล์ VirtualHost ของพอร์ต 8883 (เช่น /etc/httpd/conf.d/laravel.conf):
    Listen 8883
    <VirtualHost *:8883>
        ServerName 192.168.0.4
-       
-       # เพิ่ม Alias เพื่อให้เข้าผ่าน http://127.0.0.1:8883/rims ได้
        Alias /rims "/var/www/html/rims/public"
-       
        DocumentRoot "/var/www/html/rims/public"
        <Directory "/var/www/html/rims/public">
            Options FollowSymLinks
            AllowOverride All
            Require all granted
-           
-           # เพิ่มบรรทัดนี้เพื่อแก้ปัญหา 404 (สำคัญมากสำหรับ Alias)
            FallbackResource /rims/index.php
        </Directory>
    </VirtualHost>
@@ -131,18 +76,24 @@ sudo systemctl restart php-fpm
 2. แก้ไขไฟล์ Proxy (พอร์ต 80) ในไฟล์ config หลักของ Apache:
    <VirtualHost *:80>
        ServerName 192.168.0.4
-       ProxyPreserveHost On
 
-       # ส่งจาก /rims ไปหา /rims ของพอร์ต 8883
-       ProxyPass        /rims/         http://127.0.0.1:8883/rims/
-       ProxyPassReverse /rims/         http://127.0.0.1:8883/rims/
-       ProxyPass        /rims          http://127.0.0.1:8883/rims
-       ProxyPassReverse /rims          http://127.0.0.1:8883/rims
+       # แก้ไขปัญหา 404 ด้วย Location Block (ชัวร์กว่าเดิม)
+       <Location /rims>
+           ProxyPass http://127.0.0.1:8883/rims
+           ProxyPassReverse http://127.0.0.1:8883/rims
+       </Location>
+       
        ProxyPassReverseCookiePath /rims /rims
    </VirtualHost>
 
-3. ตั้งค่าใน .env:
+3. คำสั่งสำคัญ เพื่อไม่ให้ติด 404 (SELinux และ Firewall):
+   sudo setsebool -P httpd_can_network_connect 1
+   sudo semanage port -a -t http_port_t -p tcp 8883
+   sudo firewall-cmd --permanent --add-port=8883/tcp
+   sudo firewall-cmd --reload
+
+4. ตั้งค่าใน .env:
    APP_URL=http://192.168.0.4/rims
 
-4. รีสตาร์ท Apache:
+5. รีสตาร์ท Apache:
    sudo systemctl restart httpd

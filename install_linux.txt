@@ -47,10 +47,17 @@
 	sudo systemctl enable httpd
 	sudo systemctl start httpd
 
-10.If you're using Node.js for frontend:
-	sudo dnf install -y nodejs npm
-	npm install
-	npm run build # สำคัญมาก: ต้องรันเพื่อให้ Vite สร้างไฟล์ด้วย path /rims/
+10.If you're using Node.js for frontend (Laravel 11+ requires Node >= 18):
+	sudo dnf module reset nodejs -y
+	sudo dnf module enable nodejs:20 -y
+	sudo dnf install -y nodejs
+	
+	# แก้ไขสิทธิ์ npm cache สำหรับ user apache
+	sudo chown -R apache:apache /usr/share/httpd
+	
+	cd /var/www/html/rims
+	sudo -u apache npm install
+	sudo -u apache npm run build # สำคัญมาก: ต้องรันเพื่อให้ Vite สร้างไฟล์ด้วย path /rims/
 
 	ตัวอย่างไฟล์ VirtualHost (เช่น /etc/httpd/conf.d/laravel.conf)
 		Listen 8883

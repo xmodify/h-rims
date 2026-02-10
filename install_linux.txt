@@ -38,6 +38,9 @@
 8.git pull ผ่าน User
 	sudo -u apache git -C /var/www/html/rims reset --hard
 	sudo -u apache git -C /var/www/html/rims pull origin main
+	sudo -u apache /usr/local/bin/composer install --no-dev --optimize-autoloader
+	sudo -u apache rm -f /var/www/html/rims/bootstrap/cache/*.php
+	sudo -u apache php artisan optimize:clear
 	
 9.ตั้งค่า Apache หรือ Nginx ให้ชี้มาที่ public/
 	sudo dnf install -y httpd

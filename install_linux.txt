@@ -23,6 +23,8 @@
 5.ตั้ง permission ให้ Apache ใช้งานได้
 	sudo chown -R apache:apache /var/www/html/rims
 	sudo chmod -R 775 /var/www/html/rims
+	sudo chmod -R 775 /var/www/html/rims/storage
+	sudo chmod -R 775 /var/www/html/rims/bootstrap/cache
 
 6.ติดตั้ง Laravel dependencies
 	cd /var/www/html/rims
@@ -33,24 +35,18 @@
 	sudo -u apache php artisan key:generate
 	sudo nano .env
 
-8.If you're using Node.js for frontend:
-	sudo apt install nodejs npm
-	npm install
-
-9.Set folder permissions
-	sudo chown -R apache:apache /var/www/html/rims
-	sudo chmod -R 755 /var/www/html/rims
-	sudo chmod -R 775 /var/www/html/rims/storage
-	sudo chmod -R 775 /var/www/html/rims/bootstrap/cache
-
-10.git pull ผ่าน User
+8.git pull ผ่าน User
 	sudo -u apache git -C /var/www/html/rims reset --hard
 	sudo -u apache git -C /var/www/html/rims pull origin main
 	
-11.ตั้งค่า Apache หรือ Nginx ให้ชี้มาที่ public/
+9.ตั้งค่า Apache หรือ Nginx ให้ชี้มาที่ public/
 	sudo dnf install -y httpd
 	sudo systemctl enable httpd
 	sudo systemctl start httpd
+
+10.If you're using Node.js for frontend:
+	sudo apt install nodejs npm
+	npm install
 
 	ตัวอย่างไฟล์ VirtualHost (เช่น /etc/httpd/conf.d/laravel.conf)
 		<VirtualHost *:8881>

@@ -105,43 +105,24 @@ sudo systemctl restart httpd
 sudo systemctl restart php-fpm
 
 ###########################################################
-# 11. การตั้งค่า Reverse Proxy (สำหรับหลายโปรเจกต์ในเครื่องเดียว)
+# 11. การตั้งค่า VirtualHost (เข้าผ่านพอร์ต 8883 ตรงๆ)
 ###########################################################
-กรณีต้องการเข้าผ่าน http://192.168.0.4/rims (Port 80) แล้วให้มันส่งต่อไปที่ Port 8883
+	ตัวอย่างไฟล์ VirtualHost (เช่น /etc/httpd/conf.d/laravel.conf)
+		Listen 8883
+		<VirtualHost *:8883>
+			ServerName 192.168.0.4
+			DocumentRoot /var/www/html/rims/public
 
-1. เปิด Mod Proxy ใน Apache:
-   sudo dnf install -y mod_ssl # ถ้าต้องการใช้ https
+			<Directory /var/www/html/rims/public>
+				AllowOverride All
+				Require all granted
+			</Directory>
 
-2. สร้างไฟล์ /etc/httpd/conf.d/proxy.conf:
-   <VirtualHost *:80>
-       ServerName 192.168.0.4
-       ProxyPreserveHost On
+			ErrorLog logs/h-rims-error.log
+			CustomLog logs/h-rims-access.log combined
+		</VirtualHost>
 
-       # --- RIMS Project ---
-       # เพิ่ม Header เพื่อบอก Laravel ว่าเราใช้ Prefix /rims
-       RequestHeader set X-Forwarded-Prefix "/rims"
-
-       ProxyPass        /rims/         http://127.0.0.1:8883/
-       ProxyPassReverse /rims/         http://127.0.0.1:8883/
-       ProxyPass        /rims          http://127.0.0.1:8883
-       ProxyPassReverse /rims          http://127.0.0.1:8883
-       ProxyPassReverseCookiePath / /rims/
-       
-       # สามารถเพิ่มโปรเจกต์อื่นๆ ต่อท้ายได้ (nplus, smartdata, etc.)
-   </VirtualHost>
-
-3. ตั้งค่าใน Laravel (.env) ของโปรเจกต์ RIMS:
-   APP_URL=http://192.168.0.4/rims
-
-4. ตรวจสอบโค้ดใน app/Providers/AppServiceProvider.php สำหรับรองรับ Sub-path:
-   public function boot(): void {
-       if (config('app.env') !== 'local') {
-           \Illuminate\Support\Facades\URL::forceRootUrl(config('app.url'));
-       }
-   }
-
-5. อนุญาตให้ Apache เชื่อมต่อขาออก (SELinux):
-   sudo setsebool -P httpd_can_network_connect 1
-
-6. รีสตาร์ท Apache:
-   sudo systemctl restart httpd
+	จากนั้น:
+		sudo systemctl restart httpd
+		
+	*หมายเหตุ: ในไฟล์ .env ควรตั้งเป็น APP_URL=http://192.168.0.4:8883*

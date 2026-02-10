@@ -26,15 +26,6 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void
-    {
-        // บังคับ Root URL กรณีใช้ Reverse Proxy (Sub-path)
-        // ตรวจสอบจาก APP_URL ใน .env โดยตรงเพื่อให้ชัวร์
-        $appUrl = config('app.url');
-        if (str_contains($appUrl, '192.168') || str_contains($appUrl, 'http')) {
-            \Illuminate\Support\Facades\URL::forceRootUrl($appUrl);
-        }
-
         //  Paginator::useBootstrapFive();
 
         // // ตรวจสอบว่ามีข้อมูลในตาราง lookup_icode มีรายการฟอกไต หรือไม่

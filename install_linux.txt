@@ -57,7 +57,7 @@
 	
 	cd /var/www/html/rims
 	sudo -u apache npm install
-	sudo -u apache npm run build # สำคัญมาก: ต้องรันเพื่อให้ Vite สร้างไฟล์ด้วย path /rims/
+	sudo -u apache npm run build
 
 	ตัวอย่างไฟล์ VirtualHost (เช่น /etc/httpd/conf.d/laravel.conf)
 		Listen 8883
@@ -108,7 +108,6 @@ sudo systemctl restart php-fpm
 # 11. การตั้งค่าแบบ Option B (แนะนำ - เลียนแบบ /gtw/)
 ###########################################################
 วิธีนี้คือการทำให้ทั้ง "พอร์ต 80" และ "พอร์ต 8883" มองเห็นโฟลเดอร์เป็น /rims เหมือนกัน
-จะช่วยให้ CSS/JS โหลดได้ทันทีโดยไม่ต้อง Build ใหม่แบบพิเศษ
 
 1. แก้ไขไฟล์ VirtualHost ของพอร์ต 8883 (เช่น /etc/httpd/conf.d/laravel.conf):
    Listen 8883
@@ -120,8 +119,12 @@ sudo systemctl restart php-fpm
        
        DocumentRoot "/var/www/html/rims/public"
        <Directory "/var/www/html/rims/public">
+           Options FollowSymLinks
            AllowOverride All
            Require all granted
+           
+           # เพิ่มบรรทัดนี้เพื่อแก้ปัญหา 404 (สำคัญมากสำหรับ Alias)
+           FallbackResource /rims/index.php
        </Directory>
    </VirtualHost>
 
@@ -130,7 +133,7 @@ sudo systemctl restart php-fpm
        ServerName 192.168.0.4
        ProxyPreserveHost On
 
-       # ส่งจาก /rims ไปหา /rims ของพอร์ต 8883 (พาร์ทตรงกันเป๊ะ)
+       # ส่งจาก /rims ไปหา /rims ของพอร์ต 8883
        ProxyPass        /rims/         http://127.0.0.1:8883/rims/
        ProxyPassReverse /rims/         http://127.0.0.1:8883/rims/
        ProxyPass        /rims          http://127.0.0.1:8883/rims

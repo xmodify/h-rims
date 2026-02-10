@@ -105,24 +105,41 @@ sudo systemctl restart httpd
 sudo systemctl restart php-fpm
 
 ###########################################################
-# 11. การตั้งค่า VirtualHost (เข้าผ่านพอร์ต 8883 ตรงๆ)
+# 11. การตั้งค่าแบบ Option B (แนะนำ - เลียนแบบ /gtw/)
 ###########################################################
-	ตัวอย่างไฟล์ VirtualHost (เช่น /etc/httpd/conf.d/laravel.conf)
-		Listen 8883
-		<VirtualHost *:8883>
-			ServerName 192.168.0.4
-			DocumentRoot /var/www/html/rims/public
+วิธีนี้คือการทำให้ทั้ง "พอร์ต 80" และ "พอร์ต 8883" มองเห็นโฟลเดอร์เป็น /rims เหมือนกัน
+จะช่วยให้ CSS/JS โหลดได้ทันทีโดยไม่ต้อง Build ใหม่แบบพิเศษ
 
-			<Directory /var/www/html/rims/public>
-				AllowOverride All
-				Require all granted
-			</Directory>
+1. แก้ไขไฟล์ VirtualHost ของพอร์ต 8883 (เช่น /etc/httpd/conf.d/laravel.conf):
+   Listen 8883
+   <VirtualHost *:8883>
+       ServerName 192.168.0.4
+       
+       # เพิ่ม Alias เพื่อให้เข้าผ่าน http://127.0.0.1:8883/rims ได้
+       Alias /rims "/var/www/html/rims/public"
+       
+       DocumentRoot "/var/www/html/rims/public"
+       <Directory "/var/www/html/rims/public">
+           AllowOverride All
+           Require all granted
+       </Directory>
+   </VirtualHost>
 
-			ErrorLog logs/h-rims-error.log
-			CustomLog logs/h-rims-access.log combined
-		</VirtualHost>
+2. แก้ไขไฟล์ Proxy (พอร์ต 80) ในไฟล์ config หลักของ Apache:
+   <VirtualHost *:80>
+       ServerName 192.168.0.4
+       ProxyPreserveHost On
 
-	จากนั้น:
-		sudo systemctl restart httpd
-		
-	*หมายเหตุ: ในไฟล์ .env ควรตั้งเป็น APP_URL=http://192.168.0.4:8883*
+       # ส่งจาก /rims ไปหา /rims ของพอร์ต 8883 (พาร์ทตรงกันเป๊ะ)
+       ProxyPass        /rims/         http://127.0.0.1:8883/rims/
+       ProxyPassReverse /rims/         http://127.0.0.1:8883/rims/
+       ProxyPass        /rims          http://127.0.0.1:8883/rims
+       ProxyPassReverse /rims          http://127.0.0.1:8883/rims
+       ProxyPassReverseCookiePath /rims /rims
+   </VirtualHost>
+
+3. ตั้งค่าใน .env:
+   APP_URL=http://192.168.0.4/rims
+
+4. รีสตาร์ท Apache:
+   sudo systemctl restart httpd

@@ -45,3 +45,10 @@
 			#!/bin/sh
 			echo "❌ git push ถูกบล็อกไว้ ห้าม push ไปยัง GitHub"
 			exit 1
+
+up Laravel xampp
+จากนั้น
+1 git pull origin main
+2 composer install --no-dev --optimize-autoloader
+3 composer dump-autoload -o
+4 php artisan optimize:clear

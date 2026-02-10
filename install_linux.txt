@@ -48,8 +48,9 @@
 	sudo systemctl start httpd
 
 10.If you're using Node.js for frontend:
-	sudo apt install nodejs npm
+	sudo dnf install -y nodejs npm
 	npm install
+	npm run build # สำคัญมาก: ต้องรันเพื่อให้ Vite สร้างไฟล์ด้วย path /rims/
 
 	ตัวอย่างไฟล์ VirtualHost (เช่น /etc/httpd/conf.d/laravel.conf)
 		Listen 8883

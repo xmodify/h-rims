@@ -29,8 +29,10 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // บังคับ Root URL กรณีใช้ Reverse Proxy (Sub-path)
-        if (config('app.env') !== 'local') {
-            \Illuminate\Support\Facades\URL::forceRootUrl(config('app.url'));
+        // ตรวจสอบจาก APP_URL ใน .env โดยตรงเพื่อให้ชัวร์
+        $appUrl = config('app.url');
+        if (str_contains($appUrl, '192.168') || str_contains($appUrl, 'http')) {
+            \Illuminate\Support\Facades\URL::forceRootUrl($appUrl);
         }
 
         //  Paginator::useBootstrapFive();

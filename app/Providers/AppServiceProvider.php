@@ -26,6 +26,8 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
+    public function boot(): void
+    {
         //  Paginator::useBootstrapFive();
 
         // // ตรวจสอบว่ามีข้อมูลในตาราง lookup_icode มีรายการฟอกไต หรือไม่

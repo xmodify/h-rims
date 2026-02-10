@@ -95,3 +95,45 @@ sudo -u apache rm -f bootstrap/cache/*.php
 sudo systemctl restart httpd
 # ถ้าใช้ php-fpm ให้รีสตาร์ทด้วยครับ
 sudo systemctl restart php-fpm
+
+###########################################################
+# 11. การตั้งค่า Reverse Proxy (สำหรับหลายโปรเจกต์ในเครื่องเดียว)
+###########################################################
+กรณีต้องการเข้าผ่าน http://192.168.0.4/rims (Port 80) แล้วให้มันส่งต่อไปที่ Port 8883
+
+1. เปิด Mod Proxy ใน Apache:
+   sudo dnf install -y mod_ssl # ถ้าต้องการใช้ https
+
+2. สร้างไฟล์ /etc/httpd/conf.d/proxy.conf:
+   <VirtualHost *:80>
+       ServerName 192.168.0.4
+       ProxyPreserveHost On
+
+       # --- RIMS Project ---
+       # เพิ่ม Header เพื่อบอก Laravel ว่าเราใช้ Prefix /rims
+       RequestHeader set X-Forwarded-Prefix "/rims"
+
+       ProxyPass        /rims/         http://127.0.0.1:8883/
+       ProxyPassReverse /rims/         http://127.0.0.1:8883/
+       ProxyPass        /rims          http://127.0.0.1:8883
+       ProxyPassReverse /rims          http://127.0.0.1:8883
+       ProxyPassReverseCookiePath / /rims/
+       
+       # สามารถเพิ่มโปรเจกต์อื่นๆ ต่อท้ายได้ (nplus, smartdata, etc.)
+   </VirtualHost>
+
+3. ตั้งค่าใน Laravel (.env) ของโปรเจกต์ RIMS:
+   APP_URL=http://192.168.0.4/rims
+
+4. ตรวจสอบโค้ดใน app/Providers/AppServiceProvider.php สำหรับรองรับ Sub-path:
+   public function boot(): void {
+       if (config('app.env') !== 'local') {
+           \Illuminate\Support\Facades\URL::forceRootUrl(config('app.url'));
+       }
+   }
+
+5. อนุญาตให้ Apache เชื่อมต่อขาออก (SELinux):
+   sudo setsebool -P httpd_can_network_connect 1
+
+6. รีสตาร์ท Apache:
+   sudo systemctl restart httpd

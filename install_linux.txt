@@ -1,48 +1,51 @@
-1.Install Git (if not installed)
-	sudo apt update
-	sudo apt install git
+################## Almalinux 9.4 ###################
+1.เตรียมระบบพื้นฐาน (ถ้ายังไม่ได้ลง)
+	sudo dnf update -y
+	sudo dnf install -y git unzip
 
-2.Install PHP 8.1, and required extensions
+2.ติดตั้ง Apache + PHP (Laravel แนะนำ PHP ≥ 8.1)
 	sudo dnf install -y epel-release
 	sudo dnf install -y https://rpms.remirepo.net/enterprise/remi-release-9.rpm
 	sudo dnf module enable -y php:remi-8.1
 	sudo dnf install -y php php-cli php-common php-mbstring php-xml php-bcmath php-curl php-zip php-mysqlnd php-pdo php-tokenizer php-opcache unzip git curl
 
-3.Install Composer
-	curl -sS https://getcomposer.org/installer | php
+3.ติดตั้ง Composer
+	cd /tmp
+	php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+	php composer-setup.php
 	sudo mv composer.phar /usr/local/bin/composer
 	composer --version
 
-4.Clone the Laravel project
-	cd /var/www
-	git clone https://github.com/xmodify/h-rims.git
-	cd h-rims
-	sudo chown -R User:User /var/www/html/h-rims
-	git pull origin main
+4.Clone Project ลง /var/www/html/rims
+	cd /var/www/html
+	sudo git clone https://github.com/xmodify/h-rims.git rims
 
-5.Install dependencies
-	composer install
+5.ตั้ง permission ให้ Apache ใช้งานได้
+	sudo chown -R apache:apache /var/www/html/rims
+	sudo chmod -R 775 /var/www/html/rims
 
-6.If you're using Node.js for frontend:
+6.ติดตั้ง Laravel dependencies
+	cd /var/www/html/rims
+	sudo -u apache /usr/local/bin/composer install
+
+7.ตั้งค่าไฟล์ .env
+	sudo -u apache cp .env.example .env
+	sudo -u apache php artisan key:generate
+	sudo nano .env
+
+8.If you're using Node.js for frontend:
 	sudo apt install nodejs npm
 	npm install
 
-7.Set up your .env file
-	cp .env.example .env
-	nano .env
-
-8.Generate the Laravel app key
-	php artisan key:generate
-
 9.Set folder permissions
-	sudo chown -R apache:apache /var/www/html/h-rims
-	sudo chmod -R 755 /var/www/html/h-rims
-	sudo chmod -R 775 /var/www/html/h-rims/storage
-	sudo chmod -R 775 /var/www/html/h-rims/bootstrap/cache
+	sudo chown -R apache:apache /var/www/html/rims
+	sudo chmod -R 755 /var/www/html/rims
+	sudo chmod -R 775 /var/www/html/rims/storage
+	sudo chmod -R 775 /var/www/html/rims/bootstrap/cache
 
 10.git pull ผ่าน User
-	sudo -u apache git -C /var/www/html/h-rims reset --hard
-	sudo -u apache git -C /var/www/html/h-rims pull origin main
+	sudo -u apache git -C /var/www/html/rims reset --hard
+	sudo -u apache git -C /var/www/html/rims pull origin main
 	
 11.ตั้งค่า Apache หรือ Nginx ให้ชี้มาที่ public/
 	sudo dnf install -y httpd
@@ -50,11 +53,11 @@
 	sudo systemctl start httpd
 
 	ตัวอย่างไฟล์ VirtualHost (เช่น /etc/httpd/conf.d/laravel.conf)
-		<VirtualHost *:88>
+		<VirtualHost *:8881>
 			ServerName yourdomain.com
-			DocumentRoot /var/www/html/h-rims/public
+			DocumentRoot /var/www/html/rims/public
 
-			<Directory /var/www/html/h-rims/public>
+			<Directory /var/www/html/rims/public>
 				AllowOverride All
 				Require all granted
 			</Directory>

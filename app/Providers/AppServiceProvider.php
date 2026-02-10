@@ -13,9 +13,14 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Register any application services.
      */
+    /**
+     * Register any application services.
+     */
     public function register(): void
     {
-        //
+        \Illuminate\Database\Connection::resolverFor('mariadb', function ($connection, $database, $prefix, $config) {
+            return new \App\Database\LegacyMariaDbConnection($connection, $database, $prefix, $config);
+        });
     }
 
     /**

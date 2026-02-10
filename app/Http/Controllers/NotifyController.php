@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 class NotifyController extends Controller
 {
-    public function notify_summary(Request $request )
+    public function notify_summary(Request $request)
     {
         $budget_year_now = DB::table('budget_year')
             ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
@@ -18,7 +18,7 @@ class NotifyController extends Controller
             ->where('LEAVE_YEAR_ID', $budget_year)
             ->first(['DATE_BEGIN', 'DATE_END']);
         $start_date = $year->DATE_BEGIN ?? null;
-        $end_date   = $year->DATE_END ?? null;
+        $end_date = $year->DATE_END ?? null;
 
         $notify = DB::connection('hosxp')->select('
             SELECT COUNT(vn) AS visit,IFNULL(SUM(CASE WHEN endpoint_code LIKE "EP%" THEN 1 ELSE 0 END),0) AS "endpoint",
@@ -53,22 +53,22 @@ class NotifyController extends Controller
             LEFT JOIN drugitems n3 ON n3.icode=o3.icode
             LEFT JOIN health_med_service hm ON hm.vn=o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate
-            WHERE o.vstdate = DATE(DATE_ADD(now(), INTERVAL -1 DAY )) AND (o.an ="" OR o.an IS NULL) GROUP BY o.vn ) AS a');         
+            WHERE o.vstdate = DATE(DATE_ADD(now(), INTERVAL -1 DAY )) AND (o.an ="" OR o.an IS NULL) GROUP BY o.vn ) AS a');
 
-        foreach ($notify as $row){
-                $visit=$row->visit;
-                $endpoint=$row->endpoint;
-                $ucs_all=$row->ucs_all;
-                $ucs_endpoint=$row->ucs_endpoint;
-                $uc_anywhere=$row->uc_anywhere;
-                $uc_cr=$row->uc_cr;
-                $uc_healthmed=$row->uc_healthmed;
-                $ppfs=$row->ppfs;
-                $ofc_all=$row->ofc_all;
-                $ofc_edc=$row->ofc_edc;
-                $non_authen=$row->non_authen;
-                $non_hmain=$row->non_hmain;
-        }    
+        foreach ($notify as $row) {
+            $visit = $row->visit;
+            $endpoint = $row->endpoint;
+            $ucs_all = $row->ucs_all;
+            $ucs_endpoint = $row->ucs_endpoint;
+            $uc_anywhere = $row->uc_anywhere;
+            $uc_cr = $row->uc_cr;
+            $uc_healthmed = $row->uc_healthmed;
+            $ppfs = $row->ppfs;
+            $ofc_all = $row->ofc_all;
+            $ofc_edc = $row->ofc_edc;
+            $non_authen = $row->non_authen;
+            $non_hmain = $row->non_hmain;
+        }
 
         $ipd_dchsummary = DB::connection('hosxp')->select('
             SELECT SUM(CASE WHEN (a.diag_text_list ="" OR a.diag_text_list IS NULL ) THEN 1 ELSE 0 END) AS non_diagtext,
@@ -79,54 +79,54 @@ class NotifyController extends Controller
             WHERE i.dchdate >= ? AND  i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y") 
             AND (a.diag_text_list ="" OR a.diag_text_list IS NULL 				
             OR id.icd10 ="" OR id.icd10 IS NULL
-            OR a.pdx = "" OR a.pdx IS NULL)',[$start_date]);   
-        foreach ($ipd_dchsummary as $row){ 
-            $non_diagtext=$row->non_diagtext;
-            $non_icd10=$row->non_icd10;
-            $url_ipd_dchsummary=url('ipd_non_dchsummary'); 
-        }  
-
-    //แจ้งเตือน Telegram
-
-        $message = "ข้อมูลบริการ" ."วันที่ ". DateThai(date("Y-m-d", strtotime("-1 day"))) ."\n"  
-        ."---------------------------------"  ."\n"        
-        ."OP Visit: " .$visit ." visit" ."\n" 
-        ."ปิดสิทธิ: " .$endpoint ." visit" ."\n"
-        ."สิทธิ UCS|ปิดสิทธิ: " .$ucs_all ."|" .$ucs_endpoint ." visit" ."\n"
-        ."  -OP Anywhere: " .$uc_anywhere ." visit" ."\n"
-        ."  -บริการเฉพาะ CR: " .$uc_cr ." visit" ."\n"
-        ."  -บริการแพทย์แผนไทย: " .$uc_healthmed ." visit" ."\n"
-        ."PPFS: " .$ppfs ." visit" ."\n"
-        ."สิทธิ OFC|รูดบัตร: " .$ofc_all ."|" .$ofc_edc ." visit" ."\n"
-        ."ไม่ขอ Authen: " .$non_authen ." visit" ."\n" 
-        ."ไม่บันทึก Hmain: " .$non_hmain ." Visit" ."\n" 
-        ."---------------------------------"  ."\n" 
-        ."Chart รอแพทย์สรุป: " .$non_diagtext ." AN" ."\n" 
-        ."Chart รอลงรหัสโรค: " .$non_icd10 ." AN" ."\n"
-        .$url_ipd_dchsummary ."\n";  
-
-        $token =  DB::table('main_setting')->where('name','telegram_token')->value('value'); //Notify_Bot
-        $telegram_chat_id =  DB::table('main_setting')->where('name','telegram_chat_id')->value('value'); 
-        $chat_ids = explode(',', $telegram_chat_id); //Notify_Group
-  
-        foreach ($chat_ids as $chat_id) {
-                $url = "https://api.telegram.org/bot$token/sendMessage";
-    
-                $data = [
-                    'chat_id' => $chat_id,
-                    'text'    => $message
-                ];
-    
-                $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, $url);
-                curl_setopt($ch, CURLOPT_POST, 1);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_exec($ch);
-                curl_close($ch);
-                sleep(1);
+            OR a.pdx = "" OR a.pdx IS NULL)', [$start_date]);
+        foreach ($ipd_dchsummary as $row) {
+            $non_diagtext = $row->non_diagtext;
+            $non_icd10 = $row->non_icd10;
+            $url_ipd_dchsummary = url('ipd_non_dchsummary');
         }
-    
-        return response()->json(['success' => 'success'], 200);  
-    }   
+
+        //แจ้งเตือน Telegram
+
+        $message = "ข้อมูลบริการ" . "วันที่ " . DateThai(date("Y-m-d", strtotime("-1 day"))) . "\n"
+            . "---------------------------------" . "\n"
+            . "OP Visit: " . $visit . " visit" . "\n"
+            . "ปิดสิทธิ: " . $endpoint . " visit" . "\n"
+            . "สิทธิ UCS|ปิดสิทธิ: " . $ucs_all . "|" . $ucs_endpoint . " visit" . "\n"
+            . "  -OP Anywhere: " . $uc_anywhere . " visit" . "\n"
+            . "  -บริการเฉพาะ CR: " . $uc_cr . " visit" . "\n"
+            . "  -บริการแพทย์แผนไทย: " . $uc_healthmed . " visit" . "\n"
+            . "PPFS: " . $ppfs . " visit" . "\n"
+            . "สิทธิ OFC|รูดบัตร: " . $ofc_all . "|" . $ofc_edc . " visit" . "\n"
+            . "ไม่ขอ Authen: " . $non_authen . " visit" . "\n"
+            . "ไม่บันทึก Hmain: " . $non_hmain . " Visit" . "\n"
+            . "---------------------------------" . "\n"
+            . "Chart รอแพทย์สรุป: " . $non_diagtext . " AN" . "\n"
+            . "Chart รอลงรหัสโรค: " . $non_icd10 . " AN" . "\n"
+            . $url_ipd_dchsummary . "\n";
+
+        $token = DB::table('main_setting')->where('name', 'telegram_token')->value('value'); //Notify_Bot
+        $telegram_chat_id = DB::table('main_setting')->where('name', 'telegram_chat_id')->value('value');
+        $chat_ids = explode(',', $telegram_chat_id); //Notify_Group
+
+        foreach ($chat_ids as $chat_id) {
+            $url = "https://api.telegram.org/bot$token/sendMessage";
+
+            $data = [
+                'chat_id' => $chat_id,
+                'text' => $message
+            ];
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_exec($ch);
+            curl_close($ch);
+            sleep(1);
+        }
+
+        return response()->json(['success' => 'success'], 200);
+    }
 }

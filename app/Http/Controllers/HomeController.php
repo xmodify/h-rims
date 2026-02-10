@@ -16,51 +16,55 @@ class HomeController extends Controller
      *
      * @return void
      */
-public function __construct()
-{
-    $this->middleware('auth')->except(['ipd_non_dchsummary','ipd_finance_chk_opd_wait_transfer',
-    'ipd_finance_chk_wait_rcpt_money','nhso_endpoint_pull_yesterday']);
-}
+    public function __construct()
+    {
+        $this->middleware('auth')->except([
+            'ipd_non_dchsummary',
+            'ipd_finance_chk_opd_wait_transfer',
+            'ipd_finance_chk_wait_rcpt_money',
+            'nhso_endpoint_pull_yesterday'
+        ]);
+    }
 
     /**
      * Show the application dashboard.
      *
      * @return \Illuminate\Contracts\Support\Renderable
      */
-public function index(Request $request )
-{
-    // $budget_year_now = DB::table('budget_year')
-    //     ->where('DATE_END', '>=', date('Y-m-d'))
-    //     ->where('DATE_BEGIN', '<=', date('Y-m-d'))
-    //     ->value('LEAVE_YEAR_ID');
-    // $budget_year = $request->budget_year ?: $budget_year_now;
-    // $year_data = DB::table('budget_year')
-    //     ->where('LEAVE_YEAR_ID', $budget_year)
-    //     ->first(['DATE_BEGIN', 'DATE_END']);
-    // $start_date = $year_data->DATE_BEGIN ?? null;
-    // $end_date   = $year_data->DATE_END ?? null;
+    public function index(Request $request)
+    {
+        // $budget_year_now = DB::table('budget_year')
+        //     ->where('DATE_END', '>=', date('Y-m-d'))
+        //     ->where('DATE_BEGIN', '<=', date('Y-m-d'))
+        //     ->value('LEAVE_YEAR_ID');
+        // $budget_year = $request->budget_year ?: $budget_year_now;
+        // $year_data = DB::table('budget_year')
+        //     ->where('LEAVE_YEAR_ID', $budget_year)
+        //     ->first(['DATE_BEGIN', 'DATE_END']);
+        // $start_date = $year_data->DATE_BEGIN ?? null;
+        // $end_date   = $year_data->DATE_END ?? null;
 
-    ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
 
-    $budget_year_select = DB::table('budget_year')
-        ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
-        ->orderByDesc('LEAVE_YEAR_ID')
-        ->limit(7)
-        ->get();
-    $budget_year_now = DB::table('budget_year')
-        ->whereDate('DATE_END', '>=', date('Y-m-d'))
-        ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
-        ->value('LEAVE_YEAR_ID');       
-    $budget_year = $request->budget_year ?: $budget_year_now;
-    $year_data = DB::table('budget_year')
-        ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
-        ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
-    $start_date = $year_data[$budget_year] ?? null;
-    $end_date = DB::table('budget_year')
-        ->where('LEAVE_YEAR_ID', $budget_year)
-        ->value('DATE_END');
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
+            ->orderByDesc('LEAVE_YEAR_ID')
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date = $year_data[$budget_year] ?? null;
+        $end_date = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->value('DATE_END');
 
-    $opd_monitor = DB::connection('hosxp')->select('
+        $opd_monitor = DB::connection('hosxp')->select('
         SELECT COUNT(vn) AS total,IFNULL(SUM(CASE WHEN endpoint<>"" THEN 1 ELSE 0 END),0) AS "endpoint",
         IFNULL(SUM(CASE WHEN hipdata_code="OFC" THEN 1 ELSE 0 END),0) AS "ofc",
         IFNULL(SUM(CASE WHEN hipdata_code="OFC" AND edc_approve_list_text <> "" THEN 1 ELSE 0 END),0) AS "ofc_edc",
@@ -101,38 +105,38 @@ public function index(Request $request )
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
         WHERE o.vstdate = DATE(NOW()) AND (o.an ="" OR o.an IS NULL) GROUP BY o.vn) AS a');
 
-    foreach ($opd_monitor as $row){
-        $opd_total = $row->total;
-        $endpoint =$row->endpoint; 
-        $ofc = $row->ofc;
-        $ofc_edc = $row->ofc_edc;
-        $non_authen = $row->non_authen;  
-        $non_hmain = $row->non_hmain;  
-        $uc_anywhere = $row->uc_anywhere;
-        $uc_anywhere_endpoint = $row->uc_anywhere_endpoint;
-        $uc_cr = $row->uc_cr;
-        $uc_cr_endpoint = $row->uc_cr_endpoint; 
-        $uc_herb = $row->uc_herb;
-        $uc_herb_endpoint = $row->uc_herb_endpoint; 
-        $uc_healthmed = $row->uc_healthmed;  
-        $uc_healthmed_endpoint = $row->uc_healthmed_endpoint; 
-        $ppfs = $row->ppfs;
-        $ppfs_endpoint = $row->ppfs_endpoint; 
-    }
+        foreach ($opd_monitor as $row) {
+            $opd_total = $row->total;
+            $endpoint = $row->endpoint;
+            $ofc = $row->ofc;
+            $ofc_edc = $row->ofc_edc;
+            $non_authen = $row->non_authen;
+            $non_hmain = $row->non_hmain;
+            $uc_anywhere = $row->uc_anywhere;
+            $uc_anywhere_endpoint = $row->uc_anywhere_endpoint;
+            $uc_cr = $row->uc_cr;
+            $uc_cr_endpoint = $row->uc_cr_endpoint;
+            $uc_herb = $row->uc_herb;
+            $uc_herb_endpoint = $row->uc_herb_endpoint;
+            $uc_healthmed = $row->uc_healthmed;
+            $uc_healthmed_endpoint = $row->uc_healthmed_endpoint;
+            $ppfs = $row->ppfs;
+            $ppfs_endpoint = $row->ppfs_endpoint;
+        }
 
-    $ipd_admit_homeward = DB::connection('hosxp')->select('
+        $ipd_admit_homeward = DB::connection('hosxp')->select('
         SELECT COUNT(DISTINCT o.an) AS homeward,COUNT(ep.claimCode) AS endpoint
         FROM ovst o INNER JOIN ipt i ON i.an = o.an 
         LEFT JOIN patient pt ON pt.hn=o.hn
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND DATE(ep.serviceDateTime)=o.vstdate AND ep.claimType = "PG0140001"
         WHERE o.vstdate = DATE(NOW())
         AND i.ward IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")');
-        foreach($ipd_admit_homeward as $row){
+        foreach ($ipd_admit_homeward as $row) {
             $admit_homeward = $row->homeward;
             $admit_homeward_endpoint = $row->endpoint;
         }
 
-    $sql=DB::connection('hosxp')->select('
+        $sql = DB::connection('hosxp')->select('
         SELECT COUNT(DISTINCT an) AS admit_now,
         IFNULL(SUM(CASE WHEN ward IN (SELECT ward FROM hrims.lookup_ward WHERE ward_m = "Y")  
 			THEN 1 ELSE 0 END),0) AS "ward_m",
@@ -146,16 +150,16 @@ public function index(Request $request )
 			THEN 1 ELSE 0 END),0) AS "ward_homeward"
         FROM (SELECT i.an,i.regdate,i.regtime,i.dchdate,i.dchtime,i.ward 
         FROM ipt i WHERE confirm_discharge = "N") AS a');
-        foreach ($sql as $row){
+        foreach ($sql as $row) {
             $admit_now = $row->admit_now;
-            $ward_m =$row->ward_m;
-            $ward_f =$row->ward_f;
+            $ward_m = $row->ward_m;
+            $ward_f = $row->ward_f;
             $ward_vip = $row->ward_vip;
-            $ward_lr =$row->ward_lr;
-            $word_homeward =$row->ward_homeward;      
-        } 
+            $ward_lr = $row->ward_lr;
+            $word_homeward = $row->ward_homeward;
+        }
 
-    $ipd_dchsummary = DB::connection('hosxp')->select('
+        $ipd_dchsummary = DB::connection('hosxp')->select('
         SELECT SUM(CASE WHEN (diag_text_list IS NULL OR diag_text_list ="") THEN 1 ELSE 0 END) AS non_diagtext,
         SUM(CASE WHEN (dx IS NOT NULL OR dx <>"") AND (pdx ="" OR pdx IS NULL) THEN 1 ELSE 0 END) AS non_icd10
         FROM (SELECT i.an,i.regdate,i.dchdate,id.diag_text AS dx,a.pdx,a.diag_text_list,i.adjrw,i.ward
@@ -163,12 +167,12 @@ public function index(Request $request )
         LEFT JOIN ipt_doctor_diag id ON id.an = i.an	AND id.diagtype = 1          
         LEFT JOIN an_stat a ON a.an=i.an						
         WHERE i.dchdate BETWEEN ? AND ?
-        GROUP BY i.an) AS a',[$start_date,$end_date]);        
-        foreach ($ipd_dchsummary as $row){ 
-            $non_diagtext=$row->non_diagtext;
-            $non_icd10=$row->non_icd10;
+        GROUP BY i.an) AS a', [$start_date, $end_date]);
+        foreach ($ipd_dchsummary as $row) {
+            $non_diagtext = $row->non_diagtext;
+            $non_icd10 = $row->non_icd10;
         }
-    $ipd_paid_money = DB::connection('hosxp')->select('
+        $ipd_paid_money = DB::connection('hosxp')->select('
         SELECT SUM(CASE WHEN (opd_wait_money <> "0") THEN 1 ELSE 0 END) AS not_transfer,
         SUM(CASE WHEN wait_paid_money <> "0" THEN 1 ELSE 0 END) AS wait_paid_money,
         SUM(wait_paid_money) AS sum_wait_paid_money
@@ -178,15 +182,15 @@ public function index(Request $request )
         LEFT JOIN an_stat a ON a.an=i.an   
         WHERE i.confirm_discharge = "N"  AND (a.opd_wait_money <>"0" 
         OR a.paid_money-a.rcpt_money <>"0" ) GROUP BY i.an 
-        ORDER BY a.opd_wait_money DESC,i.ward,wait_paid_money DESC) AS a');         
+        ORDER BY a.opd_wait_money DESC,i.ward,wait_paid_money DESC) AS a');
 
-    foreach ($ipd_paid_money as $row){ 
-        $not_transfer=$row->not_transfer;
-        $wait_paid_money=$row->wait_paid_money;
-        $sum_wait_paid_money=$row->sum_wait_paid_money;
-    }
-    $bed_qty = DB::table('main_setting')->where('name','bed_qty')->value('value'); 
-    $ip_all = DB::connection('hosxp')->select('
+        foreach ($ipd_paid_money as $row) {
+            $not_transfer = $row->not_transfer;
+            $wait_paid_money = $row->wait_paid_money;
+            $sum_wait_paid_money = $row->sum_wait_paid_money;
+        }
+        $bed_qty = DB::table('main_setting')->where('name', 'bed_qty')->value('value');
+        $ip_all = DB::connection('hosxp')->select('
         SELECT CASE WHEN MONTH(a.dchdate)="10" THEN CONCAT("ต.ค. ",YEAR(a.dchdate)+543)
         WHEN MONTH(a.dchdate)="11" THEN CONCAT("พ.ย. ",YEAR(a.dchdate)+543)
         WHEN MONTH(a.dchdate)="12" THEN CONCAT("ธ.ค. ",YEAR(a.dchdate)+543)
@@ -209,9 +213,9 @@ public function index(Request $request )
         WHERE a.dchdate BETWEEN ? AND DATE(NOW())
         AND a.pdx NOT IN ("Z290","Z208")
         GROUP BY MONTH(a.dchdate)
-        ORDER BY YEAR(a.dchdate) , MONTH(a.dchdate)',[$bed_qty,$bed_qty,$bed_qty,$start_date]);
+        ORDER BY YEAR(a.dchdate) , MONTH(a.dchdate)', [$bed_qty, $bed_qty, $bed_qty, $start_date]);
 
-    $ip_normal = DB::connection('hosxp')->select('
+        $ip_normal = DB::connection('hosxp')->select('
         SELECT CASE WHEN MONTH(a.dchdate)="10" THEN CONCAT("ต.ค. ",YEAR(a.dchdate)+543)
         WHEN MONTH(a.dchdate)="11" THEN CONCAT("พ.ย. ",YEAR(a.dchdate)+543)
         WHEN MONTH(a.dchdate)="12" THEN CONCAT("ธ.ค. ",YEAR(a.dchdate)+543)
@@ -237,9 +241,9 @@ public function index(Request $request )
         AND (ia.roomno IN (SELECT roomno FROM roomno WHERE roomtype IN (1,2))
             OR a.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y"))  
         GROUP BY MONTH(a.dchdate)
-        ORDER BY YEAR(a.dchdate) , MONTH(a.dchdate)',[$bed_qty,$bed_qty,$bed_qty,$start_date]);
+        ORDER BY YEAR(a.dchdate) , MONTH(a.dchdate)', [$bed_qty, $bed_qty, $bed_qty, $start_date]);
 
-    $ip_homeward = DB::connection('hosxp')->select('
+        $ip_homeward = DB::connection('hosxp')->select('
         SELECT CASE WHEN MONTH(a.dchdate)="10" THEN CONCAT("ต.ค. ",YEAR(a.dchdate)+543)
         WHEN MONTH(a.dchdate)="11" THEN CONCAT("พ.ย. ",YEAR(a.dchdate)+543)
         WHEN MONTH(a.dchdate)="12" THEN CONCAT("ธ.ค. ",YEAR(a.dchdate)+543)
@@ -265,318 +269,355 @@ public function index(Request $request )
         AND (ia.roomno IN (SELECT roomno FROM roomno WHERE roomtype IN (3)) 
             OR a.ward IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y"))      
         GROUP BY MONTH(a.dchdate)
-        ORDER BY YEAR(a.dchdate) , MONTH(a.dchdate)',[$bed_qty,$bed_qty,$bed_qty,$start_date]);
-    $month = array_column($ip_all,'month');  
-    $bed_occupancy = array_column($ip_all,'bed_occupancy');
+        ORDER BY YEAR(a.dchdate) , MONTH(a.dchdate)', [$bed_qty, $bed_qty, $bed_qty, $start_date]);
+        $month = array_column($ip_all, 'month');
+        $bed_occupancy = array_column($ip_all, 'bed_occupancy');
 
-    return view('home',compact('budget_year_select','budget_year','opd_total','endpoint','ofc','ofc_edc','non_authen','non_hmain',
-        'uc_anywhere','uc_anywhere_endpoint','uc_cr','uc_cr_endpoint','uc_herb','uc_herb_endpoint',
-        'uc_healthmed','uc_healthmed_endpoint','ppfs','ppfs_endpoint','admit_homeward','admit_homeward_endpoint','non_diagtext','non_icd10','not_transfer',
-        'wait_paid_money','sum_wait_paid_money','ip_all','ip_normal','ip_homeward','month','bed_occupancy','admit_now'));
-}
-###################################################################################################
+        return view('home', compact(
+            'budget_year_select',
+            'budget_year',
+            'opd_total',
+            'endpoint',
+            'ofc',
+            'ofc_edc',
+            'non_authen',
+            'non_hmain',
+            'uc_anywhere',
+            'uc_anywhere_endpoint',
+            'uc_cr',
+            'uc_cr_endpoint',
+            'uc_herb',
+            'uc_herb_endpoint',
+            'uc_healthmed',
+            'uc_healthmed_endpoint',
+            'ppfs',
+            'ppfs_endpoint',
+            'admit_homeward',
+            'admit_homeward_endpoint',
+            'non_diagtext',
+            'non_icd10',
+            'not_transfer',
+            'wait_paid_money',
+            'sum_wait_paid_money',
+            'ip_all',
+            'ip_normal',
+            'ip_homeward',
+            'month',
+            'bed_occupancy',
+            'admit_now'
+        ));
+    }
+    ###################################################################################################
 //Create nhso_endpoint_pull
-public function nhso_endpoint_pull(Request $request)
-{   
-    set_time_limit(600);  
+    public function nhso_endpoint_pull(Request $request)
+    {
+        set_time_limit(600);
 
-    $vstdate = $request->input('vstdate') ?? now()->format('Y-m-d'); 
-    $hosxp = DB::connection('hosxp')->select('
+        $vstdate = $request->input('vstdate') ?? now()->format('Y-m-d');
+        $hosxp = DB::connection('hosxp')->select('
         SELECT o.vn, o.hn, pt.cid, vp.auth_code
         FROM ovst o
         INNER JOIN visit_pttype vp ON vp.vn = o.vn 
         LEFT JOIN patient pt ON pt.hn = o.hn
         WHERE o.vstdate = ?
         AND pt.cid NOT IN (SELECT cid FROM hrims.nhso_endpoint WHERE vstdate = ? AND cid IS NOT NULL)'
-        , [$vstdate,$vstdate]);  
+            ,
+            [$vstdate, $vstdate]
+        );
 
-    $cids = array_column($hosxp, 'cid');     
-    // ดึง token 
-    $token = DB::table('main_setting')
-        ->where('name', 'token_authen_kiosk_nhso')
-        ->value('value');
+        $cids = array_column($hosxp, 'cid');
+        // ดึง token 
+        $token = DB::table('main_setting')
+            ->where('name', 'token_authen_kiosk_nhso')
+            ->value('value');
 
-    // วนทีละก้อน (chunk) ก้อนละ 20 CID
-    foreach (array_chunk($cids, 20) as $chunk) {
-        foreach ($chunk as $cid) {
-            try {
-                $response = Http::timeout(5) // สูงสุดรอ 5 วิ ต่อ 1 request
-                    ->withToken($token)
-                    ->acceptJson()
-                    ->get('https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status', [
-                        'personalId'  => $cid,
-                        'serviceDate' => $vstdate,
-                    ]);
+        // วนทีละก้อน (chunk) ก้อนละ 20 CID
+        foreach (array_chunk($cids, 20) as $chunk) {
+            foreach ($chunk as $cid) {
+                try {
+                    $response = Http::timeout(5) // สูงสุดรอ 5 วิ ต่อ 1 request
+                        ->withToken($token)
+                        ->acceptJson()
+                        ->get('https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status', [
+                            'personalId' => $cid,
+                            'serviceDate' => $vstdate,
+                        ]);
 
-                if ($response->failed()) {
-                    \Log::warning("ดึงข้อมูลไม่สำเร็จสำหรับ CID: {$cid}", [
-                        'status' => $response->status(),
-                        'body'   => $response->body(),
-                    ]);
-                    continue;
-                }
+                    if ($response->failed()) {
+                        \Log::warning("ดึงข้อมูลไม่สำเร็จสำหรับ CID: {$cid}", [
+                            'status' => $response->status(),
+                            'body' => $response->body(),
+                        ]);
+                        continue;
+                    }
 
-                $result = $response->json();
+                    $result = $response->json();
 
-                // กันกรณี response รูปแบบไม่ครบ
-                if (!is_array($result) || !isset($result['firstName']) || empty($result['serviceHistories'])) {
-                    continue;
-                }
+                    // กันกรณี response รูปแบบไม่ครบ
+                    if (!is_array($result) || !isset($result['firstName']) || empty($result['serviceHistories'])) {
+                        continue;
+                    }
 
-                $firstName     = $result['firstName'] ?? null;
-                $lastName      = $result['lastName'] ?? null;
-                $mainInscl     = $result['mainInscl']['id']   ?? null;
-                $mainInsclName = $result['mainInscl']['name'] ?? null;
-                $subInscl      = $result['subInscl']['id']    ?? null;
-                $subInsclName  = $result['subInscl']['name']  ?? null;
+                    $firstName = $result['firstName'] ?? null;
+                    $lastName = $result['lastName'] ?? null;
+                    $mainInscl = $result['mainInscl']['id'] ?? null;
+                    $mainInsclName = $result['mainInscl']['name'] ?? null;
+                    $subInscl = $result['subInscl']['id'] ?? null;
+                    $subInsclName = $result['subInscl']['name'] ?? null;
 
-                foreach ($result['serviceHistories'] as $row) {
-                    if (!is_array($row)) continue;
+                    foreach ($result['serviceHistories'] as $row) {
+                        if (!is_array($row))
+                            continue;
 
-                    $serviceDateTime = $row['serviceDateTime'] ?? null;
-                    $sourceChannel   = $row['sourceChannel']   ?? '';
-                    $claimCode       = $row['claimCode']       ?? null;
-                    $claimType       = $row['service']['code'] ?? null;
+                        $serviceDateTime = $row['serviceDateTime'] ?? null;
+                        $sourceChannel = $row['sourceChannel'] ?? '';
+                        $claimCode = $row['claimCode'] ?? null;
+                        $claimType = $row['service']['code'] ?? null;
 
-                    if (!$claimCode) continue;
+                        if (!$claimCode)
+                            continue;
 
-                    $exists = Nhso_Endpoint::where('cid', $cid)
-                        ->where('claimCode', $claimCode)
-                        ->exists();
-
-                    if ($exists) {
-                        // อัปเดตเฉพาะ claimType ตามลอจิกเดิม
-                        Nhso_Endpoint::where('cid', $cid)
+                        $exists = Nhso_Endpoint::where('cid', $cid)
                             ->where('claimCode', $claimCode)
-                            ->update([
+                            ->exists();
+
+                        if ($exists) {
+                            // อัปเดตเฉพาะ claimType ตามลอจิกเดิม
+                            Nhso_Endpoint::where('cid', $cid)
+                                ->where('claimCode', $claimCode)
+                                ->update([
+                                    'claimType' => $claimType,
+                                ]);
+                        } elseif ($sourceChannel === 'ENDPOINT' || $claimType === 'PG0140001') {
+                            Nhso_Endpoint::create([
+                                'cid' => $cid,
+                                'firstName' => $firstName,
+                                'lastName' => $lastName,
+                                'mainInscl' => $mainInscl,
+                                'mainInsclName' => $mainInsclName,
+                                'subInscl' => $subInscl,
+                                'subInsclName' => $subInsclName,
+                                'serviceDateTime' => $serviceDateTime,
+                                'vstdate' => $serviceDateTime ? date('Y-m-d', strtotime($serviceDateTime)) : $vstdate,
+                                'sourceChannel' => $sourceChannel,
+                                'claimCode' => $claimCode,
                                 'claimType' => $claimType,
                             ]);
-                    } elseif ($sourceChannel === 'ENDPOINT' || $claimType === 'PG0140001') {
-                        Nhso_Endpoint::create([
-                            'cid'            => $cid,
-                            'firstName'      => $firstName,
-                            'lastName'       => $lastName,
-                            'mainInscl'      => $mainInscl,
-                            'mainInsclName'  => $mainInsclName,
-                            'subInscl'       => $subInscl,
-                            'subInsclName'   => $subInsclName,
-                            'serviceDateTime'=> $serviceDateTime,
-                            'vstdate'        => $serviceDateTime ? date('Y-m-d', strtotime($serviceDateTime)) : $vstdate,
-                            'sourceChannel'  => $sourceChannel,
-                            'claimCode'      => $claimCode,
-                            'claimType'      => $claimType,
-                        ]);
+                        }
                     }
+                } catch (\Throwable $e) {
+                    \Log::error("ข้อผิดพลาดระหว่างเรียก สปสช. สำหรับ CID: {$cid}", [
+                        'exception' => $e->getMessage(),
+                    ]);
+                    continue;
                 }
-            } catch (\Throwable $e) {
-                \Log::error("ข้อผิดพลาดระหว่างเรียก สปสช. สำหรับ CID: {$cid}", [
-                    'exception' => $e->getMessage(),
-                ]);
+            }
+
+            // หน่วงเล็กน้อยระหว่างแต่ละก้อน เพื่อกัน rate limit/ภาระระบบปลายทาง
+            usleep(300000); // 0.3 วินาที (ปรับตามเหมาะสม: 300ms–1s)
+        }
+
+        return response()->json(['success' => true, 'message' => 'ดึงข้อมูลจาก สปสช สำเร็จ']);
+    }
+    #################################################################################################################
+    public function nhso_endpoint_pull_indiv(Request $request, $vstdate, $cid)
+    {
+        $token = DB::table('main_setting')
+            ->where('name', 'token_authen_kiosk_nhso')
+            ->value('value');
+
+        // ตรวจสอบ token
+        if (!$token) {
+            return response()->json(['error' => 'Token not found'], 500);
+        }
+
+        // ส่ง request ไปยัง NHSO API
+        $response = Http::withToken($token)
+            ->acceptJson()
+            ->get("https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status", [
+                'personalId' => $cid,
+                'serviceDate' => $vstdate
+            ]);
+
+        if ($response->failed()) {
+            return response()->json(['error' => 'NHSO API request failed', 'message' => $response->body()], 500);
+        }
+
+        $result = $response->json();
+
+        if (!isset($result['firstName']) || !isset($result['serviceHistories'])) {
+            return response()->json(['error' => 'Invalid data from NHSO API'], 500);
+        }
+
+        $firstName = $result['firstName'];
+        $lastName = $result['lastName'];
+        $mainInscl = $result['mainInscl']['id'] ?? '';
+        $mainInsclName = $result['mainInscl']['name'] ?? '';
+        $subInscl = $result['subInscl']['id'] ?? '';
+        $subInsclName = $result['subInscl']['name'] ?? '';
+
+        $services = $result['serviceHistories'];
+
+        foreach ($services as $row) {
+            $serviceDateTime = $row['serviceDateTime'] ?? null;
+            $sourceChannel = $row['sourceChannel'] ?? '';
+            $claimCode = $row['claimCode'] ?? null;
+            $claimType = $row['service']['code'] ?? null;
+
+            if (!$claimCode || !$claimType) {
+                continue; // ข้ามรายการที่ข้อมูลไม่ครบ
+            }
+            if (!($sourceChannel === 'ENDPOINT' || $claimType === 'PG0140001')) {
                 continue;
+            }
+
+            $indiv = Nhso_Endpoint::firstOrNew([
+                'cid' => $cid,
+                'claimCode' => $claimCode,
+            ]);
+
+            // ถ้าเป็นรายการใหม่ หรือแก้ไขได้ตามเงื่อนไข
+            if (!$indiv->exists || $sourceChannel == 'ENDPOINT' || $claimType == 'PG0140001') {
+                $indiv->firstName = $firstName;
+                $indiv->lastName = $lastName;
+                $indiv->mainInscl = $mainInscl;
+                $indiv->mainInsclName = $mainInsclName;
+                $indiv->subInscl = $subInscl;
+                $indiv->subInsclName = $subInsclName;
+                $indiv->serviceDateTime = $serviceDateTime;
+                $indiv->vstdate = date('Y-m-d', strtotime($serviceDateTime));
+                $indiv->sourceChannel = $sourceChannel;
+                $indiv->claimType = $claimType;
+                $indiv->save();
             }
         }
 
-        // หน่วงเล็กน้อยระหว่างแต่ละก้อน เพื่อกัน rate limit/ภาระระบบปลายทาง
-        usleep(300000); // 0.3 วินาที (ปรับตามเหมาะสม: 300ms–1s)
+        return response()->json(['success' => true]);
+
     }
- 
-    return response()->json(['success' => true, 'message' => 'ดึงข้อมูลจาก สปสช สำเร็จ' ]);
-}
-#################################################################################################################
-public function nhso_endpoint_pull_indiv(Request $request, $vstdate, $cid)
-{
-    $token = DB::table('main_setting')
-        ->where('name', 'token_authen_kiosk_nhso')
-        ->value('value');
-
-    // ตรวจสอบ token
-    if (!$token) {
-        return response()->json(['error' => 'Token not found'], 500);
-    }
-
-    // ส่ง request ไปยัง NHSO API
-    $response = Http::withToken($token)
-        ->acceptJson()
-        ->get("https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status", [
-            'personalId' => $cid,
-            'serviceDate' => $vstdate
-        ]);
-
-    if ($response->failed()) {
-        return response()->json(['error' => 'NHSO API request failed', 'message' => $response->body()], 500);
-    }
-
-    $result = $response->json();
-
-    if (!isset($result['firstName']) || !isset($result['serviceHistories'])) {
-        return response()->json(['error' => 'Invalid data from NHSO API'], 500);
-    }
-
-    $firstName = $result['firstName'];
-    $lastName = $result['lastName'];
-    $mainInscl = $result['mainInscl']['id'] ?? '';
-    $mainInsclName = $result['mainInscl']['name'] ?? '';
-    $subInscl = $result['subInscl']['id'] ?? '';
-    $subInsclName = $result['subInscl']['name'] ?? '';
-
-    $services = $result['serviceHistories'];
-
-    foreach ($services as $row) {
-        $serviceDateTime = $row['serviceDateTime'] ?? null;
-        $sourceChannel = $row['sourceChannel'] ?? '';
-        $claimCode = $row['claimCode'] ?? null;
-        $claimType = $row['service']['code'] ?? null;
-
-        if (!$claimCode || !$claimType) {
-            continue; // ข้ามรายการที่ข้อมูลไม่ครบ
-        }
-        if (!($sourceChannel === 'ENDPOINT' || $claimType === 'PG0140001')) {
-            continue;
-        }
-
-        $indiv = Nhso_Endpoint::firstOrNew([
-            'cid' => $cid,
-            'claimCode' => $claimCode,
-        ]);
-
-        // ถ้าเป็นรายการใหม่ หรือแก้ไขได้ตามเงื่อนไข
-        if (!$indiv->exists || $sourceChannel == 'ENDPOINT' || $claimType == 'PG0140001') {
-            $indiv->firstName = $firstName;
-            $indiv->lastName = $lastName;
-            $indiv->mainInscl = $mainInscl;
-            $indiv->mainInsclName = $mainInsclName;
-            $indiv->subInscl = $subInscl;
-            $indiv->subInsclName = $subInsclName;
-            $indiv->serviceDateTime = $serviceDateTime;
-            $indiv->vstdate = date('Y-m-d', strtotime($serviceDateTime));
-            $indiv->sourceChannel = $sourceChannel;
-            $indiv->claimType = $claimType;
-            $indiv->save();
-        }
-    }
-
-   return response()->json(['success' => true]);
-   
-}
-###################################################################################################
+    ###################################################################################################
 //Create nhso_endpoint_pull_yesterday
-public function nhso_endpoint_pull_yesterday()
-{
-    set_time_limit(600); // หรือ 0 (ไม่จำกัด) แต่ไม่แนะนำกับ route web
-    // กำหนดวันที่ = เมื่อวาน (ตาม Asia/Bangkok)
-    $vstdate = Carbon::yesterday('Asia/Bangkok')->format('Y-m-d');
+    public function nhso_endpoint_pull_yesterday()
+    {
+        set_time_limit(600); // หรือ 0 (ไม่จำกัด) แต่ไม่แนะนำกับ route web
+        // กำหนดวันที่ = เมื่อวาน (ตาม Asia/Bangkok)
+        $vstdate = Carbon::yesterday('Asia/Bangkok')->format('Y-m-d');
 
-    $hosxp = DB::connection('hosxp')->select('
+        $hosxp = DB::connection('hosxp')->select('
         SELECT o.vn, o.hn, pt.cid, vp.auth_code
         FROM ovst o
         INNER JOIN visit_pttype vp ON vp.vn = o.vn 
         LEFT JOIN patient pt ON pt.hn = o.hn
         WHERE o.vstdate = ?
         AND pt.cid NOT IN (SELECT cid FROM hrims.nhso_endpoint WHERE vstdate = ? AND cid IS NOT NULL)'
-        , [$vstdate,$vstdate]);  
+            ,
+            [$vstdate, $vstdate]
+        );
 
-    $cids = array_map(static fn($row) => $row->cid, $hosxp);
+        $cids = array_map(static fn($row) => $row->cid, $hosxp);
 
-    $token = DB::table('main_setting')
-        ->where('name', 'token_authen_kiosk_nhso')
-        ->value('value');
+        $token = DB::table('main_setting')
+            ->where('name', 'token_authen_kiosk_nhso')
+            ->value('value');
 
-    // วนทีละก้อน (chunk) ก้อนละ 20 CID
-    foreach (array_chunk($cids, 20) as $chunk) {
-        foreach ($chunk as $cid) {
-            try {
-                $response = Http::timeout(5) // สูงสุดรอ 5 วิ ต่อ 1 request
-                    ->withToken($token)
-                    ->acceptJson()
-                    ->get('https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status', [
-                        'personalId'  => $cid,
-                        'serviceDate' => $vstdate,
-                    ]);
+        // วนทีละก้อน (chunk) ก้อนละ 20 CID
+        foreach (array_chunk($cids, 20) as $chunk) {
+            foreach ($chunk as $cid) {
+                try {
+                    $response = Http::timeout(5) // สูงสุดรอ 5 วิ ต่อ 1 request
+                        ->withToken($token)
+                        ->acceptJson()
+                        ->get('https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status', [
+                            'personalId' => $cid,
+                            'serviceDate' => $vstdate,
+                        ]);
 
-                if ($response->failed()) {
-                    \Log::warning("ดึงข้อมูลไม่สำเร็จสำหรับ CID: {$cid}", [
-                        'status' => $response->status(),
-                        'body'   => $response->body(),
-                    ]);
-                    continue;
-                }
+                    if ($response->failed()) {
+                        \Log::warning("ดึงข้อมูลไม่สำเร็จสำหรับ CID: {$cid}", [
+                            'status' => $response->status(),
+                            'body' => $response->body(),
+                        ]);
+                        continue;
+                    }
 
-                $result = $response->json();
+                    $result = $response->json();
 
-                // กันกรณี response รูปแบบไม่ครบ
-                if (!is_array($result) || !isset($result['firstName']) || empty($result['serviceHistories'])) {
-                    continue;
-                }
+                    // กันกรณี response รูปแบบไม่ครบ
+                    if (!is_array($result) || !isset($result['firstName']) || empty($result['serviceHistories'])) {
+                        continue;
+                    }
 
-                $firstName     = $result['firstName'] ?? null;
-                $lastName      = $result['lastName'] ?? null;
-                $mainInscl     = $result['mainInscl']['id']   ?? null;
-                $mainInsclName = $result['mainInscl']['name'] ?? null;
-                $subInscl      = $result['subInscl']['id']    ?? null;
-                $subInsclName  = $result['subInscl']['name']  ?? null;
+                    $firstName = $result['firstName'] ?? null;
+                    $lastName = $result['lastName'] ?? null;
+                    $mainInscl = $result['mainInscl']['id'] ?? null;
+                    $mainInsclName = $result['mainInscl']['name'] ?? null;
+                    $subInscl = $result['subInscl']['id'] ?? null;
+                    $subInsclName = $result['subInscl']['name'] ?? null;
 
-                foreach ($result['serviceHistories'] as $row) {
-                    if (!is_array($row)) continue;
+                    foreach ($result['serviceHistories'] as $row) {
+                        if (!is_array($row))
+                            continue;
 
-                    $serviceDateTime = $row['serviceDateTime'] ?? null;
-                    $sourceChannel   = $row['sourceChannel']   ?? '';
-                    $claimCode       = $row['claimCode']       ?? null;
-                    $claimType       = $row['service']['code'] ?? null;
+                        $serviceDateTime = $row['serviceDateTime'] ?? null;
+                        $sourceChannel = $row['sourceChannel'] ?? '';
+                        $claimCode = $row['claimCode'] ?? null;
+                        $claimType = $row['service']['code'] ?? null;
 
-                    if (!$claimCode) continue;
+                        if (!$claimCode)
+                            continue;
 
-                    $exists = Nhso_Endpoint::where('cid', $cid)
-                        ->where('claimCode', $claimCode)
-                        ->exists();
-
-                    if ($exists) {
-                        // อัปเดตเฉพาะ claimType ตามลอจิกเดิม
-                        Nhso_Endpoint::where('cid', $cid)
+                        $exists = Nhso_Endpoint::where('cid', $cid)
                             ->where('claimCode', $claimCode)
-                            ->update([
+                            ->exists();
+
+                        if ($exists) {
+                            // อัปเดตเฉพาะ claimType ตามลอจิกเดิม
+                            Nhso_Endpoint::where('cid', $cid)
+                                ->where('claimCode', $claimCode)
+                                ->update([
+                                    'claimType' => $claimType,
+                                ]);
+                        } elseif ($sourceChannel === 'ENDPOINT' || $claimType === 'PG0140001') {
+                            Nhso_Endpoint::create([
+                                'cid' => $cid,
+                                'firstName' => $firstName,
+                                'lastName' => $lastName,
+                                'mainInscl' => $mainInscl,
+                                'mainInsclName' => $mainInsclName,
+                                'subInscl' => $subInscl,
+                                'subInsclName' => $subInsclName,
+                                'serviceDateTime' => $serviceDateTime,
+                                'vstdate' => $serviceDateTime ? date('Y-m-d', strtotime($serviceDateTime)) : $vstdate,
+                                'sourceChannel' => $sourceChannel,
+                                'claimCode' => $claimCode,
                                 'claimType' => $claimType,
                             ]);
-                    } elseif ($sourceChannel === 'ENDPOINT' || $claimType === 'PG0140001') {
-                        Nhso_Endpoint::create([
-                            'cid'            => $cid,
-                            'firstName'      => $firstName,
-                            'lastName'       => $lastName,
-                            'mainInscl'      => $mainInscl,
-                            'mainInsclName'  => $mainInsclName,
-                            'subInscl'       => $subInscl,
-                            'subInsclName'   => $subInsclName,
-                            'serviceDateTime'=> $serviceDateTime,
-                            'vstdate'        => $serviceDateTime ? date('Y-m-d', strtotime($serviceDateTime)) : $vstdate,
-                            'sourceChannel'  => $sourceChannel,
-                            'claimCode'      => $claimCode,
-                            'claimType'      => $claimType,
-                        ]);
+                        }
                     }
+                } catch (\Throwable $e) {
+                    \Log::error("ข้อผิดพลาดระหว่างเรียก สปสช. สำหรับ CID: {$cid}", [
+                        'exception' => $e->getMessage(),
+                    ]);
+                    continue;
                 }
-            } catch (\Throwable $e) {
-                \Log::error("ข้อผิดพลาดระหว่างเรียก สปสช. สำหรับ CID: {$cid}", [
-                    'exception' => $e->getMessage(),
-                ]);
-                continue;
             }
+
+            // หน่วงเล็กน้อยระหว่างแต่ละก้อน เพื่อกัน rate limit/ภาระระบบปลายทาง
+            usleep(300000); // 0.3 วินาที (ปรับตามเหมาะสม: 300ms–1s)
         }
 
-        // หน่วงเล็กน้อยระหว่างแต่ละก้อน เพื่อกัน rate limit/ภาระระบบปลายทาง
-        usleep(300000); // 0.3 วินาที (ปรับตามเหมาะสม: 300ms–1s)
+        return response()->json([
+            'success' => true,
+            'message' => 'ดึงข้อมูลจาก สปสช สำเร็จ',
+        ]);
     }
+    ##############################################################################################
+    public function opd_ofc(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
 
-    return response()->json([
-        'success' => true,
-        'message' => 'ดึงข้อมูลจาก สปสช สำเร็จ',
-    ]);
-}
-##############################################################################################
-public function opd_ofc(Request $request )
-{
-    $start_date = $request->start_date ?: date('Y-m-d');
-    $end_date = $request->end_date ?: date('Y-m-d');
-
-    $sql=DB::connection('hosxp')->select('
+        $sql = DB::connection('hosxp')->select('
         SELECT o.vstdate,o.vsttime,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
         pt.cid,pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,v.income-v.paid_money AS debtor,
         v.pdx,IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -591,17 +632,17 @@ public function opd_ofc(Request $request )
 		LEFT JOIN opitemrece ppfs ON ppfs.vn=o.vn AND ppfs.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs = "Y")
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
         WHERE o.vstdate  BETWEEN ? AND ? AND p.hipdata_code = "OFC" AND (o.an ="" OR o.an IS NULL)
-        GROUP BY o.vn ORDER BY ep.claimCode DESC ,o.vstdate,o.vsttime',[$start_date,$end_date]);
+        GROUP BY o.vn ORDER BY ep.claimCode DESC ,o.vstdate,o.vsttime', [$start_date, $end_date]);
 
-    return view('home_detail.opd_ofc',compact('start_date','end_date','sql'));
-}
-#################################################################################################
-public function opd_non_authen(Request $request )
-{
-    $start_date = $request->start_date ?: date('Y-m-d');
-    $end_date = $request->end_date ?: date('Y-m-d');
+        return view('home_detail.opd_ofc', compact('start_date', 'end_date', 'sql'));
+    }
+    #################################################################################################
+    public function opd_non_authen(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
 
-    $sql=DB::connection('hosxp')->select('
+        $sql = DB::connection('hosxp')->select('
         SELECT o.vstdate,o.vsttime,o.oqueue,o.hn,p.cid,p.mobile_phone_number,p.hometel,p1.`name` AS pttype,
         vp.hospmain,k.department,CONCAT(p.pname,p.fname,SPACE(1),p.lname) AS ptname,v.age_y
         FROM ovst o
@@ -613,17 +654,17 @@ public function opd_non_authen(Request $request )
         WHERE o.vstdate BETWEEN ? AND ?        
         AND p.cid NOT LIKE "0%" 
         AND (vp.auth_code ="" OR vp.auth_code IS NULL)  
-        GROUP BY o.vn ORDER BY o.vsttime',[$start_date,$end_date]);
+        GROUP BY o.vn ORDER BY o.vsttime', [$start_date, $end_date]);
 
-    return view('home_detail.opd_non_authen',compact('start_date','end_date','sql'));
-}
-##############################################################################################
-public function opd_non_hospmain(Request $request )
-{
-    $start_date = $request->start_date ?: date('Y-m-d');
-    $end_date = $request->end_date ?: date('Y-m-d');
+        return view('home_detail.opd_non_authen', compact('start_date', 'end_date', 'sql'));
+    }
+    ##############################################################################################
+    public function opd_non_hospmain(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
 
-    $sql=DB::connection('hosxp')->select('
+        $sql = DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
         o.vstdate,o.vsttime,o.oqueue,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
         pt.cid,pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain        
@@ -634,17 +675,17 @@ public function opd_non_hospmain(Request $request )
         WHERE o.vstdate BETWEEN ? AND ?
         AND p.hipdata_code IN ("UCS","WEL","SSS","STP") 
         AND (vp.hospmain="" OR vp.hospmain IS NULL)
-        GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date]);
+        GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date]);
 
-    return view('home_detail.opd_non_hospmain',compact('start_date','end_date','sql'));
-}
-##############################################################################################
-public function opd_ucs_anywhere(Request $request )
-{
-    $start_date = $request->start_date ?: date('Y-m-d');
-    $end_date = $request->end_date ?: date('Y-m-d');
+        return view('home_detail.opd_non_hospmain', compact('start_date', 'end_date', 'sql'));
+    }
+    ##############################################################################################
+    public function opd_ucs_anywhere(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
 
-    $search=DB::connection('hosxp')->select('
+        $search = DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,o.oqueue,
         o.vstdate,o.vsttime,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
@@ -668,17 +709,17 @@ public function opd_ucs_anywhere(Request $request )
         AND o.vstdate BETWEEN ? AND ?
         AND p.hipdata_code IN ("UCS","WEL") 
         AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
-        GROUP BY o.vn ORDER BY o.vstdate,o.vsttime',[$start_date,$end_date]);    
+        GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date]);
 
-    return view('home_detail.opd_ucs_anywhere',compact('start_date','end_date','search'));
-}
-##############################################################################################
-public function opd_ucs_cr(Request $request )
-{
-    $start_date = $request->start_date ?: date('Y-m-d');
-    $end_date = $request->end_date ?: date('Y-m-d');
+        return view('home_detail.opd_ucs_anywhere', compact('start_date', 'end_date', 'search'));
+    }
+    ##############################################################################################
+    public function opd_ucs_cr(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
 
-    $search=DB::connection('hosxp')->select('
+        $search = DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,o.oqueue,
         o.vstdate,o.vsttime,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
@@ -709,17 +750,17 @@ public function opd_ucs_cr(Request $request )
         AND (o.an IS NULL OR o.an ="") 
         AND o1.vn IS NOT NULL 
         AND o.vstdate BETWEEN ? AND ?
-        GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]);
+        GROUP BY o.vn ORDER BY o.vstdate,o.oqueue', [$start_date, $end_date, $start_date, $end_date]);
 
-    return view('home_detail.opd_ucs_cr',compact('start_date','end_date','search'));
-}
-##############################################################################################
-public function opd_ucs_herb(Request $request )
-{
-    $start_date = $request->start_date ?: date('Y-m-d');
-    $end_date = $request->end_date ?: date('Y-m-d');
+        return view('home_detail.opd_ucs_cr', compact('start_date', 'end_date', 'search'));
+    }
+    ##############################################################################################
+    public function opd_ucs_herb(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
 
-    $search=DB::connection('hosxp')->select('
+        $search = DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,o.oqueue,
         o.vstdate,o.vsttime,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
@@ -748,17 +789,17 @@ public function opd_ucs_herb(Request $request )
         AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
         AND (o.an IS NULL OR o.an ="") 
         AND o1.vn IS NOT NULL AND o.vstdate BETWEEN ? AND ?
-        GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]);    
+        GROUP BY o.vn ORDER BY o.vstdate,o.oqueue', [$start_date, $end_date, $start_date, $end_date]);
 
-    return view('home_detail.opd_ucs_herb',compact('start_date','end_date','search'));
-}
-##############################################################################################
-public function opd_ucs_healthmed(Request $request )
-{
-    $start_date = $request->start_date ?: date('Y-m-d');
-    $end_date = $request->end_date ?: date('Y-m-d');
+        return view('home_detail.opd_ucs_herb', compact('start_date', 'end_date', 'search'));
+    }
+    ##############################################################################################
+    public function opd_ucs_healthmed(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
 
-    $search=DB::connection('hosxp')->select('
+        $search = DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,o.vstdate,o.vsttime,
         o.oqueue,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
@@ -779,18 +820,18 @@ public function opd_ucs_healthmed(Request $request )
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
         WHERE (o.an ="" OR o.an IS NULL) AND healthmed.vn <>"" AND o.vstdate BETWEEN ? AND ?
         AND p.hipdata_code IN ("UCS","WEL") AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")          
-        GROUP BY o.vn ORDER BY ep.claimCode DESC,o.vstdate,o.vsttime',[$start_date,$end_date,$start_date,$end_date]);
+        GROUP BY o.vn ORDER BY ep.claimCode DESC,o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date]);
 
-    return view('home_detail.opd_ucs_healthmed',compact('start_date','end_date','search'));
-}
+        return view('home_detail.opd_ucs_healthmed', compact('start_date', 'end_date', 'search'));
+    }
 
-##############################################################################################
-public function opd_ppfs(Request $request )
-{
-    $start_date = $request->start_date ?: date('Y-m-d');
-    $end_date = $request->end_date ?: date('Y-m-d');
+    ##############################################################################################
+    public function opd_ppfs(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
 
-    $search=DB::connection('hosxp')->select('
+        $search = DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
         IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,o.oqueue,
         o.vstdate,o.vsttime,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
@@ -816,18 +857,18 @@ public function opd_ppfs(Request $request )
         LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND stm.vstdate = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"       
         WHERE (o.an IS NULL OR o.an ="") AND o1.vn IS NOT NULL AND o.vstdate BETWEEN ? AND ?
-        GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]);
+        GROUP BY o.vn ORDER BY o.vstdate,o.oqueue', [$start_date, $end_date, $start_date, $end_date]);
 
-    return view('home_detail.opd_ppfs',compact('start_date','end_date','search'));
-}
+        return view('home_detail.opd_ppfs', compact('start_date', 'end_date', 'search'));
+    }
 
-##############################################################################################
-public function ipd_homeward(Request $request )
-{
-    $start_date = $request->start_date ?: date('Y-m-d');
-    $end_date = $request->end_date ?: date('Y-m-d');
+    ##############################################################################################
+    public function ipd_homeward(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
 
-    $sql=DB::connection('hosxp')->select('
+        $sql = DB::connection('hosxp')->select('
         SELECT ep.claimCode,o.vstdate,o.vsttime,o.oqueue,o.hn,p.cid,p.mobile_phone_number,
         p.hometel,p1.`name` AS pttype,vp.hospmain,k.department,CONCAT(p.pname,p.fname,SPACE(1),p.lname) AS ptname,v.age_y
         FROM ovst o
@@ -839,25 +880,25 @@ public function ipd_homeward(Request $request )
 		LEFT JOIN ipt i ON i.an=o.an AND i.ward IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimType = "PG0140001"
         WHERE (i.an IS NOT NULL OR i.an <>"") AND o.vstdate BETWEEN ? AND ?
-		GROUP BY o.vn ORDER BY o.vsttime',[$start_date,$end_date]);
+		GROUP BY o.vn ORDER BY o.vsttime', [$start_date, $end_date]);
 
-    return view('home_detail.ipd_homeward',compact('start_date','end_date','sql'));
-}
-##############################################################################################
-public function ipd_non_dchsummary(Request $request)
-{
-    $budget_year_now = DB::table('budget_year')
-        ->where('DATE_END', '>=', date('Y-m-d'))
-        ->where('DATE_BEGIN', '<=', date('Y-m-d'))
-        ->value('LEAVE_YEAR_ID');
-    $budget_year = $request->budget_year ?: $budget_year_now;
-    $year_data = DB::table('budget_year')
-        ->where('LEAVE_YEAR_ID', $budget_year)
-        ->first(['DATE_BEGIN', 'DATE_END']);
-    $start_date = $year_data->DATE_BEGIN ?? null;
-    $end_date   = $year_data->DATE_END ?? null;
+        return view('home_detail.ipd_homeward', compact('start_date', 'end_date', 'sql'));
+    }
+    ##############################################################################################
+    public function ipd_non_dchsummary(Request $request)
+    {
+        $budget_year_now = DB::table('budget_year')
+            ->where('DATE_END', '>=', date('Y-m-d'))
+            ->where('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->first(['DATE_BEGIN', 'DATE_END']);
+        $start_date = $year_data->DATE_BEGIN ?? null;
+        $end_date = $year_data->DATE_END ?? null;
 
-    $non_dchsummary=DB::connection('hosxp')->select('
+        $non_dchsummary = DB::connection('hosxp')->select('
         SELECT w.`name` AS ward,i.hn,i.an,id.icd10,a.diag_text_list,d.`name` AS owner_doctor_name,
         i.dchdate,TIMESTAMPDIFF(day,i.dchdate,DATE(NOW())) AS dch_day,
         CASE WHEN (a.diag_text_list ="" OR a.diag_text_list IS NULL) THEN "รอแพทย์สรุป Chart"
@@ -872,9 +913,9 @@ public function ipd_non_dchsummary(Request $request)
         WHERE i.dchdate BETWEEN ? AND ?        
         AND (a.diag_text_list ="" OR a.diag_text_list IS NULL)
         GROUP BY i.an
-        ORDER BY d.`name`,dch_day DESC',[$start_date,$end_date]);  
+        ORDER BY d.`name`,dch_day DESC', [$start_date, $end_date]);
 
-    $non_dchsummary_sum=DB::connection('hosxp')->select('
+        $non_dchsummary_sum = DB::connection('hosxp')->select('
         SELECT d.`name` AS owner_doctor_name,COUNT(i.an) AS total
         FROM ipt i     
         LEFT JOIN iptdiag ON iptdiag.an = i.an AND iptdiag.diagtype = "1"
@@ -884,16 +925,16 @@ public function ipd_non_dchsummary(Request $request)
         WHERE i.dchdate BETWEEN ? AND ? 
         AND (a.diag_text_list ="" OR a.diag_text_list IS NULL)
         GROUP BY d.`name` 
-        ORDER BY total DESC',[$start_date,$end_date]); 
-    $owner_doctor_name = array_column($non_dchsummary_sum,'owner_doctor_name');
-    $owner_doctor_total = array_column($non_dchsummary_sum,'total');
-    
-    return view('home_detail.ipd_non_dchsummary',compact('non_dchsummary','owner_doctor_name','owner_doctor_total'));        
-}
-####################################################################################################################
-public function ipd_finance_chk_opd_wait_transfer(Request $request)
-{      
-    $finance_chk=DB::connection('hosxp')->select('
+        ORDER BY total DESC', [$start_date, $end_date]);
+        $owner_doctor_name = array_column($non_dchsummary_sum, 'owner_doctor_name');
+        $owner_doctor_total = array_column($non_dchsummary_sum, 'total');
+
+        return view('home_detail.ipd_non_dchsummary', compact('non_dchsummary', 'owner_doctor_name', 'owner_doctor_total'));
+    }
+    ####################################################################################################################
+    public function ipd_finance_chk_opd_wait_transfer(Request $request)
+    {
+        $finance_chk = DB::connection('hosxp')->select('
         SELECT w.`name` AS ward,i1.bedno,i.hn,i.an,i.regdate,p.`name` AS pttype,i2.hospmain,
         i.finance_transfer, a.opd_wait_money,a.item_money,a.uc_money-a.debt_money AS wait_debt_money,
         a.paid_money,a.rcpt_money,a.paid_money-a.rcpt_money AS wait_paid_money
@@ -905,13 +946,13 @@ public function ipd_finance_chk_opd_wait_transfer(Request $request)
         LEFT JOIN an_stat a ON a.an=i.an
         WHERE i.confirm_discharge = "N" 
         AND a.opd_wait_money <>"0" GROUP BY i.an 
-        ORDER BY a.opd_wait_money DESC,i.ward,wait_paid_money DESC');  
+        ORDER BY a.opd_wait_money DESC,i.ward,wait_paid_money DESC');
 
-      return view('home_detail.ipd_finance_chk',compact('finance_chk'));        
-}
-public function ipd_finance_chk_wait_rcpt_money(Request $request)
-{      
-    $finance_chk=DB::connection('hosxp')->select('
+        return view('home_detail.ipd_finance_chk', compact('finance_chk'));
+    }
+    public function ipd_finance_chk_wait_rcpt_money(Request $request)
+    {
+        $finance_chk = DB::connection('hosxp')->select('
         SELECT w.`name` AS ward,i1.bedno,i.hn,i.an,i.regdate,p.`name` AS pttype,i2.hospmain,
         i.finance_transfer,a.opd_wait_money,a.item_money,a.uc_money-a.debt_money AS wait_debt_money,
         a.paid_money,a.rcpt_money,a.paid_money-a.rcpt_money AS wait_paid_money
@@ -923,9 +964,9 @@ public function ipd_finance_chk_wait_rcpt_money(Request $request)
         LEFT JOIN an_stat a ON a.an=i.an
         WHERE i.confirm_discharge = "N" 
         AND (a.paid_money-a.rcpt_money <>"0") GROUP BY i.an 
-        ORDER BY a.opd_wait_money DESC,i.ward,wait_paid_money DESC');  
+        ORDER BY a.opd_wait_money DESC,i.ward,wait_paid_money DESC');
 
-      return view('home_detail.ipd_finance_chk',compact('finance_chk'));        
-}
-    
+        return view('home_detail.ipd_finance_chk', compact('finance_chk'));
+    }
+
 }

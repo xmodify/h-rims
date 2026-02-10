@@ -52,7 +52,8 @@
 	npm install
 
 	ตัวอย่างไฟล์ VirtualHost (เช่น /etc/httpd/conf.d/laravel.conf)
-		<VirtualHost *:8881>
+		Listen 8883
+		<VirtualHost *:8883>
 			ServerName yourdomain.com
 			DocumentRoot /var/www/html/rims/public
 
@@ -73,13 +74,24 @@
 		sudo systemctl enable firewalld
 		sudo systemctl status firewalld
 
-		sudo firewall-cmd --permanent --add-service=http
-		sudo firewall-cmd --permanent --add-port=88/tcp
+		sudo firewall-cmd --permanent --add-port=8883/tcp
 		sudo firewall-cmd --reload
 		sudo firewall-cmd --permanent --list-all
+
+	ตรวจสอบ SElinux สำหรับ Port พิเศษ (สำคัญ):
+		sudo semanage port -a -t http_port_t -p tcp 8883
 
 	ตรวจสอบว่า SELinux ไม่ block ไฟล์ Laravel:
 		sudo setsebool -P httpd_can_network_connect 1
 
 
+up laravel
 
+cd /var/www/html/rims
+sudo -u apache git pull origin main
+sudo -u apache /usr/local/bin/composer install --no-dev --optimize-autoloader
+sudo -u apache php artisan optimize:clear
+sudo -u apache rm -f bootstrap/cache/*.php
+sudo systemctl restart httpd
+# ถ้าใช้ php-fpm ให้รีสตาร์ทด้วยครับ
+sudo systemctl restart php-fpm

@@ -28,6 +28,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // บังคับ Root URL กรณีใช้ Reverse Proxy (Sub-path)
+        if (config('app.env') !== 'local') {
+            \Illuminate\Support\Facades\URL::forceRootUrl(config('app.url'));
+        }
+
         //  Paginator::useBootstrapFive();
 
         // // ตรวจสอบว่ามีข้อมูลในตาราง lookup_icode มีรายการฟอกไต หรือไม่

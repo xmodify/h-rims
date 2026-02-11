@@ -1,0 +1,115 @@
+# --- สิทธิ์การเข้าถึง Proxy (ใส่ไว้ด้านบน) ---
+<Proxy *>
+    Require all granted
+</Proxy>
+
+# ---------------------------------------------------------
+# 1. ส่วนสำหรับเข้าผ่าน IP ภายใน (Port 80)
+# ---------------------------------------------------------
+<VirtualHost *:80>
+    ServerName 192.168.0.4
+    ProxyPreserveHost On
+    ProxyRequests Off
+
+    # กรณีเข้าหน้าเว็บเปล่าๆ ให้ Redirect ไปที่ Domain หลัก
+    RedirectMatch "^/$" "https://huataphanhospital.moph.go.th/"
+
+    # บังคับมี / ท้ายทุกระบบ
+    RewriteEngine On
+    RewriteRule ^/rims$ /rims/ [R,L]
+    RewriteRule ^/smartdata$ /smartdata/ [R,L]
+    RewriteRule ^/backoffice$ /backoffice/ [R,L]
+    RewriteRule ^/nplus$ /nplus/ [R,L]
+
+    # --- Local Projects ---
+
+    ProxyPass        /backoffice/    http://127.0.0.1:8881/
+    ProxyPassReverse /backoffice/    http://127.0.0.1:8881/
+    ProxyPass        /backoffice     http://127.0.0.1:8881
+    ProxyPassReverse /backoffice     http://127.0.0.1:8881
+    ProxyPassReverseCookiePath / /backoffice/
+
+    ProxyPass        /smartdata/     http://127.0.0.1:8882/
+    ProxyPassReverse /smartdata/     http://127.0.0.1:8882/
+    ProxyPass        /smartdata      http://127.0.0.1:8882
+    ProxyPassReverse /smartdata      http://127.0.0.1:8882
+    ProxyPassReverseCookiePath / /smartdata/
+
+    ProxyPass        /rims/         http://127.0.0.1:8883/
+    ProxyPassReverse /rims/         http://127.0.0.1:8883/
+    ProxyPass        /rims          http://127.0.0.1:8883
+    ProxyPassReverse /rims          http://127.0.0.1:8883
+    ProxyPassReverseCookiePath / /rims/
+
+    ProxyPass        /nplus/         http://127.0.0.1:8884/
+    ProxyPassReverse /nplus/         http://127.0.0.1:8884/
+    ProxyPass        /nplus          http://127.0.0.1:8884
+    ProxyPassReverse /nplus          http://127.0.0.1:8884
+    ProxyPassReverseCookiePath / /nplus/
+
+    # --- Remote Project (เครื่อง 0.5) ---
+    # ปรับให้ครอบคลุมทั้งแบบมีและไม่มี Slash เพื่อแก้ปัญหา Redirect 404
+    ProxyPass        /gtw/          http://192.168.0.5/gtw/
+    ProxyPassReverse /gtw/          http://192.168.0.5/gtw/
+    ProxyPass        /gtw           http://192.168.0.5/gtw
+    ProxyPassReverse /gtw           http://192.168.0.5/gtw
+    ProxyPassReverseCookiePath /gtw /gtw
+</VirtualHost>
+
+# ---------------------------------------------------------
+# 2. ส่วนสำหรับเข้าผ่าน Domain ภายนอก (Port 443 SSL)
+# ---------------------------------------------------------
+<VirtualHost *:443>
+    ServerName huataphanhospital.go.th
+    ProxyPreserveHost On
+
+    # --- ตั้งค่า SSL ---
+    SSLEngine on
+    SSLCertificateFile      /etc/httpd/ssl/huataphanhospital_go_th.crt
+    SSLCertificateKeyFile   /etc/httpd/ssl/private.key
+    SSLCertificateChainFile /etc/httpd/ssl/CARootCertificate-ca.crt
+
+    # บังคับมี / ท้ายทุกระบบ
+    RewriteEngine On
+    RewriteRule ^/rims$ /rims/ [R,L]
+    RewriteRule ^/smartdata$ /smartdata/ [R,L]
+    RewriteRule ^/backoffice$ /backoffice/ [R,L]
+    RewriteRule ^/nplus$ /nplus/ [R,L]
+
+    # --- Local Projects ---
+    ProxyPass        /backoffice/    http://127.0.0.1:8881/
+    ProxyPassReverse /backoffice/    http://127.0.0.1:8881/
+    ProxyPass        /backoffice     http://127.0.0.1:8881
+    ProxyPassReverse /backoffice     http://127.0.0.1:8881
+    ProxyPassReverseCookiePath / /backoffice/
+
+    ProxyPass        /smartdata/     http://127.0.0.1:8882/
+    ProxyPassReverse /smartdata/     http://127.0.0.1:8882/
+    ProxyPass        /smartdata      http://127.0.0.1:8882
+    ProxyPassReverse /smartdata      http://127.0.0.1:8882
+    ProxyPassReverseCookiePath / /smartdata/
+
+    ProxyPass        /rims/         http://127.0.0.1:8883/
+    ProxyPassReverse /rims/         http://127.0.0.1:8883/
+    ProxyPass        /rims          http://127.0.0.1:8883
+    ProxyPassReverse /rims          http://127.0.0.1:8883
+    ProxyPassReverseCookiePath / /rims/
+
+    ProxyPass        /nplus/         http://127.0.0.1:8884/
+    ProxyPassReverse /nplus/         http://127.0.0.1:8884/
+    ProxyPass        /nplus          http://127.0.0.1:8884
+    ProxyPassReverse /nplus          http://127.0.0.1:8884
+    ProxyPassReverseCookiePath / /nplus/
+
+    # --- Remote Project (เครื่อง 0.5) ---
+    ProxyPass        /gtw/          http://192.168.0.5/gtw/
+    ProxyPassReverse /gtw/          http://192.168.0.5/gtw/
+    ProxyPass        /gtw           http://192.168.0.5/gtw
+    ProxyPassReverse /gtw           http://192.168.0.5/gtw
+    ProxyPassReverseCookiePath /gtw /gtw
+
+    ErrorLog /var/log/httpd/proxy-ssl-error.log
+    CustomLog /var/log/httpd/proxy-ssl-access.log combined
+</VirtualHost>
+
+

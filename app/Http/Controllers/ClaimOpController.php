@@ -1211,9 +1211,9 @@ class ClaimOpController extends Controller
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) kidney_items ON kidney_items.vn = o.vn
-            LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,3) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
-                FROM hrims.stm_ofc_csop WHERE sys = "HD" GROUP BY hn, vstdate, LEFT(vsttime,3)) csop ON csop.hn = pt.hn
-                AND csop.vstdate = o.vstdate AND csop.vsttime = LEFT(o.vsttime,3)  
+            LEFT JOIN (SELECT hn, vstdate, SUM(amount) AS amount,MAX(rid) AS rid
+                FROM hrims.stm_ofc_csop WHERE sys = "HD" GROUP BY hn, vstdate) csop ON csop.hn = pt.hn
+                AND csop.vstdate = o.vstdate 
             WHERE p.hipdata_code = "OFC" 
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime) AS a
@@ -1247,9 +1247,9 @@ class ClaimOpController extends Controller
                 GROUP BY op.vn
             ) kidney_items ON kidney_items.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
-            LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,3) AS vsttime, SUM(amount) AS amount,MAX(rid) AS rid
-                FROM hrims.stm_ofc_csop WHERE sys = "HD" GROUP BY hn, vstdate, LEFT(vsttime,3)) csop ON csop.hn = pt.hn
-                AND csop.vstdate = o.vstdate AND csop.vsttime = LEFT(o.vsttime,3)  
+            LEFT JOIN (SELECT hn, vstdate, SUM(amount) AS amount,MAX(rid) AS rid
+                FROM hrims.stm_ofc_csop WHERE sys = "HD" GROUP BY hn, vstdate) csop ON csop.hn = pt.hn
+                AND csop.vstdate = o.vstdate 
             WHERE p.hipdata_code = "OFC" 
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date]);

@@ -7,7 +7,7 @@
 # 1. ส่วนสำหรับเข้าผ่าน IP ภายใน (Port 80)
 # ---------------------------------------------------------
 <VirtualHost *:80>
-    ServerName 192.168.0.4
+    ServerName 127.0.0.1
     ProxyPreserveHost On
     ProxyRequests Off
 
@@ -22,30 +22,17 @@
     RewriteRule ^/nplus$ /nplus/ [R,L]
 
     # --- Local Projects ---
-
     ProxyPass        /backoffice/    http://127.0.0.1:8881/
     ProxyPassReverse /backoffice/    http://127.0.0.1:8881/
-    ProxyPass        /backoffice     http://127.0.0.1:8881
-    ProxyPassReverse /backoffice     http://127.0.0.1:8881
-    ProxyPassReverseCookiePath / /backoffice/
 
     ProxyPass        /smartdata/     http://127.0.0.1:8882/
     ProxyPassReverse /smartdata/     http://127.0.0.1:8882/
-    ProxyPass        /smartdata      http://127.0.0.1:8882
-    ProxyPassReverse /smartdata      http://127.0.0.1:8882
-    ProxyPassReverseCookiePath / /smartdata/
 
     ProxyPass        /rims/         http://127.0.0.1:8883/
     ProxyPassReverse /rims/         http://127.0.0.1:8883/
-    ProxyPass        /rims          http://127.0.0.1:8883
-    ProxyPassReverse /rims          http://127.0.0.1:8883
-    ProxyPassReverseCookiePath / /rims/
 
     ProxyPass        /nplus/         http://127.0.0.1:8884/
     ProxyPassReverse /nplus/         http://127.0.0.1:8884/
-    ProxyPass        /nplus          http://127.0.0.1:8884
-    ProxyPassReverse /nplus          http://127.0.0.1:8884
-    ProxyPassReverseCookiePath / /nplus/
 
     # --- Remote Project (เครื่อง 0.5) ---
     # ปรับให้ครอบคลุมทั้งแบบมีและไม่มี Slash เพื่อแก้ปัญหา Redirect 404
@@ -79,27 +66,15 @@
     # --- Local Projects ---
     ProxyPass        /backoffice/    http://127.0.0.1:8881/
     ProxyPassReverse /backoffice/    http://127.0.0.1:8881/
-    ProxyPass        /backoffice     http://127.0.0.1:8881
-    ProxyPassReverse /backoffice     http://127.0.0.1:8881
-    ProxyPassReverseCookiePath / /backoffice/
 
     ProxyPass        /smartdata/     http://127.0.0.1:8882/
     ProxyPassReverse /smartdata/     http://127.0.0.1:8882/
-    ProxyPass        /smartdata      http://127.0.0.1:8882
-    ProxyPassReverse /smartdata      http://127.0.0.1:8882
-    ProxyPassReverseCookiePath / /smartdata/
 
     ProxyPass        /rims/         http://127.0.0.1:8883/
     ProxyPassReverse /rims/         http://127.0.0.1:8883/
-    ProxyPass        /rims          http://127.0.0.1:8883
-    ProxyPassReverse /rims          http://127.0.0.1:8883
-    ProxyPassReverseCookiePath / /rims/
 
     ProxyPass        /nplus/         http://127.0.0.1:8884/
     ProxyPassReverse /nplus/         http://127.0.0.1:8884/
-    ProxyPass        /nplus          http://127.0.0.1:8884
-    ProxyPassReverse /nplus          http://127.0.0.1:8884
-    ProxyPassReverseCookiePath / /nplus/
 
     # --- Remote Project (เครื่อง 0.5) ---
     ProxyPass        /gtw/          http://192.168.0.5/gtw/

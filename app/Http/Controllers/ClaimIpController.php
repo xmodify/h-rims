@@ -1633,20 +1633,21 @@ class ClaimIpController extends Controller
                 WHEN MONTH(dchdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(dchdate)+543, 2))
                 WHEN MONTH(dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(dchdate)+543, 2))
                 END AS month,COUNT(an) AS an,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT i.regdate,i.dchdate,i.an,COALESCE(hc.claim_price, 0) AS claim_price,d.receive AS receive_total
+                        FROM (SELECT i.dchdate,i.an,COALESCE(hc_items.claim_price, 0) AS claim_price,d.receive AS receive_total
             FROM ipt i            
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
             LEFT JOIN pttype p ON p.pttype=ip.pttype           
-            INNER JOIN opitemrece o1 ON o1.an=i.an AND o1.paidst = "02"
-            INNER JOIN nondrugitems n ON n.icode = o1.icode
-			INNER JOIN hrims.lookup_adp_sss a ON a.`code`=n.nhso_adp_code AND a.dateexp > DATE(NOW())						                      
-			LEFT JOIN (SELECT op.an, SUM(op.sum_price) AS claim_price	FROM opitemrece op
-				INNER JOIN ipt ON ipt.an=op.an
-				INNER JOIN nondrugitems n ON op.icode = n.icode 
-				INNER JOIN hrims.lookup_adp_sss a ON a.`code`=n.nhso_adp_code AND a.dateexp > DATE(NOW())
-				WHERE ipt.dchdate BETWEEN ? AND ?
-				AND op.an IS NOT NULL GROUP BY op.an ) AS hc ON hc.an=i.an
-				LEFT JOIN hrims.debtor_1102050101_310 d ON d.an=i.an
+            INNER JOIN (
+                SELECT op.an, SUM(op.sum_price) AS claim_price
+                FROM opitemrece op
+                INNER JOIN nondrugitems n ON op.icode = n.icode 
+                INNER JOIN hrims.lookup_adp_sss a ON a.`code`=n.nhso_adp_code AND a.dateexp > DATE(NOW())
+                INNER JOIN ipt i2 ON i2.an = op.an
+                WHERE i2.dchdate BETWEEN ? AND ?
+                AND op.paidst = "02"
+                GROUP BY op.an
+            ) hc_items ON hc_items.an = i.an
+            LEFT JOIN hrims.debtor_1102050101_310 d ON d.an=i.an
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN  ? AND ?
             AND p.hipdata_code IN ("SSS","SSI") 
             GROUP BY i.an ) AS a
@@ -1660,7 +1661,7 @@ class ClaimIpController extends Controller
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             a.age_y, p.`name` AS pttype,ip.hospmain,a.diag_text_list,id.icd10,idx.icd9,
             IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,COALESCE(hc.claim_price, 0) AS claim_price
+                        hc_items.claim_list,COALESCE(hc_items.claim_price, 0) AS claim_price
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
@@ -1682,16 +1683,19 @@ class ClaimIpController extends Controller
             ) rc ON rc.an = i.an
 			LEFT JOIN iptdiag id ON id.an=a.an AND id.diagtype = 1
             LEFT JOIN iptoprt idx ON idx.an=i.an 
-            INNER JOIN opitemrece o1 ON o1.an=i.an AND o1.paidst = "02"
-            INNER JOIN nondrugitems n ON n.icode = o1.icode
-			INNER JOIN hrims.lookup_adp_sss adp ON adp.`code`=n.nhso_adp_code AND adp.dateexp > DATE(NOW())
-			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode                      
-			LEFT JOIN (SELECT op.an, SUM(op.sum_price) AS claim_price FROM opitemrece op
-				INNER JOIN ipt ON ipt.an=op.an
-				INNER JOIN nondrugitems n ON op.icode = n.icode 
-				INNER JOIN hrims.lookup_adp_sss adp2 ON adp2.`code`=n.nhso_adp_code AND adp2.dateexp > DATE(NOW())
-			    WHERE ipt.dchdate BETWEEN ? AND ?
-			    AND op.an IS NOT NULL GROUP BY op.an ) AS hc ON hc.an=i.an
+            INNER JOIN (
+                SELECT op.an, 
+                    GROUP_CONCAT(DISTINCT IFNULL(sd.`name`, n.`name`)) AS claim_list,
+                    SUM(op.sum_price) AS claim_price
+                FROM opitemrece op
+                INNER JOIN nondrugitems n ON op.icode = n.icode 
+                INNER JOIN hrims.lookup_adp_sss adp ON adp.`code`=n.nhso_adp_code AND adp.dateexp > DATE(NOW())
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+                INNER JOIN ipt i4 ON i4.an = op.an
+                WHERE i4.dchdate BETWEEN ? AND ?
+                AND op.paidst = "02"
+                GROUP BY op.an
+            ) hc_items ON hc_items.an = i.an
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN  ? AND ?
             AND p.hipdata_code IN ("SSS","SSI") 
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);

@@ -481,7 +481,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li > 
                             <div class="btn text-info">
-                                V. 69-02-12 12:00
+                                V. 69-02-12 13:00
                             </div>   
                         </li>                         
                         <!-- Authentication Links -->

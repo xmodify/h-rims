@@ -498,7 +498,7 @@ class ClaimOpController extends Controller
             AND NOT EXISTS (SELECT 1 FROM opitemrece kidney INNER JOIN hrims.lookup_icode li ON li.icode=kidney.icode WHERE kidney.vn=o.vn AND li.kidney = "Y")
             GROUP BY o.vn ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
-            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
         $receive_total = array_column($sum_month, 'receive_total');
@@ -757,7 +757,7 @@ class ClaimOpController extends Controller
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")            
             GROUP BY o.vn ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
-            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
         $receive_total = array_column($sum_month, 'receive_total');
@@ -906,7 +906,7 @@ class ClaimOpController extends Controller
             AND NOT EXISTS (SELECT 1 FROM opitemrece kidney INNER JOIN hrims.lookup_icode li ON li.icode=kidney.icode WHERE kidney.vn=o.vn AND li.kidney = "Y")
             GROUP BY o.vn ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
-            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
         $receive_total = array_column($sum_month, 'receive_total');
@@ -1283,7 +1283,7 @@ class ClaimOpController extends Controller
             ) kidney_items ON kidney_items.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN (SELECT hn, vstdate, SUM(amount) AS amount,MAX(rid) AS rid
-                FROM hrims.stm_ofc_csop WHERE sys = "HD" GROUP BY hn, vstdate) csop ON csop.hn = pt.hn
+                FROM hrims.stm_ofc_csop WHERE sys = "HD" AND vstdate BETWEEN ? AND ? GROUP BY hn, vstdate) csop ON csop.hn = pt.hn
                 AND csop.vstdate = o.vstdate 
             WHERE p.hipdata_code = "OFC" 
             AND o.vstdate BETWEEN ? AND ?
@@ -1617,7 +1617,7 @@ class ClaimOpController extends Controller
             AND NOT EXISTS (SELECT 1 FROM opitemrece kidney INNER JOIN hrims.lookup_icode li ON li.icode=kidney.icode WHERE kidney.vn=o.vn AND li.kidney = "Y")
             GROUP BY o.vn ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
-            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
         $receive_total = array_column($sum_month, 'receive_total');
@@ -1783,7 +1783,7 @@ class ClaimOpController extends Controller
             AND NOT EXISTS (SELECT 1 FROM opitemrece kidney INNER JOIN hrims.lookup_icode li ON li.icode=kidney.icode WHERE kidney.vn=o.vn AND li.kidney = "Y")
             GROUP BY o.vn ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
-            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
         $receive_total = array_column($sum_month, 'receive_total');

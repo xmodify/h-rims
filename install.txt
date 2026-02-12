@@ -18,8 +18,8 @@
 	LoadModule rewrite_module modules/mod_rewrite.so
 
 3.Clone the repository (first time only)
-	git clone https://github.com/xmodify/h-rims.git
-	cd h-rims
+	git clone https://github.com/xmodify/h-rims.git rims
+	cd rims
 
 4.Pull latest changes (if already cloned)
 	git pull origin main

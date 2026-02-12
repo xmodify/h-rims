@@ -12,7 +12,7 @@ class OpdController extends Controller
     {
         $this->middleware('auth');
     }
-//Create op-pp visit----------------------------------------------------------------------------------------------------------------------------------------------------
+    //Create op-pp visit----------------------------------------------------------------------------------------------------------------------------------------------------
     public function oppp_visit(Request $request)
     {
         // Set the execution time to 300 seconds (5 minutes)
@@ -26,12 +26,12 @@ class OpdController extends Controller
         $budget_year_now = DB::table('budget_year')
             ->whereDate('DATE_END', '>=', date('Y-m-d'))
             ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
-            ->value('LEAVE_YEAR_ID');       
+            ->value('LEAVE_YEAR_ID');
         $budget_year = $request->budget_year ?: $budget_year_now;
         $year_data = DB::table('budget_year')
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
-        $start_date   = $year_data[$budget_year]     ?? null;
+        $start_date = $year_data[$budget_year] ?? null;
         $start_date_y = $year_data[$budget_year - 4] ?? null;
         $end_date = DB::table('budget_year')
             ->where('LEAVE_YEAR_ID', $budget_year)
@@ -85,7 +85,7 @@ class OpdController extends Controller
             SUM(CASE WHEN (paidst IN ("01","03") OR hipdata_code IN ("A1","A9")) THEN inc12 ELSE 0 END) AS "pay_inc_drug",
             SUM(CASE WHEN (paidst IN ("01","03") OR hipdata_code IN ("A1","A9")) THEN inc03 ELSE 0 END) AS "pay_inc_lab"            
             FROM (SELECT v.vstdate,v.vn,v.hn,v.pttype,p.hipdata_code,p.paidst,v.income,v.inc03,v.inc12 ,v.pdx,
-            IF(i.icd10 IS NULL,"OP","PP") AS diagtype,IF(vp.hospmain IS NOT NULL,"Y","N") AS incup
+            IF(i.icd10 IS NULL,"OP","PP") AS diagtype,IF(vp.vn IS NOT NULL,"Y","N") AS incup
             FROM vn_stat v
             LEFT JOIN pttype p ON p.pttype=v.pttype
             LEFT JOIN visit_pttype vp ON vp.vn =v.vn 
@@ -93,16 +93,16 @@ class OpdController extends Controller
             LEFT JOIN hrims.lookup_icd10 i ON i.icd10=v.pdx AND i.pp="Y"
             WHERE v.vstdate BETWEEN ? AND ? GROUP BY v.vn) AS a									
             GROUP BY YEAR(vstdate) , MONTH(vstdate)
-            ORDER BY YEAR(vstdate) , MONTH(vstdate)',[$start_date,$end_date]);
-        $month = array_column($visit_month,'month');
-        $visit = array_column($visit_month,'visit');
-        $hn = array_column($visit_month,'hn');
-        $visit_op = array_column($visit_month,'visit_op');
-        $visit_pp = array_column($visit_month,'visit_pp');        
+            ORDER BY YEAR(vstdate) , MONTH(vstdate)', [$start_date, $end_date]);
+        $month = array_column($visit_month, 'month');
+        $visit = array_column($visit_month, 'visit');
+        $hn = array_column($visit_month, 'hn');
+        $visit_op = array_column($visit_month, 'visit_op');
+        $visit_pp = array_column($visit_month, 'visit_pp');
 
-        return view('opd.oppp_visit',compact('budget_year_select','budget_year','visit_month','month','hn','visit','visit_op','visit_pp'));            
+        return view('opd.oppp_visit', compact('budget_year_select', 'budget_year', 'visit_month', 'month', 'hn', 'visit', 'visit_op', 'visit_pp'));
     }
-//Create diag_sepsis----------------------------------------------------------------------------------------------------------------------------------------------------
+    //Create diag_sepsis----------------------------------------------------------------------------------------------------------------------------------------------------
     public function diag_sepsis(Request $request)
     {
         // Set the execution time to 300 seconds (5 minutes)
@@ -116,12 +116,12 @@ class OpdController extends Controller
         $budget_year_now = DB::table('budget_year')
             ->whereDate('DATE_END', '>=', date('Y-m-d'))
             ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
-            ->value('LEAVE_YEAR_ID');       
+            ->value('LEAVE_YEAR_ID');
         $budget_year = $request->budget_year ?: $budget_year_now;
         $year_data = DB::table('budget_year')
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
-        $start_date   = $year_data[$budget_year]     ?? null;
+        $start_date = $year_data[$budget_year] ?? null;
         $start_date_y = $year_data[$budget_year - 4] ?? null;
         $end_date = DB::table('budget_year')
             ->where('LEAVE_YEAR_ID', $budget_year)
@@ -151,13 +151,13 @@ class OpdController extends Controller
             AND v.pdx IN ("A419","R651","R572") 
             GROUP BY o.vn ) AS a
             GROUP BY MONTH(vstdate)
-            ORDER BY YEAR(vstdate),MONTH(vstdate)',[$start_date,$end_date]);
-        $diag_m = array_column($diag_month,'month');
-        $diag_visit_m = array_column($diag_month,'visit');
-        $diag_hn_m = array_column($diag_month,'hn');
-        $diag_admit_m = array_column($diag_month,'admit');  
-        $diag_refer_m = array_column($diag_month,'refer');  
-        
+            ORDER BY YEAR(vstdate),MONTH(vstdate)', [$start_date, $end_date]);
+        $diag_m = array_column($diag_month, 'month');
+        $diag_visit_m = array_column($diag_month, 'visit');
+        $diag_hn_m = array_column($diag_month, 'hn');
+        $diag_admit_m = array_column($diag_month, 'admit');
+        $diag_refer_m = array_column($diag_month, 'refer');
+
         $diag_year = DB::connection('hosxp')->select('
             SELECT IF(MONTH(vstdate)>9,YEAR(vstdate)+1,YEAR(vstdate)) + 543 AS year_bud,
             COUNT(DISTINCT hn) AS "hn",COUNT(vn) AS "visit",
@@ -171,23 +171,25 @@ class OpdController extends Controller
             AND v.pdx IN ("A419","R651","R572") 
             GROUP BY o.vn ) AS a
             GROUP BY year_bud
-            ORDER BY year_bud',[$start_date_y,$end_date]);
-        $diag_y = array_column($diag_year,'year_bud');
-        $diag_visit_y = array_column($diag_year,'visit');
-        $diag_hn_y = array_column($diag_year,'hn');
-        $diag_admit_y = array_column($diag_year,'admit');  
-        $diag_refer_y = array_column($diag_year,'refer');
-    
+            ORDER BY year_bud', [$start_date_y, $end_date]);
+        $diag_y = array_column($diag_year, 'year_bud');
+        $diag_visit_y = array_column($diag_year, 'visit');
+        $diag_hn_y = array_column($diag_year, 'hn');
+        $diag_admit_y = array_column($diag_year, 'admit');
+        $diag_refer_y = array_column($diag_year, 'refer');
+
         $diag_list = DB::connection('hosxp')->select('
             SELECT o.vn,o.vstdate,o.vsttime,o.oqueue,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            v.age_y,CONCAT(p.hipdata_code,"-",p.name) AS pttype,oc.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS dx,
-            GROUP_CONCAT(DISTINCT od2.icd10) AS icd9,d.`name` AS dx_doctor,o.an AS admit,CONCAT(h.`name`," [",r.pdx,"]") AS refer,
+            v.age_y,CONCAT(p.hipdata_code,"-",p.name) AS pttype,oc.cc,v.pdx,od.dx,od.icd9,
+            d.`name` AS dx_doctor,o.an AS admit,CONCAT(h.`name`," [",r.pdx,"]") AS refer,
             v.inc03 AS inc_lab,v.inc12 AS inc_drug
             FROM ovst o 
             LEFT JOIN opdscreen oc ON oc.vn=o.vn
             LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN ovstdiag od ON od.vn=o.vn AND od.diagtype NOT IN ("1","2")
-            LEFT JOIN ovstdiag od2 ON od2.vn=o.vn AND od2.diagtype = "2"
+            LEFT JOIN (SELECT vn, 
+                GROUP_CONCAT(DISTINCT IF(diagtype NOT IN ("1","2"), icd10, NULL)) AS dx,
+                GROUP_CONCAT(DISTINCT IF(diagtype = "2", icd10, NULL)) AS icd9
+                FROM ovstdiag GROUP BY vn) od ON od.vn=o.vn
             LEFT JOIN referout r ON r.vn=o.vn
             LEFT JOIN hospcode h ON h.hospcode=r.refer_hospcode
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -201,12 +203,25 @@ class OpdController extends Controller
             OR v.dx3 IN ("A419","R651","R572") 
             OR v.dx4 IN ("A419","R651","R572") 
             OR v.dx5 IN ("A419","R651","R572"))
-            GROUP BY o.vn',[$start_date,$end_date]);         
+            GROUP BY o.vn', [$start_date, $end_date]);
 
-        return view('opd.diag_sepsis',compact('budget_year_select','budget_year','diag_m','diag_visit_m','diag_hn_m','diag_admit_m','diag_refer_m',
-            'diag_y','diag_visit_y','diag_hn_y','diag_admit_y','diag_refer_y','diag_list'));            
+        return view('opd.diag_sepsis', compact(
+            'budget_year_select',
+            'budget_year',
+            'diag_m',
+            'diag_visit_m',
+            'diag_hn_m',
+            'diag_admit_m',
+            'diag_refer_m',
+            'diag_y',
+            'diag_visit_y',
+            'diag_hn_y',
+            'diag_admit_y',
+            'diag_refer_y',
+            'diag_list'
+        ));
     }
-//Create diag_stroke-------------------------------------------------------------------------------------------------------------------------------------------------
+    //Create diag_stroke-------------------------------------------------------------------------------------------------------------------------------------------------
     public function diag_stroke(Request $request)
     {
         // Set the execution time to 300 seconds (5 minutes)
@@ -220,12 +235,12 @@ class OpdController extends Controller
         $budget_year_now = DB::table('budget_year')
             ->whereDate('DATE_END', '>=', date('Y-m-d'))
             ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
-            ->value('LEAVE_YEAR_ID');       
+            ->value('LEAVE_YEAR_ID');
         $budget_year = $request->budget_year ?: $budget_year_now;
         $year_data = DB::table('budget_year')
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
-        $start_date   = $year_data[$budget_year]     ?? null;
+        $start_date = $year_data[$budget_year] ?? null;
         $start_date_y = $year_data[$budget_year - 4] ?? null;
         $end_date = DB::table('budget_year')
             ->where('LEAVE_YEAR_ID', $budget_year)
@@ -255,13 +270,13 @@ class OpdController extends Controller
             AND v.pdx IN ("I64") 
             GROUP BY o.vn ) AS a
             GROUP BY MONTH(vstdate)
-            ORDER BY YEAR(vstdate),MONTH(vstdate)',[$start_date,$end_date]);
-        $diag_m = array_column($diag_month,'month');
-        $diag_visit_m = array_column($diag_month,'visit');
-        $diag_hn_m = array_column($diag_month,'hn');
-        $diag_admit_m = array_column($diag_month,'admit');  
-        $diag_refer_m = array_column($diag_month,'refer');  
-        
+            ORDER BY YEAR(vstdate),MONTH(vstdate)', [$start_date, $end_date]);
+        $diag_m = array_column($diag_month, 'month');
+        $diag_visit_m = array_column($diag_month, 'visit');
+        $diag_hn_m = array_column($diag_month, 'hn');
+        $diag_admit_m = array_column($diag_month, 'admit');
+        $diag_refer_m = array_column($diag_month, 'refer');
+
         $diag_year = DB::connection('hosxp')->select('
             SELECT IF(MONTH(vstdate)>9,YEAR(vstdate)+1,YEAR(vstdate)) + 543 AS year_bud,
             COUNT(DISTINCT hn) AS "hn",COUNT(vn) AS "visit",
@@ -275,23 +290,25 @@ class OpdController extends Controller
             AND v.pdx IN ("I64") 
             GROUP BY o.vn ) AS a
             GROUP BY year_bud
-            ORDER BY year_bud',[$start_date_y,$end_date]);
-        $diag_y = array_column($diag_year,'year_bud');
-        $diag_visit_y = array_column($diag_year,'visit');
-        $diag_hn_y = array_column($diag_year,'hn');
-        $diag_admit_y = array_column($diag_year,'admit');  
-        $diag_refer_y = array_column($diag_year,'refer');
-    
+            ORDER BY year_bud', [$start_date_y, $end_date]);
+        $diag_y = array_column($diag_year, 'year_bud');
+        $diag_visit_y = array_column($diag_year, 'visit');
+        $diag_hn_y = array_column($diag_year, 'hn');
+        $diag_admit_y = array_column($diag_year, 'admit');
+        $diag_refer_y = array_column($diag_year, 'refer');
+
         $diag_list = DB::connection('hosxp')->select('
             SELECT o.vn,o.vstdate,o.vsttime,o.oqueue,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            v.age_y,CONCAT(p.hipdata_code,"-",p.name) AS pttype,oc.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS dx,
-            GROUP_CONCAT(DISTINCT od2.icd10) AS icd9,d.`name` AS dx_doctor,o.an AS admit,CONCAT(h.`name`," [",r.pdx,"]") AS refer,
+            v.age_y,CONCAT(p.hipdata_code,"-",p.name) AS pttype,oc.cc,v.pdx,od.dx,od.icd9,
+            d.`name` AS dx_doctor,o.an AS admit,CONCAT(h.`name`," [",r.pdx,"]") AS refer,
             v.inc03 AS inc_lab,v.inc12 AS inc_drug
             FROM ovst o 
             LEFT JOIN opdscreen oc ON oc.vn=o.vn
             LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN ovstdiag od ON od.vn=o.vn AND od.diagtype NOT IN ("1","2")
-            LEFT JOIN ovstdiag od2 ON od2.vn=o.vn AND od2.diagtype = "2"
+            LEFT JOIN (SELECT vn, 
+                GROUP_CONCAT(DISTINCT IF(diagtype NOT IN ("1","2"), icd10, NULL)) AS dx,
+                GROUP_CONCAT(DISTINCT IF(diagtype = "2", icd10, NULL)) AS icd9
+                FROM ovstdiag GROUP BY vn) od ON od.vn=o.vn
             LEFT JOIN referout r ON r.vn=o.vn
             LEFT JOIN hospcode h ON h.hospcode=r.refer_hospcode
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -305,13 +322,26 @@ class OpdController extends Controller
             OR v.dx3 IN ("I64") 
             OR v.dx4 IN ("I64") 
             OR v.dx5 IN ("I64"))
-            GROUP BY o.vn',[$start_date,$end_date]);         
+            GROUP BY o.vn', [$start_date, $end_date]);
 
-        return view('opd.diag_stroke',compact('budget_year_select','budget_year','diag_m','diag_visit_m','diag_hn_m','diag_admit_m','diag_refer_m',
-            'diag_y','diag_visit_y','diag_hn_y','diag_admit_y','diag_refer_y','diag_list'));            
+        return view('opd.diag_stroke', compact(
+            'budget_year_select',
+            'budget_year',
+            'diag_m',
+            'diag_visit_m',
+            'diag_hn_m',
+            'diag_admit_m',
+            'diag_refer_m',
+            'diag_y',
+            'diag_visit_y',
+            'diag_hn_y',
+            'diag_admit_y',
+            'diag_refer_y',
+            'diag_list'
+        ));
     }
 
-//Create diag_stemi----------------------------------------------------------------------------------------------------------------------------------------------
+    //Create diag_stemi----------------------------------------------------------------------------------------------------------------------------------------------
     public function diag_stemi(Request $request)
     {
         // Set the execution time to 300 seconds (5 minutes)
@@ -325,12 +355,12 @@ class OpdController extends Controller
         $budget_year_now = DB::table('budget_year')
             ->whereDate('DATE_END', '>=', date('Y-m-d'))
             ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
-            ->value('LEAVE_YEAR_ID');       
+            ->value('LEAVE_YEAR_ID');
         $budget_year = $request->budget_year ?: $budget_year_now;
         $year_data = DB::table('budget_year')
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
-        $start_date   = $year_data[$budget_year]     ?? null;
+        $start_date = $year_data[$budget_year] ?? null;
         $start_date_y = $year_data[$budget_year - 4] ?? null;
         $end_date = DB::table('budget_year')
             ->where('LEAVE_YEAR_ID', $budget_year)
@@ -360,13 +390,13 @@ class OpdController extends Controller
             AND v.pdx IN ("I210","I211","I212","I213") 
             GROUP BY o.vn ) AS a
             GROUP BY MONTH(vstdate)
-            ORDER BY YEAR(vstdate),MONTH(vstdate)',[$start_date,$end_date]);
-        $diag_m = array_column($diag_month,'month');
-        $diag_visit_m = array_column($diag_month,'visit');
-        $diag_hn_m = array_column($diag_month,'hn');
-        $diag_admit_m = array_column($diag_month,'admit');  
-        $diag_refer_m = array_column($diag_month,'refer');  
-        
+            ORDER BY YEAR(vstdate),MONTH(vstdate)', [$start_date, $end_date]);
+        $diag_m = array_column($diag_month, 'month');
+        $diag_visit_m = array_column($diag_month, 'visit');
+        $diag_hn_m = array_column($diag_month, 'hn');
+        $diag_admit_m = array_column($diag_month, 'admit');
+        $diag_refer_m = array_column($diag_month, 'refer');
+
         $diag_year = DB::connection('hosxp')->select('
             SELECT IF(MONTH(vstdate)>9,YEAR(vstdate)+1,YEAR(vstdate)) + 543 AS year_bud,
             COUNT(DISTINCT hn) AS "hn",COUNT(vn) AS "visit",
@@ -380,23 +410,25 @@ class OpdController extends Controller
             AND v.pdx IN ("I210","I211","I212","I213") 
             GROUP BY o.vn ) AS a
             GROUP BY year_bud
-            ORDER BY year_bud',[$start_date_y,$end_date]);
-        $diag_y = array_column($diag_year,'year_bud');
-        $diag_visit_y = array_column($diag_year,'visit');
-        $diag_hn_y = array_column($diag_year,'hn');
-        $diag_admit_y = array_column($diag_year,'admit');  
-        $diag_refer_y = array_column($diag_year,'refer');
-    
+            ORDER BY year_bud', [$start_date_y, $end_date]);
+        $diag_y = array_column($diag_year, 'year_bud');
+        $diag_visit_y = array_column($diag_year, 'visit');
+        $diag_hn_y = array_column($diag_year, 'hn');
+        $diag_admit_y = array_column($diag_year, 'admit');
+        $diag_refer_y = array_column($diag_year, 'refer');
+
         $diag_list = DB::connection('hosxp')->select('
             SELECT o.vn,o.vstdate,o.vsttime,o.oqueue,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            v.age_y,CONCAT(p.hipdata_code,"-",p.name) AS pttype,oc.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS dx,
-            GROUP_CONCAT(DISTINCT od2.icd10) AS icd9,d.`name` AS dx_doctor,o.an AS admit,CONCAT(h.`name`," [",r.pdx,"]") AS refer,
+            v.age_y,CONCAT(p.hipdata_code,"-",p.name) AS pttype,oc.cc,v.pdx,od.dx,od.icd9,
+            d.`name` AS dx_doctor,o.an AS admit,CONCAT(h.`name`," [",r.pdx,"]") AS refer,
             v.inc03 AS inc_lab,v.inc12 AS inc_drug
             FROM ovst o 
             LEFT JOIN opdscreen oc ON oc.vn=o.vn
             LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN ovstdiag od ON od.vn=o.vn AND od.diagtype NOT IN ("1","2")
-            LEFT JOIN ovstdiag od2 ON od2.vn=o.vn AND od2.diagtype = "2"
+            LEFT JOIN (SELECT vn, 
+                GROUP_CONCAT(DISTINCT IF(diagtype NOT IN ("1","2"), icd10, NULL)) AS dx,
+                GROUP_CONCAT(DISTINCT IF(diagtype = "2", icd10, NULL)) AS icd9
+                FROM ovstdiag GROUP BY vn) od ON od.vn=o.vn
             LEFT JOIN referout r ON r.vn=o.vn
             LEFT JOIN hospcode h ON h.hospcode=r.refer_hospcode
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -410,13 +442,26 @@ class OpdController extends Controller
             OR v.dx3 IN ("I21","I210","I211","I212","I213","I214","I219")
             OR v.dx4 IN ("I21","I210","I211","I212","I213","I214","I219")
             OR v.dx5 IN ("I21","I210","I211","I212","I213","I214","I219"))
-            GROUP BY o.vn',[$start_date,$end_date]);         
+            GROUP BY o.vn', [$start_date, $end_date]);
 
-        return view('opd.diag_stemi',compact('budget_year_select','budget_year','diag_m','diag_visit_m','diag_hn_m','diag_admit_m','diag_refer_m',
-            'diag_y','diag_visit_y','diag_hn_y','diag_admit_y','diag_refer_y','diag_list'));            
+        return view('opd.diag_stemi', compact(
+            'budget_year_select',
+            'budget_year',
+            'diag_m',
+            'diag_visit_m',
+            'diag_hn_m',
+            'diag_admit_m',
+            'diag_refer_m',
+            'diag_y',
+            'diag_visit_y',
+            'diag_hn_y',
+            'diag_admit_y',
+            'diag_refer_y',
+            'diag_list'
+        ));
     }
 
-//Create diag_pneumonia
+    //Create diag_pneumonia
     public function diag_pneumonia(Request $request)
     {
         // Set the execution time to 300 seconds (5 minutes)
@@ -430,12 +475,12 @@ class OpdController extends Controller
         $budget_year_now = DB::table('budget_year')
             ->whereDate('DATE_END', '>=', date('Y-m-d'))
             ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
-            ->value('LEAVE_YEAR_ID');       
+            ->value('LEAVE_YEAR_ID');
         $budget_year = $request->budget_year ?: $budget_year_now;
         $year_data = DB::table('budget_year')
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
-        $start_date   = $year_data[$budget_year]     ?? null;
+        $start_date = $year_data[$budget_year] ?? null;
         $start_date_y = $year_data[$budget_year - 4] ?? null;
         $end_date = DB::table('budget_year')
             ->where('LEAVE_YEAR_ID', $budget_year)
@@ -465,13 +510,13 @@ class OpdController extends Controller
             AND v.pdx IN ("J128","J159","J188","J189")
             GROUP BY o.vn ) AS a
             GROUP BY MONTH(vstdate)
-            ORDER BY YEAR(vstdate),MONTH(vstdate)',[$start_date,$end_date]);
-        $diag_m = array_column($diag_month,'month');
-        $diag_visit_m = array_column($diag_month,'visit');
-        $diag_hn_m = array_column($diag_month,'hn');
-        $diag_admit_m = array_column($diag_month,'admit');  
-        $diag_refer_m = array_column($diag_month,'refer');  
-        
+            ORDER BY YEAR(vstdate),MONTH(vstdate)', [$start_date, $end_date]);
+        $diag_m = array_column($diag_month, 'month');
+        $diag_visit_m = array_column($diag_month, 'visit');
+        $diag_hn_m = array_column($diag_month, 'hn');
+        $diag_admit_m = array_column($diag_month, 'admit');
+        $diag_refer_m = array_column($diag_month, 'refer');
+
         $diag_year = DB::connection('hosxp')->select('
             SELECT IF(MONTH(vstdate)>9,YEAR(vstdate)+1,YEAR(vstdate)) + 543 AS year_bud,
             COUNT(DISTINCT hn) AS "hn",COUNT(vn) AS "visit",
@@ -485,23 +530,25 @@ class OpdController extends Controller
             AND v.pdx IN ("J128","J159","J188","J189")
             GROUP BY o.vn ) AS a
             GROUP BY year_bud
-            ORDER BY year_bud',[$start_date_y,$end_date]);
-        $diag_y = array_column($diag_year,'year_bud');
-        $diag_visit_y = array_column($diag_year,'visit');
-        $diag_hn_y = array_column($diag_year,'hn');
-        $diag_admit_y = array_column($diag_year,'admit');  
-        $diag_refer_y = array_column($diag_year,'refer');
-    
+            ORDER BY year_bud', [$start_date_y, $end_date]);
+        $diag_y = array_column($diag_year, 'year_bud');
+        $diag_visit_y = array_column($diag_year, 'visit');
+        $diag_hn_y = array_column($diag_year, 'hn');
+        $diag_admit_y = array_column($diag_year, 'admit');
+        $diag_refer_y = array_column($diag_year, 'refer');
+
         $diag_list = DB::connection('hosxp')->select('
             SELECT o.vn,o.vstdate,o.vsttime,o.oqueue,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            v.age_y,CONCAT(p.hipdata_code,"-",p.name) AS pttype,oc.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS dx,
-            GROUP_CONCAT(DISTINCT od2.icd10) AS icd9,d.`name` AS dx_doctor,o.an AS admit,CONCAT(h.`name`," [",r.pdx,"]") AS refer,
+            v.age_y,CONCAT(p.hipdata_code,"-",p.name) AS pttype,oc.cc,v.pdx,od.dx,od.icd9,
+            d.`name` AS dx_doctor,o.an AS admit,CONCAT(h.`name`," [",r.pdx,"]") AS refer,
             v.inc03 AS inc_lab,v.inc12 AS inc_drug
             FROM ovst o 
             LEFT JOIN opdscreen oc ON oc.vn=o.vn
             LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN ovstdiag od ON od.vn=o.vn AND od.diagtype NOT IN ("1","2")
-            LEFT JOIN ovstdiag od2 ON od2.vn=o.vn AND od2.diagtype = "2"
+            LEFT JOIN (SELECT vn, 
+                GROUP_CONCAT(DISTINCT IF(diagtype NOT IN ("1","2"), icd10, NULL)) AS dx,
+                GROUP_CONCAT(DISTINCT IF(diagtype = "2", icd10, NULL)) AS icd9
+                FROM ovstdiag GROUP BY vn) od ON od.vn=o.vn
             LEFT JOIN referout r ON r.vn=o.vn
             LEFT JOIN hospcode h ON h.hospcode=r.refer_hospcode
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -515,10 +562,23 @@ class OpdController extends Controller
             OR v.dx3 IN ("J128","J159","J188","J189") 
             OR v.dx4 IN ("J128","J159","J188","J189") 
             OR v.dx5 IN ("J128","J159","J188","J189"))
-            GROUP BY o.vn',[$start_date,$end_date]);         
+            GROUP BY o.vn', [$start_date, $end_date]);
 
-        return view('opd.diag_pneumonia',compact('budget_year_select','budget_year','diag_m','diag_visit_m','diag_hn_m','diag_admit_m','diag_refer_m',
-            'diag_y','diag_visit_y','diag_hn_y','diag_admit_y','diag_refer_y','diag_list'));            
+        return view('opd.diag_pneumonia', compact(
+            'budget_year_select',
+            'budget_year',
+            'diag_m',
+            'diag_visit_m',
+            'diag_hn_m',
+            'diag_admit_m',
+            'diag_refer_m',
+            'diag_y',
+            'diag_visit_y',
+            'diag_hn_y',
+            'diag_admit_y',
+            'diag_refer_y',
+            'diag_list'
+        ));
     }
 
 }

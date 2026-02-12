@@ -3,4 +3,3 @@
 .env
 /storage/*.key
 /public/storage
-/public/.htaccess

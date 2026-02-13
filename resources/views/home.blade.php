@@ -2,342 +2,337 @@
 
 @section('content') 
 <style>    
-  .bg-1 {
-      background-color: #0d6efd;
-  }
-
-  .bg-2 {
-      background-color: #5677fc;
-  }
-
-  .bg-3 {
-      background-color: #03a9f4;
-  }
-  .bg-4 {
-      background-color: #ffc107 ;
-  }
-  .bg-5 {
-      background-color: #ff9800;
-  }
-  .bg-6 {
-      background-color: #ff5722;
-  }
-  .bg-7 {
-      background-color: #e91e63;
-  }
-  .bg-8 {
-      background-color: #9c27b0;
-  }
-  .bg-9 {
-      background-color: #009688;
-  }
-
-  .bg-10 {
-      background-color: #259b24;
-  }
-
-  .bg-11 {
-      background-color: #ff5722;
-  }
-  .bg-12 {
-      background-color: #e51c23 ;
+  /* Dashboard Specific Clock Styles */
+  #realtime-clock, #realtime-clock_ipd {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    padding: 2px 8px;
+    background: #f1f5f9;
+    color: #475569;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    font-size: 0.85rem;
   }
 </style>
-<div class="container">
-    <div class="row" align="center">      
-        <h5 class="alert alert-primary text-primary" align="left">
-          ข้อมูลผู้ป่วยนอก ณ วันที่ <font style="color:red;">{{DateThai(date('Y-m-d'))}}</font> เวลา: <font style="color:red;"><span id="realtime-clock"></span></font>  
-          ทั้งหมด : <font style="color:red;">{{$opd_total}}</font> Visit | 
-          ปิดสิทธิ สปสช : <font style="color:red;">{{$endpoint}}</font> Visit
-          <a class="btn btn-outline-danger btn-sm" href="{{ url('check/nhso_endpoint') }}" target="_blank">ดึงปิดสิทธิ สปสช.</a> 
-        </h5> 
-      <div class="col-sm-3">
-          <div class="card text-white bg-1 mb-3" style="max-width: 18rem;" >
-            <div class="card-header">
-              <ion-icon name="people-outline"></ion-icon>
-              OFC Visit : รูดบัตร
+
+<div class="container-fluid py-4 px-lg-5">
+    <div class="row">      
+        <div class="col-12 px-3">
+          <div class="page-header-box mt-2" style="border-left-color: #3b82f6 !important;">
+            <div class="d-flex align-items-center gap-2">
+              <h6 class="text-primary mb-0 fw-bold">
+                <i class="bi bi-activity me-1"></i> DASHBOARD OVERVIEW
+              </h6>
+              <small class="text-muted ms-2 fw-normal dashboard-date-info">
+                <i class="bi bi-calendar3 me-1"></i> {{DateThai(date('Y-m-d'))}} 
+                <i class="bi bi-clock-history ms-2 me-1"></i> <span id="realtime-clock"></span>
+              </small>
             </div>
+            <div class="d-flex align-items-center gap-3">
+              <div class="px-3 border-end">
+                <small class="text-muted d-block" style="font-size: 0.65rem;">OPD TOTAL</small>
+                <div class="h6 mb-0 fw-bold text-dark">{{$opd_total}}</div>
+              </div>
+              <div class="px-3 border-end">
+                <small class="text-muted d-block" style="font-size: 0.65rem;">ปิดสิทธิ สปสช.</small>
+                <div class="h6 mb-0 fw-bold text-primary">{{$endpoint}}</div>
+              </div>
+              <div>
+                <a class="btn btn-outline-primary btn-sm rounded-pill px-3" href="{{ url('check/nhso_endpoint') }}" target="_blank" style="font-size: 0.75rem; border-width: 2px;">
+                  <i class="bi bi-cloud-download me-1"></i> ดึงปิดสิทธิ สปสช.
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      <!-- OPD Metrics Cards -->
+      <div class="col-sm-3 mb-3">
+          <div class="card dash-card accent-1">
             <div class="card-body">
-              <h1 class="card-title text-center">{{$ofc}} : {{$ofc_edc}}</h1> 
-              <p class="card-text">
-                  <a href="{{ url('/opd_ofc') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
-              </p>           
+              <span class="card-label"><i class="bi bi-credit-card-2-front me-1 icon-color-1"></i> OFC Visit : รูดบัตร</span>
+              <div class="card-metric">{{$ofc}} : {{$ofc_edc}}</div> 
+              <a href="{{ url('/opd_ofc') }}" target="_blank" class="card-footer-link text-color-1">
+                View Report <i class="bi bi-chevron-right"></i>
+              </a>
             </div>
           </div>
       </div>
-      <div class="col-sm-3">
-          <div class="card text-white bg-2 mb-3" style="max-width: 18rem;">
-            <div class="card-header">
-              <ion-icon name="people-outline"></ion-icon>
-              ไม่ขอ AuthenCode
-            </div>
+      <div class="col-sm-3 mb-3">
+          <div class="card dash-card accent-2">
             <div class="card-body">
-              <h1 class="card-title text-center">{{$non_authen}} </h1>  
-              <p class="card-text">
-                  <a href="{{ url('/opd_non_authen') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
-              </p>  
+              <span class="card-label"><i class="bi bi-shield-lock me-1 icon-color-2"></i> ไม่ขอ AuthenCode</span>
+              <div class="card-metric">{{$non_authen}}</div>  
+              <a href="{{ url('/opd_non_authen') }}" target="_blank" class="card-footer-link text-color-2">
+                View Report <i class="bi bi-chevron-right"></i>
+              </a>
             </div>
           </div>
       </div>        
-      <div class="col-sm-3">
-          <div class="card text-white bg-3 mb-3" style="max-width: 18rem;">
-            <div class="card-header">
-              <ion-icon name="people-outline"></ion-icon>
-              ไม่บันทึกสถานพยาบาลหลัก
-            </div>
+      <div class="col-sm-3 mb-3">
+          <div class="card dash-card accent-3">
             <div class="card-body">
-              <h1 class="card-title text-center">{{$non_hmain}}</h1>
-              <p class="card-text">
-                  <a href="{{ url('/opd_non_hospmain') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
-              </p>  
+              <span class="card-label"><i class="bi bi-building me-1 icon-color-3"></i> ไม่บันทึกสถานพยาบาลหลัก</span>
+              <div class="card-metric">{{$non_hmain}}</div>
+              <a href="{{ url('/opd_non_hospmain') }}" target="_blank" class="card-footer-link text-color-3">
+                View Report <i class="bi bi-chevron-right"></i>
+              </a>
             </div>
           </div>
       </div>
-      <div class="col-sm-3">
-          <div class="card text-white bg-4 mb-3" style="max-width: 18rem;">
-            <div class="card-header">
-              <ion-icon name="people-outline"></ion-icon>
-              UC Anywhere : ปิดสิทธิ
-            </div>
-            <div class="card-body">
-              <h1 class="card-title text-center">{{$uc_anywhere}} : {{$uc_anywhere_endpoint}} </h1>  
-              <p class="card-text">
-                  <a href="{{ url('/opd_ucs_anywhere') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
-              </p>  
-            </div>
+      <div class="col-sm-3 mb-3">
+        <div class="card dash-card accent-4">
+          <div class="card-body">
+            <span class="card-label"><i class="bi bi-check2-square me-1 icon-color-4"></i> PPFS : ปิดสิทธิ </span>
+            <div class="card-metric">{{$ppfs}} : {{$ppfs_endpoint}}</div> 
+            <a href="{{ url('/opd_ppfs') }}" target="_blank" class="card-footer-link text-color-4">
+              View Report <i class="bi bi-chevron-right"></i>
+            </a>
           </div>
+        </div>
       </div>      
-      <div class="col-sm-3">
-        <div class="card text-white bg-5 mb-3" style="max-width: 18rem;">
-          <div class="card-header">
-            <ion-icon name="people-outline"></ion-icon>
-            UC บริการเฉพาะ : ปิดสิทธิ
-          </div>
+      <div class="col-sm-3 mb-3">
+        <div class="card dash-card accent-5">
           <div class="card-body">
-            <h1 class="card-title text-center">{{$uc_cr}} : {{$uc_cr_endpoint}}</h1>  
-            <p class="card-text">
-                <a href="{{ url('/opd_ucs_cr') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
-            </p>  
+            <span class="card-label"><i class="bi bi-star me-1 icon-color-5"></i> UC บริการเฉพาะ : ปิดสิทธิ</span>
+            <div class="card-metric">{{$uc_cr}} : {{$uc_cr_endpoint}}</div>  
+            <a href="{{ url('/opd_ucs_cr') }}" target="_blank" class="card-footer-link text-color-5">
+              View Report <i class="bi bi-chevron-right"></i>
+            </a>
           </div>
         </div>
       </div>        
-      <div class="col-sm-3">
-        <div class="card text-white bg-6 mb-3" style="max-width: 18rem;">
-          <div class="card-header">
-            <ion-icon name="people-outline"></ion-icon>
-            UC ยาสมุนไพร : ปิดสิทธิ
-          </div>
+      <div class="col-sm-3 mb-3">
+        <div class="card dash-card accent-6">
           <div class="card-body">
-            <h1 class="card-title text-center">{{$uc_herb}} : {{$uc_herb_endpoint}} </h1>
-            <p class="card-text">
-                <a href="{{ url('/opd_ucs_herb') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
-            </p>  
+            <span class="card-label"><i class="bi bi-flower1 me-1 icon-color-6"></i> UC ยาสมุนไพร : ปิดสิทธิ</span>
+            <div class="card-metric">{{$uc_herb}} : {{$uc_herb_endpoint}}</div>
+            <a href="{{ url('/opd_ucs_herb') }}" target="_blank" class="card-footer-link text-color-6">
+              View Report <i class="bi bi-chevron-right"></i>
+            </a>
           </div>
         </div>
       </div>
-      <div class="col-sm-3">
-        <div class="card text-white bg-7 mb-3" style="max-width: 18rem;">
-          <div class="card-header">
-            <ion-icon name="people-outline"></ion-icon>
-            UC แพทย์แผนไทย : ปิดสิทธิ 
-          </div>
+      <div class="col-sm-3 mb-3">
+        <div class="card dash-card accent-7">
           <div class="card-body">
-            <h1 class="card-title text-center">{{$uc_healthmed}} : {{$uc_healthmed_endpoint}}</h1>  
-            <p class="card-text">
-                <a href="{{ url('/opd_ucs_healthmed') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
-            </p>  
+            <span class="card-label"><i class="bi bi-hospital me-1 icon-color-7"></i> UC แพทย์แผนไทย : ปิดสิทธิ </span>
+            <div class="card-metric">{{$uc_healthmed}} : {{$uc_healthmed_endpoint}}</div>  
+            <a href="{{ url('/opd_ucs_healthmed') }}" target="_blank" class="card-footer-link text-color-7">
+              View Report <i class="bi bi-chevron-right"></i>
+            </a>
           </div>
         </div>
       </div>
-      <div class="col-sm-3">
-        <div class="card text-white bg-8 mb-3" style="max-width: 18rem;" >
-          <div class="card-header">
-            <ion-icon name="people-outline"></ion-icon>
-            PPFS : ปิดสิทธิ 
-          </div>
-          <div class="card-body">
-            <h1 class="card-title text-center">{{$ppfs}} : {{$ppfs_endpoint}}</h1> 
-            <p class="card-text">
-                <a href="{{ url('/opd_ppfs') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
-            </p>           
-          </div>
-        </div>
-      </div>
-      <h5 class="alert alert-primary text-primary" align="left">
-        ข้อมูลผู้ป่วยใน ณ วันที่ <font style="color:red;">{{DateThai(date('Y-m-d'))}}</font> </font> เวลา: <font style="color:red;"><span id="realtime-clock_ipd"></span></font> 
-        Admit ปัจจุบัน: <font style="color:red;">{{$admit_now}}</font> AN
-      </h5>
-      <div class="col-sm-3">
-        <div class="card text-white bg-9 mb-3" style="max-width: 18rem;" >
-          <div class="card-header">
-            <ion-icon name="people-outline"></ion-icon>
-            Admit Homeward : Authen
-          </div>
-          <div class="card-body">
-            <h1 class="card-title text-center">{{$admit_homeward}} : {{$admit_homeward_endpoint}}</h1> 
-            <p class="card-text">
-                <a href="{{ url('/ipd_homeward') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
-            </p>           
-          </div>
-        </div>
-      </div>
-      <div class="col-sm-3">
-          <div class="card text-white bg-10 mb-3" style="max-width: 18rem;">
-            <div class="card-header">
-              <ion-icon name="people-outline"></ion-icon>
-              Chart รอแพทย์สรุป : รอบันทึก ICD10
-            </div>
+      <div class="col-sm-3 mb-3">
+          <div class="card dash-card accent-8">
             <div class="card-body">
-              <h1 class="card-title text-center">{{$non_diagtext}} : {{$non_icd10}}</h1>  
-              <p class="card-text">
-                  <a href="{{ url('/ipd_non_dchsummary') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
-              </p>  
+              <span class="card-label"><i class="bi bi-geo-alt me-1 icon-color-8"></i> UC Anywhere : ปิดสิทธิ</span>
+              <div class="card-metric">{{$uc_anywhere}} : {{$uc_anywhere_endpoint}}</div>  
+              <a href="{{ url('/opd_ucs_anywhere') }}" target="_blank" class="card-footer-link text-color-8">
+                View Report <i class="bi bi-chevron-right"></i>
+              </a>
+            </div>
+          </div>
+      </div>
+      
+      <!-- IPD Section -->
+      <div class="col-12 px-3 mt-1">
+        <div class="page-header-box" style="border-left-color: #198754 !important;">
+          <div class="d-flex align-items-center gap-2">
+            <h6 class="text-success mb-0 fw-bold">
+              <i class="bi bi-door-open me-2"></i> INPATIENT ADMISSIONS (IPD)
+            </h6>
+            <small class="text-muted ms-2 fw-normal dashboard-date-info">
+              <i class="bi bi-clock-history me-1"></i> <span id="realtime-clock_ipd"></span> 
+              <span class="ms-3">ADMIT NOW: <span class="text-dark fw-bold">{{$admit_now}}</span> AN</span>
+            </small>
+          </div>
+        </div>
+      </div>
+
+      <!-- IPD Metrics Cards -->
+      <div class="col-sm-3 mb-3">
+        <div class="card dash-card accent-9">
+          <div class="card-body">
+            <span class="card-label"><i class="bi bi-house me-1 icon-color-9"></i> Admit Homeward : Authen</span>
+            <div class="card-metric">{{$admit_homeward}} : {{$admit_homeward_endpoint}}</div> 
+            <a href="{{ url('/ipd_homeward') }}" target="_blank" class="card-footer-link text-color-9">
+              View Report <i class="bi bi-chevron-right"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="col-sm-3 mb-3">
+          <div class="card dash-card accent-10">
+            <div class="card-body">
+              <span class="card-label"><i class="bi bi-file-earmark-medical me-1 icon-color-10"></i> Chart รอแพทย์สรุป : ICD10</span>
+              <div class="card-metric">{{$non_diagtext}} : {{$non_icd10}}</div>  
+              <a href="{{ url('/ipd_non_dchsummary') }}" target="_blank" class="card-footer-link text-color-10">
+                View Report <i class="bi bi-chevron-right"></i>
+              </a>
             </div>
           </div>
       </div>        
-      <div class="col-sm-3">
-          <div class="card text-white bg-11 mb-3" style="max-width: 18rem;">
-            <div class="card-header">
-              <ion-icon name="people-outline"></ion-icon>
-              รอโอนค่าใช้จ่าย
-            </div>
+      <div class="col-sm-3 mb-3">
+          <div class="card dash-card accent-11">
             <div class="card-body">
-              <h1 class="card-title text-center">{{$not_transfer}}</h1>
-              <p class="card-text">
-                  <a href="{{ url('/ipd_finance_chk_opd_wait_transfer') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
-              </p>  
+              <span class="card-label"><i class="bi bi-arrow-left-right me-1 icon-color-11"></i> รอโอนค่าใช้จ่าย</span>
+              <div class="card-metric">{{$not_transfer}}</div>
+              <a href="{{ url('/ipd_finance_chk_opd_wait_transfer') }}" target="_blank" class="card-footer-link text-color-11">
+                View Report <i class="bi bi-chevron-right"></i>
+              </a>
             </div>
           </div>
       </div>
-      <div class="col-sm-3">
-          <div class="card text-white bg-12 mb-3" style="max-width: 18rem;">
-            <div class="card-header">
-              <ion-icon name="people-outline"></ion-icon>
-              รอชำระเงินสด : จำนวนเงิน
-            </div>
+      <div class="col-sm-3 mb-3">
+          <div class="card dash-card accent-12">
             <div class="card-body">
-              <h1 class="card-title text-center">{{$wait_paid_money}} : {{number_format($sum_wait_paid_money,2)}}</h1>  
-              <p class="card-text">
-                  <a href="{{ url('/ipd_finance_chk_wait_rcpt_money') }}" target="_blank" class="text-white" style="text-decoration: none;"> more detail...</a>
-              </p>  
+              <span class="card-label"><i class="bi bi-cash-coin me-1 icon-color-12"></i> รอชำระเงินสด : จำนวนเงิน</span>
+              <div class="card-metric" style="font-size: 1.25rem;">{{$wait_paid_money}} : {{number_format($sum_wait_paid_money,2)}}</div>  
+              <a href="{{ url('/ipd_finance_chk_wait_rcpt_money') }}" target="_blank" class="card-footer-link text-color-12">
+                View Report <i class="bi bi-chevron-right"></i>
+              </a>
             </div>
           </div>
       </div> 
-      <hr> 
-      <div class="row justify-content-center">      
-        <div class="col-md-12">
-            <form method="POST" enctype="multipart/form-data">
-            @csrf
-              <div class="row">                          
-                  <div class="col-md-9" align="left"></div>
-                  <div class="col-lg-3 d-flex justify-content-lg-end">
-                    <div class="d-flex align-items-center gap-2">
-                      <select class="form-select" name="budget_year">
-                        @foreach ($budget_year_select as $row)
-                          <option value="{{ $row->LEAVE_YEAR_ID }}"
-                            {{ (int)$budget_year === (int)$row->LEAVE_YEAR_ID ? 'selected' : '' }}>
-                            {{ $row->LEAVE_YEAR_NAME }}
-                          </option>
-                        @endforeach
-                      </select>
-                      <button type="submit" class="btn btn-primary">{{ __('ค้นหา') }}</button>
-                    </div>
-                  </div>
+      
+      <div class="col-12 mt-4 mb-2">
+        <div class="d-flex justify-content-between align-items-center bg-white p-3 rounded-3 shadow-sm border-start border-primary border-5">
+            <h5 class="text-dark mb-0 fw-bold">
+              <i class="bi bi-bar-chart-fill text-primary me-2"></i> สถิติและอัตราครองเตียง ปีงบประมาณ {{$budget_year}}
+            </h5>
+            <form method="POST" enctype="multipart/form-data" class="m-0">
+              @csrf
+              <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small">ปีงบประมาณ:</span>
+                <select class="form-select form-select-sm" name="budget_year" style="width: 160px; border-radius: 8px;">
+                  @foreach ($budget_year_select as $row)
+                    <option value="{{ $row->LEAVE_YEAR_ID }}"
+                      {{ (int)$budget_year === (int)$row->LEAVE_YEAR_ID ? 'selected' : '' }}>
+                      {{ $row->LEAVE_YEAR_NAME }}
+                    </option>
+                  @endforeach
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">ค้นหา</button>
               </div>
             </form>
-        </div>    
-      </div>       
-      <div id="bed_occupancy" style="width: 100%; height: 200px"><font color="#4154f1"><strong>อัตราครองเตียง ปีงบประมาณ {{$budget_year}}</strong></font></div>
-      <div class="col-sm-12">        
-      <br>
-      <h6 class="text-success" align="left"><strong>ข้อมูลผู้ปวยในรวม Homeward</strong></h6>
-        <div style="overflow-x:auto;">          
-          <table class="table table-bordered table-striped">
-              <thead>
-              <tr class="table-success">
-                  <th class="text-center">เดือน</th>
-                  <th class="text-center">AN</th>
-                  <th class="text-center">วันนอนรวม</th>
-                  <th class="text-center">อัตราครองเตียง</th>
-                  <th class="text-center">ActiveBase</th>
-                  <th class="text-center">CMI</th>
-                  <th class="text-center">AdjRW</th>             
-              </tr>
-              </thead>        
-              @foreach($ip_all as $row)
-              <tr>
-                  <td align="center">{{ $row->month }}</td>
-                  <td align="right">{{ number_format($row->an) }}</td>
-                  <td align="right">{{ number_format($row->admdate) }}</td>
-                  <td align="right">{{ $row->bed_occupancy }}</td>
-                  <td align="right">{{ $row->active_bed }}</td>
-                  <td align="right">{{ $row->cmi }}</td>
-                  <td align="right">{{ $row->adjrw }}</td>          
-              </tr>            
-              @endforeach   
-          </table>
-        </div> 
+        </div>
+      </div>
+
+      <div class="col-12">
+        <div class="card dash-card bg-white mt-3">
+          <div id="bed_occupancy" style="width: 100%; height: 250px"></div>
+        </div>
+      </div>
+      <div class="col-sm-12 px-3">        
+        <div class="card dash-card bg-white mt-3 shadow-sm">
+          <div class="card-header bg-danger text-white py-2 px-3">
+            <h6 class="mb-0 fw-bold" style="font-size: 0.85rem;"><i class="bi bi-collection me-2"></i> ข้อมูลผู้ป่วยในรวม Homeward</h6>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive w-100">          
+              <table class="table table-hover align-middle mb-0 w-100" style="font-size: 0.9rem;">
+                  <thead class="table-light">
+                  <tr>
+                      <th class="text-center py-2">เดือน</th>
+                      <th class="text-center">AN</th>
+                      <th class="text-center">วันนอน</th>
+                      <th class="text-center">อัตราครองเตียง</th>
+                      <th class="text-center">ActiveBase</th>
+                      <th class="text-center">CMI</th>
+                      <th class="text-center">AdjRW</th>             
+                  </tr>
+                  </thead>        
+                  <tbody>
+                  @foreach($ip_all as $row)
+                  <tr>
+                      <td align="center" class="fw-bold">{{ $row->month }}</td>
+                      <td align="right">{{ number_format($row->an) }}</td>
+                      <td align="right">{{ number_format($row->admdate) }}</td>
+                      <td align="right" class="text-primary fw-bold">{{ $row->bed_occupancy }}%</td>
+                      <td align="right">{{ $row->active_bed }}</td>
+                      <td align="right" class="text-success">{{ $row->cmi }}</td>
+                      <td align="right">{{ $row->adjrw }}</td>          
+                  </tr>            
+                  @endforeach   
+                  </tbody>
+              </table>
+            </div> 
+          </div>
+        </div>
       </div> 
     </div><!-- //row -->
-    <hr>
-    <div class="row" align="center">  
-      <div class="col-sm-6">
-        <h6 class="text-danger" align="left"><strong>ข้อมูลผู้ปวยใน ไม่รวม Homeward</strong></h6>     
-        <div style="overflow-x:auto;">          
-          <table class="table table-bordered table-striped">
-              <thead>
-              <tr class="table-danger">
-                  <th class="text-center">เดือน</th>
-                  <th class="text-center">AN</th>
-                  <th class="text-center">วันนอนรวม</th>
-                  <th class="text-center">อัตราครองเตียง</th>
-                  <th class="text-center">ActiveBase</th>
-                  <th class="text-center">CMI</th>
-                  <th class="text-center">AdjRW</th>                 
-              </tr>
-              </thead>        
-              @foreach($ip_normal as $row)
-              <tr>
-                  <td align="center">{{ $row->month }}</td>
-                  <td align="right">{{ number_format($row->an) }}</td>
-                  <td align="right">{{ number_format($row->admdate) }}</td>
-                  <td align="right">{{ $row->bed_occupancy }}</td>
-                  <td align="right">{{ $row->active_bed }}</td>
-                  <td align="right">{{ $row->cmi }}</td>
-                  <td align="right">{{ $row->adjrw }}</td>               
-              </tr>            
-              @endforeach              
-          </table>
-        </div> 
+    
+    <div class="row mt-3 px-2">  
+      <div class="col-sm-6 mb-3">
+        <div class="card dash-card bg-white shadow-sm h-100">
+          <div class="card-header bg-success text-white py-2">
+            <h6 class="mb-0 fw-bold" style="font-size: 0.8rem;"><i class="bi bi-person-badge me-2"></i> ไม่รวม Homeward</h6>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">          
+              <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.75rem;">
+                  <thead class="table-light">
+                  <tr>
+                      <th class="text-center">เดือน</th>
+                      <th class="text-center">AN</th>
+                      <th class="text-center">นอน</th>
+                      <th class="text-center">อัตราครองเตียง</th>
+                      <th class="text-center">CMI</th>
+                      <th class="text-center">AdjRW</th>                 
+                  </tr>
+                  </thead>        
+                  <tbody>
+                  @foreach($ip_normal as $row)
+                  <tr>
+                      <td align="center">{{ $row->month }}</td>
+                      <td align="right">{{ number_format($row->an) }}</td>
+                      <td align="right">{{ number_format($row->admdate) }}</td>
+                      <td align="right" class="text-danger">{{ $row->bed_occupancy }}%</td>
+                      <td align="right">{{ $row->cmi }}</td>
+                      <td align="right">{{ $row->adjrw }}</td>               
+                  </tr>            
+                  @endforeach              
+                  </tbody>
+              </table>
+            </div> 
+          </div>
+        </div>
       </div>  
-      <div class="col-sm-6">
-        <h6 class="text-primary" align="left"><strong>ข้อมูลผู้ปวย Homeward</strong></h6>     
-        <div style="overflow-x:auto;">          
-          <table class="table table-bordered table-striped">
-              <thead>
-              <tr class="table-primary">
-                  <th class="text-center">เดือน</th>
-                  <th class="text-center">AN</th>
-                  <th class="text-center">วันนอนรวม</th>
-                  <th class="text-center">อัตราครองเตียง</th>
-                  <th class="text-center">ActiveBase</th>
-                  <th class="text-center">CMI</th>
-                  <th class="text-center">AdjRW</th>            
-              </tr>
-              </thead>        
-              @foreach($ip_homeward as $row)
-              <tr>
-                  <td align="center">{{ $row->month }}</td>
-                  <td align="right">{{ number_format($row->an) }}</td>
-                  <td align="right">{{ number_format($row->admdate) }}</td>
-                  <td align="right">{{ $row->bed_occupancy }}</td>
-                  <td align="right">{{ $row->active_bed }}</td>
-                  <td align="right">{{ $row->cmi }}</td>
-                  <td align="right">{{ $row->adjrw }}</td>               
-              </tr>            
-              @endforeach              
-          </table>
-        </div> 
+      <div class="col-sm-6 mb-3">
+        <div class="card dash-card bg-white shadow-sm h-100">
+          <div class="card-header bg-primary text-white py-2">
+            <h6 class="mb-0 fw-bold" style="font-size: 0.8rem;"><i class="bi bi-house-door me-2"></i> Homeward</h6>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">          
+              <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.75rem;">
+                  <thead class="table-light">
+                  <tr>
+                      <th class="text-center">เดือน</th>
+                      <th class="text-center">AN</th>
+                      <th class="text-center">นอน</th>
+                      <th class="text-center">อัตราครองเตียง</th>
+                      <th class="text-center">CMI</th>
+                      <th class="text-center">AdjRW</th>            
+                  </tr>
+                  </thead>        
+                  <tbody>
+                  @foreach($ip_homeward as $row)
+                  <tr>
+                      <td align="center">{{ $row->month }}</td>
+                      <td align="right">{{ number_format($row->an) }}</td>
+                      <td align="right">{{ number_format($row->admdate) }}</td>
+                      <td align="right" class="text-primary">{{ $row->bed_occupancy }}%</td>
+                      <td align="right">{{ $row->cmi }}</td>
+                      <td align="right">{{ $row->adjrw }}</td>               
+                  </tr>            
+                  @endforeach              
+                  </tbody>
+              </table>
+            </div> 
+          </div>
+        </div>
       </div>     
     </div> <!-- //row -->
 
@@ -380,12 +375,12 @@
       new ApexCharts(document.querySelector("#bed_occupancy"), {
           
           series: [{
-              name: 'อัตราครองเตียง',
+              name: 'สถิติและอัตราครองเตียง',
               data: <?php echo json_encode($bed_occupancy); ?>,
                   }],
         
           chart: {
-              height: 200,
+              height: 250,
               type: 'area',
               toolbar: {
               show: false

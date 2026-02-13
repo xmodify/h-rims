@@ -7,9 +7,9 @@
         <div>
             <h5 class="text-dark mb-0 fw-bold">
                 <i class="bi bi-file-earmark-text-fill text-success me-2"></i>
-                รายละเอียด Statement เบิกจ่ายตรง อปท.LGO [ฟอกไต HD]
+                รายละเอียด Statement ประกันสุขภาพ UCS [IPD]
             </h5>
-            <div class="text-muted small mt-1">รายละเอียดข้อมูลการเบิกจ่ายแยกตามสถานะ</div>
+            <div class="text-muted small mt-1">รายละเอียดข้อมูลการเบิกจ่ายแยกตามสถานะ ผู้ป่วยใน</div>
         </div>
         
         <form method="POST" enctype="multipart/form-data" class="m-0">
@@ -24,36 +24,55 @@
         </form>
     </div>
 
-    <!-- Data Table Card -->
-    <div class="card dash-card accent-9 mb-4">
+    <!-- IPD Data Table Card -->
+    <div class="card dash-card accent-11 mb-4">
+        <div class="card-header bg-transparent border-0 pb-0 pt-4 px-4">
+            <h6 class="fw-bold text-dark mb-0"><i class="bi bi-hospital me-2 text-danger"></i> ผู้ป่วยใน IP</h6>
+        </div>
         <div class="card-body p-4">
             <div class="table-responsive">
-                <table id="stm_lgo_kidney_list" class="table table-modern w-100">
+                <table id="stm_ucs_list_ip" class="table table-modern w-100">
                     <thead>
                         <tr>
                             <th class="text-center">Dep</th>
-                            <th class="text-center">Filename</th> 
+                            <th class="text-center">Filename</th>
                             <th class="text-center">REP</th> 
                             <th class="text-center">HN</th>
-                            <th class="text-center">CID</th>
+                            <th class="text-center">AN</th>
                             <th class="text-center">ชื่อ-สกุล</th>
-                            <th class="text-center">วันเข้ารักษา</th>   
-                            <th class="text-center">ชดเชยค่ารักษา</th>                                                           
-                            <th class="text-center">หมายเหตุ</th>
+                            <th class="text-center">วันเข้ารักษา</th>
+                            <th class="text-center">จำหน่าย</th>
+                            <th class="text-center">PROJCODE</th>  
+                            <th class="text-center">เรียกเก็บ</th>                                         
+                            <th class="text-center">ชดเชยสุทธิ</th> 
+                            <th class="text-center">OP</th>
+                            <th class="text-center">IP</th>
+                            <th class="text-center">HC</th>
+                            <th class="text-center">AE</th> 
+                            <th class="text-center">PP</th>
+                            <th class="text-center">FS</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($stm_lgo_kidney_list as $row)
+                        @foreach($stm_ucs_list_ip as $row)
                         <tr>
                             <td class="text-center"><span class="badge bg-light text-dark border">{{ $row->dep }}</span></td>
                             <td class="small fw-bold text-dark">{{ $row->stm_filename }}</td>
-                            <td class="text-centersmall">REP: {{ $row->repno }}</td>
+                            <td class="text-center">{{ $row->repno }}</td>                            
                             <td class="text-center fw-bold">{{ $row->hn }}</td>
-                            <td class="text-center small text-muted">{{ $row->cid }}</td>
+                            <td class="text-center">{{ $row->an }}</td>
                             <td>{{ $row->pt_name }}</td>
-                            <td class="text-center">{{ DateThai($row->datetimeadm) }}</td>   
-                            <td class="text-end text-success fw-bold">{{ number_format($row->compensate_kidney,2) }}</td>
-                            <td>{{ $row->note }}</td> 
+                            <td class="text-center small">{{ $row->datetimeadm }}</td>
+                            <td class="text-center small text-muted">{{ $row->datetimedch }}</td>
+                            <td class="text-center small">{{ $row->projcode }}</td>
+                            <td class="text-end text-muted">{{ number_format($row->charge,2) }}</td>
+                            <td class="text-end text-success fw-bold">{{ number_format($row->receive_total,2) }}</td>    
+                            <td class="text-end">{{ number_format($row->receive_op,2) }}</td>
+                            <td class="text-end text-muted">{{ number_format($row->receive_ip_compensate_pay,2) }}</td>
+                            <td class="text-end">{{ number_format($row->receive_hc_hc,2) }}</td>
+                            <td class="text-end text-muted">{{ number_format($row->receive_ae_ae,2) }}</td>
+                            <td class="text-end">{{ number_format($row->receive_pp,2) }}</td>
+                            <td class="text-end text-muted">{{ number_format($row->receive_fs,2) }}</td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -62,15 +81,12 @@
         </div>
     </div>
 </div>
-        </div> 
-    </div> 
-</div> 
 @endsection
 
 @push('scripts')
 <script>
     $(document).ready(function () {
-      $('#stm_lgo_kidney_list').DataTable({
+      $('#stm_ucs_list_ip').DataTable({
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + // Show รายการ
                 '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
@@ -85,7 +101,7 @@
               extend: 'excelHtml5',
               text: 'Excel',
               className: 'btn btn-success',
-              title: 'Statement เบิกจ่ายตรง อปท.LGO [ฟอกไต HD] รายละเอียด'
+              title: 'Statement ประกันสุขภาพ UCS รายละเอียด IPD'
             }
         ],
         language: {
@@ -99,6 +115,5 @@
         }
       });
     });
-  </script> 
+  </script>  
 @endpush
-

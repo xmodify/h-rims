@@ -1,71 +1,71 @@
 @extends('layouts.app')
 
 @section('content')
-<form method="POST" enctype="multipart/form-data">
-    @csrf
-    <div class="row" >
-            <label class="col-md-3 col-form-label text-md-end my-1">{{ __('วันที่') }}</label>
-        <div class="col-md-2">
-            <input type="date" name="start_date" class="form-control my-1" placeholder="Date" value="{{ $start_date }}" >
+<div class="container-fluid px-lg-4">
+    <!-- Page Header & Search -->
+    <div class="page-header-box mt-3 mb-4">
+        <div>
+            <h5 class="text-dark mb-0 fw-bold">
+                <i class="bi bi-file-earmark-text-fill text-success me-2"></i>
+                ข้อมูล Statement สวัสดิการข้าราชการ CSOP-ฟอกไต
+            </h5>
+            <div class="text-muted small mt-1">รายละเอียดข้อมูลการเบิกจ่ายแยกตามสถานะ</div>
         </div>
-            <label class="col-md-1 col-form-label text-md-end my-1">{{ __('ถึง') }}</label>
-        <div class="col-md-2">
-            <input type="date" name="end_date" class="form-control my-1" placeholder="Date" value="{{ $end_date }}" >
-        </div>
-        <div class="col-md-1" >
-            <button type="submit" class="btn btn-primary my-1 ">{{ __('ค้นหา') }}</button>
+        
+        <form method="POST" enctype="multipart/form-data" class="m-0">
+            @csrf
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small">วันที่:</span>
+                <input type="date" name="start_date" class="form-control form-control-sm" style="width: 150px; border-radius: 8px;" value="{{ $start_date }}">
+                <span class="text-muted small">ถึง:</span>
+                <input type="date" name="end_date" class="form-control form-control-sm" style="width: 150px; border-radius: 8px;" value="{{ $end_date }}">
+                <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">ค้นหา</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Data Table Card -->
+    <div class="card dash-card accent-9 mb-4">
+        <div class="card-body p-4">
+            <div class="table-responsive">
+                <table id="stm_ofc_csop_list" class="table table-modern w-100">
+                    <thead>
+                        <tr>
+                            <th>FileName</th>
+                            <th>Station</th>
+                            <th>Sys</th> 
+                            <th>HN</th>
+                            <th>Hreg</th>
+                            <th>ชื่อ-สกุล</th>
+                            <th>InvNo</th>
+                            <th>vstdate</th>                    
+                            <th>ค่ารักษาที่เบิก</th> 
+                            <th>RepNo</th>
+                            <th>Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($stm_ofc_csop_list as $row)
+                        <tr>
+                            <td class="small fw-bold text-dark">{{ $row->stm_filename }}</td>
+                            <td class="small">{{ $row->station }}</td>
+                            <td class="small text-muted">{{ $row->sys }}</td>
+                            <td class="text-center fw-bold">{{ $row->hn }}</td>
+                            <td class="text-center small text-muted">{{ $row->hreg }}</td>
+                            <td>{{ $row->pt_name }}</td>
+                            <td class="text-center small">{{ $row->invno }}</td>
+                            <td class="text-center small text-muted">{{ $row->vstdate }} {{ $row->vsttime }}</td>
+                            <td class="text-end fw-bold text-success">{{ number_format($row->amount,2) }}</td> 
+                            <td class="text-center small">REP: {{ $row->rid }}</td>
+                            <td class="small text-muted text-center">REC: {{ $row->receive_no }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-</form>
-<br>
-<div class="container-fluid">
-    <div class="row justify-content-center">  
-        <div class="col-md-12"> 
-            <div class="alert alert-success text-primary" role="alert">
-                <strong>ข้อมูล Statement สวัสดิการข้าราชการ CSOP-ฟอกไต รายละเอียด</strong>
-            </div>
-            <div class="card-body">
-                <div style="overflow-x:auto;">                           
-                    <table id="stm_ofc_csop_list" class="table table-bordered table-striped my-3">
-                        <thead>
-                            <tr class="table-primary">
-                                <th class="text-center">FileName</th>
-                                <th class="text-center">Hcode</th>
-                                <th class="text-center">Hname</th>                                  
-                                <th class="text-center">Station</th> 
-                                <th class="text-center">Sys</th>
-                                <th class="text-center">Hreg</th>                      
-                                <th class="text-center">HN</th>
-                                <th class="text-center">ชื่อ-สกุล</th>
-                                <th class="text-center">InvNo</th>                    
-                                <th class="text-center">วันที่รับบริการ</th>
-                                <th class="text-center">ค่ารักษาพยาบาลที่เบิก</th> 
-                                <th class="text-center">RepNo.</th> 
-                                <th class="text-center">เลขที่ใบเสร็จ</th>
-                            </tr>     
-                            </thead> 
-                            <?php $count = 1 ; ?>  
-                            @foreach($stm_ofc_csop_list as $row)          
-                            <tr>
-                                <td align="right">{{ $row->stm_filename }}</td>
-                                <td align="center">{{ $row->hcode }}</td> 
-                                <td align="right">{{ $row->hname }}</td>                                
-                                <td align="right">{{ $row->station }}</td>
-                                <td align="right">{{ $row->sys }}</td>
-                                <td align="right">{{ $row->hreg }}</td>
-                                <td align="left">{{ $row->hn }}</td>
-                                <td align="left">{{ $row->pt_name }}</td>
-                                <td align="right">{{ $row->invno }}</td>
-                                <td align="right">{{ $row->vstdate }} {{ $row->vsttime }}</td>                                
-                                <td class="text-end fw-bold text-success">{{ number_format($row->amount,2) }}</td> 
-                                <td align="right">{{ $row->rid }}</td>
-                                <td align="right">{{ $row->receive_no }}</td>
-                            </tr>                
-                            <?php $count++; ?>  
-                            @endforeach   
-                    </table>
-                </div> 
-            </div> 
+</div>
         </div> 
     </div> 
 </div> 

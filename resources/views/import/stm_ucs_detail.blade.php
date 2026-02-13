@@ -1,147 +1,143 @@
 @extends('layouts.app')
 
 @section('content')
-<form method="POST" enctype="multipart/form-data">
-    @csrf
-    <div class="row" >
-            <label class="col-md-3 col-form-label text-md-end my-1">{{ __('วันที่') }}</label>
-        <div class="col-md-2">
-            <input type="date" name="start_date" class="form-control my-1" placeholder="Date" value="{{ $start_date }}" >
+<div class="container-fluid px-lg-4">
+    <!-- Page Header & Search -->
+    <div class="page-header-box mt-3 mb-4">
+        <div>
+            <h5 class="text-dark mb-0 fw-bold">
+                <i class="bi bi-file-earmark-text-fill text-success me-2"></i>
+                รายละเอียด Statement ประกันสุขภาพ UCS [OP-IP]
+            </h5>
+            <div class="text-muted small mt-1">รายละเอียดข้อมูลการเบิกจ่ายแยกตามสถานะ</div>
         </div>
-            <label class="col-md-1 col-form-label text-md-end my-1">{{ __('ถึง') }}</label>
-        <div class="col-md-2">
-            <input type="date" name="end_date" class="form-control my-1" placeholder="Date" value="{{ $end_date }}" >
+        
+        <form method="POST" enctype="multipart/form-data" class="m-0">
+            @csrf
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small">วันที่:</span>
+                <input type="date" name="start_date" class="form-control form-control-sm" style="width: 150px; border-radius: 8px;" value="{{ $start_date }}">
+                <span class="text-muted small">ถึง:</span>
+                <input type="date" name="end_date" class="form-control form-control-sm" style="width: 150px; border-radius: 8px;" value="{{ $end_date }}">
+                <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">ค้นหา</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- OPD Data Table Card -->
+    <div class="card dash-card accent-9 mb-4">
+        <div class="card-header bg-transparent border-0 pb-0 pt-4 px-4">
+            <h6 class="fw-bold text-dark mb-0"><i class="bi bi-person-badge me-2 text-primary"></i> ผู้ป่วยนอก OP</h6>
         </div>
-        <div class="col-md-1" >
-            <button type="submit" class="btn btn-primary my-1 ">{{ __('ค้นหา') }}</button>
+        <div class="card-body p-4">
+            <div class="table-responsive">
+                <table id="stm_ucs_list" class="table table-modern w-100">
+                    <thead>
+                        <tr>
+                            <th class="text-center">Dep</th>
+                            <th class="text-center">Filename</th>
+                            <th class="text-center">REP</th> 
+                            <th class="text-center">HN</th>
+                            <th class="text-center">AN</th>
+                            <th class="text-center">ชื่อ-สกุล</th>
+                            <th class="text-center">วันเข้ารักษา</th>
+                            <th class="text-center">จำหน่าย</th>
+                            <th class="text-center">PROJCODE</th>  
+                            <th class="text-center">เรียกเก็บ</th>                                         
+                            <th class="text-center">ชดเชยสุทธิ</th> 
+                            <th class="text-center">OP</th>
+                            <th class="text-center">IP</th>
+                            <th class="text-center">HC</th>
+                            <th class="text-center">AE</th> 
+                            <th class="text-center">PP</th>
+                            <th class="text-center">FS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($stm_ucs_list as $row)
+                        <tr>
+                            <td class="text-center"><span class="badge bg-light text-dark border">{{ $row->dep }}</span></td>
+                            <td class="small fw-bold text-dark">{{ $row->stm_filename }}</td>
+                            <td class="text-center">{{ $row->repno }}</td>                            
+                            <td class="text-center fw-bold">{{ $row->hn }}</td>
+                            <td class="text-center">{{ $row->an }}</td>
+                            <td>{{ $row->pt_name }}</td>
+                            <td class="text-center small">{{ $row->datetimeadm }}</td>
+                            <td class="text-center small text-muted">{{ $row->datetimedch }}</td>
+                            <td class="text-center small">{{ $row->projcode }}</td>
+                            <td class="text-end text-muted">{{ number_format($row->charge,2) }}</td>
+                            <td class="text-end text-success fw-bold">{{ number_format($row->receive_total,2) }}</td>    
+                            <td class="text-end">{{ number_format($row->receive_op,2) }}</td>
+                            <td class="text-end text-muted">{{ number_format($row->receive_ip_compensate_pay,2) }}</td>
+                            <td class="text-end">{{ number_format($row->receive_hc_hc,2) }}</td>
+                            <td class="text-end text-muted">{{ number_format($row->receive_ae_ae,2) }}</td>
+                            <td class="text-end">{{ number_format($row->receive_pp,2) }}</td>
+                            <td class="text-end text-muted">{{ number_format($row->receive_fs,2) }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-</form>
-<div class="container-fluid">
-    <div class="row justify-content-center">  
-        <div class="col-md-12">
-            <div class="alert alert-success text-primary" role="alert">
-                <strong>รายละเอียด Statement ประกันสุขภาพ UCS [OP-IP] รายละเอียด</strong>
+
+    <!-- IPD Data Table Card -->
+    <div class="card dash-card border-top-0">
+        <div class="card-header bg-transparent border-0 pb-0 pt-4 px-4">
+            <h6 class="fw-bold text-dark mb-0"><i class="bi bi-hospital me-2 text-danger"></i> ผู้ป่วยใน IP</h6>
+        </div>
+        <div class="card-body p-4">
+            <div class="table-responsive">
+                <table id="stm_ucs_list_ip" class="table table-modern w-100">
+                    <thead>
+                        <tr>
+                            <th class="text-center">Dep</th>
+                            <th class="text-center">Filename</th>
+                            <th class="text-center">REP</th> 
+                            <th class="text-center">HN</th>
+                            <th class="text-center">AN</th>
+                            <th class="text-center">ชื่อ-สกุล</th>
+                            <th class="text-center">วันเข้ารักษา</th>
+                            <th class="text-center">จำหน่าย</th>
+                            <th class="text-center">PROJCODE</th>  
+                            <th class="text-center">เรียกเก็บ</th>                                         
+                            <th class="text-center">ชดเชยสุทธิ</th> 
+                            <th class="text-center">OP</th>
+                            <th class="text-center">IP</th>
+                            <th class="text-center">HC</th>
+                            <th class="text-center">AE</th> 
+                            <th class="text-center">PP</th>
+                            <th class="text-center">FS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($stm_ucs_list_ip as $row)
+                        <tr>
+                            <td class="text-center"><span class="badge bg-light text-dark border">{{ $row->dep }}</span></td>
+                            <td class="small fw-bold text-dark">{{ $row->stm_filename }}</td>
+                            <td class="text-center">{{ $row->repno }}</td>                            
+                            <td class="text-center fw-bold">{{ $row->hn }}</td>
+                            <td class="text-center">{{ $row->an }}</td>
+                            <td>{{ $row->pt_name }}</td>
+                            <td class="text-center small">{{ $row->datetimeadm }}</td>
+                            <td class="text-center small text-muted">{{ $row->datetimedch }}</td>
+                            <td class="text-center small">{{ $row->projcode }}</td>
+                            <td class="text-end text-muted">{{ number_format($row->charge,2) }}</td>
+                            <td class="text-end text-success fw-bold">{{ number_format($row->receive_total,2) }}</td>    
+                            <td class="text-end">{{ number_format($row->receive_op,2) }}</td>
+                            <td class="text-end text-muted">{{ number_format($row->receive_ip_compensate_pay,2) }}</td>
+                            <td class="text-end">{{ number_format($row->receive_hc_hc,2) }}</td>
+                            <td class="text-end text-muted">{{ number_format($row->receive_ae_ae,2) }}</td>
+                            <td class="text-end">{{ number_format($row->receive_pp,2) }}</td>
+                            <td class="text-end text-muted">{{ number_format($row->receive_fs,2) }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
-            <div class="card-body">
-                <div style="overflow-x:auto;"> 
-                    <strong class="text-primary">ผู้ป่วยนอก OP</strong>       
-                    <table id="stm_ucs_list" class="table table-bordered table-striped my-3">
-                        <thead>
-                            <tr class="table-primary">
-                                <th class="text-center">Dep</th>
-                                <th class="text-center">Filename</th> 
-                                <th class="text-center">REP</th> 
-                                <th class="text-center">HN</th>
-                                <th class="text-center">AN</th>    
-                                <th class="text-center">ชื่อ-สกุล</th>
-                                <th class="text-center">วันเข้ารักษา</th>
-                                <th class="text-center">วันจำหน่าย</th>  
-                                <th class="text-center">PROJCODE</th>  
-                                <th class="text-center">เรียกเก็บ</th>                                         
-                                <th class="text-center">ชดเชยสุทธิ</th> 
-                                <th class="text-center">OP</th>
-                                <th class="text-center">IP</th>  
-                                <th class="text-center">HC</th> 
-                                <th class="text-center">HC_Drug</th>
-                                <th class="text-center">AE</th> 
-                                <th class="text-center">AE_Drug</th> 
-                                <th class="text-center">INST</th> 
-                                <th class="text-center">Palliative</th> 
-                                <th class="text-center">PP</th> 
-                                <th class="text-center">FS</th>                                      
-                            </tr>     
-                            </thead> 
-                            <?php $count = 1 ; ?>  
-                            @foreach($stm_ucs_list as $row) 
-                            <tr>
-                                <td align="center">{{ $row->dep }}</td> 
-                                <td align="right">{{ $row->stm_filename }}</td>
-                                <td align="right">{{ $row->repno }}</td>                            
-                                <td align="right">{{ $row->hn }}</td>
-                                <td align="right">{{ $row->an }}</td>                                   
-                                <td align="left">{{ $row->pt_name }}</td>
-                                <td align="right">{{ $row->datetimeadm }}</td>
-                                <td align="right">{{ $row->datetimedch }}</td>
-                                <td align="right">{{ $row->projcode }}</td>
-                                <td align="right">{{ number_format($row->charge,2) }}</td>
-                                <td align="right">{{ number_format($row->receive_total,2) }}</td>    
-                                <td align="right">{{ number_format($row->receive_op,2) }}</td>
-                                <td align="right">{{ number_format($row->receive_ip_compensate_pay,2) }}</td>                                         
-                                <td align="right">{{ number_format($row->receive_hc_hc,2) }}</td>  
-                                <td align="right">{{ number_format($row->receive_hc_drug,2) }}</td>
-                                <td align="right">{{ number_format($row->receive_ae_ae,2) }}</td>  
-                                <td align="right">{{ number_format($row->receive_ae_drug,2) }}</td> 
-                                <td align="right">{{ number_format($row->receive_inst,2) }}</td> 
-                                <td align="right">{{ number_format($row->receive_palliative,2) }}</td>  
-                                <td align="right">{{ number_format($row->receive_pp,2) }}</td>
-                                <td align="right">{{ number_format($row->receive_fs,2) }}</td>    
-                            </tr>                
-                            <?php $count++; ?>  
-                            @endforeach   
-                    </table>
-                </div> 
-            </div>  
-            <hr>
-            <div class="card-body">
-                <div style="overflow-x:auto;"> 
-                    <strong class="text-primary">ผู้ป่วยใน IP</strong>       
-                    <table id="stm_ucs_list_ip" class="table table-bordered table-striped my-3">
-                        <thead>
-                            <tr class="table-primary">
-                                <th class="text-center">Dep</th>
-                                <th class="text-center">Filename</th> 
-                                <th class="text-center">REP</th> 
-                                <th class="text-center">HN</th>
-                                <th class="text-center">AN</th>    
-                                <th class="text-center">ชื่อ-สกุล</th>
-                                <th class="text-center">วันเข้ารักษา</th>
-                                <th class="text-center">วันจำหน่าย</th>  
-                                <th class="text-center">PROJCODE</th>  
-                                <th class="text-center">เรียกเก็บ</th>                                         
-                                <th class="text-center">ชดเชยสุทธิ</th> 
-                                <th class="text-center">OP</th>
-                                <th class="text-center">IP</th>  
-                                <th class="text-center">HC</th> 
-                                <th class="text-center">HC_Drug</th>
-                                <th class="text-center">AE</th> 
-                                <th class="text-center">AE_Drug</th> 
-                                <th class="text-center">INST</th> 
-                                <th class="text-center">Palliative</th> 
-                                <th class="text-center">PP</th> 
-                                <th class="text-center">FS</th>                                      
-                            </tr>     
-                            </thead> 
-                            <?php $count = 1 ; ?>  
-                            @foreach($stm_ucs_list_ip as $row) 
-                            <tr>
-                                <td align="center">{{ $row->dep }}</td> 
-                                <td align="right">{{ $row->stm_filename }}</td>
-                                <td align="right">{{ $row->repno }}</td>                            
-                                <td align="right">{{ $row->hn }}</td>
-                                <td align="right">{{ $row->an }}</td>                                   
-                                <td align="left">{{ $row->pt_name }}</td>
-                                <td align="right">{{ $row->datetimeadm }}</td>
-                                <td align="right">{{ $row->datetimedch }}</td>
-                                <td align="right">{{ $row->projcode }}</td>
-                                <td align="right">{{ number_format($row->charge,2) }}</td>
-                                <td align="right">{{ number_format($row->receive_total,2) }}</td>    
-                                <td align="right">{{ number_format($row->receive_op,2) }}</td>
-                                <td align="right">{{ number_format($row->receive_ip_compensate_pay,2) }}</td>                                         
-                                <td align="right">{{ number_format($row->receive_hc_hc,2) }}</td>  
-                                <td align="right">{{ number_format($row->receive_hc_drug,2) }}</td>
-                                <td align="right">{{ number_format($row->receive_ae_ae,2) }}</td>  
-                                <td align="right">{{ number_format($row->receive_ae_drug,2) }}</td> 
-                                <td align="right">{{ number_format($row->receive_inst,2) }}</td> 
-                                <td align="right">{{ number_format($row->receive_palliative,2) }}</td>  
-                                <td align="right">{{ number_format($row->receive_pp,2) }}</td>
-                                <td align="right">{{ number_format($row->receive_fs,2) }}</td>    
-                            </tr>                
-                            <?php $count++; ?>  
-                            @endforeach   
-                    </table>
-                </div> 
-            </div>
+        </div>
+    </div>
+</div>
         </div> 
     </div> 
 </div> 

@@ -1,66 +1,71 @@
 @extends('layouts.app')
 
 @section('content')
-<form method="POST" enctype="multipart/form-data">
-    @csrf
-    <div class="row" >
-            <label class="col-md-3 col-form-label text-md-end my-1">{{ __('วันที่') }}</label>
-        <div class="col-md-2">
-            <input type="date" name="start_date" class="form-control my-1" placeholder="Date" value="{{ $start_date }}" >
+<div class="container-fluid px-lg-4">
+    <!-- Page Header & Search -->
+    <div class="page-header-box mt-3 mb-4">
+        <div>
+            <h5 class="text-dark mb-0 fw-bold">
+                <i class="bi bi-file-earmark-text-fill text-success me-2"></i>
+                รายละเอียด Statement ประกันสุขภาพ UCS [ฟอกไต HD]
+            </h5>
+            <div class="text-muted small mt-1">รายละเอียดข้อมูลการเบิกจ่ายแยกตามสถานะ</div>
         </div>
-            <label class="col-md-1 col-form-label text-md-end my-1">{{ __('ถึง') }}</label>
-        <div class="col-md-2">
-            <input type="date" name="end_date" class="form-control my-1" placeholder="Date" value="{{ $end_date }}" >
-        </div>
-        <div class="col-md-1" >
-            <button type="submit" class="btn btn-primary my-1 ">{{ __('ค้นหา') }}</button>
+        
+        <form method="POST" enctype="multipart/form-data" class="m-0">
+            @csrf
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small">วันที่:</span>
+                <input type="date" name="start_date" class="form-control form-control-sm" style="width: 150px; border-radius: 8px;" value="{{ $start_date }}">
+                <span class="text-muted small">ถึง:</span>
+                <input type="date" name="end_date" class="form-control form-control-sm" style="width: 150px; border-radius: 8px;" value="{{ $end_date }}">
+                <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">ค้นหา</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Data Table Card -->
+    <div class="card dash-card accent-9 mb-4">
+        <div class="card-body p-4">
+            <div class="table-responsive">
+                <table id="stm_ucs_kidney_list" class="table table-modern w-100">
+                    <thead>
+                        <tr>
+                            <th>Filename</th> 
+                            <th>REP</th> 
+                            <th>HN</th>
+                            <th>AN</th>
+                            <th>CID</th>
+                            <th>ชื่อ-สกุล</th>
+                            <th>วันเข้ารักษา</th> 
+                            <th>รายการที่ขอเบิก</th> 
+                            <th>จำนวนที่ขอเบิก</th> 
+                            <th>จ่ายชดเชยสุทธิ</th>                                                         
+                            <th>หมายเหตุ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($stm_ucs_kidney_list as $row)
+                        <tr>
+                            <td class="small fw-bold text-dark">{{ $row->stm_filename }}</td>
+                            <td class="text-center small">{{ $row->repno }}</td>
+                            <td class="text-center fw-bold">{{ $row->hn }}</td>
+                            <td class="text-center small text-muted">{{ $row->an }}</td>
+                            <td class="text-center small text-muted">{{ $row->cid }}</td>
+                            <td>{{ $row->pt_name }}</td>
+                            <td class="text-center">{{ DateThai($row->datetimeadm) }}</td>
+                            <td class="text-center small">{{ $row->hd_type }}</td>
+                            <td class="text-end text-muted">{{ number_format($row->charge_total,2) }}</td>
+                            <td class="text-end fw-bold text-success">{{ number_format($row->receive_total,2) }}</td>
+                            <td class="small">{{ $row->note }}</td> 
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-</form>
-<div class="container-fluid">
-    <div class="row justify-content-center">  
-        <div class="col-md-12">
-            <div class="alert alert-success text-primary" role="alert">
-                <strong>Statement ประกันสุขภาพ UCS [ฟอกไต HD] รายละเอียด</strong>
-            </div>
-            <div class="card-body">
-                <div style="overflow-x:auto;">                           
-                    <table id="stm_ucs_kidney_list" class="table table-bordered table-striped my-3">
-                        <thead>
-                            <tr class="table-primary">
-                                <th class="text-center">Filename</th> 
-                                <th class="text-center">REP</th> 
-                                <th class="text-center">HN</th>  
-                                <th class="text-center">AN</th>  
-                                <th class="text-center">CID</th>  
-                                <th class="text-center">ชื่อ-สกุล</th>
-                                <th class="text-center">วันเข้ารักษา</th> 
-                                <th class="text-center" width = "10%">รายการที่ขอเบิก</th> 
-                                <th class="text-center">จำนวนที่ขอเบิก</th> 
-                                <th class="text-center">จ่ายชดเชยสุทธิ</th>                                                         
-                                <th class="text-center">หมายเหตุ</th>
-                            </tr>     
-                            </thead> 
-                            <?php $count = 1 ; ?>  
-                            @foreach($stm_ucs_kidney_list as $row) 
-                            <tr>
-                                <td align="right">{{ $row->stm_filename }}</td>
-                                <td align="right">{{ $row->repno }}</td>     
-                                <td align="right">{{ $row->hn }}</td>   
-                                <td align="right">{{ $row->an }}</td>   
-                                <td align="right">{{ $row->cid }}</td>   
-                                <td align="left">{{ $row->pt_name }}</td>
-                                <td align="right">{{ DateThai($row->datetimeadm) }}</td>
-                                <td align="right" width = "10%">{{ $row->hd_type }}</td>
-                                <td align="right">{{ number_format($row->charge_total,2) }}</td>
-                                <td align="right">{{ number_format($row->receive_total,2) }}</td>
-                                <td align="right">{{ $row->note }}</td> 
-                            </tr>                
-                            <?php $count++; ?>  
-                            @endforeach   
-                    </table>
-                </div> 
-            </div>
+</div>
         </div> 
     </div> 
 </div> 

@@ -1,71 +1,76 @@
 @extends('layouts.app')
 
 @section('content')
-<form method="POST" enctype="multipart/form-data">
-    @csrf
-    <div class="row" >
-            <label class="col-md-3 col-form-label text-md-end my-1">{{ __('วันที่') }}</label>
-        <div class="col-md-2">
-            <input type="date" name="start_date" class="form-control my-1" placeholder="Date" value="{{ $start_date }}" >
+<div class="container-fluid px-lg-4">
+    <!-- Page Header & Search -->
+    <div class="page-header-box mt-3 mb-4">
+        <div>
+            <h5 class="text-dark mb-0 fw-bold">
+                <i class="bi bi-file-earmark-text-fill text-success me-2"></i>
+                ข้อมูล Statement สวัสดิการข้าราชการ CIPN
+            </h5>
+            <div class="text-muted small mt-1">รายละเอียดข้อมูลการเบิกจ่ายแยกตามสถานะ</div>
         </div>
-            <label class="col-md-1 col-form-label text-md-end my-1">{{ __('ถึง') }}</label>
-        <div class="col-md-2">
-            <input type="date" name="end_date" class="form-control my-1" placeholder="Date" value="{{ $end_date }}" >
-        </div>
-        <div class="col-md-1" >
-            <button type="submit" class="btn btn-primary my-1 ">{{ __('ค้นหา') }}</button>
+        
+        <form method="POST" enctype="multipart/form-data" class="m-0">
+            @csrf
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small">วันที่:</span>
+                <input type="date" name="start_date" class="form-control form-control-sm" style="width: 150px; border-radius: 8px;" value="{{ $start_date }}">
+                <span class="text-muted small">ถึง:</span>
+                <input type="date" name="end_date" class="form-control form-control-sm" style="width: 150px; border-radius: 8px;" value="{{ $end_date }}">
+                <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">ค้นหา</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Data Table Card -->
+    <div class="card dash-card accent-9 mb-4">
+        <div class="card-body p-4">
+            <div class="table-responsive">
+                <table id="stm_ofc_cipn_list" class="table table-modern w-100">
+                    <thead>
+                        <tr>
+                            <th>Filename</th>
+                            <th>AN</th>
+                            <th>ชื่อ - สกุล</th>
+                            <th>จำหน่าย</th>
+                            <th>PT / DRG</th>
+                            <th>AdjRW</th>
+                            <th>ค่ารักษา¹</th>
+                            <th>ค่าห้อง</th>
+                            <th>ค่ารักษา²</th>
+                            <th>พึงรับ</th>
+                            <th>RepNo.</th>
+                            <th>Receipt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($stm_ofc_cipn_list as $row)
+                        <tr>
+                            <td class="small fw-bold text-dark">{{ $row->stm_filename }}</td>
+                            <td class="text-center">{{ $row->an }}</td>
+                            <td>{{ $row->namepat }}</td>
+                            <td class="text-center">{{ \Carbon\Carbon::parse($row->datedsc)->format('d/m/y') }}</td>
+                            <td>
+                                <div class="small">{{ $row->ptype }}</div>
+                                <div class="small text-muted">{{ $row->drg }}</div>
+                            </td>
+                            <td class="text-end small">{{ number_format($row->adjrw,4) }}</td>
+                            <td class="text-end text-muted">{{ number_format($row->amreimb,2) }}</td>
+                            <td class="text-end text-muted">{{ number_format($row->amlim,2) }}</td>
+                            <td class="text-end text-muted">{{ number_format($row->pamreim,2) }}</td>
+                            <td class="text-end fw-bold text-success">{{ number_format($row->gtotal,2) }}</td>
+                            <td class="text-center small">REP: {{ $row->rid }}</td>
+                            <td class="small text-muted text-truncate" style="max-width: 120px;">REC: {{ $row->receive_no }}</td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
-</form>
-<br>
-<div class="container-fluid">
-    <div class="row justify-content-center">  
-        <div class="col-md-12"> 
-            <div class="alert alert-success text-primary" role="alert">
-                <strong>ข้อมูล Statement สวัสดิการข้าราชการ CIPN รายละเอียด</strong>
-            </div>
-            <div class="card-body">
-                <div style="overflow-x:auto;">                           
-                    <table id="stm_ofc_cipn_list" class="table table-bordered table-striped my-3">
-                        <thead class="table-primary text-center align-middle">
-                            <tr>
-                                <th>Filename</th>
-                                <th>AN</th>
-                                <th>ชื่อ - สกุล</th>
-                                <th>จำหน่าย</th>
-                                <th>PT</th>
-                                <th>DRG</th>
-                                <th>AdjRW</th>
-                                <th>ค่ารักษา¹</th>
-                                <th>ค่าห้อง</th>
-                                <th>ค่ารักษา²</th>
-                                <th>พึงรับ</th>
-                                <th>RepNo.</th>
-                                <th>เลขที่ใบเสร็จ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($stm_ofc_cipn_list as $row)
-                            <tr>
-                                <td class="text-center">{{ $row->stm_filename }}</td>
-                                <td class="text-center">{{ $row->an }}</td>
-                                <td>{{ $row->namepat }}</td>
-                                <td class="text-center">{{ \Carbon\Carbon::parse($row->datedsc)->format('d/m/y') }}</td>
-                                <td class="text-center">{{ $row->ptype }}</td>
-                                <td class="text-center">{{ $row->drg }}</td>
-                                <td class="text-end">{{ number_format($row->adjrw,4) }}</td>
-                                <td class="text-end">{{ number_format($row->amreimb,2) }}</td>
-                                <td class="text-end">{{ number_format($row->amlim,2) }}</td>
-                                <td class="text-end">{{ number_format($row->pamreim,2) }}</td>
-                                <td class="text-end fw-bold text-success">{{ number_format($row->gtotal,2) }}</td>
-                                <td class="text-center">{{ $row->rid }}</td>
-                                <td class="text-center">{{ $row->receive_no }}</td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div> 
-            </div> 
+</div>
         </div> 
     </div> 
 </div> 

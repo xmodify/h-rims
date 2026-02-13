@@ -2,114 +2,127 @@
 
 @section('content')
 
-<div class="container-fluid">       
-  
-    <form id="importForm" onsubmit="simulateProcess(event)" action="{{ url('import/stm_ucs_save') }}" method="POST" enctype="multipart/form-data">
-        @csrf      
-        <div class="row mb-2">            
-            <div class="col"></div>
-                <div class="col-md-5">
-                    <div class="mb-3 mt-3">
-                    {{-- <input class="form-control form-control-lg" id="formFileLg" name="file" type="file" multiple required> --}}
-                    <input class="form-control form-control-lg" id="formFileLg" type="file" name="files[]" multiple accept=".xlsx,.xls" required>
-                    <input type="hidden" name="_token" value="{{ csrf_token() }}">
+<div class="container-fluid px-lg-4">
+    <!-- Import Form Card -->
+    <div class="row justify-content-center mt-3 mb-4">
+        <div class="col-md-8">
+            <div class="card dash-card accent-9">
+                <div class="card-body">
+                    <form id="importForm" onsubmit="simulateProcess(event)" action="{{ url('import/stm_ucs_save') }}" method="POST" enctype="multipart/form-data" class="m-0">
+                        @csrf
+                        <div class="text-center mb-3">
+                            <h6 class="fw-bold text-dark"><i class="bi bi-file-earmark-excel me-2 text-success"></i> นำเข้าไฟล์ STM (Excel Only)</h6>
+                            <p class="text-muted small">เลือกไฟล์ Excel (.xlsx, .xls) ได้ไม่เกิน 5 ไฟล์ต่อครั้ง</p>
+                        </div>
+                        
+                        <div class="input-group mb-3">
+                            <input class="form-control" id="formFile" type="file" name="files[]" multiple accept=".xlsx,.xls" required style="border-radius: 10px 0 0 10px;">
+                            <button class="btn btn-success px-4" type="submit" style="border-radius: 0 10px 10px 0;">
+                                <i class="bi bi-cloud-upload me-2"></i> นำเข้าข้อมูล
+                            </button>
+                        </div>
+
+                        @if ($message = Session::get('success'))
+                            <div class="alert alert-success border-0 shadow-sm py-2 mb-0">
+                                <i class="bi bi-check-circle-fill me-2"></i> <strong>{{ $message }}</strong>
+                            </div>
+                        @endif
+                    </form>
                 </div>
-                </div>
-            <div class="col"></div>
-        </div>
-        <div class="row mb-2">            
-            <div align="center">              
-                <button type="submit" onclick="simulateProcess()"
-                    class="mb-3 me-2 btn-icon btn-shadow btn-dashed btn btn-outline-primary">
-                    <i class="fa-solid fa-cloud-arrow-up me-2" data-bs-toggle="tooltip"
-                    data-bs-placement="top" title="UP STM"></i>
-                    นำเข้า STM
-                </button> 
             </div>
         </div>
-        <div class="row"> 
-            @if ($message = Session::get('success'))
-            <div class="alert alert-success text-center">
-            <h5><strong>{{ $message }}</strong></h5>
+    </div>
+
+    <!-- Page Header & Search -->
+    <div class="page-header-box">
+        <div>
+            <h5 class="text-dark mb-0 fw-bold">
+                <i class="bi bi-cloud-arrow-down-fill text-success me-2"></i>
+                ข้อมูล Statement ประกันสุขภาพ UCS [OP-IP]
+            </h5>
+            <div class="text-muted small mt-1">ปีงบประมาณประจำปัจจุบัน: {{ $budget_year }}</div>
+            <div class="mt-2 d-flex gap-2">
+                <a href="{{ url('/import/stm_ucs_detail_opd') }}" class="btn btn-primary btn-sm rounded-pill px-3">
+                    <i class="bi bi-person-badge me-1"></i> รายละเอียด OPD
+                </a>
+                <a href="{{ url('/import/stm_ucs_detail_ipd') }}" class="btn btn-danger btn-sm rounded-pill px-3">
+                    <i class="bi bi-hospital me-1"></i> รายละเอียด IPD
+                </a>
             </div>
-            @endif
         </div>
-    </form>
-    <div class="row justify-content-center">      
-        <div class="col-md-12">
-            <form method="POST" enctype="multipart/form-data">
+        
+        <form method="POST" enctype="multipart/form-data" class="m-0">
             @csrf
-            <div class="row">                          
-                <div class="col-md-9" align="left"></div>
-                <div class="col-lg-3 d-flex justify-content-lg-end">
-                    <div class="d-flex align-items-center gap-2">
-                    <select class="form-select" name="budget_year">
-                        @foreach ($budget_year_select as $row)
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small">ปีงบประมาณ:</span>
+                <select class="form-select form-select-sm" name="budget_year" style="width: 160px; border-radius: 8px;">
+                    @foreach ($budget_year_select as $row)
                         <option value="{{ $row->LEAVE_YEAR_ID }}"
                             {{ (int)$budget_year === (int)$row->LEAVE_YEAR_ID ? 'selected' : '' }}>
                             {{ $row->LEAVE_YEAR_NAME }}
-                        </option> 
-                        @endforeach
-                    </select>
-                    <button type="submit" class="btn btn-primary">{{ __('ค้นหา') }}</button>
-                    </div>
-                </div>
+                        </option>
+                    @endforeach
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">ค้นหา</button>
             </div>
-            </form>
-        </div>    
+        </form>
     </div>
-    
-    <div class="alert alert-success text-primary" role="alert">
-        <strong>ข้อมูล Statement ประกันสุขภาพ UCS [OP-IP] ปีงบประมาณ {{$budget_year}} </strong>
-    </div> 
 
-    <div class="card-body">
-        <div style="overflow-x:auto;">   
-            <table id="stm_ucs" class="table table-bordered table-striped my-3">
-                <thead>
-                    <tr class="table-primary">
-                        <th class="text-center" width = "17%">ชื่อ File</th> 
-                        <th class="text-center">Dep</th>                         
-                        <th class="text-center">จำนวน REP</th> 
-                        <th class="text-center">จำนวนราย</th>
-                        <th class="text-center">เรียกเก็บ</th>                                     
-                        <th class="text-center">ชดเชยสุทธิ</th> 
-                        <th class="text-center">เลขงวด</th>  
-                        <th class="text-center">ออกใบเสร็จ</th>                      
-                    </tr> 
-                    </thead> 
-                    <?php $count = 1 ; ?>  
-                    @foreach($stm_ucs as $row) 
-                    <tr>
-                        <td align="right">{{ $row->stm_filename }}</td> 
-                        <td align="center">{{ $row->dep }}</td>                         
-                        <td align="right">{{ $row->repno }}</td>                            
-                        <td align="right">{{ number_format($row->count_cid) }}</td>                                   
-                        <td align="right">{{ number_format($row->charge,2) }}</td>                                     
-                        <td align="right" class="text-success">{{ number_format($row->receive_total,2) }}</td>   
-                        <td align="right" class="text-primary">{{ $row->round_no }}</td>
-                        <td class="text-end">
-                            @if(!empty($row->round_no))
-                                {{ $row->receive_no }} 
-                                <button type="button"
-                                    class="btn btn-sm {{ $row->receive_no ? 'btn-warning btn-edit-receipt' : 'btn-danger btn-new-receipt' }}"
-                                    data-round="{{ $row->round_no }}"
-                                    data-receive="{{ $row->receive_no }}"
-                                    data-date="{{ $row->receipt_date }}"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#receiptModal">
-                                    {{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}
-                                </button>
+    <!-- Data Table Card -->
+    <div class="card dash-card border-top-0">
+        <div class="card-body p-4">
+            <div class="table-responsive">
+                <table id="stm_ucs" class="table table-modern w-100">
+                    <thead>
+                        <tr>
+                            <th class="text-center" width="20%">ชื่อ File</th>
+                            <th class="text-center">Dep</th>
+                            <th class="text-center">จำนวน REP</th>
+                            <th class="text-center">จำนวนราย</th>
+                            <th class="text-center">เรียกเก็บ</th>
+                            <th class="text-center">ชดเชยสุทธิ</th>
+                            <th class="text-center">เลขงวด</th>
+                            <th class="text-center" width="15%">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($stm_ucs as $row)
+                        <tr>
+                            <td class="small fw-bold text-dark">{{ $row->stm_filename }}</td>
+                            <td class="text-center"><span class="badge bg-light text-dark border">{{ $row->dep }}</span></td>
+                            <td class="text-center">{{ $row->repno }}</td>
+                            <td class="text-end fw-bold">{{ number_format($row->count_cid) }}</td>
+                            <td class="text-end text-muted">{{ number_format($row->charge,2) }}</td>
+                            <td class="text-end text-success fw-bold">{{ number_format($row->receive_total,2) }}</td>
+                            <td class="text-end text-primary fw-bold">{{ $row->round_no }}</td>
+                            <td class="text-center">
+                                @if(!empty($row->round_no))
+                                    <div class="d-flex align-items-center justify-content-center gap-1">
+                                        <small class="text-muted me-1">{{ $row->receive_no }}</small>
+                                        <button type="button"
+                                            class="btn btn-sm {{ $row->receive_no ? 'btn-outline-warning btn-edit-receipt' : 'btn-outline-danger btn-new-receipt' }} rounded-pill px-3"
+                                            data-round="{{ $row->round_no }}"
+                                            data-receive="{{ $row->receive_no }}"
+                                            data-date="{{ $row->receipt_date }}"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#receiptModal"
+                                            title="{{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}">
+                                            <i class="bi {{ $row->receive_no ? 'bi-pencil-square' : 'bi-plus-circle' }} me-1"></i>
+                                            {{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}
+                                        </button>
+                                    </div>
                                 @endif
-                        </td>                          
-                    </tr>                     
-                    <?php $count++; ?>  
-                    @endforeach   
-            </table>
-        </div> 
-    </div>                
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
  
-</div> 
+
 
 {{-- Modal ออกใบเสร็จ --}}
 <div class="modal fade" id="receiptModal" tabindex="-1">

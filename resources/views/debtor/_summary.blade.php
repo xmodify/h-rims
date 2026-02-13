@@ -1,30 +1,47 @@
 @extends('layouts.app')
 
 @section('content')
-    <div class="container-fluid">
-        <div class="card-body"> 
-            <form method="POST" enctype="multipart/form-data">
-                @csrf
-                <div class="row" >
-                        <label class="col-md-3 col-form-label text-md-end my-1">{{ __('วันที่') }}</label>
-                    <div class="col-md-2">
-                        <input type="date" name="start_date" class="form-control my-1" placeholder="Date" value="{{ $start_date }}" >
-                    </div>
-                        <label class="col-md-1 col-form-label text-md-end my-1">{{ __('ถึง') }}</label>
-                    <div class="col-md-2">
-                        <input type="date" name="end_date" class="form-control my-1" placeholder="Date" value="{{ $end_date }}" >
-                    </div>
-                    <div class="col-md-1" >
-                        <button type="submit" class="btn btn-primary my-1 ">{{ __('ค้นหา') }}</button>
-                    </div>
-                </div>
-            </form>
-            <div class="alert alert-success text-primary" role="alert"><strong>ลูกหนี้ค่ารักษาพยาบาล วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</strong></div>
+    <!-- Page Header & Logic Filters -->
+    <div class="page-header-box mt-2 mb-3 d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="text-primary mb-0 fw-bold">
+                <i class="bi bi-file-earmark-spreadsheet-fill me-2"></i>
+                สรุปลูกหนี้ค่ารักษาพยาบาล
+            </h4>
+        </div>
         
-            <div style="overflow-x:auto;">
-                <table id="debtor" class="table table-bordered table-striped my-3">
+        <div class="d-flex align-items-center gap-4">
+            <!-- Filter Section -->
+            <div class="filter-group">
+                <form method="POST" enctype="multipart/form-data" class="m-0 d-flex align-items-center">
+                    @csrf
+                    <span class="fw-bold text-muted small text-nowrap me-2">เลือกช่วงวันที่</span>
+                    <div class="input-group input-group-sm">
+                        <input type="date" name="start_date" class="form-control" value="{{ $start_date }}" style="width: 130px;">
+                        <span class="input-group-text bg-white border-start-0 border-end-0">ถึง</span>
+                        <input type="date" name="end_date" class="form-control" value="{{ $end_date }}" style="width: 130px;">
+                        <button type="submit" class="btn btn-primary px-3 shadow-sm">
+                            <i class="bi bi-search me-1"></i> ค้นหา
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Card -->
+    <div class="card dash-card border-0">
+        <div class="card-header bg-transparent border-0 pt-3 px-4 pb-0">
+            <h6 class="fw-bold text-dark mb-0">
+                <i class="bi bi-calendar-check-fill text-primary me-2"></i>
+                ข้อมูลวันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}
+            </h6>
+        </div>
+        <div class="card-body px-4 pb-4 pt-3">
+            <div class="table-responsive">
+                <table id="debtor" class="table table-hover table-modern align-middle mb-0">
                     <thead>  
-                    <tr class="table-primary">
+                    <tr class="table-secondary">
                         <th class="text-center">ลำดับ</th>
                         <th class="text-center">รหัสผังบัญชี</th>
                         <th class="text-center">ชื่อผังบัญชี</th>
@@ -32,11 +49,18 @@
                         <th class="text-center">ลูกหนี้</th> 
                         <th class="text-center">ชดเชย</th>
                         <th class="text-center">ผลต่าง</th>
-                        <th class="text-center"><a class="btn btn-outline-danger" href="{{ url('debtor/summary_pdf')}}" target="_blank">พิมพ์สรุป</a></th>
+                        <th class="text-center">
+                            <a class="btn btn-danger btn-sm shadow-sm" href="{{ url('debtor/summary_pdf')}}" target="_blank">
+                                <i class="bi bi-file-pdf me-1"></i> พิมพ์สรุป
+                            </a>
+                        </th>
                     </tr>
                     </thead>
+                    <tbody>
                     <tr>
-                        <th class="text-primary" colspan = "8">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ผู้ป่วยนอก</th>        
+                        <th class="text-success bg-light" colspan = "8">
+                            <i class="bi bi-person-fill me-2"></i>ผู้ป่วยนอก
+                        </th>        
                     </tr>
                     <tr>            
                         <?php $sum_1102050101_103_debtor = 0 ; ?>

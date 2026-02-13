@@ -1,193 +1,202 @@
 @extends('layouts.app')
 
 @section('content')
-  <div class="container-fluid">
-    <div class="card-body">
-    <div class="alert alert-primary text-primary" role="alert"><strong>ลูกหนี้ค่ารักษาพยาบาล{{$hospital_name}} ({{$hospital_code}})</strong></div>
+    <!-- Page Header & Actions -->
+    <div class="page-header-box mt-2 mb-3 d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="text-primary mb-0 fw-bold">
+                <i class="bi bi-person-lines-fill me-2"></i>
+                ลูกหนี้ค่ารักษาพยาบาล{{$hospital_name}} ({{$hospital_code}})
+            </h4>
+        </div>
+        
+        <div class="d-flex align-items-center gap-2">
+            <a class="btn btn-warning btn-sm shadow-sm" href="{{ url('debtor/check_income') }}" target="_blank">
+                <i class="bi bi-search me-1"></i> ตรวจสอบค่ารักษาพยาบาล
+            </a>
+            <a class="btn btn-outline-danger btn-sm shadow-sm" href="{{ url('debtor/check_nondebtor') }}" target="_blank">
+                <i class="bi bi-exclamation-circle me-1"></i> รอยืนยันลูกหนี้
+            </a>
+            <a class="btn btn-outline-success btn-sm shadow-sm" href="{{ url('debtor/summary') }}" target="_blank">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i> สรุปบัญชีลูกหนี้
+            </a>
+            @auth
+                @if(auth()->user()->status === 'admin')
+                    <button type="button" class="btn btn-danger btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#LockdebtorModal">
+                        <i class="bi bi-lock-fill me-1"></i> Lock ลูกหนี้
+                    </button>
+                @endif
+            @endauth
+        </div>
+    </div>
 
-      <div class="row">            
-        <div class="col-md-8">
-          <a class="btn btn-warning" href="{{ url('debtor/check_income') }}" target="_blank">ตรวจสอบค่ารักษาพยาบาล</a> 
-          <a class="btn btn-outline-danger" href="{{ url('debtor/check_nondebtor') }}" target="_blank">รอยืนยันลูกหนี้</a>
-          <a class="btn btn-outline-success" href="{{ url('debtor/summary') }}" target="_blank">สรุปบัญชีลูกหนี้ค่ารักษาพยาบาลแยกตามผังบัญชี</a>  
-        </div>  
-        <div class="col-md-4 text-end">
-          @auth
-            @if(auth()->user()->status === 'admin')
-              <button type="button"
-                class="btn btn-danger"
-                data-bs-toggle="modal"
-                data-bs-target="#LockdebtorModal">
-                🔒 Lock ลูกหนี้
-              </button>
-            @endif
-          @endauth
-        </div> 
-      </div>
-      <br>
-      <!-- Row -->
-      <div class="row justify-content-center">
-        <div class="col-md-6">
-          <table class="table table-hover">
-            <thead>
-              <tr class="table-success">
-                  <th class="text-left text-primary">ผู้ป่วยนอก</th>            
-              </tr>  
-            </thead> 
-            <tbody>   
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_103') }}" target="_blank"><li>1102050101.103-ลูกหนี้ค่าตรวจสุขภาพ หน่วยงานภาครัฐ</li></a></td>
-              </tr> 
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_109') }}" target="_blank"><li>1102050101.109-ลูกหนี้-ระบบปฏิบัติการฉุกเฉิน</li></a></td>
-              </tr> 
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_201') }}" target="_blank"><li>1102050101.201-ลูกหนี้ค่ารักษา UC-OP ใน CUP</li></a></td>
-              </tr> 
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_203') }}" target="_blank"><li>1102050101.203-ลูกหนี้ค่ารักษา UC-OP นอก CUP (ในจังหวัดสังกัด สธ.)</li></a></td>
-              </tr> 
-              <tr>
-                <td class="text-danger"><li>1102050101.204-ลูกหนี้ค่ารักษา UC-OP นอก CUP (ต่างจังหวัดสังกัด สธ.)</li></td>
-              </tr>   
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_209') }}" target="_blank"><li>1102050101.209-ลูกหนี้ค่ารักษา ด้านการสร้างเสริมสุขภาพและป้องกันโรค (P&P)</li></a></td>
-              </tr>   
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_216') }}" target="_blank"><li>1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR)</li></a></td>
-              </tr>   
-              <tr>
-                <td class="text-danger"><li>1102050101.222-ลูกหนี้ค่ารักษา OP-Refer</li></td>
-              </tr>  
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_301') }}" target="_blank"><li>1102050101.301-ลูกหนี้ค่ารักษา ประกันสังคม OP-เครือข่าย</li></a></td>
-              </tr>   
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_303') }}" target="_blank"><li>1102050101.303-ลูกหนี้ค่ารักษา ประกันสังคม OP-นอกเครือข่าย สังกัด สป.สธ.</li></a></td>
-              </tr>      
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_307') }}" target="_blank"><li>1102050101.307-ลูกหนี้ค่ารักษา ประกันสังคม-กองทุนทดแทน</li></a></td>
-              </tr>  
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_309') }}" target="_blank"><li>1102050101.309-ลูกหนี้ค่ารักษา ประกันสังคม-ค่าใช้จ่ายสูง/อุบัติเหตุ/ฉุกเฉิน OP</li></a></td>
-              </tr>    
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_401') }}" target="_blank"><li>1102050101.401-ลูกหนี้ค่ารักษา เบิกจ่ายตรงกรมบัญชีกลาง OP</li></a></td>
-              </tr>   
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_501') }}" target="_blank"><li>1102050101.501-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP</li></a></td>
-              </tr>     
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_503') }}" target="_blank"><li>1102050101.503-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP นอก CUP</li></a></td>
-              </tr>    
-              <tr>
-                <td class="text-danger"><li>1102050101.505-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว เบิกจากส่วนกลาง OP</li></td>
-              </tr>    
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_701') }}" target="_blank"><li>1102050101.701-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP ใน CUP</li></a></td>
-              </tr>    
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_702') }}" target="_blank"><li>1102050101.702-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP นอก CUP</li></a></td>
-              </tr>   
-              <tr>
-                <td class="text-danger"><li>1102050101.703-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ เบิกจากส่วนกลาง OP</li></td>
-              </tr> 
-              <tr>
-                <td><a href="{{ url('debtor/1102050102_106') }}" target="_blank"><li>1102050102.106-ลูกหนี้ค่ารักษา ชําระเงิน OP</li></a></td>
-              </tr>   
-              <tr>
-                <td><a href="{{ url('debtor/1102050102_108') }}" target="_blank"><li>1102050102.108-ลูกหนี้ค่ารักษา เบิกต้นสังกัด OP</li></a></td>
-              </tr>      
-              <tr>
-                <td><a href="{{ url('debtor/1102050102_110') }}" target="_blank"><li>1102050102.110-ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น OP</li></a></td>
-              </tr>     
-              <tr>
-                <td class="text-danger"><li>1102050102.201-ลูกหนี้ค่ารักษา UC-OP นอกสังกัด สธ.</li></td>
-              </tr>   
-              <tr>
-                <td class="text-danger"><li>1102050102.301-ลูกหนี้ค่ารักษา ประกันสังคม OP-นอกเครือข่าย ต่างสังกัด สป.สธ.</li></td>
-              </tr>       
-              <tr>
-                <td><a href="{{ url('debtor/1102050102_602') }}" target="_blank"><li>1102050102.602-ลูกหนี้ค่ารักษา พรบ.รถ OP</li></a></td>
-              </tr>     
-              <tr>
-                <td><a href="{{ url('debtor/1102050102_801') }}" target="_blank"><li>1102050102.801-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.OP</li></a></td>
-              </tr>    
-              <tr>
-                <td><a href="{{ url('debtor/1102050102_803') }}" target="_blank"><li>1102050102.803-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ OP</li></a></td>
-              </tr>                                                                  
-            </tbody>
-          </table>
+    <!-- Main Content Card -->
+    <div class="card dash-card border-0">
+        <div class="card-body px-4 pb-4 pt-4">
+            <div class="row">
+                <!-- OP Column -->
+                <div class="col-md-6 border-end">
+                    <h6 class="fw-bold text-success mb-3 border-bottom pb-2">
+                        <i class="bi bi-person-fill me-2"></i>ผู้ป่วยนอก
+                    </h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-modern align-middle mb-0">
+                            <tbody>   
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_103') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.103-ลูกหนี้ค่าตรวจสุขภาพ หน่วยงานภาครัฐ</a></td>
+                                </tr> 
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_109') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.109-ลูกหนี้-ระบบปฏิบัติการฉุกเฉิน</a></td>
+                                </tr> 
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_201') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.201-ลูกหนี้ค่ารักษา UC-OP ใน CUP</a></td>
+                                </tr> 
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_203') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.203-ลูกหนี้ค่ารักษา UC-OP นอก CUP (ในจังหวัดสังกัด สธ.)</a></td>
+                                </tr> 
+                                <tr>
+                                    <td class="text-danger fw-bold py-2"><i class="bi bi-x-circle-fill me-2 small"></i>1102050101.204-ลูกหนี้ค่ารักษา UC-OP นอก CUP (ต่างจังหวัดสังกัด สธ.)</td>
+                                </tr>   
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_209') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.209-ลูกหนี้ค่ารักษา ด้านการสร้างเสริมสุขภาพและป้องกันโรค (P&P)</a></td>
+                                </tr>   
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_216') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR)</a></td>
+                                </tr>   
+                                <tr>
+                                    <td class="text-danger fw-bold py-2"><i class="bi bi-x-circle-fill me-2 small"></i>1102050101.222-ลูกหนี้ค่ารักษา OP-Refer</td>
+                                </tr>  
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_301') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.301-ลูกหนี้ค่ารักษา ประกันสังคม OP-เครือข่าย</a></td>
+                                </tr>   
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_303') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.303-ลูกหนี้ค่ารักษา ประกันสังคม OP-นอกเครือข่าย สังกัด สป.สธ.</a></td>
+                                </tr>      
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_307') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.307-ลูกหนี้ค่ารักษา ประกันสังคม-กองทุนทดแทน</a></td>
+                                </tr>  
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_309') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.309-ลูกหนี้ค่ารักษา ประกันสังคม-ค่าใช้จ่ายสูง/อุบัติเหตุ/ฉุกเฉิน OP</a></td>
+                                </tr>    
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_401') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.401-ลูกหนี้ค่ารักษา เบิกจ่ายตรงกรมบัญชีกลาง OP</a></td>
+                                </tr>   
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_501') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.501-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP</a></td>
+                                </tr>     
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_503') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.503-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP นอก CUP</a></td>
+                                </tr>    
+                                <tr>
+                                    <td class="text-danger fw-bold py-2"><i class="bi bi-x-circle-fill me-2 small"></i>1102050101.505-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว เบิกจากส่วนกลาง OP</td>
+                                </tr>    
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_701') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.701-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP ใน CUP</a></td>
+                                </tr>    
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_702') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.702-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP นอก CUP</a></td>
+                                </tr>   
+                                <tr>
+                                    <td class="text-danger fw-bold py-2"><i class="bi bi-x-circle-fill me-2 small"></i>1102050101.703-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ เบิกจากส่วนกลาง OP</td>
+                                </tr> 
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050102_106') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.106-ลูกหนี้ค่ารักษา ชําระเงิน OP</a></td>
+                                </tr>   
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050102_108') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.108-ลูกหนี้ค่ารักษา เบิกต้นสังกัด OP</a></td>
+                                </tr>      
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050102_110') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.110-ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น OP</a></td>
+                                </tr>     
+                                <tr>
+                                    <td class="text-danger fw-bold py-2"><i class="bi bi-x-circle-fill me-2 small"></i>1102050102.201-ลูกหนี้ค่ารักษา UC-OP นอกสังกัด สธ.</td>
+                                </tr>   
+                                <tr>
+                                    <td class="text-danger fw-bold py-2"><i class="bi bi-x-circle-fill me-2 small"></i>1102050102.301-ลูกหนี้ค่ารักษา ประกันสังคม OP-นอกเครือข่าย ต่างสังกัด สป.สธ.</td>
+                                </tr>       
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050102_602') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.602-ลูกหนี้ค่ารักษา พรบ.รถ OP</a></td>
+                                </tr>     
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050102_801') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.801-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.OP</a></td>
+                                </tr>    
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050102_803') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.803-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ OP</a></td>
+                                </tr>                                                                  
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- IP Column -->
+                <div class="col-md-6">
+                    <h6 class="fw-bold text-danger mb-3 border-bottom pb-2">
+                        <i class="bi bi-person-fill-add me-2"></i>ผู้ป่วยใน
+                    </h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-modern align-middle mb-0">
+                            <tbody>   
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_202') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.202-ลูกหนี้ค่ารักษา UC-IP</a></td>
+                                </tr>       
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_217') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.217-ลูกหนี้ค่ารักษา UC-IP บริการเฉพาะ (CR)</a></td>
+                                </tr>   
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_302') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.302-ลูกหนี้ค่ารักษา ประกันสังคม IP เครือข่าย</a></td>
+                                </tr>  
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_304') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.304-ลูกหนี้ค่ารักษา ประกันสังคม IP นอกเครือข่าย สังกัด สป.สธ.</a></td>
+                                </tr>         
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_308') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.308-ลูกหนี้ค่ารักษา ประกันสังคม 72 ชั่วโมงแรก</a></td>
+                                </tr>     
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_310') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.310-ลูกหนี้ค่ารักษา ประกันสังคม ค่าใช้จ่ายสูง IP</a></td>
+                                </tr>     
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_402') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.402-ลูกหนี้ค่ารักษา-เบิกจ่ายตรง กรมบัญชีกลาง IP</a></td>
+                                </tr>      
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_502') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.502-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP</a></td>
+                                </tr>   
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_504') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.504-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP นอก CUP</a></td>
+                                </tr>                  
+                                <tr>
+                                    <td class="text-danger fw-bold py-2"><i class="bi bi-x-circle-fill me-2 small"></i>1102050101.506-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าวเบิกจากส่วนกลาง IP</td>
+                                </tr>    
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050101_704') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.704-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ เบิกจากส่วนกลาง IP</a></td>
+                                </tr>      
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050102_107') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.107-ลูกหนี้ค่ารักษา ชําระเงิน IP</a></td>
+                                </tr>        
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050102_109') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.109-ลูกหนี้ค่ารักษา เบิกต้นสังกัด IP</a></td>
+                                </tr>        
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050102_111') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.111-ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น IP</a></td>
+                                </tr>  
+                                <tr>
+                                    <td class="text-danger fw-bold py-2"><i class="bi bi-x-circle-fill me-2 small"></i>1102050102.302-ลูกหนี้ค่ารักษา ประกันสังคม IP-นอกเครือข่าย ต่างสังกัด สป.สธ.</td>
+                                </tr>           
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050102_603') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.603-ลูกหนี้ค่ารักษา พรบ.รถ IP</a></td>
+                                </tr>  
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050102_802') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.802-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.IP</a></td>
+                                </tr>     
+                                <tr>
+                                    <td><a href="{{ url('debtor/1102050102_804') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.804-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ IP</a></td>
+                                </tr>                                           
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="col-md-6">
-          <table class="table table-hover">
-            <thead>
-              <tr class="table-danger">
-                  <th class="text-left text-primary">ผู้ป่วยใน</th>            
-              </tr>  
-            </thead> 
-            <tbody>   
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_202') }}" target="_blank"><li>1102050101.202-ลูกหนี้ค่ารักษา UC-IP</li></a></td>
-              </tr>       
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_217') }}" target="_blank"><li>1102050101.217-ลูกหนี้ค่ารักษา UC-IP บริการเฉพาะ (CR)</li></a></td>
-              </tr>   
-              <tr>
-                <td ><a href="{{ url('debtor/1102050101_302') }}" target="_blank"><li>1102050101.302-ลูกหนี้ค่ารักษา ประกันสังคม IP เครือข่าย</li></a></td>
-              </tr>  
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_304') }}" target="_blank"><li>1102050101.304-ลูกหนี้ค่ารักษา ประกันสังคม IP นอกเครือข่าย สังกัด สป.สธ.</li></a></td>
-              </tr>         
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_308') }}" target="_blank"><li>1102050101.308-ลูกหนี้ค่ารักษา ประกันสังคม 72 ชั่วโมงแรก</li></a></td>
-              </tr>     
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_310') }}" target="_blank"><li>1102050101.310-ลูกหนี้ค่ารักษา ประกันสังคม ค่าใช้จ่ายสูง IP</li></a></td>
-              </tr>     
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_402') }}" target="_blank"><li>1102050101.402-ลูกหนี้ค่ารักษา-เบิกจ่ายตรง กรมบัญชีกลาง IP</li></a></td>
-              </tr>      
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_502') }}" target="_blank"><li>1102050101.502-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP</li></a></td>
-              </tr>   
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_504') }}" target="_blank"><li>1102050101.504-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP นอก CUP</li></a></td>
-              </tr>                  
-              <tr>
-                <td class="text-danger"><li>1102050101.506-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าวเบิกจากส่วนกลาง IP</li></td>
-              </tr>    
-              <tr>
-                <td><a href="{{ url('debtor/1102050101_704') }}" target="_blank"><li>1102050101.704-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ เบิกจากส่วนกลาง IP</li></a></td>
-              </tr>      
-              <tr>
-                <td><a href="{{ url('debtor/1102050102_107') }}" target="_blank"><li>1102050102.107-ลูกหนี้ค่ารักษา ชําระเงิน IP</li></a></td>
-              </tr>        
-              <tr>
-                <td><a href="{{ url('debtor/1102050102_109') }}" target="_blank"><li>1102050102.109-ลูกหนี้ค่ารักษา เบิกต้นสังกัด IP</li></a></td>
-              </tr>        
-              <tr>
-                <td><a href="{{ url('debtor/1102050102_111') }}" target="_blank"><li>1102050102.111-ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น IP</li></a></td>
-              </tr>  
-              <tr>
-                <td class="text-danger"><li>1102050102.302-ลูกหนี้ค่ารักษา ประกันสังคม IP-นอกเครือข่าย ต่างสังกัด สป.สธ.</li></td>
-              </tr>           
-              <tr>
-                <td><a href="{{ url('debtor/1102050102_603') }}" target="_blank"><li>1102050102.603-ลูกหนี้ค่ารักษา พรบ.รถ IP</li></a></td>
-              </tr>  
-              <tr>
-                <td><a href="{{ url('debtor/1102050102_802') }}" target="_blank"><li>1102050102.802-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.IP</li></a></td>
-              </tr>     
-              <tr>
-                <td><a href="{{ url('debtor/1102050102_804') }}" target="_blank"><li>1102050102.804-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ IP</li></a></td>
-              </tr>                                           
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <!-- Row -->
-    </div> 
-  </div>
+    </div>
 
   {{-- Modal Lock ลูกหนี้ --}}
   <div class="modal fade" id="LockdebtorModal" tabindex="-1">

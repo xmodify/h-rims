@@ -266,36 +266,79 @@
             flex-shrink: 0 !important;
         }
 
-        /* Modern Tables */
-        .table-modern {
-            width: 100% !important;
+        /* Modern Tables - New Compact & Striped Style (Subtle Borders) */
+        /* Global Table Styles - Compact & Professional Style */
+        .table {
             border-collapse: separate !important;
-            border-spacing: 0 8px !important;
+            border-spacing: 0 !important;
+            margin-bottom: 1.5rem !important;
+            width: 100% !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 8px !important;
+            overflow: hidden !important;
         }
-        .table-modern thead th {
-            border: none !important;
-            background: #f8fafc !important;
-            color: #1a202c !important;
+
+        /* Zebra Striping */
+        .table tbody tr:nth-of-type(even) td {
+            background-color: #f8fafc !important;
+        }
+        .table tbody tr:nth-of-type(odd) td {
+            background-color: #ffffff !important;
+        }
+
+        /* Table Cells - Precise & Clean */
+        .table th, .table td {
+            border-bottom: 1px solid #e2e8f0 !important;
+            border-right: 1px solid #e2e8f0 !important;
+            padding: 8px 10px !important; /* Reduced padding to prevent overlap */
+            vertical-align: middle !important;
+            font-size: 0.875rem !important; /* Increased for better readability */
+            line-height: 1.4 !important;
+        }
+        
+        /* Remove last border right */
+        .table th:last-child, .table td:last-child {
+            border-right: none !important;
+        }
+
+        /* Table Headers - Structured Blue Theme */
+        .table thead th {
+            background-color: #dbeafe !important; /* Pastel Blue */
+            color: #1e3a8a !important; /* Dark Navy */
             font-weight: 700 !important;
             text-transform: uppercase !important;
-            font-size: 0.75rem !important;
-            letter-spacing: 0.05em !important;
-            padding: 12px 15px !important;
+            font-size: 0.8rem !important;
+            letter-spacing: 0.025em !important;
+            border-bottom: 2px solid #bfdbfe !important;
+            border-right: 1px solid #bfdbfe !important; /* Explicit Vertical Border for Headers */
+            text-align: center !important;
         }
-        .table-modern tbody tr {
-            box-shadow: 0 2px 10px rgba(0,0,0,0.02) !important;
-            transition: all 0.2s !important;
-        }
-        .table-modern tbody td {
-            background: #ffffff !important;
-            border: none !important;
-            padding: 12px 15px !important;
+
+        /* Ensure vertical lines for all cells including headers */
+        .table th, .table td {
+            border-right: 1px solid #e2e8f0 !important;
+            border-bottom: 1px solid #e2e8f0 !important;
+            padding: 8px 10px !important;
             vertical-align: middle !important;
+            font-size: 0.875rem !important;
+            line-height: 1.4 !important;
         }
-        .table-modern tbody tr td:first-child { border-radius: 10px 0 0 10px !important; }
-        .table-modern tbody tr td:last-child { border-radius: 0 10px 10px 0 !important; }
-        .table-modern tbody tr:hover td {
-            background: #f8fafc !important;
+
+        /* Border colors for headers to be slightly darker than the background */
+        .table thead th {
+            border-right-color: #bfdbfe !important;
+            border-left-color: #bfdbfe !important;
+        }
+
+        /* Last child should not have border right */
+        .table th:last-child, .table td:last-child {
+            border-right: none !important;
+        }
+
+        /* Hover Effect */
+        .table tbody tr:hover td {
+            background-color: #f1f5f9 !important;
+            transition: background-color 0.2s ease;
         }
 
         /* Responsive adjustments */
@@ -760,7 +803,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item d-flex align-items-center"> 
                             <div class="nav-version-badge">
-                                V. 69-02-13 15:30
+                                V. 69-02-13 19:00
                             </div>   
                         </li>                         
                         <!-- Authentication Links -->

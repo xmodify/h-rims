@@ -2,66 +2,79 @@
 
 @section('content')
 
-<div class="container-fluid">  
-  <form method="POST" enctype="multipart/form-data">
-      @csrf            
-      <div class="row" >
-              <label class="col-md-3 col-form-label text-md-end my-1">{{ __('วันที่') }}</label>
-          <div class="col-md-2">
-              <input type="date" name="start_date" class="form-control my-1" placeholder="Date" value="{{ $start_date }}" > 
-          </div>
-              <label class="col-md-1 col-form-label text-md-end my-1">{{ __('ถึง') }}</label>
-          <div class="col-md-2">
-              <input type="date" name="end_date" class="form-control my-1" placeholder="Date" value="{{ $end_date }}" > 
-          </div>                     
-          <div class="col-md-2" >                            
-              <button type="submit" class="btn btn-primary my-1 ">{{ __('ค้นหา') }}</button>
-              <!-- ปุ่มเรียก Modal -->
-              <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#nhsoModal">
-                ดึงปิดสิทธิ สปสช.
-              </button>
-          </div>
-          
-      </div>
-  </form> 
-  <div class="alert alert-success text-primary" role="alert"><strong>รายชื่อผู้มารับบริการที่ ดึงข้อมูลปิดสิทธิจาก สปสช. วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</strong></div>
+<div class="container-fluid px-lg-4">
+    <!-- Page Header & Search -->
+    <div class="page-header-box mt-3 mb-4">
+        <div>
+            <h5 class="text-dark mb-0 fw-bold">
+                <i class="bi bi-hospital-fill text-danger me-2"></i>
+                ดึงข้อมูลปิดสิทธิจาก สปสช. (NHSO Endpoint Pull)
+            </h5>
+            <div class="text-muted small mt-1">วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</div>
+        </div>
+        
+        <div class="d-flex flex-column flex-md-row align-items-md-center gap-3">
+            <form method="POST" enctype="multipart/form-data" class="d-flex align-items-center gap-2 m-0">
+                @csrf
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-calendar-event"></i></span>
+                    <input type="date" name="start_date" class="form-control border-start-0" value="{{ $start_date }}" style="width: 140px;">
+                    <span class="input-group-text bg-white">ถึง</span>
+                    <input type="date" name="end_date" class="form-control" value="{{ $end_date }}" style="width: 140px;">
+                    <button type="submit" class="btn btn-primary px-3">
+                        <i class="bi bi-search me-1"></i> ค้นหา
+                    </button>
+                </div>
+            </form>
+            
+            <button type="button" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#nhsoModal">
+                <i class="bi bi-download me-1"></i> ดึงปิดสิทธิ สปสช.
+            </button>
+        </div>
+    </div>
 
-  <div class="card-body">
-    <div class="row">        
-      <div class="col-md-12"> 
-        <div style="overflow-x:auto;">            
-          <table id="list" class="table table-striped table-bordered" width = "100%">
-            <thead>
-              <tr class="table-primary">
-                <th class="text-center">ลำดับ</th>               
-                <th class="text-center">CID</th>
-                <th class="text-center">ชื่อ-สกุล</th> 
-                <th class="text-center">สิทธิ</th> 
-                <th class="text-center">วัน-เวลาที่รับบริการ</th>
-                <th class="text-center">claimCode</th>          
-                <th class="text-center">claimType</th>   
-              </tr>     
-            </thead> 
-            <tbody> 
-              <?php $count = 1 ; ?>
-              @foreach($sql as $row) 
-              <tr>
-                <td align="center">{{ $count }}</td>                 
-                <td align="center">{{ $row->cid }}</td>
-                <td align="left">{{ $row->firstName }} {{ $row->lastName }}</td>
-                <td align="left">{{ $row->subInscl }} {{ $row->subInsclName }}</td>  
-                <td align="left">{{ DatetimeThai($row->serviceDateTime) }}</td>
-                <td align="center">{{ $row->claimCode }}</td>
-                <td align="center">{{ $row->claimType }}</td>
-              </tr>
-              <?php $count++; ?>
-              @endforeach                 
-            </tbody>
-          </table> 
-        </div>          
-      </div>  
-    </div> 
-  </div>  
+    <!-- Data Table Card -->
+    <div class="card dash-card border-top-0">
+        <div class="card-body p-4">
+            <div class="table-responsive">            
+                <table id="list" class="table table-modern w-100">
+                    <thead>
+                        <tr>
+                            <th class="text-center">ลำดับ</th>               
+                            <th class="text-center">ชื่อ-นามสกุล</th>
+                            <th class="text-center">CID</th>
+                            <th class="text-center">สปสช (SubInscl)</th> 
+                            <th class="text-center">วัน-เวลาที่รับบริการ</th>
+                            <th class="text-center">Claim Type</th>
+                            <th class="text-center">Claim Code</th>          
+                        </tr>     
+                    </thead> 
+                    <tbody> 
+                        @php $count = 1; @endphp
+                        @foreach($sql as $row) 
+                        <tr>
+                            <td class="text-center text-muted small">{{ $count }}</td>                 
+                            <td class="text-start fw-bold text-dark small">{{ $row->firstName }} {{ $row->lastName }}</td>
+                            <td class="text-center small text-muted">{{ $row->cid }}</td>
+                            <td class="text-start">
+                                <span class="badge bg-light text-dark border px-2 py-1 mb-1" style="font-size: 0.7rem;">{{ $row->subInscl }}</span>
+                                <div class="small text-muted lh-1" style="font-size: 0.75rem;">{{ $row->subInsclName }}</div>
+                            </td>  
+                            <td class="text-center small">{{ DatetimeThai($row->serviceDateTime) }}</td>
+                            <td class="text-center">
+                                <div class="small text-primary fw-bold">{{ $row->claimType }}</div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-success-soft text-success">{{ $row->claimCode }}</span>
+                            </td>
+                        </tr>
+                        @php $count++; @endphp
+                        @endforeach                 
+                    </tbody>
+                </table> 
+            </div>          
+        </div> 
+    </div>  
 </div>     
 
 <!-- Modal -->

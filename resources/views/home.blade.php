@@ -31,11 +31,11 @@
             <div class="d-flex align-items-center gap-3">
               <div class="px-3 border-end">
                 <small class="text-muted d-block" style="font-size: 0.65rem;">OPD TOTAL</small>
-                <div class="h6 mb-0 fw-bold text-dark">{{$opd_total}}</div>
+                <div class="h6 mb-0 fw-bold text-dark text-center">{{$opd_total}}</div>
               </div>
               <div class="px-3 border-end">
                 <small class="text-muted d-block" style="font-size: 0.65rem;">ปิดสิทธิ สปสช.</small>
-                <div class="h6 mb-0 fw-bold text-primary">{{$endpoint}}</div>
+                <div class="h6 mb-0 fw-bold text-primary text-center">{{$endpoint}}</div>
               </div>
               <div>
                 <a class="btn btn-outline-primary btn-sm rounded-pill px-3" href="{{ url('check/nhso_endpoint') }}" target="_blank" style="font-size: 0.75rem; border-width: 2px;">
@@ -143,6 +143,7 @@
               <i class="bi bi-door-open me-2"></i> INPATIENT ADMISSIONS (IPD)
             </h6>
             <small class="text-muted ms-2 fw-normal dashboard-date-info">
+              <i class="bi bi-calendar3 me-1"></i> {{DateThai(date('Y-m-d'))}}
               <i class="bi bi-clock-history me-1"></i> <span id="realtime-clock_ipd"></span> 
               <span class="ms-3">ADMIT NOW: <span class="text-dark fw-bold">{{$admit_now}}</span> AN</span>
             </small>
@@ -165,7 +166,7 @@
       <div class="col-sm-3 mb-3">
           <div class="card dash-card accent-10">
             <div class="card-body">
-              <span class="card-label"><i class="bi bi-file-earmark-medical me-1 icon-color-10"></i> Chart รอแพทย์สรุป : ICD10</span>
+              <span class="card-label"><i class="bi bi-file-earmark-medical me-1 icon-color-10"></i> Chart รอแพทย์สรุป : รอบันทึก ICD10</span>
               <div class="card-metric">{{$non_diagtext}} : {{$non_icd10}}</div>  
               <a href="{{ url('/ipd_non_dchsummary') }}" target="_blank" class="card-footer-link text-color-10">
                 View Report <i class="bi bi-chevron-right"></i>

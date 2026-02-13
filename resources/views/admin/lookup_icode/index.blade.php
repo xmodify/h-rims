@@ -191,7 +191,7 @@
                     document.getElementById('editherb32').checked = (this.dataset.herb32 === 'Y');
                     document.getElementById('editkidney').checked = (this.dataset.kidney === 'Y');
                     document.getElementById('editems').checked = (this.dataset.ems === 'Y');
-                    document.getElementById('editForm').action = `/admin/lookup_icode/${icode}`;      
+                    document.getElementById('editForm').action = "{{ url('admin/lookup_icode') }}/" + icode;
                 });
             });
 

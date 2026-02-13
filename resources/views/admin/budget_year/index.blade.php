@@ -147,7 +147,7 @@
                     document.getElementById('eDATE_END').value        = dateEnd;
 
                     // เซ็ต action ให้ form เป็นเส้นทางอัปเดต
-                    document.getElementById('editForm').action = `/admin/budget_year/${leaveYearId}`;
+                    document.getElementById('editForm').action = "{{ url('admin/budget_year') }}/" + leaveYearId;
                 });
             });
 

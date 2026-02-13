@@ -146,7 +146,7 @@
                     document.getElementById('edithmain_ucs').checked = (this.dataset.hmain_ucs === 'Y');
                     document.getElementById('edithmain_sss').checked = (this.dataset.hmain_sss === 'Y');
                     document.getElementById('editin_province').checked = (this.dataset.in_province === 'Y');
-                    document.getElementById('editForm').action = `/admin/lookup_hospcode/${hospcode}`;      
+                    document.getElementById('editForm').action = "{{ url('admin/lookup_hospcode') }}/" + hospcode;
                 });
             });
 

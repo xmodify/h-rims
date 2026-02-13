@@ -192,7 +192,7 @@
                     document.getElementById('editward_vip').checked = (this.dataset.ward_vip === 'Y');
                     document.getElementById('editward_lr').checked = (this.dataset.ward_lr === 'Y');
                     document.getElementById('editward_homeward').checked = (this.dataset.ward_homeward === 'Y');
-                    document.getElementById('editForm').action = `/admin/lookup_ward/${ward}`;      
+                    document.getElementById('editForm').action = "{{ url('admin/lookup_ward') }}/" + ward;
                 });
             });
 

@@ -1982,6 +1982,7 @@ class ClaimIpController extends Controller
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,i.adjrw,
                 IFNULL(inc.income,0) AS income, a.paid_money, IFNULL(rc.rcpt_money,0) AS rcpt_money,
+                a.paid_money - IFNULL(rc.rcpt_money,0) AS claim_price,
                 r.rcpno,p2.arrear_date,p2.amount AS arrear_amount, r1.bill_amount AS paid_arrear,r1.rcpno AS rcpno_arrear,
                 fd.deposit_amount,fd1.debit_amount,ict.ipt_coll_status_type_name,IF(id.an <> "","Y",NULL) AS dch_sum
             FROM ipt i 

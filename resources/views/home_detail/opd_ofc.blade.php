@@ -2,88 +2,117 @@
 
 @section('content')
 
-<div class="container-fluid"> 
-  <form method="POST" enctype="multipart/form-data">
-      @csrf            
-      <div class="row" >
-              <label class="col-md-3 col-form-label text-md-end my-1">{{ __('วันที่') }}</label>
-          <div class="col-md-2">
-              <input type="date" name="start_date" class="form-control my-1" placeholder="Date" value="{{ $start_date }}" > 
-          </div>
-              <label class="col-md-1 col-form-label text-md-end my-1">{{ __('ถึง') }}</label>
-          <div class="col-md-2">
-              <input type="date" name="end_date" class="form-control my-1" placeholder="Date" value="{{ $end_date }}" > 
-          </div>                     
-          <div class="col-md-1" >                            
-              <button type="submit" class="btn btn-primary my-1 ">{{ __('ค้นหา') }}</button>
-          </div>
+<div class="container-fluid py-4"> 
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white pt-4 pb-0 border-0">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="card-title text-primary mb-0">
+          <i class="bi bi-file-earmark-person mr-2"></i> 
+          รายงานสิทธิข้าราชการ (OFC)
+          <small class="text-muted d-block mt-1" style="font-size: 0.8rem;">
+            วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}
+          </small>
+        </h5>
+        
+        <form method="POST" class="d-flex gap-2 align-items-center">
+            @csrf            
+            <div class="d-flex align-items-center gap-2">
+                <input type="date" name="start_date" class="form-control form-control-sm" value="{{ $start_date }}" > 
+                <span class="text-muted">ถึง</span>
+                <input type="date" name="end_date" class="form-control form-control-sm" value="{{ $end_date }}" > 
+                <button type="submit" class="btn btn-primary btn-sm px-3">{{ __('ค้นหา') }}</button>
+            </div>
+        </form>
       </div>
-  </form> 
-  <div class="alert alert-success text-primary" role="alert"><strong>รายชื่อผู้มารับบริการสิทธิข้าราชการ OFC วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</strong></div>
-  
-  <div class="card-body">
-    <div class="row">        
-      <div class="col-md-12"> 
-        <div style="overflow-x:auto;">            
-          <table id="list" class="table table-striped table-bordered" width = "100%">
-            <thead>
-              <tr class="table-primary">
-                  <th class="text-center">ลำดับ</th>
-                  <th class="text-center" width="6%">Action</th>
-                  <th class="text-center">Authen</th>  
-                  <th class="text-center">ปิดสิทธิ</th>
-                  <th class="text-center">PPFS</th>
-                  <th class="text-center">EDC</th>
-                  <th class="text-center">ชื่อ-สกุล</th>    
-                  <th class="text-center">CID</th> 
-                  <th class="text-center">เบอร์โทร</th>          
-                  <th class="text-center">วันที่รับบริการ</th> 
-                  <th class="text-center">เวลา</th>                                      
-                  <th class="text-center">PDX</th>
-                  <th class="text-center">ค่าบริการที่เบิกได้</th>
-                  <th class="text-center">สิทธิการรักษา</th>      
-              </tr>
-            </thead> 
-            <tbody> 
-              <?php $count = 1 ; ?>
-              @foreach($sql as $row) 
-              <tr>
-                <td align="center">{{ $count }}</td>
-                <td align="center" width="6%">
-                   @if($row->ppfs == 'Y')                  
-                    <button onclick="pullNhsoData('{{ $row->vstdate }}', '{{ $row->cid }}')" class="btn btn-outline-info btn-sm w-100">
-                        ดึงปิดสิทธิ
-                    </button>
-                  @endif
-                </td> 
-                <td align="center" @if($row->auth_code == 'Y') style="color:green"
-                  @elseif($row->auth_code == 'N') style="color:red" @endif>
-                  <strong>{{ $row->auth_code }}</strong></td>               
-                <td align="center" @if($row->endpoint == 'Y') style="color:green"
-                  @elseif($row->endpoint == 'N') style="color:red" @endif>
-                  <strong>{{ $row->endpoint }}</strong></td> 
-                <td align="center" @if($row->ppfs == 'Y') style="color:green"
-                  @elseif($row->ppfs == 'N') style="color:red" @endif>
-                  <strong>{{ $row->ppfs }}</strong></td> 
-                <td align="center">{{$row->edc}}</td>                
-                <td align="left">{{$row->ptname}}</td> 
-                <td align="center">{{$row->cid}}</td> 
-                <td align="center">{{$row->mobile_phone_number}}</td>
-                <td align="left">{{ DateThai($row->vstdate) }}</td>             
-                <td align="rigth">{{$row->vsttime}}</td>                
-                <td align="center">{{$row->pdx}}</td>
-                <td align="right">{{ number_format($row->debtor,2) }}</td>
-                <td align="left">{{$row->pttype}}</td>            
-              </tr>
-              <?php $count++; ?>
-              @endforeach                 
-            </tbody>
-          </table>     
-        </div>          
-      </div>  
+    </div>
+
+    <div class="card-body">
+      <div class="table-responsive">            
+        <table id="list" class="table table-hover table-bordered align-middle" width="100%">
+          <thead class="bg-light">
+            <tr>
+                <th class="text-center">ลำดับ</th>
+                <th class="text-center" width="6%">ดึงข้อมูล</th>
+                <th class="text-center text-nowrap">Authen</th>  
+                <th class="text-center text-nowrap">ปิดสิทธิ</th>
+                <th class="text-center">PPFS</th>
+                <th class="text-center">EDC</th>
+                <th class="text-center">วันที่รับบริการ/เวลา</th> 
+                <th class="text-center text-nowrap">ชื่อ-สกุล | CID | HN</th>    
+                <th class="text-center">การติดต่อ</th>
+                <th class="text-center">สิทธิ | Hmain</th>
+                <th class="text-center">PDX</th>
+                <th class="text-center text-nowrap">ค่ารักษาทั้งหมด</th>
+                <th class="text-center text-nowrap">ชำระเอง</th>
+                <th class="text-center text-nowrap">ที่เบิกได้</th>
+            </tr>
+          </thead> 
+          <tbody> 
+            @foreach($sql as $index => $row) 
+            <tr>
+              <td align="center" class="text-muted">{{ $index + 1 }}</td>
+              <td align="center">
+                 @if($row->ppfs == 'Y')                  
+                  <button onclick="pullNhsoData('{{ $row->vstdate }}', '{{ $row->cid }}')" class="btn btn-outline-info btn-sm">
+                      <i class="bi bi-cloud-download"></i>
+                  </button>
+                @endif
+              </td> 
+              <td align="center">
+                @if($row->auth_code == 'Y')
+                  <span class="badge bg-success shadow-sm">Y</span>
+                @else
+                  <span class="badge bg-danger shadow-sm">N</span>
+                @endif
+              </td>               
+              <td align="center">
+                @if($row->endpoint == 'Y')
+                  <span class="badge bg-success shadow-sm">Y</span>
+                @else
+                  <span class="badge bg-danger shadow-sm">N</span>
+                @endif
+              </td> 
+              <td align="center">
+                @if($row->ppfs == 'Y')
+                  <span class="badge bg-success shadow-sm">Y</span>
+                @else
+                  <span class="badge bg-danger shadow-sm">N</span>
+                @endif
+              </td> 
+              <td align="center">
+                @if($row->edc)
+                  <span class="badge bg-info text-dark shadow-sm">{{$row->edc}}</span>
+                @endif
+              </td>                
+              <td align="left">
+                <small class="d-block fw-bold text-dark">{{ DateThai($row->vstdate) }}</small>
+                <small class="text-muted">{{ $row->vsttime }}</small>
+              </td>                
+              <td align="left">
+                <div class="fw-bold text-dark">{{ $row->ptname }}</div>
+                <small class="text-muted">CID: {{ $row->cid }} | HN: {{ $row->hn }}</small>
+              </td> 
+              <td align="left">
+                <div class="mt-1"><small class="text-muted"><i class="bi bi-phone"></i> {{ $row->mobile_phone_number ?: '-' }}</small></div>
+              </td>
+              <td align="left">
+                <small class="d-block text-truncate" style="max-width: 150px;" title="{{ $row->pttype }}">{{ $row->pttype }}</small>
+                <span class="badge bg-secondary shadow-sm">H: {{ $row->hospmain ?: 'N/A' }}</span>
+              </td>
+              <td align="center"><span class="badge bg-secondary shadow-sm">{{$row->pdx}}</span></td>
+              <td align="right" class="fw-bold">{{ number_format($row->income, 2) }}</td>
+              <td align="right" class="text-danger">{{ number_format($row->rcpt_money, 2) }}</td>
+              <td align="right" class="text-primary fw-bold">{{ number_format($row->debtor, 2) }}</td>
+            
+            </tr>
+            @endforeach                 
+          </tbody>
+        </table>     
+      </div>          
     </div> 
   </div>    
 </div>      
+
 <script>
   function pullNhsoData(vstdate, cid) {
       Swal.fire({
@@ -131,29 +160,30 @@
     $(document).ready(function () {
       $('#list').DataTable({
         dom: '<"row mb-3"' +
-                '<"col-md-6"l>' + // Show รายการ
-                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
+                '<"col-md-6"l>' + 
+                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
               '>' +
               'rt' +
               '<"row mt-3"' +
-                '<"col-md-6"i>' + // Info
-                '<"col-md-6"p>' + // Pagination
+                '<"col-md-6"i>' + 
+                '<"col-md-6"p>' + 
               '>',
         buttons: [
             {
               extend: 'excelHtml5',
-              text: 'Excel',
-              className: 'btn btn-success',
-              title: 'รายชื่อผู้มารับบริการสิทธิข้าราชการ OFC วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+              text: '<i class="bi bi-file-earmark-excel mr-1"></i> Excel',
+              className: 'btn btn-success btn-sm',
+              title: 'OFC_Reports_{{ $start_date }}_{{ $end_date }}'
             }
         ],
         language: {
-            search: "ค้นหา:",
+            search: "_INPUT_",
+            searchPlaceholder: "ค้นหาข้อมูล...",
             lengthMenu: "แสดง _MENU_ รายการ",
             info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
             paginate: {
-              previous: "ก่อนหน้า",
-              next: "ถัดไป"
+              previous: '<i class="bi bi-chevron-left"></i>',
+              next: '<i class="bi bi-chevron-right"></i>'
             }
         }
       });

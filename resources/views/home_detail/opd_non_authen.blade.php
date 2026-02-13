@@ -2,67 +2,82 @@
 
 @section('content')
 
-<div class="container-fluid">  
-  <form method="POST" enctype="multipart/form-data">
-      @csrf            
-      <div class="row" >
-              <label class="col-md-3 col-form-label text-md-end my-1">{{ __('วันที่') }}</label>
-          <div class="col-md-2">
-              <input type="date" name="start_date" class="form-control my-1" placeholder="Date" value="{{ $start_date }}" > 
-          </div>
-              <label class="col-md-1 col-form-label text-md-end my-1">{{ __('ถึง') }}</label>
-          <div class="col-md-2">
-              <input type="date" name="end_date" class="form-control my-1" placeholder="Date" value="{{ $end_date }}" > 
-          </div>                     
-          <div class="col-md-1" >                            
-              <button type="submit" class="btn btn-primary my-1 ">{{ __('ค้นหา') }}</button>
-          </div>
+<div class="container-fluid py-4">  
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white pt-4 pb-0 border-0">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="card-title text-primary mb-0">
+          <i class="bi bi-person-x-fill mr-2"></i> 
+          รายชื่อผู้มารับบริการ (ไม่ขอ AuthenCode)
+          <small class="text-muted d-block mt-1" style="font-size: 0.8rem;">
+            วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}
+          </small>
+        </h5>
+        
+        <form method="POST" class="d-flex gap-2 align-items-center">
+            @csrf            
+            <div class="d-flex align-items-center gap-2">
+                <input type="date" name="start_date" class="form-control form-control-sm" value="{{ $start_date }}" > 
+                <span class="text-muted">ถึง</span>
+                <input type="date" name="end_date" class="form-control form-control-sm" value="{{ $end_date }}" > 
+                <button type="submit" class="btn btn-primary btn-sm px-3">{{ __('ค้นหา') }}</button>
+            </div>
+        </form>
       </div>
-  </form> 
-  <div class="alert alert-success text-primary" role="alert"><strong>รายชื่อผู้มารับบริการ ไม่ขอ AuthenCode วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</strong></div>
+    </div>
 
-  <div class="card-body">
-    <div class="row">        
-      <div class="col-md-12"> 
-        <div style="overflow-x:auto;">            
-          <table id="list" class="table table-striped table-bordered" width = "100%">
-            <thead>
-              <tr class="table-primary">
-                <th class="text-center">ลำดับ</th>
-                <th class="text-center">วัน-เวลาที่รับบริการ</th>
-                <th class="text-center">Queue</th>
-                <th class="text-center">HN</th>
-                <th class="text-center">CID</th>
-                <th class="text-center">ชื่อ-สกุล</th>                    
-                <th class="text-center">อายุ</th>
-                <th class="text-center">สิทธิ</th>
-                <th class="text-center">เบอร์มือถือ</th>
-                <th class="text-center">เบอร์บ้าน</th>
-                <th class="text-center">จุดบริการ</th>            
-              </tr>     
-            </thead> 
-            <tbody> 
-              <?php $count = 1 ; ?>
-              @foreach($sql as $row) 
-              <tr>
-                <td align="center">{{ $count }}</td> 
-                <td align="center">{{ DateThai($row->vstdate) }} เวลา {{ $row->vsttime }}</td>
-                <td align="center">{{ $row->oqueue }}</td>
-                <td align="center">{{ $row->hn }}</td>
-                <td align="center">{{ $row->cid }}</td>
-                <td align="left">{{ $row->ptname }}</td>
-                <td align="center">{{ $row->age_y }}</td>
-                <td align="left">{{ $row->pttype }}</td> 
-                <td align="center">{{ $row->mobile_phone_number }}</td>
-                <td align="center">{{ $row->hometel }}</td>  
-                <td align="right">{{ $row->department }}</td> 
-              </tr>
-              <?php $count++; ?>
-              @endforeach                 
-            </tbody>
-          </table> 
-        </div>          
-      </div>  
+    <div class="card-body">
+      <div class="table-responsive">            
+        <table id="list" class="table table-hover table-bordered align-middle" width="100%">
+          <thead class="bg-light">
+            <tr>
+              <th class="text-center">ลำดับ</th>
+              <th class="text-center">รับบริการ</th>
+              <th class="text-center">Queue</th>
+              <th class="text-center">ชื่อ-สกุล | CID | HN</th>
+              <th class="text-center">การติดต่อ</th>
+              <th class="text-center">สิทธิ | Hmain</th>
+              <th class="text-center">ค่ารักษาทั้งหมด</th>
+              <th class="text-center">ชำระเอง</th>
+              <th class="text-center">ที่เบิกได้</th>
+              <th class="text-center">จุดบริการ</th>            
+            </tr>     
+          </thead> 
+          <tbody> 
+            @foreach($sql as $index => $row) 
+            <tr>
+              <td align="center" class="text-muted">{{ $index + 1 }}</td> 
+              <td align="left">
+                <small class="d-block fw-bold text-dark">{{ DateThai($row->vstdate) }}</small>
+                <small class="text-muted">{{ $row->vsttime }}</small>
+              </td>
+              <td align="center">
+                <span class="badge bg-secondary shadow-sm">{{ $row->oqueue }}</span>
+              </td>
+              <td align="left">
+                <div class="fw-bold text-dark">{{ $row->ptname }}</div>
+                <small class="text-muted">CID: {{ $row->cid }} | HN: {{ $row->hn }}</small>
+              </td>
+              <td align="left">
+                <small class="d-block"><i class="bi bi-phone mr-1"></i>{{ $row->mobile_phone_number ?: '-' }}</small>
+                <small class="text-muted"><i class="bi bi-telephone mr-1"></i>{{ $row->hometel ?: '-' }}</small>
+              </td>
+              <td align="left">
+                <small class="d-block text-truncate" style="max-width: 150px;" title="{{ $row->pttype }}">{{ $row->pttype }}</small>
+                <span class="badge bg-secondary shadow-sm">H: {{ $row->hospmain ?: 'N/A' }}</span>
+              </td> 
+              <td align="right" class="fw-bold">{{ number_format($row->income, 2) }}</td>
+              <td align="right" class="text-danger">{{ number_format($row->rcpt_money, 2) }}</td>
+              <td align="right" class="text-primary fw-bold">{{ number_format($row->debtor, 2) }}</td>
+              <td align="right">
+                <span class="badge outline-primary text-primary shadow-sm" style="border: 1px solid #0d6efd;">{{ $row->department }}</span>
+              </td>
+ 
+            </tr>
+            @endforeach                 
+          </tbody>
+        </table> 
+      </div>          
     </div> 
   </div>  
 </div>      
@@ -74,29 +89,30 @@
     $(document).ready(function () {
       $('#list').DataTable({
         dom: '<"row mb-3"' +
-                '<"col-md-6"l>' + // Show รายการ
-                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
+                '<"col-md-6"l>' + 
+                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
               '>' +
               'rt' +
               '<"row mt-3"' +
-                '<"col-md-6"i>' + // Info
-                '<"col-md-6"p>' + // Pagination
+                '<"col-md-6"i>' + 
+                '<"col-md-6"p>' + 
               '>',
         buttons: [
             {
               extend: 'excelHtml5',
-              text: 'Excel',
-              className: 'btn btn-success',
-              title: 'รายชื่อผู้มารับบริการ ไม่ขอ AuthenCode วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+              text: '<i class="bi bi-file-earmark-excel mr-1"></i> Excel',
+              className: 'btn btn-success btn-sm',
+              title: 'Non_Authen_Reports_{{ $start_date }}_{{ $end_date }}'
             }
         ],
         language: {
-            search: "ค้นหา:",
+            search: "_INPUT_",
+            searchPlaceholder: "ค้นหา...",
             lengthMenu: "แสดง _MENU_ รายการ",
             info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
             paginate: {
-              previous: "ก่อนหน้า",
-              next: "ถัดไป"
+              previous: '<i class="bi bi-chevron-left"></i>',
+              next: '<i class="bi bi-chevron-right"></i>'
             }
         }
       });

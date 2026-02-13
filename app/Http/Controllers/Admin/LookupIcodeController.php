@@ -121,13 +121,14 @@ class LookupIcodeController extends Controller
             SELECT n.icode,n.`name`,n.nhso_adp_code,"Y" AS ppfs 
             FROM nondrugitems n
             WHERE n.icode NOT IN (SELECT icode FROM hrims.lookup_icode)
-            AND n.istatus = "Y" AND n.nhso_adp_code IN ("12003","12004","13001","14001","15001"
-            ,"30008","30009","30010","30011","30012","30013","30014","30015","30016","90005")
+                AND n.istatus = "Y" AND n.nhso_adp_code IN ("12003","12004","13001","14001","15001",
+                "30008","30009","30010","30011","30012","30013","30014","30015","30016","90005",
+                "FP001","FP002","FP002_1","FP002_2","FP003_1","FP003_2","FP003_3","FP003_4")
             UNION
             SELECT d.icode,d.`name`,d.nhso_adp_code,"Y" AS ppfs
             FROM drugitems d
-            WHERE d.icode NOT IN (SELECT icode FROM hrims.lookup_icode)
-            AND d.nhso_adp_code IN ("FP002_1","FP003_1","FP003_2")');
+                WHERE d.icode NOT IN (SELECT icode FROM hrims.lookup_icode)
+                AND d.nhso_adp_code IN ("FP001","FP002","FP002_1","FP002_2","FP003_1","FP003_2","FP003_3","FP003_4")');
         
         foreach ($hosxp_data as $row) {
             $check = LookupIcode::where('icode', $row->icode)->count();

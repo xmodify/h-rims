@@ -7,22 +7,19 @@
         <div>
             <h4 class="text-primary mb-0 fw-bold">
                 <i class="bi bi-wallet2 me-2"></i>
-                Claim Dashboard
+                สถิติการชดเชยค่าบริการ UC-OP ต่างจังหวัด
             </h4>
-            <div class="text-muted small mt-1">
-                รายชื่อผู้มารับบริการ UC-OP ต่างจังหวัด วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}
-            </div>
         </div>
         
         <div class="d-flex align-items-center gap-4">
             <!-- Filter Section 1: Chart Data (Budget Year) -->
             <div class="filter-group">
-                <form method="POST" enctype="multipart/form-data" class="m-0">
+                <form method="POST" enctype="multipart/form-data" class="m-0 d-flex align-items-center">
                     @csrf
+                    <span class="fw-bold text-muted small text-nowrap me-2">เลือกปีงบประมาณ</span>
                     <div class="input-group input-group-sm">
                         <input type="hidden" name="start_date" value="{{ $start_date }}">
                         <input type="hidden" name="end_date" value="{{ $end_date }}">
-                        <span class="input-group-text bg-light text-muted fw-bold">1. ชุดข้อมูลกราฟ</span>
                         <select class="form-select" name="budget_year" style="width: 160px;">
                             @foreach ($budget_year_select as $row)
                               <option value="{{ $row->LEAVE_YEAR_ID }}"
@@ -31,31 +28,13 @@
                               </option>
                             @endforeach
                         </select>
-                        <button type="submit" class="btn btn-primary px-3 shadow-sm">
+                        <button type="submit" onclick="fetchData()" class="btn btn-primary px-3 shadow-sm">
                             <i class="bi bi-graph-up me-1"></i> โหลดกราฟ
                         </button>
                     </div>
                 </form>
             </div>
 
-            <div class="vr text-muted opacity-25" style="height: 30px;"></div>
-
-            <!-- Filter Section 2: Indiv Data (Date Range) -->
-            <div class="filter-group">
-                <form method="POST" enctype="multipart/form-data" class="m-0">
-                    @csrf            
-                    <div class="input-group input-group-sm">
-                        <input type="hidden" name="budget_year" value="{{ $budget_year }}">
-                        <span class="input-group-text bg-light text-muted fw-bold">2. ชุดข้อมูล indiv</span>
-                        <input type="date" name="start_date" class="form-control" value="{{ $start_date }}" style="width: 130px;">
-                        <span class="input-group-text bg-white border-start-0 border-end-0">ถึง</span>
-                        <input type="date" name="end_date" class="form-control" value="{{ $end_date }}" style="width: 130px;">
-                        <button onclick="fetchData()" type="submit" class="btn btn-success px-3 shadow-sm">
-                            <i class="bi bi-table me-1"></i> โหลด indiv
-                        </button>
-                    </div>
-                </form>
-            </div>
         </div>
     </div>
   
@@ -65,7 +44,7 @@
         <div class="px-4 pt-2 pb-0 border-bottom">
             <h6 class="fw-bold text-dark mb-1" style="font-size: 0.85rem;">
                 <i class="bi bi-bar-chart-fill text-primary me-2"></i>
-                สถิติการเรียกเก็บและชดเชยรายเดือน (ปีงบประมาณ {{ $budget_year }})
+                สถิติการเรียกเก็บและชดเชยรายเดือน ปีงบประมาณ {{ $budget_year }}
             </h6>
             <div style="height: 300px; width: 100%;">
                 <canvas id="sum_month"></canvas>
@@ -73,7 +52,33 @@
         </div>
 
         <!-- Section 2: Tabs & Tables -->
-        <div class="card-header bg-transparent border-0 pt-2 px-4 pb-0">
+        <div class="card-header bg-transparent border-0 pt-3 px-4 pb-0">
+            <div class="d-flex justify-content-between align-items-end mb-3">
+                <div class="d-flex align-items-center gap-3">
+                    <h6 class="fw-bold text-dark mb-0">
+                        <i class="bi bi-people-fill text-primary me-2"></i>รายชื่อผู้มารับบริการ UC-OP ต่างจังหวัด
+                    </h6>
+                    <span class="text-muted small">
+                        วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}
+                    </span>
+                </div>
+                
+                <div class="filter-group">
+                    <form id="form_indiv" method="POST" enctype="multipart/form-data" class="m-0 d-flex align-items-center">
+                        @csrf            
+                        <span class="fw-bold text-muted small text-nowrap me-2">เลือกวันที่รับบริการ</span>
+                        <div class="input-group input-group-sm">
+                            <input type="hidden" name="budget_year" value="{{ $budget_year }}">
+                            <input type="date" name="start_date" class="form-control" value="{{ $start_date }}" style="width: 130px;">
+                            <span class="input-group-text bg-white border-start-0 border-end-0">ถึง</span>
+                            <input type="date" name="end_date" class="form-control" value="{{ $end_date }}" style="width: 130px;">
+                            <button onclick="fetchData()" type="submit" class="btn btn-success px-3 shadow-sm">
+                                <i class="bi bi-table me-1"></i> โหลด indiv
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
             <ul class="nav nav-tabs-modern" id="pills-tab" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="search-tab" data-bs-toggle="pill" data-bs-target="#search" type="button" role="tab">
@@ -197,7 +202,7 @@
                                     <th class="text-center" rowspan="2" width="10%">อาการสำคัญ</th>
                                     <th class="text-center" rowspan="2">PDX | ICD9</th>
                                     <th class="text-center" colspan="4">ค่ารักษา</th> 
-                                    <th class="text-center bg-primary-soft" colspan="5">ข้อมูลการชดเชย (NHSO)</th>
+                                    <th class="text-center bg-primary-soft" colspan="3">ข้อมูลการชดเชย (NHSO)</th>
                                 </tr>
                                 <tr>
                                     <th class="text-center small">รวม</th>
@@ -205,8 +210,6 @@
                                     <th class="text-center small">ค่ารถ Refer</th>
                                     <th class="text-center small">AE</th>
 
-                                    <th class="text-center bg-primary-soft small text-primary">Rep NHSO</th> 
-                                    <th class="text-center bg-primary-soft small text-danger">Error</th> 
                                     <th class="text-center bg-primary-soft small">STM ชดเชย</th> 
                                     <th class="text-center bg-primary-soft small">ผลต่าง</th> 
                                     <th class="text-center bg-primary-soft small">REP No.</th>
@@ -217,7 +220,6 @@
                                     $count = 1; 
                                     $sum_income = 0; 
                                     $sum_rcpt_money = 0; 
-                                    $sum_rep_nhso = 0; 
                                     $sum_receive_total = 0; 
                                 @endphp
                                 @foreach($claim as $row) 
@@ -246,10 +248,8 @@
                                     <td class="text-end small">{{ number_format($row->refer,2) }}</td>
                                     <td class="text-center small">{{ $row->ae }}</td> 
 
-                                    <td class="text-end small text-primary fw-bold">{{ number_format($row->rep_nhso,2) }}</td>
-                                    <td class="text-center small text-danger fw-bold">{{ $row->rep_error }}</td>
                                     <td class="text-end small fw-bold" style="color: {{ $row->receive_total >= 0 ? 'green' : 'red' }}">{{ number_format($row->receive_total,2) }}</td>
-                                    <td class="text-end small fw-bold" style="color: {{ ($row->receive_total - $row->income + $row->rcpt_money) >= 0 ? 'green' : 'red' }}">
+                                    <td class="text-end small fw-bold {{ ($row->receive_total - $row->income + $row->rcpt_money) >= 0 ? 'text-success' : 'text-danger' }}">
                                         {{ number_format($row->receive_total - $row->income + $row->rcpt_money, 2) }}
                                     </td>
                                     <td class="text-center small text-muted">{{ $row->repno }}</td> 
@@ -258,7 +258,6 @@
                                     $count++; 
                                     $sum_income += $row->income; 
                                     $sum_rcpt_money += $row->rcpt_money; 
-                                    $sum_rep_nhso += $row->rep_nhso; 
                                     $sum_receive_total += $row->receive_total; 
                                 @endphp
                                 @endforeach                 
@@ -270,11 +269,12 @@
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th></th>
                                     <th></th>
-                                    <th class="text-end small text-primary">{{ number_format($sum_rep_nhso,2) }}</th>
-                                    <th></th>
-                                    <th class="text-end small fw-bold" style="color: {{ $sum_receive_total >= 0 ? 'green' : 'red' }}">{{ number_format($sum_receive_total,2) }}</th>
-                                    <th class="text-end small fw-bold" style="color: {{ ($sum_receive_total - $sum_income + $sum_rcpt_money) >= 0 ? 'green' : 'red' }}">
-                                        {{ number_format($sum_receive_total - $sum_income + $sum_rcpt_money, 2) }}
+                                    <th class="text-end small fw-bold {{ $sum_receive_total >= 0 ? 'text-success' : 'text-danger' }}">
+                                        {{ number_format($sum_receive_total,2) }}
+                                    </th>
+                                    @php $total_diff = $sum_receive_total - $sum_income + $sum_rcpt_money; @endphp
+                                    <th class="text-end small fw-bold {{ $total_diff >= 0 ? 'text-success' : 'text-danger' }}">
+                                        {{ number_format($total_diff, 2) }}
                                     </th>
                                     <th></th>
                                 </tr>
@@ -333,7 +333,10 @@
                       text: 'พบข้อมูลในระบบ FDH',
                       timer: 1500,
                       showConfirmButton: false
-                  }).then(() => location.reload());
+                  }).then(() => {
+                      fetchData();
+                      $('#form_indiv').submit();
+                  });
                   return;
               }
 

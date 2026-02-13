@@ -53,7 +53,11 @@ class HomeController extends Controller
             ->first(['DATE_BEGIN', 'DATE_END']);
 
         $start_date = $year_data->DATE_BEGIN ?? null;
-        $end_date = $year_data->DATE_END ?? null;
+        if ($budget_year == $budget_year_now) {
+            $end_date = date('Y-m-d');
+        } else {
+            $end_date = $year_data->DATE_END ?? null;
+        }
 
         // 1. Optimized OPD Monitor Query
         $opd_monitor = DB::connection('hosxp')->select('
@@ -215,10 +219,10 @@ class HomeController extends Controller
         LEFT JOIN an_stat a ON a.an = i.an
         LEFT JOIN iptadm ia ON ia.an = a.an
         LEFT JOIN hrims.lookup_ward lw ON lw.ward = a.ward
-        WHERE a.dchdate BETWEEN ? AND DATE(NOW())
+        WHERE a.dchdate BETWEEN ? AND ?
         AND a.pdx NOT IN ("Z290","Z208")
         GROUP BY YEAR(a.dchdate), MONTH(a.dchdate)
-        ORDER BY YEAR(a.dchdate), MONTH(a.dchdate)', [$start_date]);
+        ORDER BY YEAR(a.dchdate), MONTH(a.dchdate)', [$start_date, $end_date]);
 
         $ip_all = [];
         $ip_normal = [];

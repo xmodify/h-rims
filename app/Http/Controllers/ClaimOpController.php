@@ -31,9 +31,13 @@ class ClaimOpController extends Controller
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
         $start_date_b = $year_data[$budget_year] ?? null;
-        $end_date_b = DB::table('budget_year')
-            ->where('LEAVE_YEAR_ID', $budget_year)
-            ->value('DATE_END');
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
@@ -118,7 +122,6 @@ class ClaimOpController extends Controller
                 IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
-            LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
@@ -131,7 +134,6 @@ class ClaimOpController extends Controller
             AND p.hipdata_code IN ("UCS","WEL") 
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             AND oe.moph_finance_upload_status IS NULL 
-            AND rep.vn IS NULL 
             AND fdh.seq IS NULL
             AND stm.cid IS NULL 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
@@ -141,7 +143,7 @@ class ClaimOpController extends Controller
             o.vn AS seq,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,
             claim_items.claim_list,
             COALESCE(claim_items.uc_cr, 0) AS uc_cr,COALESCE(claim_items.ppfs, 0) AS ppfs,COALESCE(claim_items.herb, 0) AS herb,
-            GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,rep.rep_eclaim_detail_nhso AS rep_nhso,rep.rep_eclaim_detail_error_code AS rep_error,
+            GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
             stm.receive_total,stm.repno,fdh.status_message_th AS fdh_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -169,7 +171,6 @@ class ClaimOpController extends Controller
                 IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
-            LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
@@ -181,7 +182,7 @@ class ClaimOpController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL") 
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
-            AND (oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR stm.cid IS NOT NULL )
+            AND (oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR stm.cid IS NOT NULL )
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         return view('claim_op.ucs_incup', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
@@ -205,9 +206,13 @@ class ClaimOpController extends Controller
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
         $start_date_b = $year_data[$budget_year] ?? null;
-        $end_date_b = DB::table('budget_year')
-            ->where('LEAVE_YEAR_ID', $budget_year)
-            ->value('DATE_END');
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
@@ -293,7 +298,6 @@ class ClaimOpController extends Controller
                 IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
-            LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
@@ -307,7 +311,6 @@ class ClaimOpController extends Controller
                 AND o.vstdate BETWEEN ? AND ?
                 AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs =""))
                 AND oe.moph_finance_upload_status IS NULL
-                AND rep.vn IS NULL
                 AND fdh.seq IS NULL
                 AND stm.cid IS NULL
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
@@ -317,7 +320,7 @@ class ClaimOpController extends Controller
             o.vn AS seq,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,
             claim_items.claim_list,
             COALESCE(claim_items.uc_cr, 0) AS uc_cr,COALESCE(claim_items.ppfs, 0) AS ppfs,COALESCE(claim_items.herb, 0) AS herb,
-            GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,rep.rep_eclaim_detail_nhso AS rep_nhso,rep.rep_eclaim_detail_error_code AS rep_error,
+            GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
             stm.receive_total,stm.repno,fdh.status_message_th AS fdh_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -345,7 +348,6 @@ class ClaimOpController extends Controller
                 IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
-            LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
@@ -358,7 +360,7 @@ class ClaimOpController extends Controller
                 AND p.hipdata_code IN ("UCS","WEL")
                 AND o.vstdate BETWEEN ? AND ?
                 AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y" AND (hmain_ucs IS NULL OR hmain_ucs =""))
-                AND (oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR stm.cid IS NOT NULL )
+                AND (oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR stm.cid IS NOT NULL )
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         return view('claim_op.ucs_inprovince', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
@@ -458,9 +460,13 @@ class ClaimOpController extends Controller
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
         $start_date_b = $year_data[$budget_year] ?? null;
-        $end_date_b = DB::table('budget_year')
-            ->where('LEAVE_YEAR_ID', $budget_year)
-            ->value('DATE_END');
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
@@ -533,7 +539,6 @@ class ClaimOpController extends Controller
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
-            LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
@@ -548,7 +553,6 @@ class ClaimOpController extends Controller
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
             AND COALESCE(op_data.is_kidney, 0) = 0 
             AND oe.moph_finance_upload_status IS NULL 
-            AND rep.vn IS NULL 
             AND fdh.seq IS NULL 
             AND stm.cid IS NULL 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
@@ -560,7 +564,7 @@ class ClaimOpController extends Controller
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
             v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,COALESCE(op_data.refer, 0) AS refer,
             op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
-            rep.rep_eclaim_detail_nhso AS rep_nhso,rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno,
+            stm.receive_total,stm.repno,
             fdh.status_message_th AS fdh_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -584,7 +588,6 @@ class ClaimOpController extends Controller
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
-            LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
@@ -598,7 +601,7 @@ class ClaimOpController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
             AND COALESCE(op_data.is_kidney, 0) = 0 
-            AND (oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR stm.cid IS NOT NULL )
+            AND (oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR stm.cid IS NOT NULL )
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         return view('claim_op.ucs_outprovince', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
@@ -622,9 +625,13 @@ class ClaimOpController extends Controller
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
         $start_date_b = $year_data[$budget_year] ?? null;
-        $end_date_b = DB::table('budget_year')
-            ->where('LEAVE_YEAR_ID', $budget_year)
-            ->value('DATE_END');
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
@@ -717,9 +724,13 @@ class ClaimOpController extends Controller
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
         $start_date_b = $year_data[$budget_year] ?? null;
-        $end_date_b = DB::table('budget_year')
-            ->where('LEAVE_YEAR_ID', $budget_year)
-            ->value('DATE_END');
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
@@ -765,10 +776,11 @@ class ClaimOpController extends Controller
         $search = DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
-            vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
+            vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,claim_items.claim_list,
-            v.income,v.rcpt_money,v.income-v.rcpt_money AS claim_price
+            v.income,v.rcpt_money,v.income-v.rcpt_money AS claim_price,
+            fdh.status_message_th AS fdh_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -788,6 +800,7 @@ class ClaimOpController extends Controller
                 GROUP BY op.vn
             ) claim_items ON claim_items.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
@@ -800,15 +813,16 @@ class ClaimOpController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND p.hipdata_code = "STP" 
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
-            AND oe.moph_finance_upload_status IS NULL AND rep.vn IS NULL AND stm.cid IS NULL 
+            AND oe.moph_finance_upload_status IS NULL AND rep.vn IS NULL AND stm.cid IS NULL AND fdh.seq IS NULL
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
             v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,
-            claim_items.claim_list,
+            claim_items.claim_list,o.vn AS seq,
             COALESCE(claim_items.ppfs, 0) AS ppfs,v.income-v.rcpt_money AS claim_price,rep.rep_eclaim_detail_nhso AS rep_nhso,
-            rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno
+            rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno,
+            fdh.status_message_th AS fdh_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -829,6 +843,7 @@ class ClaimOpController extends Controller
                 GROUP BY op.vn
             ) claim_items ON claim_items.vn = o.vn            
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
@@ -841,7 +856,7 @@ class ClaimOpController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND p.hipdata_code = "STP" 
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
-            AND (oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR stm.cid IS NOT NULL )
+            AND (oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR stm.cid IS NOT NULL OR fdh.seq IS NOT NULL)
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         return view('claim_op.stp_incup', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
@@ -865,9 +880,13 @@ class ClaimOpController extends Controller
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
         $start_date_b = $year_data[$budget_year] ?? null;
-        $end_date_b = DB::table('budget_year')
-            ->where('LEAVE_YEAR_ID', $budget_year)
-            ->value('DATE_END');
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
@@ -914,10 +933,11 @@ class ClaimOpController extends Controller
         $search = DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
-            vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
+            vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
             v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,COALESCE(op_data.refer, 0) AS refer,
-            op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae
+            op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
+            fdh.status_message_th AS fdh_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -940,6 +960,7 @@ class ClaimOpController extends Controller
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
@@ -955,17 +976,18 @@ class ClaimOpController extends Controller
             AND COALESCE(op_data.is_kidney, 0) = 0 
             AND oe.moph_finance_upload_status IS NULL 
             AND rep.vn IS NULL 
-            AND stm.cid IS NULL 
+            AND stm.cid IS NULL AND fdh.seq IS NULL
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
-            vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
+            vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
             v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,COALESCE(op_data.refer, 0) AS refer,
             op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
-            rep.rep_eclaim_detail_nhso AS rep_nhso,rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno
+            rep.rep_eclaim_detail_nhso AS rep_nhso,rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno,
+            fdh.status_message_th AS fdh_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -988,6 +1010,7 @@ class ClaimOpController extends Controller
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
@@ -1001,7 +1024,7 @@ class ClaimOpController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
             AND COALESCE(op_data.is_kidney, 0) = 0 
-            AND (oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR stm.cid IS NOT NULL )
+            AND (oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR stm.cid IS NOT NULL OR fdh.seq IS NOT NULL)
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         return view('claim_op.stp_outcup', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
@@ -1025,9 +1048,13 @@ class ClaimOpController extends Controller
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
         $start_date_b = $year_data[$budget_year] ?? null;
-        $end_date_b = DB::table('budget_year')
-            ->where('LEAVE_YEAR_ID', $budget_year)
-            ->value('DATE_END');
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
@@ -1209,9 +1236,13 @@ class ClaimOpController extends Controller
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
         $start_date_b = $year_data[$budget_year] ?? null;
-        $end_date_b = DB::table('budget_year')
-            ->where('LEAVE_YEAR_ID', $budget_year)
-            ->value('DATE_END');
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
@@ -1310,9 +1341,13 @@ class ClaimOpController extends Controller
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
         $start_date_b = $year_data[$budget_year] ?? null;
-        $end_date_b = DB::table('budget_year')
-            ->where('LEAVE_YEAR_ID', $budget_year)
-            ->value('DATE_END');
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
@@ -1476,9 +1511,13 @@ class ClaimOpController extends Controller
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
         $start_date_b = $year_data[$budget_year] ?? null;
-        $end_date_b = DB::table('budget_year')
-            ->where('LEAVE_YEAR_ID', $budget_year)
-            ->value('DATE_END');
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
@@ -1570,9 +1609,13 @@ class ClaimOpController extends Controller
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
         $start_date_b = $year_data[$budget_year] ?? null;
-        $end_date_b = DB::table('budget_year')
-            ->where('LEAVE_YEAR_ID', $budget_year)
-            ->value('DATE_END');
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
@@ -1736,9 +1779,13 @@ class ClaimOpController extends Controller
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
         $start_date_b = $year_data[$budget_year] ?? null;
-        $end_date_b = DB::table('budget_year')
-            ->where('LEAVE_YEAR_ID', $budget_year)
-            ->value('DATE_END');
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
@@ -1902,9 +1949,13 @@ class ClaimOpController extends Controller
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
         $start_date_b = $year_data[$budget_year] ?? null;
-        $end_date_b = DB::table('budget_year')
-            ->where('LEAVE_YEAR_ID', $budget_year)
-            ->value('DATE_END');
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
@@ -2050,9 +2101,13 @@ class ClaimOpController extends Controller
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
         $start_date_b = $year_data[$budget_year] ?? null;
-        $end_date_b = DB::table('budget_year')
-            ->where('LEAVE_YEAR_ID', $budget_year)
-            ->value('DATE_END');
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
@@ -2124,9 +2179,13 @@ class ClaimOpController extends Controller
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
         $start_date_b = $year_data[$budget_year] ?? null;
-        $end_date_b = DB::table('budget_year')
-            ->where('LEAVE_YEAR_ID', $budget_year)
-            ->value('DATE_END');
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
@@ -2217,9 +2276,13 @@ class ClaimOpController extends Controller
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
         $start_date_b = $year_data[$budget_year] ?? null;
-        $end_date_b = DB::table('budget_year')
-            ->where('LEAVE_YEAR_ID', $budget_year)
-            ->value('DATE_END');
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
@@ -2312,9 +2375,13 @@ class ClaimOpController extends Controller
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
         $start_date_b = $year_data[$budget_year] ?? null;
-        $end_date_b = DB::table('budget_year')
-            ->where('LEAVE_YEAR_ID', $budget_year)
-            ->value('DATE_END');
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
@@ -2364,13 +2431,15 @@ class ClaimOpController extends Controller
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vstdate, o.vsttime, o.oqueue,o.vn, o.an,o.hn,v.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-                pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income, v.paid_money,
+                pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,os.cc,p.hipdata_code,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income, v.paid_money,
                 IFNULL(rc.rcpt_money,0) AS rcpt_money,v.paid_money - IFNULL(rc.rcpt_money,0) AS claim_price,rc.rcpno,
                 p2.arrear_date,p2.amount AS arrear_amount,fd.deposit_amount,fd1.debit_amount,"รอยืนยันลูกหนี้" AS status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
             LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN opdscreen os ON os.vn=o.vn
+            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN patient_arrear p2 ON p2.vn = o.vn
             LEFT JOIN patient_finance_deposit fd ON fd.anvn = o.vn
             LEFT JOIN patient_finance_debit fd1 ON fd1.anvn = o.vn
@@ -2387,7 +2456,7 @@ class ClaimOpController extends Controller
             AND v.paid_money > 0
             AND v.paid_money - IFNULL(rc.rcpt_money,0) > 0
             AND o.vstdate BETWEEN ? AND ?
-            ORDER BY o.vstdate, o.oqueue ', [$start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate, o.oqueue ', [$start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vstdate, o.vsttime, o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
@@ -2438,9 +2507,13 @@ class ClaimOpController extends Controller
             ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
             ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
         $start_date_b = $year_data[$budget_year] ?? null;
-        $end_date_b = DB::table('budget_year')
-            ->where('LEAVE_YEAR_ID', $budget_year)
-            ->value('DATE_END');
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');

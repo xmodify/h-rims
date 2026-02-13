@@ -601,10 +601,10 @@
                                 <!-- เมนูอื่น -->
                                 <li>     
                                     <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/bkk') }}" >
-                                        OP-BKK อปท.รูปแบบพิเศษ กทม.
+                                        OP-BKK กรุงเทพมหานคร
                                     </a>      
                                     <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/bmt') }}" >
-                                        OP-BMT อปท.รูปแบบพิเศษ ขสมก.
+                                        OP-BMT ขสมก.
                                     </a>  
                                 </li>
                                 <!-- ชี้ขวา -->
@@ -671,10 +671,10 @@
                                         IP-LGO อปท.
                                     </a>       
                                     <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/bkk') }}" >
-                                        IP-BKK อปท.รูปแบบพิเศษ กทม.
+                                        IP-BKK กรุงเทพมหานคร
                                     </a>      
                                     <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/bmt') }}" >
-                                        IP-BMT อปท.รูปแบบพิเศษ ขสมก.
+                                        IP-BMT ขสมก.
                                     </a>
                                 </li>
                                 <!-- ชี้ขวา -->

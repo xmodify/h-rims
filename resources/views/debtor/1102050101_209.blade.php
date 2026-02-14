@@ -16,39 +16,94 @@
         }
     </script>    
 @section('content')
-    <div class="container-fluid">        
-        <form method="POST" enctype="multipart/form-data">
-            @csrf
-            <div class="row" >
-                    <label class="col-md-2 col-form-label text-md-end my-1">{{ __('วันที่') }}</label>
-                <div class="col-md-2">
-                    <input type="date" name="start_date" class="form-control my-1" placeholder="Date" value="{{ $start_date }}" >
-                </div>
-                    <label class="col-md-1 col-form-label text-md-end my-1">{{ __('ถึง') }}</label>
-                <div class="col-md-2">
-                    <input type="date" name="end_date" class="form-control my-1" placeholder="Date" value="{{ $end_date }}" >
-                </div>
-                    <label class="col-md-1 col-form-label text-md-end my-1">{{ __('ค้นหา ชื่อ-สกุล,HN') }}</label>
-                <div class="col-md-2" >
-                    <input id="search" type="text" class="form-control my-1" name="search" value="{{ $search }}" >
-                </div>
-                <div class="col-md-1" >
-                    <button onclick="fetchData()" type="submit" class="btn btn-primary my-1 ">{{ __('ค้นหา') }}</button>
-                    <a class="btn btn-warning my-1 text-primary" href="{{ url('debtor/forget_search') }}">Reset</a>
-                </div> 
+    <!-- Page Header & Logic Filters -->
+    <div class="page-header-box mt-2 mb-3 d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="text-primary mb-0 fw-bold">
+                <i class="bi bi-wallet2 me-2"></i>
+                1102050101.209-ลูกหนี้ค่ารักษา ด้านการสร้างเสริมสุขภาพและป้องกันโรค (P&P)
+            </h4>
+            <small class="text-muted">ข้อมูลวันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</small>
+        </div>
+        
+        <div class="d-flex align-items-center gap-4">
+            <!-- Filter Section -->
+            <div class="filter-group">
+                <form method="POST" action="{{ url('debtor/1102050101_209') }}" enctype="multipart/form-data" class="m-0 d-flex align-items-center gap-2">
+                    @csrf
+                    
+                    <!-- Date Range -->
+                    <div class="d-flex align-items-center">
+                        <span class="input-group-text bg-white text-muted border-end-0 rounded-start">วันที่</span>
+                        <input type="date" name="start_date" class="form-control border-start-0 rounded-0" value="{{ $start_date }}" style="width: 170px;">
+                        <span class="input-group-text bg-white border-start-0 border-end-0 rounded-0">ถึง</span>
+                        <input type="date" name="end_date" class="form-control border-start-0 rounded-end" value="{{ $end_date }}" style="width: 170px;">
+                    </div>
+
+                    <!-- Search Input -->
+                    <div class="input-group input-group-sm" style="width: 220px;">
+                        <span class="input-group-text bg-white text-muted border-end-0"><i class="bi bi-search"></i></span>
+                        <input id="search" type="text" class="form-control border-start-0" name="search" value="{{ $search }}" placeholder="ค้นหา ชื่อ-สกุล, HN">
+                    </div>
+
+                    <button onclick="showLoading()" type="submit" class="btn btn-primary btn-sm px-3 shadow-sm">
+                        <i class="bi bi-search me-1"></i> ค้นหา
+                    </button>
+                    <a href="{{ url('debtor/forget_search') }}" class="btn btn-warning btn-sm px-3 shadow-sm text-dark">
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> รีเซ็ต
+                    </a>
+                </form>
             </div>
-        </form> 
-        <div style="overflow-x:auto;">
+        </div>
+    </div>
+
+    <!-- Main Dashboard Container -->
+    <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">
+        
+        <!-- Section: Tabs -->
+        <div class="card-header bg-transparent border-0 pt-3 px-4 pb-0">
+            <ul class="nav nav-tabs-modern" id="pills-tab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
+                        <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
+                        <span class="badge bg-primary-soft text-primary ms-2">{{ count($debtor) }}</span>
+                    </button>
+                </li>       
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab">
+                        <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้
+                        <span class="badge bg-warning-soft text-warning ms-2">{{ count($debtor_search) }}</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body px-4 pb-4 pt-0">
+            <div class="tab-content" id="myTabContent">
+                
+                <!-- Tab 1: รายการลูกหนี้ -->
+                <div class="tab-pane fade show active" id="debtor-pane" role="tabpanel"> 
+
             <form action="{{ url('debtor/1102050101_209_delete') }}" method="POST" enctype="multipart/form-data">
                 @csrf   
                 @method('DELETE')
-                <table id="debtor" class="table table-bordered table-striped my-3" width = "100%">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDelete()">
+                        <i class="bi bi-trash-fill me-1"></i> ลบรายการลูกหนี้
+                    </button>
+                    <div>
+                        <a class="btn btn-outline-success btn-sm" href="{{ url('debtor/1102050101_209_indiv_excel')}}" target="_blank">
+                             <i class="bi bi-file-earmark-excel me-1"></i> ส่งออกรายตัว
+                        </a>                
+                        <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_209_daily_pdf')}}" target="_blank">
+                             <i class="bi bi-printer me-1"></i> พิมพ์รายวัน
+                        </a> 
+                    </div>
+                </div>
+                <table id="debtor" class="table table-bordered table-striped my-3" width="100%">
                     <thead>
                     <tr class="table-success">
-                        <th class="text-center">
-                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDelete()">ลบลูกหนี้</button>
-                        </th>
-                        <th class="text-left text-primary" colspan = "9">1102050101.209-ลูกหนี้ค่ารักษา ด้านการสร้างเสริมสุขภาพและป้องกันโรค (P&P) วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</th> 
+                        <th class="text-left text-primary" colspan = "10">1102050101.209-ลูกหนี้ค่ารักษา ด้านการสร้างเสริมสุขภาพและป้องกันโรค (P&P) วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</th> 
                         <th class="text-center text-primary" colspan = "6">การชดเชย</th>                                                 
                     </tr>
                     <tr class="table-success" >
@@ -112,55 +167,39 @@
                     <?php $sum_receive += $row->receive ; ?>        
                     @endforeach 
                     </tr>   
+                    <tfoot>
+                        <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
+                            <td colspan="6" class="text-end">รวม</td>
+                            <td class="text-end">{{ number_format($sum_income,2) }}</td>
+                            <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
+                            <td class="text-end">{{ number_format($sum_other,2) }}</td>
+                            <td class="text-end">{{ number_format($sum_ppfs,2) }}</td>
+                            <td class="text-end" style="color:blue">{{ number_format($sum_debtor,2) }}</td>
+                            <td class="text-end" style="color:green">{{ number_format($sum_receive_pp,2) }}</td>
+                            <td class="text-end" style="color:red">
+                                {{ number_format($sum_receive - $sum_debtor, 2) }}
+                            </td>
+                            <td colspan="3"></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </form>
-            <table class="table table-bordered " width = "100%">
-                <thead>
-                <tr class="table-primary" >
-                    <th class="text-center">รหัสผังบัญชี</th>
-                    <th class="text-center">ชื่อผังบัญชี</th>
-                    <th class="text-center">ค่ารักษาพยาบาล</th>
-                    <th class="text-center">ชำระเอง</th>
-                    <th class="text-center">กองทุนอื่น</th>
-                    <th class="text-center">PPFS</th>
-                    <th class="text-center">ลูกหนี้</th> 
-                    <th class="text-center">ชดเชย STM</th>   
-                    <th class="text-center">ผลต่าง</th> 
-                    <th class="text-center">รายงาน</th>                
-                </tr>
-                </thead>
-                <tr>
-                    <td class="text-primary" align="right">1102050101.209</td>
-                    <td class="text-primary" align="left">ลูกหนี้ค่ารักษา ด้านการสร้างเสริมสุขภาพและป้องกันโรค (P&P)</td>
-                    <td class="text-primary" align="right">{{ number_format($sum_income,2)}}</td>
-                    <td class="text-primary" align="right">{{ number_format($sum_rcpt_money,2)}}</td>
-                    <td class="text-primary" align="right">{{ number_format($sum_other,2)}}</td>
-                    <td class="text-primary" align="right">{{ number_format($sum_ppfs,2)}}</td>
-                    <td class="text-primary" align="right"><strong>{{ number_format($sum_debtor,2)}}</strong></td>
-                    <td align="right" @if($sum_receive_pp > 0) style="color:green"
-                        @elseif($sum_receive_pp < 0) style="color:red" @endif>
-                        <strong>{{ number_format($sum_receive_pp,2)}}</strong>
-                    </td>
-                    <td align="right" @if(($sum_receive-$sum_debtor) > 0) style="color:green"
-                        @elseif(($sum_receive-$sum_debtor) < 0) style="color:red" @endif>
-                        <strong>{{ number_format($sum_receive-$sum_debtor,2)}}</strong>
-                    </td>
-                    <td align="center">
-                        <a class="btn btn-outline-success btn-sm" href="{{ url('debtor/1102050101_209_indiv_excel')}}" target="_blank">ส่งออกรายตัว</a>                
-                        <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_209_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
-                    </td>                    
-                </tr>
-            </table>
-        </div> 
-        <hr>
-        <div style="overflow-x:auto;">
+                </div>
+                
+                <!-- Tab 2: รอยืนยัน -->
+                <div class="tab-pane fade" id="confirm-pane" role="tabpanel"> 
+ 
             <form action="{{ url('debtor/1102050101_209_confirm') }}" method="POST" enctype="multipart/form-data">
-                @csrf                
-                <table id="debtor_search" class="table table-bordered table-striped my-3" width = "100%">
+                @csrf
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <button type="button" class="btn btn-outline-success btn-sm"  onclick="confirmSubmit()">
+                        <i class="bi bi-check-circle me-1"></i> ยืนยันลูกหนี้
+                    </button>
+                    <div></div>
+                </div>                
+                <table id="debtor_search" class="table table-bordered table-striped my-3" width="100%">
                     <thead>
                     <tr class="table-secondary">
-                        <th class="text-center">
-                            <button type="button" class="btn btn-outline-success btn-sm"  onclick="confirmSubmit()">ยืนยันลูกหนี้</button></th>
                         <th class="text-left text-primary" colspan = "13">1102050101.209-ลูกหนี้ค่ารักษา ด้านการสร้างเสริมสุขภาพและป้องกันโรค (P&P) รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                         
                     </tr>
                     <tr class="table-secondary">
@@ -180,6 +219,13 @@
                     </tr>
                     </thead>
                     <?php $count = 1 ; ?>
+                    <?php 
+                        $sum_income = 0;
+                        $sum_rcpt_money = 0;
+                        $sum_other = 0;
+                        $sum_ppfs = 0;
+                        $sum_debtor = 0;
+                    ?>
                     @foreach($debtor_search as $row)
                     <tr>
                         <td class="text-center"><input type="checkbox" name="checkbox[]" value="{{$row->vn}}"></td> 
@@ -196,13 +242,31 @@
                         <td align="left" width = "10%">{{ $row->other_list }}</td>
                         <td align="left" width = "10%">{{ $row->ppfs_list }}</td>
                     <?php $count++; ?>
+                    <?php $sum_income += $row->income; ?>
+                    <?php $sum_rcpt_money += $row->rcpt_money; ?>
+                    <?php $sum_other += $row->other; ?>
+                    <?php $sum_ppfs += $row->ppfs; ?>
+                    <?php $sum_debtor += $row->debtor; ?>
                     @endforeach 
-                </tr>   
+                    </tr>   
+                    <tfoot>
+                        <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
+                            <td colspan="6" class="text-end">รวม</td>
+                            <td class="text-end">{{ number_format($sum_income,2) }}</td>
+                            <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
+                            <td class="text-end">{{ number_format($sum_other,2) }}</td>
+                            <td class="text-end">{{ number_format($sum_ppfs,2) }}</td>
+                            <td class="text-end" style="color:blue">{{ number_format($sum_debtor,2) }}</td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </form>
-        </div>  
-        
+            </div>
+        </div>
     </div>
+</div>  
+
 
 <!-- สำเร็จ -->
     @if (session('success'))
@@ -283,6 +347,10 @@
 
 @endsection
 
+<!-- Modal -->
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+
 @push('scripts')
     <script>
         $(document).ready(function () {
@@ -339,6 +407,3 @@
         });
     </script>
 @endpush
-
-
-

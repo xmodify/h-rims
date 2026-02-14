@@ -29,22 +29,23 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        URL::forceRootUrl(config('app.url'));
-        
-        //  Paginator::useBootstrapFive();
+        // 1. บังคับ URL พื้นฐานตามที่ตั้งค่าใน .env (APP_URL)
+        // วิธีนี้จะช่วยแก้ปัญหาเวลา Proxy หรือ Alias แล้ว Link เจนออกมาผิด Port หรือผิด Path
+        if (!app()->runningInConsole()) {
+            URL::forceRootUrl(config('app.url'));
 
-        // // ตรวจสอบว่ามีข้อมูลในตาราง lookup_icode มีรายการฟอกไต หรือไม่
-        // $hasLookupIcode_kidney = DB::table('lookup_icode')
-        //     ->where('kidney', '<>', '')
-        //     ->exists();
+            // 2. ถ้า Server จริงใช้ HTTPS (moph.go.th) แต่หน้าเว็บแสดงผลไม่สมบูรณ์
+            // ให้บังคับ Scheme เป็น https ด้วยครับ
+            if (str_contains(config('app.url'), 'https://')) {
+                URL::forceScheme('https');
+            }
+        }
 
         // // แชร์ตัวแปรนี้ไปยังทุก view
         // View::share('hasLookupIcode_kidney', $hasLookupIcode_kidney);
         //----------------------------------------------------------------------------------------
-
         View::composer('*', function ($view) {
             $hasLookupIcode_kidney = false;
-
             // เฉพาะหน้าที่ยกเว้น ไม่โหลดจาก DB แต่ยังแชร์ค่าดีฟอลต์
             if (!request()->is('admin/main_setting')) {
                 if (Schema::hasColumn('lookup_icode', 'kidney')) {

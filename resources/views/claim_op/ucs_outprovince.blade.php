@@ -110,6 +110,7 @@
                                     <th class="text-center">PDX | ICD9</th>
                                     <th class="text-center">ค่ารักษา</th> 
                                     <th class="text-center">ชำระเอง</th>
+                                    <th class="text-center text-primary">เรียกเก็บ</th>
                                     <th class="text-center">ค่ารถ Refer</th>
                                     <th class="text-center">ER Type</th>
                                     <th class="text-center">Project</th>  
@@ -164,6 +165,7 @@
                                     </td>
                                     <td class="text-end small">{{ number_format($row->income,2) }}</td>              
                                     <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
+                                    <td class="text-end fw-bold text-primary small">{{ number_format($row->income - $row->rcpt_money, 2) }}</td>
                                     <td class="text-end small">{{ number_format($row->refer,2) }}</td>
                                     <td class="text-center small">{{$row->er}}</td>
                                     <td class="text-center small text-muted">{{ $row->project }}</td>                   
@@ -181,7 +183,8 @@
                                     <th colspan="8" class="text-end text-muted small px-3">รวม:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
-                                    <th class="text-end fw-bold text-primary" colspan="4">เรียกเก็บ: {{ number_format($sum_income - $sum_rcpt_money, 2) }}</th>
+                                    <th class="text-end fw-bold text-primary">{{ number_format($sum_income - $sum_rcpt_money, 2) }}</th>
+                                    <th colspan="4"></th>
                                 </tr>
                             </tfoot>
                         </table>
@@ -201,12 +204,13 @@
                                     <th class="text-center" rowspan="2">ชื่อ-สกุล | สิทธิ</th>
                                     <th class="text-center" rowspan="2" width="10%">อาการสำคัญ</th>
                                     <th class="text-center" rowspan="2">PDX | ICD9</th>
-                                    <th class="text-center" colspan="4">ค่ารักษา</th> 
+                                    <th class="text-center" colspan="5">ค่ารักษา</th> 
                                     <th class="text-center bg-primary-soft" colspan="3">ข้อมูลการชดเชย (NHSO)</th>
                                 </tr>
                                 <tr>
                                     <th class="text-center small">รวม</th>
                                     <th class="text-center small">ชำระเอง</th>
+                                    <th class="text-center small text-primary">เรียกเก็บ</th>
                                     <th class="text-center small">ค่ารถ Refer</th>
                                     <th class="text-center small">AE</th>
 
@@ -245,6 +249,7 @@
                                     </td>
                                     <td class="text-end small">{{ number_format($row->income,2) }}</td>              
                                     <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
+                                    <td class="text-end fw-bold text-primary small">{{ number_format($row->income - $row->rcpt_money, 2) }}</td>
                                     <td class="text-end small">{{ number_format($row->refer,2) }}</td>
                                     <td class="text-center small">{{ $row->ae }}</td> 
 
@@ -267,6 +272,7 @@
                                     <th colspan="8" class="text-end text-muted small px-3">รวม:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
+                                    <th class="text-end fw-bold text-primary small">{{ number_format($sum_income - $sum_rcpt_money, 2) }}</th>
                                     <th></th>
                                     <th></th>
                                     <th class="text-end small fw-bold {{ $sum_receive_total >= 0 ? 'text-success' : 'text-danger' }}">

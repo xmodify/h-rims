@@ -10,6 +10,11 @@
                 ข้อมูล Statement สวัสดิการข้าราชการ CIPN
             </h5>
             <div class="text-muted small mt-1">รายละเอียดข้อมูลการเบิกจ่ายแยกตามสถานะ</div>
+            <div class="mt-2">
+                <a href="{{ url('import/stm_ofc_cipn') }}" class="btn btn-secondary btn-sm rounded-pill px-3">
+                    <i class="bi bi-arrow-left me-1"></i> ย้อนกลับ
+                </a>
+            </div>
         </div>
         
         <form method="POST" enctype="multipart/form-data" class="m-0">

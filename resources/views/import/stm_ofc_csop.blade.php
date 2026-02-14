@@ -40,6 +40,11 @@
                 ข้อมูล Statement สวัสดิการข้าราชการ CSOP, กกต, ฟอกไต OFC
             </h5>
             <div class="text-muted small mt-1">ปีงบประมาณประจำปัจจุบัน: {{ $budget_year }}</div>
+            <div class="mt-2">
+                <a href="{{ url('/import/stm_ofc_csopdetail') }}" class="btn btn-primary btn-sm rounded-pill px-3">
+                    <i class="bi bi-file-earmark-text me-1"></i> รายละเอียด
+                </a>
+            </div>
         </div>
         
         <form method="POST" enctype="multipart/form-data" class="m-0">

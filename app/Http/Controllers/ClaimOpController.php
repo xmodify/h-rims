@@ -551,7 +551,7 @@ class ClaimOpController extends Controller
             AND p.hipdata_code IN ("UCS","WEL") 
             AND o.vstdate BETWEEN ? AND ?
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-            AND COALESCE(op_data.is_kidney, 0) = 0 
+            AND NOT EXISTS (SELECT 1 FROM opitemrece kidney INNER JOIN hrims.lookup_icode li ON li.icode=kidney.icode WHERE kidney.vn=o.vn AND li.kidney = "Y")
             AND oe.moph_finance_upload_status IS NULL 
             AND fdh.seq IS NULL 
             AND stm.cid IS NULL 
@@ -600,7 +600,7 @@ class ClaimOpController extends Controller
             AND p.hipdata_code IN ("UCS","WEL") 
             AND o.vstdate BETWEEN ? AND ?
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-            AND COALESCE(op_data.is_kidney, 0) = 0 
+            AND NOT EXISTS (SELECT 1 FROM opitemrece kidney INNER JOIN hrims.lookup_icode li ON li.icode=kidney.icode WHERE kidney.vn=o.vn AND li.kidney = "Y")
             AND (oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR stm.cid IS NOT NULL )
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 

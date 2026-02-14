@@ -170,7 +170,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="10" class="text-end text-muted small px-3">รวมที่ค้นพบ:</th>
+                                    <th colspan="8" class="text-end text-muted small px-3">รวมที่ค้นพบ:</th>
                                     <th class="text-end small">{{ number_format($sum_income_s,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money_s,2) }}</th>
                                     <th></th>

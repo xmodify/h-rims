@@ -736,6 +736,7 @@ class ClaimIpController extends Controller
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
                 CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                IFNULL(stm.receive_total,0) AS receive_treatment,
                 IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) + IFNULL(csop.amount,0) AS receive_total,
                 CONCAT_WS(",", stm.repno, cipn.rid, csop.rid) AS repno
             FROM ipt i 
@@ -1143,6 +1144,7 @@ class ClaimIpController extends Controller
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
                 CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                IFNULL(stm.receive_total,0) AS receive_treatment,
                 IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) + IFNULL(csop.amount,0) AS receive_total,
                 CONCAT_WS(",", stm.repno, cipn.rid, csop.rid) AS repno
             FROM ipt i 
@@ -1372,6 +1374,7 @@ class ClaimIpController extends Controller
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
                 CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                IFNULL(stm.receive_total,0) AS receive_treatment,
                 IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) + IFNULL(csop.amount,0) AS receive_total,
                 CONCAT_WS(",", stm.repno, cipn.rid, csop.rid) AS repno
             FROM ipt i 

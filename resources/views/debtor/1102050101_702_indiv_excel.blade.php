@@ -3,6 +3,8 @@ $files = "ลูกหนี้รายตัวผังบัญชี-110205
 header("Content-Type: application/vnd.ms-excel");
 header("Content-Disposition: attachment; filename=".$files); //ชื่อไฟล์
 ?>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
  
 <div>        
     <strong>
@@ -39,13 +41,21 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
             </tr>     
             </thead> 
             <?php $count = 1 ; ?>
+
             <?php $sum_income = 0 ; ?>
+
             <?php $sum_rcpt_money = 0 ; ?>
+
             <?php $sum_other = 0 ; ?>
+
             <?php $sum_ppfs = 0 ; ?>
+
             <?php $sum_debtor = 0 ; ?>
+
             <?php $sum_receive = 0 ; ?>
+
             <?php $sum_receive_pp = 0 ; ?>
+
             @foreach($debtor as $row)          
             <tr>
                 <td align="center">{{ $count }}</td>
@@ -67,13 +77,21 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="center">{{ $row->repno }}</td>
             </tr>                
             <?php $count++; ?>
+
             <?php $sum_income += $row->income ; ?>
+
             <?php $sum_rcpt_money += $row->rcpt_money ; ?>
-            <?php $sum_other += $row->other ; ?> 
-            <?php $sum_ppfs += $row->ppfs ; ?> 
-            <?php $sum_debtor += $row->debtor ; ?> 
-            <?php $sum_receive += $row->receive ; ?>  
-            <?php $sum_receive_pp += $row->receive_pp ; ?>    
+
+            <?php $sum_other += $row->other ; ?>
+ 
+            <?php $sum_ppfs += $row->ppfs ; ?>
+ 
+            <?php $sum_debtor += $row->debtor ; ?>
+ 
+            <?php $sum_receive += $row->receive ; ?>
+  
+            <?php $sum_receive_pp += $row->receive_pp ; ?>
+    
             @endforeach   
             <tr>
                 <td align="right" colspan = "8"><strong>รวมค่ารักษาพยาบาลทั้งสิ้น &nbsp;</strong><br></td> 

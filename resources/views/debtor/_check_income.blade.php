@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('content')
     <!-- Page Header & Logic Filters -->
@@ -6,7 +6,7 @@
         <div>
             <h4 class="text-primary mb-0 fw-bold">
                 <i class="bi bi-currency-exchange me-2"></i>
-                ตรวจสอบค่ารักษาพยาบาลก่อนดึงลูกหนี้
+                เธ•เธฃเธงเธเธชเธญเธเธเนเธฒเธฃเธฑเธเธฉเธฒเธเธขเธฒเธเธฒเธฅเธเนเธญเธเธ”เธถเธเธฅเธนเธเธซเธเธตเน
             </h4>
         </div>
         
@@ -15,13 +15,13 @@
             <div class="filter-group">
                 <form method="POST" enctype="multipart/form-data" class="m-0 d-flex align-items-center">
                     @csrf
-                    <span class="fw-bold text-muted small text-nowrap me-2">เลือกช่วงวันที่</span>
+                    <span class="fw-bold text-muted small text-nowrap me-2">เน€เธฅเธทเธญเธเธเนเธงเธเธงเธฑเธเธ—เธตเน</span>
                     <div class="input-group input-group-sm">
                         <input type="date" name="start_date" class="form-control" value="{{ $start_date }}" style="width: 130px;">
-                        <span class="input-group-text bg-white border-start-0 border-end-0">ถึง</span>
+                        <span class="input-group-text bg-white border-start-0 border-end-0">เธ–เธถเธ</span>
                         <input type="date" name="end_date" class="form-control" value="{{ $end_date }}" style="width: 130px;">
                         <button type="submit" class="btn btn-primary px-3 shadow-sm">
-                            <i class="bi bi-search me-1"></i> ค้นหา
+                            <i class="bi bi-search me-1"></i> เธเนเธเธซเธฒ
                         </button>
                     </div>
                 </form>
@@ -34,27 +34,27 @@
         <div class="card-header bg-transparent border-0 pt-3 px-4 pb-0">
             <h6 class="fw-bold text-dark mb-0">
                 <i class="bi bi-calendar-check-fill text-primary me-2"></i>
-                ข้อมูลวันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}
+                เธเนเธญเธกเธนเธฅเธงเธฑเธเธ—เธตเน {{ DateThai($start_date) }} เธ–เธถเธ {{ DateThai($end_date) }}
             </h6>
         </div>
         <div class="card-body px-4 pb-4 pt-3">
             <div class="row">
                 <div class="col-md-6 border-end">   
                     <h6 class="fw-bold text-success mb-3 border-bottom pb-2">
-                        <i class="bi bi-person-fill me-2"></i>ผู้ป่วยนอก
+                        <i class="bi bi-person-fill me-2"></i>เธเธนเนเธเนเธงเธขเธเธญเธ
                     </h6>
                     <div class="table-responsive mb-4">
                         <table class="table table-hover table-modern align-middle mb-0">
                             <thead>
                             <tr class="table-secondary">
-                                <th class="text-center">ค่าใช้จ่ายทั้งหมด [ใบสั่งยา]</th>
-                                <th class="text-center">ต้องชำระเงิน [ใบสั่งยา]</th>
-                                <th class="text-center">ค่าใช้จ่ายทั้งหมด [สรุป]</th>
-                                <th class="text-center">ต้องชำระเงิน [สรุป]</th>  
-                                <th class="text-center">ชำระเงินแล้ว [สรุป]</th> 
-                                <th class="text-center">ลูกหนี้ [สรุป]</th>                           
-                                <th class="text-center">สถานะ</th>
-                                <th class="text-center">รายตัว</th>
+                                <th class="text-center">เธเนเธฒเนเธเนเธเนเธฒเธขเธ—เธฑเนเธเธซเธกเธ” [เนเธเธชเธฑเนเธเธขเธฒ]</th>
+                                <th class="text-center">เธ•เนเธญเธเธเธณเธฃเธฐเน€เธเธดเธ [เนเธเธชเธฑเนเธเธขเธฒ]</th>
+                                <th class="text-center">เธเนเธฒเนเธเนเธเนเธฒเธขเธ—เธฑเนเธเธซเธกเธ” [เธชเธฃเธธเธ]</th>
+                                <th class="text-center">เธ•เนเธญเธเธเธณเธฃเธฐเน€เธเธดเธ [เธชเธฃเธธเธ]</th>  
+                                <th class="text-center">เธเธณเธฃเธฐเน€เธเธดเธเนเธฅเนเธง [เธชเธฃเธธเธ]</th> 
+                                <th class="text-center">เธฅเธนเธเธซเธเธตเน [เธชเธฃเธธเธ]</th>                           
+                                <th class="text-center">เธชเธ–เธฒเธเธฐ</th>
+                                <th class="text-center">เธฃเธฒเธขเธ•เธฑเธง</th>
                             </tr>     
                             </thead>                         
                             @foreach($check_income as $row) 
@@ -92,20 +92,20 @@
                     </div>
                     
                     <h6 class="fw-bold text-success mb-3 border-bottom pb-2">
-                        <i class="bi bi-layers-fill me-2"></i>ผู้ป่วยนอก แยกกลุ่มสิทธิ
+                        <i class="bi bi-layers-fill me-2"></i>เธเธนเนเธเนเธงเธขเธเธญเธ เนเธขเธเธเธฅเธธเนเธกเธชเธดเธ—เธเธด
                     </h6>
                     <div class="table-responsive">
                         <table class="table table-hover table-modern align-middle mb-0">
                             <thead>
                             <tr class="table-secondary">
                                 <th class="text-center">INSCL</th>
-                                <th class="text-center">กลุ่มสิทธิ</th>
-                                <th class="text-center">จำนวน</th>
-                                <th class="text-center">ค่าใช้จ่ายทั้งหมด</th>
-                                <th class="text-center">ต้องชำระเงิน</th>  
-                                <th class="text-center">ชำระเงินแล้ว</th> 
+                                <th class="text-center">เธเธฅเธธเนเธกเธชเธดเธ—เธเธด</th>
+                                <th class="text-center">เธเธณเธเธงเธ</th>
+                                <th class="text-center">เธเนเธฒเนเธเนเธเนเธฒเธขเธ—เธฑเนเธเธซเธกเธ”</th>
+                                <th class="text-center">เธ•เนเธญเธเธเธณเธฃเธฐเน€เธเธดเธ</th>  
+                                <th class="text-center">เธเธณเธฃเธฐเน€เธเธดเธเนเธฅเนเธง</th> 
                                 <th class="text-center">PPFS</th> 
-                                <th class="text-center">ลูกหนี้</th> 
+                                <th class="text-center">เธฅเธนเธเธซเธเธตเน</th> 
                             </tr>     
                             </thead>
                             @php
@@ -138,7 +138,7 @@
                             @endforeach 
                             <tfoot>
                             <tr class="table-success fw-bold">
-                                <td class="text-end" colspan="2">รวม</td>
+                                <td class="text-end" colspan="2">เธฃเธงเธก</td>
                                 <td align="right">{{ number_format($sum_vn) }}</td>
                                 <td align="right">{{ number_format($sum_income,2) }}</td>
                                 <td align="right">{{ number_format($sum_paid,2) }}</td>
@@ -153,20 +153,20 @@
 
                 <div class="col-md-6">   
                     <h6 class="fw-bold text-danger mb-3 border-bottom pb-2">
-                        <i class="bi bi-person-fill-add me-2"></i>ผู้ป่วยใน
+                        <i class="bi bi-person-fill-add me-2"></i>เธเธนเนเธเนเธงเธขเนเธ
                     </h6>
                     <div class="table-responsive mb-4">
                         <table class="table table-hover table-modern align-middle mb-0">
                             <thead>
                             <tr class="table-secondary">
-                                <th class="text-center">ค่าใช้จ่ายทั้งหมด [ใบสั่งยา]</th>
-                                <th class="text-center">ต้องชำระเงิน [ใบสั่งยา]</th>
-                                <th class="text-center">ค่าใช้จ่ายทั้งหมด [สรุป]</th>
-                                <th class="text-center">ต้องชำระเงิน [สรุป]</th>  
-                                <th class="text-center">ชำระเงินแล้ว [สรุป]</th> 
-                                <th class="text-center">ลูกหนี้ [สรุป]</th>                           
-                                <th class="text-center">สถานะ</th>
-                                <th class="text-center">รายตัว</th>
+                                <th class="text-center">เธเนเธฒเนเธเนเธเนเธฒเธขเธ—เธฑเนเธเธซเธกเธ” [เนเธเธชเธฑเนเธเธขเธฒ]</th>
+                                <th class="text-center">เธ•เนเธญเธเธเธณเธฃเธฐเน€เธเธดเธ [เนเธเธชเธฑเนเธเธขเธฒ]</th>
+                                <th class="text-center">เธเนเธฒเนเธเนเธเนเธฒเธขเธ—เธฑเนเธเธซเธกเธ” [เธชเธฃเธธเธ]</th>
+                                <th class="text-center">เธ•เนเธญเธเธเธณเธฃเธฐเน€เธเธดเธ [เธชเธฃเธธเธ]</th>  
+                                <th class="text-center">เธเธณเธฃเธฐเน€เธเธดเธเนเธฅเนเธง [เธชเธฃเธธเธ]</th> 
+                                <th class="text-center">เธฅเธนเธเธซเธเธตเน [เธชเธฃเธธเธ]</th>                           
+                                <th class="text-center">เธชเธ–เธฒเธเธฐ</th>
+                                <th class="text-center">เธฃเธฒเธขเธ•เธฑเธง</th>
                             </tr>         
                             </thead>
                             @foreach($check_income_ipd as $row) 
@@ -204,19 +204,19 @@
                     </div>
 
                     <h6 class="fw-bold text-danger mb-3 border-bottom pb-2">
-                        <i class="bi bi-layers-fill me-2"></i>ผู้ป่วยใน แยกกลุ่มสิทธิ
+                        <i class="bi bi-layers-fill me-2"></i>เธเธนเนเธเนเธงเธขเนเธ เนเธขเธเธเธฅเธธเนเธกเธชเธดเธ—เธเธด
                     </h6>
                     <div class="table-responsive">
                         <table class="table table-hover table-modern align-middle mb-0">
                             <thead>
                             <tr class="table-secondary">
                                 <th class="text-center">INSCL</th>
-                                <th class="text-center">กลุ่มสิทธิ</th>
-                                <th class="text-center">จำนวน</th>
-                                <th class="text-center">ค่าใช้จ่ายทั้งหมด</th>
-                                <th class="text-center">ต้องชำระเงิน</th>  
-                                <th class="text-center">ชำระเงินแล้ว</th> 
-                                <th class="text-center">ลูกหนี้</th> 
+                                <th class="text-center">เธเธฅเธธเนเธกเธชเธดเธ—เธเธด</th>
+                                <th class="text-center">เธเธณเธเธงเธ</th>
+                                <th class="text-center">เธเนเธฒเนเธเนเธเนเธฒเธขเธ—เธฑเนเธเธซเธกเธ”</th>
+                                <th class="text-center">เธ•เนเธญเธเธเธณเธฃเธฐเน€เธเธดเธ</th>  
+                                <th class="text-center">เธเธณเธฃเธฐเน€เธเธดเธเนเธฅเนเธง</th> 
+                                <th class="text-center">เธฅเธนเธเธซเธเธตเน</th> 
                             </tr>     
                             </thead>
                             @php
@@ -246,7 +246,7 @@
                             @endforeach 
                             <tfoot>
                             <tr class="table-danger fw-bold">
-                                <td class="text-end" colspan="2">รวม</td>
+                                <td class="text-end" colspan="2">เธฃเธงเธก</td>
                                 <td align="right">{{ number_format($sum_an) }}</td>
                                 <td align="right">{{ number_format($sum_income,2) }}</td>
                                 <td align="right">{{ number_format($sum_paid,2) }}</td>
@@ -266,7 +266,7 @@
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title text-primary" id="detailModalTitle">รายละเอียดรายตัว</h5>
+                    <h5 class="modal-title text-primary" id="detailModalTitle">เธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”เธฃเธฒเธขเธ•เธฑเธง</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -277,14 +277,14 @@
                                 <th id="th-anvn" class="text-center"></th>
                                 <th class="text-center">HN</th>
                                 <th id="th-stat" class="text-end"></th>
-                                <th class="text-end">opitemrece [ใบสั่งยา]</th>
+                                <th class="text-end">opitemrece [เนเธเธชเธฑเนเธเธขเธฒ]</th>
                                 <th class="text-end">Diff</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
                                 <td colspan="6" class="text-center text-muted">
-                                    กำลังโหลดข้อมูล...
+                                    เธเธณเธฅเธฑเธเนเธซเธฅเธ”เธเนเธญเธกเธนเธฅ...
                                 </td>
                             </tr>
                         </tbody>
@@ -301,40 +301,40 @@
     let detailDT = null;
     let currentType = null;
     document.addEventListener("DOMContentLoaded", function () {
-        // จำ type ตอนกดปุ่ม
+        // เธเธณ type เธ•เธญเธเธเธ”เธเธธเนเธก
         document.querySelectorAll('.btn-detail').forEach(btn => {
             btn.addEventListener('click', function () {
                 currentType = this.dataset.type; // opd | ipd
             });
         });
-        // เมื่อ modal แสดงเสร็จแล้ว
+        // เน€เธกเธทเนเธญ modal เนเธชเธ”เธเน€เธชเธฃเนเธเนเธฅเนเธง
         $('#detailModal').on('shown.bs.modal', function () {
-            // ตั้งหัวตาราง
+            // เธ•เธฑเนเธเธซเธฑเธงเธ•เธฒเธฃเธฒเธ
             if (currentType === 'opd') {
-                $('#detailModalTitle').text('รายละเอียดรายตัว (OPD)');
-                $('#th-date').text('วันที่รับบริการ');
+                $('#detailModalTitle').text('เธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”เธฃเธฒเธขเธ•เธฑเธง (OPD)');
+                $('#th-date').text('เธงเธฑเธเธ—เธตเนเธฃเธฑเธเธเธฃเธดเธเธฒเธฃ');
                 $('#th-anvn').text('VN');
-                $('#th-stat').text('vn_stat [สรุป]');
+                $('#th-stat').text('vn_stat [เธชเธฃเธธเธ]');
             } else {
-                $('#detailModalTitle').text('รายละเอียดรายตัว (IPD)');
-                $('#th-date').text('วันที่จำหน่าย');
+                $('#detailModalTitle').text('เธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”เธฃเธฒเธขเธ•เธฑเธง (IPD)');
+                $('#th-date').text('เธงเธฑเธเธ—เธตเนเธเธณเธซเธเนเธฒเธข');
                 $('#th-anvn').text('AN');
-                $('#th-stat').text('an_stat [สรุป]');
+                $('#th-stat').text('an_stat [เธชเธฃเธธเธ]');
             }
-            // ถ้ามี DataTable เดิม → destroy
+            // เธ–เนเธฒเธกเธต DataTable เน€เธ”เธดเธก โ’ destroy
             if (detailDT) {
                 detailDT.destroy();
                 detailDT = null;
             }
             let tbody = $('#detailTable tbody');
-            tbody.html('<tr><td colspan="6" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>');
+            tbody.html('<tr><td colspan="6" class="text-center text-muted">เธเธณเธฅเธฑเธเนเธซเธฅเธ”เธเนเธญเธกเธนเธฅ...</td></tr>');
 
             fetch("{{ url('debtor/check_income_detail') }}?type=" + currentType)
                 .then(res => res.json())
                 .then(data => {
                     tbody.empty();
                     if (!data.length) {
-                        tbody.html('<tr><td colspan="6" class="text-center text-muted">ไม่พบข้อมูล</td></tr>');
+                        tbody.html('<tr><td colspan="6" class="text-center text-muted">เนเธกเนเธเธเธเนเธญเธกเธนเธฅ</td></tr>');
                         return;
                     }
                     data.forEach(row => {
@@ -349,7 +349,7 @@
                             </tr>
                         `);
                     });
-                    // init DataTable หลัง data มาแล้ว
+                    // init DataTable เธซเธฅเธฑเธ data เธกเธฒเนเธฅเนเธง
                     detailDT = $('#detailTable').DataTable({
                         paging: true,
                         searching: true,
@@ -360,7 +360,7 @@
                     });
                 });
         });
-        // ปิด modal → destroy
+        // เธเธดเธ” modal โ’ destroy
         $('#detailModal').on('hidden.bs.modal', function () {
             if (detailDT) {
                 detailDT.destroy();

@@ -1,4 +1,4 @@
-<html>
+﻿<html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
         <style>
@@ -92,7 +92,7 @@
                 padding-right:10px; */
                 }                     
                 table{
-                    border-collapse: collapse;  //กรอบด้านในหายไป
+                    border-collapse: collapse;  //เธเธฃเธญเธเธ”เนเธฒเธเนเธเธซเธฒเธขเนเธ
                 }
                 table.one{
                 border: 1px solid rgb(5, 5, 5);
@@ -147,42 +147,42 @@
             <div>
                 <strong>
                     <p align=center>
-                        แบบรายงานบัญชีลูกหนี้ค่ารักษาพยาบาลแยกตามวันที่รับบริการ<br>
-                        หน่วยบริการ: {{$hospital_name}} ({{$hospital_code}}) <br>
-                        รหัสผังบัญชี 1102050101.310-ลูกหนี้ค่ารักษา ประกันสังคม ค่าใช้จ่ายสูง IP<br>
-                        วันที่ {{dateThaifromFull($start_date)}} ถึง {{dateThaifromFull($end_date)}} <br>
+                        เนเธเธเธฃเธฒเธขเธเธฒเธเธเธฑเธเธเธตเธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒเธเธขเธฒเธเธฒเธฅเนเธขเธเธ•เธฒเธกเธงเธฑเธเธ—เธตเนเธฃเธฑเธเธเธฃเธดเธเธฒเธฃ<br>
+                        เธซเธเนเธงเธขเธเธฃเธดเธเธฒเธฃ: {{$hospital_name}} ({{$hospital_code}}) <br>
+                        เธฃเธซเธฑเธชเธเธฑเธเธเธฑเธเธเธต 1102050101.310-เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธฐเธเธฑเธเธชเธฑเธเธเธก เธเนเธฒเนเธเนเธเนเธฒเธขเธชเธนเธ IP<br>
+                        เธงเธฑเธเธ—เธตเน {{dateThaifromFull($start_date)}} เธ–เธถเธ {{dateThaifromFull($end_date)}} <br>
                     </p>
                 </strong>
             </div>
         </header>
 
         <footer> 
-        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>ผู้จัดทำรายงาน</strong>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>เธเธนเนเธเธฑเธ”เธ—เธณเธฃเธฒเธขเธเธฒเธ</strong>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>รับรองข้อมูลถูกต้อง</strong>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>เธฃเธฑเธเธฃเธญเธเธเนเธญเธกเธนเธฅเธ–เธนเธเธ•เนเธญเธ</strong>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>ผู้บันทึกบัญชี</strong><br><br><br>
-            ลงชื่อ....................................ผู้จัดทำรายงาน&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            ลงชื่อ....................................ผู้ตรวจสอบ&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            ลงชื่อ....................................ผู้บันทึกบัญชี<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>เธเธนเนเธเธฑเธเธ—เธถเธเธเธฑเธเธเธต</strong><br><br><br>
+            เธฅเธเธเธทเนเธญ....................................เธเธนเนเธเธฑเธ”เธ—เธณเธฃเธฒเธขเธเธฒเธ&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            เธฅเธเธเธทเนเธญ....................................เธเธนเนเธ•เธฃเธงเธเธชเธญเธ&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            เธฅเธเธเธทเนเธญ....................................เธเธนเนเธเธฑเธเธ—เธถเธเธเธฑเธเธเธต<br>
             (...................................................)
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             (...................................................)
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            
             (...................................................)<br>
-            ตำแหน่ง.......................................................
+            เธ•เธณเนเธซเธเนเธ.......................................................
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            ตำแหน่ง..................................................
+            เธ•เธณเนเธซเธเนเธ..................................................
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            ตำแหน่ง....................................................<br>
-            วันที่รายงาน.................................................
+            เธ•เธณเนเธซเธเนเธ....................................................<br>
+            เธงเธฑเธเธ—เธตเนเธฃเธฒเธขเธเธฒเธ.................................................
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            วันที่ตรวจสอบ........................................
+            เธงเธฑเธเธ—เธตเนเธ•เธฃเธงเธเธชเธญเธ........................................
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            วันที่บันทึกบัญชี........................................
+            เธงเธฑเธเธ—เธตเนเธเธฑเธเธ—เธถเธเธเธฑเธเธเธต........................................
         </footer>
 
         <main>
@@ -191,12 +191,12 @@
                     <table width="100%" >
                         <thead>
                         <tr>
-                            <td align="center" width="10%"><strong>ลำดับ</strong></td>
-                            <td align="center" width="20%"><strong>วันที่</strong></td>                   
-                            <td align="center" width="10%"><strong>จำนวน</strong></td>
-                            <td align="center" width="20%"><strong>ลูกหนี้</strong></td>
-                            <td align="center" width="20%"><strong>ชดเชย</strong></td>
-                            <td align="center" width="20%"><strong>ผลต่าง</strong></td>
+                            <td align="center" width="10%"><strong>เธฅเธณเธ”เธฑเธ</strong></td>
+                            <td align="center" width="20%"><strong>เธงเธฑเธเธ—เธตเน</strong></td>                   
+                            <td align="center" width="10%"><strong>เธเธณเธเธงเธ</strong></td>
+                            <td align="center" width="20%"><strong>เธฅเธนเธเธซเธเธตเน</strong></td>
+                            <td align="center" width="20%"><strong>เธเธ”เน€เธเธข</strong></td>
+                            <td align="center" width="20%"><strong>เธเธฅเธ•เนเธฒเธ</strong></td>
                         </tr>     
                         </thead> 
                         <?php $count = 1 ; ?>
@@ -218,7 +218,7 @@
                         <?php $sum_receive += $row->receive ; ?>
                         @endforeach   
                         <tr>
-                            <td align="right" colspan = "2"><strong>รวม &nbsp;</strong><br></td>   
+                            <td align="right" colspan = "2"><strong>เธฃเธงเธก &nbsp;</strong><br></td>   
                             <td align="center"><strong>{{number_format($sum_anvn)}}</strong></td>
                             <td align="right"><strong>{{number_format($sum_debtor,2)}}&nbsp;</strong></td>
                             <td align="right"><strong>{{number_format($sum_receive,2)}}&nbsp;</strong></td> 

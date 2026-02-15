@@ -3,6 +3,8 @@ $files = "ลูกหนี้รายตัวผังบัญชี-110205
 header("Content-Type: application/vnd.ms-excel");
 header("Content-Disposition: attachment; filename=".$files); //ชื่อไฟล์
 ?>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+
  
  
 <div>        
@@ -46,12 +48,19 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
             </tr>     
             </thead> 
             <?php $count = 1 ; ?>
+
             <?php $sum_income = 0 ; ?>
+
             <?php $sum_rcpt_money = 0 ; ?>
+
             <?php $sum_other = 0 ; ?>
+
             <?php $sum_debtor = 0 ; ?>
+
             <?php $sum_receive_ip_compensate_pay = 0 ; ?>
+
             <?php $sum_receive_total = 0 ; ?>
+
             @foreach($debtor as $row)          
             <tr>
                 <td align="center">{{ $count }}</td>
@@ -96,12 +105,19 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 </td> 
             </tr>                
             <?php $count++; ?>
+
             <?php $sum_income += $row->income ; ?>
+
             <?php $sum_rcpt_money += $row->rcpt_money ; ?>
+
             <?php $sum_other += $row->other ; ?>
-            <?php $sum_debtor += $row->debtor ; ?> 
-            <?php $sum_receive_ip_compensate_pay += $row->receive_ip_compensate_pay ; ?>      
-            <?php $sum_receive_total += $row->receive_total ; ?>      
+
+            <?php $sum_debtor += $row->debtor ; ?>
+ 
+            <?php $sum_receive_ip_compensate_pay += $row->receive_ip_compensate_pay ; ?>
+      
+            <?php $sum_receive_total += $row->receive_total ; ?>
+      
             @endforeach   
             <tr>
                 <td align="right" colspan = "10"><strong>รวมค่ารักษาพยาบาลทั้งสิ้น &nbsp;</strong><br></td> 

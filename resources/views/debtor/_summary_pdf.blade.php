@@ -1,4 +1,4 @@
-<html>
+﻿<html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
         <style>
@@ -92,7 +92,7 @@
                 padding-right:10px; */
                 }                     
                 table{
-                    border-collapse: collapse;  //กรอบด้านในหายไป
+                    border-collapse: collapse;  //เธเธฃเธญเธเธ”เนเธฒเธเนเธเธซเธฒเธขเนเธ
                 }
                 table.one{
                 border: 1px solid rgb(5, 5, 5);
@@ -147,9 +147,9 @@
             <div>
                 <strong>
                     <p align=center>
-                        แบบรายงานสรุปบัญชีลูกหนี้ค่ารักษาพยาบาลแยกตามผังบัญชี<br>
-                        หน่วยบริการ: {{$hospital_name}} ({{$hospital_code}}) <br>                   
-                        วันที่ {{dateThaifromFull($start_date)}} ถึง {{dateThaifromFull($end_date)}} <br>
+                        เนเธเธเธฃเธฒเธขเธเธฒเธเธชเธฃเธธเธเธเธฑเธเธเธตเธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒเธเธขเธฒเธเธฒเธฅเนเธขเธเธ•เธฒเธกเธเธฑเธเธเธฑเธเธเธต<br>
+                        เธซเธเนเธงเธขเธเธฃเธดเธเธฒเธฃ: {{$hospital_name}} ({{$hospital_code}}) <br>                   
+                        เธงเธฑเธเธ—เธตเน {{dateThaifromFull($start_date)}} เธ–เธถเธ {{dateThaifromFull($end_date)}} <br>
                     </p>
                 </strong>
             </div>
@@ -157,22 +157,22 @@
 
         <footer> 
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>ผู้จัดทำรายงาน</strong>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>เธเธนเนเธเธฑเธ”เธ—เธณเธฃเธฒเธขเธเธฒเธ</strong>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>รับรองข้อมูลถูกต้อง</strong>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>เธฃเธฑเธเธฃเธญเธเธเนเธญเธกเธนเธฅเธ–เธนเธเธ•เนเธญเธ</strong>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>ผู้บันทึกบัญชี</strong><br><br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ลงชื่อ....................................ผู้จัดทำรายงาน
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>เธเธนเนเธเธฑเธเธ—เธถเธเธเธฑเธเธเธต</strong><br><br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;เธฅเธเธเธทเนเธญ....................................เธเธนเนเธเธฑเธ”เธ—เธณเธฃเธฒเธขเธเธฒเธ
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            ลงชื่อ....................................ผู้ตรวจสอบ&nbsp;&nbsp;&nbsp;
+            เธฅเธเธเธทเนเธญ....................................เธเธนเนเธ•เธฃเธงเธเธชเธญเธ&nbsp;&nbsp;&nbsp;
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            ลงชื่อ....................................ผู้บันทึกบัญชี<br>
+            เธฅเธเธเธทเนเธญ....................................เธเธนเนเธเธฑเธเธ—เธถเธเธเธฑเธเธเธต<br>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(...................................................)
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -182,24 +182,24 @@
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;   
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             (...................................................)<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ตำแหน่ง.........................................................
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;เธ•เธณเนเธซเธเนเธ.........................................................
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            ตำแหน่ง....................................................
+            เธ•เธณเนเธซเธเนเธ....................................................
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            ตำแหน่ง....................................................<br>
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;วันที่รายงาน..................................................
+            เธ•เธณเนเธซเธเนเธ....................................................<br>
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;เธงเธฑเธเธ—เธตเนเธฃเธฒเธขเธเธฒเธ..................................................
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            วันที่ตรวจสอบ...........................................
+            เธงเธฑเธเธ—เธตเนเธ•เธฃเธงเธเธชเธญเธ...........................................
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            วันที่บันทึกบัญชี........................................
+            เธงเธฑเธเธ—เธตเนเธเธฑเธเธ—เธถเธเธเธฑเธเธเธต........................................
         </footer>
 
         <main>
@@ -208,13 +208,13 @@
                     <table width="100%" >
                         <thead>
                         <tr>
-                            <td align="center" width="5%"><strong>ลำดับ</strong></td>
-                            <td align="center" width="5%"><strong>รหัสผังบัญชี</strong></td>                   
-                            <td align="center" width="35%"><strong>ชื่อผังบัญชี</strong></td>
-                            <td align="center" width="10%"><strong>จำนวน</strong></td>
-                            <td align="center" width="15%"><strong>ลูกหนี้</strong></td>
-                            <td align="center" width="15%"><strong>ชดเชย</strong></td>
-                            <td align="center" width="15%"><strong>ผลต่าง</strong></td>
+                            <td align="center" width="5%"><strong>เธฅเธณเธ”เธฑเธ</strong></td>
+                            <td align="center" width="5%"><strong>เธฃเธซเธฑเธชเธเธฑเธเธเธฑเธเธเธต</strong></td>                   
+                            <td align="center" width="35%"><strong>เธเธทเนเธญเธเธฑเธเธเธฑเธเธเธต</strong></td>
+                            <td align="center" width="10%"><strong>เธเธณเธเธงเธ</strong></td>
+                            <td align="center" width="15%"><strong>เธฅเธนเธเธซเธเธตเน</strong></td>
+                            <td align="center" width="15%"><strong>เธเธ”เน€เธเธข</strong></td>
+                            <td align="center" width="15%"><strong>เธเธฅเธ•เนเธฒเธ</strong></td>
                         </tr>     
                         </thead>     
                         <tr>            
@@ -223,7 +223,7 @@
                             @foreach($_1102050101_103 as $row)
                             <td align="center">1</td>
                             <td align="right">1102050101.103</td>
-                            <td class="text-left">ลูกหนี้ค่าตรวจสุขภาพ หน่วยงานภาครัฐ</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธ•เธฃเธงเธเธชเธธเธเธ เธฒเธ เธซเธเนเธงเธขเธเธฒเธเธ เธฒเธเธฃเธฑเธ</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -239,7 +239,7 @@
                             @foreach($_1102050101_109 as $row)
                             <td align="center">2</td>
                             <td align="right">1102050101.109</td>
-                            <td class="text-left">ลูกหนี้-ระบบปฏิบัติการฉุกเฉิน</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเน-เธฃเธฐเธเธเธเธเธดเธเธฑเธ•เธดเธเธฒเธฃเธเธธเธเน€เธเธดเธ</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -255,7 +255,7 @@
                             @foreach($_1102050101_201 as $row)
                             <td align="center">3</td>
                             <td align="right">1102050101.201</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา UC-OP ใน CUP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ UC-OP เนเธ CUP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -271,7 +271,7 @@
                             @foreach($_1102050101_203 as $row)
                             <td align="center">4</td>
                             <td align="right">1102050101.203</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา UC-OP นอก CUP (ในจังหวัดสังกัด สธ.)</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ UC-OP เธเธญเธ CUP (เนเธเธเธฑเธเธซเธงเธฑเธ”เธชเธฑเธเธเธฑเธ” เธชเธ.)</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -287,7 +287,7 @@
                             @foreach($_1102050101_209 as $row)
                             <td align="center">5</td>
                             <td align="right">1102050101.209</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา ด้านการสร้างเสริมสุขภาพและป้องกันโรค (P&P)</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธ”เนเธฒเธเธเธฒเธฃเธชเธฃเนเธฒเธเน€เธชเธฃเธดเธกเธชเธธเธเธ เธฒเธเนเธฅเธฐเธเนเธญเธเธเธฑเธเนเธฃเธ (P&P)</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -303,7 +303,7 @@
                             @foreach($_1102050101_216 as $row)
                             <td align="center">6</td>
                             <td align="right">1102050101.216</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR)</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ UC-OP เธเธฃเธดเธเธฒเธฃเน€เธเธเธฒเธฐ (CR)</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -319,7 +319,7 @@
                             @foreach($_1102050101_301 as $row)
                             <td align="center">7</td>
                             <td align="right">1102050101.301</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม OP-เครือข่าย</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธฐเธเธฑเธเธชเธฑเธเธเธก OP-เน€เธเธฃเธทเธญเธเนเธฒเธข</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -335,7 +335,7 @@
                             @foreach($_1102050101_303 as $row)
                             <td align="center">8</td>
                             <td align="right">1102050101.303</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม OP-นอกเครือข่าย สังกัด สป.สธ.</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธฐเธเธฑเธเธชเธฑเธเธเธก OP-เธเธญเธเน€เธเธฃเธทเธญเธเนเธฒเธข เธชเธฑเธเธเธฑเธ” เธชเธ.เธชเธ.</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -351,7 +351,7 @@
                             @foreach($_1102050101_307 as $row)
                             <td align="center">9</td>
                             <td align="right">1102050101.307</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม-กองทุนทดแทน</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธฐเธเธฑเธเธชเธฑเธเธเธก-เธเธญเธเธ—เธธเธเธ—เธ”เนเธ—เธ</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -367,7 +367,7 @@
                             @foreach($_1102050101_309 as $row)
                             <td align="center">10</td>
                             <td align="right">1102050101.309</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม-ค่าใช้จ่ายสูง/อุบัติเหตุ/ฉุกเฉิน OP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธฐเธเธฑเธเธชเธฑเธเธเธก-เธเนเธฒเนเธเนเธเนเธฒเธขเธชเธนเธ/เธญเธธเธเธฑเธ•เธดเน€เธซเธ•เธธ/เธเธธเธเน€เธเธดเธ OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -383,7 +383,7 @@
                             @foreach($_1102050101_401 as $row)
                             <td align="center">11</td>
                             <td align="right">1102050101.401</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรงกรมบัญชีกลาง OP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เน€เธเธดเธเธเนเธฒเธขเธ•เธฃเธเธเธฃเธกเธเธฑเธเธเธตเธเธฅเธฒเธ OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -399,7 +399,7 @@
                             @foreach($_1102050101_501 as $row)
                             <td align="center">12</td>
                             <td align="right">1102050101.501</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธเธ•เนเธฒเธเธ”เนเธฒเธงเนเธฅเธฐเนเธฃเธเธเธฒเธเธ•เนเธฒเธเธ”เนเธฒเธง OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -415,7 +415,7 @@
                             @foreach($_1102050101_503 as $row)
                             <td align="center">13</td>
                             <td align="right">1102050101.503</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP นอก CUP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธเธ•เนเธฒเธเธ”เนเธฒเธงเนเธฅเธฐเนเธฃเธเธเธฒเธเธ•เนเธฒเธเธ”เนเธฒเธง OP เธเธญเธ CUP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -431,7 +431,7 @@
                             @foreach($_1102050101_701 as $row)
                             <td align="center">14</td>
                             <td align="right">1102050101.701</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP ใน CUP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธธเธเธเธฅเธ—เธตเนเธกเธตเธเธฑเธเธซเธฒเธชเธ–เธฒเธเธฐเนเธฅเธฐเธชเธดเธ—เธเธด OP เนเธ CUP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -447,7 +447,7 @@
                             @foreach($_1102050101_702 as $row)
                             <td align="center">15</td>
                             <td align="right">1102050101.702</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP นอก CUP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธธเธเธเธฅเธ—เธตเนเธกเธตเธเธฑเธเธซเธฒเธชเธ–เธฒเธเธฐเนเธฅเธฐเธชเธดเธ—เธเธด OP เธเธญเธ CUP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -463,7 +463,7 @@
                             @foreach($_1102050101_703 as $row)
                             <td align="center">16</td>
                             <td align="right">1102050101.703</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ เบิกจากส่วนกลาง OP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธธเธเธเธฅเธ—เธตเนเธกเธตเธเธฑเธเธซเธฒเธชเธ–เธฒเธเธฐเนเธฅเธฐเธชเธดเธ—เธเธด เน€เธเธดเธเธเธฒเธเธชเนเธงเธเธเธฅเธฒเธ OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -479,7 +479,7 @@
                             @foreach($_1102050102_106 as $row)
                             <td align="center">17</td>
                             <td align="right">1102050102.106</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา ชําระเงิน OP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเนเธฒเธฃเธฐเน€เธเธดเธ OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -495,7 +495,7 @@
                             @foreach($_1102050102_108 as $row)
                             <td align="center">18</td>
                             <td align="right">1102050102.108</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา เบิกต้นสังกัด OP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เน€เธเธดเธเธ•เนเธเธชเธฑเธเธเธฑเธ” OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -511,7 +511,7 @@
                             @foreach($_1102050102_110 as $row)
                             <td align="center">19</td>
                             <td align="right">1102050102.110</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น OP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เน€เธเธดเธเธเนเธฒเธขเธ•เธฃเธเธซเธเนเธงเธขเธเธฒเธเธญเธทเนเธ OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -527,7 +527,7 @@
                             @foreach($_1102050102_602 as $row)
                             <td align="center">20</td>
                             <td align="right">1102050102.602</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา พรบ.รถ OP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธ.เธฃเธ– OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -543,7 +543,7 @@
                             @foreach($_1102050102_801 as $row)
                             <td align="center">21</td>
                             <td align="right">1102050102.801</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.OP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เน€เธเธดเธเธเนเธฒเธขเธ•เธฃเธ เธญเธเธ—.OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -559,7 +559,7 @@
                             @foreach($_1102050102_803 as $row)
                             <td align="center">22</td>
                             <td align="right">1102050102.803</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ OP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เน€เธเธดเธเธเนเธฒเธขเธ•เธฃเธ เธญเธเธ—.เธฃเธนเธเนเธเธเธเธดเน€เธจเธฉ OP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -575,7 +575,7 @@
                             @foreach($_1102050101_202 as $row)
                             <td align="center">23</td>
                             <td align="right">1102050101.202</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา UC-IP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ UC-IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -591,7 +591,7 @@
                             @foreach($_1102050101_217 as $row)
                             <td align="center">24</td>
                             <td align="right">1102050101.217</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา UC-IP บริการเฉพาะ (CR)</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ UC-IP เธเธฃเธดเธเธฒเธฃเน€เธเธเธฒเธฐ (CR)</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -607,7 +607,7 @@
                             @foreach($_1102050101_302 as $row)
                             <td align="center">25</td>
                             <td align="right">1102050101.302</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม IP เครือข่าย</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธฐเธเธฑเธเธชเธฑเธเธเธก IP เน€เธเธฃเธทเธญเธเนเธฒเธข</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -623,7 +623,7 @@
                             @foreach($_1102050101_304 as $row)
                             <td align="center">26</td>
                             <td align="right">1102050101.304</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม IP นอกเครือข่าย สังกัด สป.สธ.</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธฐเธเธฑเธเธชเธฑเธเธเธก IP เธเธญเธเน€เธเธฃเธทเธญเธเนเธฒเธข เธชเธฑเธเธเธฑเธ” เธชเธ.เธชเธ.</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -639,7 +639,7 @@
                             @foreach($_1102050101_308 as $row)
                             <td align="center">27</td>
                             <td align="right">1102050101.308</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม 72 ชั่วโมงแรก</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธฐเธเธฑเธเธชเธฑเธเธเธก 72 เธเธฑเนเธงเนเธกเธเนเธฃเธ</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -655,7 +655,7 @@
                             @foreach($_1102050101_310 as $row)
                             <td align="center">28</td>
                             <td align="right">1102050101.310</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม ค่าใช้จ่ายสูง IP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธฐเธเธฑเธเธชเธฑเธเธเธก เธเนเธฒเนเธเนเธเนเธฒเธขเธชเธนเธ IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -671,7 +671,7 @@
                             @foreach($_1102050101_402 as $row)
                             <td align="center">29</td>
                             <td align="right">1102050101.402</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา-เบิกจ่ายตรง กรมบัญชีกลาง IP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ-เน€เธเธดเธเธเนเธฒเธขเธ•เธฃเธ เธเธฃเธกเธเธฑเธเธเธตเธเธฅเธฒเธ IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -687,7 +687,7 @@
                             @foreach($_1102050101_502 as $row)
                             <td align="center">30</td>
                             <td align="right">1102050101.502</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธเธ•เนเธฒเธเธ”เนเธฒเธงเนเธฅเธฐเนเธฃเธเธเธฒเธเธ•เนเธฒเธเธ”เนเธฒเธง IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -703,7 +703,7 @@
                             @foreach($_1102050101_504 as $row)
                             <td align="center">31</td>
                             <td align="right">1102050101.504</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP นอก CUP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธเธ•เนเธฒเธเธ”เนเธฒเธงเนเธฅเธฐเนเธฃเธเธเธฒเธเธ•เนเธฒเธเธ”เนเธฒเธง IP เธเธญเธ CUP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -719,7 +719,7 @@
                             @foreach($_1102050101_704 as $row)
                             <td align="center">32</td>
                             <td align="right">1102050101.704</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ เบิกจากส่วนกลาง IP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธธเธเธเธฅเธ—เธตเนเธกเธตเธเธฑเธเธซเธฒเธชเธ–เธฒเธเธฐเนเธฅเธฐเธชเธดเธ—เธเธด เน€เธเธดเธเธเธฒเธเธชเนเธงเธเธเธฅเธฒเธ IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -735,7 +735,7 @@
                             @foreach($_1102050102_107 as $row)
                             <td align="center">33</td>
                             <td align="right">1102050102.107</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา ชําระเงิน IP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเนเธฒเธฃเธฐเน€เธเธดเธ IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -751,7 +751,7 @@
                             @foreach($_1102050102_109 as $row)
                             <td align="center">34</td>
                             <td align="right">1102050102.109</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา เบิกต้นสังกัด IP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เน€เธเธดเธเธ•เนเธเธชเธฑเธเธเธฑเธ” IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -767,7 +767,7 @@
                             @foreach($_1102050102_111 as $row)
                             <td align="center">35</td>
                             <td align="right">1102050102.111</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น IP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เน€เธเธดเธเธเนเธฒเธขเธ•เธฃเธเธซเธเนเธงเธขเธเธฒเธเธญเธทเนเธ IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -783,7 +783,7 @@
                             @foreach($_1102050102_603 as $row)
                             <td align="center">36</td>
                             <td align="right">1102050102.603</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา พรบ.รถ IP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธ.เธฃเธ– IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -799,7 +799,7 @@
                             @foreach($_1102050102_802 as $row)
                             <td align="center">37</td>
                             <td align="right">1102050102.802</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.IP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เน€เธเธดเธเธเนเธฒเธขเธ•เธฃเธ เธญเธเธ—.IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -815,7 +815,7 @@
                             @foreach($_1102050102_804 as $row)
                             <td align="center">38</td>
                             <td align="right">1102050102.804</td>
-                            <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ IP</td>
+                            <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เน€เธเธดเธเธเนเธฒเธขเธ•เธฃเธ เธญเธเธ—.เธฃเธนเธเนเธเธเธเธดเน€เธจเธฉ IP</td>
                             <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                             <td align="right">{{number_format($row->debtor,2)}}&nbsp;</td>
                             <td align="right">{{number_format($row->receive,2)}}&nbsp;</td> 
@@ -826,7 +826,7 @@
                             @endforeach     
                         </tr>
                         <tr> 
-                            <td align="right" colspan = "4"><strong>รวมลูกหนี้ค่ารักษาพยาบาลผู้ป่วยนอก OPD &nbsp;</strong><br></td>   
+                            <td align="right" colspan = "4"><strong>เธฃเธงเธกเธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒเธเธขเธฒเธเธฒเธฅเธเธนเนเธเนเธงเธขเธเธญเธ OPD &nbsp;</strong><br></td>   
                             <td align="right" class="text-primary"><strong>{{number_format($sum_1102050101_103_debtor+$sum_1102050101_109_debtor+$sum_1102050101_201_debtor
                                 +$sum_1102050101_203_debtor+$sum_1102050101_209_debtor+$sum_1102050101_216_debtor+$sum_1102050101_301_debtor+$sum_1102050101_303_debtor
                                 +$sum_1102050101_307_debtor+$sum_1102050101_309_debtor+$sum_1102050101_401_debtor+$sum_1102050101_501_debtor+$sum_1102050101_503_debtor
@@ -852,7 +852,7 @@
                             </td>                       
                         </tr>   
                         <tr> 
-                            <td align="right" colspan = "4"><strong>รวมลูกหนี้ค่ารักษาพยาบาลผู้ป่วยใน IPD &nbsp;</strong><br></td>   
+                            <td align="right" colspan = "4"><strong>เธฃเธงเธกเธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒเธเธขเธฒเธเธฒเธฅเธเธนเนเธเนเธงเธขเนเธ IPD &nbsp;</strong><br></td>   
                             <td align="right" class="text-primary"><strong>{{number_format($sum_1102050101_202_debtor+$sum_1102050101_217_debtor
                                 +$sum_1102050101_302_debtor+$sum_1102050101_304_debtor+$sum_1102050101_308_debtor+$sum_1102050101_310_debtor
                                 +$sum_1102050101_402_debtor+$sum_1102050101_502_debtor+$sum_1102050101_504_debtor+$sum_1102050101_704_debtor
@@ -882,7 +882,7 @@
                             </td>
                         </tr>
                         <tr> 
-                            <td align="right" colspan = "4"><strong>รวมลูกหนี้ค่ารักษาพยาบาลทั้งหมด &nbsp;</strong><br></td>   
+                            <td align="right" colspan = "4"><strong>เธฃเธงเธกเธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒเธเธขเธฒเธเธฒเธฅเธ—เธฑเนเธเธซเธกเธ” &nbsp;</strong><br></td>   
                             <td align="right" class="text-primary"><strong>{{number_format($sum_1102050101_103_debtor+$sum_1102050101_109_debtor+$sum_1102050101_201_debtor
                                 +$sum_1102050101_203_debtor+$sum_1102050101_209_debtor+$sum_1102050101_216_debtor+$sum_1102050101_301_debtor+$sum_1102050101_303_debtor
                                 +$sum_1102050101_307_debtor+$sum_1102050101_309_debtor+$sum_1102050101_401_debtor+$sum_1102050101_501_debtor+$sum_1102050101_503_debtor

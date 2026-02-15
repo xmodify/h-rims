@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('content')
     <!-- Page Header & Logic Filters -->
@@ -6,7 +6,7 @@
         <div>
             <h4 class="text-primary mb-0 fw-bold">
                 <i class="bi bi-file-earmark-spreadsheet-fill me-2"></i>
-                เธชเธฃเธธเธเธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒเธเธขเธฒเธเธฒเธฅ
+                สรุปลูกหนี้ค่ารักษาพยาบาล
             </h4>
         </div>
         
@@ -15,13 +15,13 @@
             <div class="filter-group">
                 <form method="POST" enctype="multipart/form-data" class="m-0 d-flex align-items-center">
                     @csrf
-                    <span class="fw-bold text-muted small text-nowrap me-2">เน€เธฅเธทเธญเธเธเนเธงเธเธงเธฑเธเธ—เธตเน</span>
+                    <span class="fw-bold text-muted small text-nowrap me-2">เลือกช่วงวันที่</span>
                     <div class="input-group input-group-sm">
                         <input type="date" name="start_date" class="form-control" value="{{ $start_date }}" style="width: 130px;">
-                        <span class="input-group-text bg-white border-start-0 border-end-0">เธ–เธถเธ</span>
+                        <span class="input-group-text bg-white border-start-0 border-end-0">ถึง</span>
                         <input type="date" name="end_date" class="form-control" value="{{ $end_date }}" style="width: 130px;">
                         <button type="submit" class="btn btn-primary px-3 shadow-sm">
-                            <i class="bi bi-search me-1"></i> เธเนเธเธซเธฒ
+                            <i class="bi bi-search me-1"></i> ค้นหา
                         </button>
                     </div>
                 </form>
@@ -34,7 +34,7 @@
         <div class="card-header bg-transparent border-0 pt-3 px-4 pb-0">
             <h6 class="fw-bold text-dark mb-0">
                 <i class="bi bi-calendar-check-fill text-primary me-2"></i>
-                เธเนเธญเธกเธนเธฅเธงเธฑเธเธ—เธตเน {{ DateThai($start_date) }} เธ–เธถเธ {{ DateThai($end_date) }}
+                ข้อมูลวันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}
             </h6>
         </div>
         <div class="card-body px-4 pb-4 pt-3">
@@ -42,16 +42,16 @@
                 <table id="debtor" class="table table-hover table-modern align-middle mb-0">
                     <thead>  
                     <tr class="table-secondary">
-                        <th class="text-center">เธฅเธณเธ”เธฑเธ</th>
-                        <th class="text-center">เธฃเธซเธฑเธชเธเธฑเธเธเธฑเธเธเธต</th>
-                        <th class="text-center">เธเธทเนเธญเธเธฑเธเธเธฑเธเธเธต</th>
-                        <th class="text-center">เธเธณเธเธงเธ</th>
-                        <th class="text-center">เธฅเธนเธเธซเธเธตเน</th> 
-                        <th class="text-center">เธเธ”เน€เธเธข</th>
-                        <th class="text-center">เธเธฅเธ•เนเธฒเธ</th>
+                        <th class="text-center">ลำดับ</th>
+                        <th class="text-center">รหัสผังบัญชี</th>
+                        <th class="text-center">ชื่อผังบัญชี</th>
+                        <th class="text-center">จำนวน</th>
+                        <th class="text-center">ลูกหนี้</th> 
+                        <th class="text-center">ชดเชย</th>
+                        <th class="text-center">ผลต่าง</th>
                         <th class="text-center">
                             <a class="btn btn-danger btn-sm shadow-sm" href="{{ url('debtor/summary_pdf')}}" target="_blank">
-                                <i class="bi bi-file-pdf me-1"></i> เธเธดเธกเธเนเธชเธฃเธธเธ
+                                <i class="bi bi-file-pdf me-1"></i> พิมพ์สรุป
                             </a>
                         </th>
                     </tr>
@@ -59,7 +59,7 @@
                     <tbody>
                     <tr>
                         <th class="text-success bg-light" colspan = "8">
-                            <i class="bi bi-person-fill me-2"></i>เธเธนเนเธเนเธงเธขเธเธญเธ
+                            <i class="bi bi-person-fill me-2"></i>ผู้ป่วยนอก
                         </th>        
                     </tr>
                     <tr>            
@@ -68,7 +68,7 @@
                         @foreach($_1102050101_103 as $row)
                         <td align="center">1</td>
                         <td align="right">1102050101.103</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธ•เธฃเธงเธเธชเธธเธเธ เธฒเธ เธซเธเนเธงเธขเธเธฒเธเธ เธฒเธเธฃเธฑเธ</td>
+                        <td class="text-left">ลูกหนี้ค่าตรวจสุขภาพ หน่วยงานภาครัฐ</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -80,7 +80,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_103_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_103_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>  
                         <?php $sum_1102050101_103_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_103_receive += $row->receive ; ?>
@@ -92,7 +92,7 @@
                         @foreach($_1102050101_109 as $row)
                         <td align="center">2</td>
                         <td align="right">1102050101.109</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเน-เธฃเธฐเธเธเธเธเธดเธเธฑเธ•เธดเธเธฒเธฃเธเธธเธเน€เธเธดเธ</td>
+                        <td class="text-left">ลูกหนี้-ระบบปฏิบัติการฉุกเฉิน</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -104,7 +104,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_109_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_109_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>   
                         <?php $sum_1102050101_109_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_109_receive += $row->receive ; ?>
@@ -116,7 +116,7 @@
                         @foreach($_1102050101_201 as $row)
                         <td align="center">3</td>
                         <td align="right">1102050101.201</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ UC-OP เนเธ CUP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา UC-OP ใน CUP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -128,7 +128,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_201_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_201_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_201_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_201_receive += $row->receive ; ?>
@@ -140,7 +140,7 @@
                         @foreach($_1102050101_203 as $row)
                         <td align="center">4</td>
                         <td align="right">1102050101.203</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ UC-OP เธเธญเธ CUP (เนเธเธเธฑเธเธซเธงเธฑเธ”เธชเธฑเธเธเธฑเธ” เธชเธ.)</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา UC-OP นอก CUP (ในจังหวัดสังกัด สธ.)</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -152,7 +152,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_203_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_203_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_203_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_203_receive += $row->receive ; ?>
@@ -164,7 +164,7 @@
                         @foreach($_1102050101_209 as $row)
                         <td align="center">5</td>
                         <td align="right">1102050101.209</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธ”เนเธฒเธเธเธฒเธฃเธชเธฃเนเธฒเธเน€เธชเธฃเธดเธกเธชเธธเธเธ เธฒเธเนเธฅเธฐเธเนเธญเธเธเธฑเธเนเธฃเธ (P&P)</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา ด้านการสร้างเสริมสุขภาพและป้องกันโรค (P&P)</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -176,7 +176,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_209_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_209_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_209_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_209_receive += $row->receive ; ?>
@@ -188,7 +188,7 @@
                         @foreach($_1102050101_216 as $row)
                         <td align="center">6</td>
                         <td align="right">1102050101.216</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ UC-OP เธเธฃเธดเธเธฒเธฃเน€เธเธเธฒเธฐ (CR)</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR)</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -200,7 +200,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">            
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_216_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_216_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_216_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_216_receive += $row->receive ; ?>
@@ -212,7 +212,7 @@
                         @foreach($_1102050101_301 as $row)
                         <td align="center">7</td>
                         <td align="right">1102050101.301</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธฐเธเธฑเธเธชเธฑเธเธเธก OP-เน€เธเธฃเธทเธญเธเนเธฒเธข</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม OP-เครือข่าย</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -224,7 +224,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_301_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_301_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_301_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_301_receive += $row->receive ; ?>
@@ -236,7 +236,7 @@
                         @foreach($_1102050101_303 as $row)
                         <td align="center">8</td>
                         <td align="right">1102050101.303</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธฐเธเธฑเธเธชเธฑเธเธเธก OP-เธเธญเธเน€เธเธฃเธทเธญเธเนเธฒเธข เธชเธฑเธเธเธฑเธ” เธชเธ.เธชเธ.</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม OP-นอกเครือข่าย สังกัด สป.สธ.</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -248,7 +248,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">              
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_303_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_303_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_303_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_303_receive += $row->receive ; ?>
@@ -260,7 +260,7 @@
                         @foreach($_1102050101_307 as $row)
                         <td align="center">9</td>
                         <td align="right">1102050101.307</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธฐเธเธฑเธเธชเธฑเธเธเธก-เธเธญเธเธ—เธธเธเธ—เธ”เนเธ—เธ</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม-กองทุนทดแทน</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -272,7 +272,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>     
                         <td align="center">                
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_307_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_307_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_307_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_307_receive += $row->receive ; ?>
@@ -284,7 +284,7 @@
                         @foreach($_1102050101_309 as $row)
                         <td align="center">10</td>
                         <td align="right">1102050101.309</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธฐเธเธฑเธเธชเธฑเธเธเธก-เธเนเธฒเนเธเนเธเนเธฒเธขเธชเธนเธ/เธญเธธเธเธฑเธ•เธดเน€เธซเธ•เธธ/เธเธธเธเน€เธเธดเธ OP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม-ค่าใช้จ่ายสูง/อุบัติเหตุ/ฉุกเฉิน OP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -296,7 +296,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">              
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_309_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_309_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_309_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_309_receive += $row->receive ; ?>
@@ -308,7 +308,7 @@
                         @foreach($_1102050101_401 as $row)
                         <td align="center">11</td>
                         <td align="right">1102050101.401</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เน€เธเธดเธเธเนเธฒเธขเธ•เธฃเธเธเธฃเธกเธเธฑเธเธเธตเธเธฅเธฒเธ OP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรงกรมบัญชีกลาง OP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -320,7 +320,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_401_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_401_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_401_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_401_receive += $row->receive ; ?>
@@ -332,7 +332,7 @@
                         @foreach($_1102050101_501 as $row)
                         <td align="center">12</td>
                         <td align="right">1102050101.501</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธเธ•เนเธฒเธเธ”เนเธฒเธงเนเธฅเธฐเนเธฃเธเธเธฒเธเธ•เนเธฒเธเธ”เนเธฒเธง OP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -344,7 +344,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">              
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_501_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_501_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_501_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_501_receive += $row->receive ; ?>
@@ -356,7 +356,7 @@
                         @foreach($_1102050101_503 as $row)
                         <td align="center">13</td>
                         <td align="right">1102050101.503</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธเธ•เนเธฒเธเธ”เนเธฒเธงเนเธฅเธฐเนเธฃเธเธเธฒเธเธ•เนเธฒเธเธ”เนเธฒเธง OP เธเธญเธ CUP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP นอก CUP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -368,7 +368,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">              
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_503_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_503_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_503_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_503_receive += $row->receive ; ?>
@@ -380,7 +380,7 @@
                         @foreach($_1102050101_701 as $row)
                         <td align="center">14</td>
                         <td align="right">1102050101.701</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธธเธเธเธฅเธ—เธตเนเธกเธตเธเธฑเธเธซเธฒเธชเธ–เธฒเธเธฐเนเธฅเธฐเธชเธดเธ—เธเธด OP เนเธ CUP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP ใน CUP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -392,7 +392,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_701_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_701_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_701_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_701_receive += $row->receive ; ?>
@@ -404,7 +404,7 @@
                         @foreach($_1102050101_702 as $row)
                         <td align="center">15</td>
                         <td align="right">1102050101.702</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธธเธเธเธฅเธ—เธตเนเธกเธตเธเธฑเธเธซเธฒเธชเธ–เธฒเธเธฐเนเธฅเธฐเธชเธดเธ—เธเธด OP เธเธญเธ CUP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP นอก CUP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -416,7 +416,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_702_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_702_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_702_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_702_receive += $row->receive ; ?>
@@ -428,7 +428,7 @@
                         @foreach($_1102050101_703 as $row)
                         <td align="center">16</td>
                         <td align="right">1102050101.703</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธธเธเธเธฅเธ—เธตเนเธกเธตเธเธฑเธเธซเธฒเธชเธ–เธฒเธเธฐเนเธฅเธฐเธชเธดเธ—เธเธด เน€เธเธดเธเธเธฒเธเธชเนเธงเธเธเธฅเธฒเธ OP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ เบิกจากส่วนกลาง OP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -440,7 +440,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_703_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_703_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_703_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_703_receive += $row->receive ; ?>
@@ -452,7 +452,7 @@
                         @foreach($_1102050102_106 as $row)
                         <td align="center">17</td>
                         <td align="right">1102050102.106</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเนเธฒเธฃเธฐเน€เธเธดเธ OP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา ชําระเงิน OP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -464,7 +464,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">             
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_106_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_106_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050102_106_debtor += $row->debtor ; ?>
                         <?php $sum_1102050102_106_receive += $row->receive ; ?>
@@ -476,7 +476,7 @@
                         @foreach($_1102050102_108 as $row)
                         <td align="center">18</td>
                         <td align="right">1102050102.108</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เน€เธเธดเธเธ•เนเธเธชเธฑเธเธเธฑเธ” OP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา เบิกต้นสังกัด OP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -488,7 +488,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>     
                         <td align="center">             
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_108_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_108_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050102_108_debtor += $row->debtor ; ?>
                         <?php $sum_1102050102_108_receive += $row->receive ; ?>
@@ -500,7 +500,7 @@
                         @foreach($_1102050102_110 as $row)
                         <td align="center">19</td>
                         <td align="right">1102050102.110</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เน€เธเธดเธเธเนเธฒเธขเธ•เธฃเธเธซเธเนเธงเธขเธเธฒเธเธญเธทเนเธ OP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น OP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -512,7 +512,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>     
                         <td align="center">             
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_110_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_110_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050102_110_debtor += $row->debtor ; ?>
                         <?php $sum_1102050102_110_receive += $row->receive ; ?>
@@ -524,7 +524,7 @@
                         @foreach($_1102050102_602 as $row)
                         <td align="center">20</td>
                         <td align="right">1102050102.602</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธ.เธฃเธ– OP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา พรบ.รถ OP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -536,7 +536,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_602_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_602_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050102_602_debtor += $row->debtor ; ?>
                         <?php $sum_1102050102_602_receive += $row->receive ; ?>
@@ -548,7 +548,7 @@
                         @foreach($_1102050102_801 as $row)
                         <td align="center">21</td>
                         <td align="right">1102050102.801</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เน€เธเธดเธเธเนเธฒเธขเธ•เธฃเธ เธญเธเธ—.OP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.OP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -560,7 +560,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_801_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_801_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050102_801_debtor += $row->debtor ; ?>
                         <?php $sum_1102050102_801_receive += $row->receive ; ?>
@@ -572,7 +572,7 @@
                         @foreach($_1102050102_803 as $row)
                         <td align="center">22</td>
                         <td align="right">1102050102.803</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เน€เธเธดเธเธเนเธฒเธขเธ•เธฃเธ เธญเธเธ—.เธฃเธนเธเนเธเธเธเธดเน€เธจเธฉ OP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ OP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -584,14 +584,14 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">              
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_803_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_803_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050102_803_debtor += $row->debtor ; ?>
                         <?php $sum_1102050102_803_receive += $row->receive ; ?>
                         @endforeach     
                     </tr>
                      <tr>
-                        <td align="right" colspan = "4"><strong>เธฃเธงเธกเธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒเธเธขเธฒเธเธฒเธฅเธเธนเนเธเนเธงเธขเธเธญเธ OPD &nbsp;</strong><br></td>   
+                        <td align="right" colspan = "4"><strong>รวมลูกหนี้ค่ารักษาพยาบาลผู้ป่วยนอก OPD &nbsp;</strong><br></td>   
                         <td align="right" class="text-primary"><strong>{{number_format($sum_1102050101_103_debtor+$sum_1102050101_109_debtor+$sum_1102050101_201_debtor
                             +$sum_1102050101_203_debtor+$sum_1102050101_209_debtor+$sum_1102050101_216_debtor+$sum_1102050101_301_debtor+$sum_1102050101_303_debtor
                             +$sum_1102050101_307_debtor+$sum_1102050101_309_debtor+$sum_1102050101_401_debtor+$sum_1102050101_501_debtor+$sum_1102050101_503_debtor
@@ -617,7 +617,7 @@
                         </td>              
                     </tr>   
                     <tr>
-                        <th class="text-primary" colspan = "8">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;เธเธนเนเธเนเธงเธขเนเธ</th>        
+                        <th class="text-primary" colspan = "8">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ผู้ป่วยใน</th>        
                     </tr>
                     <tr>
                         <?php $sum_1102050101_202_debtor = 0 ; ?>
@@ -625,7 +625,7 @@
                         @foreach($_1102050101_202 as $row)
                         <td align="center">23</td>
                         <td align="right">1102050101.202</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ UC-IP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา UC-IP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -637,7 +637,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_202_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_202_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_202_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_202_receive += $row->receive ; ?>
@@ -649,7 +649,7 @@
                         @foreach($_1102050101_217 as $row)
                         <td align="center">24</td>
                         <td align="right">1102050101.217</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ UC-IP เธเธฃเธดเธเธฒเธฃเน€เธเธเธฒเธฐ (CR)</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา UC-IP บริการเฉพาะ (CR)</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -661,7 +661,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_217_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_217_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_217_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_217_receive += $row->receive ; ?>
@@ -673,7 +673,7 @@
                         @foreach($_1102050101_302 as $row)
                         <td align="center">25</td>
                         <td align="right">1102050101.302</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธฐเธเธฑเธเธชเธฑเธเธเธก IP เน€เธเธฃเธทเธญเธเนเธฒเธข</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม IP เครือข่าย</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -685,7 +685,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">              
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_302_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_302_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_302_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_302_receive += $row->receive ; ?>
@@ -697,7 +697,7 @@
                         @foreach($_1102050101_304 as $row)
                         <td align="center">26</td>
                         <td align="right">1102050101.304</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธฐเธเธฑเธเธชเธฑเธเธเธก IP เธเธญเธเน€เธเธฃเธทเธญเธเนเธฒเธข เธชเธฑเธเธเธฑเธ” เธชเธ.เธชเธ.</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม IP นอกเครือข่าย สังกัด สป.สธ.</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -709,7 +709,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">              
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_304_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_304_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_304_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_304_receive += $row->receive ; ?>
@@ -721,7 +721,7 @@
                         @foreach($_1102050101_308 as $row)
                         <td align="center">27</td>
                         <td align="right">1102050101.308</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธฐเธเธฑเธเธชเธฑเธเธเธก 72 เธเธฑเนเธงเนเธกเธเนเธฃเธ</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม 72 ชั่วโมงแรก</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -733,7 +733,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_308_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_308_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_308_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_308_receive += $row->receive ; ?>
@@ -745,7 +745,7 @@
                         @foreach($_1102050101_310 as $row)
                         <td align="center">28</td>
                         <td align="right">1102050101.310</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธฐเธเธฑเธเธชเธฑเธเธเธก เธเนเธฒเนเธเนเธเนเธฒเธขเธชเธนเธ IP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา ประกันสังคม ค่าใช้จ่ายสูง IP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -757,7 +757,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">              
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_310_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_310_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_310_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_310_receive += $row->receive ; ?>
@@ -769,7 +769,7 @@
                         @foreach($_1102050101_402 as $row)
                         <td align="center">29</td>
                         <td align="right">1102050101.402</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ-เน€เธเธดเธเธเนเธฒเธขเธ•เธฃเธ เธเธฃเธกเธเธฑเธเธเธตเธเธฅเธฒเธ IP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา-เบิกจ่ายตรง กรมบัญชีกลาง IP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -781,7 +781,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_402_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_402_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_402_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_402_receive += $row->receive ; ?>
@@ -793,7 +793,7 @@
                         @foreach($_1102050101_502 as $row)
                         <td align="center">30</td>
                         <td align="right">1102050101.502</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธเธ•เนเธฒเธเธ”เนเธฒเธงเนเธฅเธฐเนเธฃเธเธเธฒเธเธ•เนเธฒเธเธ”เนเธฒเธง IP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -805,7 +805,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">                
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_502_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_502_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_502_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_502_receive += $row->receive ; ?>
@@ -817,7 +817,7 @@
                         @foreach($_1102050101_504 as $row)
                         <td align="center">31</td>
                         <td align="right">1102050101.504</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธเธ•เนเธฒเธเธ”เนเธฒเธงเนเธฅเธฐเนเธฃเธเธเธฒเธเธ•เนเธฒเธเธ”เนเธฒเธง IP เธเธญเธ CUP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP นอก CUP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -829,7 +829,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">                
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_504_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_504_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_504_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_504_receive += $row->receive ; ?>
@@ -841,7 +841,7 @@
                         @foreach($_1102050101_704 as $row)
                         <td align="center">32</td>
                         <td align="right">1102050101.704</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธธเธเธเธฅเธ—เธตเนเธกเธตเธเธฑเธเธซเธฒเธชเธ–เธฒเธเธฐเนเธฅเธฐเธชเธดเธ—เธเธด เน€เธเธดเธเธเธฒเธเธชเนเธงเธเธเธฅเธฒเธ IP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ เบิกจากส่วนกลาง IP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -853,7 +853,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_704_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_704_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050101_704_debtor += $row->debtor ; ?>
                         <?php $sum_1102050101_704_receive += $row->receive ; ?>
@@ -865,7 +865,7 @@
                         @foreach($_1102050102_107 as $row)
                         <td align="center">33</td>
                         <td align="right">1102050102.107</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเนเธฒเธฃเธฐเน€เธเธดเธ IP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา ชําระเงิน IP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -877,7 +877,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_107_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_107_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050102_107_debtor += $row->debtor ; ?>
                         <?php $sum_1102050102_107_receive += $row->receive ; ?>
@@ -889,7 +889,7 @@
                         @foreach($_1102050102_109 as $row)
                         <td align="center">34</td>
                         <td align="right">1102050102.109</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เน€เธเธดเธเธ•เนเธเธชเธฑเธเธเธฑเธ” IP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา เบิกต้นสังกัด IP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -901,7 +901,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_109_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_109_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050102_109_debtor += $row->debtor ; ?>
                         <?php $sum_1102050102_109_receive += $row->receive ; ?>
@@ -913,7 +913,7 @@
                         @foreach($_1102050102_111 as $row)
                         <td align="center">35</td>
                         <td align="right">1102050102.111</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เน€เธเธดเธเธเนเธฒเธขเธ•เธฃเธเธซเธเนเธงเธขเธเธฒเธเธญเธทเนเธ IP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น IP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -925,7 +925,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_111_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_111_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050102_111_debtor += $row->debtor ; ?>
                         <?php $sum_1102050102_111_receive += $row->receive ; ?>
@@ -937,7 +937,7 @@
                         @foreach($_1102050102_603 as $row)
                         <td align="center">36</td>
                         <td align="right">1102050102.603</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเธฃเธ.เธฃเธ– IP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา พรบ.รถ IP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -949,7 +949,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_603_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_603_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050102_603_debtor += $row->debtor ; ?>
                         <?php $sum_1102050102_603_receive += $row->receive ; ?>
@@ -961,7 +961,7 @@
                         @foreach($_1102050102_802 as $row)
                         <td align="center">37</td>
                         <td align="right">1102050102.802</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เน€เธเธดเธเธเนเธฒเธขเธ•เธฃเธ เธญเธเธ—.IP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.IP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -973,7 +973,7 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">               
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_802_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_802_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050102_802_debtor += $row->debtor ; ?>
                         <?php $sum_1102050102_802_receive += $row->receive ; ?>
@@ -985,7 +985,7 @@
                         @foreach($_1102050102_804 as $row)
                         <td align="center">38</td>
                         <td align="right">1102050102.804</td>
-                        <td class="text-left">เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เน€เธเธดเธเธเนเธฒเธขเธ•เธฃเธ เธญเธเธ—.เธฃเธนเธเนเธเธเธเธดเน€เธจเธฉ IP</td>
+                        <td class="text-left">ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ IP</td>
                         <td align="right">{{number_format($row->anvn)}}&nbsp;</td>
                         <td align="right" class="text-primary">{{number_format($row->debtor,2)}}&nbsp;</td>
                         <td align="right" @if($row->receive > 0) style="color:green"
@@ -997,14 +997,14 @@
                             {{number_format($row->receive-$row->debtor,2)}}&nbsp;
                         </td>    
                         <td align="center">              
-                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_804_daily_pdf')}}" target="_blank">เธเธดเธกเธเนเธฃเธฒเธขเธงเธฑเธ</a> 
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_804_daily_pdf')}}" target="_blank">พิมพ์รายวัน</a> 
                         </td>
                         <?php $sum_1102050102_804_debtor += $row->debtor ; ?>
                         <?php $sum_1102050102_804_receive += $row->receive ; ?>
                         @endforeach     
                     </tr>  
                     <tr>
-                        <td align="right" colspan = "4"><strong>เธฃเธงเธกเธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒเธเธขเธฒเธเธฒเธฅเธเธนเนเธเนเธงเธขเนเธ IPD &nbsp;</strong><br></td>   
+                        <td align="right" colspan = "4"><strong>รวมลูกหนี้ค่ารักษาพยาบาลผู้ป่วยใน IPD &nbsp;</strong><br></td>   
                         <td align="right" class="text-primary"><strong>{{number_format($sum_1102050101_202_debtor+$sum_1102050101_217_debtor
                             +$sum_1102050101_302_debtor+$sum_1102050101_304_debtor+$sum_1102050101_308_debtor+$sum_1102050101_310_debtor
                             +$sum_1102050101_402_debtor+$sum_1102050101_502_debtor+$sum_1102050101_504_debtor+$sum_1102050101_704_debtor
@@ -1034,7 +1034,7 @@
                         </td>
                     </tr>
                     <tr>
-                        <td align="right" colspan = "4"><strong>เธฃเธงเธกเธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒเธเธขเธฒเธเธฒเธฅเธ—เธฑเนเธเธซเธกเธ” &nbsp;</strong><br></td>   
+                        <td align="right" colspan = "4"><strong>รวมลูกหนี้ค่ารักษาพยาบาลทั้งหมด &nbsp;</strong><br></td>   
                         <td align="right" class="text-primary"><strong>{{number_format($sum_1102050101_103_debtor+$sum_1102050101_109_debtor+$sum_1102050101_201_debtor
                             +$sum_1102050101_203_debtor+$sum_1102050101_209_debtor+$sum_1102050101_216_debtor+$sum_1102050101_301_debtor+$sum_1102050101_303_debtor
                             +$sum_1102050101_307_debtor+$sum_1102050101_309_debtor+$sum_1102050101_401_debtor+$sum_1102050101_501_debtor+$sum_1102050101_503_debtor

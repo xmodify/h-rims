@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
@@ -41,31 +41,31 @@
     <div class="container">  
         <div class="row"  >            
             <div class="col-sm-12"> 
-                <div class="alert alert-success text-primary text-center"><strong>เธเธฒเธฃเธ•เธดเธ”เธ•เธฒเธกเธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ เธเนเธฒเธฃเธฐเน€เธเธดเธ OP</strong></div>          
+                <div class="alert alert-success text-primary text-center"><strong>การติดตามลูกหนี้ค่ารักษา ชําระเงิน OP</strong></div>          
             </div>            
         </div>  
         <div class="row">  
             @foreach($debtor as $row)          
             <div class="col-sm-6">                 
                 <p class="text-primary">
-                    เธเธทเนเธญ-เธชเธเธธเธฅ: <strong>{{$row->ptname}}</strong>              
+                    ชื่อ-สกุล: <strong>{{$row->ptname}}</strong>              
                 </p> 
                 <p class="text-primary">
-                    เน€เธฅเธเธเธฑเธ•เธฃเธเธฃเธฐเธเธฒเธเธ: <strong>{{$row->cid}}</strong> HN: <strong>{{$row->hn}}</strong>
+                    เลขบัตรประชาชน: <strong>{{$row->cid}}</strong> HN: <strong>{{$row->hn}}</strong>
                 </p>   
                 <p class="text-primary">
-                    เน€เธเธญเธฃเนเนเธ—เธฃ: <strong>{{$row->mobile_phone_number}}</strong>
+                    เบอร์โทร: <strong>{{$row->mobile_phone_number}}</strong>
                 </p>   
             </div>   
             <div class="col-sm-6">                 
                 <p class="text-primary">
-                    เธงเธฑเธเธ—เธตเนเธฃเธฑเธเธเธฃเธดเธเธฒเธฃ: <strong>{{DateThai($row->vstdate)}}</strong> เน€เธงเธฅเธฒ: <strong>{{$row->vsttime}}</strong>             
+                    วันที่รับบริการ: <strong>{{DateThai($row->vstdate)}}</strong> เวลา: <strong>{{$row->vsttime}}</strong>             
                 </p> 
                 <p class="text-primary">
-                    เธชเธดเธ—เธเธดเธเธฒเธฃเธฃเธฑเธเธฉเธฒ: <strong>{{$row->pttype}}</strong> 
+                    สิทธิการรักษา: <strong>{{$row->pttype}}</strong> 
                 </p>   
                 <p class="text-primary">
-                    เธฅเธนเธเธซเธเธตเนเธเนเธฒเธฃเธฑเธเธฉเธฒ: <strong>{{ number_format($row->debtor,2)}}</strong> เธเธฒเธ—
+                    ลูกหนี้ค่ารักษา: <strong>{{ number_format($row->debtor,2)}}</strong> บาท
                 </p>   
             </div>   
             @endforeach          
@@ -77,23 +77,23 @@
         <div class="row"  >            
             <div class="col-sm-6"> 
                 <button type="button" class="btn btn-primary btn-sm text-white" data-toggle="modal" data-target="#insert-{{ $row->vn }}"> 
-                    เน€เธเธดเนเธกเธเนเธญเธกเธนเธฅ
+                    เพิ่มข้อมูล
                 </button>     
             </div>       
             <div class="col-sm-6 text-danger" align="right"> 
-                เธเธดเธกเธเนเนเธเนเธเนเธเธซเธเธตเนเธ—เธตเน HOSxP
+                พิมพ์ใบแจ้งหนี้ที่ HOSxP
             </div>           
         </div>  
         <div style="overflow-x:auto;">
             <table class="table table-bordered table-striped my-3">
                 <thead>
                 <tr class="table-primary">
-                    <th class="text-center">เธเธฃเธฑเนเธเธ—เธตเน</th>                    
-                    <th class="text-center">เธงเธฑเธเธ—เธตเนเธ•เธดเธ”เธ•เธฒเธก</th>
-                    <th class="text-center">เธเธฒเธฃเธ•เธดเธ”เธ•เธฒเธก</th> 
-                    <th class="text-center">เน€เธฅเธเธ—เธตเนเน€เธญเธเธชเธฒเธฃ</th> 
-                    <th class="text-center">เน€เธเนเธฒเธซเธเนเธฒเธ—เธตเนเธเธนเนเธ•เธดเธ”เธ•เนเธญ</th>                                       
-                    <th class="text-center">เธซเธกเธฒเธขเน€เธซเธ•เธธ</th>
+                    <th class="text-center">ครั้งที่</th>                    
+                    <th class="text-center">วันที่ติดตาม</th>
+                    <th class="text-center">การติดตาม</th> 
+                    <th class="text-center">เลขที่เอกสาร</th> 
+                    <th class="text-center">เจ้าหน้าที่ผู้ติดต่อ</th>                                       
+                    <th class="text-center">หมายเหตุ</th>
                     <th class="text-center" width="6%">Action</th>                
                 </thead>
                 <?php $count = 1 ; ?>
@@ -107,7 +107,7 @@
                     <td align="left">{{ $row->tracking_note }}</td>  
                     <td align="center">        
                         <button type="button" class="btn btn-warning btn-sm text-primary " data-toggle="modal" data-target="#edit-{{ $row->tracking_id }}"> 
-                        เนเธเนเนเธ
+                        แก้ไข
                         </button>    
                     </td>                     
                 <?php $count++; ?>                     
@@ -123,7 +123,7 @@
          <div class="modal-dialog modal-lg">
          <div class="modal-content">
              <div class="modal-header">
-             <h4 class="modal-title text-primary">เธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”เธเธฒเธฃเธ•เธดเธ”เธ•เธฒเธก</h4>
+             <h4 class="modal-title text-primary">รายละเอียดการติดตาม</h4>
              <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
              </button>
              </div>         
@@ -134,38 +134,38 @@
                      <div class="row">
                          <div class="col-md-6">  
                              <div class="mb-3">
-                                 <label for="ptname" class="form-label">เธเธทเนเธญ-เธชเธเธธเธฅ : <strong><font style="color:blue">{{ $row->ptname }}</font></strong></label>           
+                                 <label for="ptname" class="form-label">ชื่อ-สกุล : <strong><font style="color:blue">{{ $row->ptname }}</font></strong></label>           
                              </div>
                          </div>
                          <div class="col-md-6">  
                              <div class="mb-3">                          
-                                 <label for="debtor" class="form-label">เธฅเธนเธเธซเธเธตเน : <strong><font style="color:blue">{{ $row->debtor }} </font> เธเธฒเธ—</strong></label>           
+                                 <label for="debtor" class="form-label">ลูกหนี้ : <strong><font style="color:blue">{{ $row->debtor }} </font> บาท</strong></label>           
                              </div>
                          </div>
                      </div>
                      <div class="row">
                          <div class="col-md-12">  
                              <div class="mb-3">
-                                 <label for="item-description" class="form-label">เธงเธฑเธเธ—เธตเนเธ•เธดเธ”เธ•เธฒเธก : </label>
+                                 <label for="item-description" class="form-label">วันที่ติดตาม : </label>
                                  <input type="date" class="form-control" id="tracking_date" name="tracking_date" >
                              </div>
                              <div class="mb-3">
-                                <label for="item-description" class="form-label">เธเธฒเธฃเธ•เธดเธ”เธ•เธฒเธก : </label>
+                                <label for="item-description" class="form-label">การติดตาม : </label>
                                 <select class="form-select my-1" name="tracking_type">                                                       
-                                    <option value="เนเธ—เธฃเธจเธฑเธเธ—เน">เนเธ—เธฃเธจเธฑเธเธ—เน</option>                                           
-                                    <option value="เธชเนเธเน€เธญเธเธชเธฒเธฃ">เธชเนเธเน€เธญเธเธชเธฒเธฃ</option> 
+                                    <option value="โทรศัพท์">โทรศัพท์</option>                                           
+                                    <option value="ส่งเอกสาร">ส่งเอกสาร</option> 
                                 </select> 
                             </div>  
                              <div class="mb-3">
-                                 <label for="item-description" class="form-label">เน€เธฅเธเธ—เธตเนเธซเธเธฑเธเธชเธทเธญ : </label>
+                                 <label for="item-description" class="form-label">เลขที่หนังสือ : </label>
                                  <input type="text" class="form-control" id="tracking_no" name="tracking_no">
                              </div>
                              <div class="mb-3">
-                                 <label for="item-description" class="form-label">เน€เธเนเธฒเธซเธเนเธฒเธ—เธตเนเธเธนเนเธ•เธดเธ”เธ•เนเธญ : </label>
+                                 <label for="item-description" class="form-label">เจ้าหน้าที่ผู้ติดต่อ : </label>
                                  <input type="text" class="form-control" id="tracking_officer" name="tracking_officer">
                              </div> 
                              <div class="mb-3">
-                                 <label for="item-description" class="form-label">เธซเธกเธฒเธขเน€เธซเธ•เธธ : <strong><font style="color:blue"></font></strong></label>
+                                 <label for="item-description" class="form-label">หมายเหตุ : <strong><font style="color:blue"></font></strong></label>
                                  <input type="text" class="form-control" id="tracking_note" name="tracking_note">
                              </div>     
                          </div> 
@@ -173,7 +173,7 @@
                  </div>
                  <div class="modal-footer">
                      <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                     <button type="submit" class="btn btn-success">เธเธฑเธเธ—เธถเธเธเนเธญเธกเธนเธฅ</button>
+                     <button type="submit" class="btn btn-success">บันทึกข้อมูล</button>
                  </div>
              </form>     
          </div>
@@ -187,7 +187,7 @@
         <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-            <h4 class="modal-title text-primary">เธฃเธฒเธขเธฅเธฐเน€เธญเธตเธขเธ”เธเธฒเธฃเธ•เธดเธ”เธ•เธฒเธก</h4>
+            <h4 class="modal-title text-primary">รายละเอียดการติดตาม</h4>
             <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
             </button>
             </div>         
@@ -200,26 +200,26 @@
                     <div class="row">
                         <div class="col-md-12">  
                             <div class="mb-3">
-                                <label for="item-description" class="form-label">เธงเธฑเธเธ—เธตเนเธ•เธดเธ”เธ•เธฒเธก : <strong><font style="color:blue">{{ DateThai($row->tracking_date) }}</font></strong></label>
+                                <label for="item-description" class="form-label">วันที่ติดตาม : <strong><font style="color:blue">{{ DateThai($row->tracking_date) }}</font></strong></label>
                                 <input type="date" class="form-control" id="tracking_date" name="tracking_date" value="{{ $row->tracking_date }}" >
                             </div>
                             <div class="mb-3">
-                                <label for="item-description" class="form-label">เธเธฒเธฃเธ•เธดเธ”เธ•เธฒเธก : <strong><font style="color:blue">{{ $row->tracking_type }}</font></strong></label>
+                                <label for="item-description" class="form-label">การติดตาม : <strong><font style="color:blue">{{ $row->tracking_type }}</font></strong></label>
                                 <select class="form-select my-1" name="tracking_type">                                                       
-                                    <option value="เนเธ—เธฃเธจเธฑเธเธ—เน" @if ($row->tracking_type == 'เนเธ—เธฃเธจเธฑเธเธ—เน') selected="selected" @endif>เนเธ—เธฃเธจเธฑเธเธ—เน</option>                                           
-                                    <option value="เธชเนเธเน€เธญเธเธชเธฒเธฃ" @if ($row->tracking_type  == 'เธชเนเธเน€เธญเธเธชเธฒเธฃ') selected="selected" @endif>เธชเนเธเน€เธญเธเธชเธฒเธฃ</option> 
+                                    <option value="โทรศัพท์" @if ($row->tracking_type == 'โทรศัพท์') selected="selected" @endif>โทรศัพท์</option>                                           
+                                    <option value="ส่งเอกสาร" @if ($row->tracking_type  == 'ส่งเอกสาร') selected="selected" @endif>ส่งเอกสาร</option> 
                                 </select> 
                             </div> 
                             <div class="mb-3">
-                                <label for="item-description" class="form-label">เน€เธฅเธเธ—เธตเนเธซเธเธฑเธเธชเธทเธญ : <strong><font style="color:blue">{{ $row->tracking_no }}</font></strong></label>
+                                <label for="item-description" class="form-label">เลขที่หนังสือ : <strong><font style="color:blue">{{ $row->tracking_no }}</font></strong></label>
                                 <input type="text" class="form-control" id="tracking_no" name="tracking_no" value="{{ $row->tracking_no }}" >
                             </div>
                             <div class="mb-3">
-                                <label for="item-description" class="form-label">เน€เธเนเธฒเธซเธเนเธฒเธ—เธตเนเธเธนเนเธ•เธดเธ”เธ•เนเธญ : <strong><font style="color:blue">{{ $row->tracking_officer }}</font></strong></label>
+                                <label for="item-description" class="form-label">เจ้าหน้าที่ผู้ติดต่อ : <strong><font style="color:blue">{{ $row->tracking_officer }}</font></strong></label>
                                 <input type="text" class="form-control" id="tracking_officer" name="tracking_officer" value="{{ $row->tracking_officer }}" >
                             </div>        
                             <div class="mb-3">
-                                <label for="item-description" class="form-label">เธซเธกเธฒเธขเน€เธซเธ•เธธ : <strong><font style="color:blue">{{ $row->tracking_note }}</font></strong></label>
+                                <label for="item-description" class="form-label">หมายเหตุ : <strong><font style="color:blue">{{ $row->tracking_note }}</font></strong></label>
                                 <input type="text" style="height: 40px;" class="form-control" id="tracking_note" name="tracking_note" value="{{ $row->tracking_note }}" >
                             </div>     
                         </div> 
@@ -227,7 +227,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    <button type="submit" class="btn btn-success">เธเธฑเธเธ—เธถเธเธเนเธญเธกเธนเธฅ</button>
+                    <button type="submit" class="btn btn-success">บันทึกข้อมูล</button>
                 </div>
             </form>     
         </div>

@@ -202,67 +202,70 @@
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       new Chart(document.querySelector('#sum_month'), {
-        type: 'bar',
-        data: {
-          labels: <?php echo json_encode($month); ?>,
-          datasets: [
-            {
-              label: 'เรียกเก็บ',
-              data: <?php echo json_encode($claim_price); ?>,
-              backgroundColor: 'rgba(255, 159, 64, 0.2)',
-              borderColor: 'rgb(255, 159, 64)',
-              borderWidth: 1
-            },
-            {
-              label: 'ชดเชย',
-              data: <?php echo json_encode($receive_total); ?>,
-              backgroundColor: 'rgba(75, 192, 192, 0.2)',
-              borderColor: 'rgb(75, 192, 192)',
-              borderWidth: 1
-            }
-          ]
-        }, 
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'top',
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  return context.dataset.label + ': ' + context.formattedValue + ' บาท';
-                }
-              }
-            },
-            datalabels: {
-              anchor: 'end',
-              align: 'end',
-              color: '#000',
-              font: {
-                weight: 'bold',
-                size: 10
-              },
-              formatter: (value) => value.toLocaleString() + ' บาท'
+      type: 'bar',
+      data: {
+        labels: <?php echo json_encode($month); ?>,
+        datasets: [
+          {
+            label: 'เรียกเก็บ',
+            data: <?php echo json_encode($claim_price); ?>,
+            backgroundColor: 'rgba(249, 115, 22, 0.6)',
+            borderColor: 'rgb(249, 115, 22)',
+            borderWidth: 1,
+            borderRadius: 4
+          },
+          {
+            label: 'ชดเชย',
+            data: <?php echo json_encode($receive_total); ?>,
+            backgroundColor: 'rgba(16, 185, 129, 0.6)',
+            borderColor: 'rgb(16, 185, 129)',
+            borderWidth: 1,
+            borderRadius: 4
+          }
+        ]
+      }, 
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+                usePointStyle: true,
+                boxWidth: 6
             }
           },
-          scales: {
-            y: {
-              beginAtZero: true,
-              grace: '20%',
-              ticks: {
-                callback: function(value) {
-                  return value.toLocaleString() + ' บาท';
-                }
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                return context.dataset.label + ': ' + context.formattedValue + ' บาท';
+              }
+            }
+          },
+          datalabels: {
+            anchor: 'end',
+            align: 'top',
+            color: '#000',
+            font: {
+              weight: 'bold',
+              size: 10
+            },
+            formatter: (value) => value > 0 ? value.toLocaleString() : ''
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function(value) {
+                return value.toLocaleString();
               }
             }
           }
-        },
-        plugins: [ChartDataLabels] 
-      });
+        }
+      },
+      plugins: [ChartDataLabels] 
     });
-  </script>
+  });
+</script>
 @endpush
-
-

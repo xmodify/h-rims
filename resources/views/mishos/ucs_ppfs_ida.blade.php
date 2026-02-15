@@ -247,16 +247,18 @@
           {
             label: 'เรียกเก็บ',
             data: <?php echo json_encode($claim_price); ?>,
-            backgroundColor: 'rgba(255, 159, 64, 0.2)',
-            borderColor: 'rgb(255, 159, 64)',
-            borderWidth: 1
+            backgroundColor: 'rgba(249, 115, 22, 0.6)',
+            borderColor: 'rgb(249, 115, 22)',
+            borderWidth: 1,
+            borderRadius: 4
           },
           {
             label: 'ชดเชย',
             data: <?php echo json_encode($receive_total); ?>,
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-            borderColor: 'rgb(75, 192, 192)',
-            borderWidth: 1
+            backgroundColor: 'rgba(16, 185, 129, 0.6)',
+            borderColor: 'rgb(16, 185, 129)',
+            borderWidth: 1,
+            borderRadius: 4
           }
         ]
       },
@@ -266,6 +268,11 @@
         plugins: {
           legend: {
             position: 'top',
+            align: 'center',
+            labels: {
+              usePointStyle: true,
+              boxWidth: 6
+            }
           },
           tooltip: {
             callbacks: {
@@ -276,13 +283,13 @@
           },
           datalabels: {
             anchor: 'end',
-            align: 'end',
+            align: 'top',
             color: '#000',
             font: {
               weight: 'bold',
               size: 10
             },
-            formatter: (value) => value.toLocaleString() + ' บาท'
+            formatter: (value) => value.toLocaleString()
           }
         },
         scales: {
@@ -291,7 +298,7 @@
             grace: '20%',
             ticks: {
               callback: function(value) {
-                return value.toLocaleString() + ' บาท';
+                return value.toLocaleString();
               }
             }
           }

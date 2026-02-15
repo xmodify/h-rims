@@ -8957,7 +8957,7 @@ class DebtorController extends Controller
 
         if ($search) {
             $debtor = DB::connection('hosxp')->select('
-                SELECT d.*, IFNULL(d.receive,0) + IFNULL(r.bill_amount,0) AS receive,
+                SELECT d.*, r.bill_amount, IFNULL(d.receive,0) + IFNULL(r.bill_amount,0) AS receive,
                     stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
                     CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.bill_amount,0)) - IFNULL(d.debtor,0) >= 0
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
@@ -8975,7 +8975,7 @@ class DebtorController extends Controller
 ', [$search, $search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::connection('hosxp')->select('
-                SELECT d.*, IFNULL(d.receive,0) + IFNULL(r.bill_amount,0) AS receive,
+                SELECT d.*, r.bill_amount, IFNULL(d.receive,0) + IFNULL(r.bill_amount,0) AS receive,
                     stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
                     CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.bill_amount,0)) - IFNULL(d.debtor,0) >= 0
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days

@@ -186,7 +186,7 @@
                                             </button>
                                         @endif 
                                         <a class="btn btn-outline-info btn-sm" href="{{ url('debtor/1102050102_107/tracking', $row->an) }}" target="_blank"> 
-                                            <i class="bi bi-geo-alt me-1"></i> ติดตาม ({{ $row->visit }})
+                                            <i class="bi bi-geo-alt me-1"></i> ติดตาม ({{ $row->an }})
                                         </a> 
                                     </div>
                                 </td> 

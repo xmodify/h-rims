@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
     <script>
         function toggle_d(source) {
             checkbox = document.getElementsByName('checkbox_d[]');
@@ -37,9 +37,9 @@
         <div>
             <h4 class="text-primary mb-0 fw-bold">
                 <i class="bi bi-wallet2 me-2"></i>
-                1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR)
+                1102050101.216-�١˹�����ѡ�� UC-OP ��ԡ��੾�� (CR)
             </h4>
-            <small class="text-muted">ข้อมูลวันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</small>
+            <small class="text-muted">�������ѹ��� {{ DateThai($start_date) }} �֧ {{ DateThai($end_date) }}</small>
         </div>
         
         <div class="d-flex align-items-center gap-4">
@@ -50,23 +50,23 @@
                     
                     <!-- Date Range -->
                     <div class="d-flex align-items-center">
-                        <span class="input-group-text bg-white text-muted border-end-0 rounded-start">วันที่</span>
+                        <span class="input-group-text bg-white text-muted border-end-0 rounded-start">�ѹ���</span>
                         <input type="date" name="start_date" class="form-control border-start-0 rounded-0" value="{{ $start_date }}" style="width: 170px;">
-                        <span class="input-group-text bg-white border-start-0 border-end-0 rounded-0">ถึง</span>
+                        <span class="input-group-text bg-white border-start-0 border-end-0 rounded-0">�֧</span>
                         <input type="date" name="end_date" class="form-control border-start-0 rounded-end" value="{{ $end_date }}" style="width: 170px;">
                     </div>
 
                     <!-- Search Input -->
                     <div class="input-group input-group-sm" style="width: 220px;">
                         <span class="input-group-text bg-white text-muted border-end-0"><i class="bi bi-search"></i></span>
-                        <input id="search" type="text" class="form-control border-start-0" name="search" value="{{ $search }}" placeholder="ค้นหา ชื่อ-สกุล, HN, AN">
+                        <input id="search" type="text" class="form-control border-start-0" name="search" value="{{ $search }}" placeholder="���� ����-ʡ��, HN, AN">
                     </div>
 
                     <button onclick="showLoading()" type="submit" class="btn btn-primary btn-sm px-3 shadow-sm">
-                        <i class="bi bi-search me-1"></i> ค้นหา
+                        <i class="bi bi-search me-1"></i> ����
                     </button>
                     <a href="{{ url('debtor/forget_search') }}" class="btn btn-warning btn-sm px-3 shadow-sm text-dark">
-                        <i class="bi bi-arrow-counterclockwise me-1"></i> รีเซ็ต
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> ����
                     </a>
                 </form>
             </div>
@@ -81,25 +81,25 @@
             <ul class="nav nav-tabs-modern" id="pills-tab" role="tablist">
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
-                        <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
+                        <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">��¡���١˹��</span>
                         <span class="badge bg-primary-soft text-primary ms-2">{{ count($debtor) }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="kidney-tab" data-bs-toggle="pill" data-bs-target="#kidney-pane" type="button" role="tab">
-                        <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้ ฟอกไต
+                        <i class="bi bi-check-circle me-1"></i> ���׹�ѹ�١˹�� �͡�
                         <span class="badge bg-warning-soft text-warning ms-2">{{ count($debtor_search_kidney) }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="cr-tab" data-bs-toggle="pill" data-bs-target="#cr-pane" type="button" role="tab">
-                        <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้ บริการเฉพาะ
+                        <i class="bi bi-check-circle me-1"></i> ���׹�ѹ�١˹�� ��ԡ��੾��
                         <span class="badge bg-warning-soft text-warning ms-2">{{ count($debtor_search_cr) }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="anywhere-tab" data-bs-toggle="pill" data-bs-target="#anywhere-pane" type="button" role="tab">
-                        <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้ Anywhere
+                        <i class="bi bi-check-circle me-1"></i> ���׹�ѹ�١˹�� Anywhere
                         <span class="badge bg-warning-soft text-warning ms-2">{{ count($debtor_search_anywhere) }}</span>
                     </button>
                 </li>
@@ -109,7 +109,7 @@
         <div class="card-body px-4 pb-4 pt-0">
             <div class="tab-content" id="myTabContent">
                 
-                <!-- Tab 1: รายการลูกหนี้ -->
+                <!-- Tab 1: ��¡���١˹�� -->
                 <div class="tab-pane fade show active" id="debtor-pane" role="tabpanel"> 
 
             <form action="{{ url('debtor/1102050101_216_delete') }}" method="POST" enctype="multipart/form-data">
@@ -117,41 +117,41 @@
                 @method('DELETE')
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDelete()">
-                        <i class="bi bi-trash-fill me-1"></i> ลบรายการลูกหนี้
+                        <i class="bi bi-trash-fill me-1"></i> ź��¡���١˹��
                     </button>
                     <div>
                         <a class="btn btn-outline-success btn-sm" href="{{ url('debtor/1102050101_216_indiv_excel')}}" target="_blank">
-                             <i class="bi bi-file-earmark-excel me-1"></i> ส่งออกรายตัว
+                             <i class="bi bi-file-earmark-excel me-1"></i> ���͡��µ��
                         </a>                
                         <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050101_216_daily_pdf')}}" target="_blank">
-                             <i class="bi bi-printer me-1"></i> พิมพ์รายวัน
+                             <i class="bi bi-printer me-1"></i> ���������ѹ
                         </a> 
                     </div>
                 </div>
                 <table id="debtor" class="table table-bordered table-striped my-3" width = "100%">
                     <thead>
                     <tr class="table-success">
-                        <th class="text-left text-primary" colspan = "12">1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR) วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</th> 
-                        <th class="text-center text-primary" colspan = "6">การชดเชย</th>                                                 
+                        <th class="text-left text-primary" colspan = "12">1102050101.216-�١˹�����ѡ�� UC-OP ��ԡ��੾�� (CR) �ѹ��� {{ DateThai($start_date) }} �֧ {{ DateThai($end_date) }}</th> 
+                        <th class="text-center text-primary" colspan = "6">��ê���</th>                                                 
                     </tr>
                     <tr class="table-success" >
                         <th class="text-center"><input type="checkbox" onClick="toggle_d(this)"> All</th> 
-                        <th class="text-center">วันที่</th>
+                        <th class="text-center">�ѹ���</th>
                         <th class="text-center">HN</th>
-                        <th class="text-center">ชื่อ-สกุล</th>
-                        <th class="text-center">สิทธิ</th>
+                        <th class="text-center">����-ʡ��</th>
+                        <th class="text-center">�Է��</th>
                         <th class="text-center">ICD10</th>
-                        <th class="text-center">ค่ารักษาทั้งหมด</th>  
-                        <th class="text-center">ชำระเอง</th>  
-                        <th class="text-center">ฟอกไต</th>   
-                        <th class="text-center">บริการเฉพาะ</th>
+                        <th class="text-center">����ѡ�ҷ�����</th>  
+                        <th class="text-center">�����ͧ</th>  
+                        <th class="text-center">�͡�</th>   
+                        <th class="text-center">��ԡ��੾��</th>
                         <th class="text-center">OP Anywhere</th> 
                         <th class="text-center">PPFS</th>       
-                        <th class="text-center text-primary">ลูกหนี้</th>
-                        <th class="text-center text-primary">ชดเชย</th> 
-                        <th class="text-center text-primary">ผลต่าง</th>
+                        <th class="text-center text-primary">�١˹��</th>
+                        <th class="text-center text-primary">����</th> 
+                        <th class="text-center text-primary">�ŵ�ҧ</th>
                         <th class="text-center text-primary">REP</th> 
-                        <th class="text-center text-primary">อายุหนี้</th>                         
+                        <th class="text-center text-primary">����˹��</th>                         
                         <th class="text-center text-primary">Lock</th>                                       
                     </tr>
                     </thead>
@@ -188,10 +188,10 @@
                             {{ number_format($row->receive-$row->debtor,2) }}
                         </td>         
                         <td align="right">{{ $row->repno }} {{ $row->rid }}</td> 
-                        <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  {{-- เขียวอ่อน --}}
-                            @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" {{-- เหลือง --}}
-                            @else style="background-color: #FF7F7F;" {{-- แดง --}} @endif >
-                            {{ $row->days }} วัน
+                        <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  {{-- ������͹ --}}
+                            @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" {{-- ����ͧ --}}
+                            @else style="background-color: #FF7F7F;" {{-- ᴧ --}} @endif >
+                            {{ $row->days }} �ѹ
                         </td>  
                         <td align="center" style="color:blue">{{ $row->debtor_lock }}</td>                            
                     <?php $count++; ?>
@@ -209,7 +209,7 @@
                     <tfoot>
 
                         <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                            <td colspan="6" class="text-end">รวม</td>
+                            <td colspan="6" class="text-end">���</td>
                             <td class="text-end">{{ number_format($sum_income,2) }}</td>
                             <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
                             <td class="text-end">{{ number_format($sum_kidney,2) }}</td>
@@ -233,25 +233,25 @@
                 <form action="{{ url('debtor/1102050101_216_confirm_kidney') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                         <button type="button" class="btn btn-outline-success btn-sm"  onclick="confirmSubmit_kidney()">ยืนยันลูกหนี้</button>
+                         <button type="button" class="btn btn-outline-success btn-sm"  onclick="confirmSubmit_kidney()">�׹�ѹ�١˹��</button>
                          <div></div>
                     </div>
                     <table id="debtor_search_kidney" class="table table-bordered table-striped my-3" width="100%">
                         <thead>
                         <tr class="table-secondary">
-                            <th class="text-left text-primary" colspan = "12">ผู้มารับบริการ UC-OP บริการเฉพาะ (CR) ฟอกไต วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>
+                            <th class="text-left text-primary" colspan = "12">������Ѻ��ԡ�� UC-OP ��ԡ��੾�� (CR) �͡� �ѹ��� {{ DateThai($start_date) }} �֧ {{ DateThai($end_date) }} ���׹�ѹ�١˹��</th>
                         </tr>
                         <tr class="table-secondary">
                             <th class="text-center"><input type="checkbox" onClick="toggle_kidney(this)"> All</th>  
-                            <th class="text-center" width="6%">วันที่</th>
+                            <th class="text-center" width="6%">�ѹ���</th>
                             <th class="text-center">HN</th>
-                            <th class="text-center" width="10%">ชื่อ-สกุล</th>
-                            <th class="text-center" width="10%">สิทธิ</th>
+                            <th class="text-center" width="10%">����-ʡ��</th>
+                            <th class="text-center" width="10%">�Է��</th>
                             <th class="text-center">ICD10</th>
-                            <th class="text-center">ค่ารักษาทั้งหมด</th>  
-                            <th class="text-center">ชำระเอง</th>                        
-                            <th class="text-center">เรียกเก็บ</th>
-                            <th class="text-center" width="25%">รายการเรียกเก็บ</th>
+                            <th class="text-center">����ѡ�ҷ�����</th>  
+                            <th class="text-center">�����ͧ</th>                        
+                            <th class="text-center">���¡��</th>
+                            <th class="text-center" width="25%">��¡�����¡��</th>
                         </tr>
                         </thead>
                         <?php $count = 1 ; ?>
@@ -280,7 +280,7 @@
                     </tr>
                     <tfoot>
                         <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                            <td colspan="6" class="text-end">รวม</td>
+                            <td colspan="6" class="text-end">���</td>
                             <td class="text-end">{{ number_format($sum_income_kidney,2) }}</td>
                             <td class="text-end">{{ number_format($sum_rcpt_money_kidney,2) }}</td>
                             <td class="text-end" style="color:blue">{{ number_format($sum_debtor_kidney,2) }}</td>
@@ -296,26 +296,26 @@
                 <form action="{{ url('debtor/1102050101_216_confirm_cr') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                      <div class="d-flex justify-content-between align-items-center mb-2">
-                        <button type="button" class="btn btn-outline-success btn-sm"  onclick="confirmSubmit_cr()">ยืนยันลูกหนี้</button>
+                        <button type="button" class="btn btn-outline-success btn-sm"  onclick="confirmSubmit_cr()">�׹�ѹ�١˹��</button>
                         <div></div>
                     </div>
                     <table id="debtor_search_cr" class="table table-bordered table-striped my-3" width="100%">
                         <thead>
                         <tr class="table-secondary">
-                            <th class="text-left text-primary" colspan = "12">ผู้มารับบริการ UC-OP บริการเฉพาะ (CR) วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                                                         
+                            <th class="text-left text-primary" colspan = "12">������Ѻ��ԡ�� UC-OP ��ԡ��੾�� (CR) �ѹ��� {{ DateThai($start_date) }} �֧ {{ DateThai($end_date) }} ���׹�ѹ�١˹��</th>                                                         
                         </tr>
                         <tr class="table-secondary">
                             <th class="text-center"><input type="checkbox" onClick="toggle_cr(this)"> All</th>  
-                            <th class="text-center" width="6%">วันที่</th>
+                            <th class="text-center" width="6%">�ѹ���</th>
                             <th class="text-center">HN</th>
-                            <th class="text-center" width="10%">ชื่อ-สกุล</th>
-                            <th class="text-center" width="10%">สิทธิ</th>
+                            <th class="text-center" width="10%">����-ʡ��</th>
+                            <th class="text-center" width="10%">�Է��</th>
                             <th class="text-center">ICD10</th>
-                            <th class="text-center">ค่ารักษาทั้งหมด</th>  
-                            <th class="text-center">ชำระเอง</th>                        
-                            <th class="text-center">เรียกเก็บ</th>
-                            <th class="text-center" width="25%">รายการเรียกเก็บ</th>
-                            <th class="text-center">ส่ง Claim</th>
+                            <th class="text-center">����ѡ�ҷ�����</th>  
+                            <th class="text-center">�����ͧ</th>                        
+                            <th class="text-center">���¡��</th>
+                            <th class="text-center" width="25%">��¡�����¡��</th>
+                            <th class="text-center">�� Claim</th>
                         </tr>
                         </thead>
                         <?php $count = 1 ; ?>
@@ -345,7 +345,7 @@
                         </tr> 
                     <tfoot>
                         <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                            <td colspan="6" class="text-end">รวม</td>
+                            <td colspan="6" class="text-end">���</td>
                             <td class="text-end">{{ number_format($sum_income_cr,2) }}</td>
                             <td class="text-end">{{ number_format($sum_rcpt_money_cr,2) }}</td>
                             <td class="text-end" style="color:blue">{{ number_format($sum_debtor_cr,2) }}</td>
@@ -361,29 +361,29 @@
                 <form action="{{ url('debtor/1102050101_216_confirm_anywhere') }}" method="POST" enctype="multipart/form-data">
                     @csrf  
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <button type="button" class="btn btn-outline-success btn-sm"  onclick="confirmSubmit_anywhere()">ยืนยันลูกหนี้</button>
+                        <button type="button" class="btn btn-outline-success btn-sm"  onclick="confirmSubmit_anywhere()">�׹�ѹ�١˹��</button>
                         <div></div>
                     </div>
                     <table id="debtor_search_anywhere" class="table table-bordered table-striped my-3" width="100%">
                         <thead>
                         <tr class="table-secondary">
-                            <th class="text-left text-primary" colspan = "14">ผู้มารับบริการ UC-OP บริการเฉพาะ (CR) OP Anywhere วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                                                          
+                            <th class="text-left text-primary" colspan = "14">������Ѻ��ԡ�� UC-OP ��ԡ��੾�� (CR) OP Anywhere �ѹ��� {{ DateThai($start_date) }} �֧ {{ DateThai($end_date) }} ���׹�ѹ�١˹��</th>                                                          
                         </tr>
                         <tr class="table-secondary">
                             <th class="text-center"><input type="checkbox" onClick="toggle_anywhere(this)"> All</th>  
-                            <th class="text-center" width="6%">วันที่</th>
+                            <th class="text-center" width="6%">�ѹ���</th>
                             <th class="text-center">HN</th>
-                            <th class="text-center" width="10%">ชื่อ-สกุล</th>
-                            <th class="text-center" width="10%">สิทธิ</th>
+                            <th class="text-center" width="10%">����-ʡ��</th>
+                            <th class="text-center" width="10%">�Է��</th>
                             <th class="text-center">ICD10</th>
-                            <th class="text-center">ค่ารักษาทั้งหมด</th>  
-                            <th class="text-center">ชำระเอง</th>
-                            <th class="text-center">กองทุนอื่น</th>   
+                            <th class="text-center">����ѡ�ҷ�����</th>  
+                            <th class="text-center">�����ͧ</th>
+                            <th class="text-center">�ͧ�ع���</th>   
                             <th class="text-center">PPFS</th>                         
-                            <th class="text-center">ลูกหนี้</th>
-                            <th class="text-center" width = "10%">รายการกองทุนอื่น</th> 
-                            <th class="text-center" width = "10%">รายการ PPFS</th>
-                            <th class="text-center">ส่ง Claim</th>
+                            <th class="text-center">�١˹��</th>
+                            <th class="text-center" width = "10%">��¡�áͧ�ع���</th> 
+                            <th class="text-center" width = "10%">��¡�� PPFS</th>
+                            <th class="text-center">�� Claim</th>
                         </tr>
                         </thead>
                         <?php $count = 1 ; ?>
@@ -420,7 +420,7 @@
                     </tr> 
                     <tfoot>
                         <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                            <td colspan="6" class="text-end">รวม</td>
+                            <td colspan="6" class="text-end">���</td>
                             <td class="text-end">{{ number_format($sum_income_anywhere,2) }}</td>
                             <td class="text-end">{{ number_format($sum_rcpt_money_anywhere,2) }}</td>
                             <td class="text-end">{{ number_format($sum_other_anywhere,2) }}</td>
@@ -437,24 +437,24 @@
     </div> <!-- End Card Body -->
 </div> <!-- End Card -->
  
-<!-- สำเร็จ -->
+<!-- ����� -->
     @if (session('success'))
         <script>
             Swal.fire({
                 icon: 'success',
-                title: 'สำเร็จ',
+                title: '�����',
                 text: '{{ session('success') }}',
                 timer: 2000,
                 showConfirmButton: false
             });
         </script>
     @endif
- <!-- กำลังโหลด -->
+ <!-- ���ѧ��Ŵ -->
     <script>
         function showLoading() {
             Swal.fire({
-                title: 'กำลังโหลด...',
-                text: 'กรุณารอสักครู่',
+                title: '���ѧ��Ŵ...',
+                text: '��س����ѡ����',
                 allowOutsideClick: false,
                 didOpen: () => {
                     Swal.showLoading();
@@ -465,23 +465,23 @@
             showLoading();
         }
     </script>
-<!-- ลบลูกหนี้ -->
+<!-- ź�١˹�� -->
     <script>
         function confirmDelete() { 
             const selected = [...document.querySelectorAll('input[name="checkbox_d[]"]:checked')].map(e => e.value);    
             if (selected.length === 0) {
-                Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะลบ', 'warning');
+                Swal.fire('����͹', '��س����͡��¡�÷���ź', 'warning');
                 return;
             }
             Swal.fire({
-            title: 'ยืนยัน?',
-            text: "ต้องการลบลูกหนี้รายการที่เลือกใช่หรือไม่?",
+            title: '�׹�ѹ?',
+            text: "��ͧ���ź�١˹����¡�÷�����͡���������?",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
             cancelButtonColor: '#3085d6',
-            confirmButtonText: 'ใช่, ลบเลย!',
-            cancelButtonText: 'ยกเลิก'
+            confirmButtonText: '��, ź���!',
+            cancelButtonText: '¡��ԡ'
             }).then((result) => {
                 if (result.isConfirmed) {
                     document.querySelector("form[action='{{ url('debtor/1102050101_216_delete') }}']").submit();
@@ -489,23 +489,23 @@
             });
         }
     </script>
-<!-- ยืนยันลูกหนี้ -->
+<!-- �׹�ѹ�١˹�� -->
     <script>
         function confirmSubmit_kidney() {
             const selected = [...document.querySelectorAll('input[name="checkbox_kidney[]"]:checked')].map(e => e.value);    
             if (selected.length === 0) {
-                Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะยืนยัน', 'warning');
+                Swal.fire('����͹', '��س����͡��¡�÷����׹�ѹ', 'warning');
                 return;
             }
             Swal.fire({
-                title: 'ยืนยัน?',
-                text: "ต้องการยืนยันลูกหนี้รายการที่เลือกใช่หรือไม่?",
+                title: '�׹�ѹ?',
+                text: "��ͧ����׹�ѹ�١˹����¡�÷�����͡���������?",
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#28a745',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: 'ยืนยัน',
-                cancelButtonText: 'ยกเลิก'
+                confirmButtonText: '�׹�ѹ',
+                cancelButtonText: '¡��ԡ'
             }).then((result) => {
                 if (result.isConfirmed) {
                     document.querySelector("form[action='{{ url('debtor/1102050101_216_confirm_kidney') }}']").submit();
@@ -517,18 +517,18 @@
         function confirmSubmit_cr() {
             const selected = [...document.querySelectorAll('input[name="checkbox_cr[]"]:checked')].map(e => e.value);    
             if (selected.length === 0) {
-                Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะยืนยัน', 'warning');
+                Swal.fire('����͹', '��س����͡��¡�÷����׹�ѹ', 'warning');
                 return;
             }
             Swal.fire({
-                title: 'ยืนยัน?',
-                text: "ต้องการยืนยันลูกหนี้รายการที่เลือกใช่หรือไม่?",
+                title: '�׹�ѹ?',
+                text: "��ͧ����׹�ѹ�١˹����¡�÷�����͡���������?",
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#28a745',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: 'ยืนยัน',
-                cancelButtonText: 'ยกเลิก'
+                confirmButtonText: '�׹�ѹ',
+                cancelButtonText: '¡��ԡ'
             }).then((result) => {
                 if (result.isConfirmed) {
                     document.querySelector("form[action='{{ url('debtor/1102050101_216_confirm_cr') }}']").submit();
@@ -540,18 +540,18 @@
         function confirmSubmit_anywhere() {
             const selected = [...document.querySelectorAll('input[name="checkbox_anywhere[]"]:checked')].map(e => e.value);    
             if (selected.length === 0) {
-                Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะยืนยัน', 'warning');
+                Swal.fire('����͹', '��س����͡��¡�÷����׹�ѹ', 'warning');
                 return;
             }
             Swal.fire({
-                title: 'ยืนยัน?',
-                text: "ต้องการยืนยันลูกหนี้รายการที่เลือกใช่หรือไม่?",
+                title: '�׹�ѹ?',
+                text: "��ͧ����׹�ѹ�١˹����¡�÷�����͡���������?",
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#28a745',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: 'ยืนยัน',
-                cancelButtonText: 'ยกเลิก'
+                confirmButtonText: '�׹�ѹ',
+                cancelButtonText: '¡��ԡ'
             }).then((result) => {
                 if (result.isConfirmed) {
                     document.querySelector("form[action='{{ url('debtor/1102050101_216_confirm_anywhere') }}']").submit();
@@ -567,7 +567,7 @@
         $(document).ready(function () {
             $('#debtor').DataTable({
                 dom: '<"row mb-3"' +
-                        '<"col-md-6"l>' + // Show รายการ
+                        '<"col-md-6"l>' + // Show ��¡��
                     '>' +
                     'rt' +
                     '<"row mt-3"' +
@@ -575,11 +575,11 @@
                         '<"col-md-6"p>' + // Pagination
                     '>',            
                 language: {
-                    lengthMenu: "แสดง _MENU_ รายการ",
-                    info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                    lengthMenu: "�ʴ� _MENU_ ��¡��",
+                    info: "�ʴ� _START_ �֧ _END_ �ҡ������ _TOTAL_ ��¡��",
                     paginate: {
-                    previous: "ก่อนหน้า",
-                    next: "ถัดไป"
+                    previous: "��͹˹��",
+                    next: "�Ѵ�"
                     }
                 }
             });
@@ -589,7 +589,7 @@
         $(document).ready(function () {
             $('#debtor_search_kidney').DataTable({
                 dom: '<"row mb-3"' +
-                        '<"col-md-6"l>' + // Show รายการ
+                        '<"col-md-6"l>' + // Show ��¡��
                         '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
                     '>' +
                     'rt' +
@@ -602,16 +602,16 @@
                     extend: 'excelHtml5',
                     text: 'Excel',
                     className: 'btn btn-success btn-sm',
-                    title: '1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR) ฟอกไต รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+                    title: '1102050101.216-�١˹�����ѡ�� UC-OP ��ԡ��੾�� (CR) �͡� ���׹�ѹ �ѹ��� {{ DateThai($start_date) }} �֧ {{ DateThai($end_date) }}'
                     }
                 ],
                 language: {
-                    search: "ค้นหา:",
-                    lengthMenu: "แสดง _MENU_ รายการ",
-                    info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                    search: "����:",
+                    lengthMenu: "�ʴ� _MENU_ ��¡��",
+                    info: "�ʴ� _START_ �֧ _END_ �ҡ������ _TOTAL_ ��¡��",
                     paginate: {
-                    previous: "ก่อนหน้า",
-                    next: "ถัดไป"
+                    previous: "��͹˹��",
+                    next: "�Ѵ�"
                     }
                 }
             });
@@ -621,7 +621,7 @@
         $(document).ready(function () {
             $('#debtor_search_cr').DataTable({
                 dom: '<"row mb-3"' +
-                        '<"col-md-6"l>' + // Show รายการ
+                        '<"col-md-6"l>' + // Show ��¡��
                         '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
                     '>' +
                     'rt' +
@@ -634,16 +634,16 @@
                     extend: 'excelHtml5',
                     text: 'Excel',
                     className: 'btn btn-success btn-sm',
-                    title: '1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR) รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+                    title: '1102050101.216-�١˹�����ѡ�� UC-OP ��ԡ��੾�� (CR) ���׹�ѹ �ѹ��� {{ DateThai($start_date) }} �֧ {{ DateThai($end_date) }}'
                     }
                 ],
                 language: {
-                    search: "ค้นหา:",
-                    lengthMenu: "แสดง _MENU_ รายการ",
-                    info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                    search: "����:",
+                    lengthMenu: "�ʴ� _MENU_ ��¡��",
+                    info: "�ʴ� _START_ �֧ _END_ �ҡ������ _TOTAL_ ��¡��",
                     paginate: {
-                    previous: "ก่อนหน้า",
-                    next: "ถัดไป"
+                    previous: "��͹˹��",
+                    next: "�Ѵ�"
                     }
                 }
             });
@@ -653,7 +653,7 @@
         $(document).ready(function () {
             $('#debtor_search_anywhere').DataTable({
                 dom: '<"row mb-3"' +
-                        '<"col-md-6"l>' + // Show รายการ
+                        '<"col-md-6"l>' + // Show ��¡��
                         '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
                     '>' +
                     'rt' +
@@ -666,16 +666,16 @@
                     extend: 'excelHtml5',
                     text: 'Excel',
                     className: 'btn btn-success btn-sm',
-                    title: '1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR) OP Anywhere รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+                    title: '1102050101.216-�١˹�����ѡ�� UC-OP ��ԡ��੾�� (CR) OP Anywhere ���׹�ѹ �ѹ��� {{ DateThai($start_date) }} �֧ {{ DateThai($end_date) }}'
                     }
                 ],
                 language: {
-                    search: "ค้นหา:",
-                    lengthMenu: "แสดง _MENU_ รายการ",
-                    info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                    search: "����:",
+                    lengthMenu: "�ʴ� _MENU_ ��¡��",
+                    info: "�ʴ� _START_ �֧ _END_ �ҡ������ _TOTAL_ ��¡��",
                     paginate: {
-                    previous: "ก่อนหน้า",
-                    next: "ถัดไป"
+                    previous: "��͹˹��",
+                    next: "�Ѵ�"
                     }
                 }
             });

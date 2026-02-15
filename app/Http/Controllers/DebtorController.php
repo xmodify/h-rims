@@ -6636,24 +6636,24 @@ class DebtorController extends Controller
 
         if ($search) {
             $debtor = DB::select('
-                SELECT d.*,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
+                SELECT d.*,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
                 CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 THEN 0
                    ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_202 d
                 LEFT JOIN ( SELECT an,MAX(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay,
-                    SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                    SUM(receive_total) AS receive_total,MAX(repno) AS repno, MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                     FROM stm_ucs GROUP BY an) stm ON stm.an = d.an
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
                 AND d.dchdate BETWEEN ? AND ?
                 GROUP BY d.an', [$search, $search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.*,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
+                SELECT d.*,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
                 CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 THEN 0
                    ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_202 d
                 LEFT JOIN ( SELECT an,MAX(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay,
-                    SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                    SUM(receive_total) AS receive_total,MAX(repno) AS repno, MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                     FROM stm_ucs GROUP BY an) stm ON stm.an = d.an
                 WHERE d.dchdate BETWEEN ? AND ?
                 GROUP BY d.an', [$start_date, $end_date]);
@@ -6861,13 +6861,13 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.*,(IFNULL(stm.receive_total,0)-IFNULL(stm.receive_ip_compensate_pay,0))+IFNULL(k.receive_total,0) AS receive,
-                    stm.repno,k.repno AS repno_kidney, CASE WHEN ((IFNULL(stm.receive_total,0) - IFNULL(stm.receive_ip_compensate_pay,0))
+                    stm.repno,k.repno AS repno_kidney, COALESCE(stm.round_no, k.round_no) AS stm_round_no, COALESCE(stm.receipt_date, k.receipt_date) AS stm_receipt_date, COALESCE(stm.receive_no, k.receive_no) AS stm_receive_no, CASE WHEN ((IFNULL(stm.receive_total,0) - IFNULL(stm.receive_ip_compensate_pay,0))
                     + IFNULL(k.receive_total,0)-IFNULL(d.debtor,0)) >= 0 THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_217 d
                 LEFT JOIN (SELECT an,MAX(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_total) AS receive_total,
-                    SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay,MAX(repno) AS repno FROM stm_ucs
+                    SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay,MAX(repno) AS repno, MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no FROM stm_ucs
                     GROUP BY an) stm  ON stm.an = d.an
-                LEFT JOIN (SELECT d2.an,SUM(sk.receive_total) AS receive_total,MAX(sk.repno) AS repno FROM debtor_1102050101_217 d2
+                LEFT JOIN (SELECT d2.an,SUM(sk.receive_total) AS receive_total,MAX(sk.repno) AS repno, MAX(sk.round_no) AS round_no, MAX(sk.receipt_date) AS receipt_date, MAX(sk.receive_no) AS receive_no FROM debtor_1102050101_217 d2
                     JOIN stm_ucs_kidney sk ON sk.cid = d2.cid AND sk.datetimeadm BETWEEN d2.regdate AND d2.dchdate
                     WHERE d2.dchdate BETWEEN ? AND ? GROUP BY d2.an) k ON k.an = d.an
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
@@ -6875,13 +6875,13 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.*,(IFNULL(stm.receive_total,0)-IFNULL(stm.receive_ip_compensate_pay,0))+IFNULL(k.receive_total,0) AS receive,
-                    stm.repno,k.repno AS repno_kidney, CASE WHEN ((IFNULL(stm.receive_total,0) - IFNULL(stm.receive_ip_compensate_pay,0))
+                    stm.repno,k.repno AS repno_kidney, COALESCE(stm.round_no, k.round_no) AS stm_round_no, COALESCE(stm.receipt_date, k.receipt_date) AS stm_receipt_date, COALESCE(stm.receive_no, k.receive_no) AS stm_receive_no, CASE WHEN ((IFNULL(stm.receive_total,0) - IFNULL(stm.receive_ip_compensate_pay,0))
                     + IFNULL(k.receive_total,0)-IFNULL(d.debtor,0)) >= 0 THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_217 d
                 LEFT JOIN (SELECT an,MAX(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_total) AS receive_total,
-                    SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay,MAX(repno) AS repno FROM stm_ucs
+                    SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay,MAX(repno) AS repno, MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no FROM stm_ucs
                     GROUP BY an) stm  ON stm.an = d.an
-                LEFT JOIN (SELECT d2.an,SUM(sk.receive_total) AS receive_total,MAX(sk.repno) AS repno FROM debtor_1102050101_217 d2
+                LEFT JOIN (SELECT d2.an,SUM(sk.receive_total) AS receive_total,MAX(sk.repno) AS repno, MAX(sk.round_no) AS round_no, MAX(sk.receipt_date) AS receipt_date, MAX(sk.receive_no) AS receive_no FROM debtor_1102050101_217 d2
                     JOIN stm_ucs_kidney sk ON sk.cid = d2.cid AND sk.datetimeadm BETWEEN d2.regdate AND d2.dchdate
                     WHERE d2.dchdate BETWEEN ? AND ? GROUP BY d2.an) k ON k.an = d.an
                 WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an', [$start_date, $end_date, $start_date, $end_date]);
@@ -7090,21 +7090,18 @@ class DebtorController extends Controller
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
         $pttype_sss_72 = DB::table('main_setting')->where('name', 'pttype_sss_72')->value('value');
 
-        $debtor = Debtor_1102050101_302::whereBetween('dchdate', [$start_date, $end_date])
-            ->where(function ($query) use ($search) {
-                $query->where('ptname', 'like', '%' . $search . '%');
-                $query->orwhere('hn', 'like', '%' . $search . '%');
-                $query->orwhere('an', 'like', '%' . $search . '%');
-            })
-            ->orderBy('dchdate')->get()
-            ->map(function ($item) {
-                if (($item->receive - $item->debtor) >= 0) {
-                    $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
-                } else {
-                    $item->days = Carbon::parse($item->dchdate)->diffInDays(Carbon::today());
-                }
-                return $item;
-            });
+        $debtor = DB::select('
+            SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                   CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
+                   THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+            FROM debtor_1102050101_302 d
+            LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(receive_total) AS receive_total, 
+                              MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                       FROM stm_ucs GROUP BY an) stm ON stm.an = d.an
+            WHERE d.dchdate BETWEEN ? AND ?
+            AND (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
+            ORDER BY d.dchdate
+        ', [$start_date, $end_date, $search, $search, $search]);
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
@@ -7331,21 +7328,18 @@ class DebtorController extends Controller
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
         $pttype_sss_72 = DB::table('main_setting')->where('name', 'pttype_sss_72')->value('value');
 
-        $debtor = Debtor_1102050101_304::whereBetween('dchdate', [$start_date, $end_date])
-            ->where(function ($query) use ($search) {
-                $query->where('ptname', 'like', '%' . $search . '%');
-                $query->orwhere('hn', 'like', '%' . $search . '%');
-                $query->orwhere('an', 'like', '%' . $search . '%');
-            })
-            ->orderBy('dchdate')->get()
-            ->map(function ($item) {
-                if (($item->receive - $item->debtor) >= 0) {
-                    $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
-                } else {
-                    $item->days = Carbon::parse($item->dchdate)->diffInDays(Carbon::today());
-                }
-                return $item;
-            });
+        $debtor = DB::select('
+            SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                   CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
+                   THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+            FROM debtor_1102050101_304 d
+            LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(receive_total) AS receive_total, 
+                              MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                       FROM stm_ucs GROUP BY an) stm ON stm.an = d.an
+            WHERE d.dchdate BETWEEN ? AND ?
+            AND (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
+            ORDER BY d.dchdate
+        ', [$start_date, $end_date, $search, $search, $search]);
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
@@ -7571,21 +7565,18 @@ class DebtorController extends Controller
         $search = $request->search ?: Session::get('search');
         $pttype_sss_72 = DB::table('main_setting')->where('name', 'pttype_sss_72')->value('value');
 
-        $debtor = Debtor_1102050101_308::whereBetween('dchdate', [$start_date, $end_date])
-            ->where(function ($query) use ($search) {
-                $query->where('ptname', 'like', '%' . $search . '%');
-                $query->orwhere('hn', 'like', '%' . $search . '%');
-                $query->orwhere('an', 'like', '%' . $search . '%');
-            })
-            ->orderBy('dchdate')->get()
-            ->map(function ($item) {
-                if (($item->receive - $item->debtor) >= 0) {
-                    $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
-                } else {
-                    $item->days = Carbon::parse($item->dchdate)->diffInDays(Carbon::today());
-                }
-                return $item;
-            });
+        $debtor = DB::select('
+            SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                   CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
+                   THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+            FROM debtor_1102050101_308 d
+            LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(receive_total) AS receive_total, 
+                              MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                       FROM stm_ucs GROUP BY an) stm ON stm.an = d.an
+            WHERE d.dchdate BETWEEN ? AND ?
+            AND (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
+            ORDER BY d.dchdate
+        ', [$start_date, $end_date, $search, $search, $search]);
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
@@ -7806,21 +7797,18 @@ class DebtorController extends Controller
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search = $request->search ?: Session::get('search');
 
-        $debtor = Debtor_1102050101_310::whereBetween('dchdate', [$start_date, $end_date])
-            ->where(function ($query) use ($search) {
-                $query->where('ptname', 'like', '%' . $search . '%');
-                $query->orwhere('hn', 'like', '%' . $search . '%');
-                $query->orwhere('an', 'like', '%' . $search . '%');
-            })
-            ->orderBy('dchdate')->get()
-            ->map(function ($item) {
-                if (($item->receive - $item->debtor) >= 0) {
-                    $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
-                } else {
-                    $item->days = Carbon::parse($item->dchdate)->diffInDays(Carbon::today());
-                }
-                return $item;
-            });
+        $debtor = DB::select('
+            SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                   CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
+                   THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+            FROM debtor_1102050101_310 d
+            LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(receive_total) AS receive_total, 
+                              MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                       FROM stm_ucs GROUP BY an) stm ON stm.an = d.an
+            WHERE d.dchdate BETWEEN ? AND ?
+            AND (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
+            ORDER BY d.dchdate
+        ', [$start_date, $end_date, $search, $search, $search]);
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,a.age_y,
@@ -8030,36 +8018,52 @@ class DebtorController extends Controller
 
         if ($search) {
             $debtor = DB::select('
-                SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,
-                    d.income,d.rcpt_money,d.kidney,d.debtor,d.debtor_lock, IFNULL(stm.receive_total,0)
-                    + IFNULL(cipn.gtotal,0) + CASE WHEN d.kidney > 0 THEN IFNULL(csop.amount,0) ELSE 0 END AS receive,
-                    stm.repno,cipn.rid AS cipn_rid,csop.rid AS csop_rid, CASE WHEN (IFNULL(stm.receive_total,0)
+                SELECT d.hn,d.an,d.cid,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,
+                    d.income,d.rcpt_money,d.kidney,d.debtor,d.debtor_lock, (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
+                    + IFNULL(cipn.gtotal,0) + CASE WHEN d.kidney > 0 THEN IFNULL(csop.amount,0) ELSE 0 END) AS receive,
+                    stm.repno,cipn.rid AS cipn_rid,csop.rid AS csop_rid, 
+                    COALESCE(stm.round_no, cipn.round_no, csop.round_no) AS stm_round_no,
+                    COALESCE(stm.receipt_date, cipn.receipt_date, csop.receipt_date) AS stm_receipt_date,
+                    COALESCE(stm.receive_no, cipn.receive_no, csop.receive_no) AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
                     + IFNULL(cipn.gtotal,0) + CASE WHEN d.kidney > 0 THEN IFNULL(csop.amount,0) ELSE 0 END
                     - IFNULL(d.debtor,0)) >= 0 THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
-                FROM debtor_1102050101_402 d  
-                LEFT JOIN (SELECT an,SUM(receive_total) AS receive_total,GROUP_CONCAT(repno) AS repno 
+                FROM hrims.debtor_1102050101_402 d  
+                LEFT JOIN (SELECT an,SUM(receive_total) AS receive_total,GROUP_CONCAT(repno) AS repno, 
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no 
                     FROM hrims.stm_ofc GROUP BY an) stm ON stm.an = d.an
-                LEFT JOIN (SELECT an,SUM(gtotal) AS gtotal, GROUP_CONCAT(rid) AS rid 
+                LEFT JOIN (SELECT an,SUM(gtotal) AS gtotal, GROUP_CONCAT(rid) AS rid,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no 
                     FROM hrims.stm_ofc_cipn GROUP BY an) cipn ON cipn.an = d.an
-                LEFT JOIN (SELECT d2.an,SUM(c.amount) AS amount,GROUP_CONCAT(c.rid) AS rid FROM debtor_1102050101_402 d2 
+                LEFT JOIN (SELECT d2.an,SUM(c.amount) AS amount,GROUP_CONCAT(c.rid) AS rid,
+                    MAX(c.round_no) AS round_no, MAX(c.receipt_date) AS receipt_date, MAX(c.receive_no) AS receive_no 
+                    FROM hrims.debtor_1102050101_402 d2 
                     JOIN hrims.stm_ofc_csop c ON c.hn = d2.hn AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
                     GROUP BY d2.an) csop ON csop.an = d.an 
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
                 AND d.dchdate BETWEEN ? AND ?', [$search, $search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,
-                    d.income,d.rcpt_money,d.kidney,d.debtor,d.debtor_lock, IFNULL(stm.receive_total,0)
-                    + IFNULL(cipn.gtotal,0) + CASE WHEN d.kidney > 0 THEN IFNULL(csop.amount,0) ELSE 0 END AS receive,
-                    stm.repno,cipn.rid AS cipn_rid,csop.rid AS csop_rid, CASE WHEN (IFNULL(stm.receive_total,0)
+                SELECT d.hn,d.an,d.cid,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,
+                    d.income,d.rcpt_money,d.kidney,d.debtor,d.debtor_lock, (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
+                    + IFNULL(cipn.gtotal,0) + CASE WHEN d.kidney > 0 THEN IFNULL(csop.amount,0) ELSE 0 END) AS receive,
+                    stm.repno,cipn.rid AS cipn_rid,csop.rid AS csop_rid, 
+                    COALESCE(stm.round_no, cipn.round_no, csop.round_no) AS stm_round_no,
+                    COALESCE(stm.receipt_date, cipn.receipt_date, csop.receipt_date) AS stm_receipt_date,
+                    COALESCE(stm.receive_no, cipn.receive_no, csop.receive_no) AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
                     + IFNULL(cipn.gtotal,0) + CASE WHEN d.kidney > 0 THEN IFNULL(csop.amount,0) ELSE 0 END
                     - IFNULL(d.debtor,0)) >= 0 THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
-                FROM debtor_1102050101_402 d    
-                LEFT JOIN (SELECT an,SUM(receive_total) AS receive_total,GROUP_CONCAT(repno) AS repno 
+                FROM hrims.debtor_1102050101_402 d    
+                LEFT JOIN (SELECT an,SUM(receive_total) AS receive_total,GROUP_CONCAT(repno) AS repno, 
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no 
                     FROM hrims.stm_ofc GROUP BY an) stm ON stm.an = d.an
-                LEFT JOIN (SELECT an,SUM(gtotal) AS gtotal, GROUP_CONCAT(rid) AS rid 
+                LEFT JOIN (SELECT an,SUM(gtotal) AS gtotal, GROUP_CONCAT(rid) AS rid, 
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no 
                     FROM hrims.stm_ofc_cipn GROUP BY an) cipn ON cipn.an = d.an
-                LEFT JOIN (SELECT d2.an,SUM(c.amount) AS amount,GROUP_CONCAT(c.rid) AS rid FROM debtor_1102050101_402 d2 
+                LEFT JOIN (SELECT d2.an,SUM(c.amount) AS amount,GROUP_CONCAT(c.rid) AS rid,
+                    MAX(c.round_no) AS round_no, MAX(c.receipt_date) AS receipt_date, MAX(c.receive_no) AS receive_no 
+                    FROM hrims.debtor_1102050101_402 d2 
                     JOIN hrims.stm_ofc_csop c ON c.hn = d2.hn AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
                     GROUP BY d2.an) csop ON csop.an = d.an 
                 WHERE d.dchdate BETWEEN ? AND ? ', [$start_date, $end_date]);
@@ -8268,21 +8272,18 @@ class DebtorController extends Controller
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search = $request->search ?: Session::get('search');
 
-        $debtor = Debtor_1102050101_502::whereBetween('dchdate', [$start_date, $end_date])
-            ->where(function ($query) use ($search) {
-                $query->where('ptname', 'like', '%' . $search . '%');
-                $query->orwhere('hn', 'like', '%' . $search . '%');
-                $query->orwhere('an', 'like', '%' . $search . '%');
-            })
-            ->orderBy('dchdate')->get()
-            ->map(function ($item) {
-                if (($item->receive - $item->debtor) >= 0) {
-                    $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
-                } else {
-                    $item->days = Carbon::parse($item->dchdate)->diffInDays(Carbon::today());
-                }
-                return $item;
-            });
+        $debtor = DB::select('
+            SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                   CASE WHEN (IFNULL(stm.pay,0) - IFNULL(d.debtor,0)) >= 0 
+                   THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+            FROM debtor_1102050101_502 d
+            LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(pay) AS pay, 
+                              MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                       FROM stm_lgo GROUP BY an) stm ON stm.an = d.an
+            WHERE d.dchdate BETWEEN ? AND ?
+            AND (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
+            ORDER BY d.dchdate
+        ', [$start_date, $end_date, $search, $search, $search]);
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
@@ -8497,21 +8498,18 @@ class DebtorController extends Controller
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search = $request->search ?: Session::get('search');
 
-        $debtor = Debtor_1102050101_504::whereBetween('dchdate', [$start_date, $end_date])
-            ->where(function ($query) use ($search) {
-                $query->where('ptname', 'like', '%' . $search . '%');
-                $query->orwhere('hn', 'like', '%' . $search . '%');
-                $query->orwhere('an', 'like', '%' . $search . '%');
-            })
-            ->orderBy('dchdate')->get()
-            ->map(function ($item) {
-                if (($item->receive - $item->debtor) >= 0) {
-                    $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
-                } else {
-                    $item->days = Carbon::parse($item->dchdate)->diffInDays(Carbon::today());
-                }
-                return $item;
-            });
+        $debtor = DB::select('
+            SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                   CASE WHEN (IFNULL(stm.pay,0) - IFNULL(d.debtor,0)) >= 0 
+                   THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+            FROM debtor_1102050101_504 d
+            LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(pay) AS pay, 
+                              MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                       FROM stm_lgo GROUP BY an) stm ON stm.an = d.an
+            WHERE d.dchdate BETWEEN ? AND ?
+            AND (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
+            ORDER BY d.dchdate
+        ', [$start_date, $end_date, $search, $search, $search]);
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
@@ -8728,13 +8726,18 @@ class DebtorController extends Controller
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search = $request->search ?: Session::get('search');
 
-        $debtor = Debtor_1102050101_704::whereBetween('dchdate', [$start_date, $end_date])
-            ->where(function ($query) use ($search) {
-                $query->where('ptname', 'like', '%' . $search . '%');
-                $query->orwhere('hn', 'like', '%' . $search . '%');
-                $query->orwhere('an', 'like', '%' . $search . '%');
-            })
-            ->orderBy('dchdate')->get();
+        $debtor = DB::select('
+            SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                   CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
+                   THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+            FROM debtor_1102050101_704 d
+            LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(receive_total) AS receive_total, 
+                              MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                       FROM stm_ucs GROUP BY an) stm ON stm.an = d.an
+            WHERE d.dchdate BETWEEN ? AND ?
+            AND (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
+            ORDER BY d.dchdate
+        ', [$start_date, $end_date, $search, $search, $search]);
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
@@ -8954,13 +8957,9 @@ class DebtorController extends Controller
 
         if ($search) {
             $debtor = DB::connection('hosxp')->select('
-                SELECT d.regdate,d.regtime,d.dchdate,d.dchtime,d.hn,d.vn,d.an,d.ptname,d.mobile_phone_number,
-                    d.pttype,d.pdx,d.income,d.paid_money,d.rcpt_money,d.debtor,d.debtor_lock,
-                    CASE WHEN IFNULL(r.bill_amount,0) > 0 THEN "กระทบยอดแล้ว" ELSE d.status END AS status,
-                    d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no, 
-                    IFNULL(d.receive,0) + IFNULL(r.bill_amount,0) AS receive,d.repno, r.rcpno,
-                    r.bill_amount,IFNULL(t.visit,0) AS visit,CASE WHEN (IFNULL(d.receive,0) 
-                    + IFNULL(r.bill_amount,0)) - IFNULL(d.debtor,0) >= 0
+                SELECT d.*, IFNULL(d.receive,0) + IFNULL(r.bill_amount,0) AS receive,
+                    stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.bill_amount,0)) - IFNULL(d.debtor,0) >= 0
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM hrims.debtor_1102050102_107 d
                 LEFT JOIN (SELECT r.vn,r.bill_date,SUM(r.bill_amount) AS bill_amount,
@@ -8968,19 +8967,17 @@ class DebtorController extends Controller
                     FROM rcpt_print r
                     WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                     GROUP BY r.vn, r.bill_date) r ON r.vn = d.an AND r.bill_date > d.dchdate
-                LEFT JOIN (SELECT an, COUNT(*) AS visit FROM hrims.debtor_1102050102_107_tracking 
-                    GROUP BY an) t ON t.an = d.an
+                LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(pay) AS pay, 
+                                  MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                           FROM hrims.stm_lgo GROUP BY an) stm ON stm.an = d.an
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
-                AND d.dchdate BETWEEN ? AND ?', [$search, $search, $search, $start_date, $end_date]);
+                AND d.dchdate BETWEEN ? AND ?
+', [$search, $search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::connection('hosxp')->select('
-                SELECT d.regdate,d.regtime,d.dchdate,d.dchtime,d.hn,d.vn,d.an,d.ptname,d.mobile_phone_number,
-                    d.pttype,d.pdx,d.income,d.paid_money,d.rcpt_money,d.debtor,d.debtor_lock,
-                    CASE WHEN IFNULL(r.bill_amount,0) > 0 THEN "กระทบยอดแล้ว" ELSE d.status END AS status,
-                    d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no, 
-                    IFNULL(d.receive,0) + IFNULL(r.bill_amount,0) AS receive,d.repno, r.rcpno,
-                    r.bill_amount,IFNULL(t.visit,0) AS visit,CASE WHEN (IFNULL(d.receive,0) 
-                    + IFNULL(r.bill_amount,0)) - IFNULL(d.debtor,0) >= 0
+                SELECT d.*, IFNULL(d.receive,0) + IFNULL(r.bill_amount,0) AS receive,
+                    stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.bill_amount,0)) - IFNULL(d.debtor,0) >= 0
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM hrims.debtor_1102050102_107 d
                 LEFT JOIN (SELECT r.vn,r.bill_date,SUM(r.bill_amount) AS bill_amount,
@@ -8988,9 +8985,11 @@ class DebtorController extends Controller
                     FROM rcpt_print r
                     WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                     GROUP BY r.vn, r.bill_date) r ON r.vn = d.an AND r.bill_date > d.dchdate
-                LEFT JOIN (SELECT an, COUNT(*) AS visit FROM hrims.debtor_1102050102_107_tracking 
-                    GROUP BY an) t ON t.an = d.an
-                WHERE d.dchdate BETWEEN ? AND ?', [$start_date, $end_date]);
+                LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(pay) AS pay, 
+                                  MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                           FROM hrims.stm_lgo GROUP BY an) stm ON stm.an = d.an
+                WHERE d.dchdate BETWEEN ? AND ?
+', [$start_date, $end_date]);
         }
 
         $debtor_search = DB::connection('hosxp')->select('
@@ -9315,21 +9314,18 @@ class DebtorController extends Controller
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search = $request->search ?: Session::get('search');
 
-        $debtor = Debtor_1102050102_109::whereBetween('dchdate', [$start_date, $end_date])
-            ->where(function ($query) use ($search) {
-                $query->where('ptname', 'like', '%' . $search . '%');
-                $query->orwhere('hn', 'like', '%' . $search . '%');
-                $query->orwhere('an', 'like', '%' . $search . '%');
-            })
-            ->orderBy('dchdate')->get()
-            ->map(function ($item) {
-                if (($item->receive - $item->debtor) >= 0) {
-                    $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
-                } else {
-                    $item->days = Carbon::parse($item->dchdate)->diffInDays(Carbon::today());
-                }
-                return $item;
-            });
+        $debtor = DB::select('
+            SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                   CASE WHEN (IFNULL(stm.pay,0) - IFNULL(d.debtor,0)) >= 0 
+                   THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+            FROM debtor_1102050102_109 d
+            LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(pay) AS pay, 
+                              MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                       FROM stm_lgo GROUP BY an) stm ON stm.an = d.an
+            WHERE d.dchdate BETWEEN ? AND ?
+            AND (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
+            ORDER BY d.dchdate
+        ', [$start_date, $end_date, $search, $search, $search]);
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
@@ -9548,39 +9544,45 @@ class DebtorController extends Controller
 
         if ($search) {
             $debtor = DB::select('
-                SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,
-                    d.income,d.rcpt_money,d.kidney,d.debtor,d.debtor_lock, IFNULL(stm.receive_total,0)
-                    + IFNULL(cipn.gtotal,0) + CASE WHEN d.kidney > 0 THEN IFNULL(csop.amount,0) ELSE 0 END AS receive,
-                    stm.repno,cipn.rid AS cipn_rid,csop.rid AS csop_rid, CASE WHEN (IFNULL(stm.receive_total,0)
-                    + IFNULL(cipn.gtotal,0) + CASE WHEN d.kidney > 0 THEN IFNULL(csop.amount,0) ELSE 0 END
-                    - IFNULL(d.debtor,0)) >= 0 THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+                SELECT d.*, IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) + CASE WHEN d.kidney > 0 
+                    THEN IFNULL(csop.amount,0) ELSE 0 END AS receive,
+                    stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                    cipn.rid AS cipn_rid, csop.rid AS csop_rid, 
+                    CASE WHEN (IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) + CASE WHEN d.kidney > 0 
+                    THEN IFNULL(csop.amount,0) ELSE 0 END - IFNULL(d.debtor,0)) >= 0 
+                    THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_111 d    
-                LEFT JOIN (SELECT an,SUM(receive_total) AS receive_total,GROUP_CONCAT(repno) AS repno 
+                LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total, GROUP_CONCAT(repno) AS repno,
+                                  MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                     FROM hrims.stm_ofc GROUP BY an) stm ON stm.an = d.an
-                LEFT JOIN (SELECT an,SUM(gtotal) AS gtotal, GROUP_CONCAT(rid) AS rid 
+                LEFT JOIN (SELECT an, SUM(gtotal) AS gtotal, GROUP_CONCAT(rid) AS rid 
                     FROM hrims.stm_ofc_cipn GROUP BY an) cipn ON cipn.an = d.an
-                LEFT JOIN (SELECT d2.an,SUM(c.amount) AS amount,GROUP_CONCAT(c.rid) AS rid FROM debtor_1102050102_111 d2 
+                LEFT JOIN (SELECT d2.an, SUM(c.amount) AS amount, GROUP_CONCAT(c.rid) AS rid FROM debtor_1102050102_111 d2 
                     JOIN hrims.stm_ofc_csop c ON c.hn = d2.hn AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
                     GROUP BY d2.an) csop ON csop.an = d.an       
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
-                AND d.dchdate BETWEEN ? AND ?', [$search, $search, $search, $start_date, $end_date]);
+                AND d.dchdate BETWEEN ? AND ?
+', [$search, $search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,
-                    d.income,d.rcpt_money,d.kidney,d.debtor,d.debtor_lock, IFNULL(stm.receive_total,0)
-                    + IFNULL(cipn.gtotal,0) + CASE WHEN d.kidney > 0 THEN IFNULL(csop.amount,0) ELSE 0 END AS receive,
-                    stm.repno,cipn.rid AS cipn_rid,csop.rid AS csop_rid, CASE WHEN (IFNULL(stm.receive_total,0)
-                    + IFNULL(cipn.gtotal,0) + CASE WHEN d.kidney > 0 THEN IFNULL(csop.amount,0) ELSE 0 END
-                    - IFNULL(d.debtor,0)) >= 0 THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+                SELECT d.*, IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) + CASE WHEN d.kidney > 0 
+                    THEN IFNULL(csop.amount,0) ELSE 0 END AS receive,
+                    stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                    cipn.rid AS cipn_rid, csop.rid AS csop_rid, 
+                    CASE WHEN (IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) + CASE WHEN d.kidney > 0 
+                    THEN IFNULL(csop.amount,0) ELSE 0 END - IFNULL(d.debtor,0)) >= 0 
+                    THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_111 d    
-                LEFT JOIN (SELECT an,SUM(receive_total) AS receive_total,GROUP_CONCAT(repno) AS repno 
+                LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total, GROUP_CONCAT(repno) AS repno,
+                                  MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                     FROM hrims.stm_ofc GROUP BY an) stm ON stm.an = d.an
-                LEFT JOIN (SELECT an,SUM(gtotal) AS gtotal, GROUP_CONCAT(rid) AS rid 
+                LEFT JOIN (SELECT an, SUM(gtotal) AS gtotal, GROUP_CONCAT(rid) AS rid 
                     FROM hrims.stm_ofc_cipn GROUP BY an) cipn ON cipn.an = d.an
-                LEFT JOIN (SELECT d2.an,SUM(c.amount) AS amount,GROUP_CONCAT(c.rid) AS rid FROM debtor_1102050102_111 d2 
+                LEFT JOIN (SELECT d2.an, SUM(c.amount) AS amount, GROUP_CONCAT(c.rid) AS rid FROM debtor_1102050102_111 d2 
                     JOIN hrims.stm_ofc_csop c ON c.hn = d2.hn AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
                     GROUP BY d2.an) csop ON csop.an = d.an                     
-                WHERE d.dchdate BETWEEN ? AND ?', [$start_date, $end_date]);
+                WHERE d.dchdate BETWEEN ? AND ?
+', [$start_date, $end_date]);
         }
 
         $debtor_search = DB::connection('hosxp')->select('
@@ -9794,21 +9796,18 @@ class DebtorController extends Controller
         $search = $request->search ?: Session::get('search');
         $pttype_act = DB::table('main_setting')->where('name', 'pttype_act')->value('value');
 
-        $debtor = Debtor_1102050102_603::whereBetween('dchdate', [$start_date, $end_date])
-            ->where(function ($query) use ($search) {
-                $query->where('ptname', 'like', '%' . $search . '%');
-                $query->orwhere('hn', 'like', '%' . $search . '%');
-                $query->orwhere('an', 'like', '%' . $search . '%');
-            })
-            ->orderBy('dchdate')->get()
-            ->map(function ($item) {
-                if (($item->receive - $item->debtor) >= 0) {
-                    $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
-                } else {
-                    $item->days = Carbon::parse($item->dchdate)->diffInDays(Carbon::today());
-                }
-                return $item;
-            });
+        $debtor = DB::select('
+            SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                   CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
+                   THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+            FROM debtor_1102050102_603 d
+            LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(receive_total) AS receive_total, 
+                              MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                       FROM stm_ucs GROUP BY an) stm ON stm.an = d.an
+            WHERE d.dchdate BETWEEN ? AND ?
+            AND (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
+            ORDER BY d.dchdate
+        ', [$start_date, $end_date, $search, $search, $search]);
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
@@ -10027,41 +10026,23 @@ class DebtorController extends Controller
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search = $request->search ?: Session::get('search');
 
-        if ($search) {
-            $debtor = DB::select("
-                SELECT d.hn,d.an,MAX(d.ptname) AS ptname,MAX(d.pttype) AS pttype,MAX(d.regdate) AS regdate,MAX(d.regtime) AS regtime,
-                    MAX(d.dchdate) AS dchdate,MAX(d.dchtime) AS dchtime,MAX(d.pdx) AS pdx,MAX(d.adjrw) AS adjrw,MAX(d.income) AS income,
-                    MAX(d.rcpt_money) AS rcpt_money,MAX(d.kidney) AS kidney,MAX(d.debtor) AS debtor,MAX(d.debtor_lock) AS debtor_lock,
-                    IFNULL(s.compensate_treatment,0)+ CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(k.compensate_kidney,0) ELSE 0 END AS receive,
-                    IFNULL(s.compensate_treatment,0) AS receive_lgo,CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(k.compensate_kidney,0) ELSE 0 END AS receive_kidney,
-                    s.repno,k.repno AS rid,CASE WHEN (IFNULL(s.compensate_treatment,0) + CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(k.compensate_kidney,0)
-                    ELSE 0 END - MAX(d.debtor)) >= 0 THEN 0 ELSE DATEDIFF(CURDATE(), MAX(d.dchdate)) END AS days
-                FROM debtor_1102050102_802 d  
-                LEFT JOIN (SELECT an, SUM(compensate_treatment) AS compensate_treatment,GROUP_CONCAT(DISTINCT NULLIF(repno,'')) AS repno
-                    FROM stm_lgo GROUP BY an) s ON s.an = d.an
-                LEFT JOIN (SELECT d2.an,SUM(k.compensate_kidney) AS compensate_kidney, GROUP_CONCAT(DISTINCT NULLIF(k.repno,'')) AS repno
-                    FROM debtor_1102050102_802 d2 JOIN stm_lgo_kidney k ON k.cid = d2.cid AND k.datetimeadm BETWEEN d2.regdate AND d2.dchdate
-                    WHERE d2.dchdate BETWEEN ? AND ? GROUP BY d2.an) k ON k.an = d.an
-                WHERE (d.ptname LIKE CONCAT('%', ?, '%') OR d.hn LIKE CONCAT('%', ?, '%') OR d.an LIKE CONCAT('%', ?, '%'))
-                AND d.dchdate BETWEEN ? AND ?
-                GROUP BY d.an", [$start_date, $end_date, $search, $search, $search, $start_date, $end_date]);
-        } else {
-            $debtor = DB::select("
-                SELECT d.hn,d.an,MAX(d.ptname) AS ptname,MAX(d.pttype) AS pttype,MAX(d.regdate) AS regdate,MAX(d.regtime) AS regtime,
-                    MAX(d.dchdate) AS dchdate,MAX(d.dchtime) AS dchtime,MAX(d.pdx) AS pdx,MAX(d.adjrw) AS adjrw,MAX(d.income) AS income,
-                    MAX(d.rcpt_money) AS rcpt_money,MAX(d.kidney) AS kidney,MAX(d.debtor) AS debtor,MAX(d.debtor_lock) AS debtor_lock,
-                    IFNULL(s.compensate_treatment,0)+ CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(k.compensate_kidney,0) ELSE 0 END AS receive,
-                    IFNULL(s.compensate_treatment,0) AS receive_lgo,CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(k.compensate_kidney,0) ELSE 0 END AS receive_kidney,
-                    s.repno,k.repno AS rid,CASE WHEN (IFNULL(s.compensate_treatment,0) + CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(k.compensate_kidney,0)
-                    ELSE 0 END - MAX(d.debtor)) >= 0 THEN 0 ELSE DATEDIFF(CURDATE(), MAX(d.dchdate)) END AS days
-                FROM debtor_1102050102_802 d    
-                LEFT JOIN (SELECT an, SUM(compensate_treatment) AS compensate_treatment,GROUP_CONCAT(DISTINCT NULLIF(repno,'')) AS repno
-                    FROM stm_lgo GROUP BY an) s ON s.an = d.an
-                LEFT JOIN (SELECT d2.an,SUM(k.compensate_kidney) AS compensate_kidney, GROUP_CONCAT(DISTINCT NULLIF(k.repno,'')) AS repno
-                    FROM debtor_1102050102_802 d2 JOIN stm_lgo_kidney k ON k.cid = d2.cid AND k.datetimeadm BETWEEN d2.regdate AND d2.dchdate
-                    WHERE d2.dchdate BETWEEN ? AND ? GROUP BY d2.an) k ON k.an = d.an
-                WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an", [$start_date, $end_date, $start_date, $end_date]);
-        }
+        $debtor = DB::select('
+            SELECT d.*, IFNULL(sk.amount,0) AS kidney, stm.repno, stm.round_no AS stm_round_no, 
+                   stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                   CASE WHEN (IFNULL(stm.pay,0) - IFNULL(d.debtor,0)) >= 0 
+                   THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+            FROM debtor_1102050102_802 d
+            LEFT JOIN (SELECT d2.an,SUM(k.compensate_kidney) AS amount 
+                       FROM debtor_1102050102_802 d2 
+                       JOIN stm_lgo_kidney k ON k.cid = d2.cid AND k.datetimeadm BETWEEN d2.regdate AND d2.dchdate
+                       GROUP BY d2.an) sk ON sk.an = d.an
+            LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(pay) AS pay, 
+                              MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                       FROM stm_lgo GROUP BY an) stm ON stm.an = d.an
+            WHERE d.dchdate BETWEEN ? AND ?
+            AND (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
+            ORDER BY d.dchdate
+        ', [$start_date, $end_date, $search, $search, $search]);
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
@@ -10261,7 +10242,6 @@ class DebtorController extends Controller
         return view('debtor.1102050102_802_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050102_804--------------------------------------------------------------------------------------------------------------
     public function _1102050102_804(Request $request)
     {
         set_time_limit(0);
@@ -10271,43 +10251,23 @@ class DebtorController extends Controller
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search = $request->search ?: Session::get('search');
 
-        if ($search) {
-            $debtor = DB::select('
-                SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,
-                    d.income,d.rcpt_money,d.kidney,d.debtor,d.debtor_lock, IFNULL(stm.receive_total,0)
-                    + IFNULL(cipn.gtotal,0) + CASE WHEN d.kidney > 0 THEN IFNULL(csop.amount,0) ELSE 0 END AS receive,
-                    stm.repno,cipn.rid AS cipn_rid,csop.rid AS csop_rid, CASE WHEN (IFNULL(stm.receive_total,0)
-                    + IFNULL(cipn.gtotal,0) + CASE WHEN d.kidney > 0 THEN IFNULL(csop.amount,0) ELSE 0 END
-                    - IFNULL(d.debtor,0)) >= 0 THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
-                FROM debtor_1102050102_804 d    
-                LEFT JOIN (SELECT an,SUM(receive_total) AS receive_total,GROUP_CONCAT(repno) AS repno 
-                    FROM hrims.stm_ofc GROUP BY an) stm ON stm.an = d.an
-                LEFT JOIN (SELECT an,SUM(gtotal) AS gtotal, GROUP_CONCAT(rid) AS rid 
-                    FROM hrims.stm_ofc_cipn GROUP BY an) cipn ON cipn.an = d.an
-                LEFT JOIN (SELECT d2.an,SUM(c.amount) AS amount,GROUP_CONCAT(c.rid) AS rid FROM debtor_1102050102_804 d2 
-                    JOIN hrims.stm_ofc_csop c ON c.hn = d2.hn AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
-                    GROUP BY d2.an) csop ON csop.an = d.an 
-                WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
-                AND d.dchdate BETWEEN ? AND ?
-                GROUP BY d.an', [$search, $search, $search, $start_date, $end_date]);
-        } else {
-            $debtor = DB::select('
-                SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,
-                    d.income,d.rcpt_money,d.kidney,d.debtor,d.debtor_lock, IFNULL(stm.receive_total,0)
-                    + IFNULL(cipn.gtotal,0) + CASE WHEN d.kidney > 0 THEN IFNULL(csop.amount,0) ELSE 0 END AS receive,
-                    stm.repno,cipn.rid AS cipn_rid,csop.rid AS csop_rid, CASE WHEN (IFNULL(stm.receive_total,0)
-                    + IFNULL(cipn.gtotal,0) + CASE WHEN d.kidney > 0 THEN IFNULL(csop.amount,0) ELSE 0 END
-                    - IFNULL(d.debtor,0)) >= 0 THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
-                FROM debtor_1102050102_804 d    
-                LEFT JOIN (SELECT an,SUM(receive_total) AS receive_total,GROUP_CONCAT(repno) AS repno 
-                    FROM hrims.stm_ofc GROUP BY an) stm ON stm.an = d.an
-                LEFT JOIN (SELECT an,SUM(gtotal) AS gtotal, GROUP_CONCAT(rid) AS rid 
-                    FROM hrims.stm_ofc_cipn GROUP BY an) cipn ON cipn.an = d.an
-                LEFT JOIN (SELECT d2.an,SUM(c.amount) AS amount,GROUP_CONCAT(c.rid) AS rid FROM debtor_1102050102_804 d2 
-                    JOIN hrims.stm_ofc_csop c ON c.hn = d2.hn AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
-                    GROUP BY d2.an) csop ON csop.an = d.an         
-                WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an', [$start_date, $end_date]);
-        }
+        $debtor = DB::select('
+            SELECT d.*, IFNULL(csop.amount,0) AS amount, stm.repno, stm.round_no AS stm_round_no, 
+                   stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                   CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
+                   THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+            FROM debtor_1102050102_804 d
+            LEFT JOIN (SELECT d2.an,SUM(c.amount) AS amount,GROUP_CONCAT(c.rid) AS rid 
+                       FROM debtor_1102050102_804 d2 
+                       JOIN hrims.stm_ofc_csop c ON c.hn = d2.hn AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
+                       GROUP BY d2.an) csop ON csop.an = d.an
+            LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(receive_total) AS receive_total, 
+                              MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                       FROM stm_ofc GROUP BY an) stm ON stm.an = d.an
+            WHERE d.dchdate BETWEEN ? AND ?
+            AND (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
+            ORDER BY d.dchdate
+        ', [$start_date, $end_date, $search, $search, $search]);
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,

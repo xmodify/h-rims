@@ -49,27 +49,27 @@ use App\Models\Debtor_1102050102_804;
 
 class DebtorController extends Controller
 {
-//Check Login---------------------------------------------------------------------
+    //Check Login---------------------------------------------------------------------
     public function __construct()
     {
         $this->middleware('auth');
     }
-//index---------------------------------------------------------------------------
+    //index---------------------------------------------------------------------------
     public function index()
-    {    
+    {
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
-        $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value'); 
+        $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
 
-        return view('debtor.index', compact('hospital_name','hospital_code'));
+        return view('debtor.index', compact('hospital_name', 'hospital_code'));
     }
-//_check_income---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
-    public function _check_income(Request $request )
+    //_check_income---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+    public function _check_income(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: date('Y-m-d', strtotime("-1 day"));
-        $end_date = $request->end_date ?: date('Y-m-d', strtotime("-1 day"));   
+        $end_date = $request->end_date ?: date('Y-m-d', strtotime("-1 day"));
 
         $check_income = DB::connection('hosxp')->select("
             SELECT o.op_income,o.op_paid,v.vn_income,v.vn_paid,v.vn_rcpt,v.vn_income - v.vn_rcpt AS vn_debtor,
@@ -92,8 +92,8 @@ class DebtorController extends Controller
                 LEFT JOIN ipt i ON i.vn = o.vn
                 WHERE o.vstdate BETWEEN ? AND ?
                 AND (o.an IS NULL OR o.an = '')
-                AND i.vn IS NULL) o"  ,[$start_date,$end_date,$start_date,$end_date]);
-        
+                AND i.vn IS NULL) o", [$start_date, $end_date, $start_date, $end_date]);
+
         $check_income_pttype = DB::connection('hosxp')->select('
             SELECT p.hipdata_code AS inscl,  
                 CASE WHEN p.hipdata_code IN ("A1","CSH") THEN "ชำระเงิน"
@@ -137,8 +137,8 @@ class DebtorController extends Controller
             WHERE o.vstdate BETWEEN ? AND ?
             AND i.vn IS NULL
             GROUP BY p.hipdata_code
-            ORDER BY p.hipdata_code',[$start_date,$end_date,$start_date,$end_date]);
-        
+            ORDER BY p.hipdata_code', [$start_date, $end_date, $start_date, $end_date]);
+
         $check_income_ipd = DB::connection('hosxp')->select("
             SELECT o.op_income,o.op_paid,v.an_income,v.an_paid,v.an_rcpt,v.an_income-v.an_rcpt AS an_debtor,
             IF(v.an_income <> o.op_income, 'Resync AN', 'Success') AS status_check
@@ -150,8 +150,10 @@ class DebtorController extends Controller
                 FROM opitemrece o 
                 INNER JOIN an_stat a ON a.an = o.an 
                 WHERE a.dchdate BETWEEN ? AND ?) o"
-            ,[$start_date,$end_date,$start_date,$end_date]); 
-            
+            ,
+            [$start_date, $end_date, $start_date, $end_date]
+        );
+
         $check_income_ipd_pttype = DB::connection('hosxp')->select('
             SELECT p.hipdata_code AS inscl,
                 CASE WHEN p.hipdata_code IN ("A1","CSH") THEN "ชำระเงิน"
@@ -184,15 +186,21 @@ class DebtorController extends Controller
             WHERE i.confirm_discharge = "Y"
             AND i.dchdate BETWEEN ? AND ?
             GROUP BY p.hipdata_code
-            ORDER BY p.hipdata_code',[$start_date,$end_date]);
+            ORDER BY p.hipdata_code', [$start_date, $end_date]);
 
         Session::put('start_date', $request->start_date);
         Session::put('end_date', $request->end_date);
 
-        return view('debtor._check_income',compact('start_date','end_date','check_income',
-            'check_income_pttype','check_income_ipd_pttype','check_income_ipd'));
+        return view('debtor._check_income', compact(
+            'start_date',
+            'end_date',
+            'check_income',
+            'check_income_pttype',
+            'check_income_ipd_pttype',
+            'check_income_ipd'
+        ));
     }
-//_check_income_detail--------------------------------------------------------------------------------------------------------------------------
+    //_check_income_detail--------------------------------------------------------------------------------------------------------------------------
     public function _check_income_detail(Request $request)
     {
         set_time_limit(0);
@@ -200,7 +208,7 @@ class DebtorController extends Controller
 
         $type = $request->type; // opd | ipd
         $start_date = Session::get('start_date') ?: date('Y-m-d', strtotime("-1 day"));
-        $end_date   = Session::get('end_date') ?: date('Y-m-d', strtotime("-1 day"));
+        $end_date = Session::get('end_date') ?: date('Y-m-d', strtotime("-1 day"));
 
         if ($type === 'opd') {
             // ---------------- OPD ----------------
@@ -214,7 +222,7 @@ class DebtorController extends Controller
                     AND (an IS NULL OR an = '') GROUP BY vn) o ON o.vn = v.vn
                 WHERE v.vstdate BETWEEN ? and ?
                 AND v.income <> IFNULL(o.sumprice,0)
-                ORDER BY diff DESC ",[$start_date,$end_date,$start_date,$end_date]);
+                ORDER BY diff DESC ", [$start_date, $end_date, $start_date, $end_date]);
 
         } else {
             // ---------------- IPD ----------------
@@ -231,19 +239,19 @@ class DebtorController extends Controller
                     WHERE a2.dchdate BETWEEN ? and ?
                     GROUP BY o.an) o ON o.an = a.an
                 WHERE a.income <> IFNULL(o.sum_price,0)
-                ORDER BY a.an ",[$start_date,$end_date,$start_date,$end_date]);
+                ORDER BY a.an ", [$start_date, $end_date, $start_date, $end_date]);
         }
 
         return response()->json($data);
     }
-//_check_nondebtor---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
-    public function _check_nondebtor(Request $request )
+    //_check_nondebtor---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
+    public function _check_nondebtor(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: date('Y-m-d', strtotime('-1 day'));
-        $end_date   = $request->end_date   ?: date('Y-m-d', strtotime('-1 day'));
+        $end_date = $request->end_date ?: date('Y-m-d', strtotime('-1 day'));
 
         $check = DB::connection('hosxp')->select("
             SELECT * FROM (SELECT 'OPD' AS dep,v.vstdate AS serv_date,v.vn AS vnan,v.hn,
@@ -342,13 +350,26 @@ class DebtorController extends Controller
                     UNION ALL SELECT an FROM hrims.debtor_1102050102_804
                 )  GROUP BY a.an ) x
             ORDER BY dep DESC,hipdata_code, serv_date "
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date
-            ,$start_date,$end_date,$start_date,$end_date]);        
+            ,
+            [
+                $start_date,
+                $end_date,
+                $start_date,
+                $end_date,
+                $start_date,
+                $end_date
+                ,
+                $start_date,
+                $end_date,
+                $start_date,
+                $end_date
+            ]
+        );
 
-        return view('debtor._check_nondebtor',compact('start_date','end_date','check'));
+        return view('debtor._check_nondebtor', compact('start_date', 'end_date', 'check'));
     }
-//_summary-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    public function _summary(Request $request )
+    //_summary-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    public function _summary(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
@@ -359,23 +380,23 @@ class DebtorController extends Controller
         $_1102050101_103 = DB::select('
             SELECT COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
             FROM debtor_1102050101_103 
-            WHERE vstdate BETWEEN ? AND ? ',[$start_date,$end_date]);
+            WHERE vstdate BETWEEN ? AND ? ', [$start_date, $end_date]);
         $_1102050101_109 = DB::select('
             SELECT COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
             FROM debtor_1102050101_109 
-            WHERE vstdate BETWEEN ? AND ? ',[$start_date,$end_date]);
+            WHERE vstdate BETWEEN ? AND ? ', [$start_date, $end_date]);
         $_1102050101_201 = DB::select('
             SELECT COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
             FROM debtor_1102050101_201 
-            WHERE vstdate BETWEEN ? AND ? ',[$start_date,$end_date]);
+            WHERE vstdate BETWEEN ? AND ? ', [$start_date, $end_date]);
         $_1102050101_203 = DB::select('
             SELECT COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
             FROM debtor_1102050101_203
-            WHERE vstdate BETWEEN ? AND ? ',[$start_date,$end_date]);
+            WHERE vstdate BETWEEN ? AND ? ', [$start_date, $end_date]);
         $_1102050101_209 = DB::select('
             SELECT COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
             FROM debtor_1102050101_209             
-            WHERE vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050101_216 = DB::select('
             SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,
                 SUM(IFNULL(s.receive_total,0)+CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END) AS receive
@@ -386,27 +407,27 @@ class DebtorController extends Controller
                 AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
             LEFT JOIN (SELECT cid,datetimeadm AS vstdate,SUM(receive_total) AS receive_total
                 FROM stm_ucs_kidney GROUP BY cid, datetimeadm) sk ON sk.cid = d.cid AND sk.vstdate = d.vstdate 
-            WHERE d.vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE d.vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050101_301 = DB::select('
             SELECT COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
             FROM debtor_1102050101_301 
-            WHERE vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050101_303 = DB::select('
             SELECT COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
             FROM debtor_1102050101_303 
-            WHERE vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050101_307 = DB::select('
             SELECT COUNT(DISTINCT IF(an IS NOT NULL AND an <> "", an, vn)) AS anvn,
                 SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
             FROM debtor_1102050101_307
-            WHERE COALESCE(dchdate, vstdate) BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE COALESCE(dchdate, vstdate) BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050101_309 = DB::select('
             SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,
                 SUM(IFNULL(d.receive,0)) + SUM(IFNULL(s.receive,0)) AS receive
             FROM debtor_1102050101_309 d 
             LEFT JOIN (SELECT cid,vstdate,SUM(IFNULL(amount,0)+ IFNULL(epopay,0) + IFNULL(epoadm,0)) AS receive
                 FROM stm_sss_kidney GROUP BY cid, vstdate) s ON s.cid = d.cid AND s.vstdate = d.vstdate
-            WHERE d.vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE d.vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050101_401 = DB::select("
             SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,
                 SUM(IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0)
@@ -420,27 +441,27 @@ class DebtorController extends Controller
                 AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5)
             LEFT JOIN (SELECT hn,vstdate,SUM(amount) AS amount FROM stm_ofc_csop
                 WHERE sys = 'HD' GROUP BY hn, vstdate) hd ON hd.hn = d.hn AND hd.vstdate = d.vstdate
-            WHERE d.vstdate BETWEEN ? AND ?",[$start_date,$end_date]);
+            WHERE d.vstdate BETWEEN ? AND ?", [$start_date, $end_date]);
         $_1102050101_501 = DB::select('
             SELECT COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
             FROM debtor_1102050101_501 
-            WHERE vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050101_503 = DB::select('
             SELECT COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
             FROM debtor_1102050101_503 
-            WHERE vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050101_701 = DB::select('
             SELECT COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
             FROM debtor_1102050101_701
-            WHERE vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050101_702 = DB::select('
             SELECT COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
             FROM debtor_1102050101_702
-            WHERE vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050101_703 = DB::select('
             SELECT COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
             FROM debtor_1102050101_703 
-            WHERE vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050102_106 = DB::connection('hosxp')->select("
             SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,
                 SUM(IFNULL(d.receive,0) + IFNULL(r.bill_amount,0)) AS receive
@@ -449,11 +470,11 @@ class DebtorController extends Controller
                 FROM rcpt_print r
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn, r.bill_date) r ON r.vn = d.vn AND r.bill_date > d.vstdate
-            WHERE d.vstdate BETWEEN ? AND ?",[$start_date,$end_date]);
+            WHERE d.vstdate BETWEEN ? AND ?", [$start_date, $end_date]);
         $_1102050102_108 = DB::select('
             SELECT COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
             FROM debtor_1102050102_108 
-            WHERE vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050102_110 = DB::select("
             SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,
                 SUM(IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0)
@@ -467,11 +488,11 @@ class DebtorController extends Controller
                 AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5)
             LEFT JOIN (SELECT hn,vstdate,SUM(amount) AS amount FROM stm_ofc_csop
                 WHERE sys = 'HD' GROUP BY hn, vstdate) hd ON hd.hn = d.hn AND hd.vstdate = d.vstdate
-            WHERE d.vstdate BETWEEN ? AND ?",[$start_date,$end_date]);
+            WHERE d.vstdate BETWEEN ? AND ?", [$start_date, $end_date]);
         $_1102050102_602 = DB::select('
             SELECT COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive),0) AS receive
             FROM debtor_1102050102_602 
-            WHERE vstdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050102_801 = DB::select('
             SELECT COUNT(DISTINCT a.vn) AS anvn,SUM(a.debtor) AS debtor,SUM(a.receive) AS receive
                 FROM (SELECT d.vn,d.debtor,IFNULL(s.compensate_treatment,0)+ CASE WHEN d.kidney > 0
@@ -482,7 +503,7 @@ class DebtorController extends Controller
                 AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5) 
             LEFT JOIN (SELECT hn, datetimeadm AS vstdate,SUM(compensate_kidney) AS compensate_kidney
                 FROM stm_lgo_kidney GROUP BY hn, datetimeadm) k ON k.hn = d.hn  AND k.vstdate = d.vstdate  
-            WHERE d.vstdate BETWEEN ? AND ?) a',[$start_date,$end_date]);
+            WHERE d.vstdate BETWEEN ? AND ?) a', [$start_date, $end_date]);
         $_1102050102_803 = DB::select("
             SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,
                 SUM(IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0)
@@ -496,13 +517,13 @@ class DebtorController extends Controller
                 AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5)
             LEFT JOIN (SELECT hn,vstdate,SUM(amount) AS amount FROM stm_ofc_csop
                 WHERE sys = 'HD' GROUP BY hn, vstdate) hd ON hd.hn = d.hn AND hd.vstdate = d.vstdate
-            WHERE d.vstdate BETWEEN ? AND ?",[$start_date,$end_date]);
+            WHERE d.vstdate BETWEEN ? AND ?", [$start_date, $end_date]);
         $_1102050101_202 = DB::select('
             SELECT COUNT(an) AS anvn,SUM(debtor) AS debtor,IFNULL(SUM(receive_ip_compensate_pay),0) AS receive
                 FROM (SELECT d.an,d.debtor,stm.receive_ip_compensate_pay FROM debtor_1102050101_202 d
             LEFT JOIN (SELECT an, SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay
                 FROM stm_ucs  GROUP BY an) stm ON stm.an = d.an    
-            WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an) AS a',[$start_date,$end_date]);
+            WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an) AS a', [$start_date, $end_date]);
         $_1102050101_217 = DB::select('
             SELECT COUNT(DISTINCT a.an) AS anvn,SUM(a.debtor) AS debtor,SUM(a.receive) AS receive
             FROM (SELECT d.an,d.debtor, (IFNULL(s.receive_total,0)-IFNULL(s.receive_ip_compensate_pay,0))
@@ -513,23 +534,23 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT d2.an, SUM(sk.receive_total) AS receive_total FROM debtor_1102050101_217 d2
                     JOIN stm_ucs_kidney sk ON sk.cid = d2.cid AND sk.datetimeadm BETWEEN d2.regdate AND d2.dchdate
                     WHERE d2.dchdate BETWEEN ? AND ? GROUP BY d2.an) k ON k.an = d.an
-                WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an, d.debtor) AS a',[$start_date,$end_date,$start_date,$end_date]);
+                WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an, d.debtor) AS a', [$start_date, $end_date, $start_date, $end_date]);
         $_1102050101_302 = DB::select('
             SELECT COUNT(DISTINCT an) AS anvn, SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_302    
-            WHERE dchdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE dchdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050101_304 = DB::select('
             SELECT COUNT(DISTINCT an) AS anvn, SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_304    
-            WHERE dchdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE dchdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050101_308 = DB::select('
             SELECT COUNT(DISTINCT an) AS anvn, SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_308    
-            WHERE dchdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE dchdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050101_310 = DB::select('
             SELECT COUNT(DISTINCT an) AS anvn, SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_310    
-            WHERE dchdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE dchdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050101_402 = DB::select('
             SELECT COUNT(DISTINCT a.an) AS anvn,SUM(a.debtor) AS debtor,SUM(a.receive_total) AS receive
             FROM (SELECT d.an,MAX(d.debtor) AS debtor,IFNULL(stm.receive_total,0)+IFNULL(cipn.gtotal,0)
@@ -542,19 +563,19 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT d2.an,SUM(c.amount) AS amount FROM debtor_1102050101_402 d2
                     JOIN stm_ofc_csop c  ON c.hn = d2.hn AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
                     GROUP BY d2.an) kd ON kd.an = d.an
-                WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an) a ' ,[$start_date,$end_date]);
+                WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an) a ', [$start_date, $end_date]);
         $_1102050101_502 = DB::select('
             SELECT COUNT(DISTINCT an) AS anvn, SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_502    
-            WHERE dchdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE dchdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050101_504 = DB::select('
             SELECT COUNT(DISTINCT an) AS anvn, SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_504    
-            WHERE dchdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE dchdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050101_704 = DB::select('
             SELECT COUNT(DISTINCT an) AS anvn, SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_704    
-            WHERE dchdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE dchdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050102_107 = DB::connection('hosxp')->select("
             SELECT COUNT(DISTINCT d.an) AS anvn,SUM(d.debtor) AS debtor, 
                 SUM(IFNULL(d.receive,0) + IFNULL(r.bill_amount,0)) AS receive
@@ -563,11 +584,11 @@ class DebtorController extends Controller
                 FROM rcpt_print r
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn, r.bill_date) r ON r.vn = d.an   AND r.bill_date > d.dchdate
-            WHERE d.dchdate BETWEEN ? AND ?",[$start_date,$end_date]);
+            WHERE d.dchdate BETWEEN ? AND ?", [$start_date, $end_date]);
         $_1102050102_109 = DB::select('
             SELECT COUNT(DISTINCT an) AS anvn,SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050102_109   
-            WHERE dchdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE dchdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050102_111 = DB::select('
             SELECT COUNT(DISTINCT a.an) AS anvn,SUM(a.debtor) AS debtor,SUM(a.receive_total) AS receive
             FROM (SELECT d.an,MAX(d.debtor) AS debtor,IFNULL(stm.receive_total,0)+IFNULL(cipn.gtotal,0)
@@ -580,11 +601,11 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT d2.an,SUM(c.amount) AS amount FROM debtor_1102050102_111 d2
                 JOIN stm_ofc_csop c  ON c.hn = d2.hn AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
                 GROUP BY d2.an) kd ON kd.an = d.an
-            WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an) a ' ,[$start_date,$end_date]);
+            WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an) a ', [$start_date, $end_date]);
         $_1102050102_603 = DB::select('
             SELECT COUNT(DISTINCT an) AS anvn, SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050102_603  
-            WHERE dchdate BETWEEN ? AND ?',[$start_date,$end_date]);
+            WHERE dchdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050102_802 = DB::select('
             SELECT COUNT(DISTINCT a.an) AS anvn,SUM(a.debtor) AS debtor,SUM(a.receive_total) AS receive
             FROM (SELECT d.an,MAX(d.debtor) AS debtor,IFNULL(stm.compensate_treatment,0)
@@ -595,7 +616,7 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT d2.an,SUM(k.compensate_kidney) AS amount FROM debtor_1102050102_802 d2
                     JOIN stm_lgo_kidney k ON k.cid = d2.cid AND k.datetimeadm BETWEEN d2.regdate AND d2.dchdate
                     WHERE d2.dchdate BETWEEN ? AND ? GROUP BY d2.an) stm_k ON stm_k.an = d.an
-                WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an) a' ,[$start_date,$end_date,$start_date,$end_date]);
+                WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an) a', [$start_date, $end_date, $start_date, $end_date]);
         $_1102050102_804 = DB::select('
             SELECT COUNT(DISTINCT a.an) AS anvn,SUM(a.debtor) AS debtor,SUM(a.receive_total) AS receive
             FROM (SELECT d.an,MAX(d.debtor) AS debtor,IFNULL(stm.receive_total,0)+IFNULL(cipn.gtotal,0)
@@ -608,65 +629,101 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT d2.an,SUM(c.amount) AS amount FROM debtor_1102050102_804 d2
                     JOIN stm_ofc_csop c  ON c.hn = d2.hn AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
                     GROUP BY d2.an) kd ON kd.an = d.an
-                WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an) a ' ,[$start_date,$end_date]);
+                WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an) a ', [$start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('_1102050101_103',$_1102050101_103);
-        $request->session()->put('_1102050101_109',$_1102050101_109);
-        $request->session()->put('_1102050101_201',$_1102050101_201);
-        $request->session()->put('_1102050101_203',$_1102050101_203);
-        $request->session()->put('_1102050101_209',$_1102050101_209);
-        $request->session()->put('_1102050101_216',$_1102050101_216);
-        $request->session()->put('_1102050101_301',$_1102050101_301);
-        $request->session()->put('_1102050101_303',$_1102050101_303);
-        $request->session()->put('_1102050101_307',$_1102050101_307);
-        $request->session()->put('_1102050101_309',$_1102050101_309);
-        $request->session()->put('_1102050101_401',$_1102050101_401);
-        $request->session()->put('_1102050101_501',$_1102050101_501);
-        $request->session()->put('_1102050101_503',$_1102050101_503);
-        $request->session()->put('_1102050101_701',$_1102050101_701);
-        $request->session()->put('_1102050101_702',$_1102050101_702);
-        $request->session()->put('_1102050101_703',$_1102050101_703);
-        $request->session()->put('_1102050102_106',$_1102050102_106);
-        $request->session()->put('_1102050102_108',$_1102050102_108);
-        $request->session()->put('_1102050102_110',$_1102050102_110);
-        $request->session()->put('_1102050102_602',$_1102050102_602);
-        $request->session()->put('_1102050102_801',$_1102050102_801);
-        $request->session()->put('_1102050102_803',$_1102050102_803);
-        $request->session()->put('_1102050101_202',$_1102050101_202);
-        $request->session()->put('_1102050101_217',$_1102050101_217);
-        $request->session()->put('_1102050101_302',$_1102050101_302);
-        $request->session()->put('_1102050101_304',$_1102050101_304);
-        $request->session()->put('_1102050101_308',$_1102050101_308);
-        $request->session()->put('_1102050101_310',$_1102050101_310);
-        $request->session()->put('_1102050101_402',$_1102050101_402);
-        $request->session()->put('_1102050101_502',$_1102050101_502);
-        $request->session()->put('_1102050101_504',$_1102050101_504);
-        $request->session()->put('_1102050101_704',$_1102050101_704);
-        $request->session()->put('_1102050102_107',$_1102050102_107);
-        $request->session()->put('_1102050102_109',$_1102050102_109);
-        $request->session()->put('_1102050102_111',$_1102050102_111);
-        $request->session()->put('_1102050102_603',$_1102050102_603);
-        $request->session()->put('_1102050102_802',$_1102050102_802);
-        $request->session()->put('_1102050102_804',$_1102050102_804);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('_1102050101_103', $_1102050101_103);
+        $request->session()->put('_1102050101_109', $_1102050101_109);
+        $request->session()->put('_1102050101_201', $_1102050101_201);
+        $request->session()->put('_1102050101_203', $_1102050101_203);
+        $request->session()->put('_1102050101_209', $_1102050101_209);
+        $request->session()->put('_1102050101_216', $_1102050101_216);
+        $request->session()->put('_1102050101_301', $_1102050101_301);
+        $request->session()->put('_1102050101_303', $_1102050101_303);
+        $request->session()->put('_1102050101_307', $_1102050101_307);
+        $request->session()->put('_1102050101_309', $_1102050101_309);
+        $request->session()->put('_1102050101_401', $_1102050101_401);
+        $request->session()->put('_1102050101_501', $_1102050101_501);
+        $request->session()->put('_1102050101_503', $_1102050101_503);
+        $request->session()->put('_1102050101_701', $_1102050101_701);
+        $request->session()->put('_1102050101_702', $_1102050101_702);
+        $request->session()->put('_1102050101_703', $_1102050101_703);
+        $request->session()->put('_1102050102_106', $_1102050102_106);
+        $request->session()->put('_1102050102_108', $_1102050102_108);
+        $request->session()->put('_1102050102_110', $_1102050102_110);
+        $request->session()->put('_1102050102_602', $_1102050102_602);
+        $request->session()->put('_1102050102_801', $_1102050102_801);
+        $request->session()->put('_1102050102_803', $_1102050102_803);
+        $request->session()->put('_1102050101_202', $_1102050101_202);
+        $request->session()->put('_1102050101_217', $_1102050101_217);
+        $request->session()->put('_1102050101_302', $_1102050101_302);
+        $request->session()->put('_1102050101_304', $_1102050101_304);
+        $request->session()->put('_1102050101_308', $_1102050101_308);
+        $request->session()->put('_1102050101_310', $_1102050101_310);
+        $request->session()->put('_1102050101_402', $_1102050101_402);
+        $request->session()->put('_1102050101_502', $_1102050101_502);
+        $request->session()->put('_1102050101_504', $_1102050101_504);
+        $request->session()->put('_1102050101_704', $_1102050101_704);
+        $request->session()->put('_1102050102_107', $_1102050102_107);
+        $request->session()->put('_1102050102_109', $_1102050102_109);
+        $request->session()->put('_1102050102_111', $_1102050102_111);
+        $request->session()->put('_1102050102_603', $_1102050102_603);
+        $request->session()->put('_1102050102_802', $_1102050102_802);
+        $request->session()->put('_1102050102_804', $_1102050102_804);
         $request->session()->save();
 
-        return view('debtor._summary',compact('start_date','end_date','_1102050101_103','_1102050101_109','_1102050101_201','_1102050101_203',
-            '_1102050101_209','_1102050101_216','_1102050101_301','_1102050101_303','_1102050101_307','_1102050101_309','_1102050101_401',
-            '_1102050101_501','_1102050101_503','_1102050101_701','_1102050101_702','_1102050101_703','_1102050102_106','_1102050102_108',
-            '_1102050102_110','_1102050102_602','_1102050102_801','_1102050102_803','_1102050101_202','_1102050101_217','_1102050101_302',
-            '_1102050101_304','_1102050101_308','_1102050101_310','_1102050101_402','_1102050101_502','_1102050101_504','_1102050101_704',
-            '_1102050102_107','_1102050102_109','_1102050102_111','_1102050102_603','_1102050102_802','_1102050102_804'));
+        return view('debtor._summary', compact(
+            'start_date',
+            'end_date',
+            '_1102050101_103',
+            '_1102050101_109',
+            '_1102050101_201',
+            '_1102050101_203',
+            '_1102050101_209',
+            '_1102050101_216',
+            '_1102050101_301',
+            '_1102050101_303',
+            '_1102050101_307',
+            '_1102050101_309',
+            '_1102050101_401',
+            '_1102050101_501',
+            '_1102050101_503',
+            '_1102050101_701',
+            '_1102050101_702',
+            '_1102050101_703',
+            '_1102050102_106',
+            '_1102050102_108',
+            '_1102050102_110',
+            '_1102050102_602',
+            '_1102050102_801',
+            '_1102050102_803',
+            '_1102050101_202',
+            '_1102050101_217',
+            '_1102050101_302',
+            '_1102050101_304',
+            '_1102050101_308',
+            '_1102050101_310',
+            '_1102050101_402',
+            '_1102050101_502',
+            '_1102050101_504',
+            '_1102050101_704',
+            '_1102050102_107',
+            '_1102050102_109',
+            '_1102050102_111',
+            '_1102050102_603',
+            '_1102050102_802',
+            '_1102050102_804'
+        ));
     }
-//_summary_pdf--------------------------------------------------------------------------------------------------------------------------------------------------
+    //_summary_pdf--------------------------------------------------------------------------------------------------------------------------------------------------
     public function _summary_pdf(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
-        $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');     
+        $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $_1102050101_103 = Session::get('_1102050101_103');
@@ -707,43 +764,81 @@ class DebtorController extends Controller
         $_1102050102_603 = Session::get('_1102050102_603');
         $_1102050102_802 = Session::get('_1102050102_802');
         $_1102050102_804 = Session::get('_1102050102_804');
-        $pdf = PDF::loadView('debtor._summary_pdf',compact('hospital_name','hospital_code','start_date','end_date','_1102050101_103','_1102050101_109',
-        '_1102050101_201','_1102050101_203','_1102050101_209','_1102050101_216','_1102050101_301','_1102050101_303','_1102050101_307','_1102050101_309',
-        '_1102050101_401','_1102050101_501','_1102050101_503','_1102050101_701','_1102050101_702','_1102050101_703','_1102050102_106','_1102050102_108',
-        '_1102050102_110','_1102050102_602','_1102050102_801','_1102050102_803','_1102050101_202','_1102050101_217','_1102050101_302','_1102050101_304',
-        '_1102050101_308','_1102050101_310','_1102050101_402','_1102050101_502','_1102050101_504','_1102050101_704','_1102050102_107','_1102050102_109',
-        '_1102050102_111','_1102050102_603','_1102050102_802','_1102050102_804'))
-                    ->setPaper('A4', 'landscape');
+        $pdf = PDF::loadView('debtor._summary_pdf', compact(
+            'hospital_name',
+            'hospital_code',
+            'start_date',
+            'end_date',
+            '_1102050101_103',
+            '_1102050101_109',
+            '_1102050101_201',
+            '_1102050101_203',
+            '_1102050101_209',
+            '_1102050101_216',
+            '_1102050101_301',
+            '_1102050101_303',
+            '_1102050101_307',
+            '_1102050101_309',
+            '_1102050101_401',
+            '_1102050101_501',
+            '_1102050101_503',
+            '_1102050101_701',
+            '_1102050101_702',
+            '_1102050101_703',
+            '_1102050102_106',
+            '_1102050102_108',
+            '_1102050102_110',
+            '_1102050102_602',
+            '_1102050102_801',
+            '_1102050102_803',
+            '_1102050101_202',
+            '_1102050101_217',
+            '_1102050101_302',
+            '_1102050101_304',
+            '_1102050101_308',
+            '_1102050101_310',
+            '_1102050101_402',
+            '_1102050101_502',
+            '_1102050101_504',
+            '_1102050101_704',
+            '_1102050102_107',
+            '_1102050102_109',
+            '_1102050102_111',
+            '_1102050102_603',
+            '_1102050102_802',
+            '_1102050102_804'
+        ))
+            ->setPaper('A4', 'landscape');
         return @$pdf->stream();
     }
-##############################################################################################################################################################
+    ##############################################################################################################################################################
 //_1102050101_103--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_103(Request $request )
+    public function _1102050101_103(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search'); 
+        $search = $request->search ?: Session::get('search');
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
-       
 
-        $debtor =  Debtor_1102050101_103::whereBetween('vstdate', [$start_date,$end_date])
-                    ->where(function ($query) use ($search){
-                        $query->where('ptname','like','%'.$search.'%');
-                        $query->orwhere('hn','like','%'.$search.'%');
-                        })
-                    ->orderBy('vstdate')
-                    ->get()
-                    ->map(function ($item) {                        
-                        if (($item->receive - $item->debtor) >= 0) {
-                            $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
-                        } else {
-                            $item->days = Carbon::parse($item->vstdate)->diffInDays(Carbon::today());
-                        }
-                        return $item;
-                    });
+
+        $debtor = Debtor_1102050101_103::whereBetween('vstdate', [$start_date, $end_date])
+            ->where(function ($query) use ($search) {
+                $query->where('ptname', 'like', '%' . $search . '%');
+                $query->orwhere('hn', 'like', '%' . $search . '%');
+            })
+            ->orderBy('vstdate')
+            ->get()
+            ->map(function ($item) {
+                if (($item->receive - $item->debtor) >= 0) {
+                    $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
+                } else {
+                    $item->days = Carbon::parse($item->vstdate)->diffInDays(Carbon::today());
+                }
+                return $item;
+            });
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,o.vstdate,
@@ -767,35 +862,35 @@ class DebtorController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) > 0
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_103 WHERE vn IS NOT NULL)
-            AND vp.pttype IN ('.$pttype_checkup.')
+            AND vp.pttype IN (' . $pttype_checkup . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_103',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_103', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_103_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_103_confirm(Request $request )
+    //_1102050101_103_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_103_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');        
-        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value'); 
+        $end_date = Session::get('end_date');
+        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,o.vstdate,
                 o.vsttime,v.pdx,p.`name` AS pttype,vp.hospmain,p.hipdata_code,IFNULL(inc.income,0) AS income,
@@ -818,28 +913,28 @@ class DebtorController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) > 0
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_103 WHERE vn IS NOT NULL)
-            AND vp.pttype IN ('.$pttype_checkup.')
-            AND o.vn IN ('.$checkbox_string.')
+            AND vp.pttype IN (' . $pttype_checkup . ')
+            AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate,o.oqueue', [$start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_103::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -851,10 +946,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_103_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_103_delete(Request $request )
+    //_1102050101_103_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_103_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_103::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -869,7 +964,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050101_103_update-------------------------------------------------------------------------------------------------------
+    //_1102050101_103_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_103_update(Request $request, $vn)
     {
         $item = Debtor_1102050101_103::findOrFail($vn);
@@ -884,16 +979,16 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050101_103_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_103_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_103_daily_pdf(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
-        $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value'); 
+        $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = DB::select('
@@ -901,46 +996,46 @@ class DebtorController extends Controller
             SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_103  
             WHERE vstdate BETWEEN ? AND ?
-            GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date]);
+            GROUP BY vstdate ORDER BY vstdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_103_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_103_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
- //1102050101_103_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_103_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_103_indiv_excel(Request $request)
-        {
+    {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_103_indiv_excel',compact('start_date','end_date','debtor'));
+
+        return view('debtor.1102050101_103_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
-##############################################################################################################################################################
+    ##############################################################################################################################################################
 //_1102050101_109--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_109(Request $request )
+    public function _1102050101_109(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');              
+        $search = $request->search ?: Session::get('search');
 
-        $debtor =  Debtor_1102050101_109::whereBetween('vstdate', [$start_date,$end_date])
-                    ->where(function ($query) use ($search){
-                        $query->where('ptname','like','%'.$search.'%');
-                        $query->orwhere('hn','like','%'.$search.'%');
-                        })
-                    ->orderBy('vstdate')->get()
-                    ->map(function ($item) {                        
-                        if (($item->receive - $item->debtor) >= 0) {
-                            $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
-                        } else {
-                            $item->days = Carbon::parse($item->vstdate)->diffInDays(Carbon::today());
-                        }
-                        return $item;
-                    });
+        $debtor = Debtor_1102050101_109::whereBetween('vstdate', [$start_date, $end_date])
+            ->where(function ($query) use ($search) {
+                $query->where('ptname', 'like', '%' . $search . '%');
+                $query->orwhere('hn', 'like', '%' . $search . '%');
+            })
+            ->orderBy('vstdate')->get()
+            ->map(function ($item) {
+                if (($item->receive - $item->debtor) >= 0) {
+                    $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
+                } else {
+                    $item->days = Carbon::parse($item->vstdate)->diffInDays(Carbon::today());
+                }
+                return $item;
+            });
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,p.cid,CONCAT(p.pname, p.fname, " ", p.lname) AS ptname,o.vstdate,v.pdx,
@@ -970,32 +1065,32 @@ class DebtorController extends Controller
             WHERE o.vstdate BETWEEN ? AND ?
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_109 WHERE vn IS NOT NULL)
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_109',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_109', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_109_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_109_confirm(Request $request )
+    //_1102050101_109_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_109_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');   
+        $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,p.cid,CONCAT(p.pname, p.fname, " ", p.lname) AS ptname,o.vstdate,v.pdx,
                 o.vsttime,p1.`name` AS pttype,vp.hospmain,p1.hipdata_code,IFNULL(inc.income,0) AS income,
@@ -1023,27 +1118,27 @@ class DebtorController extends Controller
                 WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) ems ON ems.vn = o.vn
             WHERE o.vstdate BETWEEN ? AND ?
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_109 WHERE vn IS NOT NULL)
-            AND o.vn IN ('.$checkbox_string.') 
+            AND o.vn IN (' . $checkbox_string . ') 
             GROUP BY o.vn, vp.pttype    
-            ORDER BY o.vstdate,o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate,o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_109::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -1055,10 +1150,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_109_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_109_delete(Request $request )
+    //_1102050101_109_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_109_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_109::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -1073,7 +1168,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050101_109_update-------------------------------------------------------------------------------------------------------
+    //_1102050101_109_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_109_update(Request $request, $vn)
     {
         $item = Debtor_1102050101_109::findOrFail($vn);
@@ -1088,16 +1183,16 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050101_109_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_109_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_109_daily_pdf(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value');
-        $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value'); 
+        $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = DB::select('
@@ -1105,35 +1200,35 @@ class DebtorController extends Controller
             SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_109  
             WHERE vstdate BETWEEN ? AND ?
-            GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date]);
+            GROUP BY vstdate ORDER BY vstdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_109_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_109_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
- //1102050101_109_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_109_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_109_indiv_excel(Request $request)
-        {
+    {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_109_indiv_excel',compact('start_date','end_date','debtor'));
+
+        return view('debtor.1102050101_109_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
-##############################################################################################################################################################
+    ##############################################################################################################################################################
 //_1102050101_201--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_201(Request $request )
+    public function _1102050101_201(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');     
+        $search = $request->search ?: Session::get('search');
 
         if ($search) {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
+                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,s.receive_pp,d.repno,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock
                 FROM debtor_1102050101_201 d   
@@ -1144,7 +1239,7 @@ class DebtorController extends Controller
                 AND d.vstdate BETWEEN ? AND ?', [$search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
+                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock
                 FROM debtor_1102050101_201 d   
@@ -1190,32 +1285,32 @@ class DebtorController extends Controller
             AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_201 WHERE vn IS NOT NULL)
             GROUP BY o.vn, vp.pttype 
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_201',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_201', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_201_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_201_confirm(Request $request )
+    //_1102050101_201_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_201_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');  
+        $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,
                 o.vstdate,o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
@@ -1251,29 +1346,29 @@ class DebtorController extends Controller
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
             AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_201 WHERE vn IS NOT NULL)
-            AND o.vn IN ('.$checkbox_string.')
+            AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype 
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_201::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'other'           => $row->other,
-                'ppfs'            => $row->ppfs,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'ppfs' => $row->ppfs,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -1285,10 +1380,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_201_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_201_delete(Request $request )
+    //_1102050101_201_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_201_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_201::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -1304,7 +1399,7 @@ class DebtorController extends Controller
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
 
-//1102050101_201_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_201_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_201_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -1319,35 +1414,35 @@ class DebtorController extends Controller
             SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_201  
             WHERE vstdate BETWEEN ? AND ?
-            GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date]);
+            GROUP BY vstdate ORDER BY vstdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_201_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_201_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
- //1102050101_201_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_201_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_201_indiv_excel(Request $request)
-        {
+    {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_201_indiv_excel',compact('start_date','end_date','debtor'));
+
+        return view('debtor.1102050101_201_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
-//_1102050101_201_average_receive-------------------------------------------------------------------------------------------------------   
+    //_1102050101_201_average_receive-------------------------------------------------------------------------------------------------------   
     public function _1102050101_201_average_receive(Request $request)
     {
         $request->validate([
-            'date_start'    => 'required|date',
-            'date_end'      => 'required|date',
-            'repno'         => 'required|string',
+            'date_start' => 'required|date',
+            'date_end' => 'required|date',
+            'repno' => 'required|string',
             'total_receive' => 'required|numeric|min:0.01',
         ]);
 
         $dateStart = $request->date_start;
-        $dateEnd   = $request->date_end;
-        $repno     = $request->repno;
-        $total     = (float)$request->total_receive;
+        $dateEnd = $request->date_end;
+        $repno = $request->repno;
+        $total = (float) $request->total_receive;
 
         // ดึงข้อมูล
         $rows = DB::table('debtor_1102050101_201')
@@ -1375,7 +1470,7 @@ class DebtorController extends Controller
             $assign = round($total * $weight, 2);
 
             $items[] = [
-                'vn'     => $row->vn,
+                'vn' => $row->vn,
                 'assign' => $assign,
             ];
         }
@@ -1409,8 +1504,8 @@ class DebtorController extends Controller
                 ->where('vn', $it['vn'])
                 ->update([
                     'receive' => $it['assign'],
-                    'repno'   => $repno,
-                    'status'  => 'กระทบยอดแล้ว',
+                    'repno' => $repno,
+                    'status' => 'กระทบยอดแล้ว',
                 ]);
         }
 
@@ -1421,31 +1516,31 @@ class DebtorController extends Controller
             'message' => "
                 วันที่ : <b>{$dateStart}</b> ถึง <b>{$dateEnd}</b><br>
                 จำนวน Visit : <b>{$count}</b><br>
-                ยอดชดเชย : <b>".number_format($total,2)."</b><br>
-                ยอดที่จัดสรรได้จริง : <b>".number_format($finalSum,2)."</b> ✔ ตรง 100%
+                ยอดชดเชย : <b>" . number_format($total, 2) . "</b><br>
+                ยอดที่จัดสรรได้จริง : <b>" . number_format($finalSum, 2) . "</b> ✔ ตรง 100%
             "
         ]);
     }
-##############################################################################################################################################################
+    ##############################################################################################################################################################
 //_1102050101_203--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_203(Request $request )
+    public function _1102050101_203(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');              
+        $search = $request->search ?: Session::get('search');
 
-        $debtor =  Debtor_1102050101_203::whereBetween('vstdate', [$start_date,$end_date])
-                    ->where(function ($query) use ($search){
-                        $query->where('ptname','like','%'.$search.'%');
-                        $query->orwhere('hn','like','%'.$search.'%');
-                        })
-                    ->orderBy('vstdate')->get();
+        $debtor = Debtor_1102050101_203::whereBetween('vstdate', [$start_date, $end_date])
+            ->where(function ($query) use ($search) {
+                $query->where('ptname', 'like', '%' . $search . '%');
+                $query->orwhere('hn', 'like', '%' . $search . '%');
+            })
+            ->orderBy('vstdate')->get();
         if ($search) {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
+                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.charge,d.charge_date,d.charge_no,d.receive,d.receive_date,
 					d.receive_no,d.repno,s.receive_pp,s.repno AS repno_pp,d.status,d.debtor_lock,
                     CASE WHEN (IFNULL(d.receive,0) - IFNULL(d.debtor,0)) >= 0 THEN 0 
@@ -1458,7 +1553,7 @@ class DebtorController extends Controller
                 AND d.vstdate BETWEEN ? AND ?', [$search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
+                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.charge,d.charge_date,d.charge_no,d.receive,d.receive_date,
 					d.receive_no,d.repno,s.receive_pp,s.repno AS repno_pp,d.status,d.debtor_lock,
                     CASE WHEN (IFNULL(d.receive,0) - IFNULL(d.debtor,0)) >= 0 THEN 0 
@@ -1506,33 +1601,33 @@ class DebtorController extends Controller
             AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_203 WHERE vn IS NOT NULL)
             GROUP BY o.vn, vp.pttype 
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_203',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_203', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_203_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_203_confirm(Request $request )
+    //_1102050101_203_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_203_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');        
-        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value'); 
+        $end_date = Session::get('end_date');
+        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,
                 o.vstdate,o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
@@ -1568,29 +1663,29 @@ class DebtorController extends Controller
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs ="")) 
             AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_203 WHERE vn IS NOT NULL)
-            AND o.vn IN ('.$checkbox_string.')
+            AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype 
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_203::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'other'           => $row->other,
-                'ppfs'            => $row->ppfs,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'ppfs' => $row->ppfs,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -1602,10 +1697,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_203_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_203_delete(Request $request )
+    //_1102050101_203_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_203_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_203::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -1620,7 +1715,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050101_203_update-------------------------------------------------------------------------------------------------------
+    //_1102050101_203_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_203_update(Request $request, $vn)
     {
         $item = Debtor_1102050101_203::findOrFail($vn);
@@ -1635,9 +1730,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050101_203_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_203_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_203_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -1652,35 +1747,35 @@ class DebtorController extends Controller
             SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_203  
             WHERE vstdate BETWEEN ? AND ?
-            GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date]);
+            GROUP BY vstdate ORDER BY vstdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_203_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_203_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
- //1102050101_203_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_203_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_203_indiv_excel(Request $request)
-        {
+    {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_203_indiv_excel',compact('start_date','end_date','debtor'));
+
+        return view('debtor.1102050101_203_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
-//_1102050101_203_average_receive-------------------------------------------------------------------------------------------------------   
+    //_1102050101_203_average_receive-------------------------------------------------------------------------------------------------------   
     public function _1102050101_203_average_receive(Request $request)
     {
         $request->validate([
-            'date_start'    => 'required|date',
-            'date_end'      => 'required|date',
-            'repno'         => 'required|string',
+            'date_start' => 'required|date',
+            'date_end' => 'required|date',
+            'repno' => 'required|string',
             'total_receive' => 'required|numeric|min:0.01',
         ]);
 
         $dateStart = $request->date_start;
-        $dateEnd   = $request->date_end;
-        $repno     = $request->repno;
-        $total     = (float)$request->total_receive;
+        $dateEnd = $request->date_end;
+        $repno = $request->repno;
+        $total = (float) $request->total_receive;
 
         // ดึงข้อมูล
         $rows = DB::table('debtor_1102050101_203')
@@ -1708,7 +1803,7 @@ class DebtorController extends Controller
             $assign = round($total * $weight, 2);
 
             $items[] = [
-                'vn'     => $row->vn,
+                'vn' => $row->vn,
                 'assign' => $assign,
             ];
         }
@@ -1742,8 +1837,8 @@ class DebtorController extends Controller
                 ->where('vn', $it['vn'])
                 ->update([
                     'receive' => $it['assign'],
-                    'repno'   => $repno,
-                    'status'  => 'กระทบยอดแล้ว',
+                    'repno' => $repno,
+                    'status' => 'กระทบยอดแล้ว',
                 ]);
         }
 
@@ -1754,25 +1849,25 @@ class DebtorController extends Controller
             'message' => "
                 วันที่ : <b>{$dateStart}</b> ถึง <b>{$dateEnd}</b><br>
                 จำนวน Visit : <b>{$count}</b><br>
-                ยอดชดเชย : <b>".number_format($total,2)."</b><br>
-                ยอดที่จัดสรรได้จริง : <b>".number_format($finalSum,2)."</b> ✔ ตรง 100%
+                ยอดชดเชย : <b>" . number_format($total, 2) . "</b><br>
+                ยอดที่จัดสรรได้จริง : <b>" . number_format($finalSum, 2) . "</b> ✔ ตรง 100%
             "
         ]);
     }
-##############################################################################################################################################################
+    ##############################################################################################################################################################
 //_1102050101_209--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_209(Request $request )
+    public function _1102050101_209(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search'); 
-        
+        $search = $request->search ?: Session::get('search');
+
         if ($search) {
             $debtor = DB::select('
-                SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.ptname, d.hipdata_code, d.pttype, d.hospmain,d.pdx, d.income,  
+                SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.cid, d.ptname, d.hipdata_code, d.pttype, d.hospmain,d.pdx, d.income,  
                     d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,s.receive_pp, d.receive, s.repno, d.status, d.debtor_lock
                 FROM debtor_1102050101_209 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
@@ -1782,7 +1877,7 @@ class DebtorController extends Controller
                 AND d.vstdate BETWEEN ? AND ?', [$search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.ptname, d.hipdata_code, d.pttype, d.hospmain, d.pdx,d.income,
+                SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.cid, d.ptname, d.hipdata_code, d.pttype, d.hospmain, d.pdx,d.income,
                      d.rcpt_money, d.ppfs, d.pp, d.other,d.debtor,s.receive_pp, d.receive, s.repno, d.status, d.debtor_lock
                 FROM debtor_1102050101_209 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
@@ -1826,32 +1921,32 @@ class DebtorController extends Controller
             AND v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_209 WHERE vn IS NOT NULL)
             GROUP BY o.vn, vp.pttype 
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_209',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_209', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_209_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_209_confirm(Request $request )
+    //_1102050101_209_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_209_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');   
+        $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,
                 o.vstdate,o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
@@ -1886,29 +1981,29 @@ class DebtorController extends Controller
             AND p.hipdata_code IN ("UCS","WEL")            
             AND v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_209 WHERE vn IS NOT NULL)
-            AND o.vn IN ('.$checkbox_string.')
+            AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype 
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);  
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_209::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'other'           => $row->other,
-                'ppfs'            => $row->ppfs,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'ppfs' => $row->ppfs,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -1920,10 +2015,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_209_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_209_delete(Request $request )
+    //_1102050101_209_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_209_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_209::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -1939,7 +2034,7 @@ class DebtorController extends Controller
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
 
-//1102050101_209_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_209_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_209_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -1954,69 +2049,79 @@ class DebtorController extends Controller
             SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_209 d               
             WHERE vstdate BETWEEN ? AND ?
-            GROUP BY vstdate ORDER BY d.vstdate ',[$start_date,$end_date]);
+            GROUP BY vstdate ORDER BY d.vstdate ', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_209_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_209_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
- //1102050101_209_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_209_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_209_indiv_excel(Request $request)
-        {
+    {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_209_indiv_excel',compact('start_date','end_date','debtor'));
+
+        return view('debtor.1102050101_209_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
-##############################################################################################################################################################
+    ##############################################################################################################################################################
 //_1102050101_216--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_216(Request $request )
+    public function _1102050101_216(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search'); 
-        
+        $search = $request->search ?: Session::get('search');
+
         if ($search) {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,MAX(d.ptname) AS ptname,MAX(d.hipdata_code) AS hipdata_code,MAX(d.pttype) AS pttype,
+                SELECT d.vn,d.vstdate,d.vsttime,d.hn,MAX(d.cid) AS cid,MAX(d.ptname) AS ptname,MAX(d.hipdata_code) AS hipdata_code,MAX(d.pttype) AS pttype,
                     MAX(d.hospmain) AS hospmain,MAX(d.pdx) AS pdx,MAX(d.income) AS income,MAX(d.rcpt_money) AS rcpt_money,
                     MAX(d.kidney) AS kidney,MAX(d.cr) AS cr, MAX(d.anywhere) AS anywhere,MAX(d.ppfs) AS ppfs,MAX(d.debtor) AS debtor,
                     IFNULL(MAX(s.receive_total),0)+CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(MAX(sk.receive_total),0) ELSE 0 END AS receive,
                     MAX(s.repno) AS repno,MAX(sk.repno) AS rid,MAX(d.debtor_lock) AS debtor_lock,
+                    IFNULL(MAX(s.round_no), MAX(sk.round_no)) AS stm_round_no,
+                    IFNULL(MAX(s.receipt_date), MAX(sk.receipt_date)) AS stm_receipt_date,
+                    IFNULL(MAX(s.receive_no), MAX(sk.receive_no)) AS stm_receive_no,
                     CASE WHEN (IFNULL(MAX(s.receive_total),0)+CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(MAX(sk.receive_total),0) ELSE 0 END
                     - MAX(d.debtor)) >= 0 THEN 0 ELSE DATEDIFF(CURDATE(), MAX(d.vstdate)) END AS days
                 FROM debtor_1102050101_216 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,
-                    SUM(receive_total) - SUM(receive_pp) AS receive_total,MAX(repno) AS repno
+                    SUM(receive_total) - SUM(receive_pp) AS receive_total,MAX(repno) AS repno,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
                     AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
-                LEFT JOIN (SELECT cid,datetimeadm AS vstdate,SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                LEFT JOIN (SELECT cid,datetimeadm AS vstdate,SUM(receive_total) AS receive_total,MAX(repno) AS repno,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                     FROM stm_ucs_kidney GROUP BY cid, datetimeadm) sk ON sk.cid = d.cid AND sk.vstdate = d.vstdate
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%"))
                 AND d.vstdate BETWEEN ? AND ?
-                GROUP BY d.vn', [$search,$search,$start_date,$end_date]);
+                GROUP BY d.vn', [$search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,MAX(d.ptname) AS ptname,MAX(d.hipdata_code) AS hipdata_code,MAX(d.pttype) AS pttype,
+                SELECT d.vn,d.vstdate,d.vsttime,d.hn,MAX(d.cid) AS cid,MAX(d.ptname) AS ptname,MAX(d.hipdata_code) AS hipdata_code,MAX(d.pttype) AS pttype,
                     MAX(d.hospmain) AS hospmain,MAX(d.pdx) AS pdx,MAX(d.income) AS income,MAX(d.rcpt_money) AS rcpt_money,
                     MAX(d.kidney) AS kidney,MAX(d.cr) AS cr, MAX(d.anywhere) AS anywhere,MAX(d.ppfs) AS ppfs,MAX(d.debtor) AS debtor,
                     IFNULL(MAX(s.receive_total),0)+CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(MAX(sk.receive_total),0) ELSE 0 END AS receive,
                     MAX(s.repno) AS repno,MAX(sk.repno) AS rid,MAX(d.debtor_lock) AS debtor_lock,
+                    IFNULL(MAX(s.round_no), MAX(sk.round_no)) AS stm_round_no,
+                    IFNULL(MAX(s.receipt_date), MAX(sk.receipt_date)) AS stm_receipt_date,
+                    IFNULL(MAX(s.receive_no), MAX(sk.receive_no)) AS stm_receive_no,
                     CASE WHEN (IFNULL(MAX(s.receive_total),0)+CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(MAX(sk.receive_total),0) ELSE 0 END
                     - MAX(d.debtor)) >= 0 THEN 0 ELSE DATEDIFF(CURDATE(), MAX(d.vstdate)) END AS days
                 FROM debtor_1102050101_216 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,
-                    SUM(receive_total) - SUM(receive_pp) AS receive_total,MAX(repno) AS repno
+                    SUM(receive_total) - SUM(receive_pp) AS receive_total,MAX(repno) AS repno,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
                     AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
-                LEFT JOIN (SELECT cid,datetimeadm AS vstdate,sum(receive_total) AS receive_total,repno
+                LEFT JOIN (SELECT cid,datetimeadm AS vstdate,sum(receive_total) AS receive_total,MAX(repno) AS repno,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                     FROM stm_ucs_kidney GROUP BY cid,datetimeadm) sk ON sk.cid=d.cid AND sk.vstdate = d.vstdate
                 WHERE d.vstdate BETWEEN ? AND ?
-                GROUP BY d.vn', [$start_date,$end_date]);
+                GROUP BY d.vn', [$start_date, $end_date]);
         }
 
         $debtor_search_kidney = DB::connection('hosxp')->select('
@@ -2049,7 +2154,7 @@ class DebtorController extends Controller
             AND IFNULL(rc.rcpt_money,0) <> IFNULL(kid.claim_price,0)
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL) 
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $debtor_search_cr = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
@@ -2083,7 +2188,7 @@ class DebtorController extends Controller
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL)
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $debtor_search_anywhere = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate,o.vsttime,
@@ -2123,33 +2228,40 @@ class DebtorController extends Controller
             AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL)
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_216',compact('start_date','end_date','search','debtor','debtor_search_kidney',
-            'debtor_search_cr','debtor_search_anywhere'));
+        return view('debtor.1102050101_216', compact(
+            'start_date',
+            'end_date',
+            'search',
+            'debtor',
+            'debtor_search_kidney',
+            'debtor_search_cr',
+            'debtor_search_anywhere'
+        ));
     }
-//_1102050101_216_confirm_kidney-------------------------------------------------------------------------------------------------------
-    public function _1102050101_216_confirm_kidney(Request $request )
+    //_1102050101_216_confirm_kidney-------------------------------------------------------------------------------------------------------
+    public function _1102050101_216_confirm_kidney(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');    
+        $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox_kidney' => 'required|array',
+            'checkbox_kidney' => 'required|array',
         ], [
             'checkbox_kidney.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox_kidney'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an, pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate,o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
@@ -2179,28 +2291,28 @@ class DebtorController extends Controller
             AND p.hipdata_code IN ("UCS","WEL")
             AND IFNULL(rc.rcpt_money,0) <> IFNULL(kid.claim_price,0)
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL) 
-            AND o.vn IN ('.$checkbox_string.')
+            AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_216::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'kidney'          => $row->debtor,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'kidney' => $row->debtor,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -2212,22 +2324,22 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_216_confirm_cr-------------------------------------------------------------------------------------------------------
-    public function _1102050101_216_confirm_cr(Request $request )
+    //_1102050101_216_confirm_cr-------------------------------------------------------------------------------------------------------
+    public function _1102050101_216_confirm_cr(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');    
+        $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox_cr' => 'required|array',
+            'checkbox_cr' => 'required|array',
         ], [
             'checkbox_cr.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox_cr'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
@@ -2259,28 +2371,28 @@ class DebtorController extends Controller
             AND p.hipdata_code IN ("UCS","WEL")            
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL)
-            AND o.vn IN ('.$checkbox_string.')
+            AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_216::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'cr'              => $row->debtor,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'cr' => $row->debtor,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -2292,22 +2404,22 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_216_confirm_anywhere-------------------------------------------------------------------------------------------------------
-    public function _1102050101_216_confirm_anywhere(Request $request )
+    //_1102050101_216_confirm_anywhere-------------------------------------------------------------------------------------------------------
+    public function _1102050101_216_confirm_anywhere(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');    
+        $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox_anywhere' => 'required|array',
+            'checkbox_anywhere' => 'required|array',
         ], [
             'checkbox_anywhere.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox_anywhere'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate,o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
@@ -2345,29 +2457,29 @@ class DebtorController extends Controller
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")  
             AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL)
-            AND o.vn IN ('.$checkbox_string.')
+            AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_216::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'anywhere'        => $row->debtor,
-                'ppfs'            => $row->ppfs,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'anywhere' => $row->debtor,
+                'ppfs' => $row->ppfs,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -2379,10 +2491,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_216_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_216_delete(Request $request )
+    //_1102050101_216_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_216_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_216::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -2398,7 +2510,7 @@ class DebtorController extends Controller
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
 
-//1102050101_216_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_216_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_216_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -2420,36 +2532,36 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT cid,datetimeadm AS vstdate, SUM(receive_total) AS receive_total
                     FROM stm_ucs_kidney GROUP BY cid, datetimeadm) sk ON sk.cid = d.cid AND sk.vstdate = d.vstdate
                 WHERE d.vstdate BETWEEN ? AND ?) a
-                GROUP BY a.vstdate ORDER BY a.vstdate ',[$start_date,$end_date]);
+                GROUP BY a.vstdate ORDER BY a.vstdate ', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_216_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_216_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
- //1102050101_216_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_216_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_216_indiv_excel(Request $request)
-        {
+    {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_216_indiv_excel',compact('start_date','end_date','debtor'));
+
+        return view('debtor.1102050101_216_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
-##############################################################################################################################################################
+    ##############################################################################################################################################################
 //_1102050101_301--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_301(Request $request )
+    public function _1102050101_301(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');
-        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');          
+        $search = $request->search ?: Session::get('search');
+        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
 
         if ($search) {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
+                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
                     CASE WHEN (IFNULL(d.receive, 0) - IFNULL(d.debtor, 0)) >= 0 
@@ -2462,7 +2574,7 @@ class DebtorController extends Controller
                 AND d.vstdate BETWEEN ? AND ?', [$search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
+                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
                     CASE WHEN (IFNULL(d.receive, 0) - IFNULL(d.debtor, 0)) >= 0 
@@ -2508,35 +2620,35 @@ class DebtorController extends Controller
             AND p.hipdata_code = "SSS"            
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_301 WHERE vn IS NOT NULL)
-            AND p.pttype NOT IN ('.$pttype_sss_fund.')
+            AND p.pttype NOT IN (' . $pttype_sss_fund . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_301',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_301', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_301_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_301_confirm(Request $request )
+    //_1102050101_301_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_301_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');        
-        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value'); 
+        $end_date = Session::get('end_date');
+        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
@@ -2571,30 +2683,30 @@ class DebtorController extends Controller
             AND p.hipdata_code = "SSS"            
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_301 WHERE vn IS NOT NULL)
-            AND p.pttype NOT IN ('.$pttype_sss_fund.')
-            AND o.vn IN ('.$checkbox_string.')
+            AND p.pttype NOT IN (' . $pttype_sss_fund . ')
+            AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_301::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'other'           => $row->other,
-                'ppfs'            => $row->ppfs,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'ppfs' => $row->ppfs,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -2606,10 +2718,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_301_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_301_delete(Request $request )
+    //_1102050101_301_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_301_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_301::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -2625,7 +2737,7 @@ class DebtorController extends Controller
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
 
-//1102050101_301_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_301_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_301_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -2640,35 +2752,35 @@ class DebtorController extends Controller
             SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_301  
             WHERE vstdate BETWEEN ? AND ?
-            GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date]);
+            GROUP BY vstdate ORDER BY vstdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_301_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_301_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050101_301_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_301_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_301_indiv_excel(Request $request)
-        {
+    {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_301_indiv_excel',compact('start_date','end_date','debtor'));
+
+        return view('debtor.1102050101_301_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
-//_1102050101_301_average_receive-------------------------------------------------------------------------------------------------------   
+    //_1102050101_301_average_receive-------------------------------------------------------------------------------------------------------   
     public function _1102050101_301_average_receive(Request $request)
     {
         $request->validate([
-            'date_start'    => 'required|date',
-            'date_end'      => 'required|date',
-            'repno'         => 'required|string',
+            'date_start' => 'required|date',
+            'date_end' => 'required|date',
+            'repno' => 'required|string',
             'total_receive' => 'required|numeric|min:0.01',
         ]);
 
         $dateStart = $request->date_start;
-        $dateEnd   = $request->date_end;
-        $repno     = $request->repno;
-        $total     = (float)$request->total_receive;
+        $dateEnd = $request->date_end;
+        $repno = $request->repno;
+        $total = (float) $request->total_receive;
 
         // ดึงข้อมูล
         $rows = DB::table('debtor_1102050101_301')
@@ -2696,7 +2808,7 @@ class DebtorController extends Controller
             $assign = round($total * $weight, 2);
 
             $items[] = [
-                'vn'     => $row->vn,
+                'vn' => $row->vn,
                 'assign' => $assign,
             ];
         }
@@ -2730,8 +2842,8 @@ class DebtorController extends Controller
                 ->where('vn', $it['vn'])
                 ->update([
                     'receive' => $it['assign'],
-                    'repno'   => $repno,
-                    'status'  => 'กระทบยอดแล้ว',
+                    'repno' => $repno,
+                    'status' => 'กระทบยอดแล้ว',
                 ]);
         }
 
@@ -2742,27 +2854,27 @@ class DebtorController extends Controller
             'message' => "
                 วันที่ : <b>{$dateStart}</b> ถึง <b>{$dateEnd}</b><br>
                 จำนวน Visit : <b>{$count}</b><br>
-                ยอดชดเชย : <b>".number_format($total,2)."</b><br>
-                ยอดที่จัดสรรได้จริง : <b>".number_format($finalSum,2)."</b> ✔ ตรง 100%
+                ยอดชดเชย : <b>" . number_format($total, 2) . "</b><br>
+                ยอดที่จัดสรรได้จริง : <b>" . number_format($finalSum, 2) . "</b> ✔ ตรง 100%
             "
         ]);
     }
-##############################################################################################################################################################
+    ##############################################################################################################################################################
 //_1102050101_303--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_303(Request $request )
+    public function _1102050101_303(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');
-        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value'); 
-        $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value');          
+        $search = $request->search ?: Session::get('search');
+        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
+        $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value');
 
         if ($search) {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
+                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no, 
                     d.receive ,d.repno,s.receive_pp,IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
                     CASE WHEN (IFNULL(d.receive, 0) - IFNULL(d.debtor, 0)) >= 0 
@@ -2775,7 +2887,7 @@ class DebtorController extends Controller
                 AND d.vstdate BETWEEN ? AND ?', [$search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
+                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no, 
                     d.receive ,d.repno,s.receive_pp,IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
                     CASE WHEN (IFNULL(d.receive, 0) - IFNULL(d.debtor, 0)) >= 0 
@@ -2821,37 +2933,37 @@ class DebtorController extends Controller
             AND p.hipdata_code = "SSS"            
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_303 WHERE vn IS NOT NULL)
-            AND p.pttype NOT IN ('.$pttype_sss_fund.')
-            AND p.pttype NOT IN ('.$pttype_sss_ae.')
+            AND p.pttype NOT IN (' . $pttype_sss_fund . ')
+            AND p.pttype NOT IN (' . $pttype_sss_ae . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_303',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_303', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_303_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_303_confirm(Request $request )
+    //_1102050101_303_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_303_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');        
-        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value'); 
-        $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value');   
+        $end_date = Session::get('end_date');
+        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
+        $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,v.paid_money,
@@ -2886,31 +2998,31 @@ class DebtorController extends Controller
             AND p.hipdata_code = "SSS"            
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_303 WHERE vn IS NOT NULL)
-            AND p.pttype NOT IN ('.$pttype_sss_fund.')
-            AND p.pttype NOT IN ('.$pttype_sss_ae.')
-            AND o.vn IN ('.$checkbox_string.')
+            AND p.pttype NOT IN (' . $pttype_sss_fund . ')
+            AND p.pttype NOT IN (' . $pttype_sss_ae . ')
+            AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_303::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'other'           => $row->other,
-                'ppfs'            => $row->ppfs,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'ppfs' => $row->ppfs,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -2922,10 +3034,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_303_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_303_delete(Request $request )
+    //_1102050101_303_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_303_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_303::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -2940,7 +3052,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050101_303_update-------------------------------------------------------------------------------------------------------
+    //_1102050101_303_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_303_update(Request $request, $vn)
     {
         $item = Debtor_1102050101_303::findOrFail($vn);
@@ -2955,9 +3067,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050101_303_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_303_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_303_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -2972,39 +3084,39 @@ class DebtorController extends Controller
             SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_303  
             WHERE vstdate BETWEEN ? AND ?
-            GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date]);
+            GROUP BY vstdate ORDER BY vstdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_303_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_303_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
- //1102050101_303_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_303_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_303_indiv_excel(Request $request)
-        {
+    {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_303_indiv_excel',compact('start_date','end_date','debtor'));
+
+        return view('debtor.1102050101_303_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
-##############################################################################################################################################################
+    ##############################################################################################################################################################
 //_1102050101_307--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_307(Request $request )
+    public function _1102050101_307(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');
-        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');          
+        $search = $request->search ?: Session::get('search');
+        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
 
         $debtor = Debtor_1102050101_307::selectRaw('*, IFNULL(vstdate, dchdate) as visit_date,IFNULL(vsttime, dchtime) as visit_time')
             ->whereBetween(DB::raw('IFNULL(vstdate, dchdate)'), [$start_date, $end_date])
             ->where(function ($query) use ($search) {
-                $query->where('ptname','like','%'.$search.'%')
-                    ->orWhere('hn','like','%'.$search.'%')
-                    ->orWhere('an','like','%'.$search.'%');
+                $query->where('ptname', 'like', '%' . $search . '%')
+                    ->orWhere('hn', 'like', '%' . $search . '%')
+                    ->orWhere('an', 'like', '%' . $search . '%');
             })
             ->orderBy(DB::raw('IFNULL(vstdate, dchdate)'))
             ->get()
@@ -3051,10 +3163,10 @@ class DebtorController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_307 WHERE vn IS NOT NULL)
-            AND p.pttype IN ('.$pttype_sss_fund.')
+            AND p.pttype IN (' . $pttype_sss_fund . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         $debtor_search_ip = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
@@ -3089,36 +3201,38 @@ class DebtorController extends Controller
             WHERE i.confirm_discharge = "Y"
             AND i.dchdate BETWEEN ? AND ?            
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_307 WHERE an IS NOT NULL)
-			AND ip.pttype IN ('.$pttype_sss_fund.') 
+			AND ip.pttype IN (' . $pttype_sss_fund . ') 
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_307',compact('start_date','end_date','search','debtor','debtor_search','debtor_search_ip'));
+        return view('debtor.1102050101_307', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'debtor_search_ip'));
     }
-//_1102050101_307_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_307_confirm(Request $request )
+    //_1102050101_307_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_307_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');        
-        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value'); 
+        $end_date = Session::get('end_date');
+        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate, o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
@@ -3152,30 +3266,30 @@ class DebtorController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_307 WHERE vn IS NOT NULL)
-            AND p.pttype IN ('.$pttype_sss_fund.')
-            AND o.vn IN ('.$checkbox_string.')
+            AND p.pttype IN (' . $pttype_sss_fund . ')
+            AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_307::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'other'           => $row->other,
-                'ppfs'            => $row->ppfs,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'ppfs' => $row->ppfs,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -3187,23 +3301,23 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_307_confirm_ip-------------------------------------------------------------------------------------------------------
-    public function _1102050101_307_confirm_ip(Request $request )
+    //_1102050101_307_confirm_ip-------------------------------------------------------------------------------------------------------
+    public function _1102050101_307_confirm_ip(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');        
-        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value'); 
+        $end_date = Session::get('end_date');
+        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
         $request->validate([
-        'checkbox_ip' => 'required|array',
+            'checkbox_ip' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox_ip = $request->input('checkbox_ip'); // รับ array
         $checkbox_string = implode(",", $checkbox_ip); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
@@ -3238,34 +3352,36 @@ class DebtorController extends Controller
             WHERE i.confirm_discharge = "Y"
             AND i.dchdate BETWEEN ? AND ?            
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_307 WHERE an IS NOT NULL)
-			AND ip.pttype IN ('.$pttype_sss_fund.') 
-            AND i.an IN ('.$checkbox_string.')
+			AND ip.pttype IN (' . $pttype_sss_fund . ') 
+            AND i.an IN (' . $checkbox_string . ')
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
+
         foreach ($debtor as $row) {
             Debtor_1102050101_307::insert([
-                'an'              => $row->an,
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'regdate'         => $row->regdate,
-                'regtime'         => $row->regtime,
-                'dchdate'         => $row->dchdate,
-                'dchtime'         => $row->dchtime,    
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'adjrw'           => $row->adjrw,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money, 
-                'other'           => $row->other,  
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'an' => $row->an,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'regdate' => $row->regdate,
+                'regtime' => $row->regtime,
+                'dchdate' => $row->dchdate,
+                'dchtime' => $row->dchtime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'adjrw' => $row->adjrw,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox_ip) || !is_array($checkbox_ip)) {
@@ -3277,10 +3393,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_307_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_307_delete(Request $request )
+    //_1102050101_307_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_307_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_307::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -3295,7 +3411,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050101_307_update-------------------------------------------------------------------------------------------------------
+    //_1102050101_307_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_307_update(Request $request, $vn)
     {
         $item = Debtor_1102050101_307::findOrFail($vn);
@@ -3310,9 +3426,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050101_307_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_307_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_307_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -3329,43 +3445,45 @@ class DebtorController extends Controller
             FROM debtor_1102050101_307
             WHERE COALESCE(dchdate, vstdate) BETWEEN ? AND ?
             GROUP BY COALESCE(dchdate, vstdate)
-            ORDER BY vstdate',[$start_date,$end_date]);
+            ORDER BY vstdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_307_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_307_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
- //1102050101_307_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_307_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_307_indiv_excel(Request $request)
-        {
+    {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_307_indiv_excel',compact('start_date','end_date','debtor'));
-    }   
-##############################################################################################################################################################
+
+        return view('debtor.1102050101_307_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    ##############################################################################################################################################################
 //_1102050101_309--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_309(Request $request )
+    public function _1102050101_309(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');        
-        $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value');              
+        $search = $request->search ?: Session::get('search');
+        $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value');
 
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vstdate,d.vsttime,d.vn,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.pdx,d.hospmain,
                     d.income,d.rcpt_money,d.kidney,d.debtor,IFNULL(d.receive,0)+IFNULL(s.receive,0) AS receive,d.repno,
                     s.repno AS rid,d.debtor_lock,d.status,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
+                    s.round_no AS stm_round_no, s.receipt_date AS stm_receipt_date, s.receive_no AS stm_receive_no,
                     CASE WHEN (IFNULL(s.receive,0) - IFNULL(d.debtor,0)) >= 0 
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_309 d   
                 LEFT JOIN (SELECT cid,vstdate,SUM(IFNULL(amount,0)+ IFNULL(epopay,0)+ IFNULL(epoadm,0)) AS receive,
-                    GROUP_CONCAT(DISTINCT rid) AS repno  
+                    GROUP_CONCAT(DISTINCT rid) AS repno,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                     FROM stm_sss_kidney GROUP BY cid, vstdate) s ON s.cid = d.cid AND s.vstdate = d.vstdate
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%"))
                 AND d.vstdate BETWEEN ? AND ?', [$search, $search, $start_date, $end_date]);
@@ -3374,11 +3492,13 @@ class DebtorController extends Controller
                 SELECT d.vstdate,d.vsttime,d.vn,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.pdx,d.hospmain,
                     d.income,d.rcpt_money,d.kidney,d.debtor,IFNULL(d.receive,0)+IFNULL(s.receive,0) AS receive,d.repno,
                     s.repno AS rid,d.debtor_lock,d.status,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
+                    s.round_no AS stm_round_no, s.receipt_date AS stm_receipt_date, s.receive_no AS stm_receive_no,
                     CASE WHEN (IFNULL(s.receive,0) - IFNULL(d.debtor,0)) >= 0 
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_309 d   
                 LEFT JOIN (SELECT cid,vstdate,SUM(IFNULL(amount,0)+ IFNULL(epopay,0)+ IFNULL(epoadm,0)) AS receive,
-                    GROUP_CONCAT(DISTINCT rid) AS repno  
+                    GROUP_CONCAT(DISTINCT rid) AS repno,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                     FROM stm_sss_kidney GROUP BY cid, vstdate) s ON s.cid = d.cid AND s.vstdate = d.vstdate
                 WHERE d.vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         }
@@ -3414,7 +3534,7 @@ class DebtorController extends Controller
             AND IFNULL(rc.rcpt_money,0) < IFNULL(kid.kidney_price,0)
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_309 WHERE vn IS NOT NULL)
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $debtor_search_ae = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate, o.vsttime,
@@ -3449,34 +3569,34 @@ class DebtorController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_309 WHERE vn IS NOT NULL)
-            AND p.pttype IN ('.$pttype_sss_ae.')
+            AND p.pttype IN (' . $pttype_sss_ae . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_309',compact('start_date','end_date','search','debtor','debtor_search','debtor_search_ae'));
+        return view('debtor.1102050101_309', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'debtor_search_ae'));
     }
-//_1102050101_309_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_309_confirm(Request $request )
+    //_1102050101_309_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_309_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date'); 
+        $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
@@ -3507,28 +3627,28 @@ class DebtorController extends Controller
             AND p.hipdata_code IN ("SSS","SSI")
             AND IFNULL(rc.rcpt_money,0) < IFNULL(kid.kidney_price,0)
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_309 WHERE vn IS NOT NULL)
-            AND o.vn IN ('.$checkbox_string.')
+            AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_309::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'kidney'          => $row->kidney,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'kidney' => $row->kidney,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -3540,24 +3660,24 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_309_confirm_ae-------------------------------------------------------------------------------------------------------
-    public function _1102050101_309_confirm_ae(Request $request )
+    //_1102050101_309_confirm_ae-------------------------------------------------------------------------------------------------------
+    public function _1102050101_309_confirm_ae(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');    
+        $end_date = Session::get('end_date');
         $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value');
 
         $request->validate([
-        'checkbox_ae' => 'required|array',
+            'checkbox_ae' => 'required|array',
         ], [
             'checkbox_ae.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox_ae'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate, o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
@@ -3591,30 +3711,30 @@ class DebtorController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_309 WHERE vn IS NOT NULL)
-            AND p.pttype IN ('.$pttype_sss_ae.')
-            AND o.vn IN ('.$checkbox_string.')
+            AND p.pttype IN (' . $pttype_sss_ae . ')
+            AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_309::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,  
-                'other'           => $row->other, 
-                'ppfs'            => $row->ppfs,              
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);           
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'ppfs' => $row->ppfs,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -3626,10 +3746,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_309_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_309_delete(Request $request )
+    //_1102050101_309_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_309_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_309::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -3644,7 +3764,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050101_309_update-------------------------------------------------------------------------------------------------------
+    //_1102050101_309_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_309_update(Request $request, $vn)
     {
         $item = Debtor_1102050101_309::findOrFail($vn);
@@ -3659,9 +3779,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050101_309_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_309_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_309_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -3678,80 +3798,96 @@ class DebtorController extends Controller
             s.amount+s.epopay+s.epoadm AS receive,s.rid AS repno,d.debtor_lock
             FROM debtor_1102050101_309 d   
             LEFT JOIN stm_sss_kidney s ON s.cid=d.cid AND s.vstdate = d.vstdate
-            WHERE d.vstdate BETWEEN ? AND ?) AS a GROUP BY vstdate ORDER BY vsttime',[$start_date,$end_date]);
+            WHERE d.vstdate BETWEEN ? AND ?) AS a GROUP BY vstdate ORDER BY vsttime', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_309_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_309_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
- //1102050101_309_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_309_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_309_indiv_excel(Request $request)
-        {
+    {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_309_indiv_excel',compact('start_date','end_date','debtor'));
-    }   
-##############################################################################################################################################################
+
+        return view('debtor.1102050101_309_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    ##############################################################################################################################################################
 //_1102050101_401--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_401(Request $request )
+    public function _1102050101_401(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');
-        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');           
+        $search = $request->search ?: Session::get('search');
+        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
 
         if ($search) {
             $debtor = DB::select("
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
-                    d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
+                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
+                    d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no,(IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
                     + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,stm.repno,csop.rid,hd.rid_hd,d.debtor_lock,
+                    COALESCE(stm.round_no, csop.round_no, hd.round_no) AS stm_round_no,
+                    COALESCE(stm.receipt_date, csop.receipt_date, hd.receipt_date) AS stm_receipt_date,
+                    COALESCE(stm.receive_no, csop.receive_no, hd.receive_no) AS stm_receive_no,
                     CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(csop.amount,0)
                     + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END) >= IFNULL(d.debtor,0)
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_401 d   
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(receive_total) AS receive_total,
-                    GROUP_CONCAT(repno) AS repno FROM stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
+                    GROUP_CONCAT(repno) AS repno,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                    FROM stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
                     AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,
-                    GROUP_CONCAT(rid) AS rid FROM stm_ofc_csop WHERE sys <> 'HD' GROUP BY hn, vstdate, LEFT(vsttime,5)) csop 
+                    GROUP_CONCAT(rid) AS rid,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                    FROM stm_ofc_csop WHERE sys <> 'HD' GROUP BY hn, vstdate, LEFT(vsttime,5)) csop 
                     ON csop.hn = d.hn  AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5)
-                LEFT JOIN (SELECT hn, vstdate,SUM(amount) AS amount, GROUP_CONCAT(rid) AS rid_hd 
+                LEFT JOIN (SELECT hn, vstdate,SUM(amount) AS amount, GROUP_CONCAT(rid) AS rid_hd,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                     FROM stm_ofc_csop WHERE sys = 'HD' GROUP BY hn, vstdate) hd ON hd.hn = d.hn  AND hd.vstdate = d.vstdate
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp 
                     FROM stm_ucs GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn 
                     AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
                 WHERE (d.ptname LIKE CONCAT('%', ?, '%') OR d.hn LIKE CONCAT('%', ?, '%'))
-                AND d.vstdate BETWEEN ? AND ?", [$search,$search,$start_date,$end_date]);
+                AND d.vstdate BETWEEN ? AND ?", [$search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select("
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
-                    d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
+                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
+                    d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no,(IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
                     + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,stm.repno,csop.rid,hd.rid_hd,d.debtor_lock,
+                    COALESCE(stm.round_no, csop.round_no, hd.round_no) AS stm_round_no,
+                    COALESCE(stm.receipt_date, csop.receipt_date, hd.receipt_date) AS stm_receipt_date,
+                    COALESCE(stm.receive_no, csop.receive_no, hd.receive_no) AS stm_receive_no,
                     CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(csop.amount,0)
                     + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END) >= IFNULL(d.debtor,0)
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_401 d   
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(receive_total) AS receive_total,
-                    GROUP_CONCAT(repno) AS repno FROM stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
+                    GROUP_CONCAT(repno) AS repno,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                    FROM stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
                     AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,
-                    GROUP_CONCAT(rid) AS rid FROM stm_ofc_csop WHERE sys <> 'HD' GROUP BY hn, vstdate, LEFT(vsttime,5)) csop 
+                    GROUP_CONCAT(rid) AS rid,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                    FROM stm_ofc_csop WHERE sys <> 'HD' GROUP BY hn, vstdate, LEFT(vsttime,5)) csop 
                     ON csop.hn = d.hn  AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5)
-                LEFT JOIN (SELECT hn, vstdate,SUM(amount) AS amount, GROUP_CONCAT(rid) AS rid_hd 
+                LEFT JOIN (SELECT hn, vstdate,SUM(amount) AS amount, GROUP_CONCAT(rid) AS rid_hd,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                     FROM stm_ofc_csop WHERE sys = 'HD' GROUP BY hn, vstdate) hd ON hd.hn = d.hn  AND hd.vstdate = d.vstdate
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp 
                     FROM stm_ucs GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn 
                     AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
-                WHERE d.vstdate BETWEEN ? AND ?", [$start_date,$end_date]);
+                WHERE d.vstdate BETWEEN ? AND ?", [$start_date, $end_date]);
         }
 
         $debtor_search = DB::connection('hosxp')->select('
@@ -3792,35 +3928,35 @@ class DebtorController extends Controller
             AND p.hipdata_code = "OFC"             
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_401 WHERE vn IS NOT NULL)
-            AND p.pttype NOT IN ('.$pttype_checkup.')   
+            AND p.pttype NOT IN (' . $pttype_checkup . ')   
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_401',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_401', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_401_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_401_confirm(Request $request )
+    //_1102050101_401_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_401_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');        
+        $end_date = Session::get('end_date');
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate,o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
@@ -3859,32 +3995,32 @@ class DebtorController extends Controller
             AND p.hipdata_code = "OFC"            
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_401 WHERE vn IS NOT NULL)
-            AND p.pttype NOT IN ('.$pttype_checkup.') 
-            AND o.vn IN ('.$checkbox_string.')   
+            AND p.pttype NOT IN (' . $pttype_checkup . ') 
+            AND o.vn IN (' . $checkbox_string . ')   
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_401::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'ofc'             => $row->ofc,
-                'kidney'          => $row->kidney,
-                'ppfs'            => $row->ppfs,
-                'other'           => $row->other,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'ofc' => $row->ofc,
+                'kidney' => $row->kidney,
+                'ppfs' => $row->ppfs,
+                'other' => $row->other,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -3896,10 +4032,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_401_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_401_delete(Request $request )
+    //_1102050101_401_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_401_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_401::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -3914,7 +4050,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050101_401_update-------------------------------------------------------------------------------------------------------
+    //_1102050101_401_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_401_update(Request $request, $vn)
     {
         $item = Debtor_1102050101_401::findOrFail($vn);
@@ -3929,9 +4065,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050101_401_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_401_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_401_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -3957,46 +4093,46 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT hn, vstdate,SUM(amount) AS amount FROM hrims.stm_ofc_csop
                     WHERE sys = 'HD' GROUP BY hn, vstdate) hd ON hd.hn = d.hn AND hd.vstdate = d.vstdate
                 WHERE d.vstdate BETWEEN ? AND ?) a
-            GROUP BY vstdate ORDER BY vstdate",[$start_date,$end_date]);
+            GROUP BY vstdate ORDER BY vstdate", [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_401_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_401_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050101_401_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_401_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_401_indiv_excel(Request $request)
-        {
+    {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_401_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
-##############################################################################################################################################################
+
+        return view('debtor.1102050101_401_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    ##############################################################################################################################################################
 //_1102050101_501--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_501(Request $request )
+    public function _1102050101_501(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');        
+        $search = $request->search ?: Session::get('search');
 
-        $debtor =  Debtor_1102050101_501::whereBetween('vstdate', [$start_date,$end_date])
-                    ->where(function ($query) use ($search){
-                        $query->where('ptname','like','%'.$search.'%');
-                        $query->orwhere('hn','like','%'.$search.'%');
-                        })
-                    ->orderBy('vstdate')->get()
-                    ->map(function ($item) {                        
-                        if (($item->receive - $item->debtor) >= 0) {
-                            $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
-                        } else {
-                            $item->days = Carbon::parse($item->vstdate)->diffInDays(Carbon::today());
-                        }
-                        return $item;
-                    }); 
+        $debtor = Debtor_1102050101_501::whereBetween('vstdate', [$start_date, $end_date])
+            ->where(function ($query) use ($search) {
+                $query->where('ptname', 'like', '%' . $search . '%');
+                $query->orwhere('hn', 'like', '%' . $search . '%');
+            })
+            ->orderBy('vstdate')->get()
+            ->map(function ($item) {
+                if (($item->receive - $item->debtor) >= 0) {
+                    $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
+                } else {
+                    $item->days = Carbon::parse($item->vstdate)->diffInDays(Carbon::today());
+                }
+                return $item;
+            });
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an, pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
@@ -4030,18 +4166,18 @@ class DebtorController extends Controller
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_501 WHERE vn IS NOT NULL)
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_501',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_501', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_501_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_501_confirm(Request $request )
+    //_1102050101_501_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_501_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
@@ -4049,13 +4185,13 @@ class DebtorController extends Controller
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an, pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
@@ -4087,27 +4223,27 @@ class DebtorController extends Controller
             AND p.hipdata_code = "NRH"    
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_501 WHERE vn IS NOT NULL)
-            AND o.vn IN ('.$checkbox_string.')
+            AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_501::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -4119,10 +4255,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_501_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_501_delete(Request $request )
+    //_1102050101_501_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_501_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_501::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -4137,7 +4273,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050101_501_update-------------------------------------------------------------------------------------------------------
+    //_1102050101_501_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_501_update(Request $request, $vn)
     {
         $item = Debtor_1102050101_501::findOrFail($vn);
@@ -4152,9 +4288,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050101_501_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_501_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_501_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -4169,38 +4305,38 @@ class DebtorController extends Controller
             SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_501  
             WHERE vstdate BETWEEN ? AND ?
-            GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date]);
+            GROUP BY vstdate ORDER BY vstdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_501_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_501_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
- //1102050101_501_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_501_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_501_indiv_excel(Request $request)
-        {
+    {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_501_indiv_excel',compact('start_date','end_date','debtor'));
+
+        return view('debtor.1102050101_501_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
-##############################################################################################################################################################
+    ##############################################################################################################################################################
 //_1102050101_503--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_503(Request $request )
+    public function _1102050101_503(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');       
+        $search = $request->search ?: Session::get('search');
 
-        $debtor =  Debtor_1102050101_503::whereBetween('vstdate', [$start_date,$end_date])
-                    ->where(function ($query) use ($search){
-                        $query->where('ptname','like','%'.$search.'%');
-                        $query->orwhere('hn','like','%'.$search.'%');
-                        })
-                    ->orderBy('vstdate')->get();
+        $debtor = Debtor_1102050101_503::whereBetween('vstdate', [$start_date, $end_date])
+            ->where(function ($query) use ($search) {
+                $query->where('ptname', 'like', '%' . $search . '%');
+                $query->orwhere('hn', 'like', '%' . $search . '%');
+            })
+            ->orderBy('vstdate')->get();
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an, pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
@@ -4235,33 +4371,33 @@ class DebtorController extends Controller
                 OR vp.hospmain IS NULL OR vp.hospmain ="")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_503 WHERE vn IS NOT NULL)
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_503',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_503', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_503_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_503_confirm(Request $request )
+    //_1102050101_503_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_503_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');        
-        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value'); 
+        $end_date = Session::get('end_date');
+        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an, pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
@@ -4294,27 +4430,27 @@ class DebtorController extends Controller
             AND (vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
                 OR vp.hospmain IS NULL OR vp.hospmain ="")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_503 WHERE vn IS NOT NULL)
-            AND o.vn IN ('.$checkbox_string.')
+            AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_503::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -4326,10 +4462,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_503_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_503_delete(Request $request )
+    //_1102050101_503_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_503_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_503::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -4344,7 +4480,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050101_503_update-------------------------------------------------------------------------------------------------------
+    //_1102050101_503_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_503_update(Request $request, $vn)
     {
         $item = Debtor_1102050101_503::findOrFail($vn);
@@ -4359,9 +4495,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050101_503_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_503_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_503_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -4376,35 +4512,35 @@ class DebtorController extends Controller
             SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_503  
             WHERE vstdate BETWEEN ? AND ?
-            GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date]);
+            GROUP BY vstdate ORDER BY vstdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_503_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_503_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
- //1102050101_503_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_503_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_503_indiv_excel(Request $request)
-        {
+    {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_503_indiv_excel',compact('start_date','end_date','debtor'));
+
+        return view('debtor.1102050101_503_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
-##############################################################################################################################################################
+    ##############################################################################################################################################################
 //_1102050101_701--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_701(Request $request )
+    public function _1102050101_701(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');        
+        $search = $request->search ?: Session::get('search');
 
         if ($search) {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
+                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock
                 FROM debtor_1102050101_701 d   
@@ -4415,7 +4551,7 @@ class DebtorController extends Controller
                 AND d.vstdate BETWEEN ? AND ?', [$search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
+                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock
                 FROM debtor_1102050101_701 d   
@@ -4461,18 +4597,18 @@ class DebtorController extends Controller
             AND vp.hospmain IN ( SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_701 WHERE vn IS NOT NULL)
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_701',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_701', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_701_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_701_confirm(Request $request )
+    //_1102050101_701_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_701_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
@@ -4480,13 +4616,13 @@ class DebtorController extends Controller
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
@@ -4522,29 +4658,29 @@ class DebtorController extends Controller
             AND p.hipdata_code = "STP"
             AND vp.hospmain IN ( SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_701 WHERE vn IS NOT NULL)
-            AND o.vn IN ('.$checkbox_string.')
+            AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_701::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'other'           => $row->other,
-                'ppfs'            => $row->ppfs,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'ppfs' => $row->ppfs,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -4556,10 +4692,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_701_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_701_delete(Request $request )
+    //_1102050101_701_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_701_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_701::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -4575,7 +4711,7 @@ class DebtorController extends Controller
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
 
-//1102050101_701_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_701_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_701_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -4590,35 +4726,35 @@ class DebtorController extends Controller
             SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_701  
             WHERE vstdate BETWEEN ? AND ?
-            GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date]);
+            GROUP BY vstdate ORDER BY vstdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_701_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_701_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
- //1102050101_701_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_701_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_701_indiv_excel(Request $request)
-        {
+    {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_701_indiv_excel',compact('start_date','end_date','debtor'));
+
+        return view('debtor.1102050101_701_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
-##############################################################################################################################################################
+    ##############################################################################################################################################################
 //_1102050101_702--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_702(Request $request )
+    public function _1102050101_702(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');        
+        $search = $request->search ?: Session::get('search');
 
         if ($search) {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
+                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock
                 FROM debtor_1102050101_702 d   
@@ -4629,7 +4765,7 @@ class DebtorController extends Controller
                 AND d.vstdate BETWEEN ? AND ?', [$search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
+                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock
                 FROM debtor_1102050101_702 d   
@@ -4676,18 +4812,18 @@ class DebtorController extends Controller
                 OR vp.hospmain IS NULL OR vp.hospmain ="")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_702 WHERE vn IS NOT NULL)
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_702',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_702', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_702_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_702_confirm(Request $request )
+    //_1102050101_702_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_702_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
@@ -4695,13 +4831,13 @@ class DebtorController extends Controller
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
@@ -4738,29 +4874,29 @@ class DebtorController extends Controller
             AND (vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
                 OR vp.hospmain IS NULL OR vp.hospmain ="")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_702 WHERE vn IS NOT NULL)
-            AND o.vn IN ('.$checkbox_string.')
+            AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_702::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'other'           => $row->other,
-                'ppfs'            => $row->ppfs,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'ppfs' => $row->ppfs,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -4772,10 +4908,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_702_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_702_delete(Request $request )
+    //_1102050101_702_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_702_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_702::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -4791,7 +4927,7 @@ class DebtorController extends Controller
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
 
-//1102050101_702_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_702_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_702_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -4806,32 +4942,32 @@ class DebtorController extends Controller
             SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_702  
             WHERE vstdate BETWEEN ? AND ?
-            GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date]);
+            GROUP BY vstdate ORDER BY vstdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_702_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_702_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
- //1102050101_702_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_702_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_702_indiv_excel(Request $request)
-        {
+    {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_702_indiv_excel',compact('start_date','end_date','debtor'));
+
+        return view('debtor.1102050101_702_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
-##############################################################################################################################################################
+    ##############################################################################################################################################################
 //_1102050102_106--------------------------------------------------------------------------------------------------------------
-    public function _1102050102_106(Request $request )
+    public function _1102050102_106(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search'); 
-        $pttype_iclaim = DB::table('main_setting')->where('name', 'pttype_iclaim')->value('value');       
+        $search = $request->search ?: Session::get('search');
+        $pttype_iclaim = DB::table('main_setting')->where('name', 'pttype_iclaim')->value('value');
 
         if ($search) {
             $debtor = DB::connection('hosxp')->select("
@@ -4855,7 +4991,7 @@ class DebtorController extends Controller
                 AND d.vstdate BETWEEN ? AND ?", [$search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::connection('hosxp')->select("
-                SELECT d.vstdate,d.vsttime,d.hn,d.vn,d.ptname,d.mobile_phone_number, d.pttype,d.hospmain,
+                SELECT d.vstdate,d.vsttime,d.hn,d.vn,d.cid,d.ptname,d.mobile_phone_number, d.pttype,d.hospmain,
                     d.pdx,d.income,d.paid_money,d.rcpt_money,d.debtor,d.debtor_lock, 
                     IF(r.bill_amount IS NOT NULL, 'กระทบยอดแล้ว', d.status) AS status,
                     d.charge_date,d.charge_no,d.charge,d.receive_date, d.receive_no,  
@@ -4898,7 +5034,7 @@ class DebtorController extends Controller
             AND v.paid_money - IFNULL(rc.rcpt_money,0) > 0
             AND o.vstdate BETWEEN ? AND ?
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_106 WHERE vn IS NOT NULL)
-            ORDER BY o.vstdate, o.oqueue ',[$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue ', [$start_date, $end_date]);
 
         $debtor_search_iclaim = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.oqueue,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,o.vsttime,
@@ -4915,18 +5051,18 @@ class DebtorController extends Controller
                 AND vp.pttype = ?
 				AND o.vstdate BETWEEN ? AND ?
 				AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_106 WHERE vn IS NOT NULL)
-            GROUP BY o.vn ORDER BY sum_price DESC ,o.vstdate,o.oqueue',[$pttype_iclaim,$start_date,$end_date]);
+            GROUP BY o.vn ORDER BY sum_price DESC ,o.vstdate,o.oqueue', [$pttype_iclaim, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050102_106',compact('start_date','end_date','search','debtor','debtor_search','debtor_search_iclaim'));
+        return view('debtor.1102050102_106', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'debtor_search_iclaim'));
     }
-//_1102050102_106_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050102_106_confirm(Request $request )
+    //_1102050102_106_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050102_106_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
@@ -4934,13 +5070,13 @@ class DebtorController extends Controller
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vstdate, o.vsttime, o.oqueue,o.vn, o.an,o.hn,v.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
                 pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income, v.paid_money,
@@ -4965,30 +5101,30 @@ class DebtorController extends Controller
             AND v.paid_money - IFNULL(rc.rcpt_money,0) > 0
             AND o.vstdate BETWEEN ? AND ?
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_106 WHERE vn IS NOT NULL)
-            AND o.vn IN ('.$checkbox_string.')
-            ORDER BY o.vstdate, o.oqueue ',[$start_date,$end_date]); 
-        
+            AND o.vn IN (' . $checkbox_string . ')
+            ORDER BY o.vstdate, o.oqueue ', [$start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050102_106::insert([
-                'vn'                  => $row->vn,
-                'hn'                  => $row->hn,
-                'an'                  => $row->an,
-                'cid'                 => $row->cid,
-                'ptname'              => $row->ptname,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'an' => $row->an,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
                 'mobile_phone_number' => $row->mobile_phone_number,
-                'vstdate'             => $row->vstdate,
-                'vsttime'             => $row->vsttime,
-                'pttype'              => $row->pttype,    
-                'hospmain'            => $row->hospmain,    
-                'hipdata_code'        => $row->hipdata_code,   
-                'pdx'                 => $row->pdx,  
-                'income'              => $row->income,  
-                'paid_money'          => $row->paid_money,
-                'rcpt_money'          => $row->rcpt_money,
-                'debtor'              => $row->debtor,      
-                'status'              => $row->status,         
-                ]);            
-            }
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'paid_money' => $row->paid_money,
+                'rcpt_money' => $row->rcpt_money,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
+        }
 
         if (empty($checkbox) || !is_array($checkbox)) {
             return response()->json([
@@ -4999,23 +5135,23 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050102_106_confirm_iclaim-------------------------------------------------------------------------------------------------------
-    public function _1102050102_106_confirm_iclaim(Request $request )
+    //_1102050102_106_confirm_iclaim-------------------------------------------------------------------------------------------------------
+    public function _1102050102_106_confirm_iclaim(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
-        $pttype_iclaim = DB::table('main_setting')->where('name', 'pttype_iclaim')->value('value'); 
+        $pttype_iclaim = DB::table('main_setting')->where('name', 'pttype_iclaim')->value('value');
         $request->validate([
-        'checkbox_iclaim' => 'required|array',
+            'checkbox_iclaim' => 'required|array',
         ], [
             'checkbox_iclaim.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox_iclaim'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.oqueue,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,o.vsttime,
                 pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.paid_money,v.rcpt_money,
@@ -5031,31 +5167,31 @@ class DebtorController extends Controller
             WHERE (o.an IS NULL OR o.an ="") 
                 AND vp.pttype = ?
 				AND o.vstdate BETWEEN ? AND ?  
-                AND o.vn IN ('.$checkbox_string.') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue',[$pttype_iclaim,$start_date,$end_date]); 
-        
+                AND o.vn IN (' . $checkbox_string . ') 
+            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue', [$pttype_iclaim, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050102_106::insert([
-                'vn'                  => $row->vn,
-                'hn'                  => $row->hn,
-                'an'                  => $row->an,
-                'cid'                 => $row->cid,
-                'ptname'              => $row->ptname,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'an' => $row->an,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
                 'mobile_phone_number' => $row->mobile_phone_number,
-                'vstdate'             => $row->vstdate,
-                'vsttime'             => $row->vsttime,
-                'pttype'              => $row->pttype,    
-                'hospmain'            => $row->hospmain,    
-                'hipdata_code'        => $row->hipdata_code,   
-                'pdx'                 => $row->pdx,  
-                'income'              => $row->income,  
-                'paid_money'          => $row->paid_money,
-                'rcpt_money'          => $row->rcpt_money,
-                'other'               => $row->other,
-                'debtor'              => $row->debtor,      
-                'status'              => $row->status,         
-                ]);            
-            }
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'paid_money' => $row->paid_money,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
+        }
 
         if (empty($checkbox) || !is_array($checkbox)) {
             return response()->json([
@@ -5066,10 +5202,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050102_106_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050102_106_delete(Request $request )
+    //_1102050102_106_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050102_106_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050102_106::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -5084,7 +5220,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050102_106_update-------------------------------------------------------------------------------------------------------
+    //_1102050102_106_update-------------------------------------------------------------------------------------------------------
     public function _1102050102_106_update(Request $request, $vn)
     {
         $item = Debtor_1102050102_106::findOrFail($vn);
@@ -5099,9 +5235,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050102_106_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050102_106_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_106_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -5121,23 +5257,23 @@ class DebtorController extends Controller
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn, r.bill_date) r ON r.vn = d.vn AND r.bill_date > d.vstdate
             WHERE d.vstdate BETWEEN ? AND ?
-            GROUP BY d.vstdate ORDER BY d.vstdate",[$start_date,$end_date]);
+            GROUP BY d.vstdate ORDER BY d.vstdate", [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050102_106_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050102_106_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050102_106_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050102_106_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050102_106_indiv_excel(Request $request)
-        {
+    {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050102_106_indiv_excel',compact('start_date','end_date','debtor'));
+
+        return view('debtor.1102050102_106_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
-//_1102050102_106_tracking-------------------------------------------------------------------------------------------------------   
-    public function _1102050102_106_tracking(Request $request, $vn )
+    //_1102050102_106_tracking-------------------------------------------------------------------------------------------------------   
+    public function _1102050102_106_tracking(Request $request, $vn)
     {
         $debtor = DB::select('
             SELECT * FROM debtor_1102050102_106 WHERE vn = ?', [$vn]);
@@ -5145,9 +5281,9 @@ class DebtorController extends Controller
         $tracking = DB::select('
             SELECT * FROM debtor_1102050102_106_tracking WHERE vn = ?', [$vn]);
 
-        return view('debtor.1102050102_106_tracking',compact('debtor','tracking'));
+        return view('debtor.1102050102_106_tracking', compact('debtor', 'tracking'));
     }
-//_1102050102_106_tracking_insert--------------------------------------------------------------------------------------------------
+    //_1102050102_106_tracking_insert--------------------------------------------------------------------------------------------------
     public function _1102050102_106_tracking_insert(Request $request)
     {
         $item = new Debtor_1102050102_106_tracking;
@@ -5156,50 +5292,50 @@ class DebtorController extends Controller
         $item->tracking_type = $request->input('tracking_type');
         $item->tracking_no = $request->input('tracking_no');
         $item->tracking_officer = $request->input('tracking_officer');
-        $item->tracking_note = $request->input('tracking_note');  
-        $item->save();  
+        $item->tracking_note = $request->input('tracking_note');
+        $item->save();
 
-        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//_1102050102_106_tracking_update-------------------------------------------------------------------------------------------------
+    //_1102050102_106_tracking_update-------------------------------------------------------------------------------------------------
     public function _1102050102_106_tracking_update(Request $request, $tracking_id)
     {
-    Debtor_1102050102_106_tracking::where('tracking_id', $tracking_id)
-        ->update([
-        'tracking_date' => $request->input('tracking_date'),
-        'tracking_type' => $request->input('tracking_type'),
-        'tracking_no' => $request->input('tracking_no'),
-        'tracking_officer' => $request->input('tracking_officer'),
-        'tracking_note' => $request->input('tracking_note')
-        ]);
+        Debtor_1102050102_106_tracking::where('tracking_id', $tracking_id)
+            ->update([
+                'tracking_date' => $request->input('tracking_date'),
+                'tracking_type' => $request->input('tracking_type'),
+                'tracking_no' => $request->input('tracking_no'),
+                'tracking_officer' => $request->input('tracking_officer'),
+                'tracking_note' => $request->input('tracking_note')
+            ]);
 
-    return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');  
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-##############################################################################################################################################################
+    ##############################################################################################################################################################
 //_1102050102_108--------------------------------------------------------------------------------------------------------------
-    public function _1102050102_108(Request $request )
+    public function _1102050102_108(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');        
+        $search = $request->search ?: Session::get('search');
 
-        $debtor =  Debtor_1102050102_108::whereBetween('vstdate', [$start_date,$end_date])
-                    ->where(function ($query) use ($search){
-                        $query->where('ptname','like','%'.$search.'%');
-                        $query->orwhere('hn','like','%'.$search.'%');
-                        })
-                    ->orderBy('vstdate')->get()
-                    ->map(function ($item) {                        
-                        if (($item->receive - $item->debtor) >= 0) {
-                            $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
-                        } else {
-                            $item->days = Carbon::parse($item->vstdate)->diffInDays(Carbon::today());
-                        }
-                        return $item;
-                    }); 
+        $debtor = Debtor_1102050102_108::whereBetween('vstdate', [$start_date, $end_date])
+            ->where(function ($query) use ($search) {
+                $query->where('ptname', 'like', '%' . $search . '%');
+                $query->orwhere('hn', 'like', '%' . $search . '%');
+            })
+            ->orderBy('vstdate')->get()
+            ->map(function ($item) {
+                if (($item->receive - $item->debtor) >= 0) {
+                    $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
+                } else {
+                    $item->days = Carbon::parse($item->vstdate)->diffInDays(Carbon::today());
+                }
+                return $item;
+            });
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
@@ -5239,18 +5375,18 @@ class DebtorController extends Controller
             AND p.hipdata_code IN ("BFC","GOF","PVT","WVO")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_108 WHERE vn IS NOT NULL)
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050102_108',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050102_108', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050102_108_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050102_108_confirm(Request $request )
+    //_1102050102_108_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050102_108_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
@@ -5258,13 +5394,13 @@ class DebtorController extends Controller
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
@@ -5302,28 +5438,28 @@ class DebtorController extends Controller
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
             AND p.hipdata_code IN ("BFC","GOF","PVT","WVO")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_108 WHERE vn IS NOT NULL)
-            AND o.vn IN ('.$checkbox_string.')
+            AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050102_108::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'other'           => $row->other,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -5335,10 +5471,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050102_108_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050102_108_delete(Request $request )
+    //_1102050102_108_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050102_108_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050102_108::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -5353,7 +5489,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050102_108_update-------------------------------------------------------------------------------------------------------
+    //_1102050102_108_update-------------------------------------------------------------------------------------------------------
     public function _1102050102_108_update(Request $request, $vn)
     {
         $item = Debtor_1102050102_108::findOrFail($vn);
@@ -5368,9 +5504,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050102_108_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050102_108_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_108_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -5385,80 +5521,96 @@ class DebtorController extends Controller
             SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050102_108  
             WHERE vstdate BETWEEN ? AND ?
-            GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date]);
+            GROUP BY vstdate ORDER BY vstdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050102_108_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050102_108_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
- //1102050102_108_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050102_108_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050102_108_indiv_excel(Request $request)
-        {
+    {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050102_108_indiv_excel',compact('start_date','end_date','debtor'));
+
+        return view('debtor.1102050102_108_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
-##############################################################################################################################################################
+    ##############################################################################################################################################################
 //_1102050102_110--------------------------------------------------------------------------------------------------------------
-    public function _1102050102_110(Request $request )
+    public function _1102050102_110(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');
-        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');           
- 
+        $search = $request->search ?: Session::get('search');
+        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
+
         if ($search) {
             $debtor = DB::select("
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
+                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no,(IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
                     + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,csop.rid,hd.rid_hd,d.debtor_lock,
+                    COALESCE(stm.round_no, csop.round_no, hd.round_no) AS stm_round_no,
+                    COALESCE(stm.receipt_date, csop.receipt_date, hd.receipt_date) AS stm_receipt_date,
+                    COALESCE(stm.receive_no, csop.receive_no, hd.receive_no) AS stm_receive_no,
                     CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(csop.amount,0)
                     + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END) >= IFNULL(d.debtor,0)
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_110 d   
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(receive_total) AS receive_total,
-                    GROUP_CONCAT(repno) AS repno FROM stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
+                    GROUP_CONCAT(repno) AS repno,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                    FROM stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
                     AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,
-                    GROUP_CONCAT(rid) AS rid FROM stm_ofc_csop WHERE sys <> 'HD' GROUP BY hn, vstdate, LEFT(vsttime,5)) csop 
+                    GROUP_CONCAT(rid) AS rid,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                    FROM stm_ofc_csop WHERE sys <> 'HD' GROUP BY hn, vstdate, LEFT(vsttime,5)) csop 
                     ON csop.hn = d.hn  AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5)
-                LEFT JOIN (SELECT hn, vstdate,SUM(amount) AS amount, GROUP_CONCAT(rid) AS rid_hd 
+                LEFT JOIN (SELECT hn, vstdate,SUM(amount) AS amount, GROUP_CONCAT(rid) AS rid_hd,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                     FROM stm_ofc_csop WHERE sys = 'HD' GROUP BY hn, vstdate) hd ON hd.hn = d.hn  AND hd.vstdate = d.vstdate
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp 
                     FROM stm_ucs GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn 
                     AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
                 WHERE (d.ptname LIKE CONCAT('%', ?, '%') OR d.hn LIKE CONCAT('%', ?, '%'))
-                AND d.vstdate BETWEEN ? AND ?", [$start_date,$end_date,$search]);
+                AND d.vstdate BETWEEN ? AND ?", [$start_date, $end_date, $search]);
         } else {
             $debtor = DB::select("
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
+                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no,(IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
                     + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,csop.rid,hd.rid_hd,d.debtor_lock,
+                    COALESCE(stm.round_no, csop.round_no, hd.round_no) AS stm_round_no,
+                    COALESCE(stm.receipt_date, csop.receipt_date, hd.receipt_date) AS stm_receipt_date,
+                    COALESCE(stm.receive_no, csop.receive_no, hd.receive_no) AS stm_receive_no,
                     CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(csop.amount,0)
                     + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END) >= IFNULL(d.debtor,0)
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_110 d   
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(receive_total) AS receive_total,
-                    GROUP_CONCAT(repno) AS repno FROM stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
+                    GROUP_CONCAT(repno) AS repno,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                    FROM stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
                     AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,
-                    GROUP_CONCAT(rid) AS rid FROM stm_ofc_csop WHERE sys <> 'HD' GROUP BY hn, vstdate, LEFT(vsttime,5)) csop 
+                    GROUP_CONCAT(rid) AS rid,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                    FROM stm_ofc_csop WHERE sys <> 'HD' GROUP BY hn, vstdate, LEFT(vsttime,5)) csop 
                     ON csop.hn = d.hn  AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5)
-                LEFT JOIN (SELECT hn, vstdate,SUM(amount) AS amount, GROUP_CONCAT(rid) AS rid_hd 
+                LEFT JOIN (SELECT hn, vstdate,SUM(amount) AS amount, GROUP_CONCAT(rid) AS rid_hd,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                     FROM stm_ofc_csop WHERE sys = 'HD' GROUP BY hn, vstdate) hd ON hd.hn = d.hn  AND hd.vstdate = d.vstdate
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp 
                     FROM stm_ucs GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn 
                     AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
-                WHERE d.vstdate BETWEEN ? AND ?", [$start_date,$end_date]);
+                WHERE d.vstdate BETWEEN ? AND ?", [$start_date, $end_date]);
         }
 
         $debtor_search = DB::connection('hosxp')->select('
@@ -5499,35 +5651,35 @@ class DebtorController extends Controller
             AND p.hipdata_code IN ("BMT","KKT","SRT")         
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_110 WHERE vn IS NOT NULL)
-            AND p.pttype NOT IN ('.$pttype_checkup.')   
+            AND p.pttype NOT IN (' . $pttype_checkup . ')   
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050102_110',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050102_110', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050102_110_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050102_110_confirm(Request $request )
+    //_1102050102_110_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050102_110_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');        
+        $end_date = Session::get('end_date');
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate,o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
@@ -5566,32 +5718,32 @@ class DebtorController extends Controller
             AND p.hipdata_code IN ("BMT","KKT","SRT")         
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_110 WHERE vn IS NOT NULL)
-            AND p.pttype NOT IN ('.$pttype_checkup.')   
-            AND o.vn IN ('.$checkbox_string.')
+            AND p.pttype NOT IN (' . $pttype_checkup . ')   
+            AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050102_110::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'ofc'             => $row->ofc,
-                'kidney'          => $row->kidney,
-                'ppfs'            => $row->ppfs,
-                'other'           => $row->other,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'ofc' => $row->ofc,
+                'kidney' => $row->kidney,
+                'ppfs' => $row->ppfs,
+                'other' => $row->other,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -5603,10 +5755,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050102_110_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050102_110_delete(Request $request )
+    //_1102050102_110_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050102_110_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050102_110::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -5621,7 +5773,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050102_110_update-------------------------------------------------------------------------------------------------------
+    //_1102050102_110_update-------------------------------------------------------------------------------------------------------
     public function _1102050102_110_update(Request $request, $vn)
     {
         $item = Debtor_1102050102_110::findOrFail($vn);
@@ -5636,9 +5788,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050102_110_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050102_110_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_110_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -5664,47 +5816,47 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT hn, vstdate,SUM(amount) AS amount FROM hrims.stm_ofc_csop
                     WHERE sys = 'HD' GROUP BY hn, vstdate) hd ON hd.hn = d.hn AND hd.vstdate = d.vstdate
                 WHERE d.vstdate BETWEEN ? AND ?) a
-            GROUP BY vstdate ORDER BY vstdate",[$start_date,$end_date]);
+            GROUP BY vstdate ORDER BY vstdate", [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050102_110_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050102_110_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050103_110_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050103_110_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050102_110_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050102_110_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
-##############################################################################################################################################################
+
+        return view('debtor.1102050102_110_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    ##############################################################################################################################################################
 //_1102050102_602--------------------------------------------------------------------------------------------------------------
-    public function _1102050102_602(Request $request )
+    public function _1102050102_602(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');    
-        $pttype_act = DB::table('main_setting')->where('name', 'pttype_act')->value('value');     
+        $search = $request->search ?: Session::get('search');
+        $pttype_act = DB::table('main_setting')->where('name', 'pttype_act')->value('value');
 
-        $debtor =  Debtor_1102050102_602::whereBetween('vstdate', [$start_date,$end_date])
-                    ->where(function ($query) use ($search){
-                        $query->where('ptname','like','%'.$search.'%');
-                        $query->orwhere('hn','like','%'.$search.'%');
-                        })
-                    ->orderBy('vstdate')->get()
-                    ->map(function ($item) {                        
-                        if (($item->receive - $item->debtor) >= 0) {
-                            $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
-                        } else {
-                            $item->days = Carbon::parse($item->vstdate)->diffInDays(Carbon::today());
-                        }
-                        return $item;
-                    });
+        $debtor = Debtor_1102050102_602::whereBetween('vstdate', [$start_date, $end_date])
+            ->where(function ($query) use ($search) {
+                $query->where('ptname', 'like', '%' . $search . '%');
+                $query->orwhere('hn', 'like', '%' . $search . '%');
+            })
+            ->orderBy('vstdate')->get()
+            ->map(function ($item) {
+                if (($item->receive - $item->debtor) >= 0) {
+                    $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
+                } else {
+                    $item->days = Carbon::parse($item->vstdate)->diffInDays(Carbon::today());
+                }
+                return $item;
+            });
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
@@ -5735,35 +5887,35 @@ class DebtorController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ems.other_price,0)) > 0           
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_602 WHERE vn IS NOT NULL)
-            AND vp.pttype IN ('.$pttype_act.')
+            AND vp.pttype IN (' . $pttype_act . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050102_602',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050102_602', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050102_602_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050102_602_confirm(Request $request )
+    //_1102050102_602_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050102_602_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
-        $pttype_act = DB::table('main_setting')->where('name', 'pttype_act')->value('value');     
+        $pttype_act = DB::table('main_setting')->where('name', 'pttype_act')->value('value');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
@@ -5793,29 +5945,29 @@ class DebtorController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ems.other_price,0)) > 0           
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_602 WHERE vn IS NOT NULL)
-            AND vp.pttype IN ('.$pttype_act.')
-            AND o.vn IN ('.$checkbox_string.') 
+            AND vp.pttype IN (' . $pttype_act . ')
+            AND o.vn IN (' . $checkbox_string . ') 
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050102_602::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'other'           => $row->other,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -5827,10 +5979,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050102_602_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050102_602_delete(Request $request )
+    //_1102050102_602_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050102_602_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050102_602::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -5845,7 +5997,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050102_602_update-------------------------------------------------------------------------------------------------------
+    //_1102050102_602_update-------------------------------------------------------------------------------------------------------
     public function _1102050102_602_update(Request $request, $vn)
     {
         $item = Debtor_1102050102_602::findOrFail($vn);
@@ -5860,9 +6012,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050102_602_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050102_602_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_602_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -5877,74 +6029,88 @@ class DebtorController extends Controller
             SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050102_602  
             WHERE vstdate BETWEEN ? AND ?
-            GROUP BY vstdate ORDER BY vstdate',[$start_date,$end_date]);
+            GROUP BY vstdate ORDER BY vstdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050102_602_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050102_602_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
- //1102050102_602_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050102_602_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050102_602_indiv_excel(Request $request)
-        {
+    {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050102_602_indiv_excel',compact('start_date','end_date','debtor'));
+
+        return view('debtor.1102050102_602_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
-##############################################################################################################################################################
+    ##############################################################################################################################################################
 //_1102050102_801--------------------------------------------------------------------------------------------------------------
-    public function _1102050102_801(Request $request )
+    public function _1102050102_801(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');
-        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');           
+        $search = $request->search ?: Session::get('search');
+        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
 
         if ($search) {
             $debtor = DB::select("
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,
+                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,
                     d.rcpt_money,d.lgo,d.kidney,d.ppfs,d.other,d.debtor,IFNULL(s.compensate_treatment,0) AS receive_lgo,
                     CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END AS receive_kidney,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,IFNULL(s.compensate_treatment,0)
                     + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END + IFNULL(su.receive_pp,0) AS receive,
-                    d.status,s.repno,sk.repno AS rid,d.debtor_lock, CASE WHEN (IFNULL(s.compensate_treatment,0)
+                    d.status,s.repno,sk.repno AS rid,d.debtor_lock,
+                    IFNULL(s.round_no, sk.round_no) AS stm_round_no,
+                    IFNULL(s.receipt_date, sk.receipt_date) AS stm_receipt_date,
+                    IFNULL(s.receive_no, sk.receive_no) AS stm_receive_no,
+                    CASE WHEN (IFNULL(s.compensate_treatment,0)
                     + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END + IFNULL(su.receive_pp,0)) 
                     - IFNULL(d.debtor,0) >= 0 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_801 d  
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment,
-                    GROUP_CONCAT(DISTINCT NULLIF(repno,'')) AS repno FROM stm_lgo GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid
+                    GROUP_CONCAT(DISTINCT NULLIF(repno,'')) AS repno,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                    FROM stm_lgo GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid
                     AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
-                LEFT JOIN (SELECT cid,datetimeadm AS vstdate,SUM(compensate_kidney) AS receive_total, GROUP_CONCAT(DISTINCT NULLIF(repno,'')) AS repno
+                LEFT JOIN (SELECT cid,datetimeadm AS vstdate,SUM(compensate_kidney) AS receive_total, GROUP_CONCAT(DISTINCT NULLIF(repno,'')) AS repno,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                     FROM stm_lgo_kidney WHERE datetimeadm BETWEEN ? AND ? GROUP BY cid, datetimeadm) sk ON sk.cid = d.cid AND sk.vstdate = d.vstdate
                 LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp FROM stm_ucs
                     GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn
                     AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
                 WHERE (d.ptname LIKE CONCAT('%', ?, '%') OR d.hn LIKE CONCAT('%', ?, '%'))
-                AND d.vstdate BETWEEN ? AND ?", [ $start_date, $end_date,$search, $search, $start_date, $end_date]);
+                AND d.vstdate BETWEEN ? AND ?", [$start_date, $end_date, $search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select("
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,
+                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,
                     d.rcpt_money,d.lgo,d.kidney,d.ppfs,d.other,d.debtor,IFNULL(s.compensate_treatment,0) AS receive_lgo,
                     CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END AS receive_kidney,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,IFNULL(s.compensate_treatment,0)
                     + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END + IFNULL(su.receive_pp,0) AS receive,
-                    d.status,s.repno,sk.repno AS rid,d.debtor_lock, CASE WHEN (IFNULL(s.compensate_treatment,0)
+                    d.status,s.repno,sk.repno AS rid,d.debtor_lock,
+                    IFNULL(s.round_no, sk.round_no) AS stm_round_no,
+                    IFNULL(s.receipt_date, sk.receipt_date) AS stm_receipt_date,
+                    IFNULL(s.receive_no, sk.receive_no) AS stm_receive_no,
+                    CASE WHEN (IFNULL(s.compensate_treatment,0)
                     + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END + IFNULL(su.receive_pp,0)) 
                     - IFNULL(d.debtor,0) >= 0 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_801 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment,
-                    GROUP_CONCAT(DISTINCT NULLIF(repno,'')) AS repno FROM stm_lgo GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid
+                    GROUP_CONCAT(DISTINCT NULLIF(repno,'')) AS repno,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                    FROM stm_lgo GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid
                     AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
-                LEFT JOIN (SELECT cid,datetimeadm AS vstdate,SUM(compensate_kidney) AS receive_total, GROUP_CONCAT(DISTINCT NULLIF(repno,'')) AS repno
+                LEFT JOIN (SELECT cid,datetimeadm AS vstdate,SUM(compensate_kidney) AS receive_total, GROUP_CONCAT(DISTINCT NULLIF(repno,'')) AS repno,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                     FROM stm_lgo_kidney WHERE datetimeadm BETWEEN ? AND ? GROUP BY cid, datetimeadm) sk ON sk.cid = d.cid AND sk.vstdate = d.vstdate
                 LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp FROM stm_ucs
                     GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn
                     AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
-                WHERE d.vstdate BETWEEN ? AND ?", [$start_date, $end_date,$start_date, $end_date]);
+                WHERE d.vstdate BETWEEN ? AND ?", [$start_date, $end_date, $start_date, $end_date]);
         }
 
         $debtor_search = DB::connection('hosxp')->select('
@@ -5986,35 +6152,35 @@ class DebtorController extends Controller
             AND p.hipdata_code = "LGO"            
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_801 WHERE vn IS NOT NULL)
-            AND p.pttype NOT IN ('.$pttype_checkup.')
+            AND p.pttype NOT IN (' . $pttype_checkup . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050102_801',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050102_801', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050102_801_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050102_801_confirm(Request $request )
+    //_1102050102_801_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050102_801_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');        
+        $end_date = Session::get('end_date');
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
@@ -6054,32 +6220,32 @@ class DebtorController extends Controller
             AND p.hipdata_code = "LGO"            
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_801 WHERE vn IS NOT NULL)
-            AND p.pttype NOT IN ('.$pttype_checkup.')
-            AND o.vn IN ('.$checkbox_string.')
+            AND p.pttype NOT IN (' . $pttype_checkup . ')
+            AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]);  
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050102_801::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'lgo'             => $row->lgo,
-                'kidney'          => $row->kidney,
-                'ppfs'            => $row->ppfs,
-                'other'           => $row->other,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'lgo' => $row->lgo,
+                'kidney' => $row->kidney,
+                'ppfs' => $row->ppfs,
+                'other' => $row->other,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -6091,10 +6257,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050102_801_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050102_801_delete(Request $request )
+    //_1102050102_801_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050102_801_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050102_801::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -6109,7 +6275,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050102_801_update-------------------------------------------------------------------------------------------------------
+    //_1102050102_801_update-------------------------------------------------------------------------------------------------------
     public function _1102050102_801_update(Request $request, $vn)
     {
         $item = Debtor_1102050102_801::findOrFail($vn);
@@ -6124,9 +6290,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050102_801_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050102_801_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_801_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -6147,80 +6313,96 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT cid,datetimeadm AS vstdate,SUM(compensate_kidney) AS receive_total
                 FROM stm_lgo_kidney WHERE datetimeadm BETWEEN ? AND ? GROUP BY cid, datetimeadm ) k ON k.cid = d.cid AND k.vstdate = d.vstdate 
             WHERE d.vstdate BETWEEN ? AND ?) a
-            GROUP BY a.vstdate ORDER BY a.vstdate",[$start_date,$end_date,$start_date,$end_date]);
+            GROUP BY a.vstdate ORDER BY a.vstdate", [$start_date, $end_date, $start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050102_801_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050102_801_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050102_801_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050102_801_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050102_801_indiv_excel(Request $request)
-        {
+    {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050102_801_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
-##############################################################################################################################################################
+
+        return view('debtor.1102050102_801_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    ##############################################################################################################################################################
 //_1102050102_803--------------------------------------------------------------------------------------------------------------
-    public function _1102050102_803(Request $request )
+    public function _1102050102_803(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');
-        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');           
- 
+        $search = $request->search ?: Session::get('search');
+        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
+
         if ($search) {
             $debtor = DB::select("
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
+                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no,(IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
                     + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,csop.rid,hd.rid_hd,d.debtor_lock,
+                    COALESCE(stm.round_no, csop.round_no, hd.round_no) AS stm_round_no,
+                    COALESCE(stm.receipt_date, csop.receipt_date, hd.receipt_date) AS stm_receipt_date,
+                    COALESCE(stm.receive_no, csop.receive_no, hd.receive_no) AS stm_receive_no,
                     CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(csop.amount,0)
                     + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END) >= IFNULL(d.debtor,0)
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_803 d   
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(receive_total) AS receive_total,
-                    GROUP_CONCAT(repno) AS repno FROM stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
+                    GROUP_CONCAT(repno) AS repno,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                    FROM stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
                     AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,
-                    GROUP_CONCAT(rid) AS rid FROM stm_ofc_csop WHERE sys <> 'HD' GROUP BY hn, vstdate, LEFT(vsttime,5)) csop 
+                    GROUP_CONCAT(rid) AS rid,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                    FROM stm_ofc_csop WHERE sys <> 'HD' GROUP BY hn, vstdate, LEFT(vsttime,5)) csop 
                     ON csop.hn = d.hn  AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5)
-                LEFT JOIN (SELECT hn, vstdate,SUM(amount) AS amount, GROUP_CONCAT(rid) AS rid_hd 
+                LEFT JOIN (SELECT hn, vstdate,SUM(amount) AS amount, GROUP_CONCAT(rid) AS rid_hd,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                     FROM stm_ofc_csop WHERE sys = 'HD' GROUP BY hn, vstdate) hd ON hd.hn = d.hn  AND hd.vstdate = d.vstdate
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp 
                     FROM stm_ucs GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn 
                     AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
                 WHERE (d.ptname LIKE CONCAT('%', ?, '%') OR d.hn LIKE CONCAT('%', ?, '%'))
-                AND d.vstdate BETWEEN ? AND ?", [$start_date,$end_date,$search]);
+                AND d.vstdate BETWEEN ? AND ?", [$start_date, $end_date, $search]);
         } else {
             $debtor = DB::select("
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
+                SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no,(IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
                     + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,csop.rid,hd.rid_hd,d.debtor_lock,
+                    COALESCE(stm.round_no, csop.round_no, hd.round_no) AS stm_round_no,
+                    COALESCE(stm.receipt_date, csop.receipt_date, hd.receipt_date) AS stm_receipt_date,
+                    COALESCE(stm.receive_no, csop.receive_no, hd.receive_no) AS stm_receive_no,
                     CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(csop.amount,0)
                     + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END) >= IFNULL(d.debtor,0)
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_803 d   
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(receive_total) AS receive_total,
-                    GROUP_CONCAT(repno) AS repno FROM stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
+                    GROUP_CONCAT(repno) AS repno,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                    FROM stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
                     AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount,
-                    GROUP_CONCAT(rid) AS rid FROM stm_ofc_csop WHERE sys <> 'HD' GROUP BY hn, vstdate, LEFT(vsttime,5)) csop 
+                    GROUP_CONCAT(rid) AS rid,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
+                    FROM stm_ofc_csop WHERE sys <> 'HD' GROUP BY hn, vstdate, LEFT(vsttime,5)) csop 
                     ON csop.hn = d.hn  AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5)
-                LEFT JOIN (SELECT hn, vstdate,SUM(amount) AS amount, GROUP_CONCAT(rid) AS rid_hd 
+                LEFT JOIN (SELECT hn, vstdate,SUM(amount) AS amount, GROUP_CONCAT(rid) AS rid_hd,
+                    MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                     FROM stm_ofc_csop WHERE sys = 'HD' GROUP BY hn, vstdate) hd ON hd.hn = d.hn  AND hd.vstdate = d.vstdate
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp 
                     FROM stm_ucs GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn 
                     AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
-                WHERE d.vstdate BETWEEN ? AND ?", [$start_date,$end_date]);
+                WHERE d.vstdate BETWEEN ? AND ?", [$start_date, $end_date]);
         }
 
         $debtor_search = DB::connection('hosxp')->select('
@@ -6261,35 +6443,35 @@ class DebtorController extends Controller
             AND p.hipdata_code IN ("BKK","PTY")        
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_803 WHERE vn IS NOT NULL)
-            AND p.pttype NOT IN ('.$pttype_checkup.')   
+            AND p.pttype NOT IN (' . $pttype_checkup . ')   
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050102_803',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050102_803', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050102_803_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050102_803_confirm(Request $request )
+    //_1102050102_803_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050102_803_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');        
+        $end_date = Session::get('end_date');
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate,o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
@@ -6328,32 +6510,32 @@ class DebtorController extends Controller
             AND p.hipdata_code IN ("BKK","PTY")        
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_803 WHERE vn IS NOT NULL)
-            AND p.pttype NOT IN ('.$pttype_checkup.') 
-            AND o.vn IN ('.$checkbox_string.')  
+            AND p.pttype NOT IN (' . $pttype_checkup . ') 
+            AND o.vn IN (' . $checkbox_string . ')  
             GROUP BY o.vn, vp.pttype
-            ORDER BY o.vstdate, o.oqueue',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050102_803::insert([
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'vstdate'         => $row->vstdate,
-                'vsttime'         => $row->vsttime,
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money,
-                'ofc'             => $row->ofc,
-                'kidney'          => $row->kidney,
-                'ppfs'            => $row->ppfs,
-                'other'           => $row->other,
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,          
-            ]);            
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'vstdate' => $row->vstdate,
+                'vsttime' => $row->vsttime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'ofc' => $row->ofc,
+                'kidney' => $row->kidney,
+                'ppfs' => $row->ppfs,
+                'other' => $row->other,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -6365,10 +6547,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050102_803_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050102_803_delete(Request $request )
+    //_1102050102_803_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050102_803_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050102_803::whereIn('vn', $checkbox)
             ->whereNull('debtor_lock')
@@ -6383,7 +6565,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050102_803_update-------------------------------------------------------------------------------------------------------
+    //_1102050102_803_update-------------------------------------------------------------------------------------------------------
     public function _1102050102_803_update(Request $request, $vn)
     {
         $item = Debtor_1102050102_803::findOrFail($vn);
@@ -6398,9 +6580,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050102_803_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050102_803_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_803_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -6426,32 +6608,32 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT hn, vstdate,SUM(amount) AS amount FROM hrims.stm_ofc_csop
                     WHERE sys = 'HD' GROUP BY hn, vstdate) hd ON hd.hn = d.hn AND hd.vstdate = d.vstdate
                 WHERE d.vstdate BETWEEN ? AND ?) a
-            GROUP BY vstdate ORDER BY vstdate",[$start_date,$end_date,]);
+            GROUP BY vstdate ORDER BY vstdate", [$start_date, $end_date,]);
 
-        $pdf = PDF::loadView('debtor.1102050102_803_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050102_803_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050103_803_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050103_803_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050102_803_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050102_803_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
-##############################################################################################################################################################
+
+        return view('debtor.1102050102_803_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    ##############################################################################################################################################################
 //_1102050101_202--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_202(Request $request )
+    public function _1102050101_202(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');        
- 
+        $search = $request->search ?: Session::get('search');
+
         if ($search) {
             $debtor = DB::select('
                 SELECT d.*,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
@@ -6463,7 +6645,7 @@ class DebtorController extends Controller
                     FROM stm_ucs GROUP BY an) stm ON stm.an = d.an
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
                 AND d.dchdate BETWEEN ? AND ?
-                GROUP BY d.an', [$search, $search,$search,$start_date,$end_date]);
+                GROUP BY d.an', [$search, $search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
                 SELECT d.*,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
@@ -6474,7 +6656,7 @@ class DebtorController extends Controller
                     SUM(receive_total) AS receive_total,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY an) stm ON stm.an = d.an
                 WHERE d.dchdate BETWEEN ? AND ?
-                GROUP BY d.an', [$start_date,$end_date]);
+                GROUP BY d.an', [$start_date, $end_date]);
         }
 
         $debtor_search = DB::connection('hosxp')->select('
@@ -6514,33 +6696,33 @@ class DebtorController extends Controller
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_202 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate, i.an, ip.pttype',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY i.ward, i.dchdate, i.an, ip.pttype', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_202',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_202', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_202_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_202_confirm(Request $request )
+    //_1102050101_202_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_202_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
-        
+
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date'); 
+        $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
-         $debtor = DB::connection('hosxp')->select('
+
+        $debtor = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
                 COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
@@ -6576,31 +6758,31 @@ class DebtorController extends Controller
             AND p.hipdata_code IN ("UCS","WEL") 
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_202 WHERE an IS NOT NULL)
-            AND i.an IN ('.$checkbox_string.') 
+            AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate, i.an, ip.pttype',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY i.ward, i.dchdate, i.an, ip.pttype', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_202::insert([
-                'an'              => $row->an,
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'regdate'         => $row->regdate,
-                'regtime'         => $row->regtime,
-                'dchdate'         => $row->dchdate,
-                'dchtime'         => $row->dchtime,    
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'adjrw'           => $row->adjrw,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money, 
-                'other'           => $row->other,  
-                'debtor'          => $row->debtor,           
-            ]);            
+                'an' => $row->an,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'regdate' => $row->regdate,
+                'regtime' => $row->regtime,
+                'dchdate' => $row->dchdate,
+                'dchtime' => $row->dchtime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'adjrw' => $row->adjrw,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'debtor' => $row->debtor,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -6612,10 +6794,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_202_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_202_delete(Request $request )
+    //_1102050101_202_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_202_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_202::whereIn('an', $checkbox)
             ->whereNull('debtor_lock')
@@ -6631,7 +6813,7 @@ class DebtorController extends Controller
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
 
-//1102050101_202_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_202_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_202_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -6650,32 +6832,32 @@ class DebtorController extends Controller
                 FROM stm_ucs GROUP BY an) stm ON stm.an = d.an    
             WHERE d.dchdate BETWEEN ? AND ?
             GROUP BY d.an) AS a
-            GROUP BY dchdate ORDER BY dchdate',[$start_date,$end_date]);
+            GROUP BY dchdate ORDER BY dchdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_202_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_202_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050101_202_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_202_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_202_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_202_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
-##############################################################################################################################################################
+
+        return view('debtor.1102050101_202_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    ##############################################################################################################################################################
 //_1102050101_217--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_217(Request $request )
+    public function _1102050101_217(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');        
- 
+        $search = $request->search ?: Session::get('search');
+
         if ($search) {
             $debtor = DB::select('
                 SELECT d.*,(IFNULL(stm.receive_total,0)-IFNULL(stm.receive_ip_compensate_pay,0))+IFNULL(k.receive_total,0) AS receive,
@@ -6689,7 +6871,7 @@ class DebtorController extends Controller
                     JOIN stm_ucs_kidney sk ON sk.cid = d2.cid AND sk.datetimeadm BETWEEN d2.regdate AND d2.dchdate
                     WHERE d2.dchdate BETWEEN ? AND ? GROUP BY d2.an) k ON k.an = d.an
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
-                AND d.dchdate BETWEEN ? AND ?', [$start_date,$end_date,$search,$search,$search,$start_date,$end_date]);
+                AND d.dchdate BETWEEN ? AND ?', [$start_date, $end_date, $search, $search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
                 SELECT d.*,(IFNULL(stm.receive_total,0)-IFNULL(stm.receive_ip_compensate_pay,0))+IFNULL(k.receive_total,0) AS receive,
@@ -6702,7 +6884,7 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT d2.an,SUM(sk.receive_total) AS receive_total,MAX(sk.repno) AS repno FROM debtor_1102050101_217 d2
                     JOIN stm_ucs_kidney sk ON sk.cid = d2.cid AND sk.datetimeadm BETWEEN d2.regdate AND d2.dchdate
                     WHERE d2.dchdate BETWEEN ? AND ? GROUP BY d2.an) k ON k.an = d.an
-                WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an', [$start_date,$end_date,$start_date,$end_date]);
+                WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an', [$start_date, $end_date, $start_date, $end_date]);
         }
 
         $debtor_search = DB::connection('hosxp')->select('
@@ -6742,32 +6924,32 @@ class DebtorController extends Controller
             AND i.dchdate BETWEEN ? AND ?            
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_217 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY i.ward, i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_217',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_217', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_217_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_217_confirm(Request $request )
+    //_1102050101_217_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_217_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date'); 
+        $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
@@ -6804,31 +6986,31 @@ class DebtorController extends Controller
             AND p.hipdata_code IN ("UCS","WEL")
             AND i.dchdate BETWEEN ? AND ?            
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_217 WHERE an IS NOT NULL)
-            AND i.an IN ('.$checkbox_string.') 
+            AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY i.ward, i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_217::insert([
-                'an'              => $row->an,
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'regdate'         => $row->regdate,
-                'regtime'         => $row->regtime,
-                'dchdate'         => $row->dchdate,
-                'dchtime'         => $row->dchtime,    
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'adjrw'           => $row->adjrw,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money, 
-                'cr'              => $row->cr,  
-                'debtor'          => $row->debtor,           
-            ]);            
+                'an' => $row->an,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'regdate' => $row->regdate,
+                'regtime' => $row->regtime,
+                'dchdate' => $row->dchdate,
+                'dchtime' => $row->dchtime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'adjrw' => $row->adjrw,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'cr' => $row->cr,
+                'debtor' => $row->debtor,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -6840,10 +7022,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_217_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_217_delete(Request $request )
+    //_1102050101_217_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_217_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_217::whereIn('an', $checkbox)
             ->whereNull('debtor_lock')
@@ -6859,7 +7041,7 @@ class DebtorController extends Controller
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
 
-//1102050101_217_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_217_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_217_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -6880,49 +7062,49 @@ class DebtorController extends Controller
                     JOIN stm_ucs_kidney sk ON sk.cid = d2.cid AND sk.datetimeadm BETWEEN d2.regdate AND d2.dchdate
                     WHERE d2.dchdate BETWEEN ? AND ? GROUP BY d2.an) k ON k.an = d.an
                 WHERE d.dchdate BETWEEN ? AND ?) a
-                GROUP BY a.dchdate ORDER BY a.dchdate',[$start_date,$end_date,$start_date,$end_date]);
+                GROUP BY a.dchdate ORDER BY a.dchdate', [$start_date, $end_date, $start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_217_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_217_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050101_217_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_217_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_217_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_217_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
-##############################################################################################################################################################
+
+        return view('debtor.1102050101_217_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    ##############################################################################################################################################################
 //_1102050101_302--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_302(Request $request )
+    public function _1102050101_302(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');        
+        $search = $request->search ?: Session::get('search');
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
         $pttype_sss_72 = DB::table('main_setting')->where('name', 'pttype_sss_72')->value('value');
-        
-        $debtor =  Debtor_1102050101_302::whereBetween('dchdate', [$start_date,$end_date])
-            ->where(function ($query) use ($search){
-                $query->where('ptname','like','%'.$search.'%');
-                $query->orwhere('hn','like','%'.$search.'%');
-                $query->orwhere('an','like','%'.$search.'%');
+
+        $debtor = Debtor_1102050101_302::whereBetween('dchdate', [$start_date, $end_date])
+            ->where(function ($query) use ($search) {
+                $query->where('ptname', 'like', '%' . $search . '%');
+                $query->orwhere('hn', 'like', '%' . $search . '%');
+                $query->orwhere('an', 'like', '%' . $search . '%');
             })
             ->orderBy('dchdate')->get()
-            ->map(function ($item) {                        
+            ->map(function ($item) {
                 if (($item->receive - $item->debtor) >= 0) {
                     $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
                 } else {
                     $item->days = Carbon::parse($item->dchdate)->diffInDays(Carbon::today());
                 }
                 return $item;
-            });  
+            });
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
@@ -6960,38 +7142,40 @@ class DebtorController extends Controller
             AND i.dchdate BETWEEN ? AND ?
             AND ip.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_302 WHERE an IS NOT NULL)
-            AND ip.pttype NOT IN ('.$pttype_sss_fund.')
-			AND ip.pttype NOT IN ('.$pttype_sss_72.') 
+            AND ip.pttype NOT IN (' . $pttype_sss_fund . ')
+			AND ip.pttype NOT IN (' . $pttype_sss_72 . ') 
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_302',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_302', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_302_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_302_confirm(Request $request )
+    //_1102050101_302_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_302_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date'); 
+        $end_date = Session::get('end_date');
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
         $pttype_sss_72 = DB::table('main_setting')->where('name', 'pttype_sss_72')->value('value');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
@@ -7028,35 +7212,37 @@ class DebtorController extends Controller
             AND i.dchdate BETWEEN ? AND ?
             AND ip.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_302 WHERE an IS NOT NULL)
-            AND ip.pttype NOT IN ('.$pttype_sss_fund.')
-			AND ip.pttype NOT IN ('.$pttype_sss_72.') 
-            AND i.an IN ('.$checkbox_string.') 
+            AND ip.pttype NOT IN (' . $pttype_sss_fund . ')
+			AND ip.pttype NOT IN (' . $pttype_sss_72 . ') 
+            AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
+
         foreach ($debtor as $row) {
             Debtor_1102050101_302::insert([
-                'an'              => $row->an,
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'regdate'         => $row->regdate,
-                'regtime'         => $row->regtime,
-                'dchdate'         => $row->dchdate,
-                'dchtime'         => $row->dchtime,    
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'adjrw'           => $row->adjrw,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money, 
-                'other'           => $row->other,  
-                'debtor'          => $row->debtor, 
-                'status'          => $row->status,          
-            ]);            
+                'an' => $row->an,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'regdate' => $row->regdate,
+                'regtime' => $row->regtime,
+                'dchdate' => $row->dchdate,
+                'dchtime' => $row->dchtime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'adjrw' => $row->adjrw,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -7068,10 +7254,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_302_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_302_delete(Request $request )
+    //_1102050101_302_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_302_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_302::whereIn('an', $checkbox)
             ->whereNull('debtor_lock')
@@ -7086,7 +7272,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050101_302_update-------------------------------------------------------------------------------------------------------
+    //_1102050101_302_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_302_update(Request $request, $an)
     {
         $item = Debtor_1102050101_302::findOrFail($an);
@@ -7101,9 +7287,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050101_302_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_302_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_302_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -7117,49 +7303,49 @@ class DebtorController extends Controller
             SELECT dchdate AS vstdate,COUNT(DISTINCT an) AS anvn,SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_302    
             WHERE dchdate BETWEEN ? AND ?
-            GROUP BY dchdate ORDER BY dchdate',[$start_date,$end_date]);
+            GROUP BY dchdate ORDER BY dchdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_302_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_302_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050101_302_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_302_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_302_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_302_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
-##############################################################################################################################################################
+
+        return view('debtor.1102050101_302_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    ##############################################################################################################################################################
 //_1102050101_304--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_304(Request $request )
+    public function _1102050101_304(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');        
+        $search = $request->search ?: Session::get('search');
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
         $pttype_sss_72 = DB::table('main_setting')->where('name', 'pttype_sss_72')->value('value');
-        
-        $debtor =  Debtor_1102050101_304::whereBetween('dchdate', [$start_date,$end_date])
-            ->where(function ($query) use ($search){
-                $query->where('ptname','like','%'.$search.'%');
-                $query->orwhere('hn','like','%'.$search.'%');
-                $query->orwhere('an','like','%'.$search.'%');
+
+        $debtor = Debtor_1102050101_304::whereBetween('dchdate', [$start_date, $end_date])
+            ->where(function ($query) use ($search) {
+                $query->where('ptname', 'like', '%' . $search . '%');
+                $query->orwhere('hn', 'like', '%' . $search . '%');
+                $query->orwhere('an', 'like', '%' . $search . '%');
             })
             ->orderBy('dchdate')->get()
-            ->map(function ($item) {                        
+            ->map(function ($item) {
                 if (($item->receive - $item->debtor) >= 0) {
                     $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
                 } else {
                     $item->days = Carbon::parse($item->dchdate)->diffInDays(Carbon::today());
                 }
                 return $item;
-            });  
+            });
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
@@ -7197,38 +7383,40 @@ class DebtorController extends Controller
             AND i.dchdate BETWEEN ? AND ?
             AND ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_304 WHERE an IS NOT NULL)
-            AND ip.pttype NOT IN ('.$pttype_sss_fund.')
-			AND ip.pttype NOT IN ('.$pttype_sss_72.') 
+            AND ip.pttype NOT IN (' . $pttype_sss_fund . ')
+			AND ip.pttype NOT IN (' . $pttype_sss_72 . ') 
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_304',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_304', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_304_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_304_confirm(Request $request )
+    //_1102050101_304_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_304_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date'); 
+        $end_date = Session::get('end_date');
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
         $pttype_sss_72 = DB::table('main_setting')->where('name', 'pttype_sss_72')->value('value');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
@@ -7265,35 +7453,37 @@ class DebtorController extends Controller
             AND i.dchdate BETWEEN ? AND ?
             AND ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_304 WHERE an IS NOT NULL)
-            AND ip.pttype NOT IN ('.$pttype_sss_fund.')
-			AND ip.pttype NOT IN ('.$pttype_sss_72.') 
-            AND i.an IN ('.$checkbox_string.') 
+            AND ip.pttype NOT IN (' . $pttype_sss_fund . ')
+			AND ip.pttype NOT IN (' . $pttype_sss_72 . ') 
+            AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
+
         foreach ($debtor as $row) {
             Debtor_1102050101_304::insert([
-                'an'              => $row->an,
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'regdate'         => $row->regdate,
-                'regtime'         => $row->regtime,
-                'dchdate'         => $row->dchdate,
-                'dchtime'         => $row->dchtime,    
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'adjrw'           => $row->adjrw,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money, 
-                'other'           => $row->other,  
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,            
-            ]);            
+                'an' => $row->an,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'regdate' => $row->regdate,
+                'regtime' => $row->regtime,
+                'dchdate' => $row->dchdate,
+                'dchtime' => $row->dchtime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'adjrw' => $row->adjrw,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -7305,10 +7495,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_304_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_304_delete(Request $request )
+    //_1102050101_304_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_304_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_304::whereIn('an', $checkbox)
             ->whereNull('debtor_lock')
@@ -7323,7 +7513,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050101_304_update-------------------------------------------------------------------------------------------------------
+    //_1102050101_304_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_304_update(Request $request, $an)
     {
         $item = Debtor_1102050101_304::findOrFail($an);
@@ -7338,9 +7528,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050101_304_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_304_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_304_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -7354,48 +7544,48 @@ class DebtorController extends Controller
             SELECT dchdate AS vstdate,COUNT(DISTINCT an) AS anvn,SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_304    
             WHERE dchdate BETWEEN ? AND ?
-            GROUP BY dchdate ORDER BY dchdate',[$start_date,$end_date]);
+            GROUP BY dchdate ORDER BY dchdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_304_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_304_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050101_304_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_304_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_304_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_304_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
-##############################################################################################################################################################
+
+        return view('debtor.1102050101_304_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    ##############################################################################################################################################################
 //_1102050101_308--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_308(Request $request )
+    public function _1102050101_308(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search'); 
+        $search = $request->search ?: Session::get('search');
         $pttype_sss_72 = DB::table('main_setting')->where('name', 'pttype_sss_72')->value('value');
-        
-        $debtor =  Debtor_1102050101_308::whereBetween('dchdate', [$start_date,$end_date])
-            ->where(function ($query) use ($search){
-                $query->where('ptname','like','%'.$search.'%');
-                $query->orwhere('hn','like','%'.$search.'%');
-                $query->orwhere('an','like','%'.$search.'%');
+
+        $debtor = Debtor_1102050101_308::whereBetween('dchdate', [$start_date, $end_date])
+            ->where(function ($query) use ($search) {
+                $query->where('ptname', 'like', '%' . $search . '%');
+                $query->orwhere('hn', 'like', '%' . $search . '%');
+                $query->orwhere('an', 'like', '%' . $search . '%');
             })
             ->orderBy('dchdate')->get()
-            ->map(function ($item) {                        
+            ->map(function ($item) {
                 if (($item->receive - $item->debtor) >= 0) {
                     $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
                 } else {
                     $item->days = Carbon::parse($item->dchdate)->diffInDays(Carbon::today());
                 }
                 return $item;
-            });  
+            });
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
@@ -7432,37 +7622,39 @@ class DebtorController extends Controller
             AND p.hipdata_code = "SSS"
             AND i.dchdate BETWEEN ? AND ?            
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_308 WHERE an IS NOT NULL)
-			AND ip.pttype IN ('.$pttype_sss_72.') 
+			AND ip.pttype IN (' . $pttype_sss_72 . ') 
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_308',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_308', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_308_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_308_confirm(Request $request )
+    //_1102050101_308_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_308_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date'); 
+        $end_date = Session::get('end_date');
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
         $pttype_sss_72 = DB::table('main_setting')->where('name', 'pttype_sss_72')->value('value');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
@@ -7498,34 +7690,36 @@ class DebtorController extends Controller
             AND p.hipdata_code = "SSS"
             AND i.dchdate BETWEEN ? AND ?            
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_308 WHERE an IS NOT NULL)
-			AND ip.pttype IN ('.$pttype_sss_72.') 
-            AND i.an IN ('.$checkbox_string.') 
+			AND ip.pttype IN (' . $pttype_sss_72 . ') 
+            AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
+
         foreach ($debtor as $row) {
             Debtor_1102050101_308::insert([
-                'an'              => $row->an,
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'regdate'         => $row->regdate,
-                'regtime'         => $row->regtime,
-                'dchdate'         => $row->dchdate,
-                'dchtime'         => $row->dchtime,    
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'adjrw'           => $row->adjrw,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money, 
-                'other'           => $row->other,  
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,            
-            ]);            
+                'an' => $row->an,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'regdate' => $row->regdate,
+                'regtime' => $row->regtime,
+                'dchdate' => $row->dchdate,
+                'dchtime' => $row->dchtime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'adjrw' => $row->adjrw,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -7537,10 +7731,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_308_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_308_delete(Request $request )
+    //_1102050101_308_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_308_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_308::whereIn('an', $checkbox)
             ->whereNull('debtor_lock')
@@ -7555,7 +7749,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050101_308_update-------------------------------------------------------------------------------------------------------
+    //_1102050101_308_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_308_update(Request $request, $an)
     {
         $item = Debtor_1102050101_308::findOrFail($an);
@@ -7570,9 +7764,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050101_308_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_308_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_308_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -7586,47 +7780,47 @@ class DebtorController extends Controller
             SELECT dchdate AS vstdate,COUNT(DISTINCT an) AS anvn,SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_308    
             WHERE dchdate BETWEEN ? AND ?
-            GROUP BY dchdate ORDER BY dchdate',[$start_date,$end_date]);
+            GROUP BY dchdate ORDER BY dchdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_308_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_308_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050101_308_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_308_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_308_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_308_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
-##############################################################################################################################################################
+
+        return view('debtor.1102050101_308_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    ##############################################################################################################################################################
 //_1102050101_310--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_310(Request $request )
+    public function _1102050101_310(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search'); 
-        
-        $debtor =  Debtor_1102050101_310::whereBetween('dchdate', [$start_date,$end_date])
-            ->where(function ($query) use ($search){
-                $query->where('ptname','like','%'.$search.'%');
-                $query->orwhere('hn','like','%'.$search.'%');
-                $query->orwhere('an','like','%'.$search.'%');
+        $search = $request->search ?: Session::get('search');
+
+        $debtor = Debtor_1102050101_310::whereBetween('dchdate', [$start_date, $end_date])
+            ->where(function ($query) use ($search) {
+                $query->where('ptname', 'like', '%' . $search . '%');
+                $query->orwhere('hn', 'like', '%' . $search . '%');
+                $query->orwhere('an', 'like', '%' . $search . '%');
             })
             ->orderBy('dchdate')->get()
-            ->map(function ($item) {                        
+            ->map(function ($item) {
                 if (($item->receive - $item->debtor) >= 0) {
                     $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
                 } else {
                     $item->days = Carbon::parse($item->dchdate)->diffInDays(Carbon::today());
                 }
                 return $item;
-            });  
+            });
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,a.age_y,
@@ -7663,17 +7857,17 @@ class DebtorController extends Controller
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_310 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype 
-            ORDER BY i.ward, i.dchdate',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+            ORDER BY i.ward, i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_310',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_310', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_310_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_310_confirm(Request $request )
+    //_1102050101_310_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_310_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
@@ -7681,13 +7875,13 @@ class DebtorController extends Controller
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
@@ -7722,32 +7916,32 @@ class DebtorController extends Controller
             AND p.hipdata_code IN ("SSS","SSI")
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_310 WHERE an IS NOT NULL)
-            AND i.an IN ('.$checkbox_string.')
+            AND i.an IN (' . $checkbox_string . ')
             GROUP BY i.an, ip.pttype 
-            ORDER BY i.ward, i.dchdate',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY i.ward, i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_310::insert([
-                'an'              => $row->an,
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'regdate'         => $row->regdate,
-                'regtime'         => $row->regtime,
-                'dchdate'         => $row->dchdate,
-                'dchtime'         => $row->dchtime,    
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'adjrw'           => $row->adjrw,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money, 
-                'kidney'          => $row->kidney,  
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,            
-            ]);            
+                'an' => $row->an,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'regdate' => $row->regdate,
+                'regtime' => $row->regtime,
+                'dchdate' => $row->dchdate,
+                'dchtime' => $row->dchtime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'adjrw' => $row->adjrw,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'kidney' => $row->kidney,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -7759,10 +7953,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_310_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_310_delete(Request $request )
+    //_1102050101_310_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_310_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_310::whereIn('an', $checkbox)
             ->whereNull('debtor_lock')
@@ -7777,7 +7971,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050101_310_update-------------------------------------------------------------------------------------------------------
+    //_1102050101_310_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_310_update(Request $request, $an)
     {
         $item = Debtor_1102050101_310::findOrFail($an);
@@ -7792,9 +7986,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050101_310_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_310_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_310_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -7808,32 +8002,32 @@ class DebtorController extends Controller
             SELECT dchdate AS vstdate,COUNT(DISTINCT an) AS anvn,SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_310   
             WHERE dchdate BETWEEN ? AND ?
-            GROUP BY dchdate ORDER BY dchdate',[$start_date,$end_date]);
+            GROUP BY dchdate ORDER BY dchdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_310_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_310_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050101_310_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_310_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_310_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_310_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
-##############################################################################################################################################################
+
+        return view('debtor.1102050101_310_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    ##############################################################################################################################################################
 //_1102050101_402--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_402(Request $request )
+    public function _1102050101_402(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');        
- 
+        $search = $request->search ?: Session::get('search');
+
         if ($search) {
             $debtor = DB::select('
                 SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,
@@ -7851,7 +8045,7 @@ class DebtorController extends Controller
                     JOIN hrims.stm_ofc_csop c ON c.hn = d2.hn AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
                     GROUP BY d2.an) csop ON csop.an = d.an 
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
-                AND d.dchdate BETWEEN ? AND ?', [$search,$search,$search,$start_date,$end_date]);
+                AND d.dchdate BETWEEN ? AND ?', [$search, $search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
                 SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,
@@ -7868,7 +8062,7 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT d2.an,SUM(c.amount) AS amount,GROUP_CONCAT(c.rid) AS rid FROM debtor_1102050101_402 d2 
                     JOIN hrims.stm_ofc_csop c ON c.hn = d2.hn AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
                     GROUP BY d2.an) csop ON csop.an = d.an 
-                WHERE d.dchdate BETWEEN ? AND ? ', [$start_date,$end_date]);
+                WHERE d.dchdate BETWEEN ? AND ? ', [$start_date, $end_date]);
         }
 
         $debtor_search = DB::connection('hosxp')->select('
@@ -7908,32 +8102,32 @@ class DebtorController extends Controller
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_402 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ORDER BY i.ward, i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_402',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_402', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_402_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_402_confirm(Request $request )
+    //_1102050101_402_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_402_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date'); 
+        $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
@@ -7970,31 +8164,31 @@ class DebtorController extends Controller
             AND p.hipdata_code = "OFC"
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_402 WHERE an IS NOT NULL)
-            AND i.an IN ('.$checkbox_string.') 
+            AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ORDER BY i.ward, i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_402::insert([
-                'an'              => $row->an,
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'regdate'         => $row->regdate,
-                'regtime'         => $row->regtime,
-                'dchdate'         => $row->dchdate,
-                'dchtime'         => $row->dchtime,    
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'adjrw'           => $row->adjrw,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money, 
-                'kidney'          => $row->kidney,  
-                'debtor'          => $row->debtor,           
-            ]);            
+                'an' => $row->an,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'regdate' => $row->regdate,
+                'regtime' => $row->regtime,
+                'dchdate' => $row->dchdate,
+                'dchtime' => $row->dchtime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'adjrw' => $row->adjrw,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'kidney' => $row->kidney,
+                'debtor' => $row->debtor,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -8006,10 +8200,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_402_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_402_delete(Request $request )
+    //_1102050101_402_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_402_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_402::whereIn('an', $checkbox)
             ->whereNull('debtor_lock')
@@ -8025,7 +8219,7 @@ class DebtorController extends Controller
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
 
-//1102050101_402_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_402_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_402_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -8048,47 +8242,47 @@ class DebtorController extends Controller
                     JOIN hrims.stm_ofc_csop c ON c.hn = d2.hn AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
                     GROUP BY d2.an) csop ON csop.an = d.an
                 WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.dchdate, d.an) a
-                GROUP BY a.dchdate ORDER BY a.dchdate',[$start_date,$end_date]);
+                GROUP BY a.dchdate ORDER BY a.dchdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_402_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_402_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050101_402_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_402_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_402_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_402_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
-##############################################################################################################################################################
+
+        return view('debtor.1102050101_402_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    ##############################################################################################################################################################
 //_1102050101_502--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_502(Request $request )
+    public function _1102050101_502(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search'); 
-        
-        $debtor =  Debtor_1102050101_502::whereBetween('dchdate', [$start_date,$end_date])
-            ->where(function ($query) use ($search){
-                $query->where('ptname','like','%'.$search.'%');
-                $query->orwhere('hn','like','%'.$search.'%');
-                $query->orwhere('an','like','%'.$search.'%');
+        $search = $request->search ?: Session::get('search');
+
+        $debtor = Debtor_1102050101_502::whereBetween('dchdate', [$start_date, $end_date])
+            ->where(function ($query) use ($search) {
+                $query->where('ptname', 'like', '%' . $search . '%');
+                $query->orwhere('hn', 'like', '%' . $search . '%');
+                $query->orwhere('an', 'like', '%' . $search . '%');
             })
             ->orderBy('dchdate')->get()
-            ->map(function ($item) {                        
+            ->map(function ($item) {
                 if (($item->receive - $item->debtor) >= 0) {
                     $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
                 } else {
                     $item->days = Carbon::parse($item->dchdate)->diffInDays(Carbon::today());
                 }
                 return $item;
-            });   
+            });
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
@@ -8128,32 +8322,32 @@ class DebtorController extends Controller
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_502 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype
-            ',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_502',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_502', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_502_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_502_confirm(Request $request )
+    //_1102050101_502_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_502_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date'); 
+        $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
@@ -8190,33 +8384,33 @@ class DebtorController extends Controller
             AND i.dchdate BETWEEN ? AND ?
             AND ip.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_502 WHERE an IS NOT NULL)
-            AND i.an IN ('.$checkbox_string.') 
+            AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype
-            ',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_502::insert([
-                'an'              => $row->an,
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'regdate'         => $row->regdate,
-                'regtime'         => $row->regtime,
-                'dchdate'         => $row->dchdate,
-                'dchtime'         => $row->dchtime,    
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'adjrw'           => $row->adjrw,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money, 
-                'other'           => $row->other,  
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,            
-            ]);            
+                'an' => $row->an,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'regdate' => $row->regdate,
+                'regtime' => $row->regtime,
+                'dchdate' => $row->dchdate,
+                'dchtime' => $row->dchtime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'adjrw' => $row->adjrw,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -8228,10 +8422,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_502_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_502_delete(Request $request )
+    //_1102050101_502_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_502_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_502::whereIn('an', $checkbox)
             ->whereNull('debtor_lock')
@@ -8246,7 +8440,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050101_502_update-------------------------------------------------------------------------------------------------------
+    //_1102050101_502_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_502_update(Request $request, $an)
     {
         $item = Debtor_1102050101_502::findOrFail($an);
@@ -8261,9 +8455,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050101_502_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_502_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_502_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -8277,47 +8471,47 @@ class DebtorController extends Controller
             SELECT dchdate AS vstdate,COUNT(DISTINCT an) AS anvn,SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_502    
             WHERE dchdate BETWEEN ? AND ?
-            GROUP BY dchdate ORDER BY dchdate',[$start_date,$end_date]);
+            GROUP BY dchdate ORDER BY dchdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_502_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_502_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050101_502_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_502_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_502_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_502_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
-##############################################################################################################################################################
+
+        return view('debtor.1102050101_502_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    ##############################################################################################################################################################
 //_1102050101_504--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_504(Request $request )
+    public function _1102050101_504(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search'); 
-        
-        $debtor =  Debtor_1102050101_504::whereBetween('dchdate', [$start_date,$end_date])
-            ->where(function ($query) use ($search){
-                $query->where('ptname','like','%'.$search.'%');
-                $query->orwhere('hn','like','%'.$search.'%');
-                $query->orwhere('an','like','%'.$search.'%');
+        $search = $request->search ?: Session::get('search');
+
+        $debtor = Debtor_1102050101_504::whereBetween('dchdate', [$start_date, $end_date])
+            ->where(function ($query) use ($search) {
+                $query->where('ptname', 'like', '%' . $search . '%');
+                $query->orwhere('hn', 'like', '%' . $search . '%');
+                $query->orwhere('an', 'like', '%' . $search . '%');
             })
             ->orderBy('dchdate')->get()
-            ->map(function ($item) {                        
+            ->map(function ($item) {
                 if (($item->receive - $item->debtor) >= 0) {
                     $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
                 } else {
                     $item->days = Carbon::parse($item->dchdate)->diffInDays(Carbon::today());
                 }
                 return $item;
-            });     
+            });
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
@@ -8358,32 +8552,32 @@ class DebtorController extends Controller
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_504 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype
-            ',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_504',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_504', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_504_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_504_confirm(Request $request )
+    //_1102050101_504_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_504_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date'); 
+        $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
@@ -8421,33 +8615,33 @@ class DebtorController extends Controller
             AND (ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
                 OR ip.hospmain IS NULL OR ip.hospmain ="")
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_504 WHERE an IS NOT NULL)
-            AND i.an IN ('.$checkbox_string.') 
+            AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype
-            ',[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050101_504::insert([
-                'an'              => $row->an,
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'regdate'         => $row->regdate,
-                'regtime'         => $row->regtime,
-                'dchdate'         => $row->dchdate,
-                'dchtime'         => $row->dchtime,    
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'adjrw'           => $row->adjrw,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money, 
-                'other'           => $row->other,  
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,            
-            ]);            
+                'an' => $row->an,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'regdate' => $row->regdate,
+                'regtime' => $row->regtime,
+                'dchdate' => $row->dchdate,
+                'dchtime' => $row->dchtime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'adjrw' => $row->adjrw,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -8459,10 +8653,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_504_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_504_delete(Request $request )
+    //_1102050101_504_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_504_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_504::whereIn('an', $checkbox)
             ->whereNull('debtor_lock')
@@ -8477,7 +8671,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050101_504_update-------------------------------------------------------------------------------------------------------
+    //_1102050101_504_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_504_update(Request $request, $an)
     {
         $item = Debtor_1102050101_504::findOrFail($an);
@@ -8492,9 +8686,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050101_504_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_504_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_504_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -8508,39 +8702,39 @@ class DebtorController extends Controller
             SELECT dchdate AS vstdate,COUNT(DISTINCT an) AS anvn,SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_504   
             WHERE dchdate BETWEEN ? AND ?
-            GROUP BY dchdate ORDER BY dchdate',[$start_date,$end_date]);
+            GROUP BY dchdate ORDER BY dchdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_504_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_504_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050101_504_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_504_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_504_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_504_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
-##############################################################################################################################################################
+
+        return view('debtor.1102050101_504_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    ##############################################################################################################################################################
 //_1102050101_704--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_704(Request $request )
+    public function _1102050101_704(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search'); 
-        
-        $debtor =  Debtor_1102050101_704::whereBetween('dchdate', [$start_date,$end_date])
-            ->where(function ($query) use ($search){
-                $query->where('ptname','like','%'.$search.'%');
-                $query->orwhere('hn','like','%'.$search.'%');
-                $query->orwhere('an','like','%'.$search.'%');
+        $search = $request->search ?: Session::get('search');
+
+        $debtor = Debtor_1102050101_704::whereBetween('dchdate', [$start_date, $end_date])
+            ->where(function ($query) use ($search) {
+                $query->where('ptname', 'like', '%' . $search . '%');
+                $query->orwhere('hn', 'like', '%' . $search . '%');
+                $query->orwhere('an', 'like', '%' . $search . '%');
             })
-            ->orderBy('dchdate')->get();  
+            ->orderBy('dchdate')->get();
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
@@ -8579,18 +8773,20 @@ class DebtorController extends Controller
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_704 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050101_704',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050101_704', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050101_704_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050101_704_confirm(Request $request )
+    //_1102050101_704_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050101_704_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
@@ -8598,13 +8794,13 @@ class DebtorController extends Controller
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
@@ -8640,33 +8836,35 @@ class DebtorController extends Controller
             AND p.hipdata_code = "STP"
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_704 WHERE an IS NOT NULL)
-            AND i.an IN ('.$checkbox_string.') 
+            AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
+
         foreach ($debtor as $row) {
             Debtor_1102050101_704::insert([
-                'an'              => $row->an,
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'regdate'         => $row->regdate,
-                'regtime'         => $row->regtime,
-                'dchdate'         => $row->dchdate,
-                'dchtime'         => $row->dchtime,    
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'adjrw'           => $row->adjrw,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money, 
-                'other'           => $row->other,  
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,            
-            ]);            
+                'an' => $row->an,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'regdate' => $row->regdate,
+                'regtime' => $row->regtime,
+                'dchdate' => $row->dchdate,
+                'dchtime' => $row->dchtime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'adjrw' => $row->adjrw,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -8678,10 +8876,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050101_704_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050101_704_delete(Request $request )
+    //_1102050101_704_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050101_704_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050101_704::whereIn('an', $checkbox)
             ->whereNull('debtor_lock')
@@ -8696,7 +8894,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050101_704_update-------------------------------------------------------------------------------------------------------
+    //_1102050101_704_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_704_update(Request $request, $an)
     {
         $item = Debtor_1102050101_704::findOrFail($an);
@@ -8711,9 +8909,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050101_704_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050101_704_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_704_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -8727,33 +8925,33 @@ class DebtorController extends Controller
             SELECT dchdate AS vstdate,COUNT(DISTINCT an) AS anvn,SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050101_704   
             WHERE dchdate BETWEEN ? AND ?
-            GROUP BY dchdate ORDER BY dchdate',[$start_date,$end_date]);
+            GROUP BY dchdate ORDER BY dchdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050101_704_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050101_704_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050101_704_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050101_704_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_704_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050101_704_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
-##############################################################################################################################################################
+
+        return view('debtor.1102050101_704_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    ##############################################################################################################################################################
 //_1102050102_107--------------------------------------------------------------------------------------------------------------
-    public function _1102050102_107(Request $request )
+    public function _1102050102_107(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search'); 
-        $pttype_iclaim = DB::table('main_setting')->where('name', 'pttype_iclaim')->value('value');       
-        
+        $search = $request->search ?: Session::get('search');
+        $pttype_iclaim = DB::table('main_setting')->where('name', 'pttype_iclaim')->value('value');
+
         if ($search) {
             $debtor = DB::connection('hosxp')->select('
                 SELECT d.regdate,d.regtime,d.dchdate,d.dchtime,d.hn,d.vn,d.an,d.ptname,d.mobile_phone_number,
@@ -8773,7 +8971,7 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT an, COUNT(*) AS visit FROM hrims.debtor_1102050102_107_tracking 
                     GROUP BY an) t ON t.an = d.an
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
-                AND d.dchdate BETWEEN ? AND ?', [$search,$search,$search,$start_date,$end_date]);
+                AND d.dchdate BETWEEN ? AND ?', [$search, $search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::connection('hosxp')->select('
                 SELECT d.regdate,d.regtime,d.dchdate,d.dchtime,d.hn,d.vn,d.an,d.ptname,d.mobile_phone_number,
@@ -8793,7 +8991,7 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT an, COUNT(*) AS visit FROM hrims.debtor_1102050102_107_tracking 
                     GROUP BY an) t ON t.an = d.an
                 WHERE d.dchdate BETWEEN ? AND ?', [$start_date, $end_date]);
-            }  
+        }
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.regdate, i.regtime,i.dchdate, i.dchtime,i.hn, i.vn, i.an,p.cid,
@@ -8822,7 +9020,7 @@ class DebtorController extends Controller
             AND a.paid_money > 0
             AND a.paid_money - IFNULL(rc.rcpt_money,0) > 0
             AND NOT EXISTS (SELECT 1 FROM hrims.debtor_1102050102_107 d WHERE d.an = i.an )
-            ORDER BY i.dchdate',[$start_date,$end_date]); 
+            ORDER BY i.dchdate', [$start_date, $end_date]);
 
         $debtor_search_iclaim = DB::connection('hosxp')->select('
             SELECT * FROM (SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.vn,i.hn,i.an,
@@ -8840,18 +9038,18 @@ class DebtorController extends Controller
             AND p1.pttype = ?
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_107 WHERE an IS NOT NULL) 
-            GROUP BY i.an ORDER BY i.ward,i.dchdate) AS a WHERE debtor <> "0"',[$pttype_iclaim,$start_date,$end_date]); 
+            GROUP BY i.an ORDER BY i.ward,i.dchdate) AS a WHERE debtor <> "0"', [$pttype_iclaim, $start_date, $end_date]);
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050102_107',compact('start_date','end_date','search','debtor','debtor_search','debtor_search_iclaim'));
+        return view('debtor.1102050102_107', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'debtor_search_iclaim'));
     }
-//_1102050102_107_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050102_107_confirm(Request $request )
+    //_1102050102_107_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050102_107_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
@@ -8859,13 +9057,13 @@ class DebtorController extends Controller
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
-            'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้' 
+            'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.regdate, i.regtime,i.dchdate, i.dchtime,i.hn, i.vn, i.an,p.cid,
                 CONCAT(p.pname,p.fname,SPACE(1),p.lname) AS ptname,p.mobile_phone_number,a.age_y,
@@ -8893,31 +9091,31 @@ class DebtorController extends Controller
             AND a.paid_money > 0
             AND a.paid_money - IFNULL(rc.rcpt_money,0) > 0
             AND NOT EXISTS (SELECT 1 FROM hrims.debtor_1102050102_107 d WHERE d.an = i.an )
-            AND i.an IN ('.$checkbox_string.') 
-            ORDER BY i.dchdate	',[$start_date,$end_date]); 
-        
+            AND i.an IN (' . $checkbox_string . ') 
+            ORDER BY i.dchdate	', [$start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050102_107::insert([
-                'vn'                  => $row->vn,
-                'hn'                  => $row->hn,
-                'an'                  => $row->an,
-                'cid'                 => $row->cid,
-                'ptname'              => $row->ptname,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'an' => $row->an,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
                 'mobile_phone_number' => $row->mobile_phone_number,
-                'regdate'             => $row->regdate,
-                'regtime'             => $row->regtime,
-                'dchdate'             => $row->dchdate,
-                'dchtime'             => $row->dchtime,
-                'pttype'              => $row->pttype,    
-                'hospmain'            => $row->hospmain,    
-                'hipdata_code'        => $row->hipdata_code,   
-                'pdx'                 => $row->pdx,  
-                'income'              => $row->income,  
-                'paid_money'          => $row->paid_money,
-                'rcpt_money'          => $row->rcpt_money,
-                'debtor'              => $row->debtor,      
-                'status'              => $row->status,          
-            ]);            
+                'regdate' => $row->regdate,
+                'regtime' => $row->regtime,
+                'dchdate' => $row->dchdate,
+                'dchtime' => $row->dchtime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'paid_money' => $row->paid_money,
+                'rcpt_money' => $row->rcpt_money,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -8929,23 +9127,23 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050102_107_confirm_iclaim-------------------------------------------------------------------------------------------------------
-    public function _1102050102_107_confirm_iclaim(Request $request )
+    //_1102050102_107_confirm_iclaim-------------------------------------------------------------------------------------------------------
+    public function _1102050102_107_confirm_iclaim(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
-        $pttype_iclaim = DB::table('main_setting')->where('name', 'pttype_iclaim')->value('value'); 
+        $pttype_iclaim = DB::table('main_setting')->where('name', 'pttype_iclaim')->value('value');
         $request->validate([
-        'checkbox_iclaim' => 'required|array',
+            'checkbox_iclaim' => 'required|array',
         ], [
             'checkbox_iclaim.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox_iclaim'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT * FROM (SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.vn,i.hn,i.an,
                 CONCAT(p.pname,p.fname,SPACE(1),p.lname) AS ptname,p.mobile_phone_number,a.pdx,p.cid,a.age_y,p1.name AS pttype,
@@ -8961,31 +9159,31 @@ class DebtorController extends Controller
             WHERE i.confirm_discharge = "Y" 
             AND p1.pttype = ?
             AND i.dchdate BETWEEN ? AND ?
-            AND i.an IN ('.$checkbox_string.') 
-            GROUP BY i.an,ip.pttype ORDER BY i.ward,i.dchdate ) AS a',[$pttype_iclaim,$start_date,$end_date]); 
-        
+            AND i.an IN (' . $checkbox_string . ') 
+            GROUP BY i.an,ip.pttype ORDER BY i.ward,i.dchdate ) AS a', [$pttype_iclaim, $start_date, $end_date]);
+
         foreach ($debtor as $row) {
             Debtor_1102050102_107::insert([
-                'vn'                  => $row->vn,
-                'hn'                  => $row->hn,
-                'an'                  => $row->an,
-                'cid'                 => $row->cid,
-                'ptname'              => $row->ptname,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'an' => $row->an,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
                 'mobile_phone_number' => $row->mobile_phone_number,
-                'regdate'             => $row->regdate,
-                'regtime'             => $row->regtime,
-                'dchdate'             => $row->dchdate,
-                'dchtime'             => $row->dchtime,
-                'pttype'              => $row->pttype,    
-                'hospmain'            => $row->hospmain,    
-                'hipdata_code'        => $row->hipdata_code,   
-                'pdx'                 => $row->pdx,  
-                'income'              => $row->income,  
-                'paid_money'          => $row->paid_money,
-                'rcpt_money'          => $row->rcpt_money,
-                'debtor'              => $row->debtor,      
-                'status'              => $row->status,          
-            ]);            
+                'regdate' => $row->regdate,
+                'regtime' => $row->regtime,
+                'dchdate' => $row->dchdate,
+                'dchtime' => $row->dchtime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'income' => $row->income,
+                'paid_money' => $row->paid_money,
+                'rcpt_money' => $row->rcpt_money,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -8997,10 +9195,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050102_107_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050102_107_delete(Request $request )
+    //_1102050102_107_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050102_107_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050102_107::whereIn('an', $checkbox)
             ->whereNull('debtor_lock')
@@ -9015,7 +9213,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050102_107_update-------------------------------------------------------------------------------------------------------
+    //_1102050102_107_update-------------------------------------------------------------------------------------------------------
     public function _1102050102_107_update(Request $request, $an)
     {
         $item = Debtor_1102050102_107::findOrFail($an);
@@ -9030,9 +9228,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050102_107_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050102_107_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_107_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -9051,33 +9249,33 @@ class DebtorController extends Controller
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn, r.bill_date) r ON r.vn = d.vn  AND r.bill_date <> d.dchdate
             WHERE d.dchdate BETWEEN ? AND ?
-            GROUP BY d.dchdate ORDER BY d.dchdate",[$start_date,$end_date]);
+            GROUP BY d.dchdate ORDER BY d.dchdate", [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050102_107_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050102_107_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050102_107_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050102_107_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050102_107_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050102_107_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
-//1102050102_107_tracking-------------------------------------------------------------------------------------------------------  
-    public function _1102050102_107_tracking(Request $request, $an )
+
+        return view('debtor.1102050102_107_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    //1102050102_107_tracking-------------------------------------------------------------------------------------------------------  
+    public function _1102050102_107_tracking(Request $request, $an)
     {
         $debtor = DB::select('
-            SELECT * FROM debtor_1102050102_107 WHERE an = ?',[$an]);
+            SELECT * FROM debtor_1102050102_107 WHERE an = ?', [$an]);
 
         $tracking = DB::select('
-            SELECT * FROM debtor_1102050102_107_tracking WHERE an = ?',[$an]);
+            SELECT * FROM debtor_1102050102_107_tracking WHERE an = ?', [$an]);
 
-    return view('debtor.1102050102_107_tracking',compact('debtor','tracking'));
+        return view('debtor.1102050102_107_tracking', compact('debtor', 'tracking'));
     }
-//1102050102_107_tracking_insert-------------------------------------------------------------------------------------------------------
+    //1102050102_107_tracking_insert-------------------------------------------------------------------------------------------------------
     public function _1102050102_107_tracking_insert(Request $request)
     {
         $item = new Debtor_1102050102_107_tracking;
@@ -9087,51 +9285,51 @@ class DebtorController extends Controller
         $item->tracking_type = $request->input('tracking_type');
         $item->tracking_no = $request->input('tracking_no');
         $item->tracking_officer = $request->input('tracking_officer');
-        $item->tracking_note = $request->input('tracking_note');  
-        $item->save();  
+        $item->tracking_note = $request->input('tracking_note');
+        $item->save();
 
-        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//_1102050102_107_tracking_update-------------------------------------------------------------------------------------------------------
+    //_1102050102_107_tracking_update-------------------------------------------------------------------------------------------------------
     public function _1102050102_107_tracking_update(Request $request, $tracking_id)
     {
-    Debtor_1102050102_107_tracking::where('tracking_id', $tracking_id)
-        ->update([
-        'tracking_date' => $request->input('tracking_date'),
-        'tracking_type' => $request->input('tracking_type'),
-        'tracking_no' => $request->input('tracking_no'),
-        'tracking_officer' => $request->input('tracking_officer'),
-        'tracking_note' => $request->input('tracking_note')
-        ]);
+        Debtor_1102050102_107_tracking::where('tracking_id', $tracking_id)
+            ->update([
+                'tracking_date' => $request->input('tracking_date'),
+                'tracking_type' => $request->input('tracking_type'),
+                'tracking_no' => $request->input('tracking_no'),
+                'tracking_officer' => $request->input('tracking_officer'),
+                'tracking_note' => $request->input('tracking_note')
+            ]);
 
-    return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');  
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-##############################################################################################################################################################
+    ##############################################################################################################################################################
 //_1102050102_109--------------------------------------------------------------------------------------------------------------
-    public function _1102050102_109(Request $request )
+    public function _1102050102_109(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search'); 
-        
-        $debtor =  Debtor_1102050102_109::whereBetween('dchdate', [$start_date,$end_date])
-            ->where(function ($query) use ($search){
-                $query->where('ptname','like','%'.$search.'%');
-                $query->orwhere('hn','like','%'.$search.'%');
-                $query->orwhere('an','like','%'.$search.'%');
+        $search = $request->search ?: Session::get('search');
+
+        $debtor = Debtor_1102050102_109::whereBetween('dchdate', [$start_date, $end_date])
+            ->where(function ($query) use ($search) {
+                $query->where('ptname', 'like', '%' . $search . '%');
+                $query->orwhere('hn', 'like', '%' . $search . '%');
+                $query->orwhere('an', 'like', '%' . $search . '%');
             })
             ->orderBy('dchdate')->get()
-            ->map(function ($item) {                        
+            ->map(function ($item) {
                 if (($item->receive - $item->debtor) >= 0) {
                     $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
                 } else {
                     $item->days = Carbon::parse($item->dchdate)->diffInDays(Carbon::today());
                 }
                 return $item;
-            });     
+            });
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
@@ -9170,18 +9368,20 @@ class DebtorController extends Controller
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_109 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050102_109',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050102_109', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050102_109_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050102_109_confirm(Request $request )
+    //_1102050102_109_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050102_109_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
@@ -9189,13 +9389,13 @@ class DebtorController extends Controller
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
@@ -9231,33 +9431,35 @@ class DebtorController extends Controller
             AND p.hipdata_code = "GOF"
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_109 WHERE an IS NOT NULL)
-            AND i.an IN ('.$checkbox_string.') 
+            AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
+
         foreach ($debtor as $row) {
             Debtor_1102050102_109::insert([
-                'an'              => $row->an,
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'regdate'         => $row->regdate,
-                'regtime'         => $row->regtime,
-                'dchdate'         => $row->dchdate,
-                'dchtime'         => $row->dchtime,    
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'adjrw'           => $row->adjrw,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money, 
-                'other'           => $row->other,  
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,            
-            ]);            
+                'an' => $row->an,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'regdate' => $row->regdate,
+                'regtime' => $row->regtime,
+                'dchdate' => $row->dchdate,
+                'dchtime' => $row->dchtime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'adjrw' => $row->adjrw,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -9269,10 +9471,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050102_109_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050102_109_delete(Request $request )
+    //_1102050102_109_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050102_109_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050102_109::whereIn('an', $checkbox)
             ->whereNull('debtor_lock')
@@ -9287,7 +9489,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050102_109_update-------------------------------------------------------------------------------------------------------
+    //_1102050102_109_update-------------------------------------------------------------------------------------------------------
     public function _1102050102_109_update(Request $request, $an)
     {
         $item = Debtor_1102050102_109::findOrFail($an);
@@ -9302,9 +9504,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050102_109_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050102_109_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_109_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -9318,32 +9520,32 @@ class DebtorController extends Controller
             SELECT dchdate AS vstdate,COUNT(DISTINCT an) AS anvn,SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM Debtor_1102050102_109 
             WHERE dchdate BETWEEN ? AND ?
-            GROUP BY dchdate ORDER BY dchdate',[$start_date,$end_date]);
+            GROUP BY dchdate ORDER BY dchdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050102_109_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050102_109_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050102_109_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050102_109_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050102_109_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050102_109_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
-##############################################################################################################################################################
+
+        return view('debtor.1102050102_109_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    ##############################################################################################################################################################
 //_1102050102_111--------------------------------------------------------------------------------------------------------------
-    public function _1102050102_111(Request $request )
+    public function _1102050102_111(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');        
- 
+        $search = $request->search ?: Session::get('search');
+
         if ($search) {
             $debtor = DB::select('
                 SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,
@@ -9361,7 +9563,7 @@ class DebtorController extends Controller
                     JOIN hrims.stm_ofc_csop c ON c.hn = d2.hn AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
                     GROUP BY d2.an) csop ON csop.an = d.an       
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
-                AND d.dchdate BETWEEN ? AND ?', [$search,$search,$search,$start_date,$end_date]);
+                AND d.dchdate BETWEEN ? AND ?', [$search, $search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
                 SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,
@@ -9378,7 +9580,7 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT d2.an,SUM(c.amount) AS amount,GROUP_CONCAT(c.rid) AS rid FROM debtor_1102050102_111 d2 
                     JOIN hrims.stm_ofc_csop c ON c.hn = d2.hn AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
                     GROUP BY d2.an) csop ON csop.an = d.an                     
-                WHERE d.dchdate BETWEEN ? AND ?', [$start_date,$end_date]);
+                WHERE d.dchdate BETWEEN ? AND ?', [$start_date, $end_date]);
         }
 
         $debtor_search = DB::connection('hosxp')->select('
@@ -9419,32 +9621,34 @@ class DebtorController extends Controller
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_111 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050102_111',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050102_111', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050102_111_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050102_111_confirm(Request $request )
+    //_1102050102_111_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050102_111_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date'); 
+        $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
@@ -9481,32 +9685,34 @@ class DebtorController extends Controller
             AND p.hipdata_code IN ("BMT","KKT")
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_111 WHERE an IS NOT NULL)
-            AND i.an IN ('.$checkbox_string.') 
+            AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
+
         foreach ($debtor as $row) {
             Debtor_1102050102_111::insert([
-                'an'              => $row->an,
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'regdate'         => $row->regdate,
-                'regtime'         => $row->regtime,
-                'dchdate'         => $row->dchdate,
-                'dchtime'         => $row->dchtime,    
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'adjrw'           => $row->adjrw,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money, 
-                'kidney'          => $row->kidney,  
-                'debtor'          => $row->debtor,           
-            ]);            
+                'an' => $row->an,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'regdate' => $row->regdate,
+                'regtime' => $row->regtime,
+                'dchdate' => $row->dchdate,
+                'dchtime' => $row->dchtime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'adjrw' => $row->adjrw,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'kidney' => $row->kidney,
+                'debtor' => $row->debtor,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -9518,10 +9724,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050102_111_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050102_111_delete(Request $request )
+    //_1102050102_111_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050102_111_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050102_111::whereIn('an', $checkbox)
             ->whereNull('debtor_lock')
@@ -9537,7 +9743,7 @@ class DebtorController extends Controller
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
 
-//1102050102_111_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050102_111_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_111_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -9560,49 +9766,49 @@ class DebtorController extends Controller
                     JOIN hrims.stm_ofc_csop c ON c.hn = d2.hn AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
                     GROUP BY d2.an) csop ON csop.an = d.an
                 WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.dchdate, d.an) a
-                GROUP BY a.dchdate ORDER BY a.dchdate',[$start_date,$end_date]);
+                GROUP BY a.dchdate ORDER BY a.dchdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050102_111_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050102_111_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050102_111_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050102_111_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050102_111_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050102_111_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
 
-##############################################################################################################################################################
+        return view('debtor.1102050102_111_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    ##############################################################################################################################################################
 //_1102050102_603--------------------------------------------------------------------------------------------------------------
-    public function _1102050102_603(Request $request )
+    public function _1102050102_603(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search'); 
+        $search = $request->search ?: Session::get('search');
         $pttype_act = DB::table('main_setting')->where('name', 'pttype_act')->value('value');
 
-        $debtor =  Debtor_1102050102_603::whereBetween('dchdate', [$start_date,$end_date])
-            ->where(function ($query) use ($search){
-                $query->where('ptname','like','%'.$search.'%');
-                $query->orwhere('hn','like','%'.$search.'%');
-                $query->orwhere('an','like','%'.$search.'%');
+        $debtor = Debtor_1102050102_603::whereBetween('dchdate', [$start_date, $end_date])
+            ->where(function ($query) use ($search) {
+                $query->where('ptname', 'like', '%' . $search . '%');
+                $query->orwhere('hn', 'like', '%' . $search . '%');
+                $query->orwhere('an', 'like', '%' . $search . '%');
             })
             ->orderBy('dchdate')->get()
-            ->map(function ($item) {                        
+            ->map(function ($item) {
                 if (($item->receive - $item->debtor) >= 0) {
                     $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
                 } else {
                     $item->days = Carbon::parse($item->dchdate)->diffInDays(Carbon::today());
                 }
                 return $item;
-            }); 
+            });
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
@@ -9638,21 +9844,23 @@ class DebtorController extends Controller
             WHERE i.confirm_discharge = "Y"
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_603 WHERE an IS NOT NULL)
-            AND p.pttype IN ('.$pttype_act.') 
+            AND p.pttype IN (' . $pttype_act . ') 
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050102_603',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050102_603', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050102_603_confirm------------------------------------------------------------------------------------------------------- 
-    public function _1102050102_603_confirm(Request $request )
+    //_1102050102_603_confirm------------------------------------------------------------------------------------------------------- 
+    public function _1102050102_603_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
@@ -9662,13 +9870,13 @@ class DebtorController extends Controller
         $pttype_act = DB::table('main_setting')->where('name', 'pttype_act')->value('value');
 
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
@@ -9703,34 +9911,36 @@ class DebtorController extends Controller
             WHERE i.confirm_discharge = "Y"
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_603 WHERE an IS NOT NULL)
-            AND p.pttype IN ('.$pttype_act.') 
-            AND i.an IN ('.$checkbox_string.') 
+            AND p.pttype IN (' . $pttype_act . ') 
+            AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
+
         foreach ($debtor as $row) {
             Debtor_1102050102_603::insert([
-                'an'              => $row->an,
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'regdate'         => $row->regdate,
-                'regtime'         => $row->regtime,
-                'dchdate'         => $row->dchdate,
-                'dchtime'         => $row->dchtime,    
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'adjrw'           => $row->adjrw,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money, 
-                'other'           => $row->other,  
-                'debtor'          => $row->debtor,  
-                'status'          => $row->status,            
-            ]);            
+                'an' => $row->an,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'regdate' => $row->regdate,
+                'regtime' => $row->regtime,
+                'dchdate' => $row->dchdate,
+                'dchtime' => $row->dchtime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'adjrw' => $row->adjrw,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'other' => $row->other,
+                'debtor' => $row->debtor,
+                'status' => $row->status,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -9742,10 +9952,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050102_603_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050102_603_delete(Request $request )
+    //_1102050102_603_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050102_603_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050102_603::whereIn('an', $checkbox)
             ->whereNull('debtor_lock')
@@ -9760,7 +9970,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//_1102050102_603_update-------------------------------------------------------------------------------------------------------
+    //_1102050102_603_update-------------------------------------------------------------------------------------------------------
     public function _1102050102_603_update(Request $request, $an)
     {
         $item = Debtor_1102050102_603::findOrFail($an);
@@ -9775,9 +9985,9 @@ class DebtorController extends Controller
             'status' => $request->input('status'),
         ]);
 
-        return  redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย'); 
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
-//1102050102_603_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050102_603_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_603_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -9791,32 +10001,32 @@ class DebtorController extends Controller
             SELECT dchdate AS vstdate,COUNT(DISTINCT an) AS anvn,SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM debtor_1102050102_603 
             WHERE dchdate BETWEEN ? AND ?
-            GROUP BY dchdate ORDER BY dchdate',[$start_date,$end_date]);
+            GROUP BY dchdate ORDER BY dchdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050102_603_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050102_603_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050102_603_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050102_603_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050102_603_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050102_603_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
-##############################################################################################################################################################
+
+        return view('debtor.1102050102_603_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    ##############################################################################################################################################################
 //_1102050102_802--------------------------------------------------------------------------------------------------------------
-    public function _1102050102_802(Request $request )
+    public function _1102050102_802(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');        
- 
+        $search = $request->search ?: Session::get('search');
+
         if ($search) {
             $debtor = DB::select("
                 SELECT d.hn,d.an,MAX(d.ptname) AS ptname,MAX(d.pttype) AS pttype,MAX(d.regdate) AS regdate,MAX(d.regtime) AS regtime,
@@ -9834,7 +10044,7 @@ class DebtorController extends Controller
                     WHERE d2.dchdate BETWEEN ? AND ? GROUP BY d2.an) k ON k.an = d.an
                 WHERE (d.ptname LIKE CONCAT('%', ?, '%') OR d.hn LIKE CONCAT('%', ?, '%') OR d.an LIKE CONCAT('%', ?, '%'))
                 AND d.dchdate BETWEEN ? AND ?
-                GROUP BY d.an", [$start_date,$end_date,$search,$search,$search,$start_date,$end_date]);
+                GROUP BY d.an", [$start_date, $end_date, $search, $search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select("
                 SELECT d.hn,d.an,MAX(d.ptname) AS ptname,MAX(d.pttype) AS pttype,MAX(d.regdate) AS regdate,MAX(d.regtime) AS regtime,
@@ -9850,7 +10060,7 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT d2.an,SUM(k.compensate_kidney) AS compensate_kidney, GROUP_CONCAT(DISTINCT NULLIF(k.repno,'')) AS repno
                     FROM debtor_1102050102_802 d2 JOIN stm_lgo_kidney k ON k.cid = d2.cid AND k.datetimeadm BETWEEN d2.regdate AND d2.dchdate
                     WHERE d2.dchdate BETWEEN ? AND ? GROUP BY d2.an) k ON k.an = d.an
-                WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an", [$start_date,$end_date,$start_date,$end_date]);
+                WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an", [$start_date, $end_date, $start_date, $end_date]);
         }
 
         $debtor_search = DB::connection('hosxp')->select('
@@ -9891,32 +10101,34 @@ class DebtorController extends Controller
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_802 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050102_802',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050102_802', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050102_802_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050102_802_confirm(Request $request )
+    //_1102050102_802_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050102_802_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date'); 
+        $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
@@ -9953,32 +10165,34 @@ class DebtorController extends Controller
             AND p.hipdata_code = "LGO"
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_802 WHERE an IS NOT NULL)
-            AND i.an IN ('.$checkbox_string.') 
+            AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
+
         foreach ($debtor as $row) {
             Debtor_1102050102_802::insert([
-                'an'              => $row->an,
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'regdate'         => $row->regdate,
-                'regtime'         => $row->regtime,
-                'dchdate'         => $row->dchdate,
-                'dchtime'         => $row->dchtime,    
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'adjrw'           => $row->adjrw,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money, 
-                'kidney'          => $row->kidney,  
-                'debtor'          => $row->debtor,           
-            ]);            
+                'an' => $row->an,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'regdate' => $row->regdate,
+                'regtime' => $row->regtime,
+                'dchdate' => $row->dchdate,
+                'dchtime' => $row->dchtime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'adjrw' => $row->adjrw,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'kidney' => $row->kidney,
+                'debtor' => $row->debtor,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -9990,10 +10204,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050102_802_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050102_802_delete(Request $request )
+    //_1102050102_802_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050102_802_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050102_802::whereIn('an', $checkbox)
             ->whereNull('debtor_lock')
@@ -10008,7 +10222,7 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
-//1102050102_802_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050102_802_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_802_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -10031,32 +10245,32 @@ class DebtorController extends Controller
                 WHERE d2.dchdate BETWEEN ? AND ? GROUP BY d2.an) k ON k.an = d.an
             WHERE d.dchdate BETWEEN ? AND ?
             GROUP BY d.an, d.dchdate) a
-            GROUP BY a.dchdate ORDER BY a.dchdate',[$start_date,$end_date,$start_date,$end_date]);
+            GROUP BY a.dchdate ORDER BY a.dchdate', [$start_date, $end_date, $start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050102_802_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050102_802_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050102_802_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050102_802_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050102_802_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050102_802_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
-##############################################################################################################################################################
+
+        return view('debtor.1102050102_802_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+    ##############################################################################################################################################################
 //_1102050102_804--------------------------------------------------------------------------------------------------------------
-    public function _1102050102_804(Request $request )
+    public function _1102050102_804(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        $search  =  $request->search ?: Session::get('search');        
- 
+        $search = $request->search ?: Session::get('search');
+
         if ($search) {
             $debtor = DB::select('
                 SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,
@@ -10075,7 +10289,7 @@ class DebtorController extends Controller
                     GROUP BY d2.an) csop ON csop.an = d.an 
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
                 AND d.dchdate BETWEEN ? AND ?
-                GROUP BY d.an', [$search,$search,$search,$start_date,$end_date]);
+                GROUP BY d.an', [$search, $search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
                 SELECT d.hn,d.an,d.ptname,d.pttype,d.regdate,d.regtime,d.dchdate,d.dchtime,d.pdx,d.adjrw,
@@ -10092,7 +10306,7 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT d2.an,SUM(c.amount) AS amount,GROUP_CONCAT(c.rid) AS rid FROM debtor_1102050102_804 d2 
                     JOIN hrims.stm_ofc_csop c ON c.hn = d2.hn AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
                     GROUP BY d2.an) csop ON csop.an = d.an         
-                WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an', [$start_date,$end_date]);
+                WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an', [$start_date, $end_date]);
         }
 
         $debtor_search = DB::connection('hosxp')->select('
@@ -10133,32 +10347,34 @@ class DebtorController extends Controller
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_804 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
 
-        $request->session()->put('start_date',$start_date);
-        $request->session()->put('end_date',$end_date);
-        $request->session()->put('search',$search);
-        $request->session()->put('debtor',$debtor);
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
         $request->session()->save();
 
-        return view('debtor.1102050102_804',compact('start_date','end_date','search','debtor','debtor_search'));
+        return view('debtor.1102050102_804', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
     }
-//_1102050102_804_confirm-------------------------------------------------------------------------------------------------------
-    public function _1102050102_804_confirm(Request $request )
+    //_1102050102_804_confirm-------------------------------------------------------------------------------------------------------
+    public function _1102050102_804_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
         $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date'); 
+        $end_date = Session::get('end_date');
         $request->validate([
-        'checkbox' => 'required|array',
+            'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
-       
+
         $debtor = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
@@ -10195,32 +10411,34 @@ class DebtorController extends Controller
             AND p.hipdata_code IN ("BKK","PTY") 
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_804 WHERE an IS NOT NULL)
-            AND i.an IN ('.$checkbox_string.') 
+            AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate'
-            ,[$start_date,$end_date,$start_date,$end_date,$start_date,$end_date]); 
-        
+            ,
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        );
+
         foreach ($debtor as $row) {
             Debtor_1102050102_804::insert([
-                'an'              => $row->an,
-                'vn'              => $row->vn,
-                'hn'              => $row->hn,
-                'cid'             => $row->cid,
-                'ptname'          => $row->ptname,
-                'regdate'         => $row->regdate,
-                'regtime'         => $row->regtime,
-                'dchdate'         => $row->dchdate,
-                'dchtime'         => $row->dchtime,    
-                'pttype'          => $row->pttype,    
-                'hospmain'        => $row->hospmain,    
-                'hipdata_code'    => $row->hipdata_code,   
-                'pdx'             => $row->pdx,  
-                'adjrw'           => $row->adjrw,  
-                'income'          => $row->income,  
-                'rcpt_money'      => $row->rcpt_money, 
-                'kidney'          => $row->kidney,  
-                'debtor'          => $row->debtor,           
-            ]);            
+                'an' => $row->an,
+                'vn' => $row->vn,
+                'hn' => $row->hn,
+                'cid' => $row->cid,
+                'ptname' => $row->ptname,
+                'regdate' => $row->regdate,
+                'regtime' => $row->regtime,
+                'dchdate' => $row->dchdate,
+                'dchtime' => $row->dchtime,
+                'pttype' => $row->pttype,
+                'hospmain' => $row->hospmain,
+                'hipdata_code' => $row->hipdata_code,
+                'pdx' => $row->pdx,
+                'adjrw' => $row->adjrw,
+                'income' => $row->income,
+                'rcpt_money' => $row->rcpt_money,
+                'kidney' => $row->kidney,
+                'debtor' => $row->debtor,
+            ]);
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -10232,10 +10450,10 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
-//_1102050102_804_delete-------------------------------------------------------------------------------------------------------
-    public function _1102050102_804_delete(Request $request )
+    //_1102050102_804_delete-------------------------------------------------------------------------------------------------------
+    public function _1102050102_804_delete(Request $request)
     {
-        $checkbox = $request->input('checkbox_d');        
+        $checkbox = $request->input('checkbox_d');
 
         $deleted = Debtor_1102050102_804::whereIn('an', $checkbox)
             ->whereNull('debtor_lock')
@@ -10251,7 +10469,7 @@ class DebtorController extends Controller
         return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
     }
 
-//1102050102_804_daily_pdf-------------------------------------------------------------------------------------------------------
+    //1102050102_804_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_804_daily_pdf(Request $request)
     {
         set_time_limit(0);
@@ -10274,52 +10492,76 @@ class DebtorController extends Controller
                     JOIN hrims.stm_ofc_csop c ON c.hn = d2.hn AND c.vstdate BETWEEN d2.regdate AND d2.dchdate
                     GROUP BY d2.an) csop ON csop.an = d.an
                 WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.dchdate, d.an) a
-                GROUP BY a.dchdate ORDER BY a.dchdate',[$start_date,$end_date]);
+                GROUP BY a.dchdate ORDER BY a.dchdate', [$start_date, $end_date]);
 
-        $pdf = PDF::loadView('debtor.1102050102_804_daily_pdf', compact('hospital_name','hospital_code','start_date','end_date','debtor'))
-                    ->setPaper('A4', 'portrait');
+        $pdf = PDF::loadView('debtor.1102050102_804_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
+            ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-//1102050102_804_indiv_excel-------------------------------------------------------------------------------------------------------   
+    //1102050102_804_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050102_804_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = Session::get('debtor');
-        
-        return view('debtor.1102050102_804_indiv_excel',compact('start_date','end_date','debtor'));
-    } 
-    
-//#####################################################################################################################
+
+        return view('debtor.1102050102_804_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    //#####################################################################################################################
     public function lock_debtor(Request $request)
     {
         $request->validate([
             'start_date' => 'required|date',
-            'end_date'   => 'required|date'
+            'end_date' => 'required|date'
         ]);
 
         $start = $request->start_date;
-        $end   = $request->end_date;
+        $end = $request->end_date;
 
         // ตารางที่ใช้ vstdate
         $vstTables = [
-            'debtor_1102050101_103','debtor_1102050101_109','debtor_1102050101_201',
-            'debtor_1102050101_203','debtor_1102050101_209','debtor_1102050101_216',
-            'debtor_1102050101_301','debtor_1102050101_303','debtor_1102050101_307',
-            'debtor_1102050101_309','debtor_1102050101_401','debtor_1102050101_501',
-            'debtor_1102050101_503','debtor_1102050101_701','debtor_1102050101_702',
-            'debtor_1102050101_703','debtor_1102050102_106','debtor_1102050102_108',
-            'debtor_1102050102_110','debtor_1102050102_602','debtor_1102050102_801',
+            'debtor_1102050101_103',
+            'debtor_1102050101_109',
+            'debtor_1102050101_201',
+            'debtor_1102050101_203',
+            'debtor_1102050101_209',
+            'debtor_1102050101_216',
+            'debtor_1102050101_301',
+            'debtor_1102050101_303',
+            'debtor_1102050101_307',
+            'debtor_1102050101_309',
+            'debtor_1102050101_401',
+            'debtor_1102050101_501',
+            'debtor_1102050101_503',
+            'debtor_1102050101_701',
+            'debtor_1102050101_702',
+            'debtor_1102050101_703',
+            'debtor_1102050102_106',
+            'debtor_1102050102_108',
+            'debtor_1102050102_110',
+            'debtor_1102050102_602',
+            'debtor_1102050102_801',
             'debtor_1102050102_803'
         ];
 
         // ตารางที่ใช้ dchdate
         $dchTables = [
-            'debtor_1102050101_202','debtor_1102050101_217','debtor_1102050101_302',
-            'debtor_1102050101_304','debtor_1102050101_308','debtor_1102050101_310',
-            'debtor_1102050101_402','debtor_1102050101_502','debtor_1102050101_504',
-            'debtor_1102050101_704','debtor_1102050102_107','debtor_1102050102_109',
-            'debtor_1102050102_111','debtor_1102050102_603','debtor_1102050102_802',
+            'debtor_1102050101_202',
+            'debtor_1102050101_217',
+            'debtor_1102050101_302',
+            'debtor_1102050101_304',
+            'debtor_1102050101_308',
+            'debtor_1102050101_310',
+            'debtor_1102050101_402',
+            'debtor_1102050101_502',
+            'debtor_1102050101_504',
+            'debtor_1102050101_704',
+            'debtor_1102050102_107',
+            'debtor_1102050102_109',
+            'debtor_1102050102_111',
+            'debtor_1102050102_603',
+            'debtor_1102050102_802',
             'debtor_1102050102_804'
         ];
 
@@ -10333,11 +10575,11 @@ class DebtorController extends Controller
                     ->whereBetween('vstdate', [$start, $end])
                     ->where(function ($q) {
                         $q->whereNull('debtor_lock')
-                          ->orWhere('debtor_lock', '!=', 'Y');
+                            ->orWhere('debtor_lock', '!=', 'Y');
                     })
                     ->update([
                         'debtor_lock' => 'Y',
-                        'updated_at'  => now()
+                        'updated_at' => now()
                     ]);
             }
 
@@ -10346,11 +10588,11 @@ class DebtorController extends Controller
                     ->whereBetween('dchdate', [$start, $end])
                     ->where(function ($q) {
                         $q->whereNull('debtor_lock')
-                          ->orWhere('debtor_lock', '!=', 'Y');
+                            ->orWhere('debtor_lock', '!=', 'Y');
                     })
                     ->update([
                         'debtor_lock' => 'Y',
-                        'updated_at'  => now()
+                        'updated_at' => now()
                     ]);
             }
 
@@ -10371,7 +10613,7 @@ class DebtorController extends Controller
                 'ok' => false,
                 'message' => $e->getMessage()
             ], 500);
-            
+
         }
     }
 

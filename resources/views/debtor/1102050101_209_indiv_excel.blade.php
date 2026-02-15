@@ -21,7 +21,9 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
             <tr>
                 <th class="text-center">ลำดับ</th>
                 <th class="text-center">วันที่</th>
+                <th class="text-center">VN</th>
                 <th class="text-center">HN</th>
+                <th class="text-center">CID</th>
                 <th class="text-center">ชื่อ-สกุล</th>
                 <th class="text-center">สิทธิ</th>
                 <th class="text-center">ICD10</th>
@@ -47,7 +49,9 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
             <tr>
                 <td align="center">{{ $count }}</td>
                 <td align="right">{{ DateThai($row->vstdate) }} {{ $row->vsttime }}</td>
+                <td align="center" style='mso-number-format:"@"'>{{ $row->vn }}</td>
                 <td align="center">{{ $row->hn }}</td>
+                <td align="center" style='mso-number-format:"@"'>{{ $row->cid }}</td>
                 <td align="left">{{ $row->ptname }}</td>
                 <td align="left">{{ $row->pttype }}</td>
                 <td align="right">{{ $row->pdx }}</td>                      
@@ -70,7 +74,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
             <?php $sum_receive += $row->receive ; ?>   
             @endforeach   
             <tr>
-                <td align="right" colspan = "6"><strong>รวมค่ารักษาพยาบาลทั้งสิ้น &nbsp;</strong><br></td> 
+                <td align="right" colspan = "8"><strong>รวมค่ารักษาพยาบาลทั้งสิ้น &nbsp;</strong><br></td> 
                 <td align="right"><strong>{{number_format($sum_income,2)}}&nbsp;</strong></td>  
                 <td align="right"><strong>{{number_format($sum_rcpt_money,2)}}&nbsp;</strong></td>
                 <td align="right"><strong>{{number_format($sum_other,2)}}&nbsp;</strong></td>
@@ -82,6 +86,8 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
         </table> 
     </div>
 </div>    
+
+
 
 
 

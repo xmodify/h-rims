@@ -21,7 +21,9 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
             <tr>
                 <th class="text-center">ลำดับ</th>
                 <th class="text-center">วันที่</th>
+                <th class="text-center">VN</th>
                 <th class="text-center">HN</th>
+                <th class="text-center">CID</th>
                 <th class="text-center">ชื่อ-สกุล</th>
                 <th class="text-center">สิทธิ</th>
                 <th class="text-center">ICD10</th>
@@ -36,6 +38,9 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <th class="text-center text-primary">ผลต่าง</th>
                 <th class="text-center text-primary">ชดเชย PPFS</th> 
                 <th class="text-center text-primary">REP</th>
+                <th class="text-center text-primary">เลขงวด</th>
+                <th class="text-center text-primary">วันที่ออกใบเสร็จ</th>
+                <th class="text-center text-primary">เลขที่ใบเสร็จ</th>
                 <th class="text-center text-primary">อายุหนี้</th>
             </tr>     
             </thead> 
@@ -53,13 +58,15 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
             <tr>
                 <td align="center">{{ $count }}</td>
                 <td align="right">{{ DateThai($row->vstdate) }} {{ $row->vsttime }}</td>
+                <td align="center" style='mso-number-format:"@"'>{{ $row->vn }}</td>
                 <td align="center">{{ $row->hn }}</td>
+                <td align="center" style='mso-number-format:"@"'>{{ $row->cid }}</td>
                 <td align="left">{{ $row->ptname }}</td>
                 <td align="left">{{ $row->pttype }}</td>
                 <td align="right">{{ $row->pdx }}</td>                      
                 <td align="right">{{ number_format($row->income,2) }}</td>
                 <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
-                <td align="right">{{ number_format($row->ofc,2) }}</td>
+                <td align="right">{{ number_format($row->ofc ?? 0, 2) }}</td>
                 <td align="right">{{ number_format($row->kidney,2) }}</td>
                 <td align="right">{{ number_format($row->ppfs,2) }}</td>
                 <td align="right">{{ number_format($row->other,2) }}</td>
@@ -67,7 +74,10 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="right">{{ number_format($row->receive,2) }}</td>
                 <td align="right">{{ number_format($row->receive-$row->debtor,2) }}</td>
                 <td align="right">{{ number_format($row->receive_ppfs,2) }}</td>
-                <td align="center">{{ $row->repno }} {{ $row->repno_ofc }} {{ $row->rid }} {{ $row->rid_hd }}</td>
+                <td align="center" style='mso-number-format:"@"'>{{ $row->repno }} {{ $row->repno_ofc }} {{ $row->rid }} {{ $row->rid_hd }}</td>
+                <td align="center">{{ $row->stm_round_no }}</td>
+                <td align="center" style='mso-number-format:"@"'>{{ $row->stm_receipt_date }}</td>
+                <td align="center" style='mso-number-format:"@"'>{{ $row->stm_receive_no }}</td>
                 <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  {{-- เขียวอ่อน --}}
                     @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" {{-- เหลือง --}}
                     @else style="background-color: #FF7F7F;" {{-- แดง --}} @endif >
@@ -77,7 +87,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
             <?php $count++; ?>
             <?php $sum_income += $row->income ; ?>
             <?php $sum_rcpt_money += $row->rcpt_money ; ?>
-            <?php $sum_ofc += $row->ofc ; ?> 
+            <?php $sum_ofc += $row->ofc ?? 0; ?> 
             <?php $sum_kidney += $row->kidney ; ?> 
             <?php $sum_ppfs += $row->ppfs ; ?> 
             <?php $sum_debtor += $row->debtor ; ?>         
@@ -85,7 +95,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
             <?php $sum_receive_ppfs += $row->receive_ppfs ; ?>   
             @endforeach   
             <tr>
-                <td align="right" colspan = "6"><strong>รวมค่ารักษาพยาบาลทั้งสิ้น &nbsp;</strong><br></td> 
+                <td align="right" colspan = "8"><strong>รวมค่ารักษาพยาบาลทั้งสิ้น &nbsp;</strong><br></td> 
                 <td align="right"><strong>{{number_format($sum_income,2)}}&nbsp;</strong></td>  
                 <td align="right"><strong>{{number_format($sum_rcpt_money,2)}}&nbsp;</strong></td>
                 <td align="right"><strong>{{number_format($sum_ofc,2)}}&nbsp;</strong></td>
@@ -100,6 +110,8 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
         </table> 
     </div>
 </div>    
+
+
 
 
 

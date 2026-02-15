@@ -178,17 +178,13 @@
                                     @else style="background-color: #FF7F7F;" @endif >
                                     {{ $row->days }} วัน
                                 </td>   
-                                <td align="center" width="9%">
-                                    <div class="d-flex flex-column gap-1">
-                                        @if($row->bill_amount == '')          
-                                            <button type="button" class="btn btn-outline-warning btn-sm px-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#receive-{{ str_replace('/', '-', $row->an) }}"> 
-                                                <i class="bi bi-cash-stack"></i> ชดเชย
-                                            </button>
-                                        @endif 
-                                        <a class="btn btn-outline-info btn-sm" href="{{ url('debtor/1102050102_107/tracking', $row->an) }}" target="_blank"> 
-                                            <i class="bi bi-geo-alt me-1"></i> ติดตาม ({{ $row->an }})
-                                        </a> 
-                                    </div>
+                                <td align="right" width="9%">
+                                    @if($row->bill_amount == '')          
+                                        <button type="button" class="btn btn-outline-warning btn-sm px-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#receive-{{ str_replace('/', '-', $row->an) }}"> 
+                                            <i class="bi bi-cash-stack"></i> ชดเชย
+                                        </button>
+                                    @endif 
+                                    <a class="btn btn-outline-info btn-sm" href="{{ url('debtor/1102050102_107/tracking', $row->an) }}" target="_blank">ติดตาม {{ $row->visit }}</a> 
                                 </td> 
                                 <td align="center" style="color:blue">{{ $row->debtor_lock }}</td>                         
                             <?php $count++; ?>

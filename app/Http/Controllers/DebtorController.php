@@ -8959,6 +8959,7 @@ class DebtorController extends Controller
             $debtor = DB::connection('hosxp')->select('
                 SELECT d.*, r.bill_amount, IFNULL(d.receive,0) + IFNULL(r.bill_amount,0) AS receive,
                     stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                    IFNULL(t.visit,0) AS visit,
                     CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.bill_amount,0)) - IFNULL(d.debtor,0) >= 0
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM hrims.debtor_1102050102_107 d
@@ -8970,6 +8971,7 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(pay) AS pay, 
                                   MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                            FROM hrims.stm_lgo GROUP BY an) stm ON stm.an = d.an
+                LEFT JOIN (SELECT an, COUNT(an) AS visit FROM hrims.debtor_1102050102_107_tracking GROUP BY an) t ON t.an = d.an
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
                 AND d.dchdate BETWEEN ? AND ?
 ', [$search, $search, $search, $start_date, $end_date]);
@@ -8977,6 +8979,7 @@ class DebtorController extends Controller
             $debtor = DB::connection('hosxp')->select('
                 SELECT d.*, r.bill_amount, IFNULL(d.receive,0) + IFNULL(r.bill_amount,0) AS receive,
                     stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                    IFNULL(t.visit,0) AS visit,
                     CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.bill_amount,0)) - IFNULL(d.debtor,0) >= 0
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM hrims.debtor_1102050102_107 d
@@ -8988,6 +8991,7 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(pay) AS pay, 
                                   MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
                            FROM hrims.stm_lgo GROUP BY an) stm ON stm.an = d.an
+                LEFT JOIN (SELECT an, COUNT(an) AS visit FROM hrims.debtor_1102050102_107_tracking GROUP BY an) t ON t.an = d.an
                 WHERE d.dchdate BETWEEN ? AND ?
 ', [$start_date, $end_date]);
         }

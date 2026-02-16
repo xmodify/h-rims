@@ -125,9 +125,9 @@
                                 <th class="text-center text-primary">ผลต่าง</th>
                                 <th class="text-center text-primary">ชดเชย PPFS</th>
                                 <th class="text-center text-primary">REP</th>
-                                <th class="text-center text-primary" width="5%">สถานะ</th> 
-                                <th class="text-center text-primary" width="5%">Action</th>                          
+                                <th class="text-center text-primary" width="5%">สถานะ</th>                                                         
                                 <th class="text-center text-primary">อายุหนี้</th> 
+                                <th class="text-center text-primary" width="5%">Action</th>  
                                 <th class="text-center text-primary">Lock</th>                                       
                             </tr>
                             </thead>
@@ -171,16 +171,16 @@
                                 </td>
                                 <td align="right">{{ $row->repno ?? '' }} {{ $row->rid ?? '' }} {{ $row->rid_hd ?? '' }}</td>
                                 <td align="right">{{ $row->status ?? '' }}</td> 
-                                <td align="center">         
-                                    <button type="button" class="btn btn-outline-warning btn-sm px-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#receive-{{ str_replace(['/', '.'], '-', $row->vn) }}"> 
-                                        <i class="bi bi-cash-stack"></i> ชดเชย
-                                    </button>                            
-                                </td> 
                                 <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  {{-- เขียวอ่อน --}}
                                     @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" {{-- เหลือง --}}
                                     @else style="background-color: #FF7F7F;" {{-- แดง --}} @endif >
                                     {{ $row->days }} วัน
                                 </td>   
+                                <td align="center">         
+                                    <button type="button" class="btn btn-outline-warning btn-sm px-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#receive-{{ str_replace(['/', '.'], '-', $row->vn) }}"> 
+                                        <i class="bi bi-cash-stack"></i> ชดเชย
+                                    </button>                            
+                                </td>                                 
                                 <td align="center" style="color:blue">
                             @if(Auth::user()->status == 'admin')
                                 @if($row->debtor_lock == 'Y')

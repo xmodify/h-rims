@@ -6917,7 +6917,7 @@ class DebtorController extends Controller
                 LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
                 LEFT JOIN nondrugitems n ON n.icode = o.icode
                 LEFT JOIN s_drugitems s ON s.icode = o.icode
-                WHERE (li.uc_cr = "Y" OR n.nhso_adp_code IN ("S1801","S1802"))
+                WHERE (li.uc_cr = "Y" OR li.kidney = "Y" OR n.nhso_adp_code IN ("S1801","S1802"))
                 GROUP BY o.an) cr ON cr.an = i.an
             WHERE i.confirm_discharge = "Y"
             AND p.hipdata_code IN ("UCS","WEL")

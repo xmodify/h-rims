@@ -173,7 +173,21 @@
                                             <i class="bi bi-cash-stack"></i> ชดเชย
                                         </button>                            
                                     </td> 
-                                    <td align="center" style="color:blue">{{ $row->debtor_lock }}</td>                            
+                                    <td align="center" style="color:blue">
+                            @if(Auth::user()->status == 'admin')
+                                @if($row->debtor_lock == 'Y')
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmUnlock('{{ $row->vn }}')">
+                                        <i class="bi bi-unlock"></i> Unlock
+                                    </button>
+                                @else
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="confirmLock('{{ $row->vn }}')">
+                                        <i class="bi bi-lock"></i> Lock
+                                    </button>
+                                @endif
+                            @else
+                                {{ $row->debtor_lock }}
+                            @endif
+                        </td>                            
                                 <?php 
                                     $count++;
                                     $sum_income += $row->income;
@@ -551,6 +565,88 @@
             });
         }
     </script>
+
+
+    <script>
+        function confirmUnlock(id) {
+            Swal.fire({
+                title: 'ยืนยัน?',
+                text: "ต้องการ Unlock รายการนี้ใช่หรือไม่?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = "{{ url('debtor/1102050101_309/unlock') }}/" + id;
+                    
+                    var csrfToken = document.createElement('input');
+                    csrfToken.type = 'hidden';
+                    csrfToken.name = '_token';
+                    csrfToken.value = '{{ csrf_token() }}';
+                    form.appendChild(csrfToken);
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
+        function confirmLock(id) {
+            Swal.fire({
+                title: 'ยืนยัน?',
+                text: "ต้องการ Lock รายการนี้ใช่หรือไม่?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#0d6efd',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = "{{ url('debtor/1102050101_309/lock') }}/" + id;
+                    
+                    var csrfToken = document.createElement('input');
+                    csrfToken.type = 'hidden';
+                    csrfToken.name = '_token';
+                    csrfToken.value = '{{ csrf_token() }}';
+                    form.appendChild(csrfToken);
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
+    </script>
+
+
+    @if (session('error'))
+        <script>
+            Swal.fire({
+                icon: 'error',
+                title: 'ผิดพลาด',
+                text: '{{ session('error') }}',
+                timer: 4000,
+                showConfirmButton: false
+            });
+        </script>
+    @endif
+    @if (session('warning'))
+        <script>
+            Swal.fire({
+                icon: 'warning',
+                title: 'แจ้งเตือน',
+                text: '{{ session('warning') }}',
+                timer: 4000,
+                showConfirmButton: false
+            });
+        </script>
+    @endif
 
 @endsection
 

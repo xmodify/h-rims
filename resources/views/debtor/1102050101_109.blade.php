@@ -161,7 +161,21 @@
                                 <i class="bi bi-cash-stack"></i> ชดเชย
                             </button>                            
                         </td>  
-                        <td align="center" style="color:blue">{{ $row->debtor_lock }}</td>                            
+                        <td align="center" style="color:blue">
+                            @if(Auth::user()->status == 'admin')
+                                @if($row->debtor_lock == 'Y')
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmUnlock('{{ $row->vn }}')">
+                                        <i class="bi bi-unlock"></i> Unlock
+                                    </button>
+                                @else
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="confirmLock('{{ $row->vn }}')">
+                                        <i class="bi bi-lock"></i> Lock
+                                    </button>
+                                @endif
+                            @else
+                                {{ $row->debtor_lock }}
+                            @endif
+                        </td>                            
                     <?php $count++; ?>
                     <?php $sum_income += $row->income ; ?>
                     <?php $sum_rcpt_money += $row->rcpt_money ; ?>
@@ -200,7 +214,10 @@
                 <table id="debtor_search" class="table table-bordered table-striped my-3" width="100%">
                     <thead>
                     <tr class="table-secondary">
-                        <th class="text-left text-primary" colspan = "13">1102050101.109-ลูกหนี้-ระบบปฏิบัติการฉุกเฉิน รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                         
+                        <th class="text-left text-primary" colspan = "13">
+                            1102050101.109-ลูกหนี้-ระบบปฏิบัติการฉุกเฉิน รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้ 
+                            (จำนวน: {{ count($debtor_search) }} รายการ)
+                        </th>                         
                     </tr>
                     <tr class="table-secondary">
                         <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th> 
@@ -372,6 +389,29 @@
             });
         </script>
     @endif
+    @if (session('error'))
+        <script>
+            Swal.fire({
+                icon: 'error',
+                title: 'ผิดพลาด',
+                text: '{{ session('error') }}',
+                timer: 4000,
+                showConfirmButton: false
+            });
+        </script>
+    @endif
+    @if (session('warning'))
+        <script>
+            Swal.fire({
+                icon: 'warning',
+                title: 'แจ้งเตือน',
+                text: '{{ session('warning') }}',
+                timer: 4000,
+                showConfirmButton: false
+            });
+        </script>
+    @endif
+
  <!-- กำลังโหลด -->
     <script>
         function showLoading() {
@@ -432,6 +472,118 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     document.querySelector("form[action='{{ url('debtor/1102050101_109_confirm') }}']").submit();
+                }
+            });
+        }
+        function confirmUnlock(vn) {
+            Swal.fire({
+                title: 'ยืนยัน?',
+                text: "ต้องการ Unlock รายการนี้ใช่หรือไม่?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = "{{ url('debtor/1102050101_109/unlock') }}/" + vn;
+                    
+                    var csrfToken = document.createElement('input');
+                    csrfToken.type = 'hidden';
+                    csrfToken.name = '_token';
+                    csrfToken.value = '{{ csrf_token() }}';
+                    form.appendChild(csrfToken);
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
+        function confirmLock(vn) {
+            Swal.fire({
+                title: 'ยืนยัน?',
+                text: "ต้องการ Lock รายการนี้ใช่หรือไม่?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#0d6efd',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = "{{ url('debtor/1102050101_109/lock') }}/" + vn;
+                    
+                    var csrfToken = document.createElement('input');
+                    csrfToken.type = 'hidden';
+                    csrfToken.name = '_token';
+                    csrfToken.value = '{{ csrf_token() }}';
+                    form.appendChild(csrfToken);
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
+    </script>
+
+
+    <script>
+        function confirmUnlock(id) {
+            Swal.fire({
+                title: 'ยืนยัน?',
+                text: "ต้องการ Unlock รายการนี้ใช่หรือไม่?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = "{{ url('debtor/1102050101_109/unlock') }}/" + id;
+                    
+                    var csrfToken = document.createElement('input');
+                    csrfToken.type = 'hidden';
+                    csrfToken.name = '_token';
+                    csrfToken.value = '{{ csrf_token() }}';
+                    form.appendChild(csrfToken);
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
+        function confirmLock(id) {
+            Swal.fire({
+                title: 'ยืนยัน?',
+                text: "ต้องการ Lock รายการนี้ใช่หรือไม่?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#0d6efd',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = "{{ url('debtor/1102050101_109/lock') }}/" + id;
+                    
+                    var csrfToken = document.createElement('input');
+                    csrfToken.type = 'hidden';
+                    csrfToken.name = '_token';
+                    csrfToken.value = '{{ csrf_token() }}';
+                    form.appendChild(csrfToken);
+                    
+                    document.body.appendChild(form);
+                    form.submit();
                 }
             });
         }

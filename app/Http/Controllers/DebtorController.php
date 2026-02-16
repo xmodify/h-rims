@@ -951,19 +951,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_103::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_103::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_103::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_103_lock(Request $request, $vn)
+    {
+        Debtor_1102050101_103::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_103_unlock(Request $request, $vn)
+    {
+        Debtor_1102050101_103::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050101_103_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_103_update(Request $request, $vn)
     {
@@ -1155,10 +1175,6 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_109::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
             return response()->json([
                 'success' => false,
@@ -1166,7 +1182,18 @@ class DebtorController extends Controller
             ]);
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $count_request = count($checkbox);
+        $deleted = Debtor_1102050101_109::whereIn('vn', $checkbox)
+            ->whereNull('debtor_lock')
+            ->delete();
+
+        if ($deleted == 0) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการถูก Lock ไว้');
+        } elseif ($deleted < $count_request) {
+            return redirect()->back()->with('warning', 'ลบลูกหนี้เรียบร้อย ' . $deleted . ' รายการ (บางรายการถูก Lock ไม่สามารถลบได้)');
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ' . $deleted . ' รายการ');
     }
     //_1102050101_109_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_109_update(Request $request, $vn)
@@ -1184,6 +1211,24 @@ class DebtorController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
+    }
+    //_1102050101_109_unlock-------------------------------------------------------------------------------------------------------
+    public function _1102050101_109_unlock(Request $request, $vn)
+    {
+        $item = Debtor_1102050101_109::findOrFail($vn);
+        $item->update([
+            'debtor_lock' => NULL
+        ]);
+        return redirect()->back()->with('success', 'Unlock เรียบร้อย');
+    }
+    //_1102050101_109_lock-------------------------------------------------------------------------------------------------------
+    public function _1102050101_109_lock(Request $request, $vn)
+    {
+        $item = Debtor_1102050101_109::findOrFail($vn);
+        $item->update([
+            'debtor_lock' => 'Y'
+        ]);
+        return redirect()->back()->with('success', 'Lock เรียบร้อย');
     }
     //1102050101_109_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_109_daily_pdf(Request $request)
@@ -1385,19 +1430,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_201::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_201::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_201::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_201_lock(Request $request, $vn)
+    {
+        Debtor_1102050101_201::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_201_unlock(Request $request, $vn)
+    {
+        Debtor_1102050101_201::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
 
     //1102050101_201_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_201_daily_pdf(Request $request)
@@ -1702,19 +1767,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_203::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_203::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_203::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_203_lock(Request $request, $vn)
+    {
+        Debtor_1102050101_203::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_203_unlock(Request $request, $vn)
+    {
+        Debtor_1102050101_203::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050101_203_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_203_update(Request $request, $vn)
     {
@@ -2020,19 +2105,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_209::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_209::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_209::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_209_lock(Request $request, $vn)
+    {
+        Debtor_1102050101_209::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_209_unlock(Request $request, $vn)
+    {
+        Debtor_1102050101_209::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
 
     //1102050101_209_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_209_daily_pdf(Request $request)
@@ -2496,19 +2601,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_216::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_216::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_216::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_216_lock(Request $request, $vn)
+    {
+        Debtor_1102050101_216::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_216_unlock(Request $request, $vn)
+    {
+        Debtor_1102050101_216::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
 
     //1102050101_216_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_216_daily_pdf(Request $request)
@@ -2723,19 +2848,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_301::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_301::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_301::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_301_lock(Request $request, $vn)
+    {
+        Debtor_1102050101_301::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_301_unlock(Request $request, $vn)
+    {
+        Debtor_1102050101_301::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
 
     //1102050101_301_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_301_daily_pdf(Request $request)
@@ -3039,19 +3184,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_303::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_303::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_303::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_303_lock(Request $request, $vn)
+    {
+        Debtor_1102050101_303::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_303_unlock(Request $request, $vn)
+    {
+        Debtor_1102050101_303::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050101_303_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_303_update(Request $request, $vn)
     {
@@ -3398,19 +3563,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_307::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_307::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_307::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_307_lock(Request $request, $vn)
+    {
+        Debtor_1102050101_307::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_307_unlock(Request $request, $vn)
+    {
+        Debtor_1102050101_307::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050101_307_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_307_update(Request $request, $vn)
     {
@@ -3751,19 +3936,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_309::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_309::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_309::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_309_lock(Request $request, $vn)
+    {
+        Debtor_1102050101_309::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_309_unlock(Request $request, $vn)
+    {
+        Debtor_1102050101_309::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050101_309_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_309_update(Request $request, $vn)
     {
@@ -4037,19 +4242,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_401::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_401::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_401::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_401_lock(Request $request, $vn)
+    {
+        Debtor_1102050101_401::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_401_unlock(Request $request, $vn)
+    {
+        Debtor_1102050101_401::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050101_401_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_401_update(Request $request, $vn)
     {
@@ -4260,19 +4485,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_501::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_501::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_501::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_501_lock(Request $request, $vn)
+    {
+        Debtor_1102050101_501::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_501_unlock(Request $request, $vn)
+    {
+        Debtor_1102050101_501::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050101_501_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_501_update(Request $request, $vn)
     {
@@ -4467,19 +4712,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_503::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_503::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_503::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_503_lock(Request $request, $vn)
+    {
+        Debtor_1102050101_503::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_503_unlock(Request $request, $vn)
+    {
+        Debtor_1102050101_503::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050101_503_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_503_update(Request $request, $vn)
     {
@@ -4697,19 +4962,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_701::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_701::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_701::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_701_lock(Request $request, $vn)
+    {
+        Debtor_1102050101_701::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_701_unlock(Request $request, $vn)
+    {
+        Debtor_1102050101_701::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
 
     //1102050101_701_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_701_daily_pdf(Request $request)
@@ -4913,19 +5198,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_702::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_702::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_702::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_702_lock(Request $request, $vn)
+    {
+        Debtor_1102050101_702::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_702_unlock(Request $request, $vn)
+    {
+        Debtor_1102050101_702::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
 
     //1102050101_702_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_702_daily_pdf(Request $request)
@@ -5207,19 +5512,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050102_106::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050102_106::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050102_106::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050102_106_lock(Request $request, $vn)
+    {
+        Debtor_1102050102_106::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050102_106_unlock(Request $request, $vn)
+    {
+        Debtor_1102050102_106::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050102_106_update-------------------------------------------------------------------------------------------------------
     public function _1102050102_106_update(Request $request, $vn)
     {
@@ -5476,19 +5801,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050102_108::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050102_108::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050102_108::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050102_108_lock(Request $request, $vn)
+    {
+        Debtor_1102050102_108::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050102_108_unlock(Request $request, $vn)
+    {
+        Debtor_1102050102_108::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050102_108_update-------------------------------------------------------------------------------------------------------
     public function _1102050102_108_update(Request $request, $vn)
     {
@@ -5760,19 +6105,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050102_110::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050102_110::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050102_110::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050102_110_lock(Request $request, $vn)
+    {
+        Debtor_1102050102_110::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050102_110_unlock(Request $request, $vn)
+    {
+        Debtor_1102050102_110::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050102_110_update-------------------------------------------------------------------------------------------------------
     public function _1102050102_110_update(Request $request, $vn)
     {
@@ -5984,19 +6349,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050102_602::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050102_602::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050102_602::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050102_602_lock(Request $request, $vn)
+    {
+        Debtor_1102050102_602::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050102_602_unlock(Request $request, $vn)
+    {
+        Debtor_1102050102_602::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050102_602_update-------------------------------------------------------------------------------------------------------
     public function _1102050102_602_update(Request $request, $vn)
     {
@@ -6262,19 +6647,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050102_801::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050102_801::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050102_801::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050102_801_lock(Request $request, $vn)
+    {
+        Debtor_1102050102_801::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050102_801_unlock(Request $request, $vn)
+    {
+        Debtor_1102050102_801::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050102_801_update-------------------------------------------------------------------------------------------------------
     public function _1102050102_801_update(Request $request, $vn)
     {
@@ -6552,19 +6957,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050102_803::whereIn('vn', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050102_803::whereIn('vn', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('vn')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050102_803::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050102_803_lock(Request $request, $vn)
+    {
+        Debtor_1102050102_803::where('vn', $vn)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050102_803_unlock(Request $request, $vn)
+    {
+        Debtor_1102050102_803::where('vn', $vn)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050102_803_update-------------------------------------------------------------------------------------------------------
     public function _1102050102_803_update(Request $request, $vn)
     {
@@ -6799,19 +7224,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_202::whereIn('an', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_202::whereIn('an', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('an')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_202::whereIn('an', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_202_lock(Request $request, $an)
+    {
+        Debtor_1102050101_202::where('an', $an)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_202_unlock(Request $request, $an)
+    {
+        Debtor_1102050101_202::where('an', $an)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
 
     //1102050101_202_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_202_daily_pdf(Request $request)
@@ -7027,19 +7472,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_217::whereIn('an', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_217::whereIn('an', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('an')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_217::whereIn('an', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_217_lock(Request $request, $an)
+    {
+        Debtor_1102050101_217::where('an', $an)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_217_unlock(Request $request, $an)
+    {
+        Debtor_1102050101_217::where('an', $an)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
 
     //1102050101_217_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_217_daily_pdf(Request $request)
@@ -7272,19 +7737,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_302::whereIn('an', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_302::whereIn('an', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('an')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_302::whereIn('an', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_302_lock(Request $request, $an)
+    {
+        Debtor_1102050101_302::where('an', $an)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_302_unlock(Request $request, $an)
+    {
+        Debtor_1102050101_302::where('an', $an)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050101_302_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_302_update(Request $request, $an)
     {
@@ -7526,19 +8011,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_304::whereIn('an', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_304::whereIn('an', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('an')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_304::whereIn('an', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_304_lock(Request $request, $an)
+    {
+        Debtor_1102050101_304::where('an', $an)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_304_unlock(Request $request, $an)
+    {
+        Debtor_1102050101_304::where('an', $an)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050101_304_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_304_update(Request $request, $an)
     {
@@ -7775,19 +8280,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_308::whereIn('an', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_308::whereIn('an', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('an')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_308::whereIn('an', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_308_lock(Request $request, $an)
+    {
+        Debtor_1102050101_308::where('an', $an)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_308_unlock(Request $request, $an)
+    {
+        Debtor_1102050101_308::where('an', $an)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050101_308_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_308_update(Request $request, $an)
     {
@@ -8010,19 +8535,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_310::whereIn('an', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_310::whereIn('an', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('an')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_310::whereIn('an', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_310_lock(Request $request, $an)
+    {
+        Debtor_1102050101_310::where('an', $an)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_310_unlock(Request $request, $an)
+    {
+        Debtor_1102050101_310::where('an', $an)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050101_310_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_310_update(Request $request, $an)
     {
@@ -8273,19 +8818,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_402::whereIn('an', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_402::whereIn('an', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('an')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_402::whereIn('an', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_402_lock(Request $request, $an)
+    {
+        Debtor_1102050101_402::where('an', $an)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_402_unlock(Request $request, $an)
+    {
+        Debtor_1102050101_402::where('an', $an)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
 
     //1102050101_402_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050101_402_daily_pdf(Request $request)
@@ -8506,19 +9071,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_502::whereIn('an', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_502::whereIn('an', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('an')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_502::whereIn('an', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_502_lock(Request $request, $an)
+    {
+        Debtor_1102050101_502::where('an', $an)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_502_unlock(Request $request, $an)
+    {
+        Debtor_1102050101_502::where('an', $an)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050101_502_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_502_update(Request $request, $an)
     {
@@ -8748,19 +9333,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_504::whereIn('an', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_504::whereIn('an', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('an')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_504::whereIn('an', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_504_lock(Request $request, $an)
+    {
+        Debtor_1102050101_504::where('an', $an)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_504_unlock(Request $request, $an)
+    {
+        Debtor_1102050101_504::where('an', $an)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050101_504_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_504_update(Request $request, $an)
     {
@@ -8992,19 +9597,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050101_704::whereIn('an', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050101_704::whereIn('an', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('an')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050101_704::whereIn('an', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050101_704_lock(Request $request, $an)
+    {
+        Debtor_1102050101_704::where('an', $an)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050101_704_unlock(Request $request, $an)
+    {
+        Debtor_1102050101_704::where('an', $an)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050101_704_update-------------------------------------------------------------------------------------------------------
     public function _1102050101_704_update(Request $request, $an)
     {
@@ -9309,19 +9934,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050102_107::whereIn('an', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050102_107::whereIn('an', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('an')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050102_107::whereIn('an', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050102_107_lock(Request $request, $an)
+    {
+        Debtor_1102050102_107::where('an', $an)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050102_107_unlock(Request $request, $an)
+    {
+        Debtor_1102050102_107::where('an', $an)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050102_107_update-------------------------------------------------------------------------------------------------------
     public function _1102050102_107_update(Request $request, $an)
     {
@@ -9598,19 +10243,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050102_109::whereIn('an', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050102_109::whereIn('an', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('an')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050102_109::whereIn('an', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050102_109_lock(Request $request, $an)
+    {
+        Debtor_1102050102_109::where('an', $an)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050102_109_unlock(Request $request, $an)
+    {
+        Debtor_1102050102_109::where('an', $an)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050102_109_update-------------------------------------------------------------------------------------------------------
     public function _1102050102_109_update(Request $request, $an)
     {
@@ -9855,19 +10520,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050102_111::whereIn('an', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050102_111::whereIn('an', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('an')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050102_111::whereIn('an', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050102_111_lock(Request $request, $an)
+    {
+        Debtor_1102050102_111::where('an', $an)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050102_111_unlock(Request $request, $an)
+    {
+        Debtor_1102050102_111::where('an', $an)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
 
     //1102050102_111_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_111_daily_pdf(Request $request)
@@ -10092,19 +10777,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050102_603::whereIn('an', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050102_603::whereIn('an', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('an')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050102_603::whereIn('an', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050102_603_lock(Request $request, $an)
+    {
+        Debtor_1102050102_603::where('an', $an)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050102_603_unlock(Request $request, $an)
+    {
+        Debtor_1102050102_603::where('an', $an)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //_1102050102_603_update-------------------------------------------------------------------------------------------------------
     public function _1102050102_603_update(Request $request, $an)
     {
@@ -10351,19 +11056,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050102_802::whereIn('an', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050102_802::whereIn('an', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('an')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050102_802::whereIn('an', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050102_802_lock(Request $request, $an)
+    {
+        Debtor_1102050102_802::where('an', $an)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050102_802_unlock(Request $request, $an)
+    {
+        Debtor_1102050102_802::where('an', $an)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
     //1102050102_802_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_802_daily_pdf(Request $request)
     {
@@ -10599,19 +11324,39 @@ class DebtorController extends Controller
     {
         $checkbox = $request->input('checkbox_d');
 
-        $deleted = Debtor_1102050102_804::whereIn('an', $checkbox)
-            ->whereNull('debtor_lock')
-            ->delete();
-
         if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะลบ'
-            ]);
+            return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
-        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย ');
+        $all_items = Debtor_1102050102_804::whereIn('an', $checkbox)->get();
+        $locked_items = $all_items->where('debtor_lock', 'Y')->count();
+        $deletable_items = $all_items->where('debtor_lock', '!=', 'Y')->pluck('an')->toArray();
+
+        if (count($deletable_items) > 0) {
+            Debtor_1102050102_804::whereIn('an', $deletable_items)->delete();
+        }
+
+        if ($locked_items == count($checkbox)) {
+            return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
+        } elseif ($locked_items > 0) {
+            return redirect()->back()->with('warning', "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)");
+        }
+
+        return redirect()->back()->with('success', 'ลบลูกหนี้เรียบร้อย');
     }
+
+    public function _1102050102_804_lock(Request $request, $an)
+    {
+        Debtor_1102050102_804::where('an', $an)->update(['debtor_lock' => 'Y']);
+        return redirect()->back();
+    }
+
+    public function _1102050102_804_unlock(Request $request, $an)
+    {
+        Debtor_1102050102_804::where('an', $an)->update(['debtor_lock' => NULL]);
+        return redirect()->back();
+    }
+
 
     //1102050102_804_daily_pdf-------------------------------------------------------------------------------------------------------
     public function _1102050102_804_daily_pdf(Request $request)

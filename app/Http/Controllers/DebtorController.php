@@ -7093,6 +7093,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                       IFNULL(stm.receive_total,0) AS receive,
                        CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_302 d
@@ -7106,6 +7107,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                       IFNULL(stm.receive_total,0) AS receive,
                        CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_302 d
@@ -7345,6 +7347,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                       IFNULL(stm.receive_total,0) AS receive,
                        CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_304 d
@@ -7358,6 +7361,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                       IFNULL(stm.receive_total,0) AS receive,
                        CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_304 d
@@ -7596,6 +7600,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                       IFNULL(stm.receive_total,0) AS receive,
                        CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_308 d
@@ -7609,6 +7614,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                       IFNULL(stm.receive_total,0) AS receive,
                        CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_308 d
@@ -7842,6 +7848,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                       IFNULL(stm.receive_total,0) AS receive,
                        CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_310 d
@@ -7855,6 +7862,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                       IFNULL(stm.receive_total,0) AS receive,
                        CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_310 d
@@ -8813,6 +8821,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                       IFNULL(stm.receive_total,0) AS receive,
                        CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_704 d
@@ -8826,6 +8835,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                       IFNULL(stm.receive_total,0) AS receive,
                        CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_704 d
@@ -9417,6 +9427,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                       IFNULL(stm.pay,0) AS receive,
                        CASE WHEN (IFNULL(stm.pay,0) - IFNULL(d.debtor,0)) >= 0 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_109 d
@@ -9430,6 +9441,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                       IFNULL(stm.pay,0) AS receive,
                        CASE WHEN (IFNULL(stm.pay,0) - IFNULL(d.debtor,0)) >= 0 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_109 d
@@ -10154,6 +10166,9 @@ class DebtorController extends Controller
             $debtor = DB::select('
                 SELECT d.*, IFNULL(sk.amount,0) AS kidney, stm.repno, stm.round_no AS stm_round_no, 
                        stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                       IFNULL(stm.pay,0) AS receive_lgo,
+                       IFNULL(sk.amount,0) AS receive_kidney,
+                       (IFNULL(stm.pay,0) + IFNULL(sk.amount,0)) AS receive,
                        CASE WHEN (IFNULL(stm.pay,0) - IFNULL(d.debtor,0)) >= 0 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_802 d
@@ -10172,6 +10187,9 @@ class DebtorController extends Controller
             $debtor = DB::select('
                 SELECT d.*, IFNULL(sk.amount,0) AS kidney, stm.repno, stm.round_no AS stm_round_no, 
                        stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                       IFNULL(stm.pay,0) AS receive_lgo,
+                       IFNULL(sk.amount,0) AS receive_kidney,
+                       (IFNULL(stm.pay,0) + IFNULL(sk.amount,0)) AS receive,
                        CASE WHEN (IFNULL(stm.pay,0) - IFNULL(d.debtor,0)) >= 0 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_802 d
@@ -10396,7 +10414,9 @@ class DebtorController extends Controller
 
         if ($search) {
             $debtor = DB::select('
-                SELECT d.*, IFNULL(csop.amount,0) AS amount, stm.repno, stm.round_no AS stm_round_no, 
+                SELECT d.*, IFNULL(csop.amount,0) AS amount, 
+                       (IFNULL(stm.receive_total,0) + IFNULL(csop.amount,0)) AS receive,
+                       stm.repno, stm.round_no AS stm_round_no, 
                        stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
                        CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
@@ -10414,7 +10434,9 @@ class DebtorController extends Controller
             ', [$start_date, $end_date, $search, $search, $search]);
         } else {
             $debtor = DB::select('
-                SELECT d.*, IFNULL(csop.amount,0) AS amount, stm.repno, stm.round_no AS stm_round_no, 
+                SELECT d.*, IFNULL(csop.amount,0) AS amount, 
+                       (IFNULL(stm.receive_total,0) + IFNULL(csop.amount,0)) AS receive,
+                       stm.repno, stm.round_no AS stm_round_no, 
                        stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
                        CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days

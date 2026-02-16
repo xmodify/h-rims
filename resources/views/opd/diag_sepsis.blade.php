@@ -21,7 +21,7 @@
                         @foreach ($budget_year_select as $row)
                             <option value="{{ $row->LEAVE_YEAR_ID }}"
                                 {{ (int)$budget_year === (int)$row->LEAVE_YEAR_ID ? 'selected' : '' }}>
-                                ปีงบประมาณ {{ $row->LEAVE_YEAR_NAME }}
+                                {{ $row->LEAVE_YEAR_NAME }}
                             </option>
                         @endforeach
                     </select>

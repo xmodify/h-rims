@@ -32,7 +32,7 @@
           <thead class="bg-light">
             <tr>
                 <th class="text-center">ลำดับ</th>
-                <th class="text-center" width="6%">ดึงข้อมูล</th>
+                <th class="text-center" width="6%">ดึงปิดสิทธิ</th>
                 <th class="text-center text-nowrap">Authen</th>  
                 <th class="text-center text-nowrap">ปิดสิทธิ</th>
                 <th class="text-center">PPFS</th>
@@ -51,12 +51,10 @@
             @foreach($sql as $index => $row) 
             <tr>
               <td align="center" class="text-muted">{{ $index + 1 }}</td>
-              <td align="center">
-                 @if($row->ppfs == 'Y')                  
+              <td align="center">                                 
                   <button onclick="pullNhsoData('{{ $row->vstdate }}', '{{ $row->cid }}')" class="btn btn-outline-info btn-sm">
                       <i class="bi bi-cloud-download"></i>
-                  </button>
-                @endif
+                  </button>              
               </td> 
               <td align="center">
                 @if($row->auth_code == 'Y')

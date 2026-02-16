@@ -15,7 +15,7 @@
   }
 </style>
 
-<div class="container-fluid py-4 px-lg-5">
+<div class="container-fluid py-4 px-lg-5" style="background-color: #f0fdf4;">
     <div class="row">      
         <div class="col-12 px-3">
           <div class="page-header-box mt-2" style="border-left-color: #3b82f6 !important;">
@@ -277,7 +277,7 @@
                   <tr>
                       <th class="text-center">เดือน</th>
                       <th class="text-center">AN</th>
-                      <th class="text-center">นอน</th>
+                      <th class="text-center">วันนอน</th>
                       <th class="text-center">อัตราครองเตียง</th>
                       <th class="text-center">CMI</th>
                       <th class="text-center">AdjRW</th>                 
@@ -312,7 +312,7 @@
                   <tr>
                       <th class="text-center">เดือน</th>
                       <th class="text-center">AN</th>
-                      <th class="text-center">นอน</th>
+                      <th class="text-center">วันนอน</th>
                       <th class="text-center">อัตราครองเตียง</th>
                       <th class="text-center">CMI</th>
                       <th class="text-center">AdjRW</th>            

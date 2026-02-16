@@ -16,7 +16,7 @@
         }
     </script>    
 @section('content')
-@section('content')
+
     <!-- Page Header & Logic Filters -->
     <div class="page-header-box mt-2 mb-3 d-flex justify-content-between align-items-center">
         <div>

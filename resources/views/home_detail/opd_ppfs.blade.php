@@ -32,7 +32,7 @@
           <thead class="bg-light">
             <tr>
                 <th class="text-center">ลำดับ</th>
-                <th class="text-center" width="5%">ดึง</th>  
+                <th class="text-center" width="5%">ดึงปิดสิทธิ</th>  
                 <th class="text-center">Authen</th>  
                 <th class="text-center">ปิดสิทธิ</th>
                 <th class="text-center">วันที่รับบริการ/เวลา</th>

@@ -44,10 +44,10 @@
                     <div class="d-flex align-items-center">
                         <span class="input-group-text bg-white text-muted border-end-0 rounded-start">วันที่</span>
                         <input type="hidden" name="start_date" id="start_date" value="{{ $start_date }}">
-                        <input type="text" id="start_date_display" class="form-control border-start-0 rounded-0 datepicker-th" value="{{ DateThai($start_date) }}" style="width: 170px;">
+                        <input type="text" id="start_date_display" class="form-control border-start-0 rounded-0 datepicker_th" value="{{ $start_date }}" readonly style="width: 120px;">
                         <span class="input-group-text bg-white border-start-0 border-end-0 rounded-0">ถึง</span>
                         <input type="hidden" name="end_date" id="end_date" value="{{ $end_date }}">
-                        <input type="text" id="end_date_display" class="form-control border-start-0 rounded-end datepicker-th" value="{{ DateThai($end_date) }}" style="width: 170px;">
+                        <input type="text" id="end_date_display" class="form-control border-start-0 rounded-end datepicker_th" value="{{ $end_date }}" readonly style="width: 120px;">
                     </div>
 
                     <!-- Search Input -->
@@ -398,9 +398,9 @@
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold">วันที่เรียกเก็บ</label>
                                         <input type="hidden" name="charge_date" value="{{ $row->charge_date ?? '' }}">
-                                        <input type="text" class="form-control rounded-pill px-3 datepicker-modal" 
-                                            value="{{ !empty($row->charge_date) ? DateThai($row->charge_date) : '' }}" 
-                                            placeholder="วว/ดด/ปปปป">
+                                        <input type="text" class="form-control rounded-pill px-3 datepicker_th_modal" 
+                                            value="{{ !empty($row->charge_date) ? $row->charge_date : '' }}" 
+                                            readonly placeholder="วว/ดด/ปปปป">
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold">เลขที่หนังสือเรียกเก็บ</label>
@@ -432,9 +432,9 @@
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold">วันที่ชดเชย</label>
                                         <input type="hidden" name="receive_date" value="{{ $row->receive_date ?? '' }}">
-                                        <input type="text" class="form-control rounded-pill px-3 border-success-soft datepicker-modal" 
-                                            value="{{ !empty($row->receive_date) ? DateThai($row->receive_date) : '' }}" 
-                                            placeholder="วว/ดด/ปปปป">
+                                        <input type="text" class="form-control rounded-pill px-3 border-success-soft datepicker_th_modal" 
+                                            value="{{ !empty($row->receive_date) ? $row->receive_date : '' }}" 
+                                            readonly placeholder="วว/ดด/ปปปป">
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold">เลขที่หนังสือชดเชย</label>
@@ -748,66 +748,60 @@
     <script>
         $(document).ready(function() {
             // Initialize Datepicker Thai for Filter
-            $('.datepicker-th').datepicker({
-                format: 'dd/mm/yyyy',
-                todayBtn: true,
-                language: 'th',
+            $('.datepicker_th').datepicker({
+                format: 'yyyy-mm-dd',
+                todayBtn: 'linked',
+                language: 'th-th',
                 thaiyear: true,
                 autoclose: true,
                 todayHighlight: true
             });
 
             // Initialize Datepicker Thai for Modal Inputs
-            $('.datepicker-modal').datepicker({
-                format: 'dd/mm/yyyy',
-                todayBtn: true,
-                language: 'th',
+            $('.datepicker_th_modal').datepicker({
+                format: 'yyyy-mm-dd',
+                todayBtn: 'linked',
+                language: 'th-th',
                 thaiyear: true,
                 autoclose: true,
                 todayHighlight: true,
                 zIndexOffset: 1050
+            }).on('changeDate', function(e) {
+                var date = e.date;
+                if(date) {
+                    var day = ("0" + date.getDate()).slice(-2);
+                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                    var year = date.getFullYear();
+                    // Update hidden input
+                     $(this).prev('input[type="hidden"]').val(year + "-" + month + "-" + day);
+                } else {
+                     $(this).prev('input[type="hidden"]').val('');
+                }
             });
 
             // Sync Start Date
-            $('#start_date_display').change(function() {
-                let buddhistDate = $(this).val();
-                if (buddhistDate) {
-                    let parts = buddhistDate.split('/');
-                    let day = parts[0];
-                    let month = parts[1];
-                    let year = parseInt(parts[2]) - 543;
-                    $('#start_date').val(year + '-' + month + '-' + day);
+            $('#start_date_display').on('changeDate', function(e) {
+                var date = e.date;
+                if(date) {
+                    var day = ("0" + date.getDate()).slice(-2);
+                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                    var year = date.getFullYear();
+                    $('#start_date').val(year + "-" + month + "-" + day);
                 } else {
                     $('#start_date').val('');
                 }
             });
 
             // Sync End Date
-            $('#end_date_display').change(function() {
-                let buddhistDate = $(this).val();
-                if (buddhistDate) {
-                    let parts = buddhistDate.split('/');
-                    let day = parts[0];
-                    let month = parts[1];
-                    let year = parseInt(parts[2]) - 543;
-                    $('#end_date').val(year + '-' + month + '-' + day);
+            $('#end_date_display').on('changeDate', function(e) {
+                var date = e.date;
+                if(date) {
+                    var day = ("0" + date.getDate()).slice(-2);
+                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                    var year = date.getFullYear();
+                    $('#end_date').val(year + "-" + month + "-" + day);
                 } else {
                     $('#end_date').val('');
-                }
-            });
-
-             // Sync Modal Date Inputs (Generic Handler)
-             $(document).on('change', '.datepicker-modal', function() {
-                let buddhistDate = $(this).val();
-                let hiddenInput = $(this).prev('input[type="hidden"]');
-                if (buddhistDate) {
-                    let parts = buddhistDate.split('/');
-                    let day = parts[0];
-                    let month = parts[1];
-                    let year = parseInt(parts[2]) - 543;
-                    hiddenInput.val(year + '-' + month + '-' + day);
-                } else {
-                    hiddenInput.val('');
                 }
             });
         });

@@ -232,7 +232,7 @@
     $(document).ready(function() {
         // Initialize Datepicker Thai
         $('.datepicker_th').datepicker({
-            format: 'yyyy-mm-dd',
+            format: 'd M yyyy', // Matches DateThai() helper output
             todayBtn: "linked",
             todayHighlight: true,
             autoclose: true,

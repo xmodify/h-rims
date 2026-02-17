@@ -397,12 +397,13 @@
 
       // Initialize Datepicker Thai
       $('.datepicker_th').datepicker({
-          format: 'yyyy-mm-dd',
+          format: 'd M yyyy',
           todayBtn: "linked",
           todayHighlight: true,
           autoclose: true,
-          language: 'th-th', // Thai Language
-          thaiyear: true     // Buddhist Era
+          language: 'th-th', 
+          thaiyear: true,
+          zIndexOffset: 1050
       });
 
       // Set initial values for Datepickers

@@ -36,85 +36,13 @@
                     <div class="d-flex align-items-center">
                         <span class="input-group-text bg-white text-muted border-end-0 rounded-start">วันที่</span>
                         <input type="hidden" name="start_date" id="start_date" value="{{ $start_date }}">
-                        <input type="text" id="start_date_picker" class="form-control border-start-0 rounded-0 datepicker_th" value="{{ $start_date }}" style="width: 170px;" readonly>
+                        <input type="text" id="start_date_picker" class="form-control border-start-0 rounded-0 datepicker_th" value="{{ DateThai($start_date) }}" style="width: 120px;" readonly>
                         <span class="input-group-text bg-white border-start-0 border-end-0 rounded-0">ถึง</span>
                         <input type="hidden" name="end_date" id="end_date" value="{{ $end_date }}">
-                        <input type="text" id="end_date_picker" class="form-control border-start-0 rounded-end datepicker_th" value="{{ $end_date }}" style="width: 170px;" readonly>
+                        <input type="text" id="end_date_picker" class="form-control border-start-0 rounded-end datepicker_th" value="{{ DateThai($end_date) }}" style="width: 120px;" readonly>
                     </div>
 
-                    <script>
-                        document.addEventListener("DOMContentLoaded", function () {
-                            // Initialize Datepicker Thai for all
-                            $('.datepicker_th').datepicker({
-                                format: 'yyyy-mm-dd',
-                                todayBtn: "linked",
-                                todayHighlight: true,
-                                autoclose: true,
-                                language: 'th-th',
-                                thaiyear: true
-                            });
 
-                            // --- 1. Filter Logic ---
-                            var start_date_val = "{{ $start_date }}";
-                            var end_date_val = "{{ $end_date }}";
-
-                            if(start_date_val) {
-                                $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
-                            }
-                            if(end_date_val) {
-                                $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
-                            }
-
-                            $('#start_date_picker').on('changeDate', function(e) {
-                                var date = e.date;
-                                if(date) {
-                                    var day = ("0" + date.getDate()).slice(-2);
-                                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
-                                    var year = date.getFullYear();
-                                    $('#start_date').val(year + "-" + month + "-" + day);
-                                } else {
-                                    $('#start_date').val('');
-                                }
-                            });
-
-                            $('#end_date_picker').on('changeDate', function(e) {
-                                var date = e.date;
-                                if(date) {
-                                    var day = ("0" + date.getDate()).slice(-2);
-                                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
-                                    var year = date.getFullYear();
-                                    $('#end_date').val(year + "-" + month + "-" + day);
-                                } else {
-                                    $('#end_date').val('');
-                                }
-                            });
-
-                            // --- 2. Modal Logic (Average Receive) ---
-                             $('#date_start_picker').on('changeDate', function(e) {
-                                var date = e.date;
-                                if(date) {
-                                    var day = ("0" + date.getDate()).slice(-2);
-                                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
-                                    var year = date.getFullYear();
-                                    $('#date_start').val(year + "-" + month + "-" + day);
-                                } else {
-                                    $('#date_start').val('');
-                                }
-                            });
-
-                            $('#date_end_picker').on('changeDate', function(e) {
-                                var date = e.date;
-                                if(date) {
-                                    var day = ("0" + date.getDate()).slice(-2);
-                                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
-                                    var year = date.getFullYear();
-                                    $('#date_end').val(year + "-" + month + "-" + day);
-                                } else {
-                                    $('#date_end').val('');
-                                }
-                            });
-                        });
-                    </script>
 
                     <!-- Search Input -->
                     <div class="input-group input-group-sm" style="width: 220px;">
@@ -584,7 +512,7 @@
         document.addEventListener("DOMContentLoaded", function () {
             const form = document.getElementById("averageReceiveForm");
             const modalEl = document.getElementById("modalAverageReceive");
-            // เปิด modal  reset form
+            // เปิด modal   reset form
             modalEl.addEventListener("show.bs.modal", function () {
                 form.reset();
             });
@@ -615,6 +543,44 @@
                 .catch(err => {
                     Swal.fire("Error", "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้", "error");
                 });
+            });
+        });
+    </script>
+    <script>
+        $(document).ready(function() {
+            // Initialize Datepicker Thai
+            $('.datepicker_th').datepicker({
+                format: 'd M yyyy', // Matches DateThai() helper output
+                todayBtn: "linked",
+                todayHighlight: true,
+                autoclose: true,
+                language: 'th-th',
+                thaiyear: true,
+                zIndexOffset: 1050
+            });
+
+            // Set initial values (ensures calendar is synced)
+            var start_date_val = "{{ $start_date }}";
+            var end_date_val = "{{ $end_date }}";
+            if(start_date_val) {
+                $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
+            }
+            if(end_date_val) {
+                $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
+            }
+
+            // Sync Date Inputs (Generic Handler for all datepicker_th inputs)
+            $(document).on('changeDate', '.datepicker_th', function(e) {
+                var date = e.date;
+                var hiddenInput = $(this).prev('input[type="hidden"]');
+                if(date) {
+                    var day = ("0" + date.getDate()).slice(-2);
+                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                    var year = date.getFullYear();
+                    hiddenInput.val(year + "-" + month + "-" + day);
+                } else {
+                    hiddenInput.val('');
+                }
             });
         });
     </script>

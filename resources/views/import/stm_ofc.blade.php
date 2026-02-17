@@ -143,7 +143,8 @@
                 </div>
                 <div class="mb-2">
                     <label class="form-label">วันที่ออกใบเสร็จ</label>
-                    <input type="date" class="form-control" id="receipt_date">
+                    <input type="hidden" id="receipt_date" name="receipt_date">
+                    <input type="text" class="form-control datepicker_th" id="receipt_date_display" style="width: 120px;" readonly>
                 </div>
             </div>
             <div class="modal-footer">
@@ -204,6 +205,12 @@
 
                         document.getElementById('receipt_date').value =
                             this.dataset.date ?? '';
+                        
+                        if(this.dataset.date) {
+                            $('#receipt_date_display').datepicker('setDate', new Date(this.dataset.date));
+                        } else {
+                            $('#receipt_date_display').datepicker('clearDates');
+                        }
                     });
                 });
             /* ===== บันทึก (AJAX) ===== */
@@ -302,6 +309,33 @@
 @push('scripts')
     <script>
         $(document).ready(function () {
+            // Initialize Datepicker Thai
+            $('.datepicker_th').datepicker({
+                format: 'd M yyyy', // Matches DateThai() helper output
+                todayBtn: "linked",
+                todayHighlight: true,
+                autoclose: true,
+                language: 'th-th',
+                thaiyear: true,
+                zIndexOffset: 1050
+            });
+
+            // Sync Changes to Hidden Inputs for Backend (YYYY-MM-DD)
+            $('.datepicker_th').on('changeDate', function(e) {
+                var date = e.date;
+                var targetId = $(this).attr('id').replace('_display', '');
+                var hiddenInput = $('#' + targetId);
+                
+                if(date) {
+                    var day = ("0" + date.getDate()).slice(-2);
+                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                    var year = date.getFullYear(); // Gregorian
+                    hiddenInput.val(year + "-" + month + "-" + day);
+                } else {
+                    hiddenInput.val('');
+                }
+            });
+
             $('#stm_ofc').DataTable({
                 ordering: false,   // 🔥 ปิด sorting
                 dom: '<"row mb-3"' +

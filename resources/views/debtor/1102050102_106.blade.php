@@ -41,13 +41,13 @@
                     @csrf
                     
                     <!-- Date Range -->
-                    <div class="d-flex align-items-center">
+                        <div class="d-flex align-items-center">
                         <span class="input-group-text bg-white text-muted border-end-0 rounded-start">วันที่</span>
                         <input type="hidden" name="start_date" id="start_date" value="{{ $start_date }}">
-                        <input type="text" id="start_date_display" class="form-control border-start-0 rounded-0 datepicker_th" value="{{ DateThai($start_date) }}" style="width: 170px;" placeholder="วว/ดด/ปปปป" readonly>
+                        <input type="text" id="start_date_display" class="form-control border-start-0 rounded-0 datepicker_th" value="{{ DateThai($start_date) }}" style="width: 120px;" placeholder="วว/ดด/ปปปป" readonly>
                         <span class="input-group-text bg-white border-start-0 border-end-0 rounded-0">ถึง</span>
                         <input type="hidden" name="end_date" id="end_date" value="{{ $end_date }}">
-                        <input type="text" id="end_date_display" class="form-control border-start-0 rounded-end datepicker_th" value="{{ DateThai($end_date) }}" style="width: 170px;" placeholder="วว/ดด/ปปปป" readonly>
+                        <input type="text" id="end_date_display" class="form-control border-start-0 rounded-end datepicker_th" value="{{ DateThai($end_date) }}" style="width: 120px;" placeholder="วว/ดด/ปปปป" readonly>
                     </div>
 
                     <!-- Search Input -->
@@ -691,7 +691,7 @@
         $(document).ready(function() {
             // Initialize Datepicker Thai
             $('.datepicker_th').datepicker({
-                format: 'yyyy-mm-dd',
+                format: 'd M yyyy', // Matches DateThai() helper output
                 todayBtn: "linked",
                 todayHighlight: true,
                 autoclose: true,
@@ -700,7 +700,17 @@
                 zIndexOffset: 1050
             });
 
-            // Sync Date Inputs
+            // Set initial values (ensures calendar is synced)
+            var start_date_val = "{{ $start_date }}";
+            var end_date_val = "{{ $end_date }}";
+            if(start_date_val) {
+                $('#start_date_display').datepicker('setDate', new Date(start_date_val));
+            }
+            if(end_date_val) {
+                $('#end_date_display').datepicker('setDate', new Date(end_date_val));
+            }
+
+            // Sync Date Inputs (Generic Handler)
             $(document).on('changeDate', '.datepicker_th', function(e) {
                 var date = e.date;
                 var hiddenInput = $(this).prev('input[type="hidden"]');

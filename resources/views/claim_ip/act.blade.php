@@ -71,9 +71,9 @@
                             <input type="hidden" name="start_date" id="start_date" value="{{ $start_date }}">
                             <input type="hidden" name="end_date" id="end_date" value="{{ $end_date }}">
                             
-                            <input type="text" id="start_date_picker" class="form-control datepicker_th" value="{{ $start_date }}" style="width: 130px;" readonly>
+                            <input type="text" id="start_date_picker" class="form-control datepicker_th" value="{{ $start_date }}" style="width: 120px;" readonly>
                             <span class="input-group-text bg-white border-start-0 border-end-0">ถึง</span>
-                            <input type="text" id="end_date_picker" class="form-control datepicker_th" value="{{ $end_date }}" style="width: 130px;" readonly>
+                            <input type="text" id="end_date_picker" class="form-control datepicker_th" value="{{ $end_date }}" style="width: 120px;" readonly>
                             <button onclick="fetchData()" type="submit" class="btn btn-success px-3 shadow-sm">
                                 <i class="bi bi-table me-1"></i> โหลด indiv
                             </button>
@@ -281,12 +281,13 @@
 
       // Initialize Datepicker Thai
       $('.datepicker_th').datepicker({
-          format: 'yyyy-mm-dd',
+          format: 'd M yyyy',
           todayBtn: "linked",
           todayHighlight: true,
           autoclose: true,
-          language: 'th-th', // Thai Language
-          thaiyear: true     // Buddhist Era
+          language: 'th-th', 
+          thaiyear: true,
+          zIndexOffset: 1050
       });
 
       // Set initial values for Datepickers

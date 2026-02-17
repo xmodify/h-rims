@@ -21,9 +21,11 @@
             @csrf
             <div class="d-flex align-items-center gap-2">
                 <span class="text-muted small">วันที่:</span>
-                <input type="date" name="start_date" class="form-control form-control-sm" style="width: 150px; border-radius: 8px;" value="{{ $start_date }}">
+                <input type="hidden" name="start_date" id="start_date" value="{{ $start_date }}">
+                <input type="text" id="start_date_picker" class="form-control form-control-sm datepicker_th" style="width: 120px; border-radius: 8px;" value="{{ $start_date }}" readonly>
                 <span class="text-muted small">ถึง:</span>
-                <input type="date" name="end_date" class="form-control form-control-sm" style="width: 150px; border-radius: 8px;" value="{{ $end_date }}">
+                <input type="hidden" name="end_date" id="end_date" value="{{ $end_date }}">
+                <input type="text" id="end_date_picker" class="form-control form-control-sm datepicker_th" style="width: 120px; border-radius: 8px;" value="{{ $end_date }}" readonly>
                 <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">ค้นหา</button>
             </div>
         </form>
@@ -84,6 +86,41 @@
 @push('scripts')
 <script>
     $(document).ready(function () {
+      $('.datepicker_th').datepicker({
+          format: 'd M yyyy',
+          todayBtn: "linked",
+          todayHighlight: true,
+          autoclose: true,
+          language: 'th-th',
+          thaiyear: true,
+          zIndexOffset: 1050
+      });
+
+      // Set initial values
+      var start_date_val = "{{ $start_date }}";
+      var end_date_val = "{{ $end_date }}";
+      if(start_date_val) {
+          $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
+      }
+      if(end_date_val) {
+          $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
+      }
+
+      // Sync Changes to Hidden Inputs
+      $('.datepicker_th').on('changeDate', function(e) {
+          var date = e.date;
+          var targetId = $(this).attr('id').replace('_picker', '');
+          var hiddenInput = $('#' + targetId);
+          if(date) {
+              var day = ("0" + date.getDate()).slice(-2);
+              var month = ("0" + (date.getMonth() + 1)).slice(-2);
+              var year = date.getFullYear();
+              hiddenInput.val(year + "-" + month + "-" + day);
+          } else {
+              hiddenInput.val('');
+          }
+      });
+
       $('#stm_ofc_cipn_list').DataTable({
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + // Show รายการ

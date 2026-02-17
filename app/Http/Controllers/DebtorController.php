@@ -7393,7 +7393,8 @@ class DebtorController extends Controller
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
-        $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
+        $checkbox_string = implode(',', array_fill(0, count($checkbox), '?')); // สร้าง placeholders (?,?,?)
+        $params = array_merge([$start_date, $end_date, $start_date, $end_date, $start_date, $end_date], $checkbox); // รวม parameters
 
         $debtor = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
@@ -7425,7 +7426,7 @@ class DebtorController extends Controller
                 LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
                 LEFT JOIN nondrugitems n ON n.icode = o.icode
                 LEFT JOIN s_drugitems s ON s.icode = o.icode
-                WHERE (li.uc_cr = "Y" OR n.nhso_adp_code IN ("S1801","S1802"))
+                WHERE (li.uc_cr = "Y" OR li.kidney = "Y" OR n.nhso_adp_code IN ("S1801","S1802"))
                 GROUP BY o.an) cr ON cr.an = i.an
             WHERE i.confirm_discharge = "Y"
             AND p.hipdata_code IN ("UCS","WEL")
@@ -7433,7 +7434,7 @@ class DebtorController extends Controller
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_217 WHERE an IS NOT NULL)
             AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            ORDER BY i.ward, i.dchdate', $params);
 
         foreach ($debtor as $row) {
             Debtor_1102050101_217::insert([

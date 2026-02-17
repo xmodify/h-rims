@@ -19,12 +19,12 @@
                     <span class="input-group-text bg-white"><i class="bi bi-calendar-event me-1"></i> {{ __('วันที่') }}</span>
                     
                     <input type="hidden" name="start_date" id="start_date" value="{{ $start_date }}">
-                    <input type="text" class="form-control datepicker_th" id="start_date_picker" value="{{ $start_date }}" readonly style="max-width: 140px; background-color: #fff;">
+                    <input type="text" class="form-control datepicker_th text-center" id="start_date_picker" readonly style="width: 120px; background-color: #fff; cursor: pointer;">
                     
                     <span class="input-group-text bg-white">{{ __('ถึง') }}</span>
                     
                     <input type="hidden" name="end_date" id="end_date" value="{{ $end_date }}">
-                    <input type="text" class="form-control datepicker_th" id="end_date_picker" value="{{ $end_date }}" readonly style="max-width: 140px; background-color: #fff;">
+                    <input type="text" class="form-control datepicker_th text-center" id="end_date_picker" readonly style="width: 120px; background-color: #fff; cursor: pointer;">
                     
                     <button type="submit" class="btn btn-primary px-3">
                         <i class="bi bi-search me-1"></i> {{ __('ค้นหา') }}
@@ -317,37 +317,38 @@
 
       // Initialize Thai Date Picker
       $('.datepicker_th').datepicker({
-          format: 'yyyy-mm-dd',
+          format: 'd M yyyy', // Matches DateThai() helper output
           todayBtn: "linked",
           todayHighlight: true,
           autoclose: true,
           language: 'th-th',
-          thaiyear: true
+          thaiyear: true,
+          zIndexOffset: 1050
       });
 
-      // Sync Start Date
-      $('#start_date_picker').on('changeDate', function(e) {
-          var date = e.date;
-          if(date) {
-              var day = ("0" + date.getDate()).slice(-2);
-              var month = ("0" + (date.getMonth() + 1)).slice(-2);
-              var year = date.getFullYear();
-              $('#start_date').val(year + "-" + month + "-" + day);
-          } else {
-              $('#start_date').val('');
-          }
-      });
+      // Set initial values (ensures calendar is synced)
+      var start_date_val = "{{ $start_date }}";
+      var end_date_val = "{{ $end_date }}";
+      if(start_date_val) {
+          $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
+      }
+      if(end_date_val) {
+          $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
+      }
 
-      // Sync End Date
-      $('#end_date_picker').on('changeDate', function(e) {
+      // Sync Changes to Hidden Inputs for Backend (YYYY-MM-DD)
+      $('.datepicker_th').on('changeDate', function(e) {
           var date = e.date;
+          var targetId = $(this).attr('id').replace('_picker', '');
+          var hiddenInput = $('#' + targetId);
+          
           if(date) {
               var day = ("0" + date.getDate()).slice(-2);
-              var month = ("0" + (date.getMonth() + 1)).slice(-2);
-              var year = date.getFullYear();
-              $('#end_date').val(year + "-" + month + "-" + day);
+              var month = ("0" + (month = date.getMonth() + 1)).slice(-2);
+              var year = date.getFullYear(); // Gregorian
+              hiddenInput.val(year + "-" + month + "-" + day);
           } else {
-              $('#end_date').val('');
+              hiddenInput.val('');
           }
       });
 

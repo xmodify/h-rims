@@ -401,19 +401,18 @@
       
       // Initialize Datepicker Thai
       $('.datepicker_th').datepicker({
-          format: 'yyyy-mm-dd',
+          format: 'd M yyyy', // Matches DateThai() helper output
           todayBtn: "linked",
           todayHighlight: true,
           autoclose: true,
-          language: 'th-th', // Thai Language
-          thaiyear: true     // Buddhist Era
+          language: 'th-th',
+          thaiyear: true,
+          zIndexOffset: 1050
       });
 
-      // Set initial values for Datepickers
-      // Convert YYYY-MM-DD to Date object for datepicker to handle (it will auto-convert to Thai year)
+      // Set initial values (ensures calendar is synced)
       var start_date_val = "{{ $start_date }}";
       var end_date_val = "{{ $end_date }}";
-
       if(start_date_val) {
           $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
       }
@@ -421,32 +420,19 @@
           $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
       }
 
-      // Sync Changes from Picker to Hidden Input
-      // Concept: The picker displays Thai Date, but 'setDate'/getDate uses standard Date object.
-      // However, we want the form to submit YYYY-MM-DD.
-      // The library's 'format: "yyyy-mm-dd"' actually sets the *input value* format.
-      // If 'thaiyear: true', it displays Thai year but the internal value might be tricky.
-      // Standard approach for this library: 
-      // The input will show Thai date. We need to catch 'changeDate' and update hidden input.
-
-      $('#start_date_picker').on('changeDate', function(e) {
-          // Format specific date to YYYY-MM-DD for backend
+      // Sync Changes to Hidden Inputs for Backend (YYYY-MM-DD)
+      $('.datepicker_th').on('changeDate', function(e) {
           var date = e.date;
+          var targetId = $(this).attr('id').replace('_picker', '');
+          var hiddenInput = $('#' + targetId);
+          
           if(date) {
-            var day = ("0" + date.getDate()).slice(-2);
-            var month = ("0" + (date.getMonth() + 1)).slice(-2);
-            var year = date.getFullYear();
-            $('#start_date').val(year + "-" + month + "-" + day);
-          }
-      });
-
-      $('#end_date_picker').on('changeDate', function(e) {
-          var date = e.date;
-          if(date) {
-            var day = ("0" + date.getDate()).slice(-2);
-            var month = ("0" + (date.getMonth() + 1)).slice(-2);
-            var year = date.getFullYear();
-            $('#end_date').val(year + "-" + month + "-" + day);
+              var day = ("0" + date.getDate()).slice(-2);
+              var month = ("0" + (date.getMonth() + 1)).slice(-2);
+              var year = date.getFullYear(); // Gregorian
+              hiddenInput.val(year + "-" + month + "-" + day);
+          } else {
+              hiddenInput.val('');
           }
       });
 

@@ -36,92 +36,15 @@
                     <div class="d-flex align-items-center">
                         <span class="input-group-text bg-white text-muted border-end-0 rounded-start">วันที่</span>
                         <input type="hidden" name="start_date" id="start_date" value="{{ $start_date }}">
-                        <input type="text" id="start_date_picker" class="form-control border-start-0 rounded-0 datepicker_th" value="{{ $start_date }}" style="width: 170px;" readonly>
+                        <input type="text" id="start_date_picker" class="form-control border-start-0 rounded-0 datepicker_th" value="{{ DateThai($start_date) }}" style="width: 120px;" readonly>
                         
                         <span class="input-group-text bg-white border-start-0 border-end-0 rounded-0">ถึง</span>
                         
                         <input type="hidden" name="end_date" id="end_date" value="{{ $end_date }}">
-                        <input type="text" id="end_date_picker" class="form-control border-start-0 rounded-end datepicker_th" value="{{ $end_date }}" style="width: 170px;" readonly>
+                        <input type="text" id="end_date_picker" class="form-control border-start-0 rounded-end datepicker_th" value="{{ DateThai($end_date) }}" style="width: 120px;" readonly>
                     </div>
 
-                    <script>
-                        document.addEventListener("DOMContentLoaded", function () {
-                            // Initialize Datepicker Thai for all
-                            $('.datepicker_th').datepicker({
-                                format: 'yyyy-mm-dd',
-                                todayBtn: "linked",
-                                todayHighlight: true,
-                                autoclose: true,
-                                language: 'th-th',
-                                thaiyear: true
-                            });
 
-                            // --- 1. Filter Logic ---
-                            var start_date_val = "{{ $start_date }}";
-                            var end_date_val = "{{ $end_date }}";
-
-                            if(start_date_val) {
-                                $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
-                            }
-                            if(end_date_val) {
-                                $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
-                            }
-
-                            $('#start_date_picker').on('changeDate', function(e) {
-                                var date = e.date;
-                                if(date) {
-                                    var day = ("0" + date.getDate()).slice(-2);
-                                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
-                                    var year = date.getFullYear();
-                                    $('#start_date').val(year + "-" + month + "-" + day);
-                                } else {
-                                    $('#start_date').val('');
-                                }
-                            });
-
-                            $('#end_date_picker').on('changeDate', function(e) {
-                                var date = e.date;
-                                if(date) {
-                                    var day = ("0" + date.getDate()).slice(-2);
-                                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
-                                    var year = date.getFullYear();
-                                    $('#end_date').val(year + "-" + month + "-" + day);
-                                } else {
-                                    $('#end_date').val('');
-                                }
-                            });
-
-                            // --- 2. Modal Logic ---
-                            $('.datepicker_th_modal').each(function() {
-                                var $input = $(this);
-                                var initialDate = $input.data('date'); // YYYY-MM-DD
-                                var hiddenId = '#' + $input.data('hidden-id');
-
-                                $input.datepicker({
-                                    format: 'yyyy-mm-dd',
-                                    todayBtn: "linked",
-                                    todayHighlight: true,
-                                    autoclose: true,
-                                    language: 'th-th',
-                                    thaiyear: true
-                                }).on('changeDate', function(e) {
-                                  var date = e.date;
-                                  if(date) {
-                                      var day = ("0" + date.getDate()).slice(-2);
-                                      var month = ("0" + (date.getMonth() + 1)).slice(-2);
-                                      var year = date.getFullYear();
-                                      $(hiddenId).val(year + "-" + month + "-" + day);
-                                  } else {
-                                      $(hiddenId).val('');
-                                  }
-                                });
-
-                                if(initialDate) {
-                                    $input.datepicker('setDate', new Date(initialDate));
-                                }
-                            });
-                        });
-                    </script>
 
                     <!-- Search Input -->
                     <div class="input-group input-group-sm" style="width: 220px;">
@@ -397,7 +320,7 @@
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold">วันที่เรียกเก็บ</label>
                                         <input type="hidden" name="charge_date" id="charge_date_{{ $row->vn }}" value="{{ $row->charge_date ?? '' }}">
-                                        <input type="text" class="form-control rounded-pill px-3 datepicker_th_modal" data-hidden-id="charge_date_{{ $row->vn }}" data-date="{{ $row->charge_date ?? '' }}" placeholder="วว/ดด/ปปปป" autocomplete="off" readonly>
+                                        <input type="text" class="form-control rounded-pill px-3 datepicker_th" data-hidden-id="charge_date_{{ $row->vn }}" data-date="{{ $row->charge_date ?? '' }}" placeholder="วว/ดด/ปปปป" autocomplete="off" readonly>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold">เลขที่หนังสือเรียกเก็บ</label>
@@ -429,7 +352,7 @@
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold">วันที่ชดเชย</label>
                                         <input type="hidden" name="receive_date" id="receive_date_{{ $row->vn }}" value="{{ $row->receive_date ?? '' }}">
-                                        <input type="text" class="form-control rounded-pill px-3 border-success-soft datepicker_th_modal" data-hidden-id="receive_date_{{ $row->vn }}" data-date="{{ $row->receive_date ?? '' }}" placeholder="วว/ดด/ปปปป" autocomplete="off" readonly>
+                                        <input type="text" class="form-control rounded-pill px-3 border-success-soft datepicker_th" data-hidden-id="receive_date_{{ $row->vn }}" data-date="{{ $row->receive_date ?? '' }}" placeholder="วว/ดด/ปปปป" autocomplete="off" readonly>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold">เลขที่หนังสือชดเชย</label>
@@ -678,6 +601,56 @@
 
 
 @push('scripts')
+    <script>
+        $(document).ready(function() {
+            // Initialize Datepicker Thai
+            $('.datepicker_th').datepicker({
+                format: 'd M yyyy', // Matches DateThai() helper output
+                todayBtn: "linked",
+                todayHighlight: true,
+                autoclose: true,
+                language: 'th-th',
+                thaiyear: true,
+                zIndexOffset: 1050
+            });
+
+            // Set initial values (ensures calendar is synced)
+            var start_date_val = "{{ $start_date }}";
+            var end_date_val = "{{ $end_date }}";
+            if(start_date_val) {
+                $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
+            }
+            if(end_date_val) {
+                $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
+            }
+
+            // Initialize values for inputs with data-date (e.g. Modals)
+            $('.datepicker_th').each(function() {
+                var dateVal = $(this).data('date');
+                if(dateVal) {
+                    $(this).datepicker('setDate', new Date(dateVal));
+                }
+            });
+
+            // Sync Date Inputs (Generic Handler for all datepicker_th inputs)
+            $(document).on('changeDate', '.datepicker_th', function(e) {
+                var date = e.date;
+                var hiddenInput = $(this).prev('input[type="hidden"]');
+                if(date) {
+                    var day = ("0" + date.getDate()).slice(-2);
+                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                    var year = date.getFullYear();
+                    if(hiddenInput.length) {
+                        hiddenInput.val(year + "-" + month + "-" + day);
+                    }
+                } else {
+                    if(hiddenInput.length) {
+                        hiddenInput.val('');
+                    }
+                }
+            });
+        });
+    </script>
     <script>
         $(document).ready(function () {
             $('#debtor').DataTable({

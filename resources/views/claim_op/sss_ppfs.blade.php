@@ -18,16 +18,9 @@
                     @csrf
                     <span class="fw-bold text-muted small text-nowrap me-2">เลือกปีงบประมาณ</span>
                     <div class="input-group input-group-sm">
-                            <!-- Start Date -->
-                            <input type="hidden" id="start_date" name="start_date" value="{{ $start_date }}">
-                            <input type="text" id="start_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
-                            
-                            <span class="input-group-text bg-white border-start-0 border-end-0">ถึง</span>
-
-                            <!-- End Date -->
-                            <input type="hidden" id="end_date" name="end_date" value="{{ $end_date }}">
-                            <input type="text" id="end_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
-
+                        <input type="hidden" name="start_date" value="{{ $start_date }}">
+                        <input type="hidden" name="end_date" value="{{ $end_date }}">
+                        <select class="form-select" name="budget_year" style="width: 160px;">
                             @foreach ($budget_year_select as $row)
                               <option value="{{ $row->LEAVE_YEAR_ID }}"
                                 {{ (int)$budget_year === (int)$row->LEAVE_YEAR_ID ? 'selected' : '' }}>
@@ -307,6 +300,59 @@
 @push('scripts')
   <script>
     $(document).ready(function () {
+      
+      // Initialize Datepicker Thai
+      $('.datepicker_th').datepicker({
+          format: 'd M yyyy',
+          todayBtn: "linked",
+          todayHighlight: true,
+          autoclose: true,
+          language: 'th-th', 
+          thaiyear: true,
+          zIndexOffset: 1050
+      });
+
+      // Set initial values for Datepickers
+      // Convert YYYY-MM-DD to Date object for datepicker to handle (it will auto-convert to Thai year)
+      var start_date_val = "{{ $start_date }}";
+      var end_date_val = "{{ $end_date }}";
+
+      if(start_date_val) {
+          $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
+      }
+      if(end_date_val) {
+          $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
+      }
+
+      // Sync Changes from Picker to Hidden Input
+      // Concept: The picker displays Thai Date, but 'setDate'/getDate uses standard Date object.
+      // However, we want the form to submit YYYY-MM-DD.
+      // The library's 'format: "yyyy-mm-dd"' actually sets the *input value* format.
+      // If 'thaiyear: true', it displays Thai year but the internal value might be tricky.
+      // Standard approach for this library: 
+      // The input will show Thai date. We need to catch 'changeDate' and update hidden input.
+
+      $('#start_date_picker').on('changeDate', function(e) {
+          // Format specific date to YYYY-MM-DD for backend
+          var date = e.date;
+          if(date) {
+            var day = ("0" + date.getDate()).slice(-2);
+            var month = ("0" + (date.getMonth() + 1)).slice(-2);
+            var year = date.getFullYear();
+            $('#start_date').val(year + "-" + month + "-" + day);
+          }
+      });
+
+      $('#end_date_picker').on('changeDate', function(e) {
+          var date = e.date;
+          if(date) {
+            var day = ("0" + date.getDate()).slice(-2);
+            var month = ("0" + (date.getMonth() + 1)).slice(-2);
+            var year = date.getFullYear();
+            $('#end_date').val(year + "-" + month + "-" + day);
+          }
+      });
+
       $('#t_search').DataTable({
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 

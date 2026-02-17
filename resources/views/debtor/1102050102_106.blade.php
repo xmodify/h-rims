@@ -43,9 +43,11 @@
                     <!-- Date Range -->
                     <div class="d-flex align-items-center">
                         <span class="input-group-text bg-white text-muted border-end-0 rounded-start">วันที่</span>
-                        <input type="date" name="start_date" class="form-control border-start-0 rounded-0" value="{{ $start_date }}" style="width: 170px;">
+                        <input type="hidden" name="start_date" id="start_date" value="{{ $start_date }}">
+                        <input type="text" id="start_date_display" class="form-control border-start-0 rounded-0 datepicker_th" value="{{ DateThai($start_date) }}" style="width: 170px;" placeholder="วว/ดด/ปปปป" readonly>
                         <span class="input-group-text bg-white border-start-0 border-end-0 rounded-0">ถึง</span>
-                        <input type="date" name="end_date" class="form-control border-start-0 rounded-end" value="{{ $end_date }}" style="width: 170px;">
+                        <input type="hidden" name="end_date" id="end_date" value="{{ $end_date }}">
+                        <input type="text" id="end_date_display" class="form-control border-start-0 rounded-end datepicker_th" value="{{ DateThai($end_date) }}" style="width: 170px;" placeholder="วว/ดด/ปปปป" readonly>
                     </div>
 
                     <!-- Search Input -->
@@ -426,7 +428,10 @@
                                     </h6>
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold">วันที่เรียกเก็บ</label>
-                                        <input type="date" class="form-control rounded-pill px-3" name="charge_date" value="{{ $row->charge_date }}">
+                                        <input type="hidden" name="charge_date" value="{{ $row->charge_date }}">
+                                        <input type="text" class="form-control rounded-pill px-3 datepicker_th" 
+                                            value="{{ !empty($row->charge_date) ? DateThai($row->charge_date) : '' }}" 
+                                            placeholder="วว/ดด/ปปปป" readonly>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold">เลขที่หนังสือเรียกเก็บ</label>
@@ -457,7 +462,10 @@
                                     </h6>
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold">วันที่ชดเชย</label>
-                                        <input type="date" class="form-control rounded-pill px-3 border-success-soft" name="receive_date" value="{{ $row->receive_date }}">
+                                        <input type="hidden" name="receive_date" value="{{ $row->receive_date }}">
+                                        <input type="text" class="form-control rounded-pill px-3 border-success-soft datepicker_th" 
+                                            value="{{ !empty($row->receive_date) ? DateThai($row->receive_date) : '' }}" 
+                                            placeholder="วว/ดด/ปปปป" readonly>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold">เลขที่หนังสือชดเชย</label>
@@ -680,6 +688,33 @@
 
 @push('scripts')
     <script>
+        $(document).ready(function() {
+            // Initialize Datepicker Thai
+            $('.datepicker_th').datepicker({
+                format: 'yyyy-mm-dd',
+                todayBtn: "linked",
+                todayHighlight: true,
+                autoclose: true,
+                language: 'th-th',
+                thaiyear: true,
+                zIndexOffset: 1050
+            });
+
+            // Sync Date Inputs
+            $(document).on('changeDate', '.datepicker_th', function(e) {
+                var date = e.date;
+                var hiddenInput = $(this).prev('input[type="hidden"]');
+                if(date) {
+                    var day = ("0" + date.getDate()).slice(-2);
+                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                    var year = date.getFullYear();
+                    hiddenInput.val(year + "-" + month + "-" + day);
+                } else {
+                    hiddenInput.val('');
+                }
+            });
+        });
+
         $(document).ready(function () {
             $('#debtor').DataTable({
                 dom: '<"row mb-3"' +

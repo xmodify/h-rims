@@ -22,6 +22,9 @@
 
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.2.0/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.1/css/dataTables.bootstrap5.min.css">
+    <!-- Datepicker Thai -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/css/bootstrap-datepicker.min.css">
+
 
     <style>
     table {
@@ -147,7 +150,8 @@
                          <div class="col-md-12">  
                              <div class="mb-3">
                                  <label for="item-description" class="form-label">วันที่ติดตาม : </label>
-                                 <input type="date" class="form-control" id="tracking_date" name="tracking_date" >
+                                 <input type="hidden" name="tracking_date">
+                                 <input type="text" class="form-control datepicker_th" placeholder="วว/ดด/ปปปป" readonly>
                              </div>
                              <div class="mb-3">
                                 <label for="item-description" class="form-label">การติดตาม : </label>
@@ -201,7 +205,8 @@
                         <div class="col-md-12">  
                             <div class="mb-3">
                                 <label for="item-description" class="form-label">วันที่ติดตาม : <strong><font style="color:blue">{{ DateThai($row->tracking_date) }}</font></strong></label>
-                                <input type="date" class="form-control" id="tracking_date" name="tracking_date" value="{{ $row->tracking_date }}" >
+                                <input type="hidden" name="tracking_date" value="{{ $row->tracking_date }}">
+                                <input type="text" class="form-control datepicker_th" value="{{ DateThai($row->tracking_date) }}" placeholder="วว/ดด/ปปปป" readonly>
                             </div>
                             <div class="mb-3">
                                 <label for="item-description" class="form-label">การติดตาม : <strong><font style="color:blue">{{ $row->tracking_type }}</font></strong></label>
@@ -240,6 +245,42 @@
 <!-- Modal -->
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Datepicker Thai -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/js/bootstrap-datepicker.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker-thai@1.0.0/js/bootstrap-datepicker-thai.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/locales/bootstrap-datepicker.th.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        // Initialize Datepicker Thai
+        $('.datepicker_th').datepicker({
+            format: 'yyyy-mm-dd',
+            todayBtn: "linked",
+            todayHighlight: true,
+            autoclose: true,
+            language: 'th-th',
+            thaiyear: true,
+            zIndexOffset: 1050
+        });
+
+        // Sync Date Inputs
+        $(document).on('changeDate', '.datepicker_th', function(e) {
+            var date = e.date;
+            var hiddenInput = $(this).prev('input[type="hidden"]');
+            if(date) {
+                var day = ("0" + date.getDate()).slice(-2);
+                var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                var year = date.getFullYear();
+                hiddenInput.val(year + "-" + month + "-" + day);
+            } else {
+                hiddenInput.val('');
+            }
+        });
+    });
+</script>
+
+
 
 
 

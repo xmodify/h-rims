@@ -69,9 +69,12 @@
                         <span class="fw-bold text-muted small text-nowrap me-2">เลือกวันที่รับบริการ</span>
                         <div class="input-group input-group-sm">
                             <input type="hidden" name="budget_year" value="{{ $budget_year }}">
-                            <input type="date" name="start_date" class="form-control" value="{{ $start_date }}" style="width: 130px;">
+                            <input type="hidden" name="start_date" id="start_date" value="{{ $start_date }}">
+                            <input type="hidden" name="end_date" id="end_date" value="{{ $end_date }}">
+
+                            <input type="text" id="start_date_display" class="form-control date-picker-thai" value="{{ DateThai($start_date) }}" style="width: 130px;" readonly>
                             <span class="input-group-text bg-white border-start-0 border-end-0">ถึง</span>
-                            <input type="date" name="end_date" class="form-control" value="{{ $end_date }}" style="width: 130px;">
+                            <input type="text" id="end_date_display" class="form-control date-picker-thai" value="{{ DateThai($end_date) }}" style="width: 130px;" readonly>
                             <button onclick="fetchData()" type="submit" class="btn btn-success px-3 shadow-sm">
                                 <i class="bi bi-table me-1"></i> โหลด indiv
                             </button>
@@ -205,6 +208,31 @@
   }
 
   $(document).ready(function () {
+        // Initialize Thai Datepicker
+        $('.date-picker-thai').datepicker({
+            format: 'dd/mm/yyyy',
+            todayBtn: true,
+            language: 'th',
+            thaiyear: true,
+            autoclose: true
+        });
+
+        // Sync start_date
+        $('#start_date_display').change(function() {
+            var date = $(this).datepicker('getDate');
+            if (date) {
+               $('#start_date').val(date.getFullYear() + '-' + (('0' + (date.getMonth() + 1)).slice(-2)) + '-' + (('0' + date.getDate()).slice(-2)));
+            }
+        });
+
+        // Sync end_date
+        $('#end_date_display').change(function() {
+            var date = $(this).datepicker('getDate');
+            if (date) {
+               $('#end_date').val(date.getFullYear() + '-' + (('0' + (date.getMonth() + 1)).slice(-2)) + '-' + (('0' + date.getDate()).slice(-2)));
+            }
+        });
+
       $('#t_search').DataTable({
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + // Show รายการ

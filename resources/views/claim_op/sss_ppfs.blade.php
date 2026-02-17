@@ -18,9 +18,16 @@
                     @csrf
                     <span class="fw-bold text-muted small text-nowrap me-2">เลือกปีงบประมาณ</span>
                     <div class="input-group input-group-sm">
-                        <input type="hidden" name="start_date" value="{{ $start_date }}">
-                        <input type="hidden" name="end_date" value="{{ $end_date }}">
-                        <select class="form-select" name="budget_year" style="width: 160px;">
+                            <!-- Start Date -->
+                            <input type="hidden" id="start_date" name="start_date" value="{{ $start_date }}">
+                            <input type="text" id="start_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
+                            
+                            <span class="input-group-text bg-white border-start-0 border-end-0">ถึง</span>
+
+                            <!-- End Date -->
+                            <input type="hidden" id="end_date" name="end_date" value="{{ $end_date }}">
+                            <input type="text" id="end_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
+
                             @foreach ($budget_year_select as $row)
                               <option value="{{ $row->LEAVE_YEAR_ID }}"
                                 {{ (int)$budget_year === (int)$row->LEAVE_YEAR_ID ? 'selected' : '' }}>
@@ -68,9 +75,16 @@
                         <span class="fw-bold text-muted small text-nowrap me-2">เลือกวันที่รับบริการ</span>
                         <div class="input-group input-group-sm">
                             <input type="hidden" name="budget_year" value="{{ $budget_year }}">
-                            <input type="date" name="start_date" class="form-control" value="{{ $start_date }}" style="width: 130px;">
+                            <!-- Start Date -->
+                            <input type="hidden" id="start_date" name="start_date" value="{{ $start_date }}">
+                            <input type="text" id="start_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
+                            
                             <span class="input-group-text bg-white border-start-0 border-end-0">ถึง</span>
-                            <input type="date" name="end_date" class="form-control" value="{{ $end_date }}" style="width: 130px;">
+
+                            <!-- End Date -->
+                            <input type="hidden" id="end_date" name="end_date" value="{{ $end_date }}">
+                            <input type="text" id="end_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
+
                             <button onclick="fetchData()" type="submit" class="btn btn-success px-3 shadow-sm">
                                 <i class="bi bi-table me-1"></i> โหลด indiv
                             </button>

@@ -69,9 +69,12 @@
                         <span class="fw-bold text-muted small text-nowrap me-2">เลือกวันที่รับบริการ</span>
                         <div class="input-group input-group-sm">
                             <input type="hidden" name="budget_year" value="{{ $budget_year }}">
-                            <input type="date" name="start_date" class="form-control" value="{{ $start_date }}" style="width: 130px;">
+                            <input type="hidden" name="start_date" id="start_date" value="{{ $start_date }}">
+                            <input type="hidden" name="end_date" id="end_date" value="{{ $end_date }}">
+                            
+                            <input type="text" id="start_date_picker" class="form-control datepicker_th" value="{{ $start_date }}" style="width: 130px;" readonly>
                             <span class="input-group-text bg-white border-start-0 border-end-0">ถึง</span>
-                            <input type="date" name="end_date" class="form-control" value="{{ $end_date }}" style="width: 130px;">
+                            <input type="text" id="end_date_picker" class="form-control datepicker_th" value="{{ $end_date }}" style="width: 130px;" readonly>
                             <button onclick="fetchData()" type="submit" class="btn btn-success px-3 shadow-sm">
                                 <i class="bi bi-table me-1"></i> โหลด indiv
                             </button>
@@ -203,6 +206,48 @@
   }
 
   $(document).ready(function () {
+
+      // Initialize Datepicker Thai
+      $('.datepicker_th').datepicker({
+          format: 'yyyy-mm-dd',
+          todayBtn: "linked",
+          todayHighlight: true,
+          autoclose: true,
+          language: 'th-th', // Thai Language
+          thaiyear: true     // Buddhist Era
+      });
+
+      // Set initial values for Datepickers
+      var start_date_val = "{{ $start_date }}";
+      var end_date_val = "{{ $end_date }}";
+
+      if(start_date_val) {
+          $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
+      }
+      if(end_date_val) {
+          $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
+      }
+
+      // Sync Changes from Picker to Hidden Input
+      $('#start_date_picker').on('changeDate', function(e) {
+          var date = e.date;
+          if(date) {
+            var day = ("0" + date.getDate()).slice(-2);
+            var month = ("0" + (date.getMonth() + 1)).slice(-2);
+            var year = date.getFullYear();
+            $('#start_date').val(year + "-" + month + "-" + day);
+          }
+      });
+
+      $('#end_date_picker').on('changeDate', function(e) {
+          var date = e.date;
+          if(date) {
+            var day = ("0" + date.getDate()).slice(-2);
+            var month = ("0" + (date.getMonth() + 1)).slice(-2);
+            var year = date.getFullYear();
+            $('#end_date').val(year + "-" + month + "-" + day);
+          }
+      });
       $('#t_search').DataTable({
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + // Show รายการ

@@ -35,9 +35,11 @@
                     <!-- Date Range -->
                     <div class="d-flex align-items-center">
                         <span class="input-group-text bg-white text-muted border-end-0 rounded-start">วันที่</span>
-                        <input type="date" name="start_date" class="form-control border-start-0 rounded-0" value="{{ $start_date }}" style="width: 170px;">
+                        <input type="hidden" name="start_date" id="start_date" value="{{ $start_date }}">
+                        <input type="text" id="start_date_display" class="form-control border-start-0 rounded-0 datepicker-th" value="{{ DateThai($start_date) }}" style="width: 170px;">
                         <span class="input-group-text bg-white border-start-0 border-end-0 rounded-0">ถึง</span>
-                        <input type="date" name="end_date" class="form-control border-start-0 rounded-end" value="{{ $end_date }}" style="width: 170px;">
+                        <input type="hidden" name="end_date" id="end_date" value="{{ $end_date }}">
+                        <input type="text" id="end_date_display" class="form-control border-start-0 rounded-end datepicker-th" value="{{ DateThai($end_date) }}" style="width: 170px;">
                     </div>
 
                     <!-- Search Input -->
@@ -512,3 +514,46 @@
 
 
 
+@push('scripts')
+    <script>
+        $(document).ready(function() {
+            // Initialize Datepicker Thai for Filter
+            $('.datepicker-th').datepicker({
+                format: 'dd/mm/yyyy',
+                todayBtn: true,
+                language: 'th',
+                thaiyear: true,
+                autoclose: true,
+                todayHighlight: true
+            });
+
+            // Sync Start Date
+            $('#start_date_display').change(function() {
+                let buddhistDate = $(this).val();
+                if (buddhistDate) {
+                    let parts = buddhistDate.split('/');
+                    let day = parts[0];
+                    let month = parts[1];
+                    let year = parseInt(parts[2]) - 543;
+                    $('#start_date').val(year + '-' + month + '-' + day);
+                } else {
+                    $('#start_date').val('');
+                }
+            });
+
+            // Sync End Date
+            $('#end_date_display').change(function() {
+                let buddhistDate = $(this).val();
+                if (buddhistDate) {
+                    let parts = buddhistDate.split('/');
+                    let day = parts[0];
+                    let month = parts[1];
+                    let year = parseInt(parts[2]) - 543;
+                    $('#end_date').val(year + '-' + month + '-' + day);
+                } else {
+                    $('#end_date').val('');
+                }
+            });
+        });
+    </script>
+@endpush

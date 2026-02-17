@@ -209,11 +209,13 @@
               <div class="modal-body">
                   <div class="mb-3">
                       <label class="form-label">วันที่เริ่มต้น</label>
-                      <input type="date" id="start_date" class="form-control" required>
+                      <input type="hidden" id="start_date">
+                      <input type="text" id="start_date_picker" class="form-control datepicker_th" placeholder="วว/ดด/ปปปป" autocomplete="off" readonly>
                   </div>
                   <div class="mb-3">
                       <label class="form-label">วันที่สิ้นสุด</label>
-                      <input type="date" id="end_date" class="form-control" required>
+                      <input type="hidden" id="end_date">
+                      <input type="text" id="end_date_picker" class="form-control datepicker_th" placeholder="วว/ดด/ปปปป" autocomplete="off" readonly>
                   </div>
               </div>
               <div class="modal-footer">
@@ -225,63 +227,104 @@
   </div>
 
   {{-- Script Lock ลูกหนี้ --}}
+@push('scripts')
   <script>
-    document.getElementById('lockDebtorBtn').addEventListener('click', function () {
-        const start = document.getElementById('start_date').value;
-        const end = document.getElementById('end_date').value;
+    $(document).ready(function() {
+        // Initialize Datepicker Thai
+        $('.datepicker_th').datepicker({
+            format: 'yyyy-mm-dd',
+            todayBtn: "linked",
+            todayHighlight: true,
+            autoclose: true,
+            language: 'th-th',
+            thaiyear: true
+        });
 
-        if (!start || !end) {
-            Swal.fire('แจ้งเตือน', 'กรุณาเลือกวันที่ให้ครบ', 'warning');
-            return;
-        }
-
-        Swal.fire({
-            title: 'ยืนยัน Lock ลูกหนี้?',
-            text: `ช่วงวันที่ ${start} ถึง ${end}`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'Lock',
-            cancelButtonText: 'ยกเลิก',
-            confirmButtonColor: '#dc3545'
-        }).then((result) => {
-            if (result.isConfirmed) {
-
-                Swal.fire({
-                    title: 'กำลังดำเนินการ...',
-                    allowOutsideClick: false,
-                    didOpen: () => Swal.showLoading()
-                });
-
-                fetch(`{{ url('admin/debtor/lock_debtor') }}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({
-                        start_date: start,
-                        end_date: end
-                    })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'สำเร็จ',
-                        html: `
-                            Lock ลูกหนี้เรียบร้อย<br>
-                            <b>ช่วงวันที่:</b> ${data.start_date} - ${data.end_date}<br>
-                            <b>จำนวนตารางที่อัปเดต:</b> ${data.tables}<br>
-                            <b>จำนวนรายการที่ถูก Lock:</b> ${data.rows}
-                        `
-                    });
-                })
-                .catch(err => {
-                    Swal.fire('ผิดพลาด', err.toString(), 'error');
-                });
+        // Sync Changes from Picker to Hidden Input
+        $('#start_date_picker').on('changeDate', function(e) {
+            var date = e.date;
+            if(date) {
+                var day = ("0" + date.getDate()).slice(-2);
+                var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                var year = date.getFullYear();
+                $('#start_date').val(year + "-" + month + "-" + day);
+            } else {
+                $('#start_date').val('');
             }
+        });
+
+        $('#end_date_picker').on('changeDate', function(e) {
+            var date = e.date;
+            if(date) {
+                var day = ("0" + date.getDate()).slice(-2);
+                var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                var year = date.getFullYear();
+                $('#end_date').val(year + "-" + month + "-" + day);
+            } else {
+                $('#end_date').val('');
+            }
+        });
+
+        $('#lockDebtorBtn').click(function () {
+            const start = $('#start_date').val();
+            const end = $('#end_date').val();
+            const startDisplay = $('#start_date_picker').val();
+            const endDisplay = $('#end_date_picker').val();
+
+            if (!start || !end) {
+                Swal.fire('แจ้งเตือน', 'กรุณาเลือกวันที่ให้ครบ', 'warning');
+                return;
+            }
+
+            Swal.fire({
+                title: 'ยืนยัน Lock ลูกหนี้?',
+                text: `ช่วงวันที่ ${startDisplay} ถึง ${endDisplay}`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Lock',
+                cancelButtonText: 'ยกเลิก',
+                confirmButtonColor: '#dc3545'
+            }).then((result) => {
+                if (result.isConfirmed) {
+
+                    Swal.fire({
+                        title: 'กำลังดำเนินการ...',
+                        allowOutsideClick: false,
+                        didOpen: () => Swal.showLoading()
+                    });
+
+                    fetch(`{{ url('admin/debtor/lock_debtor') }}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            start_date: start,
+                            end_date: end
+                        })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'สำเร็จ',
+                            html: `
+                                Lock ลูกหนี้เรียบร้อย<br>
+                                <b>ช่วงวันที่:</b> ${data.start_date} - ${data.end_date}<br>
+                                <b>จำนวนตารางที่อัปเดต:</b> ${data.tables}<br>
+                                <b>จำนวนรายการที่ถูก Lock:</b> ${data.rows}
+                            `
+                        });
+                    })
+                    .catch(err => {
+                        Swal.fire('ผิดพลาด', err.toString(), 'error');
+                    });
+                }
+            });
         });
     });
   </script>
+@endpush
 
 @endsection

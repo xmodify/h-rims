@@ -36,9 +36,11 @@
                     <!-- Date Range -->
                     <div class="d-flex align-items-center">
                         <span class="input-group-text bg-white text-muted border-end-0 rounded-start"><i class="bi bi-calendar-event me-1"></i> วันที่</span>
-                        <input type="date" name="start_date" class="form-control border-start-0 rounded-0" value="{{ $start_date }}" style="width: 170px;">
+                        <input type="hidden" name="start_date" id="start_date" value="{{ $start_date }}">
+                        <input type="text" id="start_date_display" class="form-control border-start-0 rounded-0 datepicker_th" value="{{ DateThai($start_date) }}" style="width: 170px;" placeholder="วว/ดด/ปปปป" readonly>
                         <span class="input-group-text bg-white border-start-0 border-end-0 rounded-0">ถึง</span>
-                        <input type="date" name="end_date" class="form-control border-start-0 rounded-end" value="{{ $end_date }}" style="width: 170px;">
+                        <input type="hidden" name="end_date" id="end_date" value="{{ $end_date }}">
+                        <input type="text" id="end_date_display" class="form-control border-start-0 rounded-end datepicker_th" value="{{ DateThai($end_date) }}" style="width: 170px;" placeholder="วว/ดด/ปปปป" readonly>
                     </div>
 
                     <!-- Search Input -->
@@ -432,8 +434,36 @@
 
 @push('scripts')
     <script>
+        $(document).ready(function() {
+            // Initialize Datepicker Thai
+            $('.datepicker_th').datepicker({
+                format: 'yyyy-mm-dd',
+                todayBtn: "linked",
+                todayHighlight: true,
+                autoclose: true,
+                language: 'th-th',
+                thaiyear: true,
+                zIndexOffset: 1050
+            });
+
+            // Sync Date Inputs
+            $(document).on('changeDate', '.datepicker_th', function(e) {
+                var date = e.date;
+                var hiddenInput = $(this).prev('input[type="hidden"]');
+                if(date) {
+                    var day = ("0" + date.getDate()).slice(-2);
+                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                    var year = date.getFullYear();
+                    hiddenInput.val(year + "-" + month + "-" + day);
+                } else {
+                    hiddenInput.val('');
+                }
+            });
+        });
+    </script>
+    <script>
         $(document).ready(function () {
-            $('#debtor').DataTable({
+             $('#debtor').DataTable({
                 dom: '<"row mb-3"' +
                         '<"col-md-6"l>' + 
                     '>' +

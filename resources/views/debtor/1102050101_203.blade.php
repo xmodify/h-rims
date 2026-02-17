@@ -1,20 +1,5 @@
 @extends('layouts.app')
-    <script>
-        function toggle_d(source) {
-            checkbox = document.getElementsByName('checkbox_d[]');
-            for (var i = 0; i < checkbox.length; i++) {
-                checkbox[i].checked = source.checked;
-            }
-        }
-    </script>
-    <script>
-        function toggle(source) {
-            checkboxes = document.getElementsByName('checkbox[]');
-            for (var i = 0; i < checkboxes.length; i++) {
-                checkboxes[i].checked = source.checked;
-            }
-        }
-    </script>    
+    
 @section('content')
     <!-- Page Header & Logic Filters -->
     <div class="page-header-box mt-2 mb-3 d-flex justify-content-between align-items-center">
@@ -35,10 +20,16 @@
                     <!-- Date Range -->
                     <div class="d-flex align-items-center">
                         <span class="input-group-text bg-white text-muted border-end-0 rounded-start">วันที่</span>
-                        <input type="date" name="start_date" class="form-control border-start-0 rounded-0" value="{{ $start_date }}" style="width: 170px;">
+                        <input type="hidden" name="start_date" id="start_date" value="{{ $start_date }}">
+                        <input type="text" id="start_date_picker" class="form-control border-start-0 rounded-0 datepicker_th" value="{{ $start_date }}" style="width: 170px;" readonly>
+                        
                         <span class="input-group-text bg-white border-start-0 border-end-0 rounded-0">ถึง</span>
-                        <input type="date" name="end_date" class="form-control border-start-0 rounded-end" value="{{ $end_date }}" style="width: 170px;">
+                        
+                        <input type="hidden" name="end_date" id="end_date" value="{{ $end_date }}">
+                        <input type="text" id="end_date_picker" class="form-control border-start-0 rounded-end datepicker_th" value="{{ $end_date }}" style="width: 170px;" readonly>
                     </div>
+
+
 
                     <!-- Search Input -->
                     <div class="input-group input-group-sm" style="width: 220px;">
@@ -343,7 +334,8 @@
                                     </h6>
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold">วันที่เรียกเก็บ</label>
-                                        <input type="date" class="form-control rounded-pill px-3" name="charge_date" value="{{ $row->charge_date ?? '' }}">
+                                        <input type="hidden" name="charge_date" id="charge_date_{{ $row->vn }}" value="{{ $row->charge_date ?? '' }}">
+                                        <input type="text" class="form-control rounded-pill px-3 datepicker_th_modal" data-hidden-id="charge_date_{{ $row->vn }}" data-date="{{ $row->charge_date ?? '' }}" placeholder="วว/ดด/ปปปป" autocomplete="off" readonly>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold">เลขที่หนังสือเรียกเก็บ</label>
@@ -374,7 +366,8 @@
                                     </h6>
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold">วันที่ชดเชย</label>
-                                        <input type="date" class="form-control rounded-pill px-3 border-success-soft" name="receive_date" value="{{ $row->receive_date ?? '' }}">
+                                        <input type="hidden" name="receive_date" id="receive_date_{{ $row->vn }}" value="{{ $row->receive_date ?? '' }}">
+                                        <input type="text" class="form-control rounded-pill px-3 border-success-soft datepicker_th_modal" data-hidden-id="receive_date_{{ $row->vn }}" data-date="{{ $row->receive_date ?? '' }}" placeholder="วว/ดด/ปปปป" autocomplete="off" readonly>
                                     </div>
                                     <div class="mb-3">
                                         <label class="form-label small fw-bold">เลขที่หนังสือชดเชย</label>
@@ -421,11 +414,13 @@
                     <div class="modal-body">
                         <div class="mb-2">
                             <label>วันที่เริ่มต้น</label>
-                            <input type="date" name="date_start" class="form-control" required>
+                            <input type="hidden" name="date_start" id="avg_date_start">
+                            <input type="text" id="avg_date_start_picker" class="form-control datepicker_th_modal" placeholder="วว/ดด/ปปปป" autocomplete="off" required>
                         </div>
                         <div class="mb-2">
                             <label>วันที่สิ้นสุด</label>
-                            <input type="date" name="date_end" class="form-control" required>
+                            <input type="hidden" name="date_end" id="avg_date_end">
+                            <input type="text" id="avg_date_end_picker" class="form-control datepicker_th_modal" placeholder="วว/ดด/ปปปป" autocomplete="off" required>
                         </div>
                         <div class="mb-2">
                             <label>เลขที่ใบเสร็จ</label>
@@ -615,7 +610,137 @@
 
 @push('scripts')
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
+        function toggle_d(source) {
+            checkbox = document.getElementsByName('checkbox_d[]');
+            for (var i = 0; i < checkbox.length; i++) {
+                checkbox[i].checked = source.checked;
+            }
+        }
+        function toggle(source) {
+            checkboxes = document.getElementsByName('checkbox[]');
+            for (var i = 0; i < checkboxes.length; i++) {
+                checkboxes[i].checked = source.checked;
+            }
+        }
+    </script>
+    <script>
+        $(document).ready(function () {
+             // Initialize Datepicker Thai for all
+            $('.datepicker_th').datepicker({
+                format: 'yyyy-mm-dd',
+                todayBtn: "linked",
+                todayHighlight: true,
+                autoclose: true,
+                language: 'th-th',
+                thaiyear: true
+            });
+
+            // --- 1. Filter Logic ---
+            var start_date_val = "{{ $start_date }}";
+            var end_date_val = "{{ $end_date }}";
+
+            if(start_date_val) {
+                $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
+            }
+            if(end_date_val) {
+                $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
+            }
+
+            $('#start_date_picker').on('changeDate', function(e) {
+                var date = e.date;
+                if(date) {
+                    var day = ("0" + date.getDate()).slice(-2);
+                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                    var year = date.getFullYear();
+                    $('#start_date').val(year + "-" + month + "-" + day);
+                } else {
+                    $('#start_date').val('');
+                }
+            });
+
+            $('#end_date_picker').on('changeDate', function(e) {
+                var date = e.date;
+                if(date) {
+                    var day = ("0" + date.getDate()).slice(-2);
+                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                    var year = date.getFullYear();
+                    $('#end_date').val(year + "-" + month + "-" + day);
+                } else {
+                    $('#end_date').val('');
+                }
+            });
+
+            // --- 2. Modal Logic (Existing) ---
+            $('.datepicker_th_modal').each(function() {
+                var $input = $(this);
+                if($input.attr('id') === 'avg_date_start_picker' || $input.attr('id') === 'avg_date_end_picker') return;
+
+                var initialDate = $input.data('date'); // YYYY-MM-DD
+                var hiddenId = '#' + $input.data('hidden-id');
+
+                $input.datepicker({
+                    format: 'yyyy-mm-dd',
+                    todayBtn: "linked",
+                    todayHighlight: true,
+                    autoclose: true,
+                    language: 'th-th',
+                    thaiyear: true
+                }).on('changeDate', function(e) {
+                    var date = e.date;
+                    if(date) {
+                        var day = ("0" + date.getDate()).slice(-2);
+                        var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                        var year = date.getFullYear();
+                        $(hiddenId).val(year + "-" + month + "-" + day);
+                    } else {
+                        $(hiddenId).val('');
+                    }
+                });
+
+                if(initialDate) {
+                    $input.datepicker('setDate', new Date(initialDate));
+                }
+            });
+
+             // --- 3. Modal Logic (Average Receive) ---
+             $('#avg_date_start_picker').datepicker({
+                format: 'yyyy-mm-dd',
+                todayBtn: "linked",
+                todayHighlight: true,
+                autoclose: true,
+                language: 'th-th',
+                thaiyear: true
+            }).on('changeDate', function(e) {
+                var date = e.date;
+                if(date) {
+                    var day = ("0" + date.getDate()).slice(-2);
+                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                    var year = date.getFullYear();
+                    $('#avg_date_start').val(year + "-" + month + "-" + day);
+                } else {
+                    $('#avg_date_start').val('');
+                }
+            });
+
+             $('#avg_date_end_picker').datepicker({
+                format: 'yyyy-mm-dd',
+                todayBtn: "linked",
+                todayHighlight: true,
+                autoclose: true,
+                language: 'th-th',
+                thaiyear: true
+            }).on('changeDate', function(e) {
+                 var date = e.date;
+                if(date) {
+                    var day = ("0" + date.getDate()).slice(-2);
+                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                    var year = date.getFullYear();
+                    $('#avg_date_end').val(year + "-" + month + "-" + day);
+                } else {
+                    $('#avg_date_end').val('');
+                }
+            });
+
             const form = document.getElementById("averageReceiveForm");
             const modalEl = document.getElementById("modalAverageReceive");
             // เปิด modal → reset form

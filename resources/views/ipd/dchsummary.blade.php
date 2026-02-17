@@ -17,9 +17,15 @@
                 @csrf
                 <div class="input-group input-group-sm">
                     <span class="input-group-text bg-white"><i class="bi bi-calendar-event me-1"></i> {{ __('วันที่') }}</span>
-                    <input type="date" name="start_date" class="form-control" value="{{ $start_date }}" style="max-width: 140px;">
+                    
+                    <input type="hidden" name="start_date" id="start_date" value="{{ $start_date }}">
+                    <input type="text" class="form-control datepicker_th" id="start_date_picker" value="{{ $start_date }}" readonly style="max-width: 140px; background-color: #fff;">
+                    
                     <span class="input-group-text bg-white">{{ __('ถึง') }}</span>
-                    <input type="date" name="end_date" class="form-control" value="{{ $end_date }}" style="max-width: 140px;">
+                    
+                    <input type="hidden" name="end_date" id="end_date" value="{{ $end_date }}">
+                    <input type="text" class="form-control datepicker_th" id="end_date_picker" value="{{ $end_date }}" readonly style="max-width: 140px; background-color: #fff;">
+                    
                     <button type="submit" class="btn btn-primary px-3">
                         <i class="bi bi-search me-1"></i> {{ __('ค้นหา') }}
                     </button>
@@ -278,6 +284,8 @@
 @push('scripts')
   <script>
     $(document).ready(function () {
+      
+      // Initialize DataTable
       $('#dchsummary').DataTable({
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 
@@ -306,6 +314,43 @@
             }
         }
       });
+
+      // Initialize Thai Date Picker
+      $('.datepicker_th').datepicker({
+          format: 'yyyy-mm-dd',
+          todayBtn: "linked",
+          todayHighlight: true,
+          autoclose: true,
+          language: 'th-th',
+          thaiyear: true
+      });
+
+      // Sync Start Date
+      $('#start_date_picker').on('changeDate', function(e) {
+          var date = e.date;
+          if(date) {
+              var day = ("0" + date.getDate()).slice(-2);
+              var month = ("0" + (date.getMonth() + 1)).slice(-2);
+              var year = date.getFullYear();
+              $('#start_date').val(year + "-" + month + "-" + day);
+          } else {
+              $('#start_date').val('');
+          }
+      });
+
+      // Sync End Date
+      $('#end_date_picker').on('changeDate', function(e) {
+          var date = e.date;
+          if(date) {
+              var day = ("0" + date.getDate()).slice(-2);
+              var month = ("0" + (date.getMonth() + 1)).slice(-2);
+              var year = date.getFullYear();
+              $('#end_date').val(year + "-" + month + "-" + day);
+          } else {
+              $('#end_date').val('');
+          }
+      });
+
     });
   </script>
 @endpush

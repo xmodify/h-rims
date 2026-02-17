@@ -35,10 +35,88 @@
                     <!-- Date Range -->
                     <div class="d-flex align-items-center">
                         <span class="input-group-text bg-white text-muted border-end-0 rounded-start">วันที่</span>
-                        <input type="date" name="start_date" class="form-control border-start-0 rounded-0" value="{{ $start_date }}" style="width: 170px;">
+                        <input type="hidden" name="start_date" id="start_date" value="{{ $start_date }}">
+                        <input type="text" id="start_date_picker" class="form-control border-start-0 rounded-0 datepicker_th" value="{{ $start_date }}" style="width: 170px;" readonly>
                         <span class="input-group-text bg-white border-start-0 border-end-0 rounded-0">ถึง</span>
-                        <input type="date" name="end_date" class="form-control border-start-0 rounded-end" value="{{ $end_date }}" style="width: 170px;">
+                        <input type="hidden" name="end_date" id="end_date" value="{{ $end_date }}">
+                        <input type="text" id="end_date_picker" class="form-control border-start-0 rounded-end datepicker_th" value="{{ $end_date }}" style="width: 170px;" readonly>
                     </div>
+
+                    <script>
+                        document.addEventListener("DOMContentLoaded", function () {
+                            // Initialize Datepicker Thai for all
+                            $('.datepicker_th').datepicker({
+                                format: 'yyyy-mm-dd',
+                                todayBtn: "linked",
+                                todayHighlight: true,
+                                autoclose: true,
+                                language: 'th-th',
+                                thaiyear: true
+                            });
+
+                            // --- 1. Filter Logic ---
+                            var start_date_val = "{{ $start_date }}";
+                            var end_date_val = "{{ $end_date }}";
+
+                            if(start_date_val) {
+                                $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
+                            }
+                            if(end_date_val) {
+                                $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
+                            }
+
+                            $('#start_date_picker').on('changeDate', function(e) {
+                                var date = e.date;
+                                if(date) {
+                                    var day = ("0" + date.getDate()).slice(-2);
+                                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                                    var year = date.getFullYear();
+                                    $('#start_date').val(year + "-" + month + "-" + day);
+                                } else {
+                                    $('#start_date').val('');
+                                }
+                            });
+
+                            $('#end_date_picker').on('changeDate', function(e) {
+                                var date = e.date;
+                                if(date) {
+                                    var day = ("0" + date.getDate()).slice(-2);
+                                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                                    var year = date.getFullYear();
+                                    $('#end_date').val(year + "-" + month + "-" + day);
+                                } else {
+                                    $('#end_date').val('');
+                                }
+                            });
+
+                            // --- 2. Modal Logic (Average Receive) ---
+                            // date_start
+                            $('#date_start_picker').on('changeDate', function(e) {
+                                var date = e.date;
+                                if(date) {
+                                    var day = ("0" + date.getDate()).slice(-2);
+                                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                                    var year = date.getFullYear();
+                                    $('#date_start').val(year + "-" + month + "-" + day);
+                                } else {
+                                    $('#date_start').val('');
+                                }
+                            });
+
+                            // date_end
+                            $('#date_end_picker').on('changeDate', function(e) {
+                                var date = e.date;
+                                if(date) {
+                                    var day = ("0" + date.getDate()).slice(-2);
+                                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                                    var year = date.getFullYear();
+                                    $('#date_end').val(year + "-" + month + "-" + day);
+                                } else {
+                                    $('#date_end').val('');
+                                }
+                            });
+                        });
+                    </script>
 
                     <!-- Search Input -->
                     <div class="input-group input-group-sm" style="width: 220px;">
@@ -303,11 +381,13 @@
                     <div class="modal-body">
                         <div class="mb-2">
                             <label>วันที่เริ่มต้น</label>
-                            <input type="date" name="date_start" class="form-control" required>
+                            <input type="hidden" name="date_start" id="date_start">
+                            <input type="text" id="date_start_picker" class="form-control datepicker_th" placeholder="วว/ดด/ปปปป" autocomplete="off" required readonly>
                         </div>
                         <div class="mb-2">
                             <label>วันที่สิ้นสุด</label>
-                            <input type="date" name="date_end" class="form-control" required>
+                            <input type="hidden" name="date_end" id="date_end">
+                            <input type="text" id="date_end_picker" class="form-control datepicker_th" placeholder="วว/ดด/ปปปป" autocomplete="off" required readonly>
                         </div>
                         <div class="mb-2">
                             <label>เลขที่ใบเสร็จ</label>

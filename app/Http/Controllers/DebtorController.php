@@ -244,7 +244,6 @@ class DebtorController extends Controller
 
         return response()->json($data);
     }
-    //_check_nondebtor---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 
     public function _check_nondebtor(Request $request)
     {
         set_time_limit(0);
@@ -282,27 +281,27 @@ class DebtorController extends Controller
                 AND (i.an IS NULL OR i.an = '')
                 AND IFNULL(inc.income,0) <> 0
                 AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(pp.ppfs_price,0)) > 0
-                AND v.vn NOT IN ( SELECT vn FROM hrims.debtor_1102050101_103
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_109
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_201
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_203
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_209
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_216
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_301
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_303
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_307
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_309
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_401
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_501
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_503
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_701
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_702
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050102_106
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050102_108
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050102_110
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050102_602
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050102_801
-                    UNION ALL SELECT vn FROM hrims.debtor_1102050102_803
+                AND v.vn NOT IN ( SELECT vn FROM hrims.debtor_1102050101_103 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_109 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_201 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_203 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_209 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_216 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_301 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_303 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_307 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_309 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_401 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_501 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_503 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_701 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050101_702 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050102_106 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050102_108 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050102_110 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050102_602 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050102_801 WHERE vstdate BETWEEN ? AND ?
+                    UNION ALL SELECT vn FROM hrims.debtor_1102050102_803 WHERE vstdate BETWEEN ? AND ?
                 ) GROUP BY v.vn
                     
                 UNION ALL    
@@ -331,38 +330,41 @@ class DebtorController extends Controller
                 WHERE i.dchdate BETWEEN ? AND ?
                 AND IFNULL(inc.income,0) <> 0
                 AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)) > 0
-                AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_202
-                    UNION ALL SELECT an FROM hrims.debtor_1102050101_217
-                    UNION ALL SELECT an FROM hrims.debtor_1102050101_302
-                    UNION ALL SELECT an FROM hrims.debtor_1102050101_304
-                    UNION ALL SELECT an FROM hrims.debtor_1102050101_307
-                    UNION ALL SELECT an FROM hrims.debtor_1102050101_308
-                    UNION ALL SELECT an FROM hrims.debtor_1102050101_310
-                    UNION ALL SELECT an FROM hrims.debtor_1102050101_402
-                    UNION ALL SELECT an FROM hrims.debtor_1102050101_502
-                    UNION ALL SELECT an FROM hrims.debtor_1102050101_504
-                    UNION ALL SELECT an FROM hrims.debtor_1102050101_704
-                    UNION ALL SELECT an FROM hrims.debtor_1102050102_107
-                    UNION ALL SELECT an FROM hrims.debtor_1102050102_109
-                    UNION ALL SELECT an FROM hrims.debtor_1102050102_111
-                    UNION ALL SELECT an FROM hrims.debtor_1102050102_603
-                    UNION ALL SELECT an FROM hrims.debtor_1102050102_802
-                    UNION ALL SELECT an FROM hrims.debtor_1102050102_804
+                AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_202 WHERE dchdate BETWEEN ? AND ?
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_217 WHERE dchdate BETWEEN ? AND ?
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_302 WHERE dchdate BETWEEN ? AND ?
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_304 WHERE dchdate BETWEEN ? AND ?
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_307 WHERE dchdate BETWEEN ? AND ?
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_308 WHERE dchdate BETWEEN ? AND ?
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_310 WHERE dchdate BETWEEN ? AND ?
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_402 WHERE dchdate BETWEEN ? AND ?
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_502 WHERE dchdate BETWEEN ? AND ?
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_504 WHERE dchdate BETWEEN ? AND ?
+                    UNION ALL SELECT an FROM hrims.debtor_1102050101_704 WHERE dchdate BETWEEN ? AND ?
+                    UNION ALL SELECT an FROM hrims.debtor_1102050102_107 WHERE dchdate BETWEEN ? AND ?
+                    UNION ALL SELECT an FROM hrims.debtor_1102050102_109 WHERE dchdate BETWEEN ? AND ?
+                    UNION ALL SELECT an FROM hrims.debtor_1102050102_111 WHERE dchdate BETWEEN ? AND ?
+                    UNION ALL SELECT an FROM hrims.debtor_1102050102_603 WHERE dchdate BETWEEN ? AND ?
+                    UNION ALL SELECT an FROM hrims.debtor_1102050102_802 WHERE dchdate BETWEEN ? AND ?
+                    UNION ALL SELECT an FROM hrims.debtor_1102050102_804 WHERE dchdate BETWEEN ? AND ?
                 )  GROUP BY a.an ) x
             ORDER BY dep DESC,hipdata_code, serv_date "
             ,
-            [
-                $start_date,
-                $end_date,
-                $start_date,
-                $end_date,
-                $start_date,
-                $end_date
-                ,
-                $start_date,
-                $end_date,
-                $start_date,
-                $end_date
+            [   
+                $start_date,$end_date,$start_date,$end_date,$start_date,$end_date,
+                // Subqueries OPD (21 tables * 2 parameters)
+                $start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,
+                $start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,
+                $start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,
+                $start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,
+                $start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,
+                $start_date,$end_date,$start_date,$end_date,$start_date,$end_date, 
+                // Subqueries IPD (17 tables * 2 parameters)
+                $start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,
+                $start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,
+                $start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,
+                $start_date,$end_date,$start_date,$end_date,$start_date,$end_date,$start_date,$end_date,
+                $start_date,$end_date
             ]
         );
 

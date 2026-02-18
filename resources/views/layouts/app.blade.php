@@ -806,7 +806,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item d-flex align-items-center"> 
                             <div class="nav-version-badge">
-                                V.69-02-18 13:00
+                                V.69-02-18 20:30
                             </div>   
                         </li>                         
                         <!-- Authentication Links -->

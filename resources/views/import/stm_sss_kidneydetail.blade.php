@@ -38,35 +38,24 @@
                 <table id="stm_sss_kidney_list" class="table table-modern w-100">
                     <thead>
                         <tr>
-                            <th>FileName</th> 
                             <th>Station</th>
                             <th>Hreg</th>                      
                             <th>HN</th>
                             <th>CID</th>
                             <th>วันที่รับบริการ</th>
                             <th>RID</th>
-                            <th>Receipt</th>                  
+                            <th>เลขที่ใบเสร็จ</th>
+                            <th>วันที่ออกใบเสร็จ</th>
+                            <th>ผู้ออกใบเสร็จ</th>
+                        </tr>
                             <th>ค่าฟอกเลือด</th> 
                             <th>EPO Pay</th>
                             <th>EPO Adm</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($stm_sss_kidney_list as $row)          
-                        <tr>      
-                            <td class="small fw-bold text-dark">{{ $row->stm_filename }}</td>                          
-                            <td class="small">{{ $row->station }}</td>
-                            <td class="small text-muted">{{ $row->hreg }}</td>
-                            <td class="text-center fw-bold">{{ $row->hn }}</td>
-                             <td class="text-center small text-muted">{{ $row->cid }}</td>
-                            <td class="text-center">{{ $row->dttran }}</td>
-                            <td class="text-center small">RID: {{ $row->rid }}</td>
-                            <td class="small text-muted text-truncate text-center" style="max-width: 120px;">REC: {{ $row->receive_no }}</td>
-                            <td class="text-end fw-bold text-success">{{ number_format($row->amount,2) }}</td> 
-                            <td class="text-end text-primary fw-bold">{{ number_format($row->epopay,2) }}</td>
-                            <td class="text-end text-muted small">{{ number_format($row->epoadm,2) }}</td>
-                        </tr>
-                        @endforeach
+                    <tbody>
+                        {{-- DataTables will populate this --}}
                     </tbody>
                 </table>
             </div>
@@ -118,31 +107,72 @@
       });
 
       $('#stm_sss_kidney_list').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: "{{ route('stm_sss_kidneydetail') }}",
+            data: function (d) {
+                d.start_date = $('#start_date').val();
+                d.end_date = $('#end_date').val();
+            }
+        },
+        columns: [
+            { data: 'station', name: 'station', className: 'small' },
+            { data: 'hreg', name: 'hreg', className: 'small text-muted' },
+            { data: 'hn', name: 'hn', className: 'text-center fw-bold' },
+            { data: 'cid', name: 'cid', className: 'text-center small text-muted' },
+            { 
+                data: 'dttran', 
+                name: 'dttran', 
+                className: 'text-center',
+                render: function(data) {
+                    if (!data) return '';
+                    var date = new Date(data);
+                    var day = date.getDate();
+                    var month = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."][date.getMonth()];
+                    var year = date.getFullYear() + 543;
+                    return day + ' ' + month + ' ' + year;
+                }
+            },
+            { 
+                data: 'rid', 
+                name: 'rid', 
+                className: 'text-center small',
+                render: function(data) { return 'RID: ' + data; }
+            },
+            { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold small' },
+            { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' },
+            { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' },
+            { data: 'amount', name: 'amount', className: 'text-end fw-bold text-success' },
+            { data: 'epopay', name: 'epopay', className: 'text-end text-primary fw-bold' },
+            { data: 'epoadm', name: 'epoadm', className: 'text-end text-muted small' }
+        ],
         dom: '<"row mb-3"' +
-                '<"col-md-6"l>' + // Show รายการ
-                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
+                '<"col-md-6"l>' + 
+                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
               '>' +
               'rt' +
               '<"row mt-3"' +
-                '<"col-md-6"i>' + // Info
-                '<"col-md-6"p>' + // Pagination
+                '<"col-md-6"i>' + 
+                '<"col-md-6"p>' + 
               '>',
         buttons: [
             {
-              extend: 'excelHtml5',
-              text: 'Excel',
-              className: 'btn btn-success',
-              title: 'Statement ประกันสังคม SSS [ฟอกไต HD] รายละเอียด'
+                text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                className: 'btn btn-success btn-sm',
+                action: function ( e, dt, node, config ) {
+                    var start = $('#start_date').val();
+                    var end = $('#end_date').val();
+                    window.location.href = "{{ route('stm_sss_kidneydetail') }}?export=excel&start_date=" + start + "&end_date=" + end;
+                }
             }
         ],
         language: {
             search: "ค้นหา:",
             lengthMenu: "แสดง _MENU_ รายการ",
             info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-            paginate: {
-              previous: "ก่อนหน้า",
-              next: "ถัดไป"
-            }
+            paginate: { previous: "ก่อนหน้า", next: "ถัดไป" },
+            processing: "กำลังโหลดข้อมูล..."
         }
       });
     });

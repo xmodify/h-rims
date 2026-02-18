@@ -38,7 +38,6 @@
                 <table id="stm_ofc_cipn_list" class="table table-modern w-100">
                     <thead>
                         <tr>
-                            <th>Filename</th>
                             <th>AN</th>
                             <th>ชื่อ - สกุล</th>
                             <th>จำหน่าย</th>
@@ -49,38 +48,19 @@
                             <th>ค่ารักษา²</th>
                             <th>พึงรับ</th>
                             <th>RepNo.</th>
-                            <th>Receipt</th>
+                            <th>เลขที่ใบเสร็จ</th>
+                            <th>วันที่ออกใบเสร็จ</th>
+                            <th>ผู้ออกใบเสร็จ</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($stm_ofc_cipn_list as $row)
-                        <tr>
-                            <td class="small fw-bold text-dark">{{ $row->stm_filename }}</td>
-                            <td class="text-center">{{ $row->an }}</td>
-                            <td>{{ $row->namepat }}</td>
-                            <td class="text-center">{{ \Carbon\Carbon::parse($row->datedsc)->format('d/m/y') }}</td>
-                            <td>
-                                <div class="small">{{ $row->ptype }}</div>
-                                <div class="small text-muted">{{ $row->drg }}</div>
-                            </td>
-                            <td class="text-end small">{{ number_format($row->adjrw,4) }}</td>
-                            <td class="text-end text-muted">{{ number_format($row->amreimb,2) }}</td>
-                            <td class="text-end text-muted">{{ number_format($row->amlim,2) }}</td>
-                            <td class="text-end text-muted">{{ number_format($row->pamreim,2) }}</td>
-                            <td class="text-end fw-bold text-success">{{ number_format($row->gtotal,2) }}</td>
-                            <td class="text-center small">REP: {{ $row->rid }}</td>
-                            <td class="small text-muted text-truncate" style="max-width: 120px;">REC: {{ $row->receive_no }}</td>
-                        </tr>
-                        @endforeach
+                        {{-- DataTables will populate this --}}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 </div>
-        </div> 
-    </div> 
-</div> 
 @endsection
 
 @push('scripts')
@@ -122,33 +102,79 @@
       });
 
       $('#stm_ofc_cipn_list').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: "{{ route('stm_ofc_cipndetail') }}",
+            data: function (d) {
+                d.start_date = $('#start_date').val();
+                d.end_date = $('#end_date').val();
+            }
+        },
+        columns: [
+            { data: 'an', name: 'an', className: 'text-center' },
+            { data: 'namepat', name: 'namepat' },
+            { 
+                data: 'datedsc', 
+                name: 'datedsc', 
+                className: 'text-center',
+                render: function (data, type, row) {
+                    if (!data) return '';
+                    var date = new Date(data);
+                    return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'numeric', year: '2-digit' });
+                }
+            },
+            { 
+                data: null, 
+                name: 'ptype', 
+                render: function (data, type, row) {
+                    return '<div class="small">' + (row.ptype ? row.ptype : '') + '</div>' + 
+                           '<div class="small text-muted">' + (row.drg ? row.drg : '') + '</div>';
+                }
+            },
+            { data: 'adjrw', name: 'adjrw', className: 'text-end small' },
+            { data: 'amreimb', name: 'amreimb', className: 'text-end text-muted' },
+            { data: 'amlim', name: 'amlim', className: 'text-end text-muted' },
+            { data: 'pamreim', name: 'pamreim', className: 'text-end text-muted' },
+            { data: 'gtotal', name: 'gtotal', className: 'text-end fw-bold text-success' },
+            { 
+                data: 'rid', 
+                name: 'rid', 
+                className: 'text-center small',
+                render: function(data) { return 'REP: ' + (data ? data : ''); }
+            },
+            { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold small' },
+            { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' },
+            { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
+        ],
         dom: '<"row mb-3"' +
-                '<"col-md-6"l>' + // Show รายการ
-                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
+                '<"col-md-6"l>' + 
+                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
               '>' +
               'rt' +
               '<"row mt-3"' +
-                '<"col-md-6"i>' + // Info
-                '<"col-md-6"p>' + // Pagination
+                '<"col-md-6"i>' + 
+                '<"col-md-6"p>' + 
               '>',
         buttons: [
             {
-              extend: 'excelHtml5',
-              text: 'Excel',
-              className: 'btn btn-success',
-              title: 'ข้อมูล Statement สวัสดิการข้าราชการ CIPN รายละเอียด'
+                text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                className: 'btn btn-success btn-sm',
+                action: function ( e, dt, node, config ) {
+                    var start = $('#start_date').val();
+                    var end = $('#end_date').val();
+                    window.location.href = "{{ route('stm_ofc_cipndetail') }}?export=excel&start_date=" + start + "&end_date=" + end;
+                }
             }
         ],
         language: {
             search: "ค้นหา:",
             lengthMenu: "แสดง _MENU_ รายการ",
             info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-            paginate: {
-              previous: "ก่อนหน้า",
-              next: "ถัดไป"
-            }
+            paginate: { previous: "ก่อนหน้า", next: "ถัดไป" },
+            processing: "กำลังโหลดข้อมูล..."
         }
       });
     });
-  </script> 
+  </script>
 @endpush

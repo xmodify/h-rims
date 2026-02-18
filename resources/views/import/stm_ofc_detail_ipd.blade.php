@@ -42,7 +42,6 @@
                     <thead>
                         <tr>
                             <th class="text-center">Dep</th>
-                            <th class="text-center">Filename</th> 
                             <th class="text-center">REP</th> 
                             <th class="text-center">HN</th>
                             <th class="text-center">AN</th>
@@ -55,27 +54,14 @@
                             <th class="text-center">ค่ารักษา</th>
                             <th class="text-center">ค่าห้อง</th>
                             <th class="text-center">อวัยวะ</th>
+                            <th class="text-center">เลขที่ใบเสร็จ</th>
+                            <th class="text-center">วันที่ออกใบเสร็จ</th>
+                            <th class="text-center">ผู้ออกใบเสร็จ</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($stm_ofc_list_ip as $row)
-                        <tr>
-                            <td class="text-center"><span class="badge bg-light text-dark border">{{ $row->dep }}</span></td>
-                            <td class="small fw-bold text-dark">{{ $row->stm_filename }}</td>
-                            <td class="text-center">{{ $row->repno }}</td>
-                            <td class="text-center fw-bold">{{ $row->hn }}</td>
-                            <td class="text-center">{{ $row->an }}</td>
-                            <td>{{ $row->pt_name }}</td>
-                            <td class="text-center small">{{ $row->datetimeadm }}</td>
-                            <td class="text-center small text-muted">{{ $row->datetimedch }}</td>
-                            <td class="text-end text-muted">{{ number_format($row->charge,2) }}</td>
-                            <td class="text-end text-success fw-bold">{{ number_format($row->receive_total,2) }}</td>
-                            <td class="text-end">{{ number_format($row->receive_drug,2) }}</td> 
-                            <td class="text-end">{{ number_format($row->receive_treatment,2) }}</td>
-                            <td class="text-end">{{ number_format($row->receive_room,2) }}</td>
-                            <td class="text-end text-muted">{{ number_format($row->receive_instument,2) }}</td>
-                        </tr>
-                        @endforeach
+                    <tbody>
+                        {{-- DataTables will populate this --}}
                     </tbody>
                 </table>
             </div>
@@ -123,33 +109,61 @@
       });
 
       $('#stm_ofc_list_ip').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: "{{ route('stm_ofc_detail_ipd') }}",
+            data: function (d) {
+                d.start_date = $('#start_date').val();
+                d.end_date = $('#end_date').val();
+            }
+        },
+        columns: [
+            { data: 'dep', name: 'dep', className: 'text-center' },
+            { data: 'repno', name: 'repno', className: 'text-center' },
+            { data: 'hn', name: 'hn', className: 'text-center fw-bold' },
+            { data: 'an', name: 'an', className: 'text-center' },
+            { data: 'pt_name', name: 'pt_name' },
+            { data: 'datetimeadm', name: 'datetimeadm', className: 'text-center small' },
+            { data: 'datetimedch', name: 'datetimedch', className: 'text-center small text-muted' },
+            { data: 'charge', name: 'charge', className: 'text-end text-muted' },
+            { data: 'receive_total', name: 'receive_total', className: 'text-end text-success fw-bold' },
+            { data: 'receive_drug', name: 'receive_drug', className: 'text-end' },
+            { data: 'receive_treatment', name: 'receive_treatment', className: 'text-end' },
+            { data: 'receive_room', name: 'receive_room', className: 'text-end' },
+            { data: 'receive_instument', name: 'receive_instument', className: 'text-end text-muted' },
+            { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold' },
+            { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' },
+            { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
+        ],
         dom: '<"row mb-3"' +
-                '<"col-md-6"l>' + // Show รายการ
-                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
+                '<"col-md-6"l>' + 
+                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
               '>' +
               'rt' +
               '<"row mt-3"' +
-                '<"col-md-6"i>' + // Info
-                '<"col-md-6"p>' + // Pagination
+                '<"col-md-6"i>' + 
+                '<"col-md-6"p>' + 
               '>',
         buttons: [
             {
-              extend: 'excelHtml5',
-              text: 'Excel',
-              className: 'btn btn-success',
-              title: 'Statement เบิกจ่ายตรง OFC รายละเอียด IPD'
+                text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                className: 'btn btn-success btn-sm',
+                action: function ( e, dt, node, config ) {
+                    var start = $('#start_date').val();
+                    var end = $('#end_date').val();
+                    window.location.href = "{{ route('stm_ofc_detail_ipd') }}?export=excel&start_date=" + start + "&end_date=" + end;
+                }
             }
         ],
         language: {
             search: "ค้นหา:",
             lengthMenu: "แสดง _MENU_ รายการ",
             info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-            paginate: {
-              previous: "ก่อนหน้า",
-              next: "ถัดไป"
-            }
+            paginate: { previous: "ก่อนหน้า", next: "ถัดไป" },
+            processing: "กำลังโหลดข้อมูล..."
         }
       });
     });
-  </script>  
+  </script>
 @endpush

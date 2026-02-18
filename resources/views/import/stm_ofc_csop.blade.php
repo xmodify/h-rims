@@ -158,7 +158,7 @@
             Swal.fire({
                 icon: 'success',
                 title: 'นำเข้าสำเร็จ',
-                text: @json(session('success')),
+                html: @json(session('success')),
                 confirmButtonText: 'ปิด'
             }).then(() => {
                 location.reload();
@@ -173,7 +173,7 @@
             Swal.fire({
                 icon: 'error',
                 title: 'ผิดพลาด',
-                text: @json(session('error')),
+                html: @json(session('error')),
                 confirmButtonText: 'ปิด'
             });
         });
@@ -340,8 +340,8 @@
                 buttons: [
                 {
                     extend: 'excelHtml5',
-                    text: 'Excel',
-                    className: 'btn btn-success',
+                    text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                    className: 'btn btn-success btn-sm',
                     title: 'ข้อมูล Statement สวัสดิการข้าราชการ CSOP'
                 }
                 ],

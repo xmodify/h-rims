@@ -38,7 +38,6 @@
                 <table id="stm_ucs_kidney_list" class="table table-modern w-100">
                     <thead>
                         <tr>
-                            <th>Filename</th> 
                             <th>REP</th> 
                             <th>HN</th>
                             <th>AN</th>
@@ -49,33 +48,19 @@
                             <th>จำนวนที่ขอเบิก</th> 
                             <th>จ่ายชดเชยสุทธิ</th>                                                         
                             <th>หมายเหตุ</th>
+                            <th>เลขที่ใบเสร็จ</th>
+                            <th>วันที่ออกใบเสร็จ</th>
+                            <th>ผู้ออกใบเสร็จ</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($stm_ucs_kidney_list as $row)
-                        <tr>
-                            <td class="small fw-bold text-dark">{{ $row->stm_filename }}</td>
-                            <td class="text-center small">{{ $row->repno }}</td>
-                            <td class="text-center fw-bold">{{ $row->hn }}</td>
-                            <td class="text-center small text-muted">{{ $row->an }}</td>
-                            <td class="text-center small text-muted">{{ $row->cid }}</td>
-                            <td>{{ $row->pt_name }}</td>
-                            <td class="text-center">{{ DateThai($row->datetimeadm) }}</td>
-                            <td class="text-center small">{{ $row->hd_type }}</td>
-                            <td class="text-end text-muted">{{ number_format($row->charge_total,2) }}</td>
-                            <td class="text-end fw-bold text-success">{{ number_format($row->receive_total,2) }}</td>
-                            <td class="small">{{ $row->note }}</td> 
-                        </tr>
-                        @endforeach
+                        {{-- DataTables will populate this --}}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 </div>
-        </div> 
-    </div> 
-</div> 
 @endsection
 
 @push('scripts')
@@ -117,31 +102,65 @@
       });
 
       $('#stm_ucs_kidney_list').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: "{{ route('stm_ucs_kidneydetail') }}",
+            data: function (d) {
+                d.start_date = $('#start_date').val();
+                d.end_date = $('#end_date').val();
+            }
+        },
+        columns: [
+            { data: 'repno', name: 'repno', className: 'text-center small' },
+            { data: 'hn', name: 'hn', className: 'text-center fw-bold' },
+            { data: 'an', name: 'an', className: 'text-center small text-muted' },
+            { data: 'cid', name: 'cid', className: 'text-center small text-muted' },
+            { data: 'pt_name', name: 'pt_name' },
+            { 
+                data: 'datetimeadm', 
+                name: 'datetimeadm', 
+                className: 'text-center',
+                render: function (data, type, row) {
+                    if (!data) return '';
+                    var date = new Date(data);
+                    return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+                }
+            },
+            { data: 'hd_type', name: 'hd_type', className: 'text-center small' },
+            { data: 'charge_total', name: 'charge_total', className: 'text-end text-muted' },
+            { data: 'receive_total', name: 'receive_total', className: 'text-end fw-bold text-success' },
+            { data: 'note', name: 'note', className: 'small' },
+            { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold' },
+            { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' },
+            { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
+        ],
         dom: '<"row mb-3"' +
-                '<"col-md-6"l>' + // Show รายการ
-                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
+                '<"col-md-6"l>' + 
+                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
               '>' +
               'rt' +
               '<"row mt-3"' +
-                '<"col-md-6"i>' + // Info
-                '<"col-md-6"p>' + // Pagination
+                '<"col-md-6"i>' + 
+                '<"col-md-6"p>' + 
               '>',
         buttons: [
             {
-              extend: 'excelHtml5',
-              text: 'Excel',
-              className: 'btn btn-success',
-              title: 'Statement ประกันสุขภาพ UCS [ฟอกไต HD] รายละเอียด'
+                text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                className: 'btn btn-success btn-sm',
+                action: function ( e, dt, node, config ) {
+                    var start = $('#start_date').val();
+                    var end = $('#end_date').val();
+                    window.location.href = "{{ route('stm_ucs_kidneydetail') }}?export=excel&start_date=" + start + "&end_date=" + end;
+                }
             }
         ],
         language: {
             search: "ค้นหา:",
             lengthMenu: "แสดง _MENU_ รายการ",
             info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-            paginate: {
-              previous: "ก่อนหน้า",
-              next: "ถัดไป"
-            }
+            paginate: { previous: "ก่อนหน้า", next: "ถัดไป" },
+            processing: "กำลังโหลดข้อมูล..."
         }
       });
     });

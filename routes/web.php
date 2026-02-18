@@ -85,48 +85,48 @@ Route::match(['get', 'post'], 'import/stm_ucs', [ImportController::class, 'stm_u
 Route::post('import/stm_ucs_save', [ImportController::class, 'stm_ucs_save']);
 Route::post('import/stm_ucs_updateReceipt', [ImportController::class, 'stm_ucs_updateReceipt']);
 Route::match(['get', 'post'], 'import/stm_ucs_detail', [ImportController::class, 'stm_ucs_detail']);
-Route::match(['get', 'post'], 'import/stm_ucs_detail_opd', [ImportController::class, 'stm_ucs_detail_opd']);
-Route::match(['get', 'post'], 'import/stm_ucs_detail_ipd', [ImportController::class, 'stm_ucs_detail_ipd']);
+Route::match(['get', 'post'], 'import/stm_ucs_detail_opd', [ImportController::class, 'stm_ucs_detail_opd'])->name('stm_ucs_detail_opd');
+Route::match(['get', 'post'], 'import/stm_ucs_detail_ipd', [ImportController::class, 'stm_ucs_detail_ipd'])->name('stm_ucs_detail_ipd');
 Route::match(['get', 'post'], 'import/stm_ucs_kidney', [ImportController::class, 'stm_ucs_kidney'])->name('stm_ucs_kidney');
 Route::post('import/stm_ucs_kidney_save', [ImportController::class, 'stm_ucs_kidney_save']);
 Route::post('import/stm_ucs_kidney_updateReceipt', [ImportController::class, 'stm_ucs_kidney_updateReceipt']);
-Route::match(['get', 'post'], 'import/stm_ucs_kidneydetail', [ImportController::class, 'stm_ucs_kidneydetail']);
+Route::match(['get', 'post'], 'import/stm_ucs_kidneydetail', [ImportController::class, 'stm_ucs_kidneydetail'])->name('stm_ucs_kidneydetail');
 
 Route::match(['get', 'post'], 'import/stm_ofc', [ImportController::class, 'stm_ofc'])->name('stm_ofc');
 Route::post('import/stm_ofc_save', [ImportController::class, 'stm_ofc_save']);
 Route::post('import/stm_ofc_updateReceipt', [ImportController::class, 'stm_ofc_updateReceipt']);
 Route::match(['get', 'post'], 'import/stm_ofc_detail', [ImportController::class, 'stm_ofc_detail']);
-Route::match(['get', 'post'], 'import/stm_ofc_detail_opd', [ImportController::class, 'stm_ofc_detail_opd']);
-Route::match(['get', 'post'], 'import/stm_ofc_detail_ipd', [ImportController::class, 'stm_ofc_detail_ipd']);
+Route::match(['get', 'post'], 'import/stm_ofc_detail_opd', [ImportController::class, 'stm_ofc_detail_opd'])->name('stm_ofc_detail_opd');
+Route::match(['get', 'post'], 'import/stm_ofc_detail_ipd', [ImportController::class, 'stm_ofc_detail_ipd'])->name('stm_ofc_detail_ipd');
 
 Route::match(['get', 'post'], 'import/stm_ofc_csop', [ImportController::class, 'stm_ofc_csop'])->name('stm_ofc_csop');
 Route::post('import/stm_ofc_csop_save', [ImportController::class, 'stm_ofc_csop_save']);
 Route::post('import/stm_ofc_csop_updateReceipt', [ImportController::class, 'stm_ofc_csop_updateReceipt']);
-Route::match(['get', 'post'], 'import/stm_ofc_csopdetail', [ImportController::class, 'stm_ofc_csopdetail']);
+Route::match(['get', 'post'], 'import/stm_ofc_csopdetail', [ImportController::class, 'stm_ofc_csopdetail'])->name('import.stm_ofc_csopdetail');
 
 Route::match(['get', 'post'], 'import/stm_ofc_cipn', [ImportController::class, 'stm_ofc_cipn'])->name('stm_ofc_cipn');
 Route::post('import/stm_ofc_cipn_save', [ImportController::class, 'stm_ofc_cipn_save']);
 Route::post('import/stm_ofc_cipn_updateReceipt', [ImportController::class, 'stm_ofc_cipn_updateReceipt']);
-Route::match(['get', 'post'], 'import/stm_ofc_cipndetail', [ImportController::class, 'stm_ofc_cipndetail']);
+Route::match(['get', 'post'], 'import/stm_ofc_cipndetail', [ImportController::class, 'stm_ofc_cipndetail'])->name('stm_ofc_cipndetail');
 
 Route::match(['get', 'post'], 'import/stm_ofc_kidney', [ImportController::class, 'stm_ofc_kidney'])->name('stm_ofc_kidney');
 Route::post('import/stm_ofc_kidney_save', [ImportController::class, 'stm_ofc_kidney_save']);
 Route::post('import/stm_ofc_kidney_updateReceipt', [ImportController::class, 'stm_ofc_kidney_updateReceipt']);
-Route::match(['get', 'post'], 'import/stm_ofc_kidneydetail', [ImportController::class, 'stm_ofc_kidneydetail']);
+Route::match(['get', 'post'], 'import/stm_ofc_kidneydetail', [ImportController::class, 'stm_ofc_kidneydetail'])->name('stm_ofc_kidneydetail');
 Route::match(['get', 'post'], 'import/stm_lgo', [ImportController::class, 'stm_lgo'])->name('stm_lgo');
 Route::post('import/stm_lgo_save', [ImportController::class, 'stm_lgo_save']);
 Route::post('import/stm_lgo_updateReceipt', [ImportController::class, 'stm_lgo_updateReceipt']);
-Route::match(['get', 'post'], 'import/stm_lgo_detail', [ImportController::class, 'stm_lgo_detail']);
-Route::match(['get', 'post'], 'import/stm_lgo_detail_opd', [ImportController::class, 'stm_lgo_detail_opd']);
-Route::match(['get', 'post'], 'import/stm_lgo_detail_ipd', [ImportController::class, 'stm_lgo_detail_ipd']);
+Route::match(['get', 'post'], 'import/stm_lgo_detail', [ImportController::class, 'stm_lgo_detail'])->name('stm_lgo_detail');
+Route::match(['get', 'post'], 'import/stm_lgo_detail_opd', [ImportController::class, 'stm_lgo_detail_opd'])->name('stm_lgo_detail_opd');
+Route::match(['get', 'post'], 'import/stm_lgo_detail_ipd', [ImportController::class, 'stm_lgo_detail_ipd'])->name('stm_lgo_detail_ipd');
 Route::match(['get', 'post'], 'import/stm_lgo_kidney', [ImportController::class, 'stm_lgo_kidney'])->name('stm_lgo_kidney');
 Route::post('import/stm_lgo_kidney_save', [ImportController::class, 'stm_lgo_kidney_save']);
 Route::post('import/stm_lgo_kidney_updateReceipt', [ImportController::class, 'stm_lgo_kidney_updateReceipt']);
-Route::match(['get', 'post'], 'import/stm_lgo_kidneydetail', [ImportController::class, 'stm_lgo_kidneydetail']);
+Route::match(['get', 'post'], 'import/stm_lgo_kidneydetail', [ImportController::class, 'stm_lgo_kidneydetail'])->name('stm_lgo_kidneydetail');
 Route::match(['get', 'post'], 'import/stm_sss_kidney', [ImportController::class, 'stm_sss_kidney'])->name('stm_sss_kidney');
 Route::post('import/stm_sss_kidney_save', [ImportController::class, 'stm_sss_kidney_save']);
 Route::post('import/stm_sss_kidney_updateReceipt', [ImportController::class, 'stm_sss_kidney_updateReceipt']);
-Route::match(['get', 'post'], 'import/stm_sss_kidneydetail', [ImportController::class, 'stm_sss_kidneydetail']);
+Route::match(['get', 'post'], 'import/stm_sss_kidneydetail', [ImportController::class, 'stm_sss_kidneydetail'])->name('stm_sss_kidneydetail');
 
 //Check------------------------------------------------------------------------------------------------------------------------------
 Route::match(['get', 'post'], 'check/nhso_endpoint', [CheckController::class, 'nhso_endpoint']);

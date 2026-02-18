@@ -38,7 +38,6 @@
                 <table id="stm_ofc_csop_list" class="table table-modern w-100">
                     <thead>
                         <tr>
-                            <th>FileName</th>
                             <th>Station</th>
                             <th>Sys</th> 
                             <th>HN</th>
@@ -48,25 +47,13 @@
                             <th>vstdate</th>                    
                             <th>ค่ารักษาที่เบิก</th> 
                             <th>RepNo</th>
-                            <th>Receipt</th>
+                            <th>เลขที่ใบเสร็จ</th>
+                            <th>วันที่ออกใบเสร็จ</th>
+                            <th>ผู้ออกใบเสร็จ</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($stm_ofc_csop_list as $row)
-                        <tr>
-                            <td class="small fw-bold text-dark">{{ $row->stm_filename }}</td>
-                            <td class="small">{{ $row->station }}</td>
-                            <td class="small text-muted">{{ $row->sys }}</td>
-                            <td class="text-center fw-bold">{{ $row->hn }}</td>
-                            <td class="text-center small text-muted">{{ $row->hreg }}</td>
-                            <td>{{ $row->pt_name }}</td>
-                            <td class="text-center small">{{ $row->invno }}</td>
-                            <td class="text-center small text-muted">{{ $row->vstdate }} {{ $row->vsttime }}</td>
-                            <td class="text-end fw-bold text-success">{{ number_format($row->amount,2) }}</td> 
-                            <td class="text-center small">REP: {{ $row->rid }}</td>
-                            <td class="small text-muted text-center">REC: {{ $row->receive_no }}</td>
-                        </tr>
-                        @endforeach
+                        {{-- DataTables will populate this --}}
                     </tbody>
                 </table>
             </div>
@@ -117,21 +104,48 @@
       });
 
       $('#stm_ofc_csop_list').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: "{{ route('import.stm_ofc_csopdetail') }}",
+            data: function (d) {
+                d.start_date = $('#start_date').val();
+                d.end_date = $('#end_date').val();
+            }
+        },
+        columns: [
+            { data: 'station', name: 'station' },
+            { data: 'sys', name: 'sys' },
+            { data: 'hn', name: 'hn', className: 'text-center fw-bold' },
+            { data: 'hreg', name: 'hreg', className: 'text-center small text-muted' },
+            { data: 'pt_name', name: 'pt_name' },
+            { data: 'invno', name: 'invno', className: 'text-center small' },
+            { data: 'vstdate', name: 'vstdate', className: 'text-center small text-muted' },
+            { data: 'amount', name: 'amount', className: 'text-end fw-bold text-success' },
+            { data: 'rid', name: 'rid', className: 'text-center small' },
+            { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold small' },
+            { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' },
+            { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
+        ],
         dom: '<"row mb-3"' +
-                '<"col-md-6"l>' + // Show รายการ
-                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
+                '<"col-md-6"l>' + 
+                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
               '>' +
               'rt' +
               '<"row mt-3"' +
-                '<"col-md-6"i>' + // Info
-                '<"col-md-6"p>' + // Pagination
+                '<"col-md-6"i>' + 
+                '<"col-md-6"p>' + 
               '>',
         buttons: [
             {
-              extend: 'excelHtml5',
-              text: 'Excel',
-              className: 'btn btn-success',
-              title: 'ข้อมูล Statement สวัสดิการข้าราชการ CSOP-ฟอกไต รายละเอียด'
+                text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                className: 'btn btn-success btn-sm',
+                action: function ( e, dt, node, config ) {
+                    // Redirect to export URL with current date filters
+                    var start = $('#start_date').val();
+                    var end = $('#end_date').val();
+                    window.location.href = "{{ route('import.stm_ofc_csopdetail') }}?export=excel&start_date=" + start + "&end_date=" + end;
+                }
             }
         ],
         language: {
@@ -141,7 +155,8 @@
             paginate: {
               previous: "ก่อนหน้า",
               next: "ถัดไป"
-            }
+            },
+            processing: "กำลังโหลดข้อมูล..."
         }
       });
     });

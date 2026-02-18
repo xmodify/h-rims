@@ -38,7 +38,6 @@
                 <table id="stm_ofc_kidney_list" class="table table-modern w-100">
                     <thead>
                         <tr>
-                            <th>FileName</th>
                             <th>Station</th>
                             <th>Hreg</th>                      
                             <th>HN</th>
@@ -47,31 +46,19 @@
                             <th>RID</th>
                             <th>HD</th>                  
                             <th>ค่ารักษาพยาบาลที่เบิก</th> 
+                            <th>เลขที่ใบเสร็จ</th>
+                            <th>วันที่ออกใบเสร็จ</th>
+                            <th>ผู้ออกใบเสร็จ</th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($stm_ofc_kidney_list as $row)          
-                        <tr>
-                            <td class="small fw-bold text-dark">{{ $row->stmdoc }}</td>
-                            <td class="small">{{ $row->station }}</td>
-                            <td class="small text-muted">{{ $row->hreg }}</td>
-                            <td class="text-center fw-bold">{{ $row->hn }}</td>
-                            <td class="text-center small text-muted">{{ $row->invno }}</td>
-                            <td class="text-center">{{ $row->dttran }}</td>
-                            <td class="text-center small">RID: {{ $row->rid }}</td>
-                            <td class="text-center small text-muted">HD: {{ $row->hdflag }}</td>
-                            <td class="text-end fw-bold text-success">{{ number_format($row->amount,2) }}</td> 
-                        </tr>
-                        @endforeach
+                        {{-- DataTables will populate this --}}
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 </div>
-        </div> 
-    </div> 
-</div> 
 @endsection
 
 @push('scripts')
@@ -113,33 +100,79 @@
       });
 
       $('#stm_ofc_kidney_list').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: "{{ route('stm_ofc_kidneydetail') }}",
+            data: function (d) {
+                d.start_date = $('#start_date').val();
+                d.end_date = $('#end_date').val();
+            }
+        },
+        columns: [
+            { data: 'station', name: 'station', className: 'small' },
+            { data: 'hreg', name: 'hreg', className: 'small text-muted' },
+            { data: 'hn', name: 'hn', className: 'text-center fw-bold' },
+            { data: 'invno', name: 'invno', className: 'text-center small text-muted' },
+            { 
+                data: 'dttran', 
+                name: 'dttran', 
+                className: 'text-center',
+                render: function (data, type, row) {
+                    if (!data) return '';
+                    var date = new Date(data);
+                    return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+                }
+            },
+            { 
+                data: 'rid', 
+                name: 'rid', 
+                className: 'text-center small',
+                render: function(data) {
+                    return 'RID: ' + (data ? data : '');
+                }
+            },
+            { 
+                data: 'hdflag', 
+                name: 'hdflag', 
+                className: 'text-center small text-muted',
+                render: function(data) {
+                    return 'HD: ' + (data ? data : '');
+                }
+            },
+            { data: 'amount', name: 'amount', className: 'text-end fw-bold text-success' },
+            { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold' },
+            { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' },
+            { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' } 
+        ],
         dom: '<"row mb-3"' +
-                '<"col-md-6"l>' + // Show รายการ
-                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
+                '<"col-md-6"l>' + 
+                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
               '>' +
               'rt' +
               '<"row mt-3"' +
-                '<"col-md-6"i>' + // Info
-                '<"col-md-6"p>' + // Pagination
+                '<"col-md-6"i>' + 
+                '<"col-md-6"p>' + 
               '>',
         buttons: [
             {
-              extend: 'excelHtml5',
-              text: 'Excel',
-              className: 'btn btn-success',
-              title: 'Statement เบิกจ่ายตรงกรมบัญชีกลาง OFC [ฟอกไต] รายละเอียด'
+                text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                className: 'btn btn-success btn-sm',
+                action: function ( e, dt, node, config ) {
+                    var start = $('#start_date').val();
+                    var end = $('#end_date').val();
+                    window.location.href = "{{ route('stm_ofc_kidneydetail') }}?export=excel&start_date=" + start + "&end_date=" + end;
+                }
             }
         ],
         language: {
             search: "ค้นหา:",
             lengthMenu: "แสดง _MENU_ รายการ",
             info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-            paginate: {
-              previous: "ก่อนหน้า",
-              next: "ถัดไป"
-            }
+            paginate: { previous: "ก่อนหน้า", next: "ถัดไป" },
+            processing: "กำลังโหลดข้อมูล..."
         }
       });
     });
-  </script> 
+  </script>
 @endpush

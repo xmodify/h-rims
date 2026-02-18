@@ -347,8 +347,8 @@
                 buttons: [
                 {
                     extend: 'excelHtml5',
-                    text: 'Excel',
-                    className: 'btn btn-success',
+                    text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                    className: 'btn btn-success btn-sm',
                     title: 'ข้อมูล Statement ประกันสุขภาพ UCS [OP-IP]'
                 }
                 ],

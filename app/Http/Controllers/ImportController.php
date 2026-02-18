@@ -1802,8 +1802,8 @@ class ImportController extends Controller
 
                     $innerName = $zip->statIndex($i)['name'];
 
-                    // Restore strict check: match only XML files starting with STM
-                    if (!preg_match('/STM.*\.xml$/i', $innerName)) {
+                    // Refined check: match XML files containing "STM" anywhere (user requirement)
+                    if (!preg_match('/.*STM.*\.xml$/i', $innerName)) {
                         continue;
                     }
 
@@ -1812,41 +1812,68 @@ class ImportController extends Controller
                         continue;
                     }
 
+                    // Strip BOM if present
+                    $xmlString = preg_replace('/^\xEF\xBB\xBF/', '', $xmlString);
+
                     libxml_use_internal_errors(true);
                     $xml = simplexml_load_string($xmlString);
+
+                    // Encoding Fallback: If UTF-8 fails or characters are mangled, try TIS-620
+                    if ($xml === false || (strpos($xmlString, 'encoding="TIS-620"') !== false || strpos($xmlString, 'encoding="windows-874"') !== false)) {
+                        libxml_clear_errors();
+                        $convertedXml = mb_convert_encoding($xmlString, 'UTF-8', 'TIS-620, windows-874, UTF-8');
+                        // Update header if it exists
+                        $convertedXml = preg_replace('/encoding\s*=\s*"[^"]+"/', 'encoding="UTF-8"', $convertedXml);
+                        $xml = simplexml_load_string($convertedXml);
+                    }
+
                     if ($xml === false) {
-                        $errors[] = "ไฟล์ $innerName: รูปแบบ XML ไม่ถูกต้อง";
+                        $libErrors = libxml_get_errors();
+                        $errMsgs = [];
+                        foreach ($libErrors as $error) {
+                            $errMsgs[] = "Line {$error->line}: " . trim($error->message);
+                        }
+                        libxml_clear_errors();
+                        $errors[] = "ไฟล์ $innerName: รูปแบบ XML ไม่ถูกต้อง (" . implode(", ", $errMsgs) . ")";
                         continue;
                     }
 
-                    // 1. Try to find TBill nodes (support various structures)
+                    // 1. Try to find TBill nodes (super robust namespace-agnostic)
                     $bills = [];
 
-                    // Case A: Standard <TBills><TBill>...</TBill></TBills>
-                    if (isset($xml->TBills->TBill)) {
-                        foreach ($xml->TBills->TBill as $b)
-                            $bills[] = $b;
-                    }
-                    // Case B: Direct <TBill>...</TBill> under root
-                    elseif (isset($xml->TBill)) {
-                        foreach ($xml->TBill as $b)
-                            $bills[] = $b;
-                    }
-                    // Case C: Root is TBills, children are TBill
-                    elseif ($xml->getName() == 'TBills' && isset($xml->TBill)) {
-                        foreach ($xml->TBill as $b)
-                            $bills[] = $b;
-                    }
-                    // Case D: Root is STMLIST or similar, look for children
-                    else {
-                        // Attempt to find any TBill children regardless of immediate parent
-                        // overly aggressive xpath might be slow, so let's check direct children first
-                        foreach ($xml->children() as $child) {
-                            if ($child->getName() == 'TBill') {
-                                $bills[] = $child;
-                            } elseif ($child->getName() == 'TBills' && isset($child->TBill)) {
-                                foreach ($child->TBill as $b)
+                    // Case A: Consolidated structural search (Handles most standard and user-provided COCD formats)
+                    if (isset($xml->TBills)) {
+                        foreach ($xml->TBills as $tbGroup) {
+                            $groupCode = (string) ($tbGroup['code'] ?? '');
+                            if (isset($tbGroup->TBill)) {
+                                foreach ($tbGroup->TBill as $b) {
+                                    if (!isset($b->sys) && !empty($groupCode))
+                                        $b->sys = $groupCode;
+                                    if (!isset($b->station) && !empty($groupCode))
+                                        $b->station = '01';
                                     $bills[] = $b;
+                                }
+                            }
+                        }
+                    }
+
+                    // Case B: Global XPath fallback (Bypasses namespaces and deep nesting)
+                    if (empty($bills)) {
+                        $potentialBills = $xml->xpath('//*[local-name()="TBill"]');
+                        if ($potentialBills) {
+                            foreach ($potentialBills as $b) {
+                                // Attempt inheritance from immediate parent TBills if sys is missing
+                                if (!isset($b->sys) || !isset($b->station)) {
+                                    $parents = $b->xpath('parent::*[local-name()="TBills" and @code]');
+                                    if ($parents) {
+                                        $groupCode = (string) $parents[0]['code'];
+                                        if (!isset($b->sys))
+                                            $b->sys = $groupCode;
+                                        if (!isset($b->station))
+                                            $b->station = '01';
+                                    }
+                                }
+                                $bills[] = $b;
                             }
                         }
                     }
@@ -1856,7 +1883,7 @@ class ImportController extends Controller
                         continue;
                     }
 
-                    // 2. Try to find STMdoc / Doc info
+                    // 2. Try to find STMdoc / Doc info (Case Insensitive)
                     $STMdoc = null;
                     if (isset($xml->STMdoc))
                         $STMdoc = (string) $xml->STMdoc;
@@ -1864,6 +1891,14 @@ class ImportController extends Controller
                         $STMdoc = (string) $xml->stmdat->stmno;
                     elseif (isset($xml->stmno))
                         $STMdoc = (string) $xml->stmno;
+                    elseif (isset($xml->STMdat['stmno']))
+                        $STMdoc = (string) $xml->STMdat['stmno'];
+                    elseif (isset($xml->stmdat['stmno']))
+                        $STMdoc = (string) $xml->stmdat['stmno'];
+                    elseif (isset($xml->STMdat['code'])) // Handle case where code is doc
+                        $STMdoc = (string) $xml->STMdat['code'];
+                    elseif (isset($xml->stmdat['code']))
+                        $STMdoc = (string) $xml->stmdat['code'];
 
                     // Fallback to filename if STMdoc is missing
                     if (empty($STMdoc)) {
@@ -1903,40 +1938,49 @@ class ImportController extends Controller
                         }
 
                         $stmType = null;
-                        if (preg_match('/([A-Z]{2}CDSTM)/i', $innerName, $m)) {
+                        if (preg_match('/([A-Z]+STM)/i', $innerName, $m)) {
+                            // Extract something like COCDSTM, LGOSTM, etc.
                             $stmType = strtoupper($m[1]);
+                        } elseif (preg_match('/(CSOP|CIPN|HD|CD)/i', $innerName, $m)) {
+                            // Fallback to common keywords found in filename
+                            $stmType = strtoupper($m[1]) . 'STM'; // Append STM for consistency
+                        } else {
+                            $stmType = 'UNKNOWNSTM';
                         }
 
-                        DB::table('stm_ofc_csop')->updateOrInsert(
-                            [
-                                'round_no' => $STMdoc,
-                                'invno' => $invno,
-                                'station' => (string) $bill->station,
-                                'sys' => (string) $bill->sys,
-                                'hdflag' => (string) ($bill->HDflag ?? $bill->hdflag ?? ''), // handle case sensitivity
-                            ],
-                            [
-                                'stm_type' => $stmType,
-                                'stm_filename' => $innerName,
-                                'hcode' => (string) ($xml->hcode ?? $xml->stmdat->hcode ?? ''),
-                                'hname' => (string) ($xml->hname ?? $xml->stmdat->hname ?? ''),
-                                'acc_period' => (string) ($xml->AccPeriod ?? ''),
-                                'hreg' => (string) $bill->hreg,
-                                'hn' => (string) $bill->hn,
-                                'pt_name' => (string) $bill->namepat,
-                                'vstdate' => $vstdate,
-                                'vsttime' => $vsttime,
-                                'amount' => (float) $bill->amount,
-                                'paid' => (float) $bill->paid,
-                                'extp_code' => $extpCode,
-                                'extp_amount' => $extpAmount,
-                                'rid' => (string) $bill->rid,
-                                'cstat' => (string) $bill->cstat,
-                                'updated_at' => now(),
-                            ]
-                        );
-
-                        $docCounts[$STMdoc]++;
+                        try {
+                            DB::table('stm_ofc_csop')->updateOrInsert(
+                                [
+                                    'invno' => $invno, // Use invno as the unique search key to match DB index
+                                ],
+                                [
+                                    'round_no' => $STMdoc,
+                                    'station' => (string) ($bill->station ?? '01'),
+                                    'sys' => (string) ($bill->sys ?? ''),
+                                    'hdflag' => (string) ($bill->HDflag ?? $bill->hdflag ?? ''),
+                                    'stm_type' => $stmType,
+                                    'stm_filename' => $innerName,
+                                    'hcode' => (string) ($xml->hcode ?? $xml->stmdat->hcode ?? $xml->Hcode ?? ''),
+                                    'hname' => (string) ($xml->hname ?? $xml->stmdat->hname ?? $xml->Hname ?? ''),
+                                    'acc_period' => (string) ($xml->AccPeriod ?? $xml->acc_period ?? ''),
+                                    'hreg' => (string) $bill->hreg,
+                                    'hn' => (string) $bill->hn,
+                                    'pt_name' => (string) ($bill->namepat ?? $bill->pt_name ?? ''),
+                                    'vstdate' => $vstdate,
+                                    'vsttime' => $vsttime,
+                                    'amount' => (float) $bill->amount,
+                                    'paid' => (float) $bill->paid,
+                                    'extp_code' => $extpCode,
+                                    'extp_amount' => $extpAmount,
+                                    'rid' => (string) $bill->rid,
+                                    'cstat' => (string) $bill->cstat,
+                                    'updated_at' => now(),
+                                ]
+                            );
+                            $docCounts[$STMdoc]++;
+                        } catch (\Exception $e) {
+                            $errors[] = "Invoice $invno: " . $e->getMessage();
+                        }
                     }
                 }
 
@@ -4092,18 +4136,17 @@ class ImportController extends Controller
             // Sorting
             if ($request->has('order')) {
                 $columns = [
-                    0 => 'station',
-                    1 => 'hreg',
-                    2 => 'hn',
-                    3 => 'cid',
-                    4 => 'dttran',
-                    5 => 'rid',
-                    6 => 'amount',
-                    7 => 'epopay',
-                    8 => 'epoadm',
-                    9 => 'receive_no',
-                    10 => 'receipt_date',
-                    11 => 'receipt_by'
+                    0 => 'stm_filename',
+                    1 => 'station',
+                    2 => 'hreg',
+                    3 => 'hn',
+                    4 => 'cid',
+                    5 => 'dttran',
+                    6 => 'rid',
+                    7 => 'receive_no',
+                    8 => 'amount',
+                    9 => 'epopay',
+                    10 => 'epoadm'
                 ];
                 foreach ($request->order as $order) {
                     if (isset($columns[$order['column']])) {

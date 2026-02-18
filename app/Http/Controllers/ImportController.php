@@ -2100,7 +2100,9 @@ class ImportController extends Controller
                     'vstdate' => $row->vstdate . ' ' . $row->vsttime,
                     'amount' => number_format($row->amount, 2),
                     'rid' => 'REP: ' . $row->rid,
-                    'receive_no' => $receiptHtml
+                    'receive_no' => $receiptHtml,
+                    'receipt_date' => $row->receipt_date,
+                    'receipt_by' => $row->receipt_by
                 ];
             }
 
@@ -4090,17 +4092,18 @@ class ImportController extends Controller
             // Sorting
             if ($request->has('order')) {
                 $columns = [
-                    0 => 'stm_filename',
-                    1 => 'station',
-                    2 => 'hreg',
-                    3 => 'hn',
-                    4 => 'cid',
-                    5 => 'dttran',
-                    6 => 'rid',
-                    7 => 'receive_no',
-                    8 => 'amount',
-                    9 => 'epopay',
-                    10 => 'epoadm'
+                    0 => 'station',
+                    1 => 'hreg',
+                    2 => 'hn',
+                    3 => 'cid',
+                    4 => 'dttran',
+                    5 => 'rid',
+                    6 => 'amount',
+                    7 => 'epopay',
+                    8 => 'epoadm',
+                    9 => 'receive_no',
+                    10 => 'receipt_date',
+                    11 => 'receipt_by'
                 ];
                 foreach ($request->order as $order) {
                     if (isset($columns[$order['column']])) {

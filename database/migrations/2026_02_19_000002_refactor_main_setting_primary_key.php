@@ -12,21 +12,37 @@ return new class extends Migration {
     public function up(): void
     {
         if (Schema::hasTable('main_setting')) {
-            // Check if 'id' column exists before trying to drop it
+            // 1. Handle the 'id' column and its potential primary key
             if (Schema::hasColumn('main_setting', 'id')) {
                 Schema::table('main_setting', function (Blueprint $table) {
-                    // In some DBs we need to drop primary key first
-                    // But 'id' is often the primary key.
-                    // To be safe and compatible with SQLite/MySQL/PostgreSQL:
+                    $indexes = Schema::getIndexes('main_setting');
+                    $idIsPrimary = collect($indexes)->contains(fn($i) => $i['primary'] && in_array('id', $i['columns']));
+
+                    if ($idIsPrimary) {
+                        $table->dropPrimary();
+                    }
                     $table->dropColumn('id');
                 });
             }
 
-            // Setting 'name' as primary key. 
-            // We use raw SQL to ensure compatibility if Blueprint's primary() fails on existing columns
-            // Actually, in Laravel we can do:
+            // 2. Set 'name' as primary key only if no primary key exists
             Schema::table('main_setting', function (Blueprint $table) {
-                $table->string('name', 100)->change()->primary();
+                $indexes = Schema::getIndexes('main_setting');
+                $hasPrimary = collect($indexes)->contains('primary', true);
+                $nameIsPrimary = collect($indexes)->contains(fn($i) => $i['primary'] && in_array('name', $i['columns']));
+
+                if (!$hasPrimary) {
+                    $table->string('name', 100)->change()->primary();
+                } elseif (!$nameIsPrimary) {
+                    // There is a primary key but not on 'name'. 
+                    // This scenario is unlikely if 'id' was the only other PK and we dropped it,
+                    // but we handle it by dropping the current PK and adding it to 'name'.
+                    $table->dropPrimary();
+                    $table->string('name', 100)->change()->primary();
+                } else {
+                    // 'name' is already the primary key, just ensure the length is correct
+                    $table->string('name', 100)->change();
+                }
             });
         }
     }
@@ -38,8 +54,16 @@ return new class extends Migration {
     {
         if (Schema::hasTable('main_setting')) {
             Schema::table('main_setting', function (Blueprint $table) {
-                $table->dropPrimary(['name']);
-                $table->id()->first();
+                $indexes = Schema::getIndexes('main_setting');
+                $nameIsPrimary = collect($indexes)->contains(fn($i) => $i['primary'] && in_array('name', $i['columns']));
+
+                if ($nameIsPrimary) {
+                    $table->dropPrimary();
+                }
+
+                if (!Schema::hasColumn('main_setting', 'id')) {
+                    $table->id()->first();
+                }
             });
         }
     }

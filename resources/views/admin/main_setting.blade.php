@@ -275,9 +275,7 @@
                         confirmButtonText: 'ตกลง',
                         confirmButtonColor: '#0a4d2c'
                     }).then(() => {
-                        if (isSuccess && data.output.includes('Updating')) {
-                            window.location.reload();
-                        }
+                        window.location.href = "{{ route('admin.main_setting') }}";
                     });
 
                     window.showGitDetail = function() {
@@ -415,6 +413,8 @@
                 showConfirmButton: true,
                 confirmButtonText: 'ตกลง',
                 confirmButtonColor: '#0a4d2c'
+            }).then(() => {
+                window.location.href = "{{ route('admin.main_setting') }}";
             });
         });
 

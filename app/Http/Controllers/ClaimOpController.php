@@ -1985,6 +1985,7 @@ class ClaimOpController extends Controller
                 FROM opitemrece op
                 INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs = "Y"
                 WHERE op.vstdate BETWEEN ? AND ?
+                AND op.paidst = "02"
                 GROUP BY op.vn
             ) ppfs ON ppfs.vn = o.vn           
             LEFT JOIN ( 
@@ -2020,17 +2021,18 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             INNER JOIN (
                 SELECT op.vn, 
-                    GROUP_CONCAT(DISTINCT IFNULL(d.`name`, n.`name`)) AS claim_list,
+                    GROUP_CONCAT(DISTINCT IFNULL(n.`name`, d.`name`)) AS claim_list,
                     SUM(op.sum_price) AS claim_price
                 FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON li.icode = li.icode AND li.ppfs = "Y"
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs = "Y"
                 LEFT JOIN nondrugitems n ON n.icode = op.icode
                 LEFT JOIN drugitems d ON d.icode = op.icode
                 WHERE op.vstdate BETWEEN ? AND ?
+                AND op.paidst = "02"
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
-            LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
+
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
                 GROUP_CONCAT(DISTINCT repno) AS repno FROM hrims.stm_ucs
@@ -2065,6 +2067,7 @@ class ClaimOpController extends Controller
                 LEFT JOIN nondrugitems n ON n.icode = op.icode
                 LEFT JOIN drugitems d ON d.icode = op.icode
                 WHERE op.vstdate BETWEEN ? AND ?
+                AND op.paidst = "02"
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"

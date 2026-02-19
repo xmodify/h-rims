@@ -121,8 +121,8 @@
                                     <th class="text-center">PDX | ICD9</th>
                                     <th class="text-center small">ค่ารักษา</th> 
                                     <th class="text-center small">ชำระเอง</th>
-                                    <th class="text-center small" width="10%">รายการเรียกเก็บ</th>  
                                     <th class="text-center text-primary small">เรียกเก็บ</th> 
+                                    <th class="text-center small" width="10%">รายการเรียกเก็บ</th>  
                                 </tr>
                             </thead> 
                             <tbody> 
@@ -155,8 +155,8 @@
                                     </td>
                                     <td class="text-end small">{{ number_format($row->income,2) }}</td>              
                                     <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
-                                    <td class="text-start small text-muted text-wrap">{{ $row->claim_list }}</td>   
                                     <td class="text-end fw-bold text-primary small">{{ number_format($row->claim_price,2) }}</td>         
+                                    <td class="text-start small text-muted text-wrap">{{ $row->claim_list }}</td>   
                                 </tr>
                                 @php 
                                     $count++; 
@@ -171,8 +171,8 @@
                                     <th colspan="10" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
-                                    <th></th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>
+                                    <th></th>
                                 </tr>
                             </tfoot>
                         </table>

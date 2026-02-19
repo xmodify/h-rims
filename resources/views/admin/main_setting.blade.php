@@ -279,25 +279,34 @@
                 })
                 .then(response => response.json())
                 .then(data => {
-                    outputBox.textContent = data.output || data.error || 'ไม่มีข้อมูล';
-                    if (data.output && (data.output.includes('Updating') || data.output.includes('Already up to date'))) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'อัปเกรดสำเร็จ',
-                            text: 'ระบบจะทำการ Refresh ใน 3 วินาที',
-                            timer: 3000,
-                            timerProgressBar: true,
-                            showConfirmButton: false
-                        }).then(() => {
+                    const outputText = data.output || data.error || 'ไม่มีข้อมูล';
+                    outputBox.textContent = outputText;
+                    
+                    const isSuccess = data.output && (data.output.includes('Updating') || data.output.includes('Already up to date'));
+                    
+                    Swal.fire({
+                        icon: isSuccess ? 'success' : 'info',
+                        title: isSuccess ? 'Git Pull สำเร็จ' : 'Git Pull Finished',
+                        text: isSuccess ? 'ระบบทำการดึงข้อมูลโค้ดล่าสุดจาก Server เรียบร้อยแล้ว' : 'กรุณาตรวจสอบผลการทำงาน',
+                        footer: `<button class="btn btn-sm btn-info text-white rounded-pill px-3 shadow-sm" onclick="showGitDetail()">ดูรายละเอียด Git Output</button>`,
+                        showConfirmButton: true,
+                        confirmButtonText: 'ตกลง',
+                        confirmButtonColor: '#0a4d2c'
+                    }).then(() => {
+                        if (isSuccess && data.output.includes('Updating')) {
                             window.location.reload();
-                        });
-                    } else {
+                        }
+                    });
+
+                    window.showGitDetail = function() {
                         Swal.fire({
-                            icon: 'info',
-                            title: 'Git Pull Finished',
-                            text: 'กรุณาตรวจสอบ Output ด้านล่าง'
+                            title: 'Git Pull Output',
+                            html: '<pre class="text-start bg-light p-3 small border rounded-3" style="max-height: 400px; overflow-y: auto; white-space: pre-wrap; font-family: monospace;">' + outputText + '</pre>',
+                            width: '800px',
+                            confirmButtonText: 'ปิด',
+                            confirmButtonColor: '#6c757d'
                         });
-                    }
+                    };
                 })
                 .catch(error => {
                     outputBox.textContent = "เกิดข้อผิดพลาด: " + error;

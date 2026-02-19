@@ -38,7 +38,7 @@ class LookupIcodeController extends Controller
         return redirect()->route('admin.lookup_icode.index')->with('success', 'เพิ่มข้อมูลสำเร็จ');
     }
 
-    public function show(Lookup_icode $icode)
+    public function show(LookupIcode $icode)
     {
         //
     }

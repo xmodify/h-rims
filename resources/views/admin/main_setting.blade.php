@@ -28,18 +28,6 @@
         </div>
     </div>
 
-    <!-- Git Output Panel (Hidden by default) -->
-    <div id="gitOutputWrapper" style="display: none;" class="mb-4">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-2">
-                <span class="small fw-bold"><i class="bi bi-terminal me-2"></i> Git Output</span>
-                <button type="button" class="btn-close btn-close-white" onclick="document.getElementById('gitOutputWrapper').style.display='none'"></button>
-            </div>
-            <div class="card-body bg-light p-0">
-                <pre id="gitOutput" class="mb-0 p-3 small text-dark" style="max-height: 200px; overflow-y: auto;"></pre>
-            </div>
-        </div>
-    </div>
 
     <div class="row">
         @php $i = 1; @endphp
@@ -258,11 +246,6 @@
             confirmButtonColor: '#d33',
         }).then((result) => {
             if (result.isConfirmed) {
-                let outputBox = document.getElementById('gitOutput');
-                let wrapper = document.getElementById('gitOutputWrapper');
-                
-                wrapper.style.display = 'block';
-                outputBox.textContent = 'กำลังดำเนินการ Git Pull... กรุณารอสักครู่';
                 
                 Swal.fire({
                     title: 'กำลังอัปเดต...',
@@ -280,7 +263,6 @@
                 .then(response => response.json())
                 .then(data => {
                     const outputText = data.output || data.error || 'ไม่มีข้อมูล';
-                    outputBox.textContent = outputText;
                     
                     const isSuccess = data.output && (data.output.includes('Updating') || data.output.includes('Already up to date'));
                     
@@ -309,7 +291,6 @@
                     };
                 })
                 .catch(error => {
-                    outputBox.textContent = "เกิดข้อผิดพลาด: " + error;
                     Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: error });
                 });
             }

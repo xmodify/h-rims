@@ -12,6 +12,8 @@ class AmnosendController extends Controller
 {
     public function send(Request $request)
     {
+        set_time_limit(0);
+        
     // 1) โหลดค่าพื้นฐานจาก main_setting-------------------------------------------------------------------------
         $token    = DB::table('main_setting')->where('name', 'opoh_token')->value('value');
         $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value');

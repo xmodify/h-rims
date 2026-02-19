@@ -288,7 +288,7 @@
                             confirmButtonText: 'ปิด',
                             confirmButtonColor: '#6c757d'
                         }).then(() => {
-                            if (isSuccess && data.output.includes('Updating')) {
+                            if (isSuccess) {
                                 window.location.href = "{{ route('admin.main_setting') }}";
                             }
                         });

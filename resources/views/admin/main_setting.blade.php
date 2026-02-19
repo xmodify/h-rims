@@ -274,8 +274,10 @@
                         showConfirmButton: true,
                         confirmButtonText: 'ตกลง',
                         confirmButtonColor: '#0a4d2c'
-                    }).then(() => {
-                        window.location.href = "{{ route('admin.main_setting') }}";
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = "{{ route('admin.main_setting') }}";
+                        }
                     });
 
                     window.showGitDetail = function() {
@@ -285,6 +287,10 @@
                             width: '800px',
                             confirmButtonText: 'ปิด',
                             confirmButtonColor: '#6c757d'
+                        }).then(() => {
+                            if (isSuccess && data.output.includes('Updating')) {
+                                window.location.href = "{{ route('admin.main_setting') }}";
+                            }
                         });
                     };
                 })
@@ -413,8 +419,10 @@
                 showConfirmButton: true,
                 confirmButtonText: 'ตกลง',
                 confirmButtonColor: '#0a4d2c'
-            }).then(() => {
-                window.location.href = "{{ route('admin.main_setting') }}";
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = "{{ route('admin.main_setting') }}";
+                }
             });
         });
 
@@ -426,6 +434,8 @@
                 width: '800px',
                 confirmButtonText: 'ปิด',
                 confirmButtonColor: '#6c757d'
+            }).then(() => {
+                window.location.href = "{{ route('admin.main_setting') }}";
             });
         }
     @endif

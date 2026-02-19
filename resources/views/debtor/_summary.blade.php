@@ -2,7 +2,7 @@
 
 @section('content')
     <!-- Page Header & Logic Filters -->
-    <div class="page-header-box mt-2 mb-3 d-flex justify-content-between align-items-center">
+    <div class="page-header-box mt-2 mb-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center flex-wrap">
         <div>
             <h4 class="text-primary mb-0 fw-bold">
                 <i class="bi bi-file-earmark-spreadsheet-fill me-2"></i>

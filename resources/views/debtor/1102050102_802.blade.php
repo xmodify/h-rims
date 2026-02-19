@@ -18,7 +18,7 @@
 @section('content')
 @section('content')
     <!-- Page Header & Logic Filters -->
-    <div class="page-header-box mt-2 mb-3 d-flex justify-content-between align-items-center">
+    <div class="page-header-box mt-2 mb-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center flex-wrap">
         <div>
             <h4 class="text-primary mb-0 fw-bold">
                 <i class="bi bi-building-check me-2"></i>
@@ -30,7 +30,7 @@
         <div class="d-flex align-items-center gap-4">
             <!-- Filter Section -->
             <div class="filter-group">
-                <form method="POST" enctype="multipart/form-data" class="m-0 d-flex align-items-center gap-2">
+                <form method="POST" enctype="multipart/form-data" class="m-0 d-flex flex-wrap align-items-center gap-2">
                     @csrf
                     
                     <!-- Date Range -->
@@ -44,7 +44,7 @@
                     </div>
 
                     <!-- Search Input -->
-                    <div class="input-group input-group-sm" style="width: 220px;">
+                    <div class="input-group input-group-sm" style="min-width: 220px; flex: 1;">
                         <span class="input-group-text bg-white text-muted border-end-0"><i class="bi bi-search"></i></span>
                         <input id="search" type="text" class="form-control border-start-0" name="search" value="{{ $search }}" placeholder="ชื่อ-สกุล, HN, AN">
                     </div>
@@ -102,7 +102,7 @@
                                 </a> 
                             </div>
                         </div>
-                        <table id="debtor" class="table table-bordered table-striped my-3" width="100%">
+                        <div class="table-responsive"><table id="debtor" class="table table-bordered table-striped my-3" width="100%">
                             <thead>
                             <tr class="table-success">
                                 <th class="text-left text-primary" colspan = "12">1102050102.802-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.IP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</th> 
@@ -215,7 +215,7 @@
                                     <td colspan="3"></td>
                                 </tr>
                             </tfoot>
-                        </table>
+                        </table></div>
                     </form>
                 </div>
 
@@ -229,7 +229,7 @@
                             </button>
                             <div></div>
                         </div>
-                        <table id="debtor_search" class="table table-bordered table-striped my-3" width="100%">
+                        <div class="table-responsive"><table id="debtor_search" class="table table-bordered table-striped my-3" width="100%">
                             <thead>
                             <tr class="table-secondary">
                                 <th class="text-left text-primary" colspan = "17">1102050102.802-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.IP รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                         
@@ -277,7 +277,7 @@
                             <?php $count++; ?>
                             @endforeach 
                             </tr> 
-                        </table>
+                        </table></div>
                     </form>
                 </div>
             </div>

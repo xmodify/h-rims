@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
     <script>
         function toggle_d(source) {
             checkbox = document.getElementsByName('checkbox_d[]');
@@ -17,7 +17,7 @@
     </script>    
 @section('content')
     <!-- Page Header & Logic Filters -->
-    <div class="page-header-box mt-2 mb-3 d-flex justify-content-between align-items-center">
+    <div class="page-header-box mt-2 mb-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center flex-wrap">
         <div>
             <h4 class="text-primary mb-0 fw-bold">
                 <i class="bi bi-wallet2 me-2"></i>
@@ -29,7 +29,7 @@
         <div class="d-flex align-items-center gap-4">
             <!-- Filter Section -->
             <div class="filter-group">
-                <form method="POST" action="{{ url('debtor/1102050101_301') }}" enctype="multipart/form-data" class="m-0 d-flex align-items-center gap-2">
+                <form method="POST" action="{{ url('debtor/1102050101_301') }}" enctype="multipart/form-data" class="m-0 d-flex flex-wrap align-items-center gap-2">
                     @csrf
                     
                     <!-- Date Range -->
@@ -45,7 +45,7 @@
 
 
                     <!-- Search Input -->
-                    <div class="input-group input-group-sm" style="width: 220px;">
+                    <div class="input-group input-group-sm" style="min-width: 220px; flex: 1;">
                         <span class="input-group-text bg-white text-muted border-end-0"><i class="bi bi-search"></i></span>
                         <input id="search" type="text" class="form-control border-start-0" name="search" value="{{ $search }}" placeholder="ค้นหา ชื่อ-สกุล, HN, AN">
                     </div>
@@ -107,7 +107,7 @@
                         </a> 
                     </div>
                 </div>
-                <table id="debtor" class="table table-bordered table-striped my-3" width="100%">
+                <div class="table-responsive"><table id="debtor" class="table table-bordered table-striped my-3" width="100%">
                     <thead>
                     <tr class="table-success">
                         <th class="text-left text-primary" colspan = "10">1102050101.301-ลูกหนี้ค่ารักษา ประกันสังคม OP-เครือข่าย วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</th> 
@@ -214,7 +214,7 @@
                             <td colspan="3"></td>
                         </tr>
                     </tfoot>
-                </table>
+                </table></div>
             </form>
                 </div>
                 
@@ -227,7 +227,7 @@
                     <button type="button" class="btn btn-outline-success btn-sm"  onclick="confirmSubmit()">ยืนยันลูกหนี้</button>
                     <div></div>
                 </div>                
-                <table id="debtor_search" class="table table-bordered table-striped my-3" width="100%">
+                <div class="table-responsive"><table id="debtor_search" class="table table-bordered table-striped my-3" width="100%">
                     <thead>
                     <tr class="table-secondary">
                         <th class="text-left text-primary" colspan = "13">1102050101.301-ลูกหนี้ค่ารักษา ประกันสังคม OP-เครือข่าย รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                         
@@ -292,7 +292,7 @@
                             <td colspan="2"></td>
                         </tr>
                     </tfoot>
-                </table>
+                </table></div>
             </form>
             </div>
         </div>

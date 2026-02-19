@@ -31,7 +31,7 @@ class LookupWardController extends Controller
      */
     public function store(Request $request)
     {
-       $request->validate([
+        $request->validate([
             'ward' => 'required|unique:lookup_ward,ward',
             'ward_name' => 'required',
         ]);
@@ -70,7 +70,7 @@ class LookupWardController extends Controller
             'ward_name' => 'required'
         ]);
 
-        $data = [           
+        $data = [
             'ward_name' => $request->ward_name,
             'bed_qty' => $request->bed_qty,
             'ward_normal' => $request->has('ward_normal') ? 'Y' : '',
@@ -80,7 +80,7 @@ class LookupWardController extends Controller
             'ward_lr' => $request->has('ward_lr') ? 'Y' : '',
             'ward_homeward' => $request->has('ward_homeward') ? 'Y' : '',
 
-        ]; 
+        ];
 
         $item->update($data);
 
@@ -93,29 +93,46 @@ class LookupWardController extends Controller
         return redirect()->route('admin.lookup_ward.index')->with('success', 'ลบข้อมูลเรียบร้อย');
     }
 
-   public function insert_lookup_ward(Request $request)
-{
-    $hosxp_data = DB::connection('hosxp')->select('
+    public function insert_lookup_ward(Request $request)
+    {
+        $hosxp_data = DB::connection('hosxp')->select('
         SELECT ward, `name` AS ward_name FROM ward WHERE ward_active = "Y"');
 
-    foreach ($hosxp_data as $row) {
-        $check = LookupWard::where('ward', $row->ward)->count();
+        foreach ($hosxp_data as $row) {
+            $check = LookupWard::where('ward', $row->ward)->count();
 
-        if ($check > 0) {
-            DB::table('lookup_ward')
-                ->where('ward', $row->ward) // เพิ่มบรรทัดนี้เพื่อ update เฉพาะ record
-                ->update([
+            if ($check > 0) {
+                DB::table('lookup_ward')
+                    ->where('ward', $row->ward) // เพิ่มบรรทัดนี้เพื่อ update เฉพาะ record
+                    ->update([
+                        'ward_name' => $row->ward_name
+                    ]);
+            } else {
+                DB::table('lookup_ward')->insert([
+                    'ward' => $row->ward,
                     'ward_name' => $row->ward_name
                 ]);
-        } else {
-            DB::table('lookup_ward')->insert([
-                'ward' => $row->ward,
-                'ward_name' => $row->ward_name
-            ]);
+            }
         }
+
+        return redirect()->route('admin.lookup_ward.index')->with('success', 'นำเข้าข้อมูลสำเร็จ');
     }
 
-    return redirect()->route('admin.lookup_ward.index')->with('success', 'นำเข้าข้อมูลสำเร็จ');
-}
+    public function search_wards(Request $request)
+    {
+        $search = $request->q;
 
+        $sql = '
+            SELECT ward, name AS ward_name
+            FROM ward 
+            WHERE (ward LIKE ? OR name LIKE ?) 
+            AND ward_active = "Y"
+            AND ward NOT IN (SELECT ward FROM hrims.lookup_ward)
+            LIMIT 50';
+
+        $params = ["%$search%", "%$search%"];
+        $items = DB::connection('hosxp')->select($sql, $params);
+
+        return response()->json($items);
+    }
 }

@@ -806,7 +806,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item d-flex align-items-center"> 
                             <div class="nav-version-badge">
-                                V.69-02-18 20:30
+                                V.69-02-19 11:00
                             </div>   
                         </li>                         
                         <!-- Authentication Links -->
@@ -841,7 +841,11 @@
                                         @endif
                                     @endauth
                                     <!-- -->
-                                    <a class="dropdown-item dropdown-item-modern" href="{{ route('logout') }}"
+                                    <div class="dropdown-divider opacity-10"></div>
+                                    <a class="dropdown-item dropdown-item-modern" href="#" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                                        <i class="bi bi-shield-lock me-2 text-primary"></i> Change Password
+                                    </a>
+                                    <a class="dropdown-item dropdown-item-modern text-danger" href="{{ route('logout') }}"
                                        onclick="event.preventDefault();
                                                      document.getElementById('logout-form').submit();">
                                         {{ __('Logout') }}
@@ -887,6 +891,72 @@
     <!-- Stack for per-page script -->
     @stack('scripts')
     
+    @auth
+    <!-- Change Password Modal -->
+    <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form method="POST" action="{{ route('profile.password.update') }}" class="modal-content border-0 shadow-lg" id="changePasswordForm">
+                @csrf
+                @method('PUT')
+                <div class="modal-header bg-primary text-white py-3 border-0">
+                    <h5 class="modal-title fw-bold">
+                        <i class="bi bi-shield-lock me-2"></i> เปลี่ยนรหัสผ่าน
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label for="current_password" class="form-label fw-bold">รหัสผ่านปัจจุบัน</label>
+                        <input type="password" class="form-control bg-light @error('current_password') is-invalid @enderror" 
+                               name="current_password" required placeholder="กรอกรหัสผ่านเดิม">
+                        @error('current_password')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <hr class="my-4 opacity-10">
+                    <div class="mb-3">
+                        <label for="new_password" class="form-label fw-bold">รหัสผ่านใหม่</label>
+                        <input type="password" class="form-control bg-light @error('new_password') is-invalid @enderror" 
+                               name="new_password" required placeholder="อย่างน้อย 8 ตัวอักษร">
+                        @error('new_password')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="mb-1">
+                        <label for="new_password_confirmation" class="form-label fw-bold">ยืนยันรหัสผ่านใหม่</label>
+                        <input type="password" class="form-control bg-light" 
+                               name="new_password_confirmation" required placeholder="กรอกรหัสผ่านใหม่ให้ตรงกัน">
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0">
+                    <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-primary px-4 rounded-pill">บันทึกรหัสผ่านใหม่</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Re-open modal if there are errors
+            @if($errors->has('current_password') || $errors->has('new_password'))
+                var myModal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
+                myModal.show();
+            @endif
+
+            @if(session('success') && !session('migrate_output'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'สำเร็จ!',
+                    text: '{{ session('success') }}',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    borderRadius: '15px'
+                });
+            @endif
+        });
+    </script>
+    @endauth
 
 </body>
 </html>

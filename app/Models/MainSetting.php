@@ -12,13 +12,16 @@ class MainSetting extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $table = 'main_setting'; 
-    protected $primaryKey = 'id';
+    protected $table = 'main_setting';
+    protected $primaryKey = 'name';
+    public $incrementing = false;
+    protected $keyType = 'string';
+
     protected $fillable = [
         'name',
         'name_th',
         'value',
     ];
-    public $timestamps = false;   
-    
+    public $timestamps = false;
+
 }

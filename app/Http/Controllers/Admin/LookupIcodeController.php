@@ -11,8 +11,14 @@ class LookupIcodeController extends Controller
 {
     public function index()
     {
-        $data = LookupIcode::all();
-        return view('admin.lookup_icode.index', compact('data'));
+        $all = LookupIcode::all();
+        $uc_cr = $all->where('uc_cr', 'Y');
+        $ppfs = $all->where('ppfs', 'Y');
+        $herb32 = $all->where('herb32', 'Y');
+        $kidney = $all->where('kidney', 'Y');
+        $ems = $all->where('ems', 'Y');
+
+        return view('admin.lookup_icode.index', compact('all', 'uc_cr', 'ppfs', 'herb32', 'kidney', 'ems'));
     }
 
     public function create()
@@ -52,7 +58,7 @@ class LookupIcodeController extends Controller
             'name' => 'required'
         ]);
 
-        $data = [           
+        $data = [
             'name' => $request->name,
             'nhso_adp_code' => $request->nhso_adp_code,
             'uc_cr' => $request->has('uc_cr') ? 'Y' : '',
@@ -60,13 +66,13 @@ class LookupIcodeController extends Controller
             'herb32' => $request->has('herb32') ? 'Y' : '',
             'kidney' => $request->has('kidney') ? 'Y' : '',
             'ems' => $request->has('ems') ? 'Y' : '',
-        ]; 
+        ];
 
         $item->update($data);
 
         return redirect()->route('admin.lookup_icode.index')->with('success', 'แก้ไขข้อมูลสำเร็จ');
     }
-   
+
 
     public function destroy($icode)
     {
@@ -88,31 +94,31 @@ class LookupIcodeController extends Controller
             FROM drugitems d
             WHERE d.icode NOT IN (SELECT icode FROM hrims.lookup_icode)
             AND d.nhso_adp_code IN ("STEMI1")');
-        
+
         foreach ($hosxp_data as $row) {
             $check = LookupIcode::where('icode', $row->icode)->count();
             if ($check > 0) {
                 DB::table('lookup_icode')
-                ->where('icode', $row->icode) // เพิ่มบรรทัดนี้เพื่อ update เฉพาะ record
-                ->update([
-                    'name' => $row->name,
-                    'nhso_adp_code' => $row->nhso_adp_code,  
-                    'uc_cr' => "Y", 
-                    'updated_at' => now(),
-                ]);
+                    ->where('icode', $row->icode) // เพิ่มบรรทัดนี้เพื่อ update เฉพาะ record
+                    ->update([
+                        'name' => $row->name,
+                        'nhso_adp_code' => $row->nhso_adp_code,
+                        'uc_cr' => "Y",
+                        'updated_at' => now(),
+                    ]);
             } else {
                 DB::table('lookup_icode')
-                ->insert([
-                    'icode' => $row->icode,
-                    'name' => $row->name,
-                    'nhso_adp_code' => $row->nhso_adp_code,
-                    'uc_cr' => "Y",
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+                    ->insert([
+                        'icode' => $row->icode,
+                        'name' => $row->name,
+                        'nhso_adp_code' => $row->nhso_adp_code,
+                        'uc_cr' => "Y",
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
             }
         }
-        return redirect()->route('admin.lookup_icode.index')->with('success', 'นำเข้าข้อมูลสำเร็จ'); 
+        return redirect()->route('admin.lookup_icode.index')->with('success', 'นำเข้าข้อมูลสำเร็จ');
     }
 
     public function insert_lookup_ppfs(Request $request)
@@ -129,31 +135,31 @@ class LookupIcodeController extends Controller
             FROM drugitems d
                 WHERE d.icode NOT IN (SELECT icode FROM hrims.lookup_icode)
                 AND d.nhso_adp_code IN ("FP001","FP002","FP002_1","FP002_2","FP003_1","FP003_2","FP003_3","FP003_4")');
-        
+
         foreach ($hosxp_data as $row) {
             $check = LookupIcode::where('icode', $row->icode)->count();
             if ($check > 0) {
                 DB::table('lookup_icode')
-                ->where('icode', $row->icode) // เพิ่มบรรทัดนี้เพื่อ update เฉพาะ record
-                ->update([
-                    'name' => $row->name,
-                    'nhso_adp_code' => $row->nhso_adp_code, 
-                    'ppfs' => "Y",  
-                    'updated_at' => now(),
-                ]);
+                    ->where('icode', $row->icode) // เพิ่มบรรทัดนี้เพื่อ update เฉพาะ record
+                    ->update([
+                        'name' => $row->name,
+                        'nhso_adp_code' => $row->nhso_adp_code,
+                        'ppfs' => "Y",
+                        'updated_at' => now(),
+                    ]);
             } else {
                 DB::table('lookup_icode')
-                ->insert([
-                    'icode' => $row->icode,
-                    'name' => $row->name,
-                    'nhso_adp_code' => $row->nhso_adp_code,
-                    'ppfs' => "Y",
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+                    ->insert([
+                        'icode' => $row->icode,
+                        'name' => $row->name,
+                        'nhso_adp_code' => $row->nhso_adp_code,
+                        'ppfs' => "Y",
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
             }
         }
-        return redirect()->route('admin.lookup_icode.index')->with('success', 'นำเข้าข้อมูลสำเร็จ'); 
+        return redirect()->route('admin.lookup_icode.index')->with('success', 'นำเข้าข้อมูลสำเร็จ');
     }
     public function insert_lookup_herb32(Request $request)
     {
@@ -162,31 +168,54 @@ class LookupIcodeController extends Controller
             FROM drugitems 
             WHERE icode NOT IN (SELECT icode FROM hrims.lookup_icode)
             AND (ttmt_code <>"" OR ttmt_code IS NOT NULL) ');
-        
+
         foreach ($hosxp_data as $row) {
             $check = LookupIcode::where('icode', $row->icode)->count();
             if ($check > 0) {
                 DB::table('lookup_icode')
-                ->where('icode', $row->icode) // เพิ่มบรรทัดนี้เพื่อ update เฉพาะ record
-                ->update([
-                    'name' => $row->name,
-                    'nhso_adp_code' => $row->nhso_adp_code, 
-                    'herb32' => "Y",  
-                    'updated_at' => now(),
-                ]);
+                    ->where('icode', $row->icode) // เพิ่มบรรทัดนี้เพื่อ update เฉพาะ record
+                    ->update([
+                        'name' => $row->name,
+                        'nhso_adp_code' => $row->nhso_adp_code,
+                        'herb32' => "Y",
+                        'updated_at' => now(),
+                    ]);
             } else {
                 DB::table('lookup_icode')
-                ->insert([
-                    'icode' => $row->icode,
-                    'name' => $row->name,
-                    'nhso_adp_code' => $row->nhso_adp_code,
-                    'herb32' => "Y",
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+                    ->insert([
+                        'icode' => $row->icode,
+                        'name' => $row->name,
+                        'nhso_adp_code' => $row->nhso_adp_code,
+                        'herb32' => "Y",
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
             }
         }
-        return redirect()->route('admin.lookup_icode.index')->with('success', 'นำเข้าข้อมูลสำเร็จ'); 
+        return redirect()->route('admin.lookup_icode.index')->with('success', 'นำเข้าข้อมูลสำเร็จ');
     }
 
+    public function search_items(Request $request)
+    {
+        $search = $request->q;
+
+        $sql = '
+            SELECT icode, name, nhso_adp_code 
+            FROM nondrugitems 
+            WHERE (icode LIKE ? OR name LIKE ?) 
+            AND istatus = "Y"
+            AND icode NOT IN (SELECT icode FROM hrims.lookup_icode)
+            UNION
+            SELECT icode, name, nhso_adp_code 
+            FROM drugitems 
+            WHERE (icode LIKE ? OR name LIKE ?) 
+            AND istatus = "Y"
+            AND icode NOT IN (SELECT icode FROM hrims.lookup_icode)
+            LIMIT 50';
+
+        $params = ["%$search%", "%$search%", "%$search%", "%$search%"];
+        $items = DB::connection('hosxp')->select($sql, $params);
+
+        return response()->json($items);
+    }
 }

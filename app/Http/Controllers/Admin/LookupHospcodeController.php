@@ -31,7 +31,7 @@ class LookupHospcodeController extends Controller
      */
     public function store(Request $request)
     {
-            $request->validate([
+        $request->validate([
             'hospcode' => 'required|unique:lookup_hospcode,hospcode',
             'hospcode_name' => 'required',
         ]);
@@ -69,12 +69,12 @@ class LookupHospcodeController extends Controller
             'hospcode_name' => 'required'
         ]);
 
-        $data = [           
+        $data = [
             'hospcode_name' => $request->hospcode_name,
             'hmain_ucs' => $request->has('hmain_ucs') ? 'Y' : '',
             'hmain_sss' => $request->has('hmain_sss') ? 'Y' : '',
             'in_province' => $request->has('in_province') ? 'Y' : '',
-        ]; 
+        ];
 
         $item->update($data);
 
@@ -88,5 +88,22 @@ class LookupHospcodeController extends Controller
     {
         LookupHospcode::destroy($hospcode);
         return redirect()->route('admin.lookup_hospcode.index')->with('success', 'ลบข้อมูลเรียบร้อย');
+    }
+
+    public function search_hospcodes(Request $request)
+    {
+        $search = $request->q;
+
+        $sql = '
+            SELECT hospcode, name AS hospcode_name
+            FROM hospcode 
+            WHERE (hospcode LIKE ? OR name LIKE ?) 
+            AND hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode)
+            LIMIT 50';
+
+        $params = ["%$search%", "%$search%"];
+        $items = DB::connection('hosxp')->select($sql, $params);
+
+        return response()->json($items);
     }
 }

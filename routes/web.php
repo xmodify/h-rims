@@ -18,17 +18,18 @@ use App\Http\Controllers\ClaimOpController;
 use App\Http\Controllers\ClaimIpController;
 use App\Http\Controllers\MishosController;
 use App\Http\Controllers\DebtorController;
+use App\Http\Controllers\ProfileController;
 
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
 */
+
+Route::middleware(['auth'])->group(function () {
+    Route::put('profile/password', [ProfileController::class, 'updatePassword'])->name('profile.password.update');
+});
+
 Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(function () {
     Route::post('/git-pull', function () {
         try {
@@ -40,14 +41,17 @@ Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(
     })->name('git.pull');
     Route::resource('users', UserController::class);
     Route::get('main_setting', [MainSettingController::class, 'index'])->name('main_setting');
-    Route::put('main_setting/{id}', [MainSettingController::class, 'update']);
+    Route::put('main_setting/{name}', [MainSettingController::class, 'update']);
     Route::post('main_setting/up_structure', [MainSettingController::class, 'up_structure'])->name('up_structure');
+    Route::get('lookup_icode/search_items', [LookupIcodeController::class, 'search_items'])->name('lookup_icode.search_items');
     Route::resource('lookup_icode', LookupIcodeController::class)->parameters(['lookup_icode' => 'icode']);
     Route::post('insert_lookup_uc_cr', [LookupIcodeController::class, 'insert_lookup_uc_cr'])->name('insert_lookup_uc_cr');
     Route::post('insert_lookup_ppfs', [LookupIcodeController::class, 'insert_lookup_ppfs'])->name('insert_lookup_ppfs');
     Route::post('insert_lookup_herb32', [LookupIcodeController::class, 'insert_lookup_herb32'])->name('insert_lookup_herb32');
+    Route::get('lookup_ward/search_wards', [LookupWardController::class, 'search_wards'])->name('lookup_ward.search_wards');
     Route::resource('lookup_ward', LookupWardController::class)->parameters(['lookup_ward' => 'ward']);
     Route::post('insert_lookup_ward', [LookupWardController::class, 'insert_lookup_ward'])->name('insert_lookup_ward');
+    Route::get('lookup_hospcode/search_hospcodes', [LookupHospcodeController::class, 'search_hospcodes'])->name('lookup_hospcode.search_hospcodes');
     Route::resource('lookup_hospcode', LookupHospcodeController::class)->parameters(['lookup_hospcode' => 'hospcode']);
     Route::resource('budget_year', BudgetYearController::class)->parameters(['LEAVE_YEAR_ID' => 'LEAVE_YEAR_ID']);
     Route::post('debtor/lock_debtor', [DebtorController::class, 'lock_debtor'])->name('lock_debtor');

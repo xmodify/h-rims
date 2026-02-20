@@ -14,6 +14,10 @@ return new class extends Migration {
         if (Schema::hasTable('main_setting')) {
             // 1. Handle the 'id' column and its potential primary key
             if (Schema::hasColumn('main_setting', 'id')) {
+                // MySQL doesn't allow dropping a primary key on an AUTO_INCREMENT column.
+                // We must remove the auto_increment attribute first.
+                DB::statement('ALTER TABLE main_setting MODIFY COLUMN id INT');
+
                 Schema::table('main_setting', function (Blueprint $table) {
                     $indexes = Schema::getIndexes('main_setting');
                     $idIsPrimary = collect($indexes)->contains(fn($i) => $i['primary'] && in_array('id', $i['columns']));

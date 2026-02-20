@@ -71,7 +71,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="right">{{ $row->adjrw }}</td>                        
                 <td align="right">{{ number_format($row->income,2) }}</td>
                 <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
-                <td align="right">{{ number_format($row->other,2) }}</td>
+                <td align="right">{{ number_format($row->kidney,2) }}</td>
                 <td align="right" class="text-primary">{{ number_format($row->debtor,2) }}</td>  
                 <td align="right" @if($row->receive > 0) style="color:green" 
                     @elseif($row->receive < 0) style="color:red" @endif>
@@ -97,7 +97,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
 
             <?php $sum_rcpt_money += $row->rcpt_money ; ?>
 
-            <?php $sum_other += $row->other ; ?>
+            <?php $sum_other += $row->kidney ; ?>
 
             <?php $sum_debtor += $row->debtor ; ?>
    

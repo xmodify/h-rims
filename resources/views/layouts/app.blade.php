@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,16 +15,17 @@
     <link rel="dns-prefetch" href="//fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=Nunito" rel="stylesheet">
 
-    <!-- Scripts -->    
+    <!-- Scripts -->
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
-    
+
     <!-- DataTables + Buttons + Bootstrap 5 CSS -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-    
+
     <!-- Datepicker Thai -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/css/bootstrap-datepicker.min.css">
+    <link rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/css/bootstrap-datepicker.min.css">
 
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -51,8 +53,8 @@
         .navbar-modern {
             background: var(--nav-gradient) !important;
             padding: 0.5rem 1rem;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            border-bottom: 2px solid rgba(255,255,255,0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
         }
 
         .navbar-brand-modern {
@@ -69,12 +71,12 @@
         }
 
         .navbar-brand-modern:hover {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             transform: scale(1.05);
         }
 
         .nav-link-modern {
-            color: rgba(255,255,255,0.9) !important;
+            color: rgba(255, 255, 255, 0.9) !important;
             font-weight: 600;
             font-size: 0.85rem;
             padding: 8px 16px !important;
@@ -85,15 +87,16 @@
             gap: 4px;
         }
 
-        .nav-link-modern:hover, .nav-link-modern.show {
-            background: rgba(255,255,255,0.15);
+        .nav-link-modern:hover,
+        .nav-link-modern.show {
+            background: rgba(255, 255, 255, 0.15);
             color: #fff !important;
         }
 
         .dropdown-menu-modern {
             border: none;
             border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
             padding: 4px;
             margin-top: 2px !important;
             background: #ffffff !important;
@@ -114,7 +117,7 @@
             padding-left: 20px;
         }
 
-        .dropdown-menu-modern .dropend:hover > .dropdown-menu {
+        .dropdown-menu-modern .dropend:hover>.dropdown-menu {
             display: block;
             top: 0;
             left: 100%;
@@ -124,8 +127,8 @@
 
         .nav-version-badge {
             font-size: 0.7rem;
-            background: rgba(255,255,255,0.1);
-            color: rgba(255,255,255,0.7);
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.7);
             padding: 4px 10px;
             border-radius: 20px;
             font-weight: 700;
@@ -134,9 +137,9 @@
         /* Dash Card Tokens */
         .dash-card {
             background: #ffffff !important;
-            border: 1px solid rgba(0,0,0,0.05) !important;
+            border: 1px solid rgba(0, 0, 0, 0.05) !important;
             border-radius: 16px !important;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05) !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
             overflow: hidden !important;
             height: 100% !important;
@@ -145,7 +148,7 @@
 
         .dash-card:hover {
             transform: translateY(-5px) !important;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1) !important;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1) !important;
         }
 
         .dash-card .card-body {
@@ -180,7 +183,7 @@
             margin-top: auto !important;
             width: 100% !important;
             padding-top: 12px !important;
-            border-top: 1px solid rgba(0,0,0,0.05) !important;
+            border-top: 1px solid rgba(0, 0, 0, 0.05) !important;
             display: flex !important;
             justify-content: space-between !important;
             align-items: center !important;
@@ -196,8 +199,9 @@
         .page-header-box {
             background: #ffffff !important;
             border-radius: 12px !important;
-            padding: 0.85rem 1.5rem !important; /* Slightly more compact */
-            box-shadow: 0 4px 15px rgba(0,0,0,0.03) !important;
+            padding: 0.85rem 1.5rem !important;
+            /* Slightly more compact */
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03) !important;
             border-left: 5px solid var(--nav-green) !important;
             margin-bottom: 1.25rem !important;
             display: flex !important;
@@ -217,44 +221,186 @@
         }
 
         /* Color Accents (Using vibrant Tailwind-like colors) */
-        .accent-1 { border-top: 4px solid #3b82f6 !important; } /* Blue */
-        .accent-2 { border-top: 4px solid #6366f1 !important; } /* Indigo */
-        .accent-3 { border-top: 4px solid #06b6d4 !important; } /* Cyan */
-        .accent-4 { border-top: 4px solid #f59e0b !important; } /* Amber/Yellow */
-        .accent-5 { border-top: 4px solid #f97316 !important; } /* Orange */
-        .accent-6 { border-top: 4px solid #f43f5e !important; } /* Rose */
-        .accent-7 { border-top: 4px solid #ec4899 !important; } /* Pink */
-        .accent-8 { border-top: 4px solid #a855f7 !important; } /* Purple */
-        .accent-9 { border-top: 4px solid #10b981 !important; } /* Emerald */
-        .accent-10 { border-top: 4px solid #22c55e !important; } /* Green */
-        .accent-11 { border-top: 4px solid #ef4444 !important; } /* Red */
-        .accent-12 { border-top: 4px solid #991b1b !important; } /* Maroon */
+        .accent-1 {
+            border-top: 4px solid #3b82f6 !important;
+        }
 
-        .icon-color-1, .text-color-1 { color: #3b82f6 !important; }
-        .icon-color-2, .text-color-2 { color: #6366f1 !important; }
-        .icon-color-3, .text-color-3 { color: #06b6d4 !important; }
-        .icon-color-4, .text-color-4 { color: #f59e0b !important; }
-        .icon-color-5, .text-color-5 { color: #f97316 !important; }
-        .icon-color-6, .text-color-6 { color: #f43f5e !important; }
-        .icon-color-7, .text-color-7 { color: #ec4899 !important; }
-        .icon-color-8, .text-color-8 { color: #a855f7 !important; }
-        .icon-color-9, .text-color-9 { color: #10b981 !important; }
-        .icon-color-10, .text-color-10 { color: #22c55e !important; }
-        .icon-color-11, .text-color-11 { color: #ef4444 !important; }
-        .icon-color-12, .text-color-12 { color: #991b1b !important; }
+        /* Blue */
+        .accent-2 {
+            border-top: 4px solid #6366f1 !important;
+        }
 
-        .icon-bg-1 { background: var(--dash-blue) !important; color: #fff !important; }
-        .icon-bg-2 { background: var(--dash-indigo) !important; color: #fff !important; }
-        .icon-bg-3 { background: var(--dash-cyan) !important; color: #fff !important; }
-        .icon-bg-4 { background: var(--dash-amber) !important; color: #fff !important; }
-        .icon-bg-5 { background: var(--dash-orange) !important; color: #fff !important; }
-        .icon-bg-6 { background: var(--dash-rose) !important; color: #fff !important; }
-        .icon-bg-7 { background: var(--dash-pink) !important; color: #fff !important; }
-        .icon-bg-8 { background: var(--dash-purple) !important; color: #fff !important; }
-        .icon-bg-9 { background: var(--dash-emerald) !important; color: #fff !important; }
-        .icon-bg-10 { background: var(--dash-green) !important; color: #fff !important; }
-        .icon-bg-11 { background: var(--dash-red) !important; color: #fff !important; }
-        .icon-bg-12 { background: var(--dash-maroon) !important; color: #fff !important; }
+        /* Indigo */
+        .accent-3 {
+            border-top: 4px solid #06b6d4 !important;
+        }
+
+        /* Cyan */
+        .accent-4 {
+            border-top: 4px solid #f59e0b !important;
+        }
+
+        /* Amber/Yellow */
+        .accent-5 {
+            border-top: 4px solid #f97316 !important;
+        }
+
+        /* Orange */
+        .accent-6 {
+            border-top: 4px solid #f43f5e !important;
+        }
+
+        /* Rose */
+        .accent-7 {
+            border-top: 4px solid #ec4899 !important;
+        }
+
+        /* Pink */
+        .accent-8 {
+            border-top: 4px solid #a855f7 !important;
+        }
+
+        /* Purple */
+        .accent-9 {
+            border-top: 4px solid #10b981 !important;
+        }
+
+        /* Emerald */
+        .accent-10 {
+            border-top: 4px solid #22c55e !important;
+        }
+
+        /* Green */
+        .accent-11 {
+            border-top: 4px solid #ef4444 !important;
+        }
+
+        /* Red */
+        .accent-12 {
+            border-top: 4px solid #991b1b !important;
+        }
+
+        /* Maroon */
+
+        .icon-color-1,
+        .text-color-1 {
+            color: #3b82f6 !important;
+        }
+
+        .icon-color-2,
+        .text-color-2 {
+            color: #6366f1 !important;
+        }
+
+        .icon-color-3,
+        .text-color-3 {
+            color: #06b6d4 !important;
+        }
+
+        .icon-color-4,
+        .text-color-4 {
+            color: #f59e0b !important;
+        }
+
+        .icon-color-5,
+        .text-color-5 {
+            color: #f97316 !important;
+        }
+
+        .icon-color-6,
+        .text-color-6 {
+            color: #f43f5e !important;
+        }
+
+        .icon-color-7,
+        .text-color-7 {
+            color: #ec4899 !important;
+        }
+
+        .icon-color-8,
+        .text-color-8 {
+            color: #a855f7 !important;
+        }
+
+        .icon-color-9,
+        .text-color-9 {
+            color: #10b981 !important;
+        }
+
+        .icon-color-10,
+        .text-color-10 {
+            color: #22c55e !important;
+        }
+
+        .icon-color-11,
+        .text-color-11 {
+            color: #ef4444 !important;
+        }
+
+        .icon-color-12,
+        .text-color-12 {
+            color: #991b1b !important;
+        }
+
+        .icon-bg-1 {
+            background: var(--dash-blue) !important;
+            color: #fff !important;
+        }
+
+        .icon-bg-2 {
+            background: var(--dash-indigo) !important;
+            color: #fff !important;
+        }
+
+        .icon-bg-3 {
+            background: var(--dash-cyan) !important;
+            color: #fff !important;
+        }
+
+        .icon-bg-4 {
+            background: var(--dash-amber) !important;
+            color: #fff !important;
+        }
+
+        .icon-bg-5 {
+            background: var(--dash-orange) !important;
+            color: #fff !important;
+        }
+
+        .icon-bg-6 {
+            background: var(--dash-rose) !important;
+            color: #fff !important;
+        }
+
+        .icon-bg-7 {
+            background: var(--dash-pink) !important;
+            color: #fff !important;
+        }
+
+        .icon-bg-8 {
+            background: var(--dash-purple) !important;
+            color: #fff !important;
+        }
+
+        .icon-bg-9 {
+            background: var(--dash-emerald) !important;
+            color: #fff !important;
+        }
+
+        .icon-bg-10 {
+            background: var(--dash-green) !important;
+            color: #fff !important;
+        }
+
+        .icon-bg-11 {
+            background: var(--dash-red) !important;
+            color: #fff !important;
+        }
+
+        .icon-bg-12 {
+            background: var(--dash-maroon) !important;
+            color: #fff !important;
+        }
 
         .icon-box {
             width: 42px !important;
@@ -265,7 +411,7 @@
             justify-content: center !important;
             font-size: 1.25rem !important;
             margin-bottom: 12px !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
             flex-shrink: 0 !important;
         }
 
@@ -285,40 +431,49 @@
         .table tbody tr:nth-of-type(even) td {
             background-color: #f8fafc !important;
         }
+
         .table tbody tr:nth-of-type(odd) td {
             background-color: #ffffff !important;
         }
 
         /* Table Cells - Precise & Clean */
-        .table th, .table td {
+        .table th,
+        .table td {
             border-bottom: 1px solid #e2e8f0 !important;
             border-right: 1px solid #e2e8f0 !important;
-            padding: 8px 10px !important; /* Reduced padding to prevent overlap */
+            padding: 8px 10px !important;
+            /* Reduced padding to prevent overlap */
             vertical-align: middle !important;
-            font-size: 0.875rem !important; /* Increased for better readability */
+            font-size: 0.875rem !important;
+            /* Increased for better readability */
             line-height: 1.4 !important;
         }
-        
+
         /* Remove last border right */
-        .table th:last-child, .table td:last-child {
+        .table th:last-child,
+        .table td:last-child {
             border-right: none !important;
         }
 
         /* Table Headers - Structured Blue Theme */
         .table thead th {
-            background-color: #dbeafe !important; /* Pastel Blue */
-            color: #1e3a8a !important; /* Dark Navy */
+            background-color: #dbeafe !important;
+            /* Pastel Blue */
+            color: #1e3a8a !important;
+            /* Dark Navy */
             font-weight: 700 !important;
             text-transform: uppercase !important;
             font-size: 0.8rem !important;
             letter-spacing: 0.025em !important;
             border-bottom: 2px solid #bfdbfe !important;
-            border-right: 1px solid #bfdbfe !important; /* Explicit Vertical Border for Headers */
+            border-right: 1px solid #bfdbfe !important;
+            /* Explicit Vertical Border for Headers */
             text-align: center !important;
         }
 
         /* Ensure vertical lines for all cells including headers */
-        .table th, .table td {
+        .table th,
+        .table td {
             border-right: 1px solid #e2e8f0 !important;
             border-bottom: 1px solid #e2e8f0 !important;
             padding: 8px 10px !important;
@@ -334,7 +489,8 @@
         }
 
         /* Last child should not have border right */
-        .table th:last-child, .table td:last-child {
+        .table th:last-child,
+        .table td:last-child {
             border-right: none !important;
         }
 
@@ -351,11 +507,12 @@
                 border-radius: 12px;
                 padding: 15px;
                 margin-top: 10px;
-                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
             }
         }
     </style>
 </head>
+
 <body>
     <div id="app">
         <nav class="navbar navbar-expand-md navbar-dark navbar-modern sticky-top">
@@ -364,451 +521,564 @@
                     <i class="bi bi-shield-lock-fill" style="color: #6ed3ff;"></i>
                     <span>RiMS</span>
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                    aria-expanded="false" aria-label="{{ __('Toggle navigation') }}">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <!-- Left Side Of Navbar -->
                     <ul class="navbar-nav me-auto">
-                    @guest
-                        @else 
-                        <li class="nav-item dropdown">
-                            <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
-                                <i class="bi bi-cloud-arrow-down-fill me-1"></i> นำเข้าข้อมูล
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-modern"> 
-                                <!-- ชี้ขวา -->
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        STM-UCS [OP-IP]
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('/import/stm_ucs') }}">นำเข้าข้อมูล</a></li>
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('/import/stm_ucs_detail_opd') }}">รายละเอียด OPD</a></li>
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('/import/stm_ucs_detail_ipd') }}">รายละเอียด IPD</a></li>
-                                    </ul>
-                                </li> 
-                                @if($hasLookupIcode_kidney) 
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        STM-UCS [ฟอกไต]
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('/import/stm_ucs_kidney') }}">นำเข้าข้อมูล</a></li>
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('/import/stm_ucs_kidneydetail') }}">รายละเอียด</a></li>                                       
-                                    </ul>
-                                </li>  
-                                @endif
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        STM-OFC:BKK:BMT [OP-IP]
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('/import/stm_ofc') }}">นำเข้าข้อมูล</a></li>
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('/import/stm_ofc_detail_opd') }}">รายละเอียด OPD</a></li>
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('/import/stm_ofc_detail_ipd') }}">รายละเอียด IPD</a></li>
-                                    </ul>
-                                </li>                                 
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        STM-OFC [CSOP-ฟอกไต]
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('/import/stm_ofc_csop') }}">นำเข้าข้อมูล</a></li>
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('/import/stm_ofc_csopdetail') }}">รายละเอียด</a></li>                                       
-                                    </ul>
-                                </li> 
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        STM-OFC [CIPN]
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('/import/stm_ofc_cipn') }}">นำเข้าข้อมูล</a></li>
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('/import/stm_ofc_cipndetail') }}">รายละเอียด</a></li>                                       
-                                    </ul>
-                                </li>  
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        STM-LGO [OP-IP]
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('/import/stm_lgo') }}">นำเข้าข้อมูล</a></li>
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('/import/stm_lgo_detail_opd') }}">รายละเอียด OPD</a></li>
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('/import/stm_lgo_detail_ipd') }}">รายละเอียด IPD</a></li>
-                                    </ul>
-                                </li>
-                                @if($hasLookupIcode_kidney) 
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        STM-LGO [ฟอกไต]
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('/import/stm_lgo_kidney') }}">นำเข้าข้อมูล</a></li>
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('/import/stm_lgo_kidneydetail') }}">รายละเอียด</a></li>                                       
-                                    </ul>
-                                </li>  
-                                @endif
-                                @if($hasLookupIcode_kidney) 
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        STM-SSS [ฟอกไต]
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('/import/stm_sss_kidney') }}">นำเข้าข้อมูล</a></li>
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('/import/stm_sss_kidneydetail') }}">รายละเอียด</a></li>                                       
-                                    </ul>
-                                </li>  
-                                @endif
-                            </ul>                                            
-                        </li>
-                        <li class="nav-item dropdown">
-                            <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
-                                <i class="bi bi-check-circle-fill me-1"></i> ตรวจสอบข้อมูล
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end">                                 
-                                <!-- เมนูอื่น -->
-                                <li>
-                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('check/nhso_endpoint') }}">
-                                        ปิดสิทธิ สปสช.
-                                    </a>
-                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('check/fdh_claim_status') }}">
-                                        FDH Claim Status
-                                    </a>
-                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('check/drug_cat') }}">
-                                        Drug Catalog สปสช.
-                                    </a>
-                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('check/nondrugitems') }}">
-                                        ค่ารักษาพยาบาล
-                                    </a>
-                                </li>
-                                <!-- ชี้ขวา -->
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        สิทธิการรักษา
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('check/pttype') }}">HOSxP</a></li>
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('check/nhso_subinscl') }}">สปสช.</a></li>                                       
-                                    </ul>
-                                </li>
-                            </ul>
-                        </li>   
-                        <li class="nav-item dropdown">
-                            <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
-                                <i class="bi bi-file-earmark-medical-fill me-1"></i> งานเวชระเบียน
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end"> 
-                                <!-- เมนูอื่น -->
-                                <li>
-                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('opd/oppp_visit') }}">
-                                        OP-จำนวนผู้มารับบริการ
-                                    </a>
-                                </li>
-                                <!-- ชี้ขวา -->
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        OP-รายโรคสำคัญ
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('opd/diag_sepsis') }}">Sepsis</a></li>
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('opd/diag_stroke') }}">Stroke</a></li>
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('opd/diag_stemi') }}">Stemi</a></li>
-                                        <li><a class="dropdown-item dropdown-item-modern" href="{{ url('opd/diag_pneumonia') }}">Pneumonia</a></li>
-                                    </ul>
-                                </li>
-                                <!-- เมนูอื่น -->
-                                <li>
-                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('/ipd/dchsummary') }}">
-                                        IP-D/C Summary
-                                    </a>
-                                </li>
-                            </ul>
-                        </li> 
-                        <li class="nav-item dropdown">
-                            <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
-                                <i class="bi bi-wallet-fill me-1"></i> เรียกเก็บ OP
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end"> 
-                                <!-- ชี้ขวา -->
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        OP-UCS ประกันสุขภาพ
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('claim_op/ucs_incup') }}"> UC-OP ใน CUP </a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('claim_op/ucs_inprovince') }}"> UC-OP ในจังหวัด </a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('claim_op/ucs_inprovince_va') }}"> UC-OP ในจังหวัด VA</a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('claim_op/ucs_outprovince') }}"> UC-OP ต่างจังหวัด </a>
-                                        </li> 
-                                        @if($hasLookupIcode_kidney)
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('claim_op/ucs_kidney') }}"> UC-OP ฟอกไต </a>
-                                        </li> 
-                                        @endif
-                                    </ul>
-                                </li>
-                                <!-- ชี้ขวา -->
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        OP-STP บุคคลที่มีปัญหาสถานะและสิทธิ 
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('claim_op/stp_incup') }}"> STP-OP ใน CUP </a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('claim_op/stp_outcup') }}"> STP-OP นอก CUP </a>
+                        @guest
+                        @else
+                            <li class="nav-item dropdown">
+                                <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
+                                    role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                                    v-pre>
+                                    <i class="bi bi-cloud-arrow-down-fill me-1"></i> นำเข้าข้อมูล
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-modern">
+                                    <!-- ชี้ขวา -->
+                                    <li class="dropend position-relative">
+                                        <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                            data-bs-toggle="dropdown">
+                                            STM-UCS [OP-IP]
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-modern">
+                                            <li><a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('/import/stm_ucs') }}">นำเข้าข้อมูล</a></li>
+                                            <li><a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('/import/stm_ucs_detail_opd') }}">รายละเอียด OPD</a></li>
+                                            <li><a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('/import/stm_ucs_detail_ipd') }}">รายละเอียด IPD</a></li>
+                                        </ul>
+                                    </li>
+                                    @if ($hasLookupIcode_kidney)
+                                        <li class="dropend position-relative">
+                                            <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                                data-bs-toggle="dropdown">
+                                                STM-UCS [ฟอกไต]
+                                            </a>
+                                            <ul class="dropdown-menu dropdown-menu-modern">
+                                                <li><a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('/import/stm_ucs_kidney') }}">นำเข้าข้อมูล</a></li>
+                                                <li><a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('/import/stm_ucs_kidneydetail') }}">รายละเอียด</a></li>
+                                            </ul>
                                         </li>
-                                    </ul>
-                                </li>
-                                <!-- ชี้ขวา -->
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        OP-OFC กรมบัญชีกลาง
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('claim_op/ofc') }}"> OFC-OP กรมบัญชีกลาง</a>
+                                    @endif
+                                    <li class="dropend position-relative">
+                                        <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                            data-bs-toggle="dropdown">
+                                            STM-OFC:BKK:BMT [OP-IP]
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-modern">
+                                            <li><a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('/import/stm_ofc') }}">นำเข้าข้อมูล</a></li>
+                                            <li><a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('/import/stm_ofc_detail_opd') }}">รายละเอียด OPD</a></li>
+                                            <li><a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('/import/stm_ofc_detail_ipd') }}">รายละเอียด IPD</a></li>
+                                        </ul>
+                                    </li>
+                                    <li class="dropend position-relative">
+                                        <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                            data-bs-toggle="dropdown">
+                                            STM-OFC [CSOP-ฟอกไต]
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-modern">
+                                            <li><a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('/import/stm_ofc_csop') }}">นำเข้าข้อมูล</a></li>
+                                            <li><a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('/import/stm_ofc_csopdetail') }}">รายละเอียด</a></li>
+                                        </ul>
+                                    </li>
+                                    <li class="dropend position-relative">
+                                        <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                            data-bs-toggle="dropdown">
+                                            STM-OFC [CIPN]
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-modern">
+                                            <li><a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('/import/stm_ofc_cipn') }}">นำเข้าข้อมูล</a></li>
+                                            <li><a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('/import/stm_ofc_cipndetail') }}">รายละเอียด</a></li>
+                                        </ul>
+                                    </li>
+                                    <li class="dropend position-relative">
+                                        <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                            data-bs-toggle="dropdown">
+                                            STM-LGO [OP-IP]
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-modern">
+                                            <li><a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('/import/stm_lgo') }}">นำเข้าข้อมูล</a></li>
+                                            <li><a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('/import/stm_lgo_detail_opd') }}">รายละเอียด OPD</a></li>
+                                            <li><a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('/import/stm_lgo_detail_ipd') }}">รายละเอียด IPD</a></li>
+                                        </ul>
+                                    </li>
+                                    @if ($hasLookupIcode_kidney)
+                                        <li class="dropend position-relative">
+                                            <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                                data-bs-toggle="dropdown">
+                                                STM-LGO [ฟอกไต]
+                                            </a>
+                                            <ul class="dropdown-menu dropdown-menu-modern">
+                                                <li><a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('/import/stm_lgo_kidney') }}">นำเข้าข้อมูล</a></li>
+                                                <li><a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('/import/stm_lgo_kidneydetail') }}">รายละเอียด</a>
+                                                </li>
+                                            </ul>
                                         </li>
-                                        @if($hasLookupIcode_kidney) 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('claim_op/ofc_kidney') }}">OFC-OP กรมบัญชีกลาง ฟอกไต </a>
+                                    @endif
+                                    @if ($hasLookupIcode_kidney)
+                                        <li class="dropend position-relative">
+                                            <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                                data-bs-toggle="dropdown">
+                                                STM-SSS [ฟอกไต]
+                                            </a>
+                                            <ul class="dropdown-menu dropdown-menu-modern">
+                                                <li><a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('/import/stm_sss_kidney') }}">นำเข้าข้อมูล</a></li>
+                                                <li><a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('/import/stm_sss_kidneydetail') }}">รายละเอียด</a>
+                                                </li>
+                                            </ul>
                                         </li>
-                                        @endif
-                                    </ul>
-                                </li>
-                                 <!-- ชี้ขวา -->
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        OP-LGO อปท.
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('claim_op/lgo') }}"> LGO-OP อปท.</a>
-                                        </li>
-                                        @if($hasLookupIcode_kidney) 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('claim_op/lgo_kidney') }}">LGO-OP อปท. ฟอกไต </a>
-                                        </li>
-                                        @endif
-                                    </ul>
-                                </li>
-                                <!-- เมนูอื่น -->
-                                <li>     
-                                    <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/bkk') }}" >
-                                        OP-BKK กรุงเทพมหานคร
-                                    </a>      
-                                    <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/bmt') }}" >
-                                        OP-BMT ขสมก.
-                                    </a>  
-                                </li>
-                                <!-- ชี้ขวา -->
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        OP-SSS ประกันสังคม
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('claim_op/sss_ppfs') }}"> SS-OP ประกันสังคม PPFS</a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('claim_op/sss_fund') }}"> SS-OP ประกันสังคม กองทุนทดแทน</a>
-                                        </li>
-                                        @if($hasLookupIcode_kidney)
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('claim_op/sss_kidney') }}">SS-OP ประกันสังคม ฟอกไต</a>
-                                        </li>
-                                        @endif
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('claim_op/sss_hc') }}"> SS-OP ประกันสังคม ค่าใช้จ่ายสูง</a>
-                                        </li>
-                                    </ul>
-                                </li>
-                                <!-- เมนูอื่น -->
-                                <li>  
-                                    <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/rcpt') }}" >
-                                        OP-ชำระเงิน
-                                    </a>   
-                                    <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/act') }}" >
-                                        OP-พรบ.
-                                    </a>   
-                                </li>
-                            </ul> 
-                        </li> 
-                        <li class="nav-item dropdown">
-                            <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
-                                <i class="bi bi-hospital-fill me-1"></i> เรียกเก็บ IP
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end"> 
-                                <!-- ชี้ขวา -->
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        IP-UCS ประกันสุขภาพ
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('claim_ip/ucs_incup') }}"> UC-IP ใน CUP </a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('claim_ip/ucs_outcup') }}"> UC-IP นอก CUP </a>
-                                        </li> 
-                                    </ul>
-                                </li>
-                                <!-- เมนูอื่น -->
-                                <li>
-                                    <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/stp') }}" > 
-                                        IP-STP บุคคลที่มีปัญหาสถานะและสิทธิ 
-                                    </a> 
-                                    <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/ofc') }}" >
-                                        IP-OFC กรมบัญชีกลาง
-                                    </a>   
-                                    <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/lgo') }}" >
-                                        IP-LGO อปท.
-                                    </a>       
-                                    <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/bkk') }}" >
-                                        IP-BKK กรุงเทพมหานคร
-                                    </a>      
-                                    <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/bmt') }}" >
-                                        IP-BMT ขสมก.
-                                    </a>
-                                </li>
-                                <!-- ชี้ขวา -->
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        IP-SSS ประกันสังคม
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('claim_ip/sss') }}"> SS-IP ประกันสังคม ทั่วไป </a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('claim_ip/sss_hc') }}"> SS-IP ประกันสังคม ค่าใช้จ่ายสูง </a>
-                                        </li> 
-                                    </ul>
-                                </li>
-                                <!-- เมนูอื่น -->
-                                <li>                                     
-                                    <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/gof') }}" >
-                                        IP-GOF หน่วยงานรัฐ
-                                    </a>    
-                                    <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/rcpt') }}" >
-                                        IP-ชำระเงิน
-                                    </a>   
-                                    <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/act') }}" >
-                                        IP-พรบ.
-                                    </a>   
-                                </li>
-                            </ul> 
-                        </li>    
-                        <li class="nav-item dropdown">
-                            <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
-                                <i class="bi bi-graph-up-arrow me-1"></i> MIS Hospital
-                            </a>
-                            <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end"> 
-                                <!-- ชี้ขวา -->
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        บริการผู้ป่วยนอก
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('mishos/ucs_ae') }}">ผู้ป่วยนอกฉุกเฉิน</a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('mishos/ucs_walkin') }}">OP WALKIN</a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('mishos/ucs_herb') }}">บริการแพทย์แผนไทย ยาสมุนไพร</a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('mishos/ucs_telemed') }}">บริการสาธารณสุขทางไกล (TELEMED)</a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('mishos/ucs_rider') }}">จัดส่งยาทางไปรษณีย์</a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('mishos/ucs_gdm') }}">บริการในกลุ่ม GDM</a>
-                                        </li> 
-                                    </ul>
-                                </li>
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        บริการค่าใช้จ่ายสูง
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('mishos/ucs_drug_clopidogrel') }}">ยาต้านเกล็ดเลือด</a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('mishos/ucs_drug_sk') }}">ยาละลายลิ่มเลือด</a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('mishos/ucs_ins') }}">อวัยวะเทียม/อุปกรณ์</a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('mishos/ucs_palliative') }}">Palliative Care</a>
-                                        </li> 
-                                    </ul>
-                                </li>
-                                <li class="dropend position-relative">
-                                    <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                        การส่งเสริมป้องกันโรค
-                                    </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('mishos/ucs_ppfs_fp') }}">การบริการวางแผนครอบครัว</a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('mishos/ucs_ppfs_prt') }}">บริการทดสอบการตั้งครรภ์ (PRT)</a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('mishos/ucs_ppfs_ida') }}">บริการคัดกรองโลหิตจางจากการขาดธาตุเหล็ก</a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('mishos/ucs_ppfs_ferrofolic') }}">บริการยาเม็ดเสริมธาตุเหล็ก</a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('mishos/ucs_ppfs_fluoride') }}">บริการเคลือบฟลูออไรด์ (กลุ่มเสี่ยง)</a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('mishos/ucs_ppfs_anc') }}">บริการฝากครรภ์ (ANC)</a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('mishos/ucs_ppfs_postnatal') }}">บริการตรวจหลังคลอด</a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('mishos/ucs_ppfs_fittest') }}">บริการตรวจคัดกรองมะเร็งลำไส้ใหญ่และสำไส้ตรง (Fit test)</a>
-                                        </li> 
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('mishos/ucs_ppfs_scr') }}">บริการคัดกรองและประเมินปัจจัยเสี่ยงต่อสุขภาพกาย/สุขภาพจิต (SCR)</a>
-                                        </li> 
-                                    </ul>
-                                </li>                                
-                            </ul> 
-                        </li> 
-                        <li class="nav-item">                            
-                            <a class="nav-link nav-link-modern" href="{{ url('debtor') }}">
-                                <i class="bi bi-person-lines-fill me-1"></i> ลูกหนี้ค่ารักษา
-                            </a>       
-                        </li>                 
-                    @endguest
+                                    @endif
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
+                                    role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                                    v-pre>
+                                    <i class="bi bi-check-circle-fill me-1"></i> ตรวจสอบข้อมูล
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end">
+                                    <!-- เมนูอื่น -->
+                                    <li>
+                                        <a class="dropdown-item dropdown-item-modern"
+                                            href="{{ url('check/nhso_endpoint') }}">
+                                            ปิดสิทธิ สปสช.
+                                        </a>
+                                        <a class="dropdown-item dropdown-item-modern"
+                                            href="{{ url('check/fdh_claim_status') }}">
+                                            FDH Claim Status
+                                        </a>
+                                        <a class="dropdown-item dropdown-item-modern" href="{{ url('check/drug_cat') }}">
+                                            Drug Catalog สปสช.
+                                        </a>
+                                        <a class="dropdown-item dropdown-item-modern"
+                                            href="{{ url('check/nondrugitems') }}">
+                                            ค่ารักษาพยาบาล
+                                        </a>
+                                    </li>
+                                    <!-- ชี้ขวา -->
+                                    <li class="dropend position-relative">
+                                        <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                            data-bs-toggle="dropdown">
+                                            สิทธิการรักษา
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-modern">
+                                            <li><a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('check/pttype') }}">HOSxP</a></li>
+                                            <li><a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('check/nhso_subinscl') }}">สปสช.</a></li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
+                                    role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                                    v-pre>
+                                    <i class="bi bi-file-earmark-medical-fill me-1"></i> งานเวชระเบียน
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end">
+                                    <!-- เมนูอื่น -->
+                                    <li>
+                                        <a class="dropdown-item dropdown-item-modern" href="{{ url('opd/oppp_visit') }}">
+                                            OP-จำนวนผู้มารับบริการ
+                                        </a>
+                                    </li>
+                                    <!-- ชี้ขวา -->
+                                    <li class="dropend position-relative">
+                                        <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                            data-bs-toggle="dropdown">
+                                            OP-รายโรคสำคัญ
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-modern">
+                                            <li><a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('opd/diag_sepsis') }}">Sepsis</a></li>
+                                            <li><a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('opd/diag_stroke') }}">Stroke</a></li>
+                                            <li><a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('opd/diag_stemi') }}">Stemi</a></li>
+                                            <li><a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('opd/diag_pneumonia') }}">Pneumonia</a></li>
+                                        </ul>
+                                    </li>
+                                    <!-- เมนูอื่น -->
+                                    <li>
+                                        <a class="dropdown-item dropdown-item-modern"
+                                            href="{{ url('/ipd/dchsummary') }}">
+                                            IP-D/C Summary
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
+                                    role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                                    v-pre>
+                                    <i class="bi bi-wallet-fill me-1"></i> เรียกเก็บ OP
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end">
+                                    <!-- ชี้ขวา -->
+                                    <li class="dropend position-relative">
+                                        <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                            data-bs-toggle="dropdown">
+                                            OP-UCS ประกันสุขภาพ
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-modern">
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('claim_op/ucs_incup') }}"> UC-OP ใน CUP </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('claim_op/ucs_inprovince') }}"> UC-OP ในจังหวัด </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('claim_op/ucs_inprovince_va') }}"> UC-OP ในจังหวัด VA</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('claim_op/ucs_outprovince') }}"> UC-OP ต่างจังหวัด </a>
+                                            </li>
+                                            @if ($hasLookupIcode_kidney)
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('claim_op/ucs_kidney') }}"> UC-OP ฟอกไต </a>
+                                                </li>
+                                            @endif
+                                        </ul>
+                                    </li>
+                                    <!-- ชี้ขวา -->
+                                    <li class="dropend position-relative">
+                                        <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                            data-bs-toggle="dropdown">
+                                            OP-STP บุคคลที่มีปัญหาสถานะและสิทธิ
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-modern">
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('claim_op/stp_incup') }}"> STP-OP ใน CUP </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('claim_op/stp_outcup') }}"> STP-OP นอก CUP </a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <!-- ชี้ขวา -->
+                                    <li class="dropend position-relative">
+                                        <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                            data-bs-toggle="dropdown">
+                                            OP-OFC กรมบัญชีกลาง
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-modern">
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('claim_op/ofc') }}"> OFC-OP กรมบัญชีกลาง</a>
+                                            </li>
+                                            @if ($hasLookupIcode_kidney)
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('claim_op/ofc_kidney') }}">OFC-OP กรมบัญชีกลาง ฟอกไต
+                                                    </a>
+                                                </li>
+                                            @endif
+                                        </ul>
+                                    </li>
+                                    <!-- ชี้ขวา -->
+                                    <li class="dropend position-relative">
+                                        <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                            data-bs-toggle="dropdown">
+                                            OP-LGO อปท.
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-modern">
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('claim_op/lgo') }}"> LGO-OP อปท.</a>
+                                            </li>
+                                            @if ($hasLookupIcode_kidney)
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('claim_op/lgo_kidney') }}">LGO-OP อปท. ฟอกไต </a>
+                                                </li>
+                                            @endif
+                                        </ul>
+                                    </li>
+                                    <!-- เมนูอื่น -->
+                                    <li>
+                                        <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/bkk') }}">
+                                            OP-BKK กรุงเทพมหานคร
+                                        </a>
+                                        <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/bmt') }}">
+                                            OP-BMT ขสมก.
+                                        </a>
+                                    </li>
+                                    <!-- ชี้ขวา -->
+                                    <li class="dropend position-relative">
+                                        <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                            data-bs-toggle="dropdown">
+                                            OP-SSS ประกันสังคม
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-modern">
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('claim_op/sss_ppfs') }}"> SS-OP ประกันสังคม PPFS</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('claim_op/sss_fund') }}"> SS-OP ประกันสังคม
+                                                    กองทุนทดแทน</a>
+                                            </li>
+                                            @if ($hasLookupIcode_kidney)
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('claim_op/sss_kidney') }}">SS-OP ประกันสังคม
+                                                        ฟอกไต</a>
+                                                </li>
+                                            @endif
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('claim_op/sss_hc') }}"> SS-OP ประกันสังคม
+                                                    ค่าใช้จ่ายสูง</a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <!-- เมนูอื่น -->
+                                    <li>
+                                        <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/rcpt') }}">
+                                            OP-ชำระเงิน
+                                        </a>
+                                        <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/act') }}">
+                                            OP-พรบ.
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
+                                    role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                                    v-pre>
+                                    <i class="bi bi-hospital-fill me-1"></i> เรียกเก็บ IP
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end">
+                                    <!-- ชี้ขวา -->
+                                    <li class="dropend position-relative">
+                                        <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                            data-bs-toggle="dropdown">
+                                            IP-UCS ประกันสุขภาพ
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-modern">
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('claim_ip/ucs_incup') }}"> UC-IP ใน CUP </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('claim_ip/ucs_outcup') }}"> UC-IP นอก CUP </a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <!-- เมนูอื่น -->
+                                    <li>
+                                        <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/stp') }}">
+                                            IP-STP บุคคลที่มีปัญหาสถานะและสิทธิ
+                                        </a>
+                                        <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/ofc') }}">
+                                            IP-OFC กรมบัญชีกลาง
+                                        </a>
+                                        <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/lgo') }}">
+                                            IP-LGO อปท.
+                                        </a>
+                                        <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/bkk') }}">
+                                            IP-BKK กรุงเทพมหานคร
+                                        </a>
+                                        <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/bmt') }}">
+                                            IP-BMT ขสมก.
+                                        </a>
+                                    </li>
+                                    <!-- ชี้ขวา -->
+                                    <li class="dropend position-relative">
+                                        <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                            data-bs-toggle="dropdown">
+                                            IP-SSS ประกันสังคม
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-modern">
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('claim_ip/sss') }}"> SS-IP ประกันสังคม ทั่วไป </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('claim_ip/sss_hc') }}"> SS-IP ประกันสังคม ค่าใช้จ่ายสูง
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <!-- เมนูอื่น -->
+                                    <li>
+                                        <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/gof') }}">
+                                            IP-GOF หน่วยงานรัฐ
+                                        </a>
+                                        <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/rcpt') }}">
+                                            IP-ชำระเงิน
+                                        </a>
+                                        <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/act') }}">
+                                            IP-พรบ.
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
+                                    role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                                    v-pre>
+                                    <i class="bi bi-graph-up-arrow me-1"></i> MIS Hospital
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end">
+                                    <!-- ชี้ขวา -->
+                                    <li class="dropend position-relative">
+                                        <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                            data-bs-toggle="dropdown">
+                                            บริการผู้ป่วยนอก
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-modern">
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('mishos/ucs_ae') }}">ผู้ป่วยนอกฉุกเฉิน</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('mishos/ucs_walkin') }}">OP WALKIN</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('mishos/ucs_herb') }}">บริการแพทย์แผนไทย ยาสมุนไพร</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('mishos/ucs_telemed') }}">บริการสาธารณสุขทางไกล
+                                                    (TELEMED)</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('mishos/ucs_rider') }}">จัดส่งยาทางไปรษณีย์</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('mishos/ucs_gdm') }}">บริการในกลุ่ม GDM</a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <li class="dropend position-relative">
+                                        <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                            data-bs-toggle="dropdown">
+                                            บริการค่าใช้จ่ายสูง
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-modern">
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('mishos/ucs_drug_clopidogrel') }}">ยาต้านเกล็ดเลือด</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('mishos/ucs_drug_sk') }}">ยาละลายลิ่มเลือด</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('mishos/ucs_ins') }}">อวัยวะเทียม/อุปกรณ์</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('mishos/ucs_palliative') }}">Palliative Care</a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <li class="dropend position-relative">
+                                        <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                            data-bs-toggle="dropdown">
+                                            การส่งเสริมป้องกันโรค
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-modern">
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('mishos/ucs_ppfs_fp') }}">การบริการวางแผนครอบครัว</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('mishos/ucs_ppfs_prt') }}">บริการทดสอบการตั้งครรภ์
+                                                    (PRT)</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('mishos/ucs_ppfs_ida') }}">บริการคัดกรองโลหิตจางจากการขาดธาตุเหล็ก</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('mishos/ucs_ppfs_ferrofolic') }}">บริการยาเม็ดเสริมธาตุเหล็ก</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('mishos/ucs_ppfs_fluoride') }}">บริการเคลือบฟลูออไรด์
+                                                    (กลุ่มเสี่ยง)</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('mishos/ucs_ppfs_anc') }}">บริการฝากครรภ์ (ANC)</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('mishos/ucs_ppfs_postnatal') }}">บริการตรวจหลังคลอด</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('mishos/ucs_ppfs_fittest') }}">บริการตรวจคัดกรองมะเร็งลำไส้ใหญ่และสำไส้ตรง
+                                                    (Fit test)</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('mishos/ucs_ppfs_scr') }}">บริการคัดกรองและประเมินปัจจัยเสี่ยงต่อสุขภาพกาย/สุขภาพจิต
+                                                    (SCR)</a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link nav-link-modern" href="{{ url('debtor') }}">
+                                    <i class="bi bi-person-lines-fill me-1"></i> ลูกหนี้ค่ารักษา
+                                </a>
+                            </li>
+                        @endguest
                     </ul>
 
                     <!-- Right Side Of Navbar -->
                     <ul class="navbar-nav ms-auto">
-                        <li class="nav-item d-flex align-items-center"> 
+                        <li class="nav-item d-flex align-items-center">
                             <div class="nav-version-badge">
-                                V.69-02-20 14:00
-                            </div>   
-                        </li>                         
+                                V.69-02-22 15:00
+                            </div>
+                        </li>
                         <!-- Authentication Links -->
                         @guest
                             @if (Route::has('login'))
@@ -823,38 +1093,50 @@
                                 </li>
                             @endif
                         @else
-                            <li class="nav-item dropdown">                               
-                                <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
+                            <li class="nav-item dropdown">
+                                <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
+                                    role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                                    v-pre>
                                     <i class="bi bi-person-circle me-1"></i> {{ Auth::user()->name }}
                                 </a>
 
-                                <div class="dropdown-menu dropdown-menu-end dropdown-menu-modern" aria-labelledby="navbarDropdown">
+                                <div class="dropdown-menu dropdown-menu-end dropdown-menu-modern"
+                                    aria-labelledby="navbarDropdown">
                                     <!-- Admin -->
                                     @auth
-                                        @if(auth()->user()->status === 'admin')                                            
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ route('admin.main_setting') }}">Main Setting</a>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ route('admin.users.index') }}">Manage User</a>                                            
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ route('admin.lookup_icode.index') }}">Lookup icode</a>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ route('admin.lookup_ward.index') }}">Lookup ward</a>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ route('admin.lookup_hospcode.index') }}">Lookup hospcode</a>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ route('admin.budget_year.index') }}">Budget year</a>
+                                        @if (auth()->user()->status === 'admin')
+                                            <a class="dropdown-item dropdown-item-modern"
+                                                href="{{ route('admin.main_setting') }}">Main Setting</a>
+                                            <a class="dropdown-item dropdown-item-modern"
+                                                href="{{ route('admin.users.index') }}">Manage User</a>
+                                            <a class="dropdown-item dropdown-item-modern"
+                                                href="{{ route('admin.lookup_icode.index') }}">Lookup icode</a>
+                                            <a class="dropdown-item dropdown-item-modern"
+                                                href="{{ route('admin.lookup_ward.index') }}">Lookup ward</a>
+                                            <a class="dropdown-item dropdown-item-modern"
+                                                href="{{ route('admin.lookup_hospcode.index') }}">Lookup hospcode</a>
+                                            <a class="dropdown-item dropdown-item-modern"
+                                                href="{{ route('admin.budget_year.index') }}">Budget year</a>
                                         @endif
                                     @endauth
                                     <!-- -->
                                     <div class="dropdown-divider opacity-10"></div>
-                                    <a class="dropdown-item dropdown-item-modern" href="#" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                                    <a class="dropdown-item dropdown-item-modern" href="#" data-bs-toggle="modal"
+                                        data-bs-target="#changePasswordModal">
                                         <i class="bi bi-shield-lock me-2 text-primary"></i> Change Password
                                     </a>
-                                    <a class="dropdown-item dropdown-item-modern text-danger" href="{{ route('logout') }}"
-                                       onclick="event.preventDefault();
+                                    <a class="dropdown-item dropdown-item-modern text-danger"
+                                        href="{{ route('logout') }}"
+                                        onclick="event.preventDefault();
                                                      document.getElementById('logout-form').submit();">
                                         {{ __('Logout') }}
                                     </a>
-                                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                                    <form id="logout-form" action="{{ route('logout') }}" method="POST"
+                                        class="d-none">
                                         @csrf
                                     </form>
 
-                                </div> 
+                                </div>
                             </li>
                         @endguest
                     </ul>
@@ -863,7 +1145,7 @@
         </nav>
 
         <main class="py-4">
-            @yield('content')    
+            @yield('content')
         </main>
     </div>
 
@@ -881,82 +1163,88 @@
 
     <!-- JSZip (required for Excel export) -->
     <!-- JSZip (required for Excel export) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>   
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
     <!-- Datepicker Thai -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/js/bootstrap-datepicker.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker-thai@1.0.0/js/bootstrap-datepicker-thai.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/locales/bootstrap-datepicker.th.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/locales/bootstrap-datepicker.th.min.js">
+    </script>
 
     <!-- Stack for per-page script -->
     @stack('scripts')
-    
+
     @auth
-    <!-- Change Password Modal -->
-    <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <form method="POST" action="{{ route('profile.password.update') }}" class="modal-content border-0 shadow-lg" id="changePasswordForm">
-                @csrf
-                @method('PUT')
-                <div class="modal-header bg-primary text-white py-3 border-0">
-                    <h5 class="modal-title fw-bold">
-                        <i class="bi bi-shield-lock me-2"></i> เปลี่ยนรหัสผ่าน
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label for="current_password" class="form-label fw-bold">รหัสผ่านปัจจุบัน</label>
-                        <input type="password" class="form-control bg-light @error('current_password') is-invalid @enderror" 
-                               name="current_password" required placeholder="กรอกรหัสผ่านเดิม">
-                        @error('current_password')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+        <!-- Change Password Modal -->
+        <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <form method="POST" action="{{ route('profile.password.update') }}"
+                    class="modal-content border-0 shadow-lg" id="changePasswordForm">
+                    @csrf
+                    @method('PUT')
+                    <div class="modal-header bg-primary text-white py-3 border-0">
+                        <h5 class="modal-title fw-bold">
+                            <i class="bi bi-shield-lock me-2"></i> เปลี่ยนรหัสผ่าน
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
-                    <hr class="my-4 opacity-10">
-                    <div class="mb-3">
-                        <label for="new_password" class="form-label fw-bold">รหัสผ่านใหม่</label>
-                        <input type="password" class="form-control bg-light @error('new_password') is-invalid @enderror" 
-                               name="new_password" required placeholder="อย่างน้อย 8 ตัวอักษร">
-                        @error('new_password')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
+                    <div class="modal-body p-4">
+                        <div class="mb-3">
+                            <label for="current_password" class="form-label fw-bold">รหัสผ่านปัจจุบัน</label>
+                            <input type="password"
+                                class="form-control bg-light @error('current_password') is-invalid @enderror"
+                                name="current_password" required placeholder="กรอกรหัสผ่านเดิม">
+                            @error('current_password')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <hr class="my-4 opacity-10">
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label fw-bold">รหัสผ่านใหม่</label>
+                            <input type="password"
+                                class="form-control bg-light @error('new_password') is-invalid @enderror"
+                                name="new_password" required placeholder="อย่างน้อย 8 ตัวอักษร">
+                            @error('new_password')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="mb-1">
+                            <label for="new_password_confirmation" class="form-label fw-bold">ยืนยันรหัสผ่านใหม่</label>
+                            <input type="password" class="form-control bg-light" name="new_password_confirmation"
+                                required placeholder="กรอกรหัสผ่านใหม่ให้ตรงกัน">
+                        </div>
                     </div>
-                    <div class="mb-1">
-                        <label for="new_password_confirmation" class="form-label fw-bold">ยืนยันรหัสผ่านใหม่</label>
-                        <input type="password" class="form-control bg-light" 
-                               name="new_password_confirmation" required placeholder="กรอกรหัสผ่านใหม่ให้ตรงกัน">
+                    <div class="modal-footer bg-light border-0">
+                        <button type="button" class="btn btn-secondary px-4 rounded-pill"
+                            data-bs-dismiss="modal">ยกเลิก</button>
+                        <button type="submit" class="btn btn-primary px-4 rounded-pill">บันทึกรหัสผ่านใหม่</button>
                     </div>
-                </div>
-                <div class="modal-footer bg-light border-0">
-                    <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="submit" class="btn btn-primary px-4 rounded-pill">บันทึกรหัสผ่านใหม่</button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
-    </div>
 
-    <script>
-        $(document).ready(function() {
-            // Re-open modal if there are errors
-            @if($errors->has('current_password') || $errors->has('new_password'))
-                var myModal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
-                myModal.show();
-            @endif
+        <script>
+            $(document).ready(function() {
+                // Re-open modal if there are errors
+                @if ($errors->has('current_password') || $errors->has('new_password'))
+                    var myModal = new bootstrap.Modal(document.getElementById('changePasswordModal'));
+                    myModal.show();
+                @endif
 
-            @if(session('success') && !session('migrate_output'))
-                Swal.fire({
-                    icon: 'success',
-                    title: 'สำเร็จ!',
-                    text: '{{ session('success') }}',
-                    timer: 2000,
-                    showConfirmButton: false,
-                    borderRadius: '15px'
-                });
-            @endif
-        });
-    </script>
+                @if (session('success') && !session('migrate_output'))
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'สำเร็จ!',
+                        text: '{{ session('success') }}',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        borderRadius: '15px'
+                    });
+                @endif
+            });
+        </script>
     @endauth
 
 </body>
+
 </html>

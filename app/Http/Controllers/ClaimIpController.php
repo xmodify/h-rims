@@ -76,7 +76,6 @@ class ClaimIpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                     WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an           
@@ -122,7 +121,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -172,7 +170,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -263,7 +260,6 @@ class ClaimIpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                     WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an           
@@ -310,7 +306,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -360,7 +355,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -451,7 +445,6 @@ class ClaimIpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                     WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
@@ -496,7 +489,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -541,7 +533,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -630,7 +621,6 @@ class ClaimIpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                     WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
@@ -662,7 +652,7 @@ class ClaimIpController extends Controller
             ) AS a
             GROUP BY y, m
             ORDER BY y, m',
-            [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]
+        [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]
         );
 
         $month = array_column($sum_month, 'month');
@@ -692,7 +682,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -726,7 +715,7 @@ class ClaimIpController extends Controller
             AND (ic.an IS NULL OR (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id NOT IN ("4","5"))) 
             AND stm.an IS NULL AND cipn.an IS NULL AND csop.an IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate',
-            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
         // 4. Claimed Data (OFC)
@@ -754,7 +743,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -791,7 +779,7 @@ class ClaimIpController extends Controller
             AND ((ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) 
                 OR stm.an IS NOT NULL OR cipn.an IS NOT NULL OR csop.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate',
-            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
         return view('claim_ip.ofc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
@@ -860,7 +848,6 @@ class ClaimIpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                     WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
@@ -905,7 +892,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -950,7 +936,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1038,7 +1023,6 @@ class ClaimIpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                     WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
@@ -1070,7 +1054,7 @@ class ClaimIpController extends Controller
             ) AS a
             GROUP BY y, m
             ORDER BY y, m',
-            [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]
+        [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]
         );
 
         $month = array_column($sum_month, 'month');
@@ -1100,7 +1084,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1134,7 +1117,7 @@ class ClaimIpController extends Controller
             AND (ic.an IS NULL OR (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id NOT IN ("4","5"))) 
             AND stm.an IS NULL AND cipn.an IS NULL AND csop.an IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate',
-            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
         // 4. Claimed Data (BKK)
@@ -1162,7 +1145,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1199,7 +1181,7 @@ class ClaimIpController extends Controller
             AND ((ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) 
                 OR stm.an IS NOT NULL OR cipn.an IS NOT NULL OR csop.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate',
-            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
         return view('claim_ip.bkk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
@@ -1268,7 +1250,6 @@ class ClaimIpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                     WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
@@ -1300,7 +1281,7 @@ class ClaimIpController extends Controller
             ) AS a
             GROUP BY y, m
             ORDER BY y, m',
-            [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]
+        [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]
         );
 
         $month = array_column($sum_month, 'month');
@@ -1330,7 +1311,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1364,7 +1344,7 @@ class ClaimIpController extends Controller
             AND (ic.an IS NULL OR (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id NOT IN ("4","5"))) 
             AND stm.an IS NULL AND cipn.an IS NULL AND csop.an IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate',
-            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
         // 4. Claimed Data (BMT)
@@ -1392,7 +1372,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1429,7 +1408,7 @@ class ClaimIpController extends Controller
             AND ((ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) 
                 OR stm.an IS NOT NULL OR cipn.an IS NOT NULL OR csop.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate',
-            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+        [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
         return view('claim_ip.bmt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
@@ -1498,7 +1477,6 @@ class ClaimIpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                     WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
@@ -1540,7 +1518,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1578,7 +1555,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1680,7 +1656,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1758,7 +1733,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1795,7 +1769,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1831,7 +1804,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1895,7 +1867,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1927,7 +1898,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1964,7 +1934,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -2003,7 +1972,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -2079,7 +2047,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -2115,7 +2082,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -2150,7 +2116,6 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn
             ) rc ON rc.an = i.an

@@ -322,9 +322,7 @@ class DebtorController extends Controller
                     INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = 'Y' AND i2.dchdate BETWEEN ? AND ?
                     GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
                 LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
-                    FROM rcpt_print r
-                    INNER JOIN ipt i3 ON i3.an = r.vn
-                    AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
+                    FROM rcpt_print r                    
                     WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                     GROUP BY r.vn) rc ON rc.an = i.an
                 WHERE i.dchdate BETWEEN ? AND ?
@@ -3429,8 +3427,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
@@ -3580,8 +3576,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
@@ -7181,8 +7175,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name) AS other_list
@@ -7244,8 +7236,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name) AS other_list
@@ -7428,8 +7418,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             INNER JOIN (SELECT o.an,SUM(o.sum_price) AS cr_price,GROUP_CONCAT(DISTINCT COALESCE(s.name, n.name)) AS cr_list
@@ -7492,8 +7480,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             INNER JOIN (SELECT o.an,SUM(o.sum_price) AS cr_price,GROUP_CONCAT(DISTINCT COALESCE(s.name, n.name)) AS cr_list
@@ -7682,8 +7668,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
@@ -7752,8 +7736,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
@@ -7956,8 +7938,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
@@ -8026,8 +8006,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
@@ -8229,8 +8207,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
@@ -8297,8 +8273,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
@@ -8496,8 +8470,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             INNER JOIN (SELECT op.an,SUM(op.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.`name`) AS kidney_list
@@ -8556,8 +8528,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             INNER JOIN (SELECT op.an,SUM(op.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.`name`) AS kidney_list
@@ -8776,8 +8746,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.name) AS kidney_list
@@ -8839,8 +8807,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.name) AS kidney_list
@@ -9026,8 +8992,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
@@ -9090,8 +9054,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
@@ -9286,8 +9248,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
@@ -9351,8 +9311,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
@@ -9550,8 +9508,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
@@ -9615,8 +9571,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
@@ -9822,8 +9776,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN hospcode h ON h.hospcode = ip.hospmain
@@ -9893,8 +9845,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN hospcode h ON h.hospcode = ip.hospmain
@@ -10196,8 +10146,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
@@ -10261,8 +10209,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
@@ -10472,8 +10418,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.name) AS kidney_list
@@ -10538,8 +10482,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.name) AS kidney_list
@@ -10795,8 +10737,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
@@ -11008,8 +10948,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.name) AS kidney_list
@@ -11074,8 +11012,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.name) AS kidney_list
@@ -11276,8 +11212,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.name) AS kidney_list
@@ -11342,8 +11276,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
-                INNER JOIN ipt i3 ON i3.an = r.vn
-                AND r.bill_date BETWEEN i3.regdate AND i3.dchdate
                 WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.name) AS kidney_list

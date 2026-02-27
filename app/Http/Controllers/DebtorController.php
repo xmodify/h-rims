@@ -10626,25 +10626,17 @@ class DebtorController extends Controller
 
         if ($search) {
             $debtor = DB::select('
-                SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
-                       CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
-                       THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
-                FROM debtor_1102050102_603 d
-                LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(receive_total) AS receive_total, 
-                                  MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
-                           FROM stm_ucs GROUP BY an) stm ON stm.an = d.an
+                SELECT d.*, CASE WHEN (IFNULL(d.receive,0) - IFNULL(d.debtor,0)) >= 0 
+                    THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+                FROM debtor_1102050102_603 d                
                 WHERE d.dchdate BETWEEN ? AND ?
                 AND (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
                 ORDER BY d.dchdate ', [$start_date, $end_date, $search, $search, $search]);
         } else {
             $debtor = DB::select('
-                SELECT d.*, stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
-                       CASE WHEN (IFNULL(stm.receive_total,0) - IFNULL(d.debtor,0)) >= 0 
-                       THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
-                FROM debtor_1102050102_603 d
-                LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(receive_total) AS receive_total, 
-                                  MAX(round_no) AS round_no, MAX(receipt_date) AS receipt_date, MAX(receive_no) AS receive_no
-                           FROM stm_ucs GROUP BY an) stm ON stm.an = d.an
+                SELECT d.*, CASE WHEN (IFNULL(d.receive,0) - IFNULL(d.debtor,0)) >= 0 
+                    THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+                FROM debtor_1102050102_603 d                
                 WHERE d.dchdate BETWEEN ? AND ?
                 ORDER BY d.dchdate', [$start_date, $end_date]);
         }

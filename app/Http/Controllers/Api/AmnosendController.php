@@ -40,236 +40,188 @@ class AmnosendController extends Controller
         // 3.1 ข้อมูล OPD--------------------------------------------------------------------------------------------
         $sqlOpd = '
             SELECT 
-                ? AS hospcode,
-                a.vstdate,
+                ? AS hospcode, a.vstdate,
                 COUNT(DISTINCT a.hn) AS hn_total,
                 COUNT(a.vn) AS visit_total,
-                SUM(CASE WHEN diagtype ="OP" THEN 1 ELSE 0 END) AS visit_total_op,
-                SUM(CASE WHEN diagtype ="PP" THEN 1 ELSE 0 END) AS visit_total_pp,
-                SUM(CASE WHEN endpoint ="Y" THEN 1 ELSE 0 END) AS visit_endpoint,
-                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND incup = "Y" THEN 1 ELSE 0 END) AS visit_ucs_incup,
-                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND inprov = "Y" THEN 1 ELSE 0 END) AS visit_ucs_inprov,
-                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND outprov = "Y" THEN 1 ELSE 0 END) AS visit_ucs_outprov,
-                SUM(CASE WHEN hipdata_code IN ("OFC") AND paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_ofc,
-                SUM(CASE WHEN hipdata_code IN ("BKK") AND paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_bkk,
-                SUM(CASE WHEN hipdata_code IN ("BMT") AND paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_bmt,
-                SUM(CASE WHEN hipdata_code IN ("SSS","SSI") AND paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_sss,
-                SUM(CASE WHEN hipdata_code IN ("LGO") AND paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_lgo,
-                SUM(CASE WHEN hipdata_code IN ("NRD","NRH") AND paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_fss,
-                SUM(CASE WHEN hipdata_code IN ("STP") AND paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_stp,
-                SUM(CASE WHEN (paidst IN ("01","03") OR hipdata_code IN ("A1","A9")) THEN 1 ELSE 0 END) AS visit_pay,
-                COUNT(DISTINCT CASE WHEN ppfs = "Y" THEN a.vn END) AS visit_ppfs,
-                COUNT(DISTINCT CASE WHEN ppfs_claim = "Y" THEN a.vn END) AS visit_ppfs_claim,
-                COUNT(DISTINCT CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND uccr = "Y" THEN a.vn END) AS visit_ucs_cr,
-                COUNT(DISTINCT CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND uccr_claim = "Y" THEN a.vn END) AS visit_ucs_cr_claim,
-                COUNT(DISTINCT CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND herb = "Y" THEN a.vn END) AS visit_ucs_herb,
-                COUNT(DISTINCT CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND herb_claim = "Y" THEN a.vn END) AS visit_ucs_herb_claim,
-                COUNT(DISTINCT CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND healthmed = "Y" THEN a.vn END) AS visit_ucs_healthmed,
-                COUNT(DISTINCT CASE WHEN healthmed = "Y" THEN a.vn END) AS visit_healthmed,
-                COUNT(DISTINCT CASE WHEN dent = "Y" THEN a.vn END) AS visit_dent,
-                COUNT(DISTINCT CASE WHEN physic = "Y" THEN a.vn END) AS visit_physic,
-                COUNT(DISTINCT CASE WHEN anc = "Y" THEN a.vn END) AS visit_anc,
-                COUNT(DISTINCT CASE WHEN telehealth = "Y" THEN a.vn END) AS visit_telehealth,
-                COALESCE(ma_all.moph_oapp_booking,0) AS visit_moph_oapp_booking,
-                COUNT(DISTINCT CASE WHEN moph_oapp = "Y" THEN a.cid END) AS visit_moph_oapp,
-                COUNT(DISTINCT CASE WHEN referout_inprov = "Y" THEN a.vn END) AS visit_referout_inprov,
-                COUNT(DISTINCT CASE WHEN referout_outprov = "Y" THEN a.vn END) AS visit_referout_outprov,
-                COUNT(DISTINCT CASE WHEN referout_inprov_ipd = "Y" THEN a.vn END) AS visit_referout_inprov_ipd,
-                COUNT(DISTINCT CASE WHEN referout_outprov_ipd = "Y" THEN a.vn END) AS visit_referout_outprov_ipd,
-                COUNT(DISTINCT CASE WHEN referin_inprov = "Y" THEN a.vn END) AS visit_referin_inprov,
-                COUNT(DISTINCT CASE WHEN referin_outprov = "Y" THEN a.vn END) AS visit_referin_outprov,
-                COUNT(DISTINCT CASE WHEN referin_inprov_ipd = "Y" THEN a.vn END) AS visit_referin_inprov_ipd,
-                COUNT(DISTINCT CASE WHEN referin_outprov_ipd = "Y" THEN a.vn END) AS visit_referin_outprov_ipd,
-                COUNT(DISTINCT CASE WHEN rb.dest_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y") THEN rb.vn END) AS visit_referback_inprov,
-                COUNT(DISTINCT CASE WHEN rb.dest_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y") THEN rb.vn END) AS visit_referback_outprov,
-                COUNT(DISTINCT o.operation_id) AS visit_operation,
-                SUM(income) AS inc_total,
-                SUM(inc03) AS inc_lab_total,
-                SUM(inc12) AS inc_drug_total,
-                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND incup = "Y" THEN income ELSE 0 END) AS inc_ucs_incup,
-                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND incup = "Y" THEN inc03 ELSE 0 END) AS inc_lab_ucs_incup,
-                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND incup = "Y" THEN inc12 ELSE 0 END) AS inc_drug_ucs_incup,
-                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND inprov = "Y" THEN income ELSE 0 END) AS inc_ucs_inprov,
-                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND inprov = "Y" THEN inc03 ELSE 0 END) AS inc_lab_ucs_inprov,
-                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND inprov = "Y" THEN inc12 ELSE 0 END) AS inc_drug_ucs_inprov,
-                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND outprov = "Y" THEN income ELSE 0 END) AS inc_ucs_outprov,
-                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND outprov = "Y" THEN inc03 ELSE 0 END) AS inc_lab_ucs_outprov,
-                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") AND outprov = "Y" THEN inc12 ELSE 0 END) AS inc_drug_ucs_outprov,
-                SUM(CASE WHEN hipdata_code IN ("OFC") AND paidst NOT IN ("01","03") THEN income ELSE 0 END) AS inc_ofc,
-                SUM(CASE WHEN hipdata_code IN ("OFC") AND paidst NOT IN ("01","03") THEN inc03 ELSE 0 END) AS inc_lab_ofc,
-                SUM(CASE WHEN hipdata_code IN ("OFC") AND paidst NOT IN ("01","03") THEN inc12 ELSE 0 END) AS inc_drug_ofc,
-                SUM(CASE WHEN hipdata_code IN ("BKK") AND paidst NOT IN ("01","03") THEN income ELSE 0 END) AS inc_bkk,
-                SUM(CASE WHEN hipdata_code IN ("BKK") AND paidst NOT IN ("01","03") THEN inc03 ELSE 0 END) AS inc_lab_bkk,
-                SUM(CASE WHEN hipdata_code IN ("BKK") AND paidst NOT IN ("01","03") THEN inc12 ELSE 0 END) AS inc_drug_bkk,
-                SUM(CASE WHEN hipdata_code IN ("BMT") AND paidst NOT IN ("01","03") THEN income ELSE 0 END) AS inc_bmt,
-                SUM(CASE WHEN hipdata_code IN ("BMT") AND paidst NOT IN ("01","03") THEN inc03 ELSE 0 END) AS inc_lab_bmt,
-                SUM(CASE WHEN hipdata_code IN ("BMT") AND paidst NOT IN ("01","03") THEN inc12 ELSE 0 END) AS inc_drug_bmt,
-                SUM(CASE WHEN hipdata_code IN ("SSS","SSI") AND paidst NOT IN ("01","03") THEN income ELSE 0 END) AS inc_sss,
-                SUM(CASE WHEN hipdata_code IN ("SSS","SSI") AND paidst NOT IN ("01","03") THEN inc03 ELSE 0 END) AS inc_lab_sss,
-                SUM(CASE WHEN hipdata_code IN ("SSS","SSI") AND paidst NOT IN ("01","03") THEN inc12 ELSE 0 END) AS inc_drug_sss,
-                SUM(CASE WHEN hipdata_code IN ("LGO") AND paidst NOT IN ("01","03") THEN income ELSE 0 END) AS inc_lgo,
-                SUM(CASE WHEN hipdata_code IN ("LGO") AND paidst NOT IN ("01","03") THEN inc03 ELSE 0 END) AS inc_lab_lgo,
-                SUM(CASE WHEN hipdata_code IN ("LGO") AND paidst NOT IN ("01","03") THEN inc12 ELSE 0 END) AS inc_drug_lgo,
-                SUM(CASE WHEN hipdata_code IN ("NRD","NRH") AND paidst NOT IN ("01","03") THEN income ELSE 0 END) AS inc_fss,
-                SUM(CASE WHEN hipdata_code IN ("NRD","NRH") AND paidst NOT IN ("01","03") THEN inc03 ELSE 0 END) AS inc_lab_fss,
-                SUM(CASE WHEN hipdata_code IN ("NRD","NRH") AND paidst NOT IN ("01","03") THEN inc12 ELSE 0 END) AS inc_drug_fss,
-                SUM(CASE WHEN hipdata_code IN ("STP") AND paidst NOT IN ("01","03") THEN income ELSE 0 END) AS inc_stp,
-                SUM(CASE WHEN hipdata_code IN ("STP") AND paidst NOT IN ("01","03") THEN inc03 ELSE 0 END) AS inc_lab_stp,
-                SUM(CASE WHEN hipdata_code IN ("STP") AND paidst NOT IN ("01","03") THEN inc12 ELSE 0 END) AS inc_drug_stp,
-                SUM(CASE WHEN (hipdata_code IN ("A1","A9") OR paidst IN ("01","03")) THEN income ELSE 0 END) AS inc_pay,
-                SUM(CASE WHEN (hipdata_code IN ("A1","A9") OR paidst IN ("01","03")) THEN inc03 ELSE 0 END) AS inc_lab_pay,
-                SUM(CASE WHEN (hipdata_code IN ("A1","A9") OR paidst IN ("01","03")) THEN inc12 ELSE 0 END) AS inc_drug_pay,
-                SUM(inc_ppfs) AS inc_ppfs,
-                SUM(inc_ppfs_claim) AS inc_ppfs_claim,
-                SUM(inc_ppfs_receive) AS inc_ppfs_receive,
-                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc_uccr ELSE 0 END) AS inc_uccr,
-                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc_uccr_claim ELSE 0 END) AS inc_uccr_claim,
-                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc_uccr_receive ELSE 0 END) AS inc_uccr_receive,
-                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc_herb ELSE 0 END) AS inc_herb,
-                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc_herb_claim ELSE 0 END) AS inc_herb_claim,
-                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","DIS") AND paidst NOT IN ("01","03") THEN inc_herb_receive ELSE 0 END) AS inc_herb_receive
+                SUM(CASE WHEN a.diagtype ="OP" THEN 1 ELSE 0 END) AS visit_total_op,
+                SUM(CASE WHEN a.diagtype ="PP" THEN 1 ELSE 0 END) AS visit_total_pp,
+                SUM(CASE WHEN a.endpoint ="Y" THEN 1 ELSE 0 END) AS visit_endpoint,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") AND a.incup = "Y" THEN 1 ELSE 0 END) AS visit_ucs_incup,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") AND a.inprov = "Y" THEN 1 ELSE 0 END) AS visit_ucs_inprov,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") AND a.outprov = "Y" THEN 1 ELSE 0 END) AS visit_ucs_outprov,
+                SUM(CASE WHEN a.hipdata_code IN ("OFC") AND a.paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_ofc,
+                SUM(CASE WHEN a.hipdata_code IN ("BKK") AND a.paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_bkk,
+                SUM(CASE WHEN a.hipdata_code IN ("BMT") AND a.paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_bmt,
+                SUM(CASE WHEN a.hipdata_code IN ("SSS","SSI") AND a.paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_sss,
+                SUM(CASE WHEN a.hipdata_code IN ("LGO") AND a.paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_lgo,
+                SUM(CASE WHEN a.hipdata_code IN ("NRD","NRH") AND a.paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_fss,
+                SUM(CASE WHEN a.hipdata_code IN ("STP") AND a.paidst NOT IN ("01","03") THEN 1 ELSE 0 END) AS visit_stp,
+                SUM(CASE WHEN (a.paidst IN ("01","03") OR a.hipdata_code IN ("A1","A9")) THEN 1 ELSE 0 END) AS visit_pay,
+                COUNT(DISTINCT CASE WHEN inc.ppfs = "Y" THEN a.vn END) AS visit_ppfs,
+                COUNT(DISTINCT CASE WHEN inc.ppfs_claim = "Y" THEN a.vn END) AS visit_ppfs_claim,
+                COUNT(DISTINCT CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND inc.uccr = "Y" THEN a.vn END) AS visit_ucs_cr,
+                COUNT(DISTINCT CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND inc.uccr_claim = "Y" THEN a.vn END) AS visit_ucs_cr_claim,
+                COUNT(DISTINCT CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND inc.herb = "Y" THEN a.vn END) AS visit_ucs_herb,
+                COUNT(DISTINCT CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND inc.herb_claim = "Y" THEN a.vn END) AS visit_ucs_herb_claim,
+                COUNT(DISTINCT CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.healthmed = "Y" THEN a.vn END) AS visit_ucs_healthmed,
+                COUNT(DISTINCT CASE WHEN a.healthmed = "Y" THEN a.vn END) AS visit_healthmed,
+                COUNT(DISTINCT CASE WHEN a.dent = "Y" THEN a.vn END) AS visit_dent,
+                COUNT(DISTINCT CASE WHEN a.physic = "Y" THEN a.vn END) AS visit_physic,
+                COUNT(DISTINCT CASE WHEN a.anc = "Y" THEN a.vn END) AS visit_anc,
+                COUNT(DISTINCT CASE WHEN a.telehealth = "Y" THEN a.vn END) AS visit_telehealth,
+                COALESCE(ma_booking.cnt, 0) AS visit_moph_oapp_booking,
+                COUNT(DISTINCT CASE WHEN a.moph_oapp = "Y" THEN a.cid END) AS visit_moph_oapp,
+                COUNT(DISTINCT CASE WHEN a.referout_inprov = "Y" THEN a.vn END) AS visit_referout_inprov,
+                COUNT(DISTINCT CASE WHEN a.referout_outprov = "Y" THEN a.vn END) AS visit_referout_outprov,
+                COUNT(DISTINCT CASE WHEN a.referout_inprov_ipd = "Y" THEN a.vn END) AS visit_referout_inprov_ipd,
+                COUNT(DISTINCT CASE WHEN a.referout_outprov_ipd = "Y" THEN a.vn END) AS visit_referout_outprov_ipd,
+                COUNT(DISTINCT CASE WHEN a.referin_inprov = "Y" THEN a.vn END) AS visit_referin_inprov,
+                COUNT(DISTINCT CASE WHEN a.referin_outprov = "Y" THEN a.vn END) AS visit_referin_outprov,
+                COUNT(DISTINCT CASE WHEN a.referin_inprov_ipd = "Y" THEN a.vn END) AS visit_referin_inprov_ipd,
+                COUNT(DISTINCT CASE WHEN a.referin_outprov_ipd = "Y" THEN a.vn END) AS visit_referin_outprov_ipd,
+                COALESCE(rb.visit_referback_inprov, 0) AS visit_referback_inprov,
+                COALESCE(rb.visit_referback_outprov, 0) AS visit_referback_outprov,
+                COALESCE(op.visit_operation, 0) AS visit_operation,
+                SUM(a.income) AS inc_total, 
+                SUM(a.inc03) AS inc_lab_total, 
+                SUM(a.inc12) AS inc_drug_total,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") AND a.incup = "Y" THEN a.income ELSE 0 END) AS inc_ucs_incup,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") AND a.incup = "Y" THEN a.inc03 ELSE 0 END) AS inc_lab_ucs_incup,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") AND a.incup = "Y" THEN a.inc12 ELSE 0 END) AS inc_drug_ucs_incup,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") AND a.inprov = "Y" THEN a.income ELSE 0 END) AS inc_ucs_inprov,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") AND a.inprov = "Y" THEN a.inc03 ELSE 0 END) AS inc_lab_ucs_inprov,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") AND a.inprov = "Y" THEN a.inc12 ELSE 0 END) AS inc_drug_ucs_inprov,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") AND a.outprov = "Y" THEN a.income ELSE 0 END) AS inc_ucs_outprov,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") AND a.outprov = "Y" THEN a.inc03 ELSE 0 END) AS inc_lab_ucs_outprov,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") AND a.outprov = "Y" THEN a.inc12 ELSE 0 END) AS inc_drug_ucs_outprov,
+                SUM(CASE WHEN a.hipdata_code IN ("OFC") AND a.paidst NOT IN ("01","03") THEN a.income ELSE 0 END) AS inc_ofc,
+                SUM(CASE WHEN a.hipdata_code IN ("OFC") AND a.paidst NOT IN ("01","03") THEN a.inc03 ELSE 0 END) AS inc_lab_ofc,
+                SUM(CASE WHEN a.hipdata_code IN ("OFC") AND a.paidst NOT IN ("01","03") THEN a.inc12 ELSE 0 END) AS inc_drug_ofc,
+                SUM(CASE WHEN a.hipdata_code IN ("BKK") AND a.paidst NOT IN ("01","03") THEN a.income ELSE 0 END) AS inc_bkk,
+                SUM(CASE WHEN a.hipdata_code IN ("BKK") AND a.paidst NOT IN ("01","03") THEN a.inc03 ELSE 0 END) AS inc_lab_bkk,
+                SUM(CASE WHEN a.hipdata_code IN ("BKK") AND a.paidst NOT IN ("01","03") THEN a.inc12 ELSE 0 END) AS inc_drug_bkk,
+                SUM(CASE WHEN a.hipdata_code IN ("BMT") AND a.paidst NOT IN ("01","03") THEN a.income ELSE 0 END) AS inc_bmt,
+                SUM(CASE WHEN a.hipdata_code IN ("BMT") AND a.paidst NOT IN ("01","03") THEN a.inc03 ELSE 0 END) AS inc_lab_bmt,
+                SUM(CASE WHEN a.hipdata_code IN ("BMT") AND a.paidst NOT IN ("01","03") THEN a.inc12 ELSE 0 END) AS inc_drug_bmt,
+                SUM(CASE WHEN a.hipdata_code IN ("SSS","SSI") AND a.paidst NOT IN ("01","03") THEN a.income ELSE 0 END) AS inc_sss,
+                SUM(CASE WHEN a.hipdata_code IN ("SSS","SSI") AND a.paidst NOT IN ("01","03") THEN a.inc03 ELSE 0 END) AS inc_lab_sss,
+                SUM(CASE WHEN a.hipdata_code IN ("SSS","SSI") AND a.paidst NOT IN ("01","03") THEN a.inc12 ELSE 0 END) AS inc_drug_sss,
+                SUM(CASE WHEN a.hipdata_code IN ("LGO") AND a.paidst NOT IN ("01","03") THEN a.income ELSE 0 END) AS inc_lgo,
+                SUM(CASE WHEN a.hipdata_code IN ("LGO") AND a.paidst NOT IN ("01","03") THEN a.inc03 ELSE 0 END) AS inc_lab_lgo,
+                SUM(CASE WHEN a.hipdata_code IN ("LGO") AND a.paidst NOT IN ("01","03") THEN a.inc12 ELSE 0 END) AS inc_drug_lgo,
+                SUM(CASE WHEN a.hipdata_code IN ("NRD","NRH") AND a.paidst NOT IN ("01","03") THEN a.income ELSE 0 END) AS inc_fss,
+                SUM(CASE WHEN a.hipdata_code IN ("NRD","NRH") AND a.paidst NOT IN ("01","03") THEN a.inc03 ELSE 0 END) AS inc_lab_fss,
+                SUM(CASE WHEN a.hipdata_code IN ("NRD","NRH") AND a.paidst NOT IN ("01","03") THEN a.inc12 ELSE 0 END) AS inc_drug_fss,
+                SUM(CASE WHEN a.hipdata_code IN ("STP") AND a.paidst NOT IN ("01","03") THEN a.income ELSE 0 END) AS inc_stp,
+                SUM(CASE WHEN a.hipdata_code IN ("STP") AND a.paidst NOT IN ("01","03") THEN a.inc03 ELSE 0 END) AS inc_lab_stp,
+                SUM(CASE WHEN a.hipdata_code IN ("STP") AND a.paidst NOT IN ("01","03") THEN a.inc12 ELSE 0 END) AS inc_drug_stp,
+                SUM(CASE WHEN (a.hipdata_code IN ("A1","A9") OR a.paidst IN ("01","03")) THEN a.income ELSE 0 END) AS inc_pay,
+                SUM(CASE WHEN (a.hipdata_code IN ("A1","A9") OR a.paidst IN ("01","03")) THEN a.inc03 ELSE 0 END) AS inc_lab_pay,
+                SUM(CASE WHEN (a.hipdata_code IN ("A1","A9") OR a.paidst IN ("01","03")) THEN a.inc12 ELSE 0 END) AS inc_drug_pay,
+                SUM(COALESCE(inc.inc_ppfs, 0)) AS inc_ppfs, 
+                SUM(COALESCE(inc.inc_ppfs_claim, 0)) AS inc_ppfs_claim, 
+                SUM(COALESCE(inc.inc_ppfs_receive, 0)) AS inc_ppfs_receive,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") THEN COALESCE(inc.inc_uccr, 0) ELSE 0 END) AS inc_uccr,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") THEN COALESCE(inc.inc_uccr_claim, 0) ELSE 0 END) AS inc_uccr_claim,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") THEN COALESCE(inc.inc_uccr_receive, 0) ELSE 0 END) AS inc_uccr_receive,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") THEN COALESCE(inc.inc_herb, 0) ELSE 0 END) AS inc_herb,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") THEN COALESCE(inc.inc_herb_claim, 0) ELSE 0 END) AS inc_herb_claim,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") THEN COALESCE(inc.inc_herb_receive, 0) ELSE 0 END) AS inc_herb_receive
             FROM (
-                SELECT ov.vstdate, ov.vn, ip.an, ov.hn, ov.pttype, p.hipdata_code, p.paidst,
-                    v.cid, v.income, v.inc03, v.inc12, v.pdx,
-                    IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"), "Y", NULL) AS endpoint,
+                SELECT ov.vstdate, ov.vn, ov.hn, v.cid, v.income, v.inc03, v.inc12, p.hipdata_code, p.paidst,
                     IF(i.icd10 IS NULL, "OP", "PP") AS diagtype,
                     IF(vp.hospmain IS NOT NULL, "Y", "") AS incup,
                     IF(vp1.hospmain IS NOT NULL, "Y", "") AS inprov,
                     IF(vp2.hospmain IS NOT NULL, "Y", "") AS outprov,
-                    IF(ppfs.vn IS NOT NULL, "Y", "") AS ppfs,
-                    IF(ppfs.vn_claim = "Y", "Y", "") AS ppfs_claim,
-                    IF(uccr.vn IS NOT NULL, "Y", "") AS uccr,
-                    IF(uccr.vn_claim = "Y", "Y", "") AS uccr_claim,
-                    IF(herb.vn IS NOT NULL, "Y", "") AS herb,
-                    IF(herb.vn_claim = "Y", "Y", "") AS herb_claim,
-                    COALESCE(ppfs.inc, 0) AS inc_ppfs,
-                    COALESCE(ppfs.inc_claim, 0) AS inc_ppfs_claim,
-                    COALESCE(ppfs.inc_receive, 0) AS inc_ppfs_receive,
-                    COALESCE(uccr.inc, 0) AS inc_uccr,
-                    COALESCE(uccr.inc_claim, 0) AS inc_uccr_claim,
-                    COALESCE(uccr.inc_receive, 0) AS inc_uccr_receive,
-                    COALESCE(herb.inc, 0) AS inc_herb,
-                    COALESCE(herb.inc_claim, 0) AS inc_herb_claim,
-                    COALESCE(herb.inc_receive, 0) AS inc_herb_receive,
+                    IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"), "Y", NULL) AS endpoint,
                     IF(dt.vn IS NOT NULL, "Y", "") AS dent,
                     IF(pl.vn IS NOT NULL, "Y", "") AS physic,
                     IF(hm.vn IS NOT NULL, "Y", "") AS healthmed,
                     IF(anc.vn IS NOT NULL, "Y", "") AS anc,
                     IF(oi.export_code = 5, "Y", "") AS telehealth,
                     IF(ma.cid IS NOT NULL, "Y", "") AS moph_oapp,
-                    IF(r.vn  IS NOT NULL, "Y", "") AS referout_inprov,
-                    IF(r1.vn IS NOT NULL, "Y", "") AS referout_outprov,
-                    IF(re.vn IS NOT NULL, "Y", "") AS referout_inprov_ipd,
-                    IF(re1.vn IS NOT NULL, "Y", "") AS referout_outprov_ipd,
-                    IF(ri.vn  IS NOT NULL AND ip.vn IS NULL, "Y", "") AS referin_inprov,
-                    IF(ri1.vn IS NOT NULL AND ip.vn IS NULL, "Y", "") AS referin_outprov,
-                    IF(rii.vn  IS NOT NULL AND ip.vn IS NOT NULL, "Y", "") AS referin_inprov_ipd,
-                    IF(rii1.vn IS NOT NULL AND ip.vn IS NOT NULL, "Y", "") AS referin_outprov_ipd
+                    IF(r.vn IS NOT NULL, "Y", "") AS referout_inprov, IF(r1.vn IS NOT NULL, "Y", "") AS referout_outprov,
+                    IF(re.vn IS NOT NULL, "Y", "") AS referout_inprov_ipd, IF(re1.vn IS NOT NULL, "Y", "") AS referout_outprov_ipd,
+                    IF(ri.vn IS NOT NULL AND ip.vn IS NULL, "Y", "") AS referin_inprov, IF(ri1.vn IS NOT NULL AND ip.vn IS NULL, "Y", "") AS referin_outprov,
+                    IF(rii.vn IS NOT NULL AND ip.vn IS NOT NULL, "Y", "") AS referin_inprov_ipd, IF(rii1.vn IS NOT NULL AND ip.vn IS NOT NULL, "Y", "") AS referin_outprov_ipd
                 FROM ovst ov
-                LEFT JOIN ovstist oi ON oi.ovstist = ov.ovstist
                 LEFT JOIN vn_stat v ON v.vn = ov.vn
                 LEFT JOIN ipt ip ON ip.vn = ov.vn
                 LEFT JOIN pttype p ON p.pttype = ov.pttype
-                LEFT JOIN visit_pttype vp  ON vp.vn  = ov.vn AND vp.hospmain  IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
+                LEFT JOIN ovstist oi ON oi.ovstist = ov.ovstist
+                LEFT JOIN hrims.lookup_icd10 i ON i.icd10 = v.pdx AND i.pp = "Y"
+                LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = v.cid AND ep.vstdate = v.vstdate AND ep.claimCode LIKE "EP%"
+                LEFT JOIN visit_pttype vp ON vp.vn = ov.vn AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
                 LEFT JOIN visit_pttype vp1 ON vp1.vn = ov.vn AND vp1.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y" AND (hmain_ucs = "" OR hmain_ucs IS NULL))
                 LEFT JOIN visit_pttype vp2 ON vp2.vn = ov.vn AND vp2.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-                LEFT JOIN (SELECT DISTINCT vn FROM health_med_service) hm ON hm.vn = ov.vn
-                LEFT JOIN (SELECT DISTINCT vn FROM physic_list) pl ON pl.vn = ov.vn
                 LEFT JOIN (SELECT DISTINCT vn FROM dtmain) dt ON dt.vn = ov.vn
+                LEFT JOIN (SELECT DISTINCT vn FROM physic_list) pl ON pl.vn = ov.vn
+                LEFT JOIN (SELECT DISTINCT vn FROM health_med_service) hm ON hm.vn = ov.vn
                 LEFT JOIN (SELECT DISTINCT vn FROM person_anc_service) anc ON anc.vn = ov.vn
                 LEFT JOIN moph_appointment_list ma ON ma.cid = v.cid AND ma.appointment_date = ov.vstdate
-                LEFT JOIN referout r  ON r.vn  = ov.vn AND r.refer_hospcode  IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+                LEFT JOIN referout r ON r.vn = ov.vn AND r.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
                 LEFT JOIN referout r1 ON r1.vn = ov.vn AND r1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-                LEFT JOIN referout re  ON re.vn  = ip.an AND re.refer_hospcode  IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+                LEFT JOIN referout re ON re.vn = ip.an AND re.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
                 LEFT JOIN referout re1 ON re1.vn = ip.an AND re1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-                LEFT JOIN referin ri  ON ri.vn  = ov.vn AND ri.refer_hospcode  IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+                LEFT JOIN referin ri ON ri.vn = ov.vn AND ri.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
                 LEFT JOIN referin ri1 ON ri1.vn = ov.vn AND ri1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-                LEFT JOIN referin rii  ON rii.vn  = ip.vn AND rii.refer_hospcode  IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+                LEFT JOIN referin rii ON rii.vn = ip.vn AND rii.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
                 LEFT JOIN referin rii1 ON rii1.vn = ip.vn AND rii1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-                LEFT JOIN hrims.lookup_icd10 i ON i.icd10 = v.pdx AND i.pp = "Y"
-                LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = v.cid AND ep.vstdate = v.vstdate AND ep.claimCode LIKE "EP%" 
+                WHERE ov.vstdate BETWEEN ? AND ?
+            ) a
+            LEFT JOIN (
+                SELECT o.vn,
+                    MAX(CASE WHEN li.ppfs = "Y" THEN "Y" ELSE "" END) as ppfs,
+                    MAX(CASE WHEN li.ppfs = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL) THEN "Y" ELSE "" END) as ppfs_claim,
+                    SUM(CASE WHEN li.ppfs = "Y" THEN o.sum_price ELSE 0 END) as inc_ppfs,
+                    SUM(CASE WHEN li.ppfs = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL) THEN o.sum_price ELSE 0 END) as inc_ppfs_claim,
+                    MAX(CASE WHEN li.ppfs = "Y" THEN COALESCE(stm.receive_pp, 0) ELSE 0 END) as inc_ppfs_receive,
+                    MAX(CASE WHEN li.uc_cr = "Y" THEN "Y" ELSE "" END) as uccr,
+                    MAX(CASE WHEN li.uc_cr = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL) THEN "Y" ELSE "" END) as uccr_claim,
+                    SUM(CASE WHEN li.uc_cr = "Y" THEN o.sum_price ELSE 0 END) as inc_uccr,
+                    SUM(CASE WHEN li.uc_cr = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL) THEN o.sum_price ELSE 0 END) as inc_uccr_claim,
+                    MAX(CASE WHEN li.uc_cr = "Y" THEN (COALESCE(stm.receive_inst,0)+COALESCE(stm.receive_op,0)) ELSE 0 END) as inc_uccr_receive,
+                    MAX(CASE WHEN li.herb32 = "Y" THEN "Y" ELSE "" END) as herb,
+                    MAX(CASE WHEN li.herb32 = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL) THEN "Y" ELSE "" END) as herb_claim,
+                    SUM(CASE WHEN li.herb32 = "Y" THEN o.sum_price ELSE 0 END) as inc_herb,
+                    SUM(CASE WHEN li.herb32 = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL) THEN o.sum_price ELSE 0 END) as inc_herb_claim,
+                    MAX(CASE WHEN li.herb32 = "Y" THEN COALESCE(stm.receive_hc_hc, 0) ELSE 0 END) as inc_herb_receive
+                FROM opitemrece o
+                INNER JOIN hrims.lookup_icode li ON o.icode = li.icode
+                LEFT JOIN patient pt ON pt.hn = o.hn
+                LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
+                LEFT JOIN rep_eclaim_detail rep ON rep.vn = o.vn
+                LEFT JOIN hrims.stm_ucs stm ON stm.cid = pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) = LEFT(o.vsttime,5)
+                WHERE o.vstdate BETWEEN ? AND ?
+                GROUP BY o.vn
+            ) inc ON a.vn = inc.vn
+            LEFT JOIN (
+                SELECT DATE(reply_date_time) as d,
+                    COUNT(DISTINCT CASE WHEN lh.in_province = "Y" THEN vn END) as visit_referback_inprov,
+                    COUNT(DISTINCT CASE WHEN lh.in_province != "Y" OR lh.in_province IS NULL THEN vn END) as visit_referback_outprov
+                FROM refer_reply rr
+                LEFT JOIN hrims.lookup_hospcode lh ON rr.dest_hospcode = lh.hospcode
+                WHERE reply_date_time BETWEEN CONCAT(?, " 00:00:00") AND CONCAT(?, " 23:59:59")
+                GROUP BY 1
+            ) rb ON a.vstdate = rb.d
+            LEFT JOIN (
+                SELECT request_date as d, COUNT(DISTINCT operation_id) as visit_operation FROM operation_list 
+                WHERE request_date BETWEEN ? AND ? GROUP BY 1
+            ) op ON a.vstdate = op.d
+            LEFT JOIN (
+                SELECT appointment_date as d, COUNT(DISTINCT cid) as cnt FROM moph_appointment_list 
+                WHERE appointment_date BETWEEN ? AND ? GROUP BY 1
+            ) ma_booking ON a.vstdate = ma_booking.d
+            GROUP BY a.vstdate
+            ORDER BY a.vstdate';
 
-                LEFT JOIN (
-                    SELECT o.vn, o.hn,
-                        CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN "Y" ELSE "N" END AS vn_claim,
-                        SUM(o.sum_price) AS inc,
-                        SUM(CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN o.sum_price ELSE 0 END) AS inc_claim,
-                        stm.receive_pp AS inc_receive
-                    FROM opitemrece o
-                    INNER JOIN hrims.lookup_icode li ON o.icode = li.icode
-                    LEFT JOIN patient pt ON pt.hn = o.hn
-                    LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
-                    LEFT JOIN rep_eclaim_detail rep ON rep.vn = o.vn
-                    LEFT JOIN hrims.stm_ucs stm ON stm.cid = pt.cid 
-                        AND stm.vstdate = o.vstdate 
-                        AND LEFT(stm.vsttime,5) = LEFT(o.vsttime,5)
-                    WHERE o.vstdate BETWEEN ? AND ?
-                    AND li.ppfs = "Y"
-                    GROUP BY o.vn
-                ) ppfs ON ppfs.vn = ov.vn
-                
-                LEFT JOIN (
-                    SELECT o.vn,
-                        CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN "Y" ELSE "N" END AS vn_claim,
-                        SUM(o.sum_price) AS inc,
-                        SUM(CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN o.sum_price ELSE 0 END) AS inc_claim,
-                        (stm.receive_inst+stm.receive_op+stm.receive_palliative+stm.receive_dmis_drug+stm.receive_hc_drug+stm.receive_hc_hc) AS inc_receive
-                    FROM opitemrece o
-                    INNER JOIN hrims.lookup_icode li ON o.icode = li.icode
-                    LEFT JOIN patient pt ON pt.hn = o.hn
-                    LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
-                    LEFT JOIN rep_eclaim_detail rep ON rep.vn = o.vn
-                    LEFT JOIN hrims.stm_ucs stm ON stm.cid = pt.cid 
-                        AND stm.vstdate = o.vstdate 
-                        AND LEFT(stm.vsttime,5) = LEFT(o.vsttime,5)
-                    WHERE o.vstdate BETWEEN ? AND ?
-                    AND li.uc_cr = "Y"
-                    GROUP BY o.vn
-                ) uccr ON uccr.vn = ov.vn
-                
-                LEFT JOIN (
-                    SELECT o.vn,
-                        CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN "Y" ELSE "N" END AS vn_claim,
-                        SUM(o.sum_price) AS inc,
-                        SUM(CASE WHEN oe.vn IS NOT NULL OR rep.vn IS NOT NULL THEN o.sum_price ELSE 0 END) AS inc_claim,
-                        IF(stm.receive_hc_drug=0, stm.receive_hc_hc, stm.receive_hc_drug) AS inc_receive
-                    FROM opitemrece o
-                    INNER JOIN hrims.lookup_icode li ON o.icode = li.icode
-                    LEFT JOIN patient pt ON pt.hn = o.hn
-                    LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
-                    LEFT JOIN rep_eclaim_detail rep ON rep.vn = o.vn
-                    LEFT JOIN hrims.stm_ucs stm ON stm.cid = pt.cid 
-                        AND stm.vstdate = o.vstdate 
-                        AND LEFT(stm.vsttime,5) = LEFT(o.vsttime,5)
-                    WHERE o.vstdate BETWEEN ? AND ?
-                    AND li.herb32 = "Y"
-                    GROUP BY o.vn
-                ) herb ON herb.vn = ov.vn
-
-            WHERE ov.vstdate BETWEEN ? AND ?
-            GROUP BY ov.vn) a
-            
-            LEFT JOIN ( SELECT DATE(reply_date_time) AS vstdate,vn, dest_hospcode
-                FROM refer_reply
-                WHERE reply_date_time BETWEEN ? AND ?
-                GROUP BY DATE(reply_date_time), vn, dest_hospcode
-            ) rb ON rb.vstdate = a.vstdate
-            
-            LEFT JOIN ( SELECT appointment_date, COUNT(DISTINCT cid) AS moph_oapp_booking
-                FROM moph_appointment_list
-                WHERE appointment_date BETWEEN ? AND ?
-                GROUP BY appointment_date
-            ) ma_all ON ma_all.appointment_date = a.vstdate
-            
-            LEFT JOIN ( SELECT request_date,vn,an,operation_id
-                FROM operation_list
-                WHERE request_date BETWEEN ? AND ?
-                GROUP BY request_date, vn, an, operation_id
-            ) o ON o.request_date = a.vstdate AND (o.vn = a.vn OR o.an = a.an)
-
-            GROUP BY a.vstdate';
-
-        $rowsOpd = DB::connection('hosxp')->select($sqlOpd, [$hospcode, $start, $end, $start, $end, $start, $end, $start, $end , $start, $end , $start, $end , $start, $end]);
+        $rowsOpd = DB::connection('hosxp')->select($sqlOpd, 
+            [$hospcode, 
+            $start, $end, 
+            $start, $end, 
+            $start, $end, 
+            $start, $end,
+            $start, $end ]);
 
         $opdRecords = array_map(function ($r) {
             return [

@@ -667,7 +667,11 @@
                                         </a>
                                         <a class="dropdown-item dropdown-item-modern"
                                             href="{{ url('check/fdh_claim_status') }}">
-                                            FDH Claim Status
+                                            FDH-Claim Status
+                                        </a>
+                                        <a class="dropdown-item dropdown-item-modern"
+                                            href="{{ url('check/eclaim_status') }}">
+                                            E-Claim Status
                                         </a>
                                         <a class="dropdown-item dropdown-item-modern" href="{{ url('check/drug_cat') }}">
                                             Drug Catalog สปสช.
@@ -1076,7 +1080,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item d-flex align-items-center">
                             <div class="nav-version-badge">
-                                V.69-03-03 15:00
+                                V.69-03-04 00:30
                             </div>
                         </li>
                         <!-- Authentication Links -->

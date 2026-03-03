@@ -1,6 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\BudgetYearController;
 use App\Http\Controllers\Admin\MainSettingController;
@@ -137,7 +140,8 @@ Route::match(['get', 'post'], 'check/nhso_endpoint', [CheckController::class, 'n
 Route::match(['get', 'post'], 'check/fdh_claim_status', [CheckController::class, 'fdh_claim_status']);
 Route::post('check/drug_cat_nhso_save', [CheckController::class, 'drug_cat_nhso_save']);
 Route::get('check/drug_cat', [CheckController::class, 'drug_cat'])->name('drug_cat');
-;
+Route::match(['get', 'post'], 'check/eclaim_status', [\App\Http\Controllers\CheckEclaimController::class, 'eclaim_status']);
+Route::post('check/eclaim_status/import', [\App\Http\Controllers\CheckEclaimController::class, 'import_eclaim_excel']);
 Route::get('check/drug_cat_non_nhso', [CheckController::class, 'drug_cat_non_nhso']);
 Route::get('check/drug_cat_nhso_price_notmatch_hosxp', [CheckController::class, 'drug_cat_nhso_price_notmatch_hosxp']);
 Route::get('check/drug_cat_nhso_tmt_notmatch_hosxp', [CheckController::class, 'drug_cat_nhso_tmt_notmatch_hosxp']);

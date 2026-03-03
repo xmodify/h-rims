@@ -22,7 +22,10 @@ Route::get('/fdh-test', [FdhClaimStatusController::class, 'testToken']);
 
 // API AOPOD -----------------------------------------------------------------------------------
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();   
+    return $request->user();
 });
 
 Route::post('/amnosend', [AmnosendController::class, 'send']);
+
+// API E-Claim ---------------------------------------------------------------------------------
+Route::post('/eclaim/sync', [\App\Http\Controllers\CheckEclaimController::class, 'sync_eclaim_extension']);

@@ -216,11 +216,13 @@ class DebtorController extends Controller
                 SELECT v.vstdate AS date_serv,v.vn AS anvn,v.hn,v.income,
                 IFNULL(o.sumprice,0) AS sum_price,v.income - IFNULL(o.sumprice,0) AS diff
                 FROM vn_stat v
+                LEFT JOIN ipt i ON i.vn = v.vn
                 LEFT JOIN (SELECT vn,SUM(sum_price) AS sumprice
                     FROM opitemrece
-                    WHERE rxdate BETWEEN ? and ?
+                    WHERE vstdate BETWEEN ? and ?
                     AND (an IS NULL OR an = '') GROUP BY vn) o ON o.vn = v.vn
                 WHERE v.vstdate BETWEEN ? and ?
+                AND i.vn IS NULL
                 AND v.income <> IFNULL(o.sumprice,0)
                 ORDER BY diff DESC ", [$start_date, $end_date, $start_date, $end_date]);
 
@@ -11508,3 +11510,4 @@ class DebtorController extends Controller
     }
 
 }
+

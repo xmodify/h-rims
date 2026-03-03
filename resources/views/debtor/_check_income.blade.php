@@ -374,7 +374,10 @@
             let tbody = $('#detailTable tbody');
             tbody.html('<tr><td colspan="6" class="text-center text-muted">กำลังโหลดข้อมูล...</td></tr>');
 
-            fetch("{{ url('debtor/check_income_detail') }}?type=" + currentType)
+            let startDate = $('#start_date').val();
+            let endDate = $('#end_date').val();
+
+            fetch("{{ url('debtor/check_income_detail') }}?type=" + currentType + "&start_date=" + startDate + "&end_date=" + endDate)
                 .then(res => res.json())
                 .then(data => {
                     tbody.empty();

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Session;
@@ -71,6 +72,9 @@ class DebtorController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d', strtotime("-1 day"));
         $end_date = $request->end_date ?: date('Y-m-d', strtotime("-1 day"));
 
+        Session::put('start_date', $start_date);
+        Session::put('end_date', $end_date);
+
         $check_income = DB::connection('hosxp')->select("
             SELECT o.op_income,o.op_paid,v.vn_income,v.vn_paid,v.vn_rcpt,v.vn_income - v.vn_rcpt AS vn_debtor,
                 IF(v.vn_income <> o.op_income, 'Resync VN', 'Success') AS status_check
@@ -139,7 +143,8 @@ class DebtorController extends Controller
             GROUP BY p.hipdata_code
             ORDER BY p.hipdata_code', [$start_date, $end_date, $start_date, $end_date]);
 
-        $check_income_ipd = DB::connection('hosxp')->select("
+        $check_income_ipd = DB::connection('hosxp')->select(
+            "
             SELECT o.op_income,o.op_paid,v.an_income,v.an_paid,v.an_rcpt,v.an_income-v.an_rcpt AS an_debtor,
             IF(v.an_income <> o.op_income, 'Resync AN', 'Success') AS status_check
             FROM (SELECT SUM(income) AS an_income,SUM(paid_money) AS an_paid,SUM(rcpt_money) AS an_rcpt
@@ -149,8 +154,7 @@ class DebtorController extends Controller
                 (SELECT SUM(o.sum_price) AS op_income,SUM(CASE WHEN o.paidst IN ('01','03') THEN o.sum_price ELSE 0 END) AS op_paid
                 FROM opitemrece o 
                 INNER JOIN an_stat a ON a.an = o.an 
-                WHERE a.dchdate BETWEEN ? AND ?) o"
-            ,
+                WHERE a.dchdate BETWEEN ? AND ?) o",
             [$start_date, $end_date, $start_date, $end_date]
         );
 
@@ -188,9 +192,6 @@ class DebtorController extends Controller
             GROUP BY p.hipdata_code
             ORDER BY p.hipdata_code', [$start_date, $end_date]);
 
-        Session::put('start_date', $request->start_date);
-        Session::put('end_date', $request->end_date);
-
         return view('debtor._check_income', compact(
             'start_date',
             'end_date',
@@ -207,25 +208,55 @@ class DebtorController extends Controller
         ini_set('memory_limit', '1024M');
 
         $type = $request->type; // opd | ipd
-        $start_date = Session::get('start_date') ?: date('Y-m-d', strtotime("-1 day"));
-        $end_date = Session::get('end_date') ?: date('Y-m-d', strtotime("-1 day"));
+
+        // Priority: 1. Fetch Request 2. Session Defaults 3. Yesterday format 
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d', strtotime("-1 day"));
+        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d', strtotime("-1 day"));
 
         if ($type === 'opd') {
             // ---------------- OPD ----------------
             $data = DB::connection('hosxp')->select("
-                SELECT v.vstdate AS date_serv,v.vn AS anvn,v.hn,v.income,
-                IFNULL(o.sumprice,0) AS sum_price,v.income - IFNULL(o.sumprice,0) AS diff
-                FROM vn_stat v
-                LEFT JOIN ipt i ON i.vn = v.vn
-                LEFT JOIN (SELECT vn,SUM(sum_price) AS sumprice
-                    FROM opitemrece
-                    WHERE vstdate BETWEEN ? and ?
-                    AND (an IS NULL OR an = '') GROUP BY vn) o ON o.vn = v.vn
-                WHERE v.vstdate BETWEEN ? and ?
-                AND i.vn IS NULL
-                AND v.income <> IFNULL(o.sumprice,0)
-                ORDER BY diff DESC ", [$start_date, $end_date, $start_date, $end_date]);
-
+                SELECT * FROM (
+                    SELECT 
+                        v.vstdate AS date_serv,
+                        v.vn AS anvn,
+                        v.hn,
+                        v.income,
+                        COALESCE(o.sum_price, 0) AS sum_price,
+                        (v.income - COALESCE(o.sum_price, 0)) AS diff
+                    FROM vn_stat v
+                    LEFT JOIN ipt i ON i.vn = v.vn                
+                    LEFT JOIN (
+                        SELECT vn, SUM(sum_price) AS sum_price
+                        FROM opitemrece
+                        WHERE vstdate BETWEEN ? AND ?
+                        AND (an IS NULL OR an = '')
+                        GROUP BY vn
+                    ) o ON o.vn = v.vn
+                    WHERE v.vstdate BETWEEN ? AND ?
+                    AND i.vn IS NULL
+                    
+                    UNION ALL
+                    
+                    SELECT 
+                        o.vstdate AS date_serv,
+                        o.vn AS anvn,
+                        o.hn,
+                        0 AS income,
+                        SUM(o.sum_price) AS sum_price,
+                        (0 - SUM(o.sum_price)) AS diff
+                    FROM opitemrece o
+                    LEFT JOIN vn_stat v ON v.vn = o.vn
+                    LEFT JOIN ipt i ON i.vn = o.vn
+                    WHERE o.vstdate BETWEEN ? AND ?
+                    AND (o.an IS NULL OR o.an = '')
+                    AND v.vn IS NULL
+                    AND i.vn IS NULL
+                    GROUP BY o.vstdate, o.vn, o.hn
+                ) t
+                WHERE ROUND(income, 2) <> ROUND(sum_price, 2)
+                ORDER BY ABS(diff) DESC
+            ", [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
         } else {
             // ---------------- IPD ----------------
             $data = DB::connection('hosxp')->select("
@@ -254,7 +285,8 @@ class DebtorController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d', strtotime('-1 day'));
         $end_date = $request->end_date ?: date('Y-m-d', strtotime('-1 day'));
 
-        $check = DB::connection('hosxp')->select("
+        $check = DB::connection('hosxp')->select(
+            "
             SELECT * FROM (SELECT 'OPD' AS dep,v.vstdate AS serv_date,v.vn AS vnan,v.hn,
                     CONCAT(pt.pname,pt.fname,' ',pt.lname) AS ptname,p.hipdata_code,p.name AS pttype,
                     vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,v.paid_money,
@@ -348,8 +380,7 @@ class DebtorController extends Controller
                     UNION ALL SELECT an FROM hrims.debtor_1102050102_802 WHERE dchdate BETWEEN ? AND ?
                     UNION ALL SELECT an FROM hrims.debtor_1102050102_804 WHERE dchdate BETWEEN ? AND ?
                 )  GROUP BY a.an ) x
-            ORDER BY dep DESC,hipdata_code, serv_date "
-            ,
+            ORDER BY dep DESC,hipdata_code, serv_date ",
             [
                 $start_date,
                 $end_date,
@@ -888,7 +919,7 @@ class DebtorController extends Controller
         return @$pdf->stream();
     }
     ##############################################################################################################################################################
-//_1102050101_103--------------------------------------------------------------------------------------------------------------
+    //_1102050101_103--------------------------------------------------------------------------------------------------------------
     public function _1102050101_103(Request $request)
     {
         set_time_limit(0);
@@ -1108,7 +1139,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_103_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_109--------------------------------------------------------------------------------------------------------------
+    //_1102050101_109--------------------------------------------------------------------------------------------------------------
     public function _1102050101_109(Request $request)
     {
         set_time_limit(0);
@@ -1337,7 +1368,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_109_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_201--------------------------------------------------------------------------------------------------------------
+    //_1102050101_201--------------------------------------------------------------------------------------------------------------
     public function _1102050101_201(Request $request)
     {
         set_time_limit(0);
@@ -1663,7 +1694,7 @@ class DebtorController extends Controller
         ]);
     }
     ##############################################################################################################################################################
-//_1102050101_203--------------------------------------------------------------------------------------------------------------
+    //_1102050101_203--------------------------------------------------------------------------------------------------------------
     public function _1102050101_203(Request $request)
     {
         set_time_limit(0);
@@ -2016,7 +2047,7 @@ class DebtorController extends Controller
         ]);
     }
     ##############################################################################################################################################################
-//_1102050101_209--------------------------------------------------------------------------------------------------------------
+    //_1102050101_209--------------------------------------------------------------------------------------------------------------
     public function _1102050101_209(Request $request)
     {
         set_time_limit(0);
@@ -2246,7 +2277,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_209_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_216--------------------------------------------------------------------------------------------------------------
+    //_1102050101_216--------------------------------------------------------------------------------------------------------------
     public function _1102050101_216(Request $request)
     {
         set_time_limit(0);
@@ -2749,7 +2780,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_216_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_301--------------------------------------------------------------------------------------------------------------
+    //_1102050101_301--------------------------------------------------------------------------------------------------------------
     public function _1102050101_301(Request $request)
     {
         set_time_limit(0);
@@ -3081,7 +3112,7 @@ class DebtorController extends Controller
         ]);
     }
     ##############################################################################################################################################################
-//_1102050101_303--------------------------------------------------------------------------------------------------------------
+    //_1102050101_303--------------------------------------------------------------------------------------------------------------
     public function _1102050101_303(Request $request)
     {
         set_time_limit(0);
@@ -3341,7 +3372,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_303_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_307--------------------------------------------------------------------------------------------------------------
+    //_1102050101_307--------------------------------------------------------------------------------------------------------------
     public function _1102050101_307(Request $request)
     {
         set_time_limit(0);
@@ -3408,7 +3439,8 @@ class DebtorController extends Controller
             GROUP BY o.vn, vp.pttype
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $debtor_search_ip = DB::connection('hosxp')->select('
+        $debtor_search_ip = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
                 COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
@@ -3442,8 +3474,7 @@ class DebtorController extends Controller
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_307 WHERE an IS NOT NULL)
 			AND ip.pttype IN (' . $pttype_sss_fund . ') 
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,
+            ORDER BY i.ward, i.dchdate, i.an, ip.pttype',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -3557,7 +3588,8 @@ class DebtorController extends Controller
         $checkbox_ip = $request->input('checkbox_ip'); // รับ array
         $checkbox_string = implode(",", $checkbox_ip); // แปลงเป็น string สำหรับ SQL IN
 
-        $debtor = DB::connection('hosxp')->select('
+        $debtor = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
                 COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
@@ -3592,8 +3624,7 @@ class DebtorController extends Controller
 			AND ip.pttype IN (' . $pttype_sss_fund . ') 
             AND i.an IN (' . $checkbox_string . ')
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,
+            ORDER BY i.ward, i.dchdate, i.an, ip.pttype',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -3718,7 +3749,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_307_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_309--------------------------------------------------------------------------------------------------------------
+    //_1102050101_309--------------------------------------------------------------------------------------------------------------
     public function _1102050101_309(Request $request)
     {
         set_time_limit(0);
@@ -4091,7 +4122,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_309_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_401--------------------------------------------------------------------------------------------------------------
+    //_1102050101_401--------------------------------------------------------------------------------------------------------------
     public function _1102050101_401(Request $request)
     {
         set_time_limit(0);
@@ -4406,7 +4437,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_401_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_501--------------------------------------------------------------------------------------------------------------
+    //_1102050101_501--------------------------------------------------------------------------------------------------------------
     public function _1102050101_501(Request $request)
     {
         set_time_limit(0);
@@ -4638,7 +4669,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_501_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_503--------------------------------------------------------------------------------------------------------------
+    //_1102050101_503--------------------------------------------------------------------------------------------------------------
     public function _1102050101_503(Request $request)
     {
         set_time_limit(0);
@@ -4865,7 +4896,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_503_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_701--------------------------------------------------------------------------------------------------------------
+    //_1102050101_701--------------------------------------------------------------------------------------------------------------
     public function _1102050101_701(Request $request)
     {
         set_time_limit(0);
@@ -5099,7 +5130,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_701_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_702--------------------------------------------------------------------------------------------------------------
+    //_1102050101_702--------------------------------------------------------------------------------------------------------------
     public function _1102050101_702(Request $request)
     {
         set_time_limit(0);
@@ -5335,7 +5366,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_702_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050102_106--------------------------------------------------------------------------------------------------------------
+    //_1102050102_106--------------------------------------------------------------------------------------------------------------
     public function _1102050102_106(Request $request)
     {
         set_time_limit(0);
@@ -5709,7 +5740,7 @@ class DebtorController extends Controller
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
     ##############################################################################################################################################################
-//_1102050102_108--------------------------------------------------------------------------------------------------------------
+    //_1102050102_108--------------------------------------------------------------------------------------------------------------
     public function _1102050102_108(Request $request)
     {
         set_time_limit(0);
@@ -5954,7 +5985,7 @@ class DebtorController extends Controller
         return view('debtor.1102050102_108_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050102_110--------------------------------------------------------------------------------------------------------------
+    //_1102050102_110--------------------------------------------------------------------------------------------------------------
     public function _1102050102_110(Request $request)
     {
         set_time_limit(0);
@@ -6269,7 +6300,7 @@ class DebtorController extends Controller
         return view('debtor.1102050102_110_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050102_602--------------------------------------------------------------------------------------------------------------
+    //_1102050102_602--------------------------------------------------------------------------------------------------------------
     public function _1102050102_602(Request $request)
     {
         set_time_limit(0);
@@ -6502,7 +6533,7 @@ class DebtorController extends Controller
         return view('debtor.1102050102_602_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050102_801--------------------------------------------------------------------------------------------------------------
+    //_1102050102_801--------------------------------------------------------------------------------------------------------------
     public function _1102050102_801(Request $request)
     {
         set_time_limit(0);
@@ -6806,7 +6837,7 @@ class DebtorController extends Controller
         return view('debtor.1102050102_801_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050102_803--------------------------------------------------------------------------------------------------------------
+    //_1102050102_803--------------------------------------------------------------------------------------------------------------
     public function _1102050102_803(Request $request)
     {
         set_time_limit(0);
@@ -7121,7 +7152,7 @@ class DebtorController extends Controller
         return view('debtor.1102050102_803_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_202--------------------------------------------------------------------------------------------------------------
+    //_1102050101_202--------------------------------------------------------------------------------------------------------------
     public function _1102050101_202(Request $request)
     {
         set_time_limit(0);
@@ -7361,7 +7392,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_202_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_217--------------------------------------------------------------------------------------------------------------
+    //_1102050101_217--------------------------------------------------------------------------------------------------------------
     public function _1102050101_217(Request $request)
     {
         set_time_limit(0);
@@ -7608,7 +7639,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_217_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_302--------------------------------------------------------------------------------------------------------------
+    //_1102050101_302--------------------------------------------------------------------------------------------------------------
     public function _1102050101_302(Request $request)
     {
         set_time_limit(0);
@@ -7649,7 +7680,8 @@ class DebtorController extends Controller
             ', [$start_date, $end_date]);
         }
 
-        $debtor_search = DB::connection('hosxp')->select('
+        $debtor_search = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
                 COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
@@ -7686,8 +7718,7 @@ class DebtorController extends Controller
             AND ip.pttype NOT IN (' . $pttype_sss_fund . ')
 			AND ip.pttype NOT IN (' . $pttype_sss_72 . ') 
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,
+            ORDER BY i.ward, i.dchdate, i.an, ip.pttype',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -7717,7 +7748,8 @@ class DebtorController extends Controller
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
 
-        $debtor = DB::connection('hosxp')->select('
+        $debtor = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
                 COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
@@ -7755,8 +7787,7 @@ class DebtorController extends Controller
 			AND ip.pttype NOT IN (' . $pttype_sss_72 . ') 
             AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,
+            ORDER BY i.ward, i.dchdate, i.an, ip.pttype',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -7878,7 +7909,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_302_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_304--------------------------------------------------------------------------------------------------------------
+    //_1102050101_304--------------------------------------------------------------------------------------------------------------
     public function _1102050101_304(Request $request)
     {
         set_time_limit(0);
@@ -7919,7 +7950,8 @@ class DebtorController extends Controller
             ', [$start_date, $end_date]);
         }
 
-        $debtor_search = DB::connection('hosxp')->select('
+        $debtor_search = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
                 COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
@@ -7956,8 +7988,7 @@ class DebtorController extends Controller
             AND ip.pttype NOT IN (' . $pttype_sss_fund . ')
 			AND ip.pttype NOT IN (' . $pttype_sss_72 . ') 
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,
+            ORDER BY i.ward, i.dchdate, i.an, ip.pttype',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -7987,7 +8018,8 @@ class DebtorController extends Controller
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
 
-        $debtor = DB::connection('hosxp')->select('
+        $debtor = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
                 COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
@@ -8025,8 +8057,7 @@ class DebtorController extends Controller
 			AND ip.pttype NOT IN (' . $pttype_sss_72 . ') 
             AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,
+            ORDER BY i.ward, i.dchdate, i.an, ip.pttype',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -8148,7 +8179,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_304_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_308--------------------------------------------------------------------------------------------------------------
+    //_1102050101_308--------------------------------------------------------------------------------------------------------------
     public function _1102050101_308(Request $request)
     {
         set_time_limit(0);
@@ -8188,7 +8219,8 @@ class DebtorController extends Controller
             ', [$start_date, $end_date]);
         }
 
-        $debtor_search = DB::connection('hosxp')->select('
+        $debtor_search = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
                 COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
@@ -8223,8 +8255,7 @@ class DebtorController extends Controller
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_308 WHERE an IS NOT NULL)
 			AND ip.pttype IN (' . $pttype_sss_72 . ') 
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,
+            ORDER BY i.ward, i.dchdate, i.an, ip.pttype',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -8254,7 +8285,8 @@ class DebtorController extends Controller
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
 
-        $debtor = DB::connection('hosxp')->select('
+        $debtor = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
                 COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
@@ -8290,8 +8322,7 @@ class DebtorController extends Controller
 			AND ip.pttype IN (' . $pttype_sss_72 . ') 
             AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,
+            ORDER BY i.ward, i.dchdate, i.an, ip.pttype',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -8413,7 +8444,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_308_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_310--------------------------------------------------------------------------------------------------------------
+    //_1102050101_310--------------------------------------------------------------------------------------------------------------
     public function _1102050101_310(Request $request)
     {
         set_time_limit(0);
@@ -8664,7 +8695,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_310_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_402--------------------------------------------------------------------------------------------------------------
+    //_1102050101_402--------------------------------------------------------------------------------------------------------------
     public function _1102050101_402(Request $request)
     {
         set_time_limit(0);
@@ -8936,7 +8967,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_402_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_502--------------------------------------------------------------------------------------------------------------
+    //_1102050101_502--------------------------------------------------------------------------------------------------------------
     public function _1102050101_502(Request $request)
     {
         set_time_limit(0);
@@ -9192,7 +9223,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_502_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_504--------------------------------------------------------------------------------------------------------------
+    //_1102050101_504--------------------------------------------------------------------------------------------------------------
     public function _1102050101_504(Request $request)
     {
         set_time_limit(0);
@@ -9450,7 +9481,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_504_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050101_704--------------------------------------------------------------------------------------------------------------
+    //_1102050101_704--------------------------------------------------------------------------------------------------------------
     public function _1102050101_704(Request $request)
     {
         set_time_limit(0);
@@ -9489,7 +9520,8 @@ class DebtorController extends Controller
             ', [$start_date, $end_date]);
         }
 
-        $debtor_search = DB::connection('hosxp')->select('
+        $debtor_search = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
                 COALESCE(inc.income,0) AS income,a.income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
@@ -9523,8 +9555,7 @@ class DebtorController extends Controller
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_704 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,
+            ORDER BY i.ward, i.dchdate, i.an, ip.pttype',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -9552,7 +9583,8 @@ class DebtorController extends Controller
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
 
-        $debtor = DB::connection('hosxp')->select('
+        $debtor = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
                 COALESCE(inc.income,0) AS income,a.income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
@@ -9587,8 +9619,7 @@ class DebtorController extends Controller
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_704 WHERE an IS NOT NULL)
             AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,
+            ORDER BY i.ward, i.dchdate, i.an, ip.pttype',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -9710,7 +9741,7 @@ class DebtorController extends Controller
         return view('debtor.1102050101_704_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050102_107--------------------------------------------------------------------------------------------------------------
+    //_1102050102_107--------------------------------------------------------------------------------------------------------------
     public function _1102050102_107(Request $request)
     {
         set_time_limit(0);
@@ -10088,7 +10119,7 @@ class DebtorController extends Controller
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
     ##############################################################################################################################################################
-//_1102050102_109--------------------------------------------------------------------------------------------------------------
+    //_1102050102_109--------------------------------------------------------------------------------------------------------------
     public function _1102050102_109(Request $request)
     {
         set_time_limit(0);
@@ -10127,7 +10158,8 @@ class DebtorController extends Controller
             ', [$start_date, $end_date]);
         }
 
-        $debtor_search = DB::connection('hosxp')->select('
+        $debtor_search = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
                 COALESCE(inc.income,0) AS income,a.income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
@@ -10161,8 +10193,7 @@ class DebtorController extends Controller
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_109 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,
+            ORDER BY i.ward, i.dchdate, i.an, ip.pttype',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -10190,7 +10221,8 @@ class DebtorController extends Controller
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
 
-        $debtor = DB::connection('hosxp')->select('
+        $debtor = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
                 COALESCE(inc.income,0) AS income,a.income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
@@ -10225,8 +10257,7 @@ class DebtorController extends Controller
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_109 WHERE an IS NOT NULL)
             AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,
+            ORDER BY i.ward, i.dchdate, i.an, ip.pttype',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -10348,7 +10379,7 @@ class DebtorController extends Controller
         return view('debtor.1102050102_109_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050102_111--------------------------------------------------------------------------------------------------------------
+    //_1102050102_111--------------------------------------------------------------------------------------------------------------
     public function _1102050102_111(Request $request)
     {
         set_time_limit(0);
@@ -10399,7 +10430,8 @@ class DebtorController extends Controller
                 WHERE d.dchdate BETWEEN ? AND ?', [$start_date, $end_date]);
         }
 
-        $debtor_search = DB::connection('hosxp')->select('
+        $debtor_search = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
                 COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(kidney.kidney_price,0) AS kidney,
@@ -10434,8 +10466,7 @@ class DebtorController extends Controller
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_111 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate'
-            ,
+            ORDER BY i.ward, i.dchdate',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -10463,7 +10494,8 @@ class DebtorController extends Controller
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
 
-        $debtor = DB::connection('hosxp')->select('
+        $debtor = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
                 COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(kidney.kidney_price,0) AS kidney,
@@ -10499,8 +10531,7 @@ class DebtorController extends Controller
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_111 WHERE an IS NOT NULL)
             AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate'
-            ,
+            ORDER BY i.ward, i.dchdate',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -10615,7 +10646,7 @@ class DebtorController extends Controller
     }
 
     ##############################################################################################################################################################
-//_1102050102_603--------------------------------------------------------------------------------------------------------------
+    //_1102050102_603--------------------------------------------------------------------------------------------------------------
     public function _1102050102_603(Request $request)
     {
         set_time_limit(0);
@@ -10643,7 +10674,8 @@ class DebtorController extends Controller
                 ORDER BY d.dchdate', [$start_date, $end_date]);
         }
 
-        $debtor_search = DB::connection('hosxp')->select('
+        $debtor_search = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
                 COALESCE(inc.income,0) AS income,a.income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
@@ -10679,8 +10711,7 @@ class DebtorController extends Controller
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_603 WHERE an IS NOT NULL)
             AND p.pttype IN (' . $pttype_act . ') 
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,
+            ORDER BY i.ward, i.dchdate, i.an, ip.pttype',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -10710,7 +10741,8 @@ class DebtorController extends Controller
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
 
-        $debtor = DB::connection('hosxp')->select('
+        $debtor = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
                 COALESCE(inc.income,0) AS income,a.income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
@@ -10745,8 +10777,7 @@ class DebtorController extends Controller
             AND p.pttype IN (' . $pttype_act . ') 
             AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate, i.an, ip.pttype'
-            ,
+            ORDER BY i.ward, i.dchdate, i.an, ip.pttype',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -10868,7 +10899,7 @@ class DebtorController extends Controller
         return view('debtor.1102050102_603_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
     ##############################################################################################################################################################
-//_1102050102_802--------------------------------------------------------------------------------------------------------------
+    //_1102050102_802--------------------------------------------------------------------------------------------------------------
     public function _1102050102_802(Request $request)
     {
         set_time_limit(0);
@@ -10921,7 +10952,8 @@ class DebtorController extends Controller
             ', [$start_date, $end_date]);
         }
 
-        $debtor_search = DB::connection('hosxp')->select('
+        $debtor_search = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
                 COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(kidney.kidney_price,0) AS kidney,
@@ -10956,8 +10988,7 @@ class DebtorController extends Controller
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_802 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate'
-            ,
+            ORDER BY i.ward, i.dchdate',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -10985,7 +11016,8 @@ class DebtorController extends Controller
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
 
-        $debtor = DB::connection('hosxp')->select('
+        $debtor = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
                 COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(kidney.kidney_price,0) AS kidney,
@@ -11021,8 +11053,7 @@ class DebtorController extends Controller
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_802 WHERE an IS NOT NULL)
             AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate'
-            ,
+            ORDER BY i.ward, i.dchdate',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -11185,7 +11216,8 @@ class DebtorController extends Controller
             ', [$start_date, $end_date]);
         }
 
-        $debtor_search = DB::connection('hosxp')->select('
+        $debtor_search = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
                 COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(kidney.kidney_price,0) AS kidney,
@@ -11220,8 +11252,7 @@ class DebtorController extends Controller
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_804 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate'
-            ,
+            ORDER BY i.ward, i.dchdate',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -11249,7 +11280,8 @@ class DebtorController extends Controller
         $checkbox = $request->input('checkbox'); // รับ array
         $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
 
-        $debtor = DB::connection('hosxp')->select('
+        $debtor = DB::connection('hosxp')->select(
+            '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
                 COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(kidney.kidney_price,0) AS kidney,
@@ -11285,8 +11317,7 @@ class DebtorController extends Controller
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_804 WHERE an IS NOT NULL)
             AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
-            ORDER BY i.ward, i.dchdate'
-            ,
+            ORDER BY i.ward, i.dchdate',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
@@ -11497,7 +11528,6 @@ class DebtorController extends Controller
                 'rows' => $affected,
                 'tables' => count($vstTables) + count($dchTables)
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -11505,9 +11535,6 @@ class DebtorController extends Controller
                 'ok' => false,
                 'message' => $e->getMessage()
             ], 500);
-
         }
     }
-
 }
-

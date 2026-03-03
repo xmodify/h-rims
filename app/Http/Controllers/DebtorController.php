@@ -216,47 +216,27 @@ class DebtorController extends Controller
         if ($type === 'opd') {
             // ---------------- OPD ----------------
             $data = DB::connection('hosxp')->select("
-                SELECT * FROM (
-                    SELECT 
-                        v.vstdate AS date_serv,
-                        v.vn AS anvn,
-                        v.hn,
-                        v.income,
-                        COALESCE(o.sum_price, 0) AS sum_price,
-                        (v.income - COALESCE(o.sum_price, 0)) AS diff
+                SELECT MAX(date_serv) AS date_serv, anvn, MAX(hn) AS hn, SUM(income) AS income, SUM(sum_price) AS sum_price, SUM(income) - SUM(sum_price) AS diff
+                FROM (
+                    SELECT v.vstdate AS date_serv, v.vn AS anvn, v.hn, v.income, 0 AS sum_price
                     FROM vn_stat v
-                    LEFT JOIN ipt i ON i.vn = v.vn                
-                    LEFT JOIN (
-                        SELECT vn, SUM(sum_price) AS sum_price
-                        FROM opitemrece
-                        WHERE vstdate BETWEEN ? AND ?
-                        AND (an IS NULL OR an = '')
-                        GROUP BY vn
-                    ) o ON o.vn = v.vn
+                    LEFT JOIN ipt i ON i.vn = v.vn
                     WHERE v.vstdate BETWEEN ? AND ?
                     AND i.vn IS NULL
                     
                     UNION ALL
                     
-                    SELECT 
-                        o.vstdate AS date_serv,
-                        o.vn AS anvn,
-                        o.hn,
-                        0 AS income,
-                        SUM(o.sum_price) AS sum_price,
-                        (0 - SUM(o.sum_price)) AS diff
+                    SELECT o.vstdate AS date_serv, o.vn AS anvn, o.hn, 0 AS income, o.sum_price
                     FROM opitemrece o
-                    LEFT JOIN vn_stat v ON v.vn = o.vn
                     LEFT JOIN ipt i ON i.vn = o.vn
                     WHERE o.vstdate BETWEEN ? AND ?
                     AND (o.an IS NULL OR o.an = '')
-                    AND v.vn IS NULL
                     AND i.vn IS NULL
-                    GROUP BY o.vstdate, o.vn, o.hn
                 ) t
-                WHERE ROUND(income, 2) <> ROUND(sum_price, 2)
-                ORDER BY ABS(diff) DESC
-            ", [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+                GROUP BY anvn
+                HAVING ROUND(SUM(income), 2) <> ROUND(SUM(sum_price), 2)
+                ORDER BY ABS(SUM(income) - SUM(sum_price)) DESC
+            ", [$start_date, $end_date, $start_date, $end_date]);
         } else {
             // ---------------- IPD ----------------
             $data = DB::connection('hosxp')->select("
@@ -271,8 +251,8 @@ class DebtorController extends Controller
                     INNER JOIN an_stat a2 ON a2.an = o.an
                     WHERE a2.dchdate BETWEEN ? and ?
                     GROUP BY o.an) o ON o.an = a.an
-                WHERE a.income <> IFNULL(o.sum_price,0)
-                ORDER BY a.an ", [$start_date, $end_date, $start_date, $end_date]);
+                WHERE ROUND(a.income, 2) <> ROUND(IFNULL(o.sum_price,0), 2)
+                ORDER BY ABS(a.income - IFNULL(o.sum_price,0)) DESC ", [$start_date, $end_date, $start_date, $end_date]);
         }
 
         return response()->json($data);

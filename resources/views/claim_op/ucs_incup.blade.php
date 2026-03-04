@@ -200,25 +200,22 @@
                                 <tr>
                                     <th class="text-center" rowspan="2">#</th>  
                                     <th class="text-center" rowspan="2">Action</th>
-                                    <th class="text-center" rowspan="2">FDH Status</th>                     
-                                    <th class="text-center" rowspan="2">วัน-เวลา | Q</th>     
+                                    <th class="text-center" rowspan="2">Claim Status</th>                     
+                                    <th class="text-center" rowspan="2" width="10%">วัน-เวลา | Q</th>     
                                     <th class="text-center" rowspan="2">HN</th> 
                                     <th class="text-center" rowspan="2">ชื่อ-สกุล | สิทธิ</th>
                                     <th class="text-center" rowspan="2" width="10%">อาการสำคัญ</th>
                                     <th class="text-center" rowspan="2">PDX | ICD9</th>
-                                    <th class="text-center" colspan="3">ค่ารักษา</th> 
-                                    <th class="text-center" colspan="3">รายการเรียกเก็บพิเศษ</th>
-                                    <th class="text-center bg-primary-soft" colspan="3">ข้อมูลการชดเชย (NHSO)</th>
+                                    <th class="text-center" rowspan="2">รายการเรียกเก็บ</th>
+                                    <th class="text-center" colspan="5">ค่ารักษา</th>                                     
+                                    <th class="text-center bg-primary-soft" colspan="3">ข้อมูลการชดเชย</th>
                                 </tr>
-                                <tr>
+                                <tr>                                    
                                     <th class="text-center small">รวม</th>
-                                    <th class="text-center small">ชำระเอง</th>
-                                    <th class="text-center small" width="10%">รายการ</th>
-                                    
+                                    <th class="text-center small">ชำระเอง</th>                                                                  
                                     <th class="text-center small">บริการเฉพาะ</th>
                                     <th class="text-center small">PPFS</th>
                                     <th class="text-center small">สมุนไพร</th>
-
                                     <th class="text-center bg-primary-soft small">STM ชดเชย</th> 
                                     <th class="text-center bg-primary-soft small">ผลต่าง</th> 
                                     <th class="text-center bg-primary-soft small">REP No.</th>
@@ -239,11 +236,15 @@
                                     <td class="text-center text-muted small">{{ $count }}</td>
                                     <td class="text-center text-nowrap">
                                         <button class="btn btn-sm btn-outline-success px-2 py-0 border-2 fw-bold" style="font-size: 0.7rem;" onclick="checkFdh('{{ $row->hn }}','{{ $row->seq }}')">FDH</button>
-                                    </td>    
-                                    <td class="text-start small text-muted text-truncate" style="max-width: 120px;" title="{{ $row->fdh_status }}">{{ $row->fdh_status }}</td>                    
+                                    </td>   
+                                    <td class="text-start">                                        
+                                        <div class="text-muted" style="font-size: 0.7rem;">FDH: <span class="fw-bold">{{ $row->fdh_status }}</span></div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">E-Claim: <span class="fw-bold">{{ $row->ec_status }}</span></div>
+                                    </td>
                                     <td class="text-start">
                                         <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
-                                        <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}}</div>
+                                        <div class="small fw-bold">Q: {{ $row->oqueue }}</div>
                                     </td>            
                                     <td class="text-center fw-bold text-primary small">{{$row->hn}}</td>
                                     <td class="text-start">
@@ -255,9 +256,9 @@
                                         <div class="fw-bold text-dark">{{ $row->pdx }}</div>
                                         <div class="text-muted" style="font-size: 0.65rem;">{{$row->icd9}}</div>
                                     </td>
+                                    <td class="text-start small text-muted text-wrap">{{ $row->claim_list }}</td>
                                     <td class="text-end small">{{ number_format($row->income,2) }}</td>              
-                                    <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
-                                    <td class="text-start small text-muted text-wrap">{{ $row->claim_list }}</td>  
+                                    <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>                                      
                                     <td class="text-end small">{{ number_format($row->uc_cr,2) }}</td> 
                                     <td class="text-end small">{{ number_format($row->ppfs,2) }}</td> 
                                     <td class="text-end small">{{ number_format($row->herb,2) }}</td> 

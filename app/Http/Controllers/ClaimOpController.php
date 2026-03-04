@@ -97,7 +97,7 @@ class ClaimOpController extends Controller
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,claim_items.claim_list,
             v.income,v.rcpt_money,COALESCE(claim_items.claim_price, 0) AS claim_price,GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
-            fdh.status_message_th AS fdh_status
+            fdh.status_message_th AS fdh_status,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -117,12 +117,14 @@ class ClaimOpController extends Controller
                 WHERE op.vstdate BETWEEN ? AND ? 
                 GROUP BY op.vn
                 HAVING SUM(CASE WHEN (li.uc_cr = "Y" OR li.ppfs="Y" OR li.herb32 = "Y") THEN 1 ELSE 0 END) > 0
-            ) claim_items ON claim_items.vn = o.vn
+            ) claim_items ON claim_items.vn = o.vn           
             LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode 
                 IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
+            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
+                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
                 GROUP_CONCAT(DISTINCT repno) AS repno FROM hrims.stm_ucs
@@ -135,6 +137,7 @@ class ClaimOpController extends Controller
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             AND oe.moph_finance_upload_status IS NULL 
             AND fdh.seq IS NULL
+            AND ec.hn IS NULL
             AND stm.cid IS NULL 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
@@ -144,7 +147,7 @@ class ClaimOpController extends Controller
             claim_items.claim_list,
             COALESCE(claim_items.uc_cr, 0) AS uc_cr,COALESCE(claim_items.ppfs, 0) AS ppfs,COALESCE(claim_items.herb, 0) AS herb,
             GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
-            stm.receive_total,stm.repno,fdh.status_message_th AS fdh_status
+            stm.receive_total,stm.repno,fdh.status_message_th AS fdh_status,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -172,6 +175,8 @@ class ClaimOpController extends Controller
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
+            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
+                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
                 GROUP_CONCAT(DISTINCT repno) AS repno FROM hrims.stm_ucs
@@ -182,7 +187,7 @@ class ClaimOpController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL") 
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
-            AND (oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR stm.cid IS NOT NULL )
+            AND (oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL )
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         return view('claim_op.ucs_incup', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));

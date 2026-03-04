@@ -2089,7 +2089,7 @@ class DebtorController extends Controller
             WHERE (o.an IS NULL OR o.an = "")
             AND o.vstdate BETWEEN ? AND ?
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)) > 0
-            AND p.hipdata_code IN ("UCS","WEL")            
+            AND p.hipdata_code IN ("UCS","WEL","SSS")            
             AND v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_209 WHERE vn IS NOT NULL)
             GROUP BY o.vn, vp.pttype 
@@ -2150,7 +2150,7 @@ class DebtorController extends Controller
             WHERE (o.an IS NULL OR o.an = "")
             AND o.vstdate BETWEEN ? AND ?
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)) > 0
-            AND p.hipdata_code IN ("UCS","WEL")            
+            AND p.hipdata_code IN ("UCS","WEL","SSS")            
             AND v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_209 WHERE vn IS NOT NULL)
             AND o.vn IN (' . $checkbox_string . ')
@@ -2831,6 +2831,7 @@ class DebtorController extends Controller
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
             AND p.hipdata_code = "SSS"            
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
+            AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_301 WHERE vn IS NOT NULL)
             AND p.pttype NOT IN (' . $pttype_sss_fund . ')
             GROUP BY o.vn, vp.pttype
@@ -2894,6 +2895,7 @@ class DebtorController extends Controller
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
             AND p.hipdata_code = "SSS"            
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
+            AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_301 WHERE vn IS NOT NULL)
             AND p.pttype NOT IN (' . $pttype_sss_fund . ')
             AND o.vn IN (' . $checkbox_string . ')
@@ -3164,6 +3166,7 @@ class DebtorController extends Controller
             AND (IFNULL(inc.income,0)-IFNULL(v.paid_money,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
             AND p.hipdata_code = "SSS"            
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
+            AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_303 WHERE vn IS NOT NULL)
             AND p.pttype NOT IN (' . $pttype_sss_fund . ')
             AND p.pttype NOT IN (' . $pttype_sss_ae . ')
@@ -3229,6 +3232,7 @@ class DebtorController extends Controller
             AND (IFNULL(inc.income,0)-IFNULL(v.paid_money,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
             AND p.hipdata_code = "SSS"            
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
+            AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_303 WHERE vn IS NOT NULL)
             AND p.pttype NOT IN (' . $pttype_sss_fund . ')
             AND p.pttype NOT IN (' . $pttype_sss_ae . ')

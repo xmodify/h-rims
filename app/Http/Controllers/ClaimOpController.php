@@ -2570,5 +2570,4 @@ class ClaimOpController extends Controller
 
         return view('claim_op.act', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'claim'));
     }
-
 }

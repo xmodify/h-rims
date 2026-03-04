@@ -55,6 +55,41 @@
         </div>
     @endif
 
+    <!-- Summary Cards -->
+    <div class="row g-3 mb-4">
+        @php
+            $status_list = [
+                '0' => ['name' => 'ผ่านการตรวจสอบขั้นต้น รอส่ง', 'color' => '#6c757d', 'bg' => '#ffffff'],
+                '1' => ['name' => 'ส่งไปยังสปสช.', 'color' => '#ffc107', 'bg' => '#ffff99'],
+                '2' => ['name' => 'ไม่ผ่านการตรวจสอบขั้นต้น', 'color' => '#dc3545', 'bg' => '#ffcccc'],
+                '3' => ['name' => 'ไม่ผ่านการตรวจสอบจากสปสช.(C)', 'color' => '#fd7e14', 'bg' => '#ffd8b1'],
+                '4' => ['name' => 'ผ่านการตรวจสอบจากสปสช.(A)', 'color' => '#0dcaf0', 'bg' => '#ccffff'],
+            ];
+        @endphp
+
+        @foreach($status_list as $code => $info)
+            @php
+                $item = $summary->get($code);
+                $count = $item ? $item->count : 0;
+                $sum = $item ? $item->sum_amount : 0;
+            @endphp
+            <div class="col-md-2-4 col-sm-6">
+                <div class="card h-100 border-0 shadow-sm status-card" 
+                     data-status="{{ $code }}"
+                     style="border-left: 5px solid {{ $info['color'] }} !important; background-color: {{ $info['bg'] }} !important; cursor: pointer;">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small fw-bold text-muted text-uppercase">{{ $info['name'] }}</span>
+                            <span class="badge rounded-pill" style="background-color: {{ $info['color'] }}">{{ $code }}</span>
+                        </div>
+                        <h4 class="mb-1 fw-bold">{{ number_format($count) }} <small class="fs-6 fw-normal text-muted">ราย</small></h4>
+                        <div class="text-primary fw-bold">{{ number_format($sum, 2) }} <small class="fw-normal text-muted">บาท</small></div>
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    </div>
+
     <!-- Data Table Card -->
     <div class="card dash-card border-top-0 mb-4">
         <div class="card-body p-4">
@@ -220,6 +255,15 @@
     .hover-scale { transition: transform 0.2s; }
     .hover-scale:hover { transform: translateY(-2px); }
     .bg-success-soft { background-color: #d1fae5; }
+    
+    /* Summary Cards */
+    .status-card { transition: all 0.3s ease; border-radius: 12px; }
+    .status-card:hover { transform: translateY(-5px); shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important; }
+    .col-md-2-4 { width: 20%; }
+    @media (max-width: 992px) { .col-md-2-4 { width: 33.33%; } }
+    @media (max-width: 768px) { .col-md-2-4 { width: 50%; } }
+    @media (max-width: 576px) { .col-md-2-4 { width: 100%; } }
+
     /* Row status colors with !important and very high specificity (#list ID) to override DataTable/Bootstrap defaults on td */
     #list.table tbody tr.row-status-1 td { background-color: #ffff99 !important; } /* เหลืองตอง */
     #list.table tbody tr.row-status-2 td { background-color: #ffcccc !important; } /* แดง/ชมพูอ่อน */
@@ -282,6 +326,26 @@
             }
         },
         order: [[6, 'desc']] // เรียงวันที่เข้ารับบริการล่าสุดขึ้นก่อน (index 6 คือวันที่รับบริการ)
+      });
+
+      // Filter table when clicking on status cards
+      $('.status-card').on('click', function() {
+          const status = $(this).data('status');
+          const table = $('#list').DataTable();
+          const currentFilter = table.column(10).search();
+          
+          // Toggle filter: if already filtering for this status, clear it
+          if (currentFilter === '^' + status) {
+              table.column(10).search('').draw();
+              $('.status-card').css('opacity', '1').removeClass('border-dark');
+          } else {
+              // Set regex filter for column 10 (สถานะข้อมูล) to find values starting with the status code
+              table.column(10).search('^' + status, true, false).draw();
+              
+              // highlight the active card and dim others
+              $('.status-card').css('opacity', '0.5').removeClass('border-dark');
+              $(this).css('opacity', '1').addClass('border-dark');
+          }
       });
     });
 </script>

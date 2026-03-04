@@ -18,10 +18,15 @@
                 @csrf
                 <div class="input-group input-group-sm">
                     <span class="input-group-text bg-white border-end-0"><i class="bi bi-calendar3"></i></span>
-                    <input type="date" name="start_date" class="form-control border-start-0" value="{{ $start_date }}" style="width: 140px;">
+                    <input type="hidden" id="start_date" name="start_date" value="{{ $start_date }}">
+                    <input type="text" id="start_date_picker" class="form-control datepicker_th border-start-0 text-center" readonly style="width: 130px; cursor: pointer;">
+                    
                     <span class="input-group-text bg-white">ถึง</span>
-                    <input type="date" name="end_date" class="form-control" value="{{ $end_date }}" style="width: 140px;">
-                    <button type="submit" class="btn btn-primary px-3">
+                    
+                    <input type="hidden" id="end_date" name="end_date" value="{{ $end_date }}">
+                    <input type="text" id="end_date_picker" class="form-control datepicker_th text-center" readonly style="width: 130px; cursor: pointer;">
+
+                    <button type="submit" class="btn btn-primary px-3 shadow-sm hover-scale">
                         <i class="bi bi-search me-1"></i> ค้นหา
                     </button>
                 </div>
@@ -89,11 +94,19 @@
         <div class="modal-body">
             <div class="mb-3">
                 <label for="dateStart" class="form-label">วันที่เริ่มต้น</label>
-                <input type="date" name="date_start" id="dateStart" class="form-control" required>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+                    <input type="hidden" name="date_start" id="dateStart" value="{{ $start_date }}">
+                    <input type="text" id="dateStart_picker" class="form-control datepicker_th text-center" readonly style="cursor: pointer;">
+                </div>
             </div>
             <div class="mb-3">
                 <label for="dateEnd" class="form-label">วันที่สิ้นสุด</label>
-                <input type="date" name="date_end" id="dateEnd" class="form-control" required>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+                    <input type="hidden" name="date_end" id="dateEnd" value="{{ $end_date }}">
+                    <input type="text" id="dateEnd_picker" class="form-control datepicker_th text-center" readonly style="cursor: pointer;">
+                </div>
             </div>
 
             <div id="resultMessage" class="mt-2 d-none"></div>
@@ -141,6 +154,11 @@
               return response.json();
           })
           .then(data => {
+              const start_date_val = "{{ $start_date }}";
+              const end_date_val = "{{ $end_date }}";
+              document.getElementById("dateStart").value = start_date_val;
+              document.getElementById("dateEnd").value = end_date_val;
+              
               resultMessage.classList.remove("d-none");
               resultMessage.classList.add("text-success");
               resultMessage.innerHTML = "✅ " + (data.message || "ดึงข้อมูลสำเร็จ");
@@ -164,6 +182,45 @@
 @push('scripts')
   <script>
     $(document).ready(function () {
+      
+      // Initialize Datepicker Thai
+      $('.datepicker_th').datepicker({
+          format: 'd M yyyy',
+          todayBtn: "linked",
+          todayHighlight: true,
+          autoclose: true,
+          language: 'th-th',
+          thaiyear: true,
+          zIndexOffset: 1050
+      });
+
+      // Set initial values
+      var start_date_val = "{{ $start_date }}";
+      var end_date_val = "{{ $end_date }}";
+      if(start_date_val) {
+          $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
+          $('#dateStart_picker').datepicker('setDate', new Date(start_date_val));
+      }
+      if(end_date_val) {
+          $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
+          $('#dateEnd_picker').datepicker('setDate', new Date(end_date_val));
+      }
+
+      // Sync Changes to Hidden Inputs
+      $('.datepicker_th').on('changeDate', function(e) {
+          var date = e.date;
+          var targetId = $(this).attr('id').replace('_picker', '');
+          var hiddenInput = $('#' + targetId);
+          if(date) {
+              var day = ("0" + date.getDate()).slice(-2);
+              var month = ("0" + (date.getMonth() + 1)).slice(-2);
+              var year = date.getFullYear();
+              hiddenInput.val(year + "-" + month + "-" + day);
+          } else {
+              hiddenInput.val('');
+          }
+      });
+
       $('#list').DataTable({
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + // Show รายการ

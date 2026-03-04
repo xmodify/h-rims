@@ -34,10 +34,9 @@
                     </div>
                 </form>
             </div>
-
         </div>
     </div>
-  
+
     <!-- Main Dashboard Container -->
     <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">
         <!-- Section 1: Chart -->
@@ -69,6 +68,8 @@
                         <span class="fw-bold text-muted small text-nowrap me-2">เลือกวันที่รับบริการ</span>
                         <div class="input-group input-group-sm">
                             <input type="hidden" name="budget_year" value="{{ $budget_year }}">
+                            
+                            
                             <!-- Start Date -->
                             <input type="hidden" id="start_date" name="start_date" value="{{ $start_date }}">
                             <input type="text" id="start_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
@@ -146,10 +147,6 @@
                                                 <span class="badge {{ $row->endpoint == 'Y' ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger' }} py-0 px-1">{{ $row->endpoint }}</span>
                                             </div>
                                             <div class="d-flex justify-content-between align-items-center gap-2">
-                                                <span class="text-muted" style="font-size: 0.65rem;">ประสงค์เบิก:</span>
-                                                <span class="badge {{ $row->request_funds == 'Y' ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger' }} py-0 px-1">{{ $row->request_funds }}</span>
-                                            </div>
-                                            <div class="d-flex justify-content-between align-items-center gap-2">
                                                 <span class="text-muted" style="font-size: 0.65rem;">พร้อมส่ง:</span>
                                                 <span class="badge {{ $row->confirm_and_locked == 'Y' ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger' }} py-0 px-1">{{ $row->confirm_and_locked }}</span>
                                             </div>
@@ -162,7 +159,7 @@
                                     <td class="text-center fw-bold text-primary small">{{$row->hn}}</td> 
                                     <td class="text-start">
                                         <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
-                                        <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}} [{{$row->hospmain}}]">{{$row->pttype}} [{{$row->hospmain}}]</div>
+                                        <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
                                     </td> 
                                     <td class="text-start small text-muted text-wrap">{{ $row->cc }}</td>
                                     <td class="text-center small">
@@ -184,8 +181,7 @@
                                 @endforeach                 
                             </tbody>
                             <tfoot class="bg-light-soft">
-                                <tr>
-                                    <th colspan="8" class="text-end text-muted small px-3">รวม:</th>
+                                    <th colspan="8" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary">{{ number_format($sum_claim_price,2) }}</th>
@@ -204,25 +200,22 @@
                                 <tr>
                                     <th class="text-center" rowspan="2">#</th>  
                                     <th class="text-center" rowspan="2">Action</th>
-                                    <th class="text-center" rowspan="2">FDH Status</th>                     
-                                    <th class="text-center" rowspan="2">วัน-เวลา | Q</th>     
+                                    <th class="text-center" rowspan="2">Claim Status</th>                     
+                                    <th class="text-center" rowspan="2" width="10%">วัน-เวลา | Q</th>     
                                     <th class="text-center" rowspan="2">HN</th> 
                                     <th class="text-center" rowspan="2">ชื่อ-สกุล | สิทธิ</th>
                                     <th class="text-center" rowspan="2" width="10%">อาการสำคัญ</th>
                                     <th class="text-center" rowspan="2">PDX | ICD9</th>
-                                    <th class="text-center" colspan="3">ค่ารักษา</th> 
-                                    <th class="text-center" colspan="3">รายการเรียกเก็บพิเศษ</th>
-                                    <th class="text-center bg-primary-soft" colspan="3">ข้อมูลการชดเชย (NHSO)</th>
+                                    <th class="text-center" rowspan="2">รายการเรียกเก็บ</th>
+                                    <th class="text-center" colspan="5">ค่ารักษา</th>                                     
+                                    <th class="text-center bg-primary-soft" colspan="3">ข้อมูลการชดเชย</th>
                                 </tr>
-                                <tr>
+                                <tr>                                    
                                     <th class="text-center small">รวม</th>
-                                    <th class="text-center small">ชำระเอง</th>
-                                    <th class="text-center small" width="10%">รายการ</th>
-                                    
+                                    <th class="text-center small">ชำระเอง</th>                                                                  
                                     <th class="text-center small">บริการเฉพาะ</th>
                                     <th class="text-center small">PPFS</th>
                                     <th class="text-center small">สมุนไพร</th>
-
                                     <th class="text-center bg-primary-soft small">STM ชดเชย</th> 
                                     <th class="text-center bg-primary-soft small">ผลต่าง</th> 
                                     <th class="text-center bg-primary-soft small">REP No.</th>
@@ -243,34 +236,40 @@
                                     <td class="text-center text-muted small">{{ $count }}</td>
                                     <td class="text-center text-nowrap">
                                         <button class="btn btn-sm btn-outline-success px-2 py-0 border-2 fw-bold" style="font-size: 0.7rem;" onclick="checkFdh('{{ $row->hn }}','{{ $row->seq }}')">FDH</button>
-                                    </td>    
-                                    <td class="text-start small text-muted text-truncate" style="max-width: 120px;" title="{{ $row->fdh_status }}">{{ $row->fdh_status }}</td>                    
+                                    </td>   
+                                    <td class="text-start">                                        
+                                        <div class="text-muted" style="font-size: 0.7rem;">FDH: <span class="fw-bold">{{ $row->fdh_status }}</span></div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">E-Claim: <span class="fw-bold">{{ $row->ec_status }}</span></div>
+                                    </td>
                                     <td class="text-start">
                                         <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
-                                        <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}}</div>
+                                        <div class="small fw-bold">Q: {{ $row->oqueue }}</div>
                                     </td>            
                                     <td class="text-center fw-bold text-primary small">{{$row->hn}}</td>
                                     <td class="text-start">
                                         <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
-                                        <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}} [{{$row->hospmain}}]">{{$row->pttype}} [{{$row->hospmain}}]</div>
+                                        <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
                                     </td> 
                                     <td class="text-start small text-muted text-wrap">{{ $row->cc }}</td>
                                     <td class="text-center small">
                                         <div class="fw-bold text-dark">{{ $row->pdx }}</div>
                                         <div class="text-muted" style="font-size: 0.65rem;">{{$row->icd9}}</div>
                                     </td>
+                                    <td class="text-start small text-muted text-wrap">{{ $row->claim_list }}</td>
                                     <td class="text-end small">{{ number_format($row->income,2) }}</td>              
-                                    <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
-                                    <td class="text-start small text-muted text-wrap">{{ $row->claim_list }}</td>  
+                                    <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>                                      
                                     <td class="text-end small">{{ number_format($row->uc_cr,2) }}</td> 
                                     <td class="text-end small">{{ number_format($row->ppfs,2) }}</td> 
-                                    <td class="text-end small">{{ number_format($row->herb,2) }}</td>  
-
-                                    <td class="text-end small fw-bold" style="color: {{ $row->receive_total >= 0 ? 'green' : 'red' }}">{{ number_format($row->receive_total,2) }}</td>
-                                    <td class="text-end small fw-bold {{ ($row->receive_total - $row->uc_cr - $row->ppfs - $row->herb) >= 0 ? 'text-success' : 'text-danger' }}">
-                                        {{ number_format($row->receive_total - $row->uc_cr - $row->ppfs - $row->herb, 2) }}
+                                    <td class="text-end small">{{ number_format($row->herb,2) }}</td> 
+                                    <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : ($row->receive_total < 0 ? 'text-danger' : 'text-dark') }}">
+                                        {{ number_format($row->receive_total,2) }}
                                     </td>
-                                    <td class="text-center small text-muted">{{ $row->repno }}</td> 
+                                    @php $diff = $row->receive_total - $row->uc_cr - $row->ppfs - $row->herb; @endphp
+                                    <td class="text-end small fw-bold {{ $diff > 0 ? 'text-success' : ($diff < 0 ? 'text-danger' : 'text-dark') }}">
+                                        {{ number_format($diff, 2) }}
+                                    </td>
+                                    <td class="text-center small text-muted">{{ $row->repno }}</td>
                                 </tr>
                                 @php 
                                     $count++; 
@@ -285,20 +284,16 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="8" class="text-end text-muted small px-3">รวม:</th>
+                                    <th colspan="8" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th></th>
                                     <th class="text-end small">{{ number_format($sum_uc_cr,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_ppfs,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_herb,2) }}</th>
-                                    <th class="text-end small fw-bold {{ $sum_receive_total >= 0 ? 'text-success' : 'text-danger' }}">
-                                        {{ number_format($sum_receive_total,2) }}
-                                    </th>
+                                    <th class="text-end small fw-bold {{ $sum_receive_total > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($sum_receive_total,2) }}</th>
                                     @php $total_diff = $sum_receive_total - $sum_uc_cr - $sum_ppfs - $sum_herb; @endphp
-                                    <th class="text-end small fw-bold {{ $total_diff >= 0 ? 'text-success' : 'text-danger' }}">
-                                        {{ number_format($total_diff, 2) }}
-                                    </th>
+                                    <th class="text-end small fw-bold {{ $total_diff > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($total_diff, 2) }}</th>
                                     <th></th>
                                 </tr>
                             </tfoot>
@@ -324,6 +319,7 @@
       showLoading();
   }
 </script>
+
 {{-- ✅ FDH Check Claim ------------------------------------------------------------ --}}
 <script>
   function checkFdh(hn, seq) {
@@ -355,10 +351,10 @@
                       text: 'พบข้อมูลในระบบ FDH',
                       timer: 1500,
                       showConfirmButton: false
-                      }).then(() => {
-                          fetchData();
-                          $('#form_indiv').submit();
-                      });
+                  }).then(() => {
+                      fetchData();
+                      $('#form_indiv').submit();
+                  });
                   return;
               }
 
@@ -403,22 +399,21 @@
 @push('scripts')
   <script>
     $(document).ready(function () {
-
+      
       // Initialize Datepicker Thai
       $('.datepicker_th').datepicker({
-          format: 'd M yyyy',
+          format: 'd M yyyy', // Matches DateThai() helper output
           todayBtn: "linked",
           todayHighlight: true,
           autoclose: true,
-          language: 'th-th', 
+          language: 'th-th',
           thaiyear: true,
           zIndexOffset: 1050
       });
 
-      // Set initial values for Datepickers
+      // Set initial values (ensures calendar is synced)
       var start_date_val = "{{ $start_date }}";
       var end_date_val = "{{ $end_date }}";
-
       if(start_date_val) {
           $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
       }
@@ -426,42 +421,39 @@
           $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
       }
 
-      // Sync Changes from Picker to Hidden Input
-      $('#start_date_picker').on('changeDate', function(e) {
+      // Sync Changes to Hidden Inputs for Backend (YYYY-MM-DD)
+      $('.datepicker_th').on('changeDate', function(e) {
           var date = e.date;
+          var targetId = $(this).attr('id').replace('_picker', '');
+          var hiddenInput = $('#' + targetId);
+          
           if(date) {
-            var day = ("0" + date.getDate()).slice(-2);
-            var month = ("0" + (date.getMonth() + 1)).slice(-2);
-            var year = date.getFullYear();
-            $('#start_date').val(year + "-" + month + "-" + day);
+              var day = ("0" + date.getDate()).slice(-2);
+              var month = ("0" + (date.getMonth() + 1)).slice(-2);
+              var year = date.getFullYear(); // Gregorian
+              hiddenInput.val(year + "-" + month + "-" + day);
+          } else {
+              hiddenInput.val('');
           }
       });
 
-      $('#end_date_picker').on('changeDate', function(e) {
-          var date = e.date;
-          if(date) {
-            var day = ("0" + date.getDate()).slice(-2);
-            var month = ("0" + (date.getMonth() + 1)).slice(-2);
-            var year = date.getFullYear();
-            $('#end_date').val(year + "-" + month + "-" + day);
-          }
-      });
 
+      // Table 1: Waiting for Claim
       $('#t_search').DataTable({
         dom: '<"row mb-3"' +
-                '<"col-md-6"l>' +
-                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' +
+                '<"col-md-6"l>' + 
+                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
               '>' +
               'rt' +
               '<"row mt-3"' +
-                '<"col-md-6"i>' +
-                '<"col-md-6"p>' +
+                '<"col-md-6"i>' + 
+                '<"col-md-6"p>' + 
               '>',
         buttons: [
             {
               extend: 'excelHtml5',
               text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
-              className: 'btn btn-success btn-sm shadow-sm',
+              className: 'btn btn-success btn-sm',
               title: 'รายชื่อผู้มารับบริการ UC-OP ในจังหวัด รอส่ง Claim วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
             }
         ],
@@ -469,25 +461,29 @@
             search: "ค้นหา:",
             lengthMenu: "แสดง _MENU_ รายการ",
             info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-            paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+            paginate: {
+              previous: "ก่อนหน้า",
+              next: "ถัดไป"
+            }
         }
       });
 
+      // Table 2: Sent Claim
       $('#t_claim').DataTable({
         dom: '<"row mb-3"' +
-                '<"col-md-6"l>' +
-                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' +
+                '<"col-md-6"l>' + 
+                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
               '>' +
               'rt' +
               '<"row mt-3"' +
-                '<"col-md-6"i>' +
-                '<"col-md-6"p>' +
+                '<"col-md-6"i>' + 
+                '<"col-md-6"p>' + 
               '>',
         buttons: [
             {
               extend: 'excelHtml5',
               text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
-              className: 'btn btn-success btn-sm shadow-sm',
+              className: 'btn btn-success btn-sm',
               title: 'รายชื่อผู้มารับบริการ UC-OP ในจังหวัด ส่ง Claim วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
             }
         ],
@@ -495,7 +491,10 @@
             search: "ค้นหา:",
             lengthMenu: "แสดง _MENU_ รายการ",
             info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-            paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+            paginate: {
+              previous: "ก่อนหน้า",
+              next: "ถัดไป"
+            }
         }
       });
     });

@@ -160,7 +160,7 @@
                                 @elseif($row->channel == 'Extension')
                                     <span class="badge bg-info-soft text-info"><i class="bi bi-browser-chrome"></i> Extension</span>
                                 @else
-                                    <span class="badge bg-light text-dark">-</span>
+                                    <span class="badge bg-light text-dark">{{ $row->channel ?: '-' }}</span>
                                 @endif
                             </td>
                         </tr>

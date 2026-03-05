@@ -1431,7 +1431,7 @@ class ClaimOpController extends Controller
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
             op_data.ppfs_list,v.income,
-            v.rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-v.rcpt_money AS debtor
+            v.rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-v.rcpt_money AS debtor,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1459,6 +1459,8 @@ class ClaimOpController extends Controller
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY cid, vstdate, LEFT(vsttime,5)
             ) stm ON stm.cid = pt.cid AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
+            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
+                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code = "LGO" 
             AND o.vstdate BETWEEN ? AND ?
@@ -1466,6 +1468,7 @@ class ClaimOpController extends Controller
             AND COALESCE(op_data.is_kidney, 0) = 0 
             AND oe.upload_datetime IS NULL 
             AND stm.cid IS NULL
+            AND ec.hn IS NULL
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
@@ -1475,7 +1478,7 @@ class ClaimOpController extends Controller
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
             oe.upload_datetime AS ecliam,v.income,v.rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            v.income-v.rcpt_money AS debtor,stm.compensate_treatment AS receive_total,stm_uc.receive_pp,stm.repno
+            v.income-v.rcpt_money AS debtor,stm.compensate_treatment AS receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1509,12 +1512,14 @@ class ClaimOpController extends Controller
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY cid, vstdate, LEFT(vsttime,5)
             ) stm_uc ON stm_uc.cid = pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
+            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
+                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code = "LGO" 
             AND o.vstdate BETWEEN ? AND ?
             AND v.income <>"0" 
             AND COALESCE(op_data.is_kidney, 0) = 0 
-            AND (oe.upload_datetime IS NOT NULL OR stm.cid IS NOT NULL)
+            AND (oe.upload_datetime IS NOT NULL OR stm.cid IS NOT NULL OR ec.hn IS NOT NULL)
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         return view('claim_op.lgo', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
@@ -1699,7 +1704,7 @@ class ClaimOpController extends Controller
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
             op_data.ppfs_list,v.income,
-            v.rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-v.rcpt_money AS debtor
+            v.rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-v.rcpt_money AS debtor,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1727,6 +1732,8 @@ class ClaimOpController extends Controller
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
             ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5) 
+            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
+                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code IN ("BKK","PTY") 
             AND o.vstdate BETWEEN ? AND ?
@@ -1734,6 +1741,7 @@ class ClaimOpController extends Controller
             AND COALESCE(op_data.is_kidney, 0) = 0 
             AND oe.upload_datetime IS NULL 
             AND stm.hn IS NULL 
+            AND ec.hn IS NULL
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
@@ -1743,7 +1751,7 @@ class ClaimOpController extends Controller
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
             oe.upload_datetime AS ecliam,v.income,v.rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            v.income-v.rcpt_money AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno
+            v.income-v.rcpt_money AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1777,12 +1785,14 @@ class ClaimOpController extends Controller
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY cid, vstdate, LEFT(vsttime,5)
             ) stm_uc ON stm_uc.cid=pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
+            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
+                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code IN ("BKK","PTY") 
             AND o.vstdate BETWEEN ? AND ?
             AND v.income <>"0" 
             AND COALESCE(op_data.is_kidney, 0) = 0 
-            AND (oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL)
+            AND (oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL)
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         return view('claim_op.bkk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
@@ -1869,7 +1879,7 @@ class ClaimOpController extends Controller
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
             op_data.ppfs_list,v.income,
-            v.rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-v.rcpt_money AS debtor
+            v.rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-v.rcpt_money AS debtor,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1897,13 +1907,16 @@ class ClaimOpController extends Controller
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
             ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
+            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
+                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code = "BMT" 
             AND o.vstdate BETWEEN ? AND ?
             AND v.income <>"0" 
             AND COALESCE(op_data.is_kidney, 0) = 0 
             AND oe.upload_datetime IS NULL 
-            AND stm.hn IS NULL
+            AND stm.hn IS NULL 
+            AND ec.hn IS NULL
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
@@ -1913,7 +1926,7 @@ class ClaimOpController extends Controller
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
             oe.upload_datetime AS ecliam,v.income,v.rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            v.income-v.rcpt_money AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno
+            v.income-v.rcpt_money AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1947,12 +1960,14 @@ class ClaimOpController extends Controller
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY cid, vstdate, LEFT(vsttime,5)
             ) stm_uc ON stm_uc.cid=pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
+            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
+                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code = "BMT" 
             AND o.vstdate BETWEEN ? AND ?
             AND v.income <>"0" 
             AND COALESCE(op_data.is_kidney, 0) = 0 
-            AND (oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL)
+            AND (oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL)
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         return view('claim_op.bmt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
@@ -2037,7 +2052,8 @@ class ClaimOpController extends Controller
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
             op_data.claim_list,
-            v.income,v.rcpt_money,COALESCE(op_data.claim_price, 0) AS claim_price
+            v.income,v.rcpt_money,COALESCE(op_data.claim_price, 0) AS claim_price,
+            ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -2045,7 +2061,6 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             INNER JOIN (
                 SELECT op.vn, 
                     GROUP_CONCAT(DISTINCT IFNULL(n.`name`, d.`name`)) AS claim_list,
@@ -2059,6 +2074,8 @@ class ClaimOpController extends Controller
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
+                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
 
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
@@ -2068,23 +2085,23 @@ class ClaimOpController extends Controller
             ) stm ON stm.cid = pt.cid AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5) 
             WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("SSS","SSI") 
-            AND oe.upload_datetime IS NULL AND stm.cid IS NULL
+            AND ec.hn IS NULL AND stm.cid IS NULL
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
             v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,
             op_data.claim_list,
-            COALESCE(op_data.claim_price, 0) AS ppfs,oe.upload_datetime AS eclaim,rep.rep_eclaim_detail_nhso AS rep_nhso,
-            rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno
+            COALESCE(op_data.claim_price, 0) AS ppfs,rep.rep_eclaim_detail_nhso AS rep_nhso,
+            rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno,
+            ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
-            LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn        
+            LEFT JOIN vn_stat v ON v.vn = o.vn        
             INNER JOIN (
                 SELECT op.vn, 
                     GROUP_CONCAT(DISTINCT IFNULL(n.`name`, d.`name`)) AS claim_list,
@@ -2098,6 +2115,8 @@ class ClaimOpController extends Controller
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
+                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
@@ -2107,7 +2126,7 @@ class ClaimOpController extends Controller
             ) stm ON stm.cid = pt.cid AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5) 
             WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("SSS","SSI") 
-            AND (oe.upload_datetime IS NOT NULL OR stm.cid IS NOT NULL)
+            AND (ec.hn IS NOT NULL OR stm.cid IS NOT NULL)
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         return view('claim_op.sss_ppfs', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));

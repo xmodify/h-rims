@@ -195,7 +195,7 @@
                                     <th class="text-center small">ชำระเอง</th>
                                     <th class="text-center small" width="10%">รายการ</th>
                                     <th class="text-center text-primary">PPFS</th>
-                                    <th class="text-center small">ส่ง Claim</th> 
+                                    <th class="text-center small">E-Claim</th> 
                                     <th class="text-center bg-primary-soft small px-1">Rep NHSO</th> 
                                     <th class="text-center bg-primary-soft small px-1 text-nowrap">Error</th> 
                                     <th class="text-center bg-primary-soft small px-1">STM ชดเชย</th> 
@@ -233,7 +233,19 @@
                                     <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
                                     <td class="text-start small text-muted text-wrap">{{ $row->claim_list }}</td> 
                                     <td class="text-end fw-bold text-primary small">{{ number_format($row->ppfs,2) }}</td> 
-                                    <td class="text-center small text-nowrap">{{ DateTimeThai($row->eclaim) }}</td> 
+                                    <td class="text-center">
+                                        @if(substr($row->ec_status, 0, 1) == '0')
+                                            <span class="badge bg-secondary-soft text-secondary py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
+                                        @elseif(substr($row->ec_status, 0, 1) == '1')
+                                            <span class="badge bg-warning-soft text-warning py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
+                                        @elseif(substr($row->ec_status, 0, 1) == '2' || substr($row->ec_status, 0, 1) == 'M')
+                                            <span class="badge bg-danger-soft text-danger py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
+                                        @elseif(substr($row->ec_status, 0, 1) == '3')
+                                            <span class="badge bg-orange-soft text-orange py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
+                                        @elseif(substr($row->ec_status, 0, 1) == '4')    
+                                            <span class="badge bg-primary-soft text-primary py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
+                                        @endif
+                                    </td>
                                     <td class="text-end small text-primary">{{ number_format($row->rep_nhso,2) }}</td>
                                     <td class="text-center small text-muted">{{ $row->rep_error }}</td>
                                     <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : ($row->receive_total < 0 ? 'text-danger' : 'text-dark') }}">

@@ -104,6 +104,7 @@
                                 <tr>
                                     <th class="text-center">#</th>                      
                                     <th class="text-center">Action</th>              
+                                    <th class="text-center">Claim Status</th>
                                     <th class="text-center">ตึก</th>
                                     <th class="text-center">Admit</th>
                                     <th class="text-center">D/C</th>
@@ -137,6 +138,10 @@
                                     <td class="text-center">
                                         <button class="btn btn-sm btn-outline-success px-2 py-0 border-2 fw-bold" style="font-size: 0.7rem;" onclick="checkFdh('{{ $row->hn }}','{{ $row->an }}')">FDH</button>
                                     </td>    
+                                    <td class="text-start">                                        
+                                        <div class="text-muted" style="font-size: 0.7rem;">FDH: <span class="fw-bold">{{ $row->fdh_status }}</span></div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">E-Claim: <span class="fw-bold">{{ $row->ec_status }}</span></div>
+                                    </td>
                                     <td class="text-center small">{{$row->ward}}</td>
                                     <td class="text-center small">{{ DateThai($row->regdate) }}</td>
                                     <td class="text-center small">{{ DateThai($row->dchdate) }}</td>
@@ -178,7 +183,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="11" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                    <th colspan="12" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>
@@ -197,7 +202,7 @@
                                 <tr>
                                     <th class="text-center">#</th>
                                     <th class="text-center">Action</th>
-                                    <th class="text-center">FDH Status</th> 
+                                    <th class="text-center">Claim Status</th> 
                                     <th class="text-center">ตึก</th>
                                     <th class="text-center">Admit</th>
                                     <th class="text-center">D/C</th>
@@ -238,7 +243,10 @@
                                     <td class="text-center">
                                         <button class="btn btn-sm btn-outline-success px-2 py-0 border-2 fw-bold" style="font-size: 0.7rem;" onclick="checkFdh('{{ $row->hn }}','{{ $row->an }}')">FDH</button>
                                     </td>     
-                                    <td class="text-start small text-muted text-truncate" style="max-width: 120px;" title="{{ $row->fdh_status }}">{{ $row->fdh_status }}</td>                                  
+                                    <td class="text-start">                                        
+                                        <div class="text-muted" style="font-size: 0.7rem;">FDH: <span class="fw-bold">{{ $row->fdh_status }}</span></div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">E-Claim: <span class="fw-bold">{{ $row->ec_status }}</span></div>
+                                    </td>
                                     <td class="text-center small">{{$row->ward}}</td>
                                     <td class="text-center small">{{ DateThai($row->regdate) }}</td>
                                     <td class="text-center small">{{ DateThai($row->dchdate) }}</td>

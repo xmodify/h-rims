@@ -110,9 +110,7 @@
                             <thead>
                                 <tr>
                                     <th class="text-center">#</th> 
-                                    <th class="text-center small">Authen</th>
-                                    <th class="text-center small">ปิดสิทธิ</th>
-                                    <th class="text-center small">EDC</th>
+                                    <th class="text-center small">สถานะ</th>
                                     <th class="text-center">วัน-เวลา | Q</th>     
                                     <th class="text-center">HN</th>    
                                     <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
@@ -121,6 +119,7 @@
                                     <th class="text-center small">ค่ารักษา</th> 
                                     <th class="text-center small">ชำระเอง</th>
                                     <th class="text-center small">PPFS</th>  
+                                    <th class="text-center small">E-Claim</th>
                                     <th class="text-center text-primary small">เรียกเก็บ</th> 
                                 </tr>
                             </thead> 
@@ -135,9 +134,16 @@
                                 @foreach($search as $row) 
                                 <tr>
                                     <td class="text-center text-muted small">{{ $count }}</td>
-                                    <td class="text-center fw-bold {{ $row->auth_code == 'Y' ? 'text-success' : 'text-danger' }}">{{ $row->auth_code }}</td>
-                                    <td class="text-center fw-bold {{ $row->endpoint == 'Y' ? 'text-success' : 'text-danger' }}">{{ $row->endpoint }}</td> 
-                                    <td class="text-center small text-muted">{{ $row->edc }}</td>  
+                                    <td class="text-start small" style="min-width: 120px;">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="small text-muted me-2">Authen:</span>
+                                            <span class="small fw-bold {{ $row->auth_code == 'Y' ? 'text-success' : ($row->auth_code ? 'text-danger' : 'text-dark') }}">{{ $row->auth_code ?: '-' }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mt-1">
+                                            <span class="small text-muted me-2">Endpoint:</span>
+                                            <span class="small fw-bold {{ $row->endpoint == 'Y' ? 'text-success' : ($row->endpoint ? 'text-danger' : 'text-dark') }}">{{ $row->endpoint ?: '-' }}</span>
+                                        </div>
+                                    </td>
                                     <td class="text-start">
                                         <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
                                         <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
@@ -158,6 +164,18 @@
                                         <div class="fw-bold">{{ number_format($row->ppfs,2) }}</div>
                                         <div class="text-muted text-wrap" style="font-size: 0.65rem;">{{ $row->ppfs_list }}</div>
                                     </td>
+                                    @php 
+                                        $ec_color = '#212529';
+                                        if($row->ec_status) {
+                                            $st_code = substr($row->ec_status, 0, 1);
+                                            if($st_code == '0') $ec_color = '#6c757d';
+                                            elseif($st_code == '1') $ec_color = '#ffc107';
+                                            elseif($st_code == '2') $ec_color = '#dc3545';
+                                            elseif($st_code == '3') $ec_color = '#fd7e14';
+                                            elseif($st_code == '4') $ec_color = '#0dcaf0';
+                                        }
+                                    @endphp
+                                    <td class="text-start small fw-bold" style="color: {{ $ec_color }}; word-break: break-word;">{{ $row->ec_status }}</td>
                                     <td class="text-end fw-bold text-primary small">{{ number_format($row->debtor,2) }}</td>         
                                 </tr>
                                 @php 
@@ -171,10 +189,11 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="9" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                    <th colspan="7" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_ppfs,2) }}</th>
+                                    <th></th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($sum_debtor,2) }}</th>
                                 </tr>
                             </tfoot>
@@ -189,9 +208,7 @@
                             <thead>
                                 <tr>
                                     <th class="text-center">#</th> 
-                                    <th class="text-center small">Authen</th>
-                                    <th class="text-center small">ปิดสิทธิ</th>
-                                    <th class="text-center small">EDC</th>
+                                    <th class="text-center small">สถานะ</th>
                                     <th class="text-center">วัน-เวลา | Q</th>     
                                     <th class="text-center">HN</th> 
                                     <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
@@ -200,7 +217,7 @@
                                     <th class="text-center small">ค่ารักษา</th> 
                                     <th class="text-center small">ชำระเอง</th>
                                     <th class="text-center small">PPFS</th>
-                                    <th class="text-center small">ส่ง Claim</th>   
+                                    <th class="text-center small">สถานะการส่ง</th>   
                                     <th class="text-center text-primary">เรียกเก็บ</th>
                                     <th class="text-center bg-primary-soft small px-1">ชดเชย LGO</th>
                                     <th class="text-center bg-primary-soft small px-1">ชดเชย PP</th>
@@ -221,9 +238,16 @@
                                 @foreach($claim as $row) 
                                 <tr>
                                     <td class="text-center text-muted small">{{ $count }}</td>
-                                    <td class="text-center fw-bold {{ $row->auth_code == 'Y' ? 'text-success' : 'text-danger' }}">{{ $row->auth_code }}</td>
-                                    <td class="text-center fw-bold {{ $row->endpoint == 'Y' ? 'text-success' : 'text-danger' }}">{{ $row->endpoint }}</td> 
-                                    <td class="text-center small text-muted">{{ $row->edc }}</td>  
+                                    <td class="text-start small" style="min-width: 120px;">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="small text-muted me-2">Authen:</span>
+                                            <span class="small fw-bold {{ $row->auth_code == 'Y' ? 'text-success' : ($row->auth_code ? 'text-danger' : 'text-dark') }}">{{ $row->auth_code ?: '-' }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mt-1">
+                                            <span class="small text-muted me-2">Endpoint:</span>
+                                            <span class="small fw-bold {{ $row->endpoint == 'Y' ? 'text-success' : ($row->endpoint ? 'text-danger' : 'text-dark') }}">{{ $row->endpoint ?: '-' }}</span>
+                                        </div>
+                                    </td>
                                     <td class="text-start">
                                         <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
                                         <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
@@ -244,9 +268,23 @@
                                         <div class="fw-bold">{{ number_format($row->ppfs,2) }}</div>
                                         <div class="text-muted text-wrap" style="font-size: 0.65rem;">{{ $row->ppfs_list }}</div>
                                     </td>
-                                    <td class="text-center small text-nowrap">{{ DateTimeThai($row->ecliam) }}</td>
+                                    <td class="text-start small">
+                                        @php 
+                                            $ec_color = '#212529';
+                                            if($row->ec_status) {
+                                                $st_code = substr($row->ec_status, 0, 1);
+                                                if($st_code == '0') $ec_color = '#6c757d';
+                                                elseif($st_code == '1') $ec_color = '#ffc107';
+                                                elseif($st_code == '2') $ec_color = '#dc3545';
+                                                elseif($st_code == '3') $ec_color = '#fd7e14';
+                                                elseif($st_code == '4') $ec_color = '#0dcaf0';
+                                            }
+                                        @endphp
+                                        <div class="text-muted" style="font-size: 0.75rem;">ส่ง: <span class="text-dark">{{ DateTimeThai($row->ecliam) }}</span></div>
+                                        <div class="mt-1" style="color: {{ $ec_color }}; word-break: break-word; font-size: 0.75rem;">{{ $row->ec_status }}</div>
+                                    </td>
                                     <td class="text-end fw-bold text-primary small">{{ number_format($row->debtor,2) }}</td> 
-                                    <td class="text-end small text-primary">{{ number_format($row->receive_total,2) }}</td>
+                                    <td class="text-end small text-success">{{ number_format($row->receive_total,2) }}</td>
                                     <td class="text-end small text-primary">{{ number_format($row->receive_pp,2) }}</td>
                                     @php $diff = ($row->receive_total+$row->receive_pp) - $row->debtor; @endphp
                                     <td class="text-end small fw-bold {{ $diff > 0 ? 'text-success' : ($diff < 0 ? 'text-danger' : 'text-dark') }}">
@@ -267,13 +305,13 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="9" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                    <th colspan="7" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_ppfs,2) }}</th>
                                     <th></th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($sum_debtor,2) }}</th>
-                                    <th class="text-end small text-primary">{{ number_format($sum_receive_total,2) }}</th>
+                                    <th class="text-end small text-success">{{ number_format($sum_receive_total,2) }}</th>
                                     <th class="text-end small text-primary">{{ number_format($sum_receive_pp,2) }}</th>
                                     @php $total_diff = ($sum_receive_total+$sum_receive_pp) - $sum_debtor; @endphp
                                     <th class="text-end small fw-bold {{ $total_diff > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($total_diff, 2) }}</th>

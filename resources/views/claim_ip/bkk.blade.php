@@ -203,6 +203,7 @@
                                     <th class="text-center">Refer</th>  
                                     <th class="text-center">AdjRW</th>
                                     <th class="text-center">สถานะ</th>
+                                    <th class="text-center">E-Claim</th>
                                     <th class="text-center bg-primary-soft small">ชดเชย Rw</th>
                                     <th class="text-center bg-primary-soft small">ชดเชย Other</th>
                                     <th class="text-center bg-primary-soft small">ชดเชยทั้งหมด</th> 
@@ -243,6 +244,19 @@
                                     <td class="text-end small">{{ $row->refer }}</td>
                                     <td class="text-center small">{{ $row->adjrw }}</td>
                                     <td class="text-start small">{{ $row->ipt_coll_status_type_name }}</td>         
+                                    <td class="text-center">
+                                        @if(substr($row->ec_status, 0, 1) == '0')
+                                            <span class="badge bg-secondary-soft text-secondary py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
+                                        @elseif(substr($row->ec_status, 0, 1) == '1')
+                                            <span class="badge bg-warning-soft text-warning py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
+                                        @elseif(substr($row->ec_status, 0, 1) == '2' || substr($row->ec_status, 0, 1) == 'M')
+                                            <span class="badge bg-danger-soft text-danger py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
+                                        @elseif(substr($row->ec_status, 0, 1) == '3')
+                                            <span class="badge bg-orange-soft text-orange py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
+                                        @elseif(substr($row->ec_status, 0, 1) == '4')    
+                                            <span class="badge bg-primary-soft text-primary py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
+                                        @endif
+                                    </td>
                                     <td class="text-end small">{{ number_format($row->receive_treatment,2) }}</td>
                                     <td class="text-end small">{{ number_format($row->receive_total-$row->receive_treatment,2) }}</td>
                                     <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($row->receive_total,2) }}</td>
@@ -261,7 +275,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="10" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
+                                    <th colspan="11" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>

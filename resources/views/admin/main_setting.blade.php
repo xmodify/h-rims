@@ -109,7 +109,7 @@
                         <div class="mb-0">
                             <strong>Add arguments:</strong>
                             <div class="input-group mt-1">
-                                <input type="text" class="form-control form-control-sm bg-white" value='-WindowStyle Hidden -Command "Invoke-WebRequest -Uri '\''{{$notify_summary}}'\'' -UseBasicParsing"' readonly id="tg_cmd">
+                                <input type="text" class="form-control form-control-sm bg-white" value="-WindowStyle Hidden -Command &quot;Invoke-WebRequest -Uri '{{$notify_summary}}' -UseBasicParsing&quot;" readonly id="tg_cmd">
                                 <button class="btn btn-outline-info btn-sm" type="button" onclick="copyToClipboard('tg_cmd')">
                                     <i class="bi bi-copy"></i> คัดลอก
                                 </button>
@@ -130,7 +130,7 @@
                         <div class="mb-0">
                             <strong>Add arguments:</strong>
                             <div class="input-group mt-1">
-                                <input type="text" class="form-control form-control-sm bg-white" value='-WindowStyle Hidden -Command "Invoke-RestMethod -Uri '\''{{$nhso_endpoint_pull_yesterday}}'\'' -Method Post"' readonly id="nhso_cmd">
+                                <input type="text" class="form-control form-control-sm bg-white" value="-WindowStyle Hidden -Command &quot;Invoke-RestMethod -Uri '{{$nhso_endpoint_pull_yesterday}}' -Method Post&quot;" readonly id="nhso_cmd">
                                 <button class="btn btn-outline-primary btn-sm" type="button" onclick="copyToClipboard('nhso_cmd')">
                                     <i class="bi bi-copy"></i> คัดลอก
                                 </button>
@@ -151,7 +151,7 @@
                         <div class="mb-0">
                             <strong>Add arguments:</strong>
                             <div class="input-group mt-1">
-                                <input type="text" class="form-control form-control-sm bg-white" value='-WindowStyle Hidden -Command "Invoke-RestMethod -Uri '\''{{$fdh_check_claim_lastdays}}'\'' -Method Post"' readonly id="fdh_cmd">
+                                <input type="text" class="form-control form-control-sm bg-white" value="-WindowStyle Hidden -Command &quot;Invoke-RestMethod -Uri '{{$fdh_check_claim_lastdays}}' -Method Post&quot;" readonly id="fdh_cmd">
                                 <button class="btn btn-outline-success btn-sm" type="button" onclick="copyToClipboard('fdh_cmd')">
                                     <i class="bi bi-copy"></i> คัดลอก
                                 </button>

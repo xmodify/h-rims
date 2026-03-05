@@ -96,27 +96,51 @@
         @endforeach
     </div>
 
-    <!-- Telegram Notification Guide -->
-    <div class="card dash-card mb-4 border-start-0 border-end-0 border-bottom-0 border-top-4 border-info">
-        <div class="card-body">
-            <h6 class="fw-bold text-info mb-3">
-                <i class="bi bi-info-circle-fill me-2"></i> Nonify Telegram via Task Scheduler Windows
-            </h6>
-            <div class="bg-light p-3 rounded-3 border">
-                <p class="mb-2"><strong>Program/script:</strong> <code>powershell.exe</code></p>
-                <div class="mb-0">
-                    <strong>Add arguments:</strong>
-                    <div class="input-group mt-1">
-                        <input type="text" class="form-control form-control-sm bg-white" value='-Command "Invoke-WebRequest {{$notify_summary}}"' readonly id="tg_cmd">
-                        <button class="btn btn-outline-info btn-sm" type="button" onclick="copyToClipboard('tg_cmd')">
-                            <i class="bi bi-copy"></i> คัดลอก
-                        </button>
+    <!-- Scheduled Tasks Guide -->
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card dash-card border-start-0 border-end-0 border-bottom-0 border-top-4 border-info h-100">
+                <div class="card-body">
+                    <h6 class="fw-bold text-info mb-3">
+                        <i class="bi bi-info-circle-fill me-2"></i> Notify Telegram via Task Scheduler
+                    </h6>
+                    <div class="bg-light p-3 rounded-3 border">
+                        <p class="mb-2"><strong>Program/script:</strong> <code>powershell.exe</code></p>
+                        <div class="mb-0">
+                            <strong>Add arguments:</strong>
+                            <div class="input-group mt-1">
+                                <input type="text" class="form-control form-control-sm bg-white" value='-Command "Invoke-WebRequest {{$notify_summary}}"' readonly id="tg_cmd">
+                                <button class="btn btn-outline-info btn-sm" type="button" onclick="copyToClipboard('tg_cmd')">
+                                    <i class="bi bi-copy"></i> คัดลอก
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card dash-card border-start-0 border-end-0 border-bottom-0 border-top-4 border-primary h-100">
+                <div class="card-body">
+                    <h6 class="fw-bold text-primary mb-3">
+                        <i class="bi bi-cloud-download-fill me-2"></i> NHSO Pull Yesterday via Task Scheduler
+                    </h6>
+                    <div class="bg-light p-3 rounded-3 border">
+                        <p class="mb-2"><strong>Program/script:</strong> <code>powershell.exe</code></p>
+                        <div class="mb-0">
+                            <strong>Add arguments:</strong>
+                            <div class="input-group mt-1">
+                                <input type="text" class="form-control form-control-sm bg-white" value='-Command "Invoke-RestMethod -Uri \"{{$nhso_endpoint_pull_yesterday}}\" -Method Post"' readonly id="nhso_cmd">
+                                <button class="btn btn-outline-primary btn-sm" type="button" onclick="copyToClipboard('nhso_cmd')">
+                                    <i class="bi bi-copy"></i> คัดลอก
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-
     <!-- Modal Edit -->
     <div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">

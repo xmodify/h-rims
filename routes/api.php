@@ -20,9 +20,9 @@ use App\Http\Controllers\Api\AmnosendController;
 Route::post('fdh_check', [FdhClaimStatusController::class, 'check']);
 Route::post('fdh_check_indiv', [FdhClaimStatusController::class, 'check_indiv']);
 
-Route::post('nhso_endpoint_pull', [NhsoEndpointController::class, 'pull']);
-Route::post('nhso_endpoint_pull_indiv', [NhsoEndpointController::class, 'pullIndiv']);
-Route::post('nhso_endpoint_pull_yesterday', [NhsoEndpointController::class, 'pullYesterday']);
+Route::post('nhso_endpoint_pull', [NhsoEndpointController::class, 'pull'])->name('nhso_endpoint_pull');
+Route::post('nhso_endpoint_pull_indiv', [NhsoEndpointController::class, 'pullIndiv'])->name('nhso_endpoint_pull_indiv');
+Route::post('nhso_endpoint_pull_yesterday', [NhsoEndpointController::class, 'pullYesterday'])->name('nhso_endpoint_pull_yesterday');
 Route::get('/fdh-test', [FdhClaimStatusController::class, 'testToken']);
 
 // API AOPOD -----------------------------------------------------------------------------------

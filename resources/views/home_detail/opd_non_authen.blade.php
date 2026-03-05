@@ -14,13 +14,18 @@
           </small>
         </h5>
         
-        <form method="POST" class="d-flex gap-2 align-items-center">
+        <form method="POST" class="d-flex gap-2 align-items-center mb-0">
             @csrf            
-            <div class="d-flex align-items-center gap-2">
-                <input type="date" name="start_date" class="form-control form-control-sm" value="{{ $start_date }}" > 
-                <span class="text-muted">ถึง</span>
-                <input type="date" name="end_date" class="form-control form-control-sm" value="{{ $end_date }}" > 
-                <button type="submit" class="btn btn-primary btn-sm px-3">{{ __('ค้นหา') }}</button>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-white"><i class="bi bi-calendar-event"></i></span>
+                <input type="hidden" id="start_date" name="start_date" value="{{ $start_date }}">
+                <input type="text" id="start_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
+                
+                <span class="input-group-text bg-white">ถึง</span>
+                
+                <input type="hidden" id="end_date" name="end_date" value="{{ $end_date }}">
+                <input type="text" id="end_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
+                <button type="submit" class="btn btn-primary px-3 shadow-sm">{{ __('ค้นหา') }}</button>
             </div>
         </form>
       </div>
@@ -87,6 +92,43 @@
 @push('scripts')
   <script>
     $(document).ready(function () {
+      // Initialize Datepicker Thai
+      $('.datepicker_th').datepicker({
+          format: 'd M yyyy',
+          todayBtn: "linked",
+          todayHighlight: true,
+          autoclose: true,
+          language: 'th-th',
+          thaiyear: true,
+          zIndexOffset: 1050
+      });
+
+      // Set initial values
+      var start_date_val = "{{ $start_date }}";
+      var end_date_val = "{{ $end_date }}";
+      
+      if(start_date_val) {
+          $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
+      }
+      if(end_date_val) {
+          $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
+      }
+
+      // Sync Changes to Hidden Inputs
+      $('.datepicker_th').on('changeDate', function(e) {
+          var date = e.date;
+          var targetId = $(this).attr('id').replace('_picker', '');
+          var hiddenInput = $('#' + targetId);
+          if(date) {
+              var day = ("0" + date.getDate()).slice(-2);
+              var month = ("0" + (date.getMonth() + 1)).slice(-2);
+              var year = date.getFullYear();
+              hiddenInput.val(year + "-" + month + "-" + day);
+          } else {
+              hiddenInput.val('');
+          }
+      });
+
       $('#list').DataTable({
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 

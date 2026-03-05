@@ -141,7 +141,7 @@
 
           const formData = new FormData(form);
 
-          fetch("{{ url('/api/fdh/check-claim') }}", {
+          fetch("{{ route('api.fdh.check_claim') }}", {
               method: "POST",
               headers: {
                   "X-CSRF-TOKEN": "{{ csrf_token() }}"

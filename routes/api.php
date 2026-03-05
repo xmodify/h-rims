@@ -17,13 +17,14 @@ use App\Http\Controllers\Api\AmnosendController;
 |
 */
 // API FDH -----------------------------------------------------------------------------------
-Route::post('fdh_check', [FdhClaimStatusController::class, 'check']);
-Route::post('fdh_check_indiv', [FdhClaimStatusController::class, 'check_indiv']);
+Route::get('fdh/testtoken', [FdhClaimStatusController::class, 'testToken']);
+Route::post('fdh/check-claim', [FdhClaimStatusController::class, 'check'])->name('api.fdh.check_claim');
+Route::post('fdh/check-claim-indiv', [FdhClaimStatusController::class, 'check_indiv'])->name('api.fdh.check_claim_indiv');
 
+// API NHSO -----------------------------------------------------------------------------------
 Route::post('nhso_endpoint_pull', [NhsoEndpointController::class, 'pull'])->name('nhso_endpoint_pull');
 Route::post('nhso_endpoint_pull_indiv', [NhsoEndpointController::class, 'pullIndiv'])->name('nhso_endpoint_pull_indiv');
 Route::post('nhso_endpoint_pull_yesterday', [NhsoEndpointController::class, 'pullYesterday'])->name('nhso_endpoint_pull_yesterday');
-Route::get('/fdh-test', [FdhClaimStatusController::class, 'testToken']);
 
 // API AOPOD -----------------------------------------------------------------------------------
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {

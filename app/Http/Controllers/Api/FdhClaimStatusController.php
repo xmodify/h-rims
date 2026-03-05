@@ -79,10 +79,6 @@ class FdhClaimStatusController extends Controller
 
     public function check(Request $request)
     {
-        // อนุญาตให้รันยาว
-        ini_set('max_execution_time', 0);
-        ini_set('memory_limit', '-1');
-
         // 1) วันที่ default = วันนี้
         $dateStart = $request->date_start ?? date('Y-m-d');
         $dateEnd   = $request->date_end   ?? date('Y-m-d');
@@ -90,6 +86,29 @@ class FdhClaimStatusController extends Controller
             'date_start' => 'nullable|date',
             'date_end'   => 'nullable|date',
         ]);
+
+        return $this->processCheckInternal($dateStart, $dateEnd);
+    }
+
+    /**
+     * ดึงข้อมูลตรวจสอบ FDH ย้อนหลัง 10 วัน (Auto)
+     */
+    public function checkLast10Days()
+    {
+        $dateStart = date('Y-m-d', strtotime('-10 days'));
+        $dateEnd   = date('Y-m-d', strtotime('-1 day'));
+
+        return $this->processCheckInternal($dateStart, $dateEnd);
+    }
+
+    /**
+     * Internal logic for checking FDH status
+     */
+    private function processCheckInternal($dateStart, $dateEnd)
+    {
+        // อนุญาตให้รันยาว
+        ini_set('max_execution_time', 0);
+        ini_set('memory_limit', '-1');
 
         // 2) ดึง main_setting
         $settings = DB::table('main_setting')
@@ -122,9 +141,10 @@ class FdhClaimStatusController extends Controller
 
         if (empty($items)) {
             return response()->json([
-                'error' => 'no_data_found',
+                'success' => true,
+                'message' => 'no_data_found',
                 'date_range' => [$dateStart, $dateEnd]
-            ], 404);
+            ]);
         }
 
         // 4) ขอ Token FDH
@@ -209,7 +229,6 @@ class FdhClaimStatusController extends Controller
                     'hn'     => $item->hn,
                     'seq'    => $item->seq,
                     'an'     => $item->an,
-                    'payload_used' => $payload,
                     'status' => $status,
                     'body'   => $body
                 ];
@@ -219,19 +238,21 @@ class FdhClaimStatusController extends Controller
             if (!empty($upsertData)) {
                 DB::table('fdh_claim_status')->upsert(
                     $upsertData,
-                    ['hn', 'seq', 'an'], // เช็คซ้ำจาก Unique Columns นี้
-                    ['hcode', 'status', 'process_status', 'status_message_th', 'stm_period', 'updated_at'] // สิ่งที่ต้องอัปเดตเมื่อซ้ำ
+                    ['hn', 'seq', 'an'],
+                    ['hcode', 'status', 'process_status', 'status_message_th', 'stm_period', 'updated_at']
                 );
             }
 
-            // หน่วงป้องกัน spam ลดลงเหลือ 0.1s
+            // หน่วงป้องกัน spam 0.1s
             usleep(100000);
         }
+
         return response()->json([
+            'success'    => true,
             'date_start' => $dateStart,
             'date_end'   => $dateEnd,
             'total'      => count($results),
-            'data'       => $results
+            'message'    => 'FDH Check Completed'
         ]);
     }
 

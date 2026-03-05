@@ -18,6 +18,7 @@ class MainSettingController extends Controller
 
         $notify_summary = route('notify_summary');
         $nhso_endpoint_pull_yesterday = route('nhso_endpoint_pull_yesterday');
+        $fdh_check_claim_last_10_days = route('api.fdh.check_claim_last_10_days');
 
         $settings = MainSetting::orderBy('name_th', 'asc')->get();
 
@@ -66,7 +67,7 @@ class MainSettingController extends Controller
             $groupedData['Other Settings'] = $others;
         }
 
-        return view('admin.main_setting', compact('groupedData', 'notify_summary', 'nhso_endpoint_pull_yesterday', 'hospcode'));
+        return view('admin.main_setting', compact('groupedData', 'notify_summary', 'nhso_endpoint_pull_yesterday', 'fdh_check_claim_last_10_days', 'hospcode'));
     }
     // Update Table main_setting------------------------------------------------------------------------------
     public function update(Request $request, $name)
@@ -82,7 +83,7 @@ class MainSettingController extends Controller
         return redirect()->back()->with('success', 'แก้ไขข้อมูลสำเร็จ');
     }
     #######################################################################################################################################    
-// UP Structure -----------------------------------------------------------------------------------------------------------------------    
+    // UP Structure -----------------------------------------------------------------------------------------------------------------------    
     public function up_structure(Request $request)
     {
         try {
@@ -131,14 +132,13 @@ class MainSettingController extends Controller
                     ['name' => $row['name']],
                     ['name_th' => $row['name_th'], 'value' => $row['value']]
                 )->update([
-                            'name_th' => $row['name_th']
-                        ]);
+                    'name_th' => $row['name_th']
+                ]);
             }
 
             return redirect()->route('admin.main_setting')
                 ->with('success', 'อัปเกรดโครงสร้างฐานข้อมูลเสร็จสิ้น')
                 ->with('migrate_output', $migrate_result);
-
         } catch (\Exception $e) {
             return back()->with('error', 'เกิดข้อผิดพลาดในการอัปเกรด: ' . $e->getMessage());
         }

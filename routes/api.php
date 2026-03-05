@@ -29,5 +29,3 @@ Route::post('/amnosend', [AmnosendController::class, 'send']);
 
 // API E-Claim ---------------------------------------------------------------------------------
 Route::post('/eclaim/sync', [\App\Http\Controllers\CheckEclaimController::class, 'sync_eclaim_extension']);
-Route::post('/import/stm_check', [\App\Http\Controllers\ImportController::class, 'api_stm_check']);
-Route::post('/import/stm_{type}_upload', [\App\Http\Controllers\ImportController::class, 'api_stm_upload']);

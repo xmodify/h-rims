@@ -226,9 +226,9 @@
               <div class="bg-light p-3 rounded-3 border">
                   <div class="d-flex justify-content-between align-items-center mb-2">
                        <span class="fw-bold text-dark">URL ที่ต้องคัดลอก:</span>
-                       <button class="btn btn-xs btn-primary py-0" onclick="copyToClipboard('{{ url('api/eclaim/sync') }}')">คัดลอก</button>
+                       <button class="btn btn-xs btn-primary py-0" onclick="copyToClipboard('{{ url('api') }}')">คัดลอก</button>
                   </div>
-                  <code id="apiUrlPath" class="text-break text-danger fw-bold">{{ url('api/eclaim/sync') }}</code>
+                  <code id="apiUrlPath" class="text-break text-danger fw-bold">{{ url('api') }}</code>
               </div>
               <ol class="mt-2 lh-lg">
                   <li>คลิกที่ไอคอน Extension <b>"RiMS E-Claim Sync"</b></li>

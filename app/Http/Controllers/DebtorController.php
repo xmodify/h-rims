@@ -78,24 +78,27 @@ class DebtorController extends Controller
         $check_income = DB::connection('hosxp')->select("
             SELECT o.op_income,o.op_paid,v.vn_income,v.vn_paid,v.vn_rcpt,v.vn_income - v.vn_rcpt AS vn_debtor,
                 IF(v.vn_income <> o.op_income, 'Resync VN', 'Success') AS status_check
-            FROM(SELECT SUM(v.income) AS vn_income,SUM(v.paid_money) AS vn_paid,SUM(IFNULL(rc.rcpt_money,0)) AS vn_rcpt
-                FROM vn_stat v
-                LEFT JOIN ipt i ON i.vn = v.vn
+            FROM(
+                SELECT SUM(v.income) AS vn_income,SUM(v.paid_money) AS vn_paid,SUM(IFNULL(rc.rcpt_money,0)) AS vn_rcpt
+                FROM ovst o
+                INNER JOIN vn_stat v ON v.vn = o.vn
+                LEFT JOIN ipt i ON i.vn = o.vn
                 LEFT JOIN ( SELECT r.vn,SUM(r.bill_amount) AS rcpt_money 
                     FROM rcpt_print r
                     WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
-                    GROUP BY r.vn) rc ON rc.vn = v.vn
-                WHERE v.vstdate BETWEEN ? AND ?
+                    GROUP BY r.vn) rc ON rc.vn = o.vn
+                WHERE o.vstdate BETWEEN ? AND ?
                 AND i.vn IS NULL) v
                 
             CROSS JOIN
             
-            (SELECT SUM(o.sum_price) AS op_income,
-                SUM(CASE WHEN o.paidst IN ('01','03') THEN o.sum_price ELSE 0 END) AS op_paid
-                FROM opitemrece o
+            (SELECT SUM(op.sum_price) AS op_income,
+                SUM(CASE WHEN op.paidst IN ('01','03') THEN op.sum_price ELSE 0 END) AS op_paid
+                FROM ovst o
+                INNER JOIN opitemrece op ON op.vn = o.vn
                 LEFT JOIN ipt i ON i.vn = o.vn
                 WHERE o.vstdate BETWEEN ? AND ?
-                AND (o.an IS NULL OR o.an = '')
+                AND (op.an IS NULL OR op.an = '')
                 AND i.vn IS NULL) o", [$start_date, $end_date, $start_date, $end_date]);
 
         $check_income_pttype = DB::connection('hosxp')->select('
@@ -218,19 +221,21 @@ class DebtorController extends Controller
             $data = DB::connection('hosxp')->select("
                 SELECT MAX(date_serv) AS date_serv, anvn, MAX(hn) AS hn, SUM(income) AS income, SUM(sum_price) AS sum_price, SUM(income) - SUM(sum_price) AS diff
                 FROM (
-                    SELECT v.vstdate AS date_serv, v.vn AS anvn, v.hn, v.income, 0 AS sum_price
-                    FROM vn_stat v
-                    LEFT JOIN ipt i ON i.vn = v.vn
-                    WHERE v.vstdate BETWEEN ? AND ?
+                    SELECT o.vstdate AS date_serv, o.vn AS anvn, o.hn, v.income, 0 AS sum_price
+                    FROM ovst o
+                    INNER JOIN vn_stat v ON v.vn = o.vn
+                    LEFT JOIN ipt i ON i.vn = o.vn
+                    WHERE o.vstdate BETWEEN ? AND ?
                     AND i.vn IS NULL
                     
                     UNION ALL
                     
-                    SELECT o.vstdate AS date_serv, o.vn AS anvn, o.hn, 0 AS income, o.sum_price
-                    FROM opitemrece o
+                    SELECT o.vstdate AS date_serv, o.vn AS anvn, o.hn, 0 AS income, op.sum_price
+                    FROM ovst o
+                    INNER JOIN opitemrece op ON op.vn = o.vn
                     LEFT JOIN ipt i ON i.vn = o.vn
                     WHERE o.vstdate BETWEEN ? AND ?
-                    AND (o.an IS NULL OR o.an = '')
+                    AND (op.an IS NULL OR op.an = '')
                     AND i.vn IS NULL
                 ) t
                 GROUP BY anvn

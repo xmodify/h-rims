@@ -20,7 +20,7 @@ use App\Http\Controllers\Api\AmnosendController;
 Route::get('fdh/testtoken', [FdhClaimStatusController::class, 'testToken']);
 Route::post('fdh/check-claim', [FdhClaimStatusController::class, 'check'])->name('api.fdh.check_claim');
 Route::post('fdh/check-claim-indiv', [FdhClaimStatusController::class, 'check_indiv'])->name('api.fdh.check_claim_indiv');
-Route::post('fdh/check-claim-last-10-days', [FdhClaimStatusController::class, 'checkLast10Days'])->name('api.fdh.check_claim_last_10_days');
+Route::post('fdh/check-claim-lastdays', [FdhClaimStatusController::class, 'checkLastDays'])->name('api.fdh.check_claim_lastdays');
 
 // API NHSO -----------------------------------------------------------------------------------
 Route::post('nhso_endpoint_pull', [NhsoEndpointController::class, 'pull'])->name('nhso_endpoint_pull');

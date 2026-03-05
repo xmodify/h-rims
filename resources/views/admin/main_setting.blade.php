@@ -144,14 +144,14 @@
             <div class="card dash-card border-start-0 border-end-0 border-bottom-0 border-top-4 border-success h-100">
                 <div class="card-body">
                     <h6 class="fw-bold text-success mb-3">
-                        <i class="bi bi-calendar-check-fill me-2"></i> FDH Auto Check (Last 10 Days) via Task Scheduler
+                        <i class="bi bi-calendar-check-fill me-2"></i> FDH Auto Check (Last Days) via Task Scheduler
                     </h6>
                     <div class="bg-light p-3 rounded-3 border">
                         <p class="mb-2"><strong>Program/script:</strong> <code>powershell.exe</code></p>
                         <div class="mb-0">
                             <strong>Add arguments:</strong>
                             <div class="input-group mt-1">
-                                <input type="text" class="form-control form-control-sm bg-white" value='-WindowStyle Hidden -Command "Invoke-RestMethod -Uri \"{{$fdh_check_claim_last_10_days}}\" -Method Post"' readonly id="fdh_cmd">
+                                <input type="text" class="form-control form-control-sm bg-white" value='-WindowStyle Hidden -Command "Invoke-RestMethod -Uri \"{{$fdh_check_claim_lastdays}}\" -Method Post"' readonly id="fdh_cmd">
                                 <button class="btn btn-outline-success btn-sm" type="button" onclick="copyToClipboard('fdh_cmd')">
                                     <i class="bi bi-copy"></i> คัดลอก
                                 </button>

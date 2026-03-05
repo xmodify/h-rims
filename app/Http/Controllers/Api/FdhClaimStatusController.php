@@ -93,7 +93,7 @@ class FdhClaimStatusController extends Controller
     /**
      * ดึงข้อมูลตรวจสอบ FDH ย้อนหลัง 10 วัน (Auto)
      */
-    public function checkLast10Days()
+    public function checkLastDays()
     {
         $dateStart = date('Y-m-d', strtotime('-10 days'));
         $dateEnd   = date('Y-m-d', strtotime('-1 day'));

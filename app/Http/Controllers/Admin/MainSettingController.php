@@ -18,7 +18,7 @@ class MainSettingController extends Controller
 
         $notify_summary = route('notify_summary');
         $nhso_endpoint_pull_yesterday = route('nhso_endpoint_pull_yesterday');
-        $fdh_check_claim_last_10_days = route('api.fdh.check_claim_last_10_days');
+        $fdh_check_claim_lastdays = route('api.fdh.check_claim_lastdays');
 
         $settings = MainSetting::orderBy('name_th', 'asc')->get();
 
@@ -67,7 +67,7 @@ class MainSettingController extends Controller
             $groupedData['Other Settings'] = $others;
         }
 
-        return view('admin.main_setting', compact('groupedData', 'notify_summary', 'nhso_endpoint_pull_yesterday', 'fdh_check_claim_last_10_days', 'hospcode'));
+        return view('admin.main_setting', compact('groupedData', 'notify_summary', 'nhso_endpoint_pull_yesterday', 'fdh_check_claim_lastdays', 'hospcode'));
     }
     // Update Table main_setting------------------------------------------------------------------------------
     public function update(Request $request, $name)

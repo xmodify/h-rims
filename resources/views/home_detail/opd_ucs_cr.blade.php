@@ -142,7 +142,18 @@ function pullNhsoData(vstdate, cid) {
         }
     });
     
-    fetch("{{ url('nhso_endpoint_pull') }}/" + vstdate + "/" + cid)
+    fetch("{{ url('api/nhso_endpoint_pull_indiv') }}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-TOKEN": "{{ csrf_token() }}",
+            "Accept": "application/json"
+        },
+        body: JSON.stringify({
+            vstdate: vstdate,
+            cid: cid
+        })
+    })
         .then(async response => {
             const data = await response.json();
             if (!response.ok) {

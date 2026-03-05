@@ -12,7 +12,7 @@ class FdhClaimStatusController extends Controller
 {
     private function getToken()
     {
-// 🔍 ดึงค่าทั้งหมดจาก main_setting แล้วเก็บเป็น key => value
+        // 🔍 ดึงค่าทั้งหมดจาก main_setting แล้วเก็บเป็น key => value
         $settings = DB::table('main_setting')
             ->pluck('value', 'name')
             ->toArray();
@@ -66,7 +66,7 @@ class FdhClaimStatusController extends Controller
         ], 400);
     }
 
-// ✔ ทดสอบ token ##################################################################################################
+    // ✔ ทดสอบ token ##################################################################################################
 
     public function testToken()
     {
@@ -75,7 +75,7 @@ class FdhClaimStatusController extends Controller
         ]);
     }
 
-// ✔ เช็ค Track Claim ###############################################################################################
+    // ✔ เช็ค Track Claim ###############################################################################################
 
     public function check(Request $request)
     {
@@ -118,7 +118,7 @@ class FdhClaimStatusController extends Controller
             LEFT JOIN pttype p ON p.pttype = ip.pttype	
             WHERE i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = 'UCS' 
-			GROUP BY i.an ", [ $dateStart, $dateEnd,$dateStart, $dateEnd ]);
+			GROUP BY i.an ", [$dateStart, $dateEnd, $dateStart, $dateEnd]);
 
         if (empty($items)) {
             return response()->json([
@@ -135,64 +135,76 @@ class FdhClaimStatusController extends Controller
         $apiUrl = 'https://fdh.moph.go.th/api/v1/ucs/track_trans';
         $results = [];
 
-        // 5) Chunk = 10 record
-        $chunks = array_chunk($items, 10);
+        // 5) Chunk = 50 วิเคราะห์แบบหลายๆ คิวพร้อมกัน (Concurrent Requests)
+        $chunks = array_chunk($items, 50);
         foreach ($chunks as $chunk) {
-            foreach ($chunk as $item) {
-                // payload
+
+            // ยิง HTTP พร้อมๆ กันแบบ Asynchronous
+            $responses = Http::pool(function (\Illuminate\Http\Client\Pool $pool) use ($chunk, $hcode, $apiUrl, $token) {
+                $reqs = [];
+                foreach ($chunk as $index => $item) {
+                    $payload = [
+                        'hcode' => $hcode,
+                        'hn'    => $item->hn,
+                    ];
+                    if (!empty($item->an)) {
+                        $payload['an'] = $item->an;
+                    } else {
+                        $payload['seq'] = $item->seq;
+                    }
+
+                    $reqs[] = $pool->as((string)$index)
+                        ->withOptions(['verify' => false])
+                        ->withToken($token)
+                        ->timeout(120)
+                        ->post($apiUrl, $payload);
+                }
+                return $reqs;
+            });
+
+            $upsertData = [];
+
+            foreach ($responses as $index => $response) {
+                $item = $chunk[$index];
+
                 $payload = [
                     'hcode' => $hcode,
                     'hn'    => $item->hn,
                 ];
-
                 if (!empty($item->an)) {
                     $payload['an'] = $item->an;
                 } else {
                     $payload['seq'] = $item->seq;
                 }
 
-                try {
-                    $response = Http::withOptions([
-                            'verify' => false
-                        ])
-                        ->retry(3, 2000)
-                        ->withToken($token)
-                        ->timeout(120)
-                        ->post($apiUrl, $payload);
-                    $status = $response->status();
-                    $body   = $response->json();
-
-                } catch (\Exception $e) {
-
+                if ($response instanceof \Exception) {
                     $status = 500;
                     $body = [
                         'error' => 'request_failed',
-                        'message' => $e->getMessage()
+                        'message' => $response->getMessage()
                     ];
-                }
+                } else {
+                    $status = $response->status();
+                    $body   = $response->json();
 
-                // บันทึกเฉพาะ status = 200 และมี data
-                if ($status == 200 && isset($body['data'][0])) {
-                    $d = $body['data'][0];
-
-                    DB::table('fdh_claim_status')->updateOrInsert(
-                        [
-                            'hn'  => $d['hn']  ?? $item->hn,
-                            'seq' => $d['seq'] ?? $item->seq,   
-                            'an'  => $d['an']  ?? $item->an,  
-                        ],
-                        [
-                            'hcode'             => $d['hcode']             ?? $hcode,
-                            'status'            => $d['status']            ?? null,
-                            'process_status'    => $d['process_status']    ?? null,
+                    if ($status == 200 && isset($body['data'][0])) {
+                        $d = $body['data'][0];
+                        $now = now();
+                        $upsertData[] = [
+                            'hn'                => $d['hn']  ?? $item->hn,
+                            'seq'               => $d['seq'] ?? $item->seq,
+                            'an'                => $d['an']  ?? $item->an,
+                            'hcode'             => $d['hcode'] ?? $hcode,
+                            'status'            => $d['status'] ?? null,
+                            'process_status'    => $d['process_status'] ?? null,
                             'status_message_th' => $d['status_message_th'] ?? null,
                             'stm_period'        => $d['stm_period'] ?? null,
-                            'updated_at'        => now(),
-                            'created_at'        => DB::raw('COALESCE(created_at, NOW())'),
-                        ]
-                    );
+                            'updated_at'        => $now,
+                            'created_at'        => $now,
+                        ];
+                    }
                 }
-                // เก็บผล
+
                 $results[] = [
                     'hn'     => $item->hn,
                     'seq'    => $item->seq,
@@ -202,8 +214,18 @@ class FdhClaimStatusController extends Controller
                     'body'   => $body
                 ];
             }
-            // หน่วงป้องกัน spam server
-            usleep(300000); // 0.3s
+
+            // บันทึกฐานข้อมูลรวดเดียวจบ (Bulk Upsert)
+            if (!empty($upsertData)) {
+                DB::table('fdh_claim_status')->upsert(
+                    $upsertData,
+                    ['hn', 'seq', 'an'], // เช็คซ้ำจาก Unique Columns นี้
+                    ['hcode', 'status', 'process_status', 'status_message_th', 'stm_period', 'updated_at'] // สิ่งที่ต้องอัปเดตเมื่อซ้ำ
+                );
+            }
+
+            // หน่วงป้องกัน spam ลดลงเหลือ 0.1s
+            usleep(100000);
         }
         return response()->json([
             'date_start' => $dateStart,
@@ -213,7 +235,7 @@ class FdhClaimStatusController extends Controller
         ]);
     }
 
-// ✔ เช็ค Track Claim Indiv #############################################################################################
+    // ✔ เช็ค Track Claim Indiv #############################################################################################
 
     public function check_indiv(Request $request)
     {
@@ -281,7 +303,6 @@ class FdhClaimStatusController extends Controller
 
             $status = $response->status();
             $body   = $response->json();
-
         } catch (\Exception $e) {
             return response()->json([
                 'status'  => 500,
@@ -302,21 +323,22 @@ class FdhClaimStatusController extends Controller
             $seq = $d['seq'] ?? $request->seq;
             $an  = $d['an']  ?? $request->an;
 
-            DB::table('fdh_claim_status')->updateOrInsert(
-                [
-                    'hn'  => $hn,
-                    'seq' => $seq,
-                    'an'  => $an,
-                ],
-                [
-                    'hcode'             => $d['hcode']             ?? $hcode,
-                    'status'            => $d['status']            ?? null,
-                    'process_status'    => $d['process_status']    ?? null,
+            $now = now();
+            DB::table('fdh_claim_status')->upsert(
+                [[
+                    'hn'                => $hn,
+                    'seq'               => $seq,
+                    'an'                => $an,
+                    'hcode'             => $d['hcode'] ?? $hcode,
+                    'status'            => $d['status'] ?? null,
+                    'process_status'    => $d['process_status'] ?? null,
                     'status_message_th' => $d['status_message_th'] ?? null,
-                    'stm_period'        => $d['stm_period']        ?? null,
-                    'updated_at'        => now(),
-                    'created_at'        => DB::raw('COALESCE(created_at, NOW())'),
-                ]
+                    'stm_period'        => $d['stm_period'] ?? null,
+                    'updated_at'        => $now,
+                    'created_at'        => $now,
+                ]],
+                ['hn', 'seq', 'an'],
+                ['hcode', 'status', 'process_status', 'status_message_th', 'stm_period', 'updated_at']
             );
 
             $saved = true;
@@ -329,5 +351,4 @@ class FdhClaimStatusController extends Controller
             'saved'  => $saved,
         ], 200);
     }
-    
 }

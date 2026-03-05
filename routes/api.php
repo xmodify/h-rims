@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\FdhClaimStatusController;
+use App\Http\Controllers\Api\NhsoEndpointController;
 use App\Http\Controllers\Api\AmnosendController;
 
 /*
@@ -16,8 +17,12 @@ use App\Http\Controllers\Api\AmnosendController;
 |
 */
 // API FDH -----------------------------------------------------------------------------------
-Route::post('/fdh/check-claim', [FdhClaimStatusController::class, 'check']);
-Route::post('/fdh/check-claim-indiv', [FdhClaimStatusController::class, 'check_indiv']);
+Route::post('fdh_check', [FdhClaimStatusController::class, 'check']);
+Route::post('fdh_check_indiv', [FdhClaimStatusController::class, 'check_indiv']);
+
+Route::post('nhso_endpoint_pull', [NhsoEndpointController::class, 'pull']);
+Route::post('nhso_endpoint_pull_indiv', [NhsoEndpointController::class, 'pullIndiv']);
+Route::post('nhso_endpoint_pull_yesterday', [NhsoEndpointController::class, 'pullYesterday']);
 Route::get('/fdh-test', [FdhClaimStatusController::class, 'testToken']);
 
 // API AOPOD -----------------------------------------------------------------------------------

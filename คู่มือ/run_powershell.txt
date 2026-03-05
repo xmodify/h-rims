@@ -7,7 +7,7 @@ Add arguments (optional)
 00.05 น. ดึงปิดสิทธิ สปสช : -WindowStyle Hidden -Command "Invoke-RestMethod -Uri \"http://127.0.0.1:8000/api/nhso_endpoint_pull_yesterday\" -Method Post"
 
 00.15 น. ส่งข้อมูล Amono : -NoProfile -ExecutionPolicy Bypass -Command "Invoke-RestMethod -Uri 'http://127.0.0.1:88/api/amnosend' -Method Post"
- 	   กรณีเลือกวันที่ : -Invoke-RestMethod -Uri 'http://127.0.0.1:88/api/amnosend?start_date=2024-10-01&end_date=2025-09-30' -Method Post"
+ 	   กรณีเลือกวันที่ : -Invoke-RestMethod -Uri 'http://127.00.1:88/api/amnosend?start_date=2024-10-01&end_date=2025-09-30' -Method Post"
 
 // ดึงข้อมูลตรวจสอบ FDH ย้อนหลัง (Auto)
-powershell -WindowStyle Hidden -Command "Invoke-RestMethod -Uri \"http://127.0.0.1:8000/api/fdh/check-claim-lastdays\" -Method Post"
+powershell -WindowStyle Hidden -Command "Invoke-RestMethod -Uri 'http://127.0.0.1:8000/api/fdh/check-claim-lastdays' -Method Post"

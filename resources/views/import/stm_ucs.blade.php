@@ -22,7 +22,7 @@
                             </button>
                         </div>
 
-                        @if ($message = Session::get('success'))
+                        @if ($message = Session::get('stm_success'))
                             <div class="alert alert-success border-0 shadow-sm py-2 mb-0">
                                 <i class="bi bi-check-circle-fill me-2"></i> <strong>{{ $message }}</strong>
                             </div>
@@ -160,19 +160,22 @@
 {{-- End Modal --}}
 
 <!-- SweetAlert: Success -->
-@if (session('success'))
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            Swal.fire({
-                icon: 'success',
-                title: 'นำเข้าสำเร็จ',
-                text: @json(session('success')),
-                confirmButtonText: 'ปิด'
-            }).then(() => {
-                location.reload();
-            });
+@if (session('stm_success'))
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        Swal.fire({
+            title: 'นำเข้าสำเร็จ!',
+            text: "{!! session('stm_success') !!}",
+            icon: 'success',
+            confirmButtonText: 'ปิด',
+            confirmButtonColor: '#673ab7',
+            customClass: {
+                confirmButton: 'btn btn-primary btn-sm px-4'
+            },
+            allowOutsideClick: false
         });
-    </script>
+    });
+</script>
 @endif
 <!-- SweetAlert: Error -->
 @if (session('error'))
@@ -286,7 +289,11 @@
                 title: 'แจ้งเตือน',
                 text: 'กรุณาเลือกไฟล์ก่อนนำเข้า',
                 icon: 'warning',
-                confirmButtonText: 'ตกลง'
+                confirmButtonText: 'ปิด',
+                confirmButtonColor: '#673ab7',
+                customClass: {
+                    confirmButton: 'btn btn-primary btn-sm px-4'
+                }
             });
             return; // ❌ หยุดการทำงาน ไม่ส่งฟอร์ม
         }
@@ -296,7 +303,11 @@
                 title: 'แจ้งเตือน',
                 text: 'เลือกไฟล์ได้ไม่เกิน 5 ไฟล์',
                 icon: 'error',
-                confirmButtonText: 'ตกลง'
+                confirmButtonText: 'ปิด',
+                confirmButtonColor: '#673ab7',
+                customClass: {
+                    confirmButton: 'btn btn-primary btn-sm px-4'
+                }
             });
             return; // ❌ หยุดการทำงาน
         }

@@ -160,15 +160,15 @@ class HomeController extends Controller
         $ipd_summary = DB::connection('hosxp')->select('
         SELECT 
             SUM(CASE WHEN (dchdate BETWEEN ? AND ?) AND (diag_text_list IS NULL OR diag_text_list = "") THEN 1 ELSE 0 END) AS non_diagtext,
-            SUM(CASE WHEN (dchdate BETWEEN ? AND ?) AND (dx IS NOT NULL AND dx <> "") AND (pdx = "" OR pdx IS NULL) THEN 1 ELSE 0 END) AS non_icd10,
+            SUM(CASE WHEN (dchdate BETWEEN ? AND ?) AND (diag_text_list IS NOT NULL AND diag_text_list <> "") AND (dx IS NULL OR dx = "") THEN 1 ELSE 0 END) AS non_icd10,
             SUM(CASE WHEN confirm_discharge = "N" AND (opd_wait_money <> "0") THEN 1 ELSE 0 END) AS not_transfer,
             SUM(CASE WHEN confirm_discharge = "N" AND (paid_money <> rcpt_money) AND (rcpt_money <> 0) THEN 1 ELSE 0 END) AS wait_paid_money,
             SUM(CASE WHEN confirm_discharge = "N" AND (rcpt_money <> 0) THEN (paid_money - rcpt_money) ELSE 0 END) AS sum_wait_paid_money
         FROM (
-            SELECT i.an, i.dchdate, i.confirm_discharge, a.diag_text_list, id.diag_text AS dx, a.pdx, a.opd_wait_money, a.paid_money, a.rcpt_money
+            SELECT i.an, i.dchdate, i.confirm_discharge, a.diag_text_list, id.icd10 AS dx, a.pdx, a.opd_wait_money, a.paid_money, a.rcpt_money
             FROM ipt i
             LEFT JOIN an_stat a ON a.an = i.an
-            LEFT JOIN ipt_doctor_diag id ON id.an = i.an AND id.diagtype = 1
+            LEFT JOIN iptdiag id ON id.an = i.an AND id.diagtype = 1
             WHERE ((i.dchdate BETWEEN ? AND ?) OR i.confirm_discharge = "N")
             AND i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")
         ) AS a', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date])[0];

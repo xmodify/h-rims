@@ -175,6 +175,7 @@ Route::match(['get', 'post'], 'claim_op/lgo', [ClaimOpController::class, 'lgo'])
 Route::match(['get', 'post'], 'claim_op/lgo_kidney', [ClaimOpController::class, 'lgo_kidney']);
 Route::match(['get', 'post'], 'claim_op/bkk', [ClaimOpController::class, 'bkk']);
 Route::match(['get', 'post'], 'claim_op/bmt', [ClaimOpController::class, 'bmt']);
+Route::match(['get', 'post'], 'claim_op/srt', [ClaimOpController::class, 'srt']);
 Route::match(['get', 'post'], 'claim_op/sss_ppfs', [ClaimOpController::class, 'sss_ppfs']);
 Route::match(['get', 'post'], 'claim_op/sss_fund', [ClaimOpController::class, 'sss_fund']);
 Route::match(['get', 'post'], 'claim_op/sss_kidney', [ClaimOpController::class, 'sss_kidney']);
@@ -190,6 +191,7 @@ Route::match(['get', 'post'], 'claim_ip/ofc', [ClaimIpController::class, 'ofc'])
 Route::match(['get', 'post'], 'claim_ip/lgo', [ClaimIpController::class, 'lgo']);
 Route::match(['get', 'post'], 'claim_ip/bkk', [ClaimIpController::class, 'bkk']);
 Route::match(['get', 'post'], 'claim_ip/bmt', [ClaimIpController::class, 'bmt']);
+Route::match(['get', 'post'], 'claim_ip/srt', [ClaimIpController::class, 'srt']);
 Route::match(['get', 'post'], 'claim_ip/sss', [ClaimIpController::class, 'sss']);
 Route::match(['get', 'post'], 'claim_ip/sss_hc', [ClaimIpController::class, 'sss_hc']);
 Route::match(['get', 'post'], 'claim_ip/gof', [ClaimIpController::class, 'gof']);

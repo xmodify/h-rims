@@ -21,39 +21,45 @@ class NotifyController extends Controller
         $end_date = $year->DATE_END ?? null;
 
         $notify = DB::connection('hosxp')->select('
-            SELECT COUNT(vn) AS visit,IFNULL(SUM(CASE WHEN endpoint_code LIKE "EP%" THEN 1 ELSE 0 END),0) AS "endpoint",
-            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") THEN 1 ELSE 0 END),0) AS "ucs_all",
-            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND endpoint_code LIKE "EP%" THEN 1 ELSE 0 END),0) AS "ucs_endpoint",
-            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")
-                THEN 1 ELSE 0 END),0) AS "uc_anywhere",
-            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-                AND uc_cr_name <> "" THEN 1 ELSE 0 END),0) AS "uc_cr",
-            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
-                AND ppfs_name <> "" THEN 1 ELSE 0 END),0) AS "ppfs",
-            IFNULL(SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND (healthmed <> "" OR herb32_name <>"") THEN 1 ELSE 0 END),0) AS "uc_healthmed",
-            IFNULL(SUM(CASE WHEN hipdata_code = "OFC" THEN 1 ELSE 0 END),0) AS "ofc_all",
-            IFNULL(SUM(CASE WHEN hipdata_code = "OFC" AND edc_approve_list_text <>"" THEN 1 ELSE 0 END),0) AS "ofc_edc",
-            IFNULL(SUM(CASE WHEN (auth_code IS NULL OR auth_code ="") AND paidst IN ("02") THEN 1 ELSE 0 END),0) AS "non_authen",
-            IFNULL(SUM(CASE WHEN (hipdata_code = "UCS" OR hipdata_code ="SSS") AND (hospmain="" OR hospmain IS NULL) THEN 1 ELSE 0 END),0) AS "non_hmain"
-            FROM (SELECT o.vn,o.an,vp.auth_code,os.edc_approve_list_text,IF(vp.auth_code NOT LIKE "EP%",ep.claimCode,vp.auth_code) AS endpoint_code,vp.pttype,
-            vp.hospmain,p.hipdata_code,ep.sourceChannel,p.paidst,oe.moph_finance_upload_datetime AS fdh,ep.claimType,p.pttype_price_group_id,v.pdx,
-            GROUP_CONCAT(n1.`name`) AS uc_cr_name,SUM(o1.sum_price) AS uc_cr_price,GROUP_CONCAT(n2.`name`) AS ppfs_name,SUM(o2.sum_price) AS ppfs_price,
-            GROUP_CONCAT(n3.`name`) AS herb32_name,SUM(o3.sum_price) AS herb32_price,hm.vn AS healthmed
-            FROM ovst o
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-            LEFT JOIN vn_stat v ON v.vn=o.vn
-            LEFT JOIN ovst_seq os ON os.vn=o.vn
-            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
-            LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE uc_cr = "Y")
-            LEFT JOIN nondrugitems n1 ON n1.icode=o1.icode
-            LEFT JOIN opitemrece o2 ON o2.vn=o.vn AND o2.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs = "Y")
-            LEFT JOIN nondrugitems n2 ON n2.icode=o2.icode
-            LEFT JOIN opitemrece o3 ON o3.vn=o.vn AND o3.icode IN (SELECT icode FROM hrims.lookup_icode WHERE herb32 = "Y")
-            LEFT JOIN drugitems n3 ON n3.icode=o3.icode
-            LEFT JOIN health_med_service hm ON hm.vn=o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND DATE(ep.serviceDateTime)=o.vstdate
-            WHERE o.vstdate = DATE(DATE_ADD(now(), INTERVAL -1 DAY )) AND (o.an ="" OR o.an IS NULL) GROUP BY o.vn ) AS a');
+            SELECT
+                COUNT(vn) AS visit,
+                SUM(CASE WHEN endpoint = "Y" THEN 1 ELSE 0 END) AS endpoint,
+                SUM(CASE WHEN hipdata_code IN ("UCS","WEL") THEN 1 ELSE 0 END) AS ucs_all,
+                SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND endpoint = "Y" THEN 1 ELSE 0 END) AS ucs_endpoint,
+                SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND (hospmain <> "" AND hospmain IS NOT NULL) AND IFNULL(in_province,"N") <> "Y" THEN 1 ELSE 0 END) AS uc_anywhere,
+                SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND IFNULL(in_province,"N") = "Y" AND uc_cr_flag = "Y" THEN 1 ELSE 0 END) AS uc_cr,
+                SUM(CASE WHEN ppfs_flag = "Y" THEN 1 ELSE 0 END) AS ppfs,
+                SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND healthmed_flag = "Y" THEN 1 ELSE 0 END) AS uc_healthmed,
+                SUM(CASE WHEN hipdata_code = "OFC" THEN 1 ELSE 0 END) AS ofc_all,
+                SUM(CASE WHEN hipdata_code = "OFC" AND (edc_approve_list_text <> "" OR claim_code_flag = "Y") THEN 1 ELSE 0 END) AS ofc_edc,
+                SUM(CASE WHEN (auth_code = "" OR auth_code IS NULL) AND cid NOT LIKE "0%" THEN 1 ELSE 0 END) AS non_authen,
+                SUM(CASE WHEN hipdata_code IN ("UCS","WEL","SSS","STP") AND (hospmain = "" OR hospmain IS NULL) THEN 1 ELSE 0 END) AS non_hmain
+            FROM (
+                SELECT o.vn, pt.cid, vp.auth_code, p.hipdata_code, vp.hospmain, os.edc_approve_list_text,
+                    lh.in_province,
+                    MAX(CASE WHEN li.ppfs = "Y" THEN "Y" ELSE "N" END) as ppfs_flag,
+                    MAX(CASE WHEN li.uc_cr = "Y" THEN "Y" ELSE "N" END) as uc_cr_flag,
+                    MAX(CASE WHEN li.herb32 = "Y" THEN "Y" ELSE "N" END) as herb_flag,
+                    IF(hms.vn IS NOT NULL, "Y", "N") as healthmed_flag,
+                    MAX(CASE WHEN vp.Claim_Code IS NOT NULL AND vp.Claim_Code <> "" THEN "Y" ELSE "N" END) as claim_code_flag,
+                    IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%" OR ep.claimType = "PG0140001"),"Y",NULL) AS endpoint
+                FROM ovst o
+                LEFT JOIN patient pt ON pt.hn = o.hn
+                LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1
+                LEFT JOIN pttype p ON p.pttype = vp.pttype
+                LEFT JOIN ovst_seq os ON os.vn = o.vn
+                LEFT JOIN opitemrece ori ON ori.vn = o.vn
+                LEFT JOIN hrims.lookup_icode li ON li.icode = ori.icode
+                LEFT JOIN hrims.lookup_hospcode lh ON lh.hospcode = vp.hospmain
+                LEFT JOIN (
+                    SELECT h.vn FROM health_med_service h
+                    INNER JOIN health_med_service_operation hso ON hso.health_med_service_id = h.health_med_service_id
+                    GROUP BY h.vn
+                ) hms ON hms.vn = o.vn
+                LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate AND ep.claimCode LIKE "EP%"
+                WHERE o.vstdate = DATE(DATE_ADD(NOW(), INTERVAL -1 DAY)) AND (o.an = "" OR o.an IS NULL)
+                GROUP BY o.vn
+            ) AS a');
 
         foreach ($notify as $row) {
             $visit = $row->visit;
@@ -71,15 +77,19 @@ class NotifyController extends Controller
         }
 
         $ipd_dchsummary = DB::connection('hosxp')->select('
-            SELECT SUM(CASE WHEN (a.diag_text_list ="" OR a.diag_text_list IS NULL ) THEN 1 ELSE 0 END) AS non_diagtext,
-            SUM(CASE WHEN (id.icd10 ="" OR id.icd10 IS NULL OR a.pdx = "" OR a.pdx IS NULL) THEN 1 ELSE 0 END) AS non_icd10
+            SELECT
+                SUM(CASE WHEN (a.diag_text_list IS NULL OR a.diag_text_list = "") THEN 1 ELSE 0 END) AS non_diagtext,
+                SUM(CASE WHEN (a.diag_text_list IS NOT NULL AND a.diag_text_list <> "") AND (id.icd10 IS NULL OR id.icd10 = "") THEN 1 ELSE 0 END) AS non_icd10
             FROM ipt i
             LEFT JOIN iptdiag id ON id.an = i.an AND id.diagtype = 1
-            LEFT JOIN an_stat a ON a.an=i.an
-            WHERE i.dchdate >= ? AND  i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y") 
-            AND (a.diag_text_list ="" OR a.diag_text_list IS NULL 				
-            OR id.icd10 ="" OR id.icd10 IS NULL
-            OR a.pdx = "" OR a.pdx IS NULL)', [$start_date]);
+            LEFT JOIN an_stat a ON a.an = i.an
+            WHERE i.dchdate BETWEEN ? AND ?
+            AND i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")
+            AND (
+                (a.diag_text_list IS NULL OR a.diag_text_list = "")
+                OR
+                ((a.diag_text_list IS NOT NULL AND a.diag_text_list <> "") AND (id.icd10 IS NULL OR id.icd10 = ""))
+            )', [$start_date, $end_date]);
         foreach ($ipd_dchsummary as $row) {
             $non_diagtext = $row->non_diagtext;
             $non_icd10 = $row->non_icd10;

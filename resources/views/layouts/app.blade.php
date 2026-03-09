@@ -832,10 +832,13 @@
                                     <!-- เมนูอื่น -->
                                     <li>
                                         <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/bkk') }}">
-                                            OP-BKK กรุงเทพมหานคร
+                                            OP-BKK ข้าราชการ กรุงเทพมหานคร
                                         </a>
                                         <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/bmt') }}">
-                                            OP-BMT ขสมก.
+                                            OP-BMT สิทธิองค์การขนส่งมวลชนกรุงเทพ
+                                        </a>
+                                        <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/srt') }}">
+                                            OP-SRT สิทธิการรถไฟแห่งประเทศไทย
                                         </a>
                                     </li>
                                     <!-- ชี้ขวา -->
@@ -915,10 +918,13 @@
                                             IP-LGO อปท.
                                         </a>
                                         <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/bkk') }}">
-                                            IP-BKK กรุงเทพมหานคร
+                                            IP-BKK ข้าราชการ กรุงเทพมหานคร
                                         </a>
                                         <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/bmt') }}">
-                                            IP-BMT ขสมก.
+                                            IP-BMT สิทธิองค์การขนส่งมวลชนกรุงเทพ
+                                        </a>
+                                        <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/srt') }}">
+                                            IP-SRT สิทธิการรถไฟแห่งประเทศไทย
                                         </a>
                                     </li>
                                     <!-- ชี้ขวา -->
@@ -1080,7 +1086,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item d-flex align-items-center">
                             <div class="nav-version-badge">
-                                V.69-03-06 12:00
+                                V.69-03-09 14:30
                             </div>
                         </li>
                         <!-- Authentication Links -->

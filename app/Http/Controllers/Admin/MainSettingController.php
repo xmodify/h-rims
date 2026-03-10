@@ -143,4 +143,20 @@ class MainSettingController extends Controller
             return back()->with('error', 'เกิดข้อผิดพลาดในการอัปเกรด: ' . $e->getMessage());
         }
     }
+
+    public function gitPull()
+    {
+        try {
+            // ใช้ git reset --hard เพื่อป้องกัน conflict และตามด้วย optimize:clear เพื่อเคลียร์แคช
+            $command = 'cd ' . base_path() . ' && git reset --hard && git pull origin main && php artisan optimize:clear 2>&1';
+            $output = shell_exec($command);
+
+            // กรองข้อความ URL GitHub ออกเพื่อความปลอดภัย
+            $filteredOutput = preg_replace('/^From https:\/\/github\.com\/.*$/m', '', $output);
+
+            return response()->json(['output' => trim($filteredOutput)]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 }

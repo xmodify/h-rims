@@ -34,14 +34,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(function () {
-    Route::post('/git-pull', function () {
-        try {
-            $output = shell_exec('cd ' . base_path() . ' && git pull origin main 2>&1');
-            return response()->json(['output' => $output]);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    })->name('git.pull');
+    Route::post('/git-pull', [MainSettingController::class, 'gitPull'])->name('git.pull');
     Route::resource('users', UserController::class);
     Route::get('main_setting', [MainSettingController::class, 'index'])->name('main_setting');
     Route::put('main_setting/{name}', [MainSettingController::class, 'update']);

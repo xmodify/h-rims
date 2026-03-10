@@ -97,65 +97,64 @@
     </div>
 
     <!-- Scheduled Tasks Guide -->
-    <div class="row">
-        <div class="col-md-6 mb-4">
-            <div class="card dash-card border-start-0 border-end-0 border-bottom-0 border-top-4 border-info h-100">
-                <div class="card-body">
-                    <h6 class="fw-bold text-info mb-3">
-                        <i class="bi bi-info-circle-fill me-2"></i> Notify Telegram via Task Scheduler
-                    </h6>
+    <!-- Scheduled Tasks Guide -->
+    <div class="card dash-card border-start-0 border-end-0 border-bottom-0 border-top-4 border-dark mb-4 shadow-sm">
+        <div class="card-header bg-white border-0 py-3">
+            <h6 class="mb-0 fw-bold text-dark">
+                <i class="bi bi-clock-history me-2"></i> การตั้งค่า Windows Task Scheduler
+            </h6>
+        </div>
+        <div class="card-body p-4">
+            <div class="row align-items-center mb-4">
+                <div class="col-auto">
                     <div class="bg-light p-3 rounded-3 border">
-                        <p class="mb-2"><strong>Program/script:</strong> <code>powershell.exe</code></p>
-                        <div class="mb-0">
-                            <strong>Add arguments:</strong>
-                            <div class="input-group mt-1">
-                                <input type="text" class="form-control form-control-sm bg-white" value="-WindowStyle Hidden -Command &quot;Invoke-WebRequest -Uri '{{$notify_summary}}' -UseBasicParsing&quot;" readonly id="tg_cmd">
-                                <button class="btn btn-outline-info btn-sm" type="button" onclick="copyToClipboard('tg_cmd')">
-                                    <i class="bi bi-copy"></i> คัดลอก
-                                </button>
-                            </div>
+                        <span class="text-muted small text-uppercase fw-bold d-block mb-1">Program/script:</span>
+                        <code class="h6 mb-0">powershell.exe</code>
+                    </div>
+                </div>
+                <div class="col">
+                    <p class="text-muted small mb-0">
+                        <i class="bi bi-info-circle me-1"></i> คัดลอกคำสั่งด้านล่างไปใส่ในช่อง <b>Add arguments (optional)</b> ของ Task Scheduler ใน Windows
+                    </p>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <!-- Task 1: Telegram -->
+                <div class="col-xl-4 col-md-12">
+                    <div class="p-3 rounded-4 border bg-light h-100">
+                        <h6 class="fw-bold text-info mb-2"><i class="bi bi-telegram me-2"></i>Notify Telegram | 08.00 น.</h6>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control border-0 bg-white" value="-WindowStyle Hidden -Command &quot;Invoke-WebRequest -Uri '{{$notify_summary}}' -UseBasicParsing&quot;" readonly id="tg_cmd">
+                            <button class="btn btn-info text-white rounded-end" type="button" onclick="copyToClipboard('tg_cmd')">
+                                <i class="bi bi-copy"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-6 mb-4">
-            <div class="card dash-card border-start-0 border-end-0 border-bottom-0 border-top-4 border-primary h-100">
-                <div class="card-body">
-                    <h6 class="fw-bold text-primary mb-3">
-                        <i class="bi bi-cloud-download-fill me-2"></i> NHSO Pull Yesterday via Task Scheduler
-                    </h6>
-                    <div class="bg-light p-3 rounded-3 border">
-                        <p class="mb-2"><strong>Program/script:</strong> <code>powershell.exe</code></p>
-                        <div class="mb-0">
-                            <strong>Add arguments:</strong>
-                            <div class="input-group mt-1">
-                                <input type="text" class="form-control form-control-sm bg-white" value="-WindowStyle Hidden -Command &quot;Invoke-RestMethod -Uri '{{$nhso_endpoint_pull_yesterday}}' -Method Post&quot;" readonly id="nhso_cmd">
-                                <button class="btn btn-outline-primary btn-sm" type="button" onclick="copyToClipboard('nhso_cmd')">
-                                    <i class="bi bi-copy"></i> คัดลอก
-                                </button>
-                            </div>
+
+                <!-- Task 2: NHSO -->
+                <div class="col-xl-4 col-md-12">
+                    <div class="p-3 rounded-4 border bg-light h-100">
+                        <h6 class="fw-bold text-primary mb-2"><i class="bi bi-cloud-download-fill me-2"></i>NhsoEnpoint Pull Yesterday | 00.05 น.</h6>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control border-0 bg-white" value="-WindowStyle Hidden -Command &quot;Invoke-RestMethod -Uri '{{$nhso_endpoint_pull_yesterday}}' -Method Post&quot;" readonly id="nhso_cmd">
+                            <button class="btn btn-primary rounded-end" type="button" onclick="copyToClipboard('nhso_cmd')">
+                                <i class="bi bi-copy"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-6 mb-4">
-            <div class="card dash-card border-start-0 border-end-0 border-bottom-0 border-top-4 border-success h-100">
-                <div class="card-body">
-                    <h6 class="fw-bold text-success mb-3">
-                        <i class="bi bi-calendar-check-fill me-2"></i> FDH Auto Check (Last Days) via Task Scheduler
-                    </h6>
-                    <div class="bg-light p-3 rounded-3 border">
-                        <p class="mb-2"><strong>Program/script:</strong> <code>powershell.exe</code></p>
-                        <div class="mb-0">
-                            <strong>Add arguments:</strong>
-                            <div class="input-group mt-1">
-                                <input type="text" class="form-control form-control-sm bg-white" value="-WindowStyle Hidden -Command &quot;Invoke-RestMethod -Uri '{{$fdh_check_claim_lastdays}}' -Method Post&quot;" readonly id="fdh_cmd">
-                                <button class="btn btn-outline-success btn-sm" type="button" onclick="copyToClipboard('fdh_cmd')">
-                                    <i class="bi bi-copy"></i> คัดลอก
-                                </button>
-                            </div>
+
+                <!-- Task 3: FDH -->
+                <div class="col-xl-4 col-md-12">
+                    <div class="p-3 rounded-4 border bg-light h-100">
+                        <h6 class="fw-bold text-success mb-2"><i class="bi bi-calendar-check-fill me-2"></i>FDH Pull Last10Days | 00.30 น.</h6>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control border-0 bg-white" value="-WindowStyle Hidden -Command &quot;Invoke-RestMethod -Uri '{{$fdh_check_claim_lastdays}}' -Method Post&quot;" readonly id="fdh_cmd">
+                            <button class="btn btn-success rounded-end" type="button" onclick="copyToClipboard('fdh_cmd')">
+                                <i class="bi bi-copy"></i>
+                            </button>
                         </div>
                     </div>
                 </div>

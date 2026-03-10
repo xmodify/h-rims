@@ -46,8 +46,7 @@ class MainSettingController extends Controller
                 'drug_clopidogrel'
             ],
             'Claim (FDH)' => ['fdh_user', 'fdh_pass', 'fdh_secretKey'],
-            'Git Configuration' => ['git_token'],
-            'Integration Tokens' => ['token_authen_kiosk_nhso', 'telegram_token', 'telegram_chat_id_register', 'telegram_chat_id_ipdsummary', 'opoh_token'],
+            'Integration Tokens' => ['token_authen_kiosk_nhso', 'telegram_token', 'telegram_chat_id_register', 'telegram_chat_id_ipdsummary', 'opoh_token', 'git_token'],
         ];
 
         $groupedData = [];

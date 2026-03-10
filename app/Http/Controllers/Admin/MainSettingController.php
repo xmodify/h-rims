@@ -46,6 +46,7 @@ class MainSettingController extends Controller
                 'drug_clopidogrel'
             ],
             'Claim (FDH)' => ['fdh_user', 'fdh_pass', 'fdh_secretKey'],
+            'Git Configuration' => ['git_token'],
             'Integration Tokens' => ['token_authen_kiosk_nhso', 'telegram_token', 'telegram_chat_id_register', 'telegram_chat_id_ipdsummary', 'opoh_token'],
         ];
 
@@ -121,10 +122,11 @@ class MainSettingController extends Controller
                 ['name' => 'fdh_pass', 'name_th' => 'FDH Pass', 'value' => ''],
                 ['name' => 'fdh_secretKey', 'name_th' => 'FDH Secret Key', 'value' => '$jwt@moph#'],
                 ['name' => 'pttype_sss_ae', 'name_th' => 'สิทธิ ปกส. อุบัติเหตุ/ฉุกเฉิน (รหัสสิทธิ HOSxP)', 'value' => '000'],
+                ['name' => 'git_token', 'name_th' => 'GitHub Token (สำหรับ Private Repo)', 'value' => ''],
             ];
 
             // Clean up obsolete settings
-            MainSetting::where('name', 'telegram_chat_id')->delete();
+            MainSetting::whereIn('name', ['telegram_chat_id', 'git_user'])->delete();
 
             foreach ($main_setting as $row) {
                 // Ensure record exists with default value if new, then sync name_th metadata
@@ -147,14 +149,32 @@ class MainSettingController extends Controller
     public function gitPull()
     {
         try {
-            // ใช้ git reset --hard เพื่อป้องกัน conflict และตามด้วย optimize:clear เพื่อเคลียร์แคช
-            $command = 'cd ' . base_path() . ' && git reset --hard && git pull origin main && php artisan optimize:clear 2>&1';
+            // ดึงค่า Token จากการตั้งค่า
+            $git_token = MainSetting::where('name', 'git_token')->value('value');
+            $git_user = 'xmodify'; // ฝังชื่อ User ไว้ในโค้ดเลยเพื่อความง่าย
+
+            $base_path = base_path();
+
+            // หากมีการตั้งค่า Token ไว้ ให้ทำการอัปเดต Remote URL ก่อน
+            if (!empty($git_token)) {
+                $remote_url = "https://{$git_user}:{$git_token}@github.com/xmodify/h-rims.git";
+                shell_exec("cd {$base_path} && git remote set-url origin {$remote_url}");
+            }
+
+            // รันคำสั่งอัปเดต: Reset -> Pull -> Clear Cache
+            $command = "cd {$base_path} && git reset --hard && git pull origin main && php artisan optimize:clear 2>&1";
             $output = shell_exec($command);
 
-            // กรองข้อความ URL GitHub ออกเพื่อความปลอดภัย
-            $filteredOutput = preg_replace('/^From https:\/\/github\.com\/.*$/m', '', $output);
+            // --- ขั้นตอนการกรองข้อมูลเพื่อความปลอดภัย ---
+            // 1. ซ่อน Token ใน Output (ถ้ามีหลุดออกมา)
+            $filteredOutput = preg_replace('/https:\/\/.*:.*@github\.com/i', 'https://GITHUB_TOKEN@github.com', $output);
 
-            return response()->json(['output' => trim($filteredOutput)]);
+            // 2. ซ่อนบรรทัด "From https://github.com/..." เพื่อความเป็นระเบียบและปลอดภัย
+            $filteredOutput = preg_replace('/^From https:\/\/github\.com\/.*$/m', '', $filteredOutput);
+
+            return response()->json([
+                'output' => trim($filteredOutput)
+            ]);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }

@@ -116,7 +116,7 @@ class NotifyController extends Controller
             . $url_ipd_dchsummary . "\n";
 
         $token = DB::table('main_setting')->where('name', 'telegram_token')->value('value'); //Notify_Bot
-        $telegram_chat_id = DB::table('main_setting')->where('name', 'telegram_chat_id_ipdsummary')->value('value');
+        $telegram_chat_id = DB::table('main_setting')->where('name', 'telegram_chat_id_notify_summary')->value('value');
         $chat_ids = explode(',', $telegram_chat_id); //Notify_Group
 
         foreach ($chat_ids as $chat_id) {

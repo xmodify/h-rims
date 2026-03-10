@@ -22,6 +22,19 @@ class MainSettingController extends Controller
 
         $settings = MainSetting::orderBy('name_th', 'asc')->get();
 
+        $integrationTokens = [
+            'token_authen_kiosk_nhso',
+            'git_token',
+            'telegram_token',
+            'telegram_chat_id_register',
+            'telegram_chat_id_notify_summary'
+        ];
+
+        if ($hospcode === '00025') {
+            // แทรก opoh_token ไว้ลำดับแรก
+            array_splice($integrationTokens, 0, 0, 'opoh_token');
+        }
+
         // Grouping settings into categories
         $categories = [
             'Basic Information' => [
@@ -46,7 +59,7 @@ class MainSettingController extends Controller
                 'drug_clopidogrel'
             ],
             'Claim (FDH)' => ['fdh_user', 'fdh_pass', 'fdh_secretKey'],
-            'Integration Tokens' => ['token_authen_kiosk_nhso', 'telegram_token', 'telegram_chat_id_register', 'telegram_chat_id_ipdsummary', 'opoh_token', 'git_token'],
+            'Integration Tokens' => $integrationTokens,
         ];
 
         $groupedData = [];
@@ -97,10 +110,10 @@ class MainSettingController extends Controller
             // 2. Update/Insert default settings in main_setting table
             $main_setting = [
                 ['name' => 'bed_qty', 'name_th' => 'IPD จำนวนเตียง', 'value' => ''],
-                ['name' => 'token_authen_kiosk_nhso', 'name_th' => 'Token Authen Kiosk สปสช.', 'value' => ''],
+                ['name' => 'token_authen_kiosk_nhso', 'name_th' => 'NHSO Authen Kiosk Token', 'value' => ''],
                 ['name' => 'telegram_token', 'name_th' => 'Telegram Token', 'value' => ''],
-                ['name' => 'telegram_chat_id_register', 'name_th' => 'Telegram ChatID Register ', 'value' => ''],
-                ['name' => 'telegram_chat_id_ipdsummary', 'name_th' => 'Telegram ChatID IPD Summary', 'value' => ''],
+                ['name' => 'telegram_chat_id_register', 'name_th' => 'Telegram ChatID Register', 'value' => ''],
+                ['name' => 'telegram_chat_id_notify_summary', 'name_th' => 'Telegram ChatID NotifySummary', 'value' => ''],
                 ['name' => 'k_value', 'name_th' => 'IPD ค่า K ', 'value' => '1'],
                 ['name' => 'base_rate', 'name_th' => 'IPD BaseRate UCS ในเขต', 'value' => '3350'],
                 ['name' => 'base_rate2', 'name_th' => 'IPD BaseRate UCS นอกเขต', 'value' => '9600'],
@@ -116,7 +129,7 @@ class MainSettingController extends Controller
                 ['name' => 'drug_clopidogrel', 'name_th' => 'ยา Clopidogrel (รหัส drugitems HOSxP)', 'value' => '0000000'],
                 ['name' => 'hospital_name', 'name_th' => 'ชื่อโรงพยาบาล', 'value' => '"โรงพยาบาลทดสอบ"'],
                 ['name' => 'hospital_code', 'name_th' => 'รหัส 5 หลักโรงพยาบาล', 'value' => '00000'],
-                ['name' => 'opoh_token', 'name_th' => 'Token AOPOD', 'value' => ''],
+                ['name' => 'opoh_token', 'name_th' => 'AOPOD Token', 'value' => ''],
                 ['name' => 'fdh_user', 'name_th' => 'FDH User', 'value' => ''],
                 ['name' => 'fdh_pass', 'name_th' => 'FDH Pass', 'value' => ''],
                 ['name' => 'fdh_secretKey', 'name_th' => 'FDH Secret Key', 'value' => '$jwt@moph#'],
@@ -125,7 +138,7 @@ class MainSettingController extends Controller
             ];
 
             // Clean up obsolete settings
-            MainSetting::whereIn('name', ['telegram_chat_id', 'git_user'])->delete();
+            MainSetting::whereIn('name', ['telegram_chat_id', 'git_user', 'telegram_chat_id_ipdsummary'])->delete();
 
             foreach ($main_setting as $row) {
                 // Ensure record exists with default value if new, then sync name_th metadata

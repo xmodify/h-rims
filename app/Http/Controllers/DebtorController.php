@@ -11526,4 +11526,86 @@ class DebtorController extends Controller
             ], 500);
         }
     }
+
+    public function get_budget_years()
+    {
+        $years = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
+            ->orderByDesc('LEAVE_YEAR_ID')
+            ->limit(7)
+            ->get();
+        return response()->json($years);
+    }
+
+    public function get_dashboard_data(Request $request)
+    {
+        ini_set('max_execution_time', 300);
+        $code = $request->code;
+        $table_name = "debtor_" . $code;
+
+        // Verify table exists
+        $tableExists = DB::select("SHOW TABLES LIKE '{$table_name}'");
+        if (empty($tableExists)) {
+            return response()->json(['error' => 'Data table not found'], 404);
+        }
+
+        // Determine date column (vstdate for OP, dchdate for IP)
+        $columns = DB::select("SHOW COLUMNS FROM {$table_name}");
+        $date_col = 'vstdate';
+        foreach ($columns as $column) {
+            if ($column->Field == 'dchdate') {
+                $date_col = 'dchdate';
+                break;
+            }
+        }
+
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');
+
+        $budget_year = $request->budget_year ?: $budget_year_now;
+
+        $year_data = DB::table('budget_year')
+            ->where('LEAVE_YEAR_ID', $budget_year)
+            ->first();
+
+        $start_date_b = $year_data->DATE_BEGIN ?? null;
+        $end_date_b = $year_data->DATE_END ?? null;
+
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        }
+
+        $sum_month = DB::table($table_name)
+            ->selectRaw('
+                CASE 
+                    WHEN MONTH(' . $date_col . ')=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(' . $date_col . ')+543, 2))
+                    WHEN MONTH(' . $date_col . ')=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(' . $date_col . ')+543, 2))
+                    WHEN MONTH(' . $date_col . ')=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(' . $date_col . ')+543, 2))
+                    WHEN MONTH(' . $date_col . ')=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(' . $date_col . ')+543, 2))
+                    WHEN MONTH(' . $date_col . ')=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(' . $date_col . ')+543, 2))
+                    WHEN MONTH(' . $date_col . ')=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(' . $date_col . ')+543, 2))
+                    WHEN MONTH(' . $date_col . ')=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(' . $date_col . ')+543, 2))
+                    WHEN MONTH(' . $date_col . ')=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(' . $date_col . ')+543, 2))
+                    WHEN MONTH(' . $date_col . ')=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(' . $date_col . ')+543, 2))
+                    WHEN MONTH(' . $date_col . ')=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(' . $date_col . ')+543, 2))
+                    WHEN MONTH(' . $date_col . ')=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(' . $date_col . ')+543, 2))
+                    WHEN MONTH(' . $date_col . ')=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(' . $date_col . ')+543, 2))
+                END AS month_name,
+                SUM(IFNULL(debtor,0)) AS claim_price,
+                SUM(IFNULL(receive,0)) AS receive_total
+            ')
+            ->whereBetween($date_col, [$start_date_b, $end_date_b])
+            ->groupByRaw('YEAR(' . $date_col . '), MONTH(' . $date_col . ')')
+            ->orderByRaw('YEAR(' . $date_col . '), MONTH(' . $date_col . ')')
+            ->get();
+
+        return response()->json([
+            'month' => $sum_month->pluck('month_name'),
+            'claim_price' => $sum_month->pluck('claim_price'),
+            'receive_total' => $sum_month->pluck('receive_total'),
+            'budget_year' => $budget_year
+        ]);
+    }
 }

@@ -230,6 +230,8 @@ Route::put('debtor/1102050101_103/update/{vn}', [DebtorController::class, '_1102
 Route::get('debtor/1102050101_103_daily_pdf', [DebtorController::class, '_1102050101_103_daily_pdf']);
 Route::post('debtor/1102050101_103/unlock/{vn}', [DebtorController::class, '_1102050101_103_unlock']);
 Route::post('debtor/1102050101_103/lock/{vn}', [DebtorController::class, '_1102050101_103_lock']);
+Route::get('debtor/dashboard_data', [DebtorController::class, 'get_dashboard_data']);
+Route::get('debtor/get_budget_years', [DebtorController::class, 'get_budget_years']);
 Route::get('debtor/1102050101_103_indiv_excel', [DebtorController::class, '_1102050101_103_indiv_excel']);
 Route::match(['get', 'post'], 'debtor/1102050101_109', [DebtorController::class, '_1102050101_109']);
 Route::post('debtor/1102050101_109_confirm', [DebtorController::class, '_1102050101_109_confirm']);

@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('content')
     <!-- Page Header & Actions -->
@@ -43,70 +43,232 @@
                         <table class="table table-hover table-modern align-middle mb-0">
                             <tbody>   
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_103') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.103-ลูกหนี้ค่าตรวจสุขภาพ หน่วยงานภาครัฐ</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_103') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.103-ลูกหนี้ค่าตรวจสุขภาพ หน่วยงานภาครัฐ
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_103" data-name="1102050101.103-ลูกหนี้ค่าตรวจสุขภาพ หน่วยงานภาครัฐ" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr> 
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_109') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.109-ลูกหนี้-ระบบปฏิบัติการฉุกเฉิน</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_109') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.109-ลูกหนี้-ระบบปฏิบัติการฉุกเฉิน
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_109" data-name="1102050101.109-ลูกหนี้-ระบบปฏิบัติการฉุกเฉิน" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr> 
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_201') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.201-ลูกหนี้ค่ารักษา UC-OP ใน CUP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_201') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.201-ลูกหนี้ค่ารักษา UC-OP ใน CUP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_201" data-name="1102050101.201-ลูกหนี้ค่ารักษา UC-OP ใน CUP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr> 
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_203') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.203-ลูกหนี้ค่ารักษา UC-OP นอก CUP (ในจังหวัดสังกัด สธ.)</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_203') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.203-ลูกหนี้ค่ารักษา UC-OP นอก CUP (ในจังหวัดสังกัด สธ.)
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_203" data-name="1102050101.203-ลูกหนี้ค่ารักษา UC-OP นอก CUP (ในจังหวัดสังกัด สธ.)" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr> 
                                 <tr>
                                     <td class="text-danger fw-bold py-2"><i class="bi bi-x-circle-fill me-2 small"></i>1102050101.204-ลูกหนี้ค่ารักษา UC-OP นอก CUP (ต่างจังหวัดสังกัด สธ.)</td>
                                 </tr>   
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_209') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.209-ลูกหนี้ค่ารักษา ด้านการสร้างเสริมสุขภาพและป้องกันโรค (P&P)</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_209') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.209-ลูกหนี้ค่ารักษา ด้านการสร้างเสริมสุขภาพและป้องกันโรค (P&P)
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_209" data-name="1102050101.209-ลูกหนี้ค่ารักษา ด้านการสร้างเสริมสุขภาพและป้องกันโรค (P&P)" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>   
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_216') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR)</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_216') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR)
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_216" data-name="1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR)" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>   
                                 <tr>
                                     <td class="text-danger fw-bold py-2"><i class="bi bi-x-circle-fill me-2 small"></i>1102050101.222-ลูกหนี้ค่ารักษา OP-Refer</td>
                                 </tr>  
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_301') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.301-ลูกหนี้ค่ารักษา ประกันสังคม OP-เครือข่าย</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_301') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.301-ลูกหนี้ค่ารักษา ประกันสังคม OP-เครือข่าย
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_301" data-name="1102050101.301-ลูกหนี้ค่ารักษา ประกันสังคม OP-เครือข่าย" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>   
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_303') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.303-ลูกหนี้ค่ารักษา ประกันสังคม OP-นอกเครือข่าย สังกัด สป.สธ.</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_303') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.303-ลูกหนี้ค่ารักษา ประกันสังคม OP-นอกเครือข่าย สังกัด สป.สธ.
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_303" data-name="1102050101.303-ลูกหนี้ค่ารักษา ประกันสังคม OP-นอกเครือข่าย สังกัด สป.สธ." style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>      
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_307') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.307-ลูกหนี้ค่ารักษา ประกันสังคม-กองทุนทดแทน</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_307') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.307-ลูกหนี้ค่ารักษา ประกันสังคม-กองทุนทดแทน
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_307" data-name="1102050101.307-ลูกหนี้ค่ารักษา ประกันสังคม-กองทุนทดแทน" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>  
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_309') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.309-ลูกหนี้ค่ารักษา ประกันสังคม-ค่าใช้จ่ายสูง/อุบัติเหตุ/ฉุกเฉิน OP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_309') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.309-ลูกหนี้ค่ารักษา ประกันสังคม-ค่าใช้จ่ายสูง/อุบัติเหตุ/ฉุกเฉิน OP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_309" data-name="1102050101.309-ลูกหนี้ค่ารักษา ประกันสังคม-ค่าใช้จ่ายสูง/อุบัติเหตุ/ฉุกเฉิน OP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>    
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_401') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.401-ลูกหนี้ค่ารักษา เบิกจ่ายตรงกรมบัญชีกลาง OP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_401') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.401-ลูกหนี้ค่ารักษา เบิกจ่ายตรงกรมบัญชีกลาง OP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_401" data-name="1102050101.401-ลูกหนี้ค่ารักษา เบิกจ่ายตรงกรมบัญชีกลาง OP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>   
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_501') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.501-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_501') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.501-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_501" data-name="1102050101.501-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>     
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_503') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.503-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP นอก CUP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_503') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.503-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP นอก CUP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_503" data-name="1102050101.503-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP นอก CUP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>    
                                 <tr>
                                     <td class="text-danger fw-bold py-2"><i class="bi bi-x-circle-fill me-2 small"></i>1102050101.505-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว เบิกจากส่วนกลาง OP</td>
                                 </tr>    
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_701') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.701-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP ใน CUP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_701') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.701-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP ใน CUP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_701" data-name="1102050101.701-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP ใน CUP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>    
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_702') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.702-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP นอก CUP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_702') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.702-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP นอก CUP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_702" data-name="1102050101.702-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP นอก CUP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>   
                                 <tr>
                                     <td class="text-danger fw-bold py-2"><i class="bi bi-x-circle-fill me-2 small"></i>1102050101.703-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ เบิกจากส่วนกลาง OP</td>
                                 </tr> 
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050102_106') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.106-ลูกหนี้ค่ารักษา ชําระเงิน OP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050102_106') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.106-ลูกหนี้ค่ารักษา ชําระเงิน OP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050102_106" data-name="1102050102.106-ลูกหนี้ค่ารักษา ชําระเงิน OP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>   
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050102_108') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.108-ลูกหนี้ค่ารักษา เบิกต้นสังกัด OP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050102_108') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.108-ลูกหนี้ค่ารักษา เบิกต้นสังกัด OP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050102_108" data-name="1102050102.108-ลูกหนี้ค่ารักษา เบิกต้นสังกัด OP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>      
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050102_110') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.110-ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น OP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050102_110') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.110-ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น OP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050102_110" data-name="1102050102.110-ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น OP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>     
                                 <tr>
                                     <td class="text-danger fw-bold py-2"><i class="bi bi-x-circle-fill me-2 small"></i>1102050102.201-ลูกหนี้ค่ารักษา UC-OP นอกสังกัด สธ.</td>
@@ -115,13 +277,40 @@
                                     <td class="text-danger fw-bold py-2"><i class="bi bi-x-circle-fill me-2 small"></i>1102050102.301-ลูกหนี้ค่ารักษา ประกันสังคม OP-นอกเครือข่าย ต่างสังกัด สป.สธ.</td>
                                 </tr>       
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050102_602') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.602-ลูกหนี้ค่ารักษา พรบ.รถ OP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050102_602') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.602-ลูกหนี้ค่ารักษา พรบ.รถ OP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050102_602" data-name="1102050102.602-ลูกหนี้ค่ารักษา พรบ.รถ OP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>     
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050102_801') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.801-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.OP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050102_801') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.801-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.OP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050102_801" data-name="1102050102.801-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.OP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>    
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050102_803') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.803-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ OP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050102_803') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.803-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ OP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050102_803" data-name="1102050102.803-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ OP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>                                                                  
                             </tbody>
                         </table>
@@ -137,58 +326,202 @@
                         <table class="table table-hover table-modern align-middle mb-0">
                             <tbody>   
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_202') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.202-ลูกหนี้ค่ารักษา UC-IP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_202') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.202-ลูกหนี้ค่ารักษา UC-IP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_202" data-name="1102050101.202-ลูกหนี้ค่ารักษา UC-IP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>       
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_217') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.217-ลูกหนี้ค่ารักษา UC-IP บริการเฉพาะ (CR)</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_217') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.217-ลูกหนี้ค่ารักษา UC-IP บริการเฉพาะ (CR)
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_217" data-name="1102050101.217-ลูกหนี้ค่ารักษา UC-IP บริการเฉพาะ (CR)" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>   
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_302') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.302-ลูกหนี้ค่ารักษา ประกันสังคม IP เครือข่าย</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_302') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.302-ลูกหนี้ค่ารักษา ประกันสังคม IP เครือข่าย
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_302" data-name="1102050101.302-ลูกหนี้ค่ารักษา ประกันสังคม IP เครือข่าย" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>  
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_304') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.304-ลูกหนี้ค่ารักษา ประกันสังคม IP นอกเครือข่าย สังกัด สป.สธ.</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_304') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.304-ลูกหนี้ค่ารักษา ประกันสังคม IP นอกเครือข่าย สังกัด สป.สธ.
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_304" data-name="1102050101.304-ลูกหนี้ค่ารักษา ประกันสังคม IP นอกเครือข่าย สังกัด สป.สธ." style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>         
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_308') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.308-ลูกหนี้ค่ารักษา ประกันสังคม 72 ชั่วโมงแรก</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_308') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.308-ลูกหนี้ค่ารักษา ประกันสังคม 72 ชั่วโมงแรก
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_308" data-name="1102050101.308-ลูกหนี้ค่ารักษา ประกันสังคม 72 ชั่วโมงแรก" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>     
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_310') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.310-ลูกหนี้ค่ารักษา ประกันสังคม ค่าใช้จ่ายสูง IP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_310') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.310-ลูกหนี้ค่ารักษา ประกันสังคม ค่าใช้จ่ายสูง IP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_310" data-name="1102050101.310-ลูกหนี้ค่ารักษา ประกันสังคม ค่าใช้จ่ายสูง IP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>     
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_402') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.402-ลูกหนี้ค่ารักษา-เบิกจ่ายตรง กรมบัญชีกลาง IP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_402') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.402-ลูกหนี้ค่ารักษา-เบิกจ่ายตรง กรมบัญชีกลาง IP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_402" data-name="1102050101.402-ลูกหนี้ค่ารักษา-เบิกจ่ายตรง กรมบัญชีกลาง IP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>      
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_502') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.502-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_502') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.502-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_502" data-name="1102050101.502-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>   
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_504') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.504-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP นอก CUP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_504') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.504-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP นอก CUP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_504" data-name="1102050101.504-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP นอก CUP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>                  
                                 <tr>
                                     <td class="text-danger fw-bold py-2"><i class="bi bi-x-circle-fill me-2 small"></i>1102050101.506-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าวเบิกจากส่วนกลาง IP</td>
                                 </tr>    
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050101_704') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.704-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ เบิกจากส่วนกลาง IP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050101_704') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050101.704-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ เบิกจากส่วนกลาง IP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050101_704" data-name="1102050101.704-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ เบิกจากส่วนกลาง IP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>      
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050102_107') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.107-ลูกหนี้ค่ารักษา ชําระเงิน IP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050102_107') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.107-ลูกหนี้ค่ารักษา ชําระเงิน IP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050102_107" data-name="1102050102.107-ลูกหนี้ค่ารักษา ชําระเงิน IP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>        
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050102_109') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.109-ลูกหนี้ค่ารักษา เบิกต้นสังกัด IP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050102_109') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.109-ลูกหนี้ค่ารักษา เบิกต้นสังกัด IP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050102_109" data-name="1102050102.109-ลูกหนี้ค่ารักษา เบิกต้นสังกัด IP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>        
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050102_111') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.111-ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น IP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050102_111') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.111-ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น IP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050102_111" data-name="1102050102.111-ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น IP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>  
                                 <tr>
                                     <td class="text-danger fw-bold py-2"><i class="bi bi-x-circle-fill me-2 small"></i>1102050102.302-ลูกหนี้ค่ารักษา ประกันสังคม IP-นอกเครือข่าย ต่างสังกัด สป.สธ.</td>
                                 </tr>           
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050102_603') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.603-ลูกหนี้ค่ารักษา พรบ.รถ IP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050102_603') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.603-ลูกหนี้ค่ารักษา พรบ.รถ IP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050102_603" data-name="1102050102.603-ลูกหนี้ค่ารักษา พรบ.รถ IP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>  
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050102_802') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.802-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.IP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050102_802') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.802-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.IP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050102_802" data-name="1102050102.802-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.IP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>     
                                 <tr>
-                                    <td><a href="{{ url('debtor/1102050102_804') }}" target="_blank" class="text-decoration-none text-dark d-block py-1"><i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.804-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ IP</a></td>
+                                    <td>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{{ url('debtor/1102050102_804') }}" target="_blank" class="text-decoration-none text-dark d-block py-1 flex-grow-1">
+                                                <i class="bi bi-caret-right-fill text-secondary me-2 small"></i>1102050102.804-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ IP
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary btn-xs py-0 px-2 fw-bold open-dashboard" data-code="1102050102_804" data-name="1102050102.804-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.รูปแบบพิเศษ IP" style="font-size: 0.75rem;">
+                                                <i class="bi bi-bar-chart-line me-1"></i> Dashboard
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>                                           
                             </tbody>
                         </table>
@@ -326,5 +659,154 @@
     });
   </script>
 @endpush
+  {{-- Modal Dashboard --}}
+  <div class="modal fade" id="DashboardModal" tabindex="-1">
+      <div class="modal-dialog modal-xl modal-dialog-centered">
+          <div class="modal-content shadow-lg border-0" style="border-radius: 20px;">
+              <div class="modal-header border-0 pb-0">
+                  <div class="d-flex align-items-center">
+                    <div class="icon-box icon-bg-1 mb-0 me-3" style="width: 45px; height: 45px;">
+                        <i class="bi bi-bar-chart-fill"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark" id="db_title">Dashboard</h5>
+                        <div class="text-muted small" id="db_subtitle">กราฟสรุปยอดเรียกเก็บรายเดือน</div>
+                    </div>
+                  </div>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+              </div>
+              <div class="modal-body p-4">
+                  <div class="row mb-4 align-items-end">
+                      <div class="col-md-7">
+                            <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill">
+                                <i class="bi bi-calendar3 me-1"></i> ข้อมูลรายเดือน
+                            </span>
+                      </div>
+                      <div class="col-md-5">
+                          <div class="text-end">
+                            <label class="form-label small fw-bold text-muted">เลือกปีงบประมาณ</label>
+                            <select class="form-select shadow-sm ms-auto" id="db_year_select" style="width: 200px;"></select>
+                          </div>
+                      </div>
+                  </div>
+                  <div id="loading_spinner" class="text-center py-5 d-none">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <div class="mt-2 text-muted">กำลังโหลดข้อมูล...</div>
+                  </div>
+                  <div style="height: 450px; width: 100%;" id="chart_container">
+                      <canvas id="dashboard_chart"></canvas>
+                  </div>
+              </div>
+              <div class="modal-footer border-0 pt-0">
+                  <button type="button" class="btn btn-light px-4 rounded-pill fw-bold" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+              </div>
+          </div>
+      </div>
+  </div>
 
 @endsection
+
+@push('scripts')
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+  <script>
+    let myChart = null;
+    let currentCode = '';
+
+    $(document).ready(function() {
+        $('.open-dashboard').click(function() {
+            currentCode = $(this).data('code');
+            let name = $(this).data('name');
+            $('#db_title').text('Dashboard');
+            $('#db_subtitle').text(name);
+            $('#DashboardModal').modal('show');
+            
+            loadBudgetYears().then(() => {
+                loadChartData();
+            });
+        });
+
+        $('#db_year_select').change(function() {
+            loadChartData();
+        });
+
+        function loadBudgetYears() {
+            return $.get("{{ url('debtor/get_budget_years') }}", function(data) {
+                let html = '';
+                data.forEach(y => {
+                    html += `<option value="${y.LEAVE_YEAR_ID}">${y.LEAVE_YEAR_NAME}</option>`;
+                });
+                $('#db_year_select').html(html);
+            });
+        }
+
+        function loadChartData() {
+            let year = $('#db_year_select').val();
+            $('#chart_container').addClass('d-none');
+            $('#loading_spinner').removeClass('d-none');
+
+            $.ajax({
+                url: "{{ url('debtor/dashboard_data') }}",
+                data: { budget_year: year, code: currentCode },
+                success: function(res) {
+                    $('#loading_spinner').addClass('d-none');
+                    $('#chart_container').removeClass('d-none');
+                    renderChart(res);
+                }
+            });
+        }
+
+        function renderChart(data) {
+            const ctx = document.getElementById('dashboard_chart');
+            if (myChart) myChart.destroy();
+
+            myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.month,
+                    datasets: [
+                        {
+                            label: 'เรียกเก็บ (Debtor)',
+                            data: data.claim_price,
+                            backgroundColor: 'rgba(249, 115, 22, 0.7)',
+                            borderColor: 'rgb(249, 115, 22)',
+                            borderWidth: 1,
+                            borderRadius: 8
+                        },
+                        {
+                            label: 'ชดเชย (Receive)',
+                            data: data.receive_total,
+                            backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                            borderColor: 'rgb(16, 185, 129)',
+                            borderWidth: 1,
+                            borderRadius: 8
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { usePointStyle: true, boxWidth: 10 } },
+                        datalabels: {
+                            anchor: 'end',
+                            align: 'top',
+                            color: '#444',
+                            font: { weight: 'bold', size: 10 },
+                            formatter: (val) => val > 0 ? val.toLocaleString() : ''
+                        }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { callback: (val) => val.toLocaleString() + ' ฿' } }
+                    }
+                },
+                plugins: [ChartDataLabels]
+            });
+        }
+    });
+
+    // Existing lock script ends here
+  </script>
+@endpush
+
+

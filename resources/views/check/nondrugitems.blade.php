@@ -12,8 +12,21 @@
             </h5>
             <div class="text-muted small mt-1">ตรวจสอบและจัดการข้อมูลค่ารักษาพยาบาล (ไม่ใช่ยา) ในระบบ HOSxP</div>
         </div>
-        <div class="d-flex gap-2">
-            <span class="badge bg-primary-soft text-primary px-3 py-2 rounded-pill">
+        <div class="d-flex gap-3 align-items-center">
+            <div class="filter-box" style="min-width: 250px;">
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0 text-primary">
+                        <i class="bi bi-funnel-fill"></i>
+                    </span>
+                    <select class="form-select border-start-0 ps-0" id="incomeFilter" style="border-radius: 0 6px 6px 0;">
+                        <option value="">-- กรองหมวดหมู่ทั้งหมด --</option>
+                        @foreach($categories as $cat)
+                            <option value="{{ $cat }}">{{ $cat }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <span class="badge bg-primary-soft text-primary px-3 py-2 rounded-pill d-none d-md-inline-block">
                 <i class="bi bi-info-circle me-1"></i> รายการมาตรฐานโรงพยาบาล
             </span>
         </div>
@@ -107,7 +120,7 @@
 @push('scripts')  
   <script>
     $(document).ready(function () {
-      $('#nondrugitems').DataTable({
+      var table1 = $('#nondrugitems').DataTable({
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + // Show รายการ
                 '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
@@ -135,11 +148,8 @@
             }
         }
       });
-    });
-  </script>
-  <script>
-    $(document).ready(function () {
-      $('#nondrugitems_non').DataTable({
+
+      var table2 = $('#nondrugitems_non').DataTable({
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + // Show รายการ
                 '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
@@ -166,6 +176,13 @@
               next: "ถัดไป"
             }
         }
+      });
+
+      $('#incomeFilter').on('change', function () {
+          var val = $(this).val();
+          // Filter first column (หมวดค่ารักษาพยาบาล) with exact match
+          table1.column(0).search(val ? '^' + $.fn.dataTable.util.escapeRegex(val) + '$' : '', true, false).draw();
+          table2.column(0).search(val ? '^' + $.fn.dataTable.util.escapeRegex(val) + '$' : '', true, false).draw();
       });
     });
   </script>

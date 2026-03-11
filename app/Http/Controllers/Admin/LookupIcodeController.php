@@ -202,18 +202,18 @@ class LookupIcodeController extends Controller
         $sql = '
             SELECT icode, name, nhso_adp_code 
             FROM nondrugitems 
-            WHERE (icode LIKE ? OR name LIKE ?) 
+            WHERE (icode LIKE ? OR name LIKE ? OR nhso_adp_code LIKE ?) 
             AND istatus = "Y"
             AND icode NOT IN (SELECT icode FROM hrims.lookup_icode)
             UNION
             SELECT icode, name, nhso_adp_code 
             FROM drugitems 
-            WHERE (icode LIKE ? OR name LIKE ?) 
+            WHERE (icode LIKE ? OR name LIKE ? OR nhso_adp_code LIKE ?) 
             AND istatus = "Y"
             AND icode NOT IN (SELECT icode FROM hrims.lookup_icode)
             LIMIT 50';
 
-        $params = ["%$search%", "%$search%", "%$search%", "%$search%"];
+        $params = ["%$search%", "%$search%", "%$search%", "%$search%", "%$search%", "%$search%"];
         $items = DB::connection('hosxp')->select($sql, $params);
 
         return response()->json($items);

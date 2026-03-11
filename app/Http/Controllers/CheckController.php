@@ -327,7 +327,7 @@ class CheckController extends Controller
     public function nondrugitems()
     {
         $nondrugitems =  DB::connection('hosxp')->select('
-            SELECT i.`name` AS income,n.icode,n.`name`,n.price,n.billcode,
+            SELECT CONCAT(i.income, " ", i.`name`) AS income,n.icode,n.`name`,n.price,n.billcode,
                 nc.nhso_adp_code,nc.nhso_adp_code_name,nt.nhso_adp_type_name
             FROM nondrugitems n
             LEFT JOIN income i ON i.income = n.income
@@ -337,7 +337,7 @@ class CheckController extends Controller
             ORDER BY n.income');
 
         $nondrugitems_non =  DB::connection('hosxp')->select('
-            SELECT i.`name` AS income,n.icode,n.`name`,n.price,n.billcode,
+            SELECT CONCAT(i.income, " ", i.`name`) AS income,n.icode,n.`name`,n.price,n.billcode,
                 nc.nhso_adp_code,nc.nhso_adp_code_name,nt.nhso_adp_type_name
             FROM nondrugitems n
             LEFT JOIN income i ON i.income = n.income
@@ -346,7 +346,15 @@ class CheckController extends Controller
             WHERE n.istatus <> "Y"
             ORDER BY n.income');
 
+        // Fetch unique categories (incomes) for filtering, concatenated with code
+        $categories = DB::connection('hosxp')->table('nondrugitems')
+            ->join('income', 'nondrugitems.income', '=', 'income.income')
+            ->select(DB::raw('CONCAT(income.income, " ", income.name) as combined_name'))
+            ->distinct()
+            ->orderBy('combined_name')
+            ->pluck('combined_name');
 
-        return view('check.nondrugitems', compact('nondrugitems', 'nondrugitems_non'));
+
+        return view('check.nondrugitems', compact('nondrugitems', 'nondrugitems_non', 'categories'));
     }
 }

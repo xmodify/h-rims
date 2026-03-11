@@ -172,7 +172,7 @@
                 </div>
                 <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="form-label fw-bold">ค้นหารหัส/ชื่อรายการ (จาก HOSxP)</label>
+                        <label class="form-label fw-bold">ค้นหารหัส/ชื่อรายการ/ADP (จาก HOSxP)</label>
                         <select class="form-select" id="searchIcode" name="icode" required></select>
                         <div class="form-text small text-muted">พิมพ์เพื่อค้นหาไอโค้ดหรือชื่อรายการจากฐานข้อมูล HOSxP</div>
                     </div>
@@ -372,9 +372,13 @@
                 processResults: function (data) {
                     return {
                         results: $.map(data, function (item) {
+                            let displayText = item.icode + ' | ' + item.name;
+                            if (item.nhso_adp_code) {
+                                displayText += ' | [ADP: ' + item.nhso_adp_code + ']';
+                            }
                             return {
                                 id: item.icode,
-                                text: item.icode + ' | ' + item.name,
+                                text: displayText,
                                 item: item
                             }
                         })

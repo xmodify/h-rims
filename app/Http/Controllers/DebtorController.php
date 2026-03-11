@@ -11596,136 +11596,157 @@ class DebtorController extends Controller
 
         $sql = "";
 
-        // Optimized Query logic with date filters inside sub-queries for speed
+        // Optimization: Use UNION ALL to separate debtor sum and receive sum for better performance 
+        // across 1-year date ranges, specifically for high-volume OPD accounts.
+        $params = [];
         switch ($code) {
             case '1102050101_216':
-                $sql = "SELECT {$month_case} AS month_name, SUM(d.debtor) AS claim_price, 
-                        SUM(IFNULL(s.receive_total,0)+CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END) AS receive_total
-                        FROM {$table_name} d
-                        LEFT JOIN (
-                            SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_total) - SUM(receive_pp) AS receive_total 
-                            FROM stm_ucs 
-                            WHERE vstdate BETWEEN '{$start_date_b}' AND '{$end_date_b}'
-                            GROUP BY cid, vstdate, LEFT(vsttime,5)
-                        ) s ON s.cid = d.cid AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
-                        LEFT JOIN (
-                            SELECT cid,datetimeadm AS vstdate,SUM(receive_total) AS receive_total 
-                            FROM stm_ucs_kidney 
-                            WHERE datetimeadm BETWEEN '{$start_date_b}' AND '{$end_date_b}'
-                            GROUP BY cid, datetimeadm
-                        ) sk ON sk.cid = d.cid AND sk.vstdate = d.vstdate 
-                        WHERE d.{$date_col} BETWEEN ? AND ?
-                        GROUP BY YEAR(d.{$date_col}), MONTH(d.{$date_col})
-                        ORDER BY YEAR(d.{$date_col}), MONTH(d.{$date_col})";
+                $sql = "SELECT month_name, SUM(claim_price) AS claim_price, SUM(receive_total) AS receive_total FROM (
+                            SELECT {$month_case} AS month_name, SUM(debtor) AS claim_price, 0 AS receive_total, YEAR({$date_col}) AS y, MONTH({$date_col}) AS m
+                            FROM {$table_name} WHERE {$date_col} BETWEEN ? AND ? GROUP BY y, m
+                            UNION ALL
+                            SELECT " . str_replace($filter_date_col, 'd.' . $date_col, $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(s.receive_total,0) - IFNULL(s.receive_pp,0)) AS receive_total, YEAR(d.{$date_col}) AS y, MONTH(d.{$date_col}) AS m
+                            FROM stm_ucs s JOIN {$table_name} d ON s.cid = d.cid AND s.vstdate = d.vstdate AND LEFT(s.vsttime,5) = LEFT(d.vsttime,5)
+                            WHERE d.{$date_col} BETWEEN ? AND ? AND s.vstdate BETWEEN ? AND ? GROUP BY y, m
+                            UNION ALL
+                            SELECT " . str_replace($filter_date_col, 'd.' . $date_col, $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(sk.receive_total,0)) AS receive_total, YEAR(d.{$date_col}) AS y, MONTH(d.{$date_col}) AS m
+                            FROM stm_ucs_kidney sk JOIN {$table_name} d ON sk.cid = d.cid AND sk.datetimeadm = d.vstdate
+                            WHERE d.{$date_col} BETWEEN ? AND ? AND sk.datetimeadm BETWEEN ? AND ? GROUP BY y, m
+                        ) AS a GROUP BY y, m ORDER BY y, m";
+                $params = [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b];
                 break;
             case '1102050101_309':
-                $sql = "SELECT {$month_case} AS month_name, SUM(d.debtor) AS claim_price, SUM(IFNULL(d.receive,0)) + SUM(IFNULL(s.receive,0)) AS receive_total
-                        FROM {$table_name} d
-                        LEFT JOIN (
-                            SELECT cid,vstdate,SUM(IFNULL(amount,0)+ IFNULL(epopay,0) + IFNULL(epoadm,0)) AS receive 
-                            FROM stm_sss_kidney 
-                            WHERE vstdate BETWEEN '{$start_date_b}' AND '{$end_date_b}'
-                            GROUP BY cid, vstdate
-                        ) s ON s.cid = d.cid AND s.vstdate = d.vstdate
-                        WHERE d.{$date_col} BETWEEN ? AND ?
-                        GROUP BY YEAR(d.{$date_col}), MONTH(d.{$date_col})
-                        ORDER BY YEAR(d.{$date_col}), MONTH(d.{$date_col})";
+                $sql = "SELECT month_name, SUM(claim_price) AS claim_price, SUM(receive_total) AS receive_total FROM (
+                            SELECT {$month_case} AS month_name, SUM(debtor) AS claim_price, SUM(IFNULL(receive,0)) AS receive_total, YEAR({$date_col}) AS y, MONTH({$date_col}) AS m
+                            FROM {$table_name} WHERE {$date_col} BETWEEN ? AND ? GROUP BY y, m
+                            UNION ALL
+                            SELECT " . str_replace($filter_date_col, 'd.' . $date_col, $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(sk.amount,0)+ IFNULL(sk.epopay,0) + IFNULL(sk.epoadm,0)) AS receive_total, YEAR(d.{$date_col}) AS y, MONTH(d.{$date_col}) AS m
+                            FROM stm_sss_kidney sk JOIN {$table_name} d ON sk.cid = d.cid AND sk.vstdate = d.vstdate
+                            WHERE d.{$date_col} BETWEEN ? AND ? GROUP BY y, m
+                        ) AS a GROUP BY y, m ORDER BY y, m";
+                $params = [$start_date_b, $end_date_b, $start_date_b, $end_date_b];
                 break;
             case '1102050101_401':
             case '1102050102_110':
             case '1102050102_803':
-                $sql = "SELECT {$month_case} AS month_name, SUM(d.debtor) AS claim_price,
-                        SUM(IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END) AS receive_total
-                        FROM {$table_name} d
-                        LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total FROM stm_ofc WHERE vstdate BETWEEN '{$start_date_b}' AND '{$end_date_b}' GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)
-                        LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(amount) AS amount FROM stm_ofc_csop WHERE sys <> 'HD' AND vstdate BETWEEN '{$start_date_b}' AND '{$end_date_b}' GROUP BY hn, vstdate, LEFT(vsttime,5)) csop ON csop.hn = d.hn AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5)
-                        LEFT JOIN (SELECT hn,vstdate,SUM(amount) AS amount FROM stm_ofc_csop WHERE sys = 'HD' AND vstdate BETWEEN '{$start_date_b}' AND '{$end_date_b}' GROUP BY hn, vstdate) hd ON hd.hn = d.hn AND hd.vstdate = d.vstdate
-                        WHERE d.{$date_col} BETWEEN ? AND ?
-                        GROUP BY YEAR(d.{$date_col}), MONTH(d.{$date_col})
-                        ORDER BY YEAR(d.{$date_col}), MONTH(d.{$date_col})";
+                $sql = "SELECT month_name, SUM(claim_price) AS claim_price, SUM(receive_total) AS receive_total FROM (
+                            SELECT {$month_case} AS month_name, SUM(debtor) AS claim_price, SUM(IFNULL(receive,0)) AS receive_total, YEAR({$date_col}) AS y, MONTH({$date_col}) AS m
+                            FROM {$table_name} WHERE {$date_col} BETWEEN ? AND ? GROUP BY y, m
+                            UNION ALL
+                            SELECT " . str_replace($filter_date_col, 'd.' . $date_col, $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(s.receive_total,0)) AS receive_total, YEAR(d.{$date_col}) AS y, MONTH(d.{$date_col}) AS m
+                            FROM stm_ofc s JOIN {$table_name} d ON s.hn = d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime,5) = LEFT(d.vsttime,5)
+                            WHERE d.{$date_col} BETWEEN ? AND ? GROUP BY y, m
+                            UNION ALL
+                            SELECT " . str_replace($filter_date_col, 'd.' . $date_col, $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(c.amount,0)) AS receive_total, YEAR(d.{$date_col}) AS y, MONTH(d.{$date_col}) AS m
+                            FROM stm_ofc_csop c JOIN {$table_name} d ON c.hn = d.hn AND c.vstdate = d.vstdate AND LEFT(c.vsttime,5) = LEFT(d.vsttime,5)
+                            WHERE c.sys <> 'HD' AND d.{$date_col} BETWEEN ? AND ? GROUP BY y, m
+                            UNION ALL
+                            SELECT " . str_replace($filter_date_col, 'd.' . $date_col, $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(h.amount,0)) AS receive_total, YEAR(d.{$date_col}) AS y, MONTH(d.{$date_col}) AS m
+                            FROM stm_ofc_csop h JOIN {$table_name} d ON h.hn = d.hn AND h.vstdate = d.vstdate
+                            WHERE d.kidney > 0 AND h.sys = 'HD' AND d.{$date_col} BETWEEN ? AND ? GROUP BY y, m
+                        ) AS a GROUP BY y, m ORDER BY y, m";
+                $params = [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b];
                 break;
             case '1102050102_106':
-                $sql = "SELECT {$month_case} AS month_name, SUM(d.debtor) AS claim_price, SUM(IFNULL(d.receive,0) + IFNULL(r.bill_amount,0)) AS receive_total
-                        FROM {$table_name} d
-                        LEFT JOIN (
-                            SELECT r.vn, r.bill_date,SUM(r.bill_amount) AS bill_amount 
-                            FROM hosxp.rcpt_print r 
-                            WHERE r.bill_date BETWEEN '{$start_date_b}' AND '{$end_date_b}'
-                            AND NOT EXISTS (SELECT 1 FROM hosxp.rcpt_abort a WHERE a.rcpno = r.rcpno) 
-                            GROUP BY r.vn, r.bill_date
-                        ) r ON r.vn = d.vn AND r.bill_date > d.vstdate
-                        WHERE d.vstdate BETWEEN ? AND ?
-                        GROUP BY YEAR(d.vstdate), MONTH(d.vstdate)
-                        ORDER BY YEAR(d.vstdate), MONTH(d.vstdate)";
+                $sql = "SELECT month_name, SUM(claim_price) AS claim_price, SUM(receive_total) AS receive_total FROM (
+                            SELECT {$month_case} AS month_name, SUM(debtor) AS claim_price, SUM(IFNULL(receive,0)) AS receive_total, YEAR(vstdate) AS y, MONTH(vstdate) AS m
+                            FROM hrims.{$table_name} WHERE vstdate BETWEEN ? AND ? GROUP BY y, m
+                            UNION ALL
+                            SELECT " . str_replace($filter_date_col, 'd.vstdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(r.bill_amount,0)) AS receive_total, YEAR(d.vstdate) AS y, MONTH(d.vstdate) AS m
+                            FROM rcpt_print r JOIN hrims.{$table_name} d ON r.vn = d.vn
+                            WHERE d.vstdate BETWEEN ? AND ? AND r.bill_date BETWEEN ? AND NOW() AND r.bill_date > d.vstdate AND NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                            GROUP BY y, m
+                        ) AS a GROUP BY y, m ORDER BY y, m";
+                $params = [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b];
                 break;
             case '1102050102_801':
-                $sql = "SELECT {$month_case} AS month_name, SUM(d.debtor) AS claim_price, SUM(IFNULL(s.compensate_treatment,0)+ CASE WHEN d.kidney > 0 THEN IFNULL(k.compensate_kidney,0) ELSE 0 END) AS receive_total
-                        FROM {$table_name} d
-                        LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment FROM stm_lgo WHERE vstdate BETWEEN '{$start_date_b}' AND '{$end_date_b}' GROUP BY hn, vstdate, LEFT(vsttime,5)) s ON s.hn = d.hn AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5) 
-                        LEFT JOIN (SELECT hn, datetimeadm AS vstdate,SUM(compensate_kidney) AS compensate_kidney FROM stm_lgo_kidney WHERE datetimeadm BETWEEN '{$start_date_b}' AND '{$end_date_b}' GROUP BY hn, datetimeadm) k ON k.hn = d.hn  AND k.vstdate = d.vstdate  
-                        WHERE d.vstdate BETWEEN ? AND ?
-                        GROUP BY YEAR(d.vstdate), MONTH(d.vstdate)
-                        ORDER BY YEAR(d.vstdate), MONTH(d.vstdate)";
+                $sql = "SELECT month_name, SUM(claim_price) AS claim_price, SUM(receive_total) AS receive_total FROM (
+                            SELECT {$month_case} AS month_name, SUM(debtor) AS claim_price, 0 AS receive_total, YEAR(vstdate) AS y, MONTH(vstdate) AS m
+                            FROM {$table_name} WHERE vstdate BETWEEN ? AND ? GROUP BY y, m
+                            UNION ALL
+                            SELECT " . str_replace($filter_date_col, 'd.vstdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(s.compensate_treatment,0)) AS receive_total, YEAR(d.vstdate) AS y, MONTH(d.vstdate) AS m
+                            FROM stm_lgo s JOIN {$table_name} d ON s.hn = d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime,5) = LEFT(d.vsttime,5)
+                            WHERE d.vstdate BETWEEN ? AND ? GROUP BY y, m
+                            UNION ALL
+                            SELECT " . str_replace($filter_date_col, 'd.vstdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(k.compensate_kidney,0)) AS receive_total, YEAR(d.vstdate) AS y, MONTH(d.vstdate) AS m
+                            FROM stm_lgo_kidney k JOIN {$table_name} d ON k.hn = d.hn AND k.datetimeadm = d.vstdate
+                            WHERE d.kidney > 0 AND d.vstdate BETWEEN ? AND ? GROUP BY y, m
+                        ) AS a GROUP BY y, m ORDER BY y, m";
+                $params = [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b];
                 break;
             case '1102050101_202':
-                $sql = "SELECT {$month_case} AS month_name, SUM(a.debtor) AS claim_price, SUM(IFNULL(a.receive_ip_compensate_pay,0)) AS receive_total
-                        FROM (SELECT d.{$date_col}, d.debtor, stm.receive_ip_compensate_pay 
-                            FROM {$table_name} d
-                            LEFT JOIN (SELECT an, SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay FROM stm_ucs WHERE dchdate BETWEEN '{$start_date_b}' AND '{$end_date_b}' GROUP BY an) stm ON stm.an = d.an
-                            WHERE d.{$date_col} BETWEEN ? AND ?
-                            GROUP BY d.an) AS a
-                        GROUP BY YEAR(a.{$date_col}), MONTH(a.{$date_col})
-                        ORDER BY YEAR(a.{$date_col}), MONTH(a.{$date_col})";
+                $sql = "SELECT month_name, SUM(claim_price) AS claim_price, SUM(receive_total) AS receive_total FROM (
+                            SELECT {$month_case} AS month_name, SUM(debtor) AS claim_price, 0 AS receive_total, YEAR(dchdate) AS y, MONTH(dchdate) AS m
+                            FROM {$table_name} WHERE dchdate BETWEEN ? AND ? GROUP BY y, m
+                            UNION ALL
+                            SELECT " . str_replace($filter_date_col, 'd.dchdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(stm.receive_ip_compensate_pay,0)) AS receive_total, YEAR(d.dchdate) AS y, MONTH(d.dchdate) AS m
+                            FROM stm_ucs stm JOIN {$table_name} d ON stm.an = d.an
+                            WHERE d.dchdate BETWEEN ? AND ? GROUP BY y, m
+                        ) AS a GROUP BY y, m ORDER BY y, m";
+                $params = [$start_date_b, $end_date_b, $start_date_b, $end_date_b];
                 break;
             case '1102050101_217':
-                $sql = "SELECT {$month_case} AS month_name, SUM(a.debtor) AS claim_price, SUM(a.receive) AS receive_total
-                        FROM (SELECT d.{$date_col}, d.debtor, (IFNULL(s.receive_total,0)-IFNULL(s.receive_ip_compensate_pay,0)) + IFNULL(k.receive_total,0) AS receive
-                            FROM {$table_name} d
-                            LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total, SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay FROM stm_ucs WHERE dchdate BETWEEN '{$start_date_b}' AND '{$end_date_b}' GROUP BY an) s ON s.an = d.an
-                            LEFT JOIN (SELECT cid, datetimeadm, SUM(receive_total) AS receive_total FROM stm_ucs_kidney WHERE datetimeadm BETWEEN '{$start_date_b}' AND '{$end_date_b}' GROUP BY cid, datetimeadm) k ON k.cid = d.cid AND k.datetimeadm BETWEEN d.regdate AND d.dchdate
-                            WHERE d.{$date_col} BETWEEN ? AND ?
-                            GROUP BY d.an, d.debtor) AS a
-                        GROUP BY YEAR(a.{$date_col}), MONTH(a.{$date_col})
-                        ORDER BY YEAR(a.{$date_col}), MONTH(a.{$date_col})";
+                $sql = "SELECT month_name, SUM(claim_price) AS claim_price, SUM(receive_total) AS receive_total FROM (
+                            SELECT {$month_case} AS month_name, SUM(debtor) AS claim_price, 0 AS receive_total, YEAR(dchdate) AS y, MONTH(dchdate) AS m
+                            FROM {$table_name} WHERE dchdate BETWEEN ? AND ? GROUP BY y, m
+                            UNION ALL
+                            SELECT " . str_replace($filter_date_col, 'd.dchdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(s.receive_total,0)-IFNULL(s.receive_ip_compensate_pay,0)) AS receive_total, YEAR(d.dchdate) AS y, MONTH(d.dchdate) AS m
+                            FROM stm_ucs s JOIN {$table_name} d ON s.an = d.an
+                            WHERE d.dchdate BETWEEN ? AND ? GROUP BY y, m
+                            UNION ALL
+                            SELECT " . str_replace($filter_date_col, 'd.dchdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(k.receive_total,0)) AS receive_total, YEAR(d.dchdate) AS y, MONTH(d.dchdate) AS m
+                            FROM stm_ucs_kidney k JOIN {$table_name} d ON k.cid = d.cid AND k.datetimeadm BETWEEN d.regdate AND d.dchdate
+                            WHERE d.dchdate BETWEEN ? AND ? GROUP BY y, m
+                        ) AS a GROUP BY y, m ORDER BY y, m";
+                $params = [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b];
                 break;
             case '1102050101_402':
             case '1102050102_111':
             case '1102050102_804':
-                $sql = "SELECT {$month_case} AS month_name, SUM(a.debtor) AS claim_price, SUM(a.receive_total) AS receive_total
-                        FROM (SELECT d.{$date_col}, MAX(d.debtor) AS debtor, IFNULL(stm.receive_total,0)+IFNULL(cipn.gtotal,0) + CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(kd.amount,0) ELSE 0 END AS receive_total
-                            FROM {$table_name} d
-                            LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total FROM stm_ofc WHERE dchdate BETWEEN '{$start_date_b}' AND '{$end_date_b}' GROUP BY an) stm ON stm.an = d.an
-                            LEFT JOIN (SELECT an, SUM(gtotal) AS gtotal FROM stm_ofc_cipn WHERE dchdate BETWEEN '{$start_date_b}' AND '{$end_date_b}' GROUP BY an) cipn ON cipn.an = d.an
-                            LEFT JOIN (SELECT hn, vstdate, SUM(amount) AS amount FROM stm_ofc_csop WHERE vstdate BETWEEN '{$start_date_b}' AND '{$end_date_b}' GROUP BY hn, vstdate) kd ON kd.hn = d.hn AND kd.vstdate BETWEEN d.regdate AND d.dchdate
-                            WHERE d.{$date_col} BETWEEN ? AND ?
-                            GROUP BY d.an) a
-                        GROUP BY YEAR(a.{$date_col}), MONTH(a.{$date_col})
-                        ORDER BY YEAR(a.{$date_col}), MONTH(a.{$date_col})";
+                $sql = "SELECT month_name, SUM(claim_price) AS claim_price, SUM(receive_total) AS receive_total FROM (
+                            SELECT {$month_case} AS month_name, SUM(debtor) AS claim_price, 0 AS receive_total, YEAR(dchdate) AS y, MONTH(dchdate) AS m
+                            FROM {$table_name} WHERE dchdate BETWEEN ? AND ? GROUP BY y, m
+                            UNION ALL
+                            SELECT " . str_replace($filter_date_col, 'd.dchdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(stm.receive_total,0)) AS receive_total, YEAR(d.dchdate) AS y, MONTH(d.dchdate) AS m
+                            FROM stm_ofc stm JOIN {$table_name} d ON stm.an = d.an
+                            WHERE d.dchdate BETWEEN ? AND ? GROUP BY y, m
+                            UNION ALL
+                            SELECT " . str_replace($filter_date_col, 'd.dchdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(cipn.gtotal,0)) AS receive_total, YEAR(d.dchdate) AS y, MONTH(d.dchdate) AS m
+                            FROM stm_ofc_cipn cipn JOIN {$table_name} d ON cipn.an = d.an
+                            WHERE d.dchdate BETWEEN ? AND ? GROUP BY y, m
+                            UNION ALL
+                            SELECT " . str_replace($filter_date_col, 'd.dchdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(kd.amount,0)) AS receive_total, YEAR(d.dchdate) AS y, MONTH(d.dchdate) AS m
+                            FROM stm_ofc_csop kd JOIN {$table_name} d ON kd.hn = d.hn AND kd.vstdate BETWEEN d.regdate AND d.dchdate
+                            WHERE d.kidney > 0 AND d.dchdate BETWEEN ? AND ? GROUP BY y, m
+                        ) AS a GROUP BY y, m ORDER BY y, m";
+                $params = [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b];
                 break;
             case '1102050102_107':
-                $sql = "SELECT {$month_case} AS month_name, SUM(d.debtor) AS claim_price, SUM(IFNULL(d.receive,0) + IFNULL(r.bill_amount,0)) AS receive_total
-                        FROM {$table_name} d
-                        LEFT JOIN (
-                            SELECT r.vn,r.bill_date,SUM(r.bill_amount) AS bill_amount 
-                            FROM hosxp.rcpt_print r 
-                            WHERE r.bill_date BETWEEN '{$start_date_b}' AND '{$end_date_b}'
-                            AND NOT EXISTS (SELECT 1 FROM hosxp.rcpt_abort a WHERE a.rcpno = r.rcpno) 
-                            GROUP BY r.vn, r.bill_date
-                        ) r ON r.vn = d.an AND r.bill_date > d.dchdate
-                        WHERE d.dchdate BETWEEN ? AND ?
-                        GROUP BY YEAR(d.dchdate), MONTH(d.dchdate)
-                        ORDER BY YEAR(d.dchdate), MONTH(d.dchdate)";
+                $sql = "SELECT month_name, SUM(claim_price) AS claim_price, SUM(receive_total) AS receive_total FROM (
+                            SELECT {$month_case} AS month_name, SUM(debtor) AS claim_price, SUM(IFNULL(receive,0)) AS receive_total, YEAR(dchdate) AS y, MONTH(dchdate) AS m
+                            FROM hrims.{$table_name} WHERE dchdate BETWEEN ? AND ? GROUP BY y, m
+                            UNION ALL
+                            SELECT " . str_replace($filter_date_col, 'd.dchdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(r.bill_amount,0)) AS receive_total, YEAR(d.dchdate) AS y, MONTH(d.dchdate) AS m
+                            FROM rcpt_print r JOIN hrims.{$table_name} d ON r.vn = d.an
+                            WHERE d.dchdate BETWEEN ? AND ? AND r.bill_date BETWEEN ? AND NOW() AND r.bill_date > d.dchdate AND NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                            GROUP BY y, m
+                        ) AS a GROUP BY y, m ORDER BY y, m";
+                $params = [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b];
                 break;
             case '1102050102_802':
-                $sql = "SELECT {$month_case} AS month_name, SUM(a.debtor) AS claim_price, SUM(a.receive_total) AS receive_total
-                        FROM (SELECT d.{$date_col}, MAX(d.debtor) AS debtor, IFNULL(stm.compensate_treatment,0) + CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(stm_k.amount,0) ELSE 0 END AS receive_total
-                            FROM {$table_name} d
-                            LEFT JOIN (SELECT an,SUM(compensate_treatment) AS compensate_treatment FROM stm_lgo WHERE dchdate BETWEEN '{$start_date_b}' AND '{$end_date_b}' GROUP BY an) stm ON stm.an = d.an
-                            LEFT JOIN (SELECT cid, datetimeadm, SUM(compensate_kidney) AS amount FROM stm_lgo_kidney WHERE datetimeadm BETWEEN '{$start_date_b}' AND '{$end_date_b}' GROUP BY cid, datetimeadm) stm_k ON stm_k.cid = d.cid AND stm_k.datetimeadm BETWEEN d.regdate AND d.dchdate
-                            WHERE d.{$date_col} BETWEEN ? AND ?
-                            GROUP BY d.an) a
-                        GROUP BY YEAR(a.{$date_col}), MONTH(a.{$date_col})
-                        ORDER BY YEAR(a.{$date_col}), MONTH(a.{$date_col})";
+                $sql = "SELECT month_name, SUM(claim_price) AS claim_price, SUM(receive_total) AS receive_total FROM (
+                            SELECT {$month_case} AS month_name, SUM(debtor) AS claim_price, 0 AS receive_total, YEAR(dchdate) AS y, MONTH(dchdate) AS m
+                            FROM {$table_name} WHERE dchdate BETWEEN ? AND ? GROUP BY y, m
+                            UNION ALL
+                            SELECT " . str_replace($filter_date_col, 'd.dchdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(stm.compensate_treatment,0)) AS receive_total, YEAR(d.dchdate) AS y, MONTH(d.dchdate) AS m
+                            FROM stm_lgo stm JOIN {$table_name} d ON stm.an = d.an
+                            WHERE d.dchdate BETWEEN ? AND ? AND stm.dchdate BETWEEN ? AND ? GROUP BY y, m
+                            UNION ALL
+                            SELECT " . str_replace($filter_date_col, 'd.dchdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(stm_k.compensate_kidney,0)) AS receive_total, YEAR(d.dchdate) AS y, MONTH(d.dchdate) AS m
+                            FROM stm_lgo_kidney stm_k JOIN {$table_name} d ON stm_k.hn = d.hn AND stm_k.datetimeadm BETWEEN d.regdate AND d.dchdate
+                            WHERE d.kidney > 0 AND d.dchdate BETWEEN ? AND ? AND stm_k.datetimeadm BETWEEN ? AND ? GROUP BY y, m
+                        ) AS a GROUP BY y, m ORDER BY y, m";
+                $params = [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b];
                 break;
             default:
                 // Standard query for other codes (Simple Sum)
@@ -11734,10 +11755,12 @@ class DebtorController extends Controller
                         WHERE {$filter_date_col} BETWEEN ? AND ?
                         GROUP BY YEAR({$filter_date_col}), MONTH({$filter_date_col})
                         ORDER BY YEAR({$filter_date_col}), MONTH({$filter_date_col})";
+                $params = [$start_date_b, $end_date_b];
                 break;
         }
 
-        $sum_month = DB::select($sql, [$start_date_b, $end_date_b]);
+        $connection = in_array($code, ['1102050102_106', '1102050102_107']) ? 'hosxp' : config('database.default');
+        $sum_month = DB::connection($connection)->select($sql, $params);
 
         return response()->json([
             'month' => collect($sum_month)->pluck('month_name'),

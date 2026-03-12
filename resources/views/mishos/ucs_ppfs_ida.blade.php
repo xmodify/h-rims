@@ -107,7 +107,6 @@
                                     <th class="text-start" width="15%">สิทธิการรักษา</th>
                                     <th class="text-start">PDX</th>
                                     <th class="text-center">ICD10 Claim</th>
-                                    <th class="text-start">Lab</th>
                                     <th class="text-end">ค่ารักษาทั้งหมด</th> 
                                     <th class="text-end">ชำระเอง</th>
                                     <th class="text-end text-primary">เรียกเก็บ</th>
@@ -142,7 +141,6 @@
                                     </td> 
                                     <td class="text-start small">{{ $row->pdx }}</td>
                                     <td class="text-center small fw-bold">{{ $row->icd10 }}</td>
-                                    <td class="text-start small text-muted">{{ $row->lab }}</td>
                                     <td class="text-end small">{{ number_format($row->income,2) }}</td>              
                                     <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
                                     <td class="text-end small fw-bold text-primary">{{ number_format($row->claim_price,2) }}</td>
@@ -170,7 +168,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="10" class="text-end small text-muted px-3">รวมทั้งหมด:</th>
+                                    <th colspan="9" class="text-end small text-muted px-3">รวมทั้งหมด:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2)}}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2)}}</th>
                                     <th class="text-end small fw-bold text-primary">{{ number_format($sum_claim_price,2)}}</th>

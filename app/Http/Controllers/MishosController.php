@@ -1229,10 +1229,10 @@ class MishosController extends Controller
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
 				INNER JOIN opitemrece o1 ON o1.vn=o.vn
-				INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("13001")
+				INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("13001","30104")
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
 				WHERE op.vstdate BETWEEN ? AND ? 
-				AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
+				AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001","30104")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
                 LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
                     FROM hrims.stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) stm ON stm.cid = pt.cid
                     AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
@@ -1247,7 +1247,7 @@ class MishosController extends Controller
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,v.age_y,
-            p.`name` AS pttype,vp.hospmain,v.pdx,GROUP_CONCAT(DISTINCT ov.icd10) AS icd10,v.income,v.rcpt_money,lab.lab,
+            p.`name` AS pttype,vp.hospmain,v.pdx,GROUP_CONCAT(DISTINCT ov.icd10) AS icd10,v.income,v.rcpt_money,
 			COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -1255,24 +1255,20 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (SELECT v1.vn,op.icode,nd.name AS lab FROM vn_stat v1
-                INNER JOIN opitemrece op ON op.vn=v1.vn AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code ="30101")
-                LEFT JOIN nondrugitems nd ON nd.icode=op.icode
-                WHERE v1.sex = 2 AND v1.age_y BETWEEN 13 AND 24 ) lab ON lab.vn=o.vn			
-			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("Z138")
-			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001"))
+			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("Z130")
+			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001","30104"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
 			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
 			WHERE op.vstdate BETWEEN ? AND ?
-			AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
+			AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001","30104")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
             LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
                 FROM hrims.stm_ucs 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY cid, vstdate, LEFT(vsttime,5)) stm ON stm.cid = pt.cid
                 AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL)  
-			AND (o1.vn IS NOT NULL OR ov.icd10 IS NOT NULL OR lab.vn IS NOT NULL)
+			AND (o1.vn IS NOT NULL OR ov.icd10 IS NOT NULL)
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
@@ -1862,5 +1858,4 @@ class MishosController extends Controller
 
         return view('mishos.ucs_ppfs_scr', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
-
 }

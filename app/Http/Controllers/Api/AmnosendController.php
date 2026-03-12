@@ -13,11 +13,11 @@ class AmnosendController extends Controller
     public function send(Request $request)
     {
         set_time_limit(0);
-        
-    // 1) โหลดค่าพื้นฐานจาก main_setting-------------------------------------------------------------------------
+
+        // 1) โหลดค่าพื้นฐานจาก main_setting-------------------------------------------------------------------------
         $token    = DB::table('main_setting')->where('name', 'opoh_token')->value('value');
         $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
-        $bed_qty = DB::table('main_setting')->where('name','bed_qty')->value('value'); 
+        $bed_qty = DB::table('main_setting')->where('name', 'bed_qty')->value('value');
 
         if (!$token || !$hospcode) {
             return response()->json([
@@ -26,7 +26,7 @@ class AmnosendController extends Controller
             ], 422);
         }
 
-    // 2) ช่วงวันที่ (default = 10 วันย้อนหลัง)---------------------------------------------------------------------
+        // 2) ช่วงวันที่ (default = 10 วันย้อนหลัง)---------------------------------------------------------------------
         $start = $request->query('start_date');
         $end   = $request->query('end_date');
 
@@ -36,7 +36,7 @@ class AmnosendController extends Controller
             $end   = $today->toDateString();
         }
 
-    // 3) Query จากฐาน HOSxP (connection 'hosxp')
+        // 3) Query จากฐาน HOSxP (connection 'hosxp')
         // 3.1 ข้อมูล OPD--------------------------------------------------------------------------------------------
         $sqlOpd = '
             SELECT 
@@ -172,26 +172,35 @@ class AmnosendController extends Controller
             LEFT JOIN (
                 SELECT o.vn,
                     MAX(CASE WHEN li.ppfs = "Y" THEN "Y" ELSE "" END) as ppfs,
-                    MAX(CASE WHEN li.ppfs = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL) THEN "Y" ELSE "" END) as ppfs_claim,
+                    MAX(CASE WHEN li.ppfs = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL) THEN "Y" ELSE "" END) as ppfs_claim,
                     SUM(CASE WHEN li.ppfs = "Y" THEN o.sum_price ELSE 0 END) as inc_ppfs,
-                    SUM(CASE WHEN li.ppfs = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL) THEN o.sum_price ELSE 0 END) as inc_ppfs_claim,
-                    MAX(CASE WHEN li.ppfs = "Y" THEN COALESCE(stm.receive_pp, 0) ELSE 0 END) as inc_ppfs_receive,
+                    SUM(CASE WHEN li.ppfs = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL) THEN o.sum_price ELSE 0 END) as inc_ppfs_claim,
+                    MAX(CASE WHEN li.ppfs = "Y" THEN COALESCE(stm.receive_total, 0) ELSE 0 END) as inc_ppfs_receive,
                     MAX(CASE WHEN li.uc_cr = "Y" THEN "Y" ELSE "" END) as uccr,
-                    MAX(CASE WHEN li.uc_cr = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL) THEN "Y" ELSE "" END) as uccr_claim,
+                    MAX(CASE WHEN li.uc_cr = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL) THEN "Y" ELSE "" END) as uccr_claim,
                     SUM(CASE WHEN li.uc_cr = "Y" THEN o.sum_price ELSE 0 END) as inc_uccr,
-                    SUM(CASE WHEN li.uc_cr = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL) THEN o.sum_price ELSE 0 END) as inc_uccr_claim,
-                    MAX(CASE WHEN li.uc_cr = "Y" THEN (COALESCE(stm.receive_inst,0)+COALESCE(stm.receive_op,0)) ELSE 0 END) as inc_uccr_receive,
+                    SUM(CASE WHEN li.uc_cr = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL) THEN o.sum_price ELSE 0 END) as inc_uccr_claim,
+                    MAX(CASE WHEN li.uc_cr = "Y" THEN COALESCE(stm.receive_total, 0) ELSE 0 END) as inc_uccr_receive,
                     MAX(CASE WHEN li.herb32 = "Y" THEN "Y" ELSE "" END) as herb,
-                    MAX(CASE WHEN li.herb32 = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL) THEN "Y" ELSE "" END) as herb_claim,
+                    MAX(CASE WHEN li.herb32 = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL) THEN "Y" ELSE "" END) as herb_claim,
                     SUM(CASE WHEN li.herb32 = "Y" THEN o.sum_price ELSE 0 END) as inc_herb,
-                    SUM(CASE WHEN li.herb32 = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL) THEN o.sum_price ELSE 0 END) as inc_herb_claim,
-                    MAX(CASE WHEN li.herb32 = "Y" THEN COALESCE(stm.receive_hc_hc, 0) ELSE 0 END) as inc_herb_receive
+                    SUM(CASE WHEN li.herb32 = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL) THEN o.sum_price ELSE 0 END) as inc_herb_claim,
+                    MAX(CASE WHEN li.herb32 = "Y" THEN COALESCE(stm.receive_total, 0) ELSE 0 END) as inc_herb_receive
                 FROM opitemrece o
                 INNER JOIN hrims.lookup_icode li ON o.icode = li.icode
                 LEFT JOIN patient pt ON pt.hn = o.hn
                 LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
                 LEFT JOIN rep_eclaim_detail rep ON rep.vn = o.vn
-                LEFT JOIN hrims.stm_ucs stm ON stm.cid = pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime,5) = LEFT(o.vsttime,5)
+                LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
+                LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn 
+                    AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
+                LEFT JOIN ( 
+                    SELECT cid, vstdate, LEFT(TIME(datetimeadm), 5) AS vsttime5, SUM(receive_total) AS receive_total,
+                        GROUP_CONCAT(DISTINCT repno) AS repno 
+                    FROM hrims.stm_ucs
+                    WHERE vstdate BETWEEN ? AND ?
+                    GROUP BY cid, vstdate, LEFT(TIME(datetimeadm), 5)
+                ) stm ON stm.cid = pt.cid AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime, 5)
                 WHERE o.vstdate BETWEEN ? AND ?
                 GROUP BY o.vn
             ) inc ON a.vn = inc.vn
@@ -215,13 +224,24 @@ class AmnosendController extends Controller
             GROUP BY a.vstdate
             ORDER BY a.vstdate';
 
-        $rowsOpd = DB::connection('hosxp')->select($sqlOpd, 
-            [$hospcode, 
-            $start, $end, 
-            $start, $end, 
-            $start, $end, 
-            $start, $end,
-            $start, $end ]);
+        $rowsOpd = DB::connection('hosxp')->select(
+            $sqlOpd,
+            [
+                $hospcode,
+                $start,
+                $end,
+                $start, // stm subquery start
+                $end,   // stm subquery end
+                $start,
+                $end,
+                $start,
+                $end,
+                $start,
+                $end,
+                $start,
+                $end
+            ]
+        );
 
         $opdRecords = array_map(function ($r) {
             return [
@@ -257,7 +277,7 @@ class AmnosendController extends Controller
                 'visit_moph_oapp_booking'       => (int)$r->visit_moph_oapp_booking,
                 'visit_moph_oapp'               => (int)$r->visit_moph_oapp,
                 'visit_operation'               => (int)$r->visit_operation,
-                'visit_referout_inprov'         => (int)$r->visit_referout_inprov,                
+                'visit_referout_inprov'         => (int)$r->visit_referout_inprov,
                 'visit_referout_outprov'        => (int)$r->visit_referout_outprov,
                 'visit_referout_inprov_ipd'     => (int)$r->visit_referout_inprov_ipd,
                 'visit_referout_outprov_ipd'    => (int)$r->visit_referout_outprov_ipd,
@@ -314,7 +334,7 @@ class AmnosendController extends Controller
                 'inc_herb_receive'              => (float)$r->inc_herb_receive,
             ];
         }, $rowsOpd);
-        
+
         // 3.2 ข้อมูล IPD-----------------------------------------------------------------------------------------------------------
         $sqlIpd = '
             SELECT ? AS hospcode,dchdate,COUNT(DISTINCT an) AS an_total ,sum(admdate) AS admdate,        
@@ -346,13 +366,13 @@ class AmnosendController extends Controller
                 'active_bed'        => (float)$r->active_bed,
                 'cmi'               => (float)$r->cmi,
                 'adjrw'             => (float)$r->adjrw,
-                'inc_total'         => (float)$r->inc_total,   
-                'inc_lab_total'     => (float)$r->inc_lab_total,   
-                'inc_drug_total'    => (float)$r->inc_drug_total,   
+                'inc_total'         => (float)$r->inc_total,
+                'inc_lab_total'     => (float)$r->inc_lab_total,
+                'inc_drug_total'    => (float)$r->inc_drug_total,
             ];
         }, $rowsIpd);
 
-    // 3.3 ข้อมูล UPdate Hospital ปัจจุบัน-------------------------------------------------------------------------------------------------------
+        // 3.3 ข้อมูล UPdate Hospital ปัจจุบัน-------------------------------------------------------------------------------------------------------
         $sqlhospital = '
             SELECT ? AS hospcode,IFNULL((SELECT SUM(bed_qty) FROM hrims.lookup_ward 
             WHERE (ward_normal = "Y" OR ward_m ="Y" OR ward_f ="Y" OR ward_vip="Y")),0) AS bed_qty,
@@ -374,7 +394,7 @@ class AmnosendController extends Controller
             ];
         }, $rowshospital);
 
-    // 3.4 ข้อมูล IPD_bed-----------------------------------------------------------------------------------------------------------
+        // 3.4 ข้อมูล IPD_bed-----------------------------------------------------------------------------------------------------------
         $sqlIpd_bed = '
             SELECT ? AS hospcode,
             IFNULL(b.export_code,0) AS bed_code,
@@ -398,11 +418,11 @@ class AmnosendController extends Controller
             return [
                 'bed_code' => (string)$r->bed_code,
                 'bed_qty'  => (int)$r->bed_qty,
-                'bed_use'  => (int)$r->bed_use,              
+                'bed_use'  => (int)$r->bed_use,
             ];
         }, $rowsIpd_bed);
 
-    // 4) ส่งข้อมูลไปยัง API ปลายทาง-----------------------------------------------------------------------------------------------
+        // 4) ส่งข้อมูลไปยัง API ปลายทาง-----------------------------------------------------------------------------------------------
 
         $chunkSize = (int)($request->query('chunk', 200));
 
@@ -427,29 +447,29 @@ class AmnosendController extends Controller
         $summaryHospital = $this->sendChunks($hospitalRecords, $urlhospital, $token, $hospcode, 'HOSPITAL', $chunkSize);
 
         // กัน error ถ้าไม่ส่ง IPD
-            // $summaryIpd = $summaryIpd ?? [
-            //     'batches' => 0,
-            //     'sent'    => 0,
-            //     'failed'  => 0,
-            //     'details' => [],
-            // ];
+        // $summaryIpd = $summaryIpd ?? [
+        //     'batches' => 0,
+        //     'sent'    => 0,
+        //     'failed'  => 0,
+        //     'details' => [],
+        // ];
 
-    // 5) สรุปผลรวม
+        // 5) สรุปผลรวม
         // =====================================================
         return response()->json([
-            'ok'         => $summaryOpd['failed'] === 0 
-                        && $summaryIpd['failed'] === 0 
-                        && $summaryIpd_bed['failed'] === 0 
-                        && $summaryHospital['failed'] === 0,
+            'ok'         => $summaryOpd['failed'] === 0
+                && $summaryIpd['failed'] === 0
+                && $summaryIpd_bed['failed'] === 0
+                && $summaryHospital['failed'] === 0,
             'hospcode'   => $hospcode,
-            'start_date' => $request->start_date, 
-            'end_date'   => $request->end_date,
+            'start_date' => $start,
+            'end_date'   => $end,
             'received'   => [
                 'opd' => count($opdRecords),
                 'ipd' => count($ipdRecords),
                 'ipd_bed' => count($ipdbedRecords),
                 'hospital' => count($hospitalRecords),
-            ],            
+            ],
         ], 200);
     }
 
@@ -468,7 +488,7 @@ class AmnosendController extends Controller
 
         foreach ($chunks as $i => $chunk) {
             // $dates = array_column($chunk, $prefix === 'OPD' ? 'vstdate' : 'admdate');
-            $dates = match($prefix) {
+            $dates = match ($prefix) {
                 'OPD' => array_column($chunk, 'vstdate'),
                 'IPD' => array_column($chunk, 'dchdate'),
                 default => []  // HOSPITAL
@@ -508,6 +528,5 @@ class AmnosendController extends Controller
         }
 
         return $summary;
-    }    
-
+    }
 }

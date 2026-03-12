@@ -75,7 +75,12 @@
                             <th class="text-center">จำนวน</th>                      
                             <th class="text-center">ชดเชยค่ารักษา</th>
                             <th class="text-center">เลขงวด</th>
-                            <th class="text-center">จัดการ</th> 
+                                <th class="text-center">เลขที่ใบเสร็จ</th>
+                                <th class="text-center">วันที่ออกใบเสร็จ</th>
+                                <th class="text-center">ผู้ออกใบเสร็จ</th>
+                            @if(Auth::user()->allow_receipt == 'Y')
+                                <th class="text-center">ออกใบเสร็จ</th>
+                            @endif 
                         </tr>
                     </thead>
                     <tbody>
@@ -85,24 +90,28 @@
                             <td class="text-end fw-bold">{{ number_format($row->count_no) }}</td> 
                             <td class="text-end text-success fw-bold">{{ number_format($row->gtotal,2) }}</td>
                             <td class="text-center text-primary fw-bold">{{ $row->round_no }}</td>
-                            <td class="text-center">
-                                @if(!empty($row->round_no))
-                                    <div class="d-flex align-items-center justify-content-center gap-1">
-                                        <small class="text-muted me-1">{{ $row->receive_no }}</small>
-                                        <button type="button"
-                                            class="btn btn-sm {{ $row->receive_no ? 'btn-outline-warning btn-edit-receipt' : 'btn-outline-danger btn-new-receipt' }} rounded-pill px-3"
-                                            data-round="{{ $row->round_no }}"
-                                            data-receive="{{ $row->receive_no }}"
-                                            data-date="{{ $row->receipt_date }}"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#receiptModal"
-                                            title="{{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}">
-                                            <i class="bi {{ $row->receive_no ? 'bi-pencil-square' : 'bi-plus-circle' }} me-1"></i>
-                                            {{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}
-                                        </button>
-                                    </div>
-                                @endif
-                            </td>     
+                                <td class="text-center text-primary fw-bold">{{ $row->receive_no }}</td>
+                                <td class="text-center small">{{ $row->receipt_date }}</td>
+                                <td class="text-center small text-muted">{{ $row->receipt_by }}</td>
+                            @if(Auth::user()->allow_receipt == 'Y')
+                                <td class="text-center">
+                                    @if(!empty($row->round_no))
+                                        <div class="d-flex align-items-center justify-content-center gap-1">
+                                            <button type="button"
+                                                class="btn btn-sm {{ $row->receive_no ? 'btn-outline-warning btn-edit-receipt' : 'btn-outline-danger btn-new-receipt' }} rounded-pill px-3"
+                                                data-round="{{ $row->round_no }}"
+                                                data-receive="{{ $row->receive_no }}"
+                                                data-date="{{ $row->receipt_date }}"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#receiptModal"
+                                                title="{{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}">
+                                                <i class="bi {{ $row->receive_no ? 'bi-pencil-square' : 'bi-plus-circle' }} me-1"></i>
+                                                {{ $row->receive_no ? 'แก้ไข' : 'ออกใบเสร็จ' }}
+                                            </button>
+                                        </div>
+                                    @endif
+                                </td>
+                            @endif     
                         </tr>
                         @endforeach
                     </tbody>

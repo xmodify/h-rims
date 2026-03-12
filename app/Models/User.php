@@ -32,6 +32,7 @@ class User extends Authenticatable
         'allow_mishos',
         'allow_debtor',
         'allow_debtor_lock',
+        'allow_receipt',
     ];
 
     /**

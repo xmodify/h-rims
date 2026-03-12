@@ -46,9 +46,9 @@
                             <th class="text-center">วันเข้ารักษา</th>   
                             <th class="text-center">ชดเชยค่ารักษา</th>                                                           
                             <th class="text-center">หมายเหตุ</th>
-                            <th class="text-center">เลขที่ใบเสร็จ</th>
-                            <th class="text-center">วันที่ออกใบเสร็จ</th>
-                            <th class="text-center">ผู้ออกใบเสร็จ</th>
+                                <th class="text-center">เลขที่ใบเสร็จ</th>
+                                <th class="text-center">วันที่ออกใบเสร็จ</th>
+                                <th class="text-center">ผู้ออกใบเสร็จ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -143,10 +143,10 @@
                 }
             },
             { data: 'compensate_kidney', name: 'compensate_kidney', className: 'text-end text-success fw-bold' },
-            { data: 'note', name: 'note' },
-            { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary' },
-            { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' },
-            { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
+            { data: 'note', name: 'note' }
+            , { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary' }
+            , { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' }
+            , { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
         ],
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 

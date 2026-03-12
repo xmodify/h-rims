@@ -44,9 +44,9 @@
                             <th>CID</th>
                             <th>วันที่รับบริการ</th>
                             <th>RID</th>
-                            <th>เลขที่ใบเสร็จ</th>
-                            <th>วันที่ออกใบเสร็จ</th>
-                            <th>ผู้ออกใบเสร็จ</th>
+                                <th>เลขที่ใบเสร็จ</th>
+                                <th>วันที่ออกใบเสร็จ</th>
+                                <th>ผู้ออกใบเสร็จ</th>
                             <th>ค่าฟอกเลือด</th> 
                             <th>EPO Pay</th>
                             <th>EPO Adm</th>
@@ -137,11 +137,11 @@
                 name: 'rid', 
                 className: 'text-center small',
                 render: function(data) { return 'RID: ' + data; }
-            },
-            { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold small' },
-            { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' },
-            { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' },
-            { data: 'amount', name: 'amount', className: 'text-end fw-bold text-success' },
+            }
+            , { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold small' }
+            , { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' }
+            , { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
+            , { data: 'amount', name: 'amount', className: 'text-end fw-bold text-success' },
             { data: 'epopay', name: 'epopay', className: 'text-end text-primary fw-bold' },
             { data: 'epoadm', name: 'epoadm', className: 'text-end text-muted small' }
         ],

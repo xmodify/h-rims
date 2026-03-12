@@ -47,9 +47,9 @@
                             <th>vstdate</th>                    
                             <th>ค่ารักษาที่เบิก</th> 
                             <th>RepNo</th>
-                            <th>เลขที่ใบเสร็จ</th>
-                            <th>วันที่ออกใบเสร็จ</th>
-                            <th>ผู้ออกใบเสร็จ</th>
+                                <th>เลขที่ใบเสร็จ</th>
+                                <th>วันที่ออกใบเสร็จ</th>
+                                <th>ผู้ออกใบเสร็จ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -122,10 +122,10 @@
             { data: 'invno', name: 'invno', className: 'text-center small' },
             { data: 'vstdate', name: 'vstdate', className: 'text-center small text-muted' },
             { data: 'amount', name: 'amount', className: 'text-end fw-bold text-success' },
-            { data: 'rid', name: 'rid', className: 'text-center small' },
-            { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold small' },
-            { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' },
-            { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
+            { data: 'rid', name: 'rid', className: 'text-center small' }
+            , { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold small' }
+            , { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' }
+            , { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
         ],
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 

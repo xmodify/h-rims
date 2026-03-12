@@ -154,7 +154,7 @@ class MainSettingController extends Controller
             $newColumns = [
                 'allow_home', 'allow_import', 'allow_check', 'allow_emr', 
                 'allow_claim_op', 'allow_claim_ip', 'allow_mishos', 
-                'allow_debtor', 'allow_debtor_lock'
+                'allow_debtor', 'allow_debtor_lock', 'allow_receipt'
             ];
 
             Schema::table('users', function (Blueprint $table) use ($newColumns) {

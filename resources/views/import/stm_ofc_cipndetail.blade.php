@@ -48,9 +48,9 @@
                             <th>ค่ารักษา²</th>
                             <th>พึงรับ</th>
                             <th>RepNo.</th>
-                            <th>เลขที่ใบเสร็จ</th>
-                            <th>วันที่ออกใบเสร็จ</th>
-                            <th>ผู้ออกใบเสร็จ</th>
+                                <th>เลขที่ใบเสร็จ</th>
+                                <th>วันที่ออกใบเสร็จ</th>
+                                <th>ผู้ออกใบเสร็จ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -137,15 +137,11 @@
             { data: 'amlim', name: 'amlim', className: 'text-end text-muted' },
             { data: 'pamreim', name: 'pamreim', className: 'text-end text-muted' },
             { data: 'gtotal', name: 'gtotal', className: 'text-end fw-bold text-success' },
-            { 
-                data: 'rid', 
-                name: 'rid', 
-                className: 'text-center small',
                 render: function(data) { return 'REP: ' + (data ? data : ''); }
-            },
-            { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold small' },
-            { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' },
-            { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
+            }
+            , { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold small' }
+            , { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' }
+            , { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
         ],
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 

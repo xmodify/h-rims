@@ -43,6 +43,7 @@ class UserController extends Controller
             'allow_mishos' => $request->has('allow_mishos') ? 'Y' : 'N',
             'allow_debtor' => $request->has('allow_debtor') ? 'Y' : 'N',
             'allow_debtor_lock' => $request->has('allow_debtor_lock') ? 'Y' : 'N',
+            'allow_receipt' => $request->has('allow_receipt') ? 'Y' : 'N',
         ]);
 
         return redirect()->route('admin.users.index')->with('success', 'เพิ่มข้อมูลสำเร็จ');
@@ -75,6 +76,7 @@ class UserController extends Controller
             'allow_mishos' => $request->has('allow_mishos') ? 'Y' : 'N',
             'allow_debtor' => $request->has('allow_debtor') ? 'Y' : 'N',
             'allow_debtor_lock' => $request->has('allow_debtor_lock') ? 'Y' : 'N',
+            'allow_receipt' => $request->has('allow_receipt') ? 'Y' : 'N',
         ];
 
         // ถ้ามีการกรอก password ใหม่ ให้ hash แล้วอัปเดต

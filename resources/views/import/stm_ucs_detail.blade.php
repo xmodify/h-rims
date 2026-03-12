@@ -52,9 +52,9 @@
                             <th class="text-center">AE</th> 
                             <th class="text-center">PP</th>
                             <th class="text-center">FS</th>
-                            <th class="text-center">เลขที่ใบเสร็จ</th>
-                            <th class="text-center">วันที่ออกใบเสร็จ</th>
-                            <th class="text-center">ผู้ออกใบเสร็จ</th>
+                                <th class="text-center">เลขที่ใบเสร็จ</th>
+                                <th class="text-center">วันที่ออกใบเสร็จ</th>
+                                <th class="text-center">ผู้ออกใบเสร็จ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -91,9 +91,9 @@
                             <th class="text-center">AE</th> 
                             <th class="text-center">PP</th>
                             <th class="text-center">FS</th>
-                            <th class="text-center">เลขที่ใบเสร็จ</th>
-                            <th class="text-center">วันที่ออกใบเสร็จ</th>
-                            <th class="text-center">ผู้ออกใบเสร็จ</th>
+                                <th class="text-center">เลขที่ใบเสร็จ</th>
+                                <th class="text-center">วันที่ออกใบเสร็จ</th>
+                                <th class="text-center">ผู้ออกใบเสร็จ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -175,10 +175,10 @@
             { data: 'receive_hc_hc', name: 'receive_hc_hc', className: 'text-end' },
             { data: 'receive_ae_ae', name: 'receive_ae_ae', className: 'text-end text-muted' },
             { data: 'receive_pp', name: 'receive_pp', className: 'text-end' },
-            { data: 'receive_fs', name: 'receive_fs', className: 'text-end text-muted' },
-            { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold' },
-            { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' },
-            { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
+            { data: 'receive_fs', name: 'receive_fs', className: 'text-end text-muted' }
+            , { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold' }
+            , { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' }
+            , { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
         ],
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 
@@ -237,10 +237,10 @@
             { data: 'receive_hc_hc', name: 'receive_hc_hc', className: 'text-end' },
             { data: 'receive_ae_ae', name: 'receive_ae_ae', className: 'text-end text-muted' },
             { data: 'receive_pp', name: 'receive_pp', className: 'text-end' },
-            { data: 'receive_fs', name: 'receive_fs', className: 'text-end text-muted' },
-            { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold' },
-            { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' },
-            { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
+            { data: 'receive_fs', name: 'receive_fs', className: 'text-end text-muted' }
+            , { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold' }
+            , { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' }
+            , { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
         ],
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 

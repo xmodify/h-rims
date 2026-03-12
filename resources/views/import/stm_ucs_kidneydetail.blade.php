@@ -48,9 +48,9 @@
                             <th>จำนวนที่ขอเบิก</th> 
                             <th>จ่ายชดเชยสุทธิ</th>                                                         
                             <th>หมายเหตุ</th>
-                            <th>เลขที่ใบเสร็จ</th>
-                            <th>วันที่ออกใบเสร็จ</th>
-                            <th>ผู้ออกใบเสร็จ</th>
+                                <th>เลขที่ใบเสร็จ</th>
+                                <th>วันที่ออกใบเสร็จ</th>
+                                <th>ผู้ออกใบเสร็จ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -130,10 +130,10 @@
             { data: 'hd_type', name: 'hd_type', className: 'text-center small' },
             { data: 'charge_total', name: 'charge_total', className: 'text-end text-muted' },
             { data: 'receive_total', name: 'receive_total', className: 'text-end fw-bold text-success' },
-            { data: 'note', name: 'note', className: 'small' },
-            { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold' },
-            { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' },
-            { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
+            { data: 'note', name: 'note', className: 'small' }
+            , { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold' }
+            , { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' }
+            , { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
         ],
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 

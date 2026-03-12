@@ -49,6 +49,9 @@
                             <th class="text-center">IPLG</th>
                             <th class="text-center">OPLG</th>
                             <th class="text-center">DRUG</th>
+                                <th class="text-center">เลขที่ใบเสร็จ</th>
+                                <th class="text-center">วันที่ออกใบเสร็จ</th>
+                                <th class="text-center">ผู้ออกใบเสร็จ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -83,6 +86,9 @@
                             <th class="text-center">IPLG</th>
                             <th class="text-center">OPLG</th>
                             <th class="text-center">DRUG</th>
+                                <th class="text-center">เลขที่ใบเสร็จ</th>
+                                <th class="text-center">วันที่ออกใบเสร็จ</th>
+                                <th class="text-center">ผู้ออกใบเสร็จ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -167,7 +173,10 @@
             { data: 'compensate_treatment', name: 'compensate_treatment', className: 'text-end text-success fw-bold' },
             { data: 'case_iplg', name: 'case_iplg', className: 'text-end' },
             { data: 'case_oplg', name: 'case_oplg', className: 'text-end' },
-            { data: 'case_drug', name: 'case_drug', className: 'text-end' } 
+            { data: 'case_drug', name: 'case_drug', className: 'text-end' }
+            , { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary' }
+            , { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' }
+            , { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
         ],
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 
@@ -228,7 +237,10 @@
             { data: 'compensate_treatment', name: 'compensate_treatment', className: 'text-end text-success fw-bold' },
             { data: 'case_iplg', name: 'case_iplg', className: 'text-end' },
             { data: 'case_oplg', name: 'case_oplg', className: 'text-end' },
-            { data: 'case_drug', name: 'case_drug', className: 'text-end' } 
+            { data: 'case_drug', name: 'case_drug', className: 'text-end' }
+            , { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary' }
+            , { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' }
+            , { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
         ],
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 

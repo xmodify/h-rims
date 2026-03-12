@@ -54,9 +54,9 @@
                             <th class="text-center">ค่ารักษา</th>
                             <th class="text-center">ค่าห้อง</th>
                             <th class="text-center">อวัยวะ</th>
-                            <th class="text-center">เลขที่ใบเสร็จ</th>
-                            <th class="text-center">วันที่ออกใบเสร็จ</th>
-                            <th class="text-center">ผู้ออกใบเสร็จ</th>
+                                <th class="text-center">เลขที่ใบเสร็จ</th>
+                                <th class="text-center">วันที่ออกใบเสร็จ</th>
+                                <th class="text-center">ผู้ออกใบเสร็จ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -131,10 +131,10 @@
             { data: 'receive_drug', name: 'receive_drug', className: 'text-end' },
             { data: 'receive_treatment', name: 'receive_treatment', className: 'text-end' },
             { data: 'receive_room', name: 'receive_room', className: 'text-end' },
-            { data: 'receive_instument', name: 'receive_instument', className: 'text-end text-muted' },
-            { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold' },
-            { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' },
-            { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
+            { data: 'receive_instument', name: 'receive_instument', className: 'text-end text-muted' }
+            , { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold' }
+            , { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' }
+            , { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
         ],
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 

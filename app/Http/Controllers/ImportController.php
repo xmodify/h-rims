@@ -3123,7 +3123,10 @@ class ImportController extends Controller
                     'compensate_treatment',
                     'case_iplg',
                     'case_oplg',
-                    'case_drug'
+                    'case_drug',
+                    'receive_no',
+                    'receipt_date',
+                    'receipt_by'
                 );
 
             if ($type == 'opd') {
@@ -3159,7 +3162,7 @@ class ImportController extends Controller
                 $spreadsheet = new Spreadsheet();
                 $sheet = $spreadsheet->getActiveSheet();
 
-                $headers = ['Filename', 'REP', 'HN', 'AN', 'ชื่อ-สกุล', 'วันเข้ารักษา', 'จำหน่าย', 'AdjRW', 'เรียกเก็บ', 'ชดเชยสุทธิ', 'IPLG', 'OPLG', 'DRUG'];
+                $headers = ['Filename', 'REP', 'HN', 'AN', 'ชื่อ-สกุล', 'วันเข้ารักษา', 'จำหน่าย', 'AdjRW', 'เรียกเก็บ', 'ชดเชยสุทธิ', 'IPLG', 'OPLG', 'DRUG', 'เลขที่ใบเสร็จ', 'วันที่ออกใบเสร็จ', 'ผู้ออกใบเสร็จ'];
                 $sheet->fromArray($headers, null, 'A1');
 
                 $row = 2;
@@ -3177,6 +3180,9 @@ class ImportController extends Controller
                     $sheet->setCellValue('K' . $row, $item->case_iplg);
                     $sheet->setCellValue('L' . $row, $item->case_oplg);
                     $sheet->setCellValue('M' . $row, $item->case_drug);
+                    $sheet->setCellValue('N' . $row, $item->receive_no);
+                    $sheet->setCellValue('O' . $row, $item->receipt_date);
+                    $sheet->setCellValue('P' . $row, $item->receipt_by);
                     $row++;
                 }
 
@@ -3217,7 +3223,10 @@ class ImportController extends Controller
                     9 => 'compensate_treatment',
                     10 => 'case_iplg',
                     11 => 'case_oplg',
-                    12 => 'case_drug'
+                    12 => 'case_drug',
+                    13 => 'receive_no',
+                    14 => 'receipt_date',
+                    15 => 'receipt_by'
                 ];
                 foreach ($request->order as $order) {
                     if (isset($columns[$order['column']])) {

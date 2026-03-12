@@ -85,10 +85,12 @@ class DebtorController extends Controller
         Session::put('end_date', $end_date);
 
         $check_income = DB::connection('hosxp')->select("
-            SELECT o.op_income,o.op_paid,v.vn_income,v.vn_paid,v.vn_rcpt,v.vn_income - v.vn_rcpt AS vn_debtor,
+            SELECT o.op_income,o.op_paid,v.vn_income,v.vn_paid,v.vn_rcpt,v.vn_ppfs,
+                v.vn_income - v.vn_rcpt - v.vn_ppfs AS vn_debtor,
                 IF(v.vn_income <> o.op_income, 'Resync VN', 'Success') AS status_check
             FROM(
-                SELECT SUM(v.income) AS vn_income,SUM(v.paid_money) AS vn_paid,SUM(IFNULL(rc.rcpt_money,0)) AS vn_rcpt
+                SELECT SUM(v.income) AS vn_income,SUM(v.paid_money) AS vn_paid,SUM(IFNULL(rc.rcpt_money,0)) AS vn_rcpt,
+                SUM(IFNULL(pp.ppfs_price,0)) AS vn_ppfs
                 FROM ovst o
                 INNER JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN ipt i ON i.vn = o.vn
@@ -96,6 +98,11 @@ class DebtorController extends Controller
                     FROM rcpt_print r
                     WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                     GROUP BY r.vn) rc ON rc.vn = o.vn
+                LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS ppfs_price
+                    FROM opitemrece op
+                    INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = 'Y' 
+                    WHERE op.vstdate BETWEEN ? AND ? AND op.paidst IN ('02')
+                    GROUP BY op.vn) pp ON pp.vn = o.vn 
                 WHERE o.vstdate BETWEEN ? AND ?
                 AND i.vn IS NULL) v
                 
@@ -108,7 +115,7 @@ class DebtorController extends Controller
                 LEFT JOIN ipt i ON i.vn = o.vn
                 WHERE o.vstdate BETWEEN ? AND ?
                 AND (op.an IS NULL OR op.an = '')
-                AND i.vn IS NULL) o", [$start_date, $end_date, $start_date, $end_date]);
+                AND i.vn IS NULL) o", [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $check_income_pttype = DB::connection('hosxp')->select('
             SELECT p.hipdata_code AS inscl,  
@@ -136,24 +143,31 @@ class DebtorController extends Controller
                 SUM(IFNULL(rc.rcpt_money,0)) AS rcpt_money,
                 SUM(IFNULL(pp.ppfs_price,0)) AS ppfs,
                 SUM(IFNULL(v.income,0)) - SUM(IFNULL(rc.rcpt_money,0)) - SUM(IFNULL(pp.ppfs_price,0)) AS debtor
-            FROM ovst o
+            FROM (SELECT DISTINCT o.vn, vp.pttype 
+                  FROM ovst o 
+                  INNER JOIN visit_pttype vp ON vp.vn = o.vn
+                  WHERE o.vstdate BETWEEN ? AND ?) o_split
+            JOIN ovst o ON o.vn = o_split.vn
             LEFT JOIN ipt i ON i.vn = o.vn
-            LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
-            LEFT JOIN pttype p ON p.pttype = vp.pttype
-            LEFT JOIN ( SELECT r.vn,SUM(r.bill_amount) AS rcpt_money 
-                FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
-                GROUP BY r.vn) rc ON rc.vn = o.vn
-            LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS ppfs_price
-                FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = "Y" 
-                WHERE op.vstdate BETWEEN ? AND ? AND op.paidst IN ("02")
-                GROUP BY op.vn) pp ON pp.vn = o.vn 
+            LEFT JOIN pttype p ON p.pttype = o_split.pttype
+            LEFT JOIN (SELECT vn, pttype, SUM(sum_price) AS income,
+                       SUM(CASE WHEN paidst IN ("01","03") THEN sum_price ELSE 0 END) AS paid_money
+                       FROM opitemrece 
+                       WHERE vstdate BETWEEN ? AND ?
+                       GROUP BY vn, pttype) v ON v.vn = o_split.vn AND v.pttype = o_split.pttype
+            LEFT JOIN (SELECT r.vn, r.pttype, SUM(r.bill_amount) AS rcpt_money 
+                       FROM rcpt_print r
+                       WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                       GROUP BY r.vn, r.pttype) rc ON rc.vn = o_split.vn AND rc.pttype = o_split.pttype
+            LEFT JOIN (SELECT op.vn, op.pttype, SUM(op.sum_price) AS ppfs_price
+                       FROM opitemrece op
+                       INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = "Y" 
+                       WHERE op.vstdate BETWEEN ? AND ? AND op.paidst IN ("02")
+                       GROUP BY op.vn, op.pttype) pp ON pp.vn = o_split.vn AND pp.pttype = o_split.pttype
             WHERE o.vstdate BETWEEN ? AND ?
             AND i.vn IS NULL
             GROUP BY p.hipdata_code
-            ORDER BY p.hipdata_code', [$start_date, $end_date, $start_date, $end_date]);
+            ORDER BY p.hipdata_code', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $check_income_ipd = DB::connection('hosxp')->select(
             "
@@ -190,15 +204,24 @@ class DebtorController extends Controller
                     WHEN p.hipdata_code = "SRT" THEN "การรถไฟแห่งประเทศไทย"
                     WHEN p.hipdata_code = "NHS" THEN "สิทธิ สปสช."
                     ELSE "ไม่พบเงื่อนไข" END AS pttype_group,
-                COUNT(DISTINCT a.an) AS an,
-                SUM(IFNULL(a.income,0)) AS income,
-                SUM(IFNULL(a.paid_money,0)) AS paid_money,   
-                SUM(IFNULL(a.rcpt_money,0)) AS rcpt_money,
-                SUM(IFNULL(a.income,0))-SUM(IFNULL(a.rcpt_money,0)) AS debtor
+                COUNT(DISTINCT i.an) AS an,
+                SUM(IFNULL(v_inc.income,0)) AS income,
+                SUM(IFNULL(v_inc.paid_money,0)) AS paid_money,   
+                SUM(IFNULL(rc.rcpt_money,0)) AS rcpt_money,
+                SUM(IFNULL(v_inc.income,0))-SUM(IFNULL(rc.rcpt_money,0)) AS debtor
             FROM ipt i
+            INNER JOIN ipt_pttype ip ON ip.an = i.an
             LEFT JOIN an_stat a ON a.an = i.an
-            LEFT JOIN ipt_pttype ip ON ip.an = i.an       
-            LEFT JOIN pttype p ON p.pttype = ip.pttype            
+            LEFT JOIN pttype p ON p.pttype = ip.pttype
+            LEFT JOIN (SELECT an, pttype, SUM(sum_price) AS income,
+                       SUM(CASE WHEN paidst IN ("01","03") THEN sum_price ELSE 0 END) AS paid_money
+                       FROM opitemrece 
+                       WHERE an IS NOT NULL AND an <> ""
+                       GROUP BY an, pttype) v_inc ON v_inc.an = ip.an AND v_inc.pttype = ip.pttype
+            LEFT JOIN (SELECT r.vn AS an, r.pttype, SUM(r.bill_amount) AS rcpt_money
+                       FROM rcpt_print r                    
+                       WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                       GROUP BY r.vn, r.pttype) rc ON rc.an = ip.an AND rc.pttype = ip.pttype
             WHERE i.confirm_discharge = "Y"
             AND i.dchdate BETWEEN ? AND ?
             GROUP BY p.hipdata_code
@@ -2050,6 +2073,8 @@ class DebtorController extends Controller
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search = $request->search ?: Session::get('search');
+        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value') ?: "''";
+        $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value') ?: "''";
 
         if ($search) {
             $debtor = DB::select('
@@ -2105,6 +2130,8 @@ class DebtorController extends Controller
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)) > 0
             AND p.hipdata_code IN ("UCS","WEL","SSS")            
             AND v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
+            AND p.pttype NOT IN (' . $pttype_sss_fund . ')
+            AND p.pttype NOT IN (' . $pttype_sss_ae . ')
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_209 WHERE vn IS NOT NULL)
             GROUP BY o.vn, vp.pttype 
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
@@ -2125,6 +2152,8 @@ class DebtorController extends Controller
 
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
+        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value') ?: "''";
+        $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value') ?: "''";
         $request->validate([
             'checkbox' => 'required|array',
         ], [
@@ -2166,6 +2195,8 @@ class DebtorController extends Controller
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)) > 0
             AND p.hipdata_code IN ("UCS","WEL","SSS")            
             AND v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
+            AND p.pttype NOT IN (' . $pttype_sss_fund . ')
+            AND p.pttype NOT IN (' . $pttype_sss_ae . ')
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_209 WHERE vn IS NOT NULL)
             AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype 

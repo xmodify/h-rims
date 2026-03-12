@@ -28,6 +28,7 @@
                             <th>อีเมล (Email)</th>
                             <th class="text-center">สถานะใช้งาน</th>
                             <th class="text-center">ประเภทผู้ใช้</th>
+                            <th class="text-center">สิทธิ์การเข้าถึง</th>
                             <th class="text-center pe-4">จัดการ</th>
                         </tr>
                     </thead>
@@ -58,6 +59,23 @@
                                     <span class="badge rounded-pill {{ $user->status === 'admin' ? 'bg-primary-subtle text-primary' : 'bg-secondary-subtle text-secondary' }} px-3">
                                         {{ strtoupper($user->status) }}
                                     </span>
+                                </td>
+                                <td class="text-center">
+                                    @if($user->status === 'admin')
+                                        <span class="badge rounded-pill bg-dark text-white px-2 shadow-sm" style="font-size: 0.7rem;">ADMIN (ALL)</span>
+                                    @else
+                                        <div class="d-flex flex-wrap justify-content-center gap-1" style="max-width: 250px; margin: 0 auto;">
+                                            @if($user->allow_home === 'Y') <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.65rem;">Home Detail</span> @endif
+                                            @if($user->allow_import === 'Y') <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.65rem;">นำเข้าข้อมูล</span> @endif
+                                            @if($user->allow_check === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">ตรวจสอบข้อมูล</span> @endif
+                                            @if($user->allow_emr === 'Y') <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.65rem;">งานเวชระเบียน</span> @endif
+                                            @if($user->allow_claim_op === 'Y') <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.65rem;">เรียกเก็บ OP</span> @endif
+                                            @if($user->allow_claim_ip === 'Y') <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.65rem;">เรียกเก็บ IP</span> @endif
+                                            @if($user->allow_mishos === 'Y') <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style="font-size: 0.65rem;">MIS Hospital</span> @endif
+                                            @if($user->allow_debtor === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">ลูกหนี้ค่ารักษา</span> @endif
+                                            @if($user->allow_debtor_lock === 'Y') <span class="badge bg-danger text-white" style="font-size: 0.65rem;">Lock ลูกหนี้</span> @endif
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="text-center pe-4">
                                     <div class="btn-group shadow-sm rounded-pill overflow-hidden">
@@ -326,6 +344,8 @@
     .bg-danger-subtle { background-color: #fee2e2; }
     .bg-primary-subtle { background-color: #dbeafe; }
     .bg-secondary-subtle { background-color: #f1f5f9; }
+    .bg-info-subtle { background-color: #e0f2fe; }
+    .bg-warning-subtle { background-color: #fef3c7; }
 </style>
 
 @endsection

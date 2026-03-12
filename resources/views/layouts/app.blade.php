@@ -532,6 +532,7 @@
                     <ul class="navbar-nav me-auto">
                         @guest
                         @else
+                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_import == 'Y')
                             <li class="nav-item dropdown">
                                 <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
                                     role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
@@ -652,6 +653,9 @@
                                     @endif
                                 </ul>
                             </li>
+                            @endif
+
+                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_check == 'Y')
                             <li class="nav-item dropdown">
                                 <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
                                     role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
@@ -696,6 +700,9 @@
                                     </li>
                                 </ul>
                             </li>
+                            @endif
+
+                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_emr == 'Y')
                             <li class="nav-item dropdown">
                                 <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
                                     role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
@@ -735,6 +742,9 @@
                                     </li>
                                 </ul>
                             </li>
+                            @endif
+
+                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_claim_op == 'Y')
                             <li class="nav-item dropdown">
                                 <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
                                     role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
@@ -882,6 +892,9 @@
                                     </li>
                                 </ul>
                             </li>
+                            @endif
+
+                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_claim_ip == 'Y')
                             <li class="nav-item dropdown">
                                 <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
                                     role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
@@ -959,6 +972,9 @@
                                     </li>
                                 </ul>
                             </li>
+                            @endif
+
+                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_mishos == 'Y')
                             <li class="nav-item dropdown">
                                 <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
                                     role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
@@ -1074,11 +1090,15 @@
                                     </li>
                                 </ul>
                             </li>
+                            @endif
+
+                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_debtor == 'Y')
                             <li class="nav-item">
                                 <a class="nav-link nav-link-modern" href="{{ url('debtor') }}">
                                     <i class="bi bi-person-lines-fill me-1"></i> ลูกหนี้ค่ารักษา
                                 </a>
                             </li>
+                            @endif
                         @endguest
                     </ul>
 

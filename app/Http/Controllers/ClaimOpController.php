@@ -10,7 +10,16 @@ class ClaimOpController extends Controller
     //Check Login
     public function __construct()
     {
-        $this->middleware('auth');
+        $this->middleware([
+            'auth',
+            function ($request, $next) {
+                $user = auth()->user();
+                if ($user && $user->status !== 'admin' && $user->allow_claim_op !== 'Y') {
+                    return response()->view('errors.restricted', ['module' => 'เรียกเก็บ OP'], 403);
+                }
+                return $next($request);
+            }
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_incup(Request $request)

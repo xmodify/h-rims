@@ -13,6 +13,19 @@ use App\Models\Drugcat_nhso;
 
 class CheckController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware([
+            'auth',
+            function ($request, $next) {
+                $user = auth()->user();
+                if ($user && $user->status !== 'admin' && $user->allow_check !== 'Y') {
+                    return response()->view('errors.restricted', ['module' => 'ตรวจสอบข้อมูล'], 403);
+                }
+                return $next($request);
+            }
+        ]);
+    }
     ###################################################################################################################################################
     //ข้อมูลปิดสิทธิ สปสช---------------------------------------------------------------------------------------------------------------------------
     public function nhso_endpoint(Request $request)

@@ -11,6 +11,19 @@ use PhpOffice\PhpSpreadsheet\Reader\Exception;
 
 class CheckEclaimController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware([
+            'auth',
+            function ($request, $next) {
+                $user = auth()->user();
+                if ($user && $user->status !== 'admin' && $user->allow_check !== 'Y') {
+                    return response()->view('errors.restricted', ['module' => 'ตรวจสอบข้อมูล'], 403);
+                }
+                return $next($request);
+            }
+        ]);
+    }
     // หน้าจอหลัก eclaim_status
     public function eclaim_status(Request $request)
     {

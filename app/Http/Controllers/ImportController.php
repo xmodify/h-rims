@@ -31,7 +31,16 @@ class ImportController extends Controller
     //Check Login
     public function __construct()
     {
-        $this->middleware('auth')->except(['api_stm_check', 'api_stm_upload']);
+        $this->middleware([
+            'auth',
+            function ($request, $next) {
+                $user = auth()->user();
+                if ($user && $user->status !== 'admin' && $user->allow_import !== 'Y') {
+                    return response()->view('errors.restricted', ['module' => 'นำเข้าข้อมูล'], 403);
+                }
+                return $next($request);
+            }
+        ]);
     }
 
     //stm_ucs-----------------------------------------------------------------------------------------------------

@@ -168,7 +168,7 @@
                             </button>                            
                         </td>  
                         <td align="center" style="color:blue">
-                            @if(Auth::user()->status == 'admin')
+                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_debtor_lock == 'Y')
                                 @if($row->debtor_lock == 'Y')
                                     <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmUnlock('{{ $row->vn }}')">
                                         <i class="bi bi-unlock"></i> Unlock

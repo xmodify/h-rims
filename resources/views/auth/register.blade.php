@@ -31,11 +31,11 @@
         <div class="col-md-6">
             <div class="card" style="border: 2px solid #198754;">
                 <div class="card-header">
-                    <div class="row"> 
-                        <div class="col-md-6 text-success" align="left"> 
+                    <div class="d-flex justify-content-between align-items-center"> 
+                        <div class="text-success"> 
                             <a href="{{ route('login') }}">  {{ __('RiMS') }}</a> 
                         </div>
-                        <div class="col-md-6 text-success" align="right">                        
+                        <div class="text-success">                        
                             <a href="{{ route('register') }}"> {{ __('Register') }}</a>                        
                         </div>
                     </div>
@@ -97,7 +97,7 @@
                         </div>
 
                         <div class="row mb-0">
-                            <div class="col-md-6 offset-md-4">
+                            <div class="col-md-6 offset-md-4 text-center text-md-start">
                                 <button type="submit" class="btn btn-primary">
                                     {{ __('Register') }}
                                 </button>

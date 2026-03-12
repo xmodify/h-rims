@@ -365,6 +365,7 @@
     }, 60000);
 </script>
 
+</div>
 @endsection
 
 <!-- Vendor JS Files -->

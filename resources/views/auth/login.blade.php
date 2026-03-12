@@ -31,11 +31,11 @@
         <div class="col-md-6">
             <div class="card" style="border: 2px solid #198754;">
                 <div class="card-header">
-                    <div class="row"> 
-                        <div class="col-md-6 text-success" align="left"> 
+                    <div class="d-flex justify-content-between align-items-center"> 
+                        <div class="text-success"> 
                             <a href="{{ route('login') }}">  {{ __('RiMS') }}</a> 
                         </div>
-                        <div class="col-md-6 text-success" align="right">                        
+                        <div class="text-success">                        
                             <a href="{{ route('register') }}"> {{ __('Register') }}</a>                        
                         </div>
                     </div>
@@ -45,7 +45,7 @@
                     <form method="POST" action="{{ route('login') }}">
                         @csrf
                         <div class="row">
-                            <div class="col-md-2" align="left">
+                            <div class="col-md-2 text-center text-md-start">
                                 <div class="row mb-3">
                                     <div class="col-md-12 text-center">
                                         <img src="{{ asset('images/logo_hrims.png') }}" 
@@ -54,7 +54,7 @@
                                     </div>
                                 </div>
                             </div> 
-                            <div class="col-md-10" align="left">
+                            <div class="col-md-10">
                                 <div class="row mb-3">
                                     <label for="email" class="col-md-4 col-form-label text-md-end">{{ __('Email Address') }}</label>
                                     <div class="col-md-7">
@@ -81,7 +81,7 @@
                                     </div>
                                 </div>
                                 <div class="row mb-0">
-                                    <div class="col-md-12 offset-md-4" >
+                                    <div class="col-md-12 offset-md-4 text-center text-md-start">
                                         <button type="submit" class="btn btn-primary text-white">
                                             {{ __('Login') }}
                                         </button>

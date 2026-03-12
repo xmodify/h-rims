@@ -34,6 +34,15 @@ class UserController extends Controller
             'active' => $request->active,
             'status' => 'user',
             'password' => Hash::make($request->password),
+            'allow_home' => $request->has('allow_home') ? 'Y' : 'N',
+            'allow_import' => $request->has('allow_import') ? 'Y' : 'N',
+            'allow_check' => $request->has('allow_check') ? 'Y' : 'N',
+            'allow_emr' => $request->has('allow_emr') ? 'Y' : 'N',
+            'allow_claim_op' => $request->has('allow_claim_op') ? 'Y' : 'N',
+            'allow_claim_ip' => $request->has('allow_claim_ip') ? 'Y' : 'N',
+            'allow_mishos' => $request->has('allow_mishos') ? 'Y' : 'N',
+            'allow_debtor' => $request->has('allow_debtor') ? 'Y' : 'N',
+            'allow_debtor_lock' => $request->has('allow_debtor_lock') ? 'Y' : 'N',
         ]);
 
         return redirect()->route('admin.users.index')->with('success', 'เพิ่มข้อมูลสำเร็จ');
@@ -57,6 +66,15 @@ class UserController extends Controller
             'email' => $request->email,
             'active' => $request->has('active') ? 'Y' : 'N',
             'status' => $request->status,
+            'allow_home' => $request->has('allow_home') ? 'Y' : 'N',
+            'allow_import' => $request->has('allow_import') ? 'Y' : 'N',
+            'allow_check' => $request->has('allow_check') ? 'Y' : 'N',
+            'allow_emr' => $request->has('allow_emr') ? 'Y' : 'N',
+            'allow_claim_op' => $request->has('allow_claim_op') ? 'Y' : 'N',
+            'allow_claim_ip' => $request->has('allow_claim_ip') ? 'Y' : 'N',
+            'allow_mishos' => $request->has('allow_mishos') ? 'Y' : 'N',
+            'allow_debtor' => $request->has('allow_debtor') ? 'Y' : 'N',
+            'allow_debtor_lock' => $request->has('allow_debtor_lock') ? 'Y' : 'N',
         ];
 
         // ถ้ามีการกรอก password ใหม่ ให้ hash แล้วอัปเดต

@@ -53,7 +53,16 @@ class DebtorController extends Controller
     //Check Login---------------------------------------------------------------------
     public function __construct()
     {
-        $this->middleware('auth');
+        $this->middleware([
+            'auth',
+            function ($request, $next) {
+                $user = auth()->user();
+                if ($user && $user->status !== 'admin' && $user->allow_debtor !== 'Y') {
+                    return response()->view('errors.restricted', ['module' => 'ลูกหนี้ค่ารักษา'], 403);
+                }
+                return $next($request);
+            }
+        ]);
     }
     //index---------------------------------------------------------------------------
     public function index()
@@ -11423,6 +11432,14 @@ class DebtorController extends Controller
     //#####################################################################################################################
     public function lock_debtor(Request $request)
     {
+        $user = auth()->user();
+        if ($user && $user->status !== 'admin' && $user->allow_debtor_lock !== 'Y') {
+            return response()->json([
+                'ok' => false,
+                'message' => 'คุณไม่มีสิทธิ์ใช้งาน Lock ลูกหนี้'
+            ], 403);
+        }
+
         $request->validate([
             'start_date' => 'required|date',
             'end_date' => 'required|date'

@@ -150,6 +150,26 @@ class MainSettingController extends Controller
                 ]);
             }
 
+            // 3. Upgrade users table with permission columns
+            $newColumns = [
+                'allow_home', 'allow_import', 'allow_check', 'allow_emr', 
+                'allow_claim_op', 'allow_claim_ip', 'allow_mishos', 
+                'allow_debtor', 'allow_debtor_lock'
+            ];
+
+            Schema::table('users', function (Blueprint $table) use ($newColumns) {
+                foreach ($newColumns as $column) {
+                    if (!Schema::hasColumn('users', $column)) {
+                        $table->string($column, 1)->default('N')->after('status');
+                    }
+                }
+            });
+
+            // Set Admin to have all permissions by default
+            DB::table('users')->where('status', 'admin')->update(
+                array_fill_keys($newColumns, 'Y')
+            );
+
             return redirect()->route('admin.main_setting')
                 ->with('success', 'อัปเกรดโครงสร้างฐานข้อมูลเสร็จสิ้น')
                 ->with('migrate_output', $migrate_result);

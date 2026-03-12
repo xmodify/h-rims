@@ -21,7 +21,7 @@
                 <i class="bi bi-file-earmark-spreadsheet me-1"></i> สรุปบัญชีลูกหนี้
             </a>
             @auth
-                @if(auth()->user()->status === 'admin')
+                @if(auth()->user()->status === 'admin' || auth()->user()->allow_debtor_lock === 'Y')
                     <button type="button" class="btn btn-danger btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#LockdebtorModal">
                         <i class="bi bi-lock-fill me-1"></i> Lock ลูกหนี้
                     </button>

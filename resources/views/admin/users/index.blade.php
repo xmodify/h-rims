@@ -67,6 +67,15 @@
                                             data-email="{{ $user->email }}"
                                             data-active="{{ $user->active }}"
                                             data-status="{{ $user->status }}"
+                                            data-allow_home="{{ $user->allow_home }}"
+                                            data-allow_import="{{ $user->allow_import }}"
+                                            data-allow_check="{{ $user->allow_check }}"
+                                            data-allow_emr="{{ $user->allow_emr }}"
+                                            data-allow_claim_op="{{ $user->allow_claim_op }}"
+                                            data-allow_claim_ip="{{ $user->allow_claim_ip }}"
+                                            data-allow_mishos="{{ $user->allow_mishos }}"
+                                            data-allow_debtor="{{ $user->allow_debtor }}"
+                                            data-allow_debtor_lock="{{ $user->allow_debtor_lock }}"
                                             data-bs-toggle="modal"
                                             data-bs-target="#editModal"
                                             title="แก้ไข">
@@ -119,6 +128,64 @@
                         <div class="input-group">
                             <span class="input-group-text bg-light border-end-0"><i class="bi bi-key"></i></span>
                             <input name="password" type="password" class="form-control bg-light border-start-0 ps-0" placeholder="ไม่ต่ำกว่า 6 ตัวอักษร" required minlength="6">
+                        </div>
+                    </div>
+                    <hr class="my-4 opacity-10">
+                    <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-shield-check me-2"></i>Permissions (สิทธิ์การเข้าถึง)</h6>
+                    <div class="row row-cols-2 g-3">
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="allow_home" id="add_allow_home" value="Y">
+                                <label class="form-check-label small" for="add_allow_home">Home Detail</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="allow_import" id="add_allow_import" value="Y">
+                                <label class="form-check-label small" for="add_allow_import">นำเข้าข้อมูล</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="allow_check" id="add_allow_check" value="Y">
+                                <label class="form-check-label small" for="add_allow_check">ตรวจสอบข้อมูล</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="allow_emr" id="add_allow_emr" value="Y">
+                                <label class="form-check-label small" for="add_allow_emr">งานเวชระเบียน</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="allow_claim_op" id="add_allow_claim_op" value="Y">
+                                <label class="form-check-label small" for="add_allow_claim_op">เรียกเก็บ OP</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="allow_claim_ip" id="add_allow_claim_ip" value="Y">
+                                <label class="form-check-label small" for="add_allow_claim_ip">เรียกเก็บ IP</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="allow_mishos" id="add_allow_mishos" value="Y">
+                                <label class="form-check-label small" for="add_allow_mishos">MIS Hospital</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="allow_debtor" id="add_allow_debtor" value="Y">
+                                <label class="form-check-label small" for="add_allow_debtor">ลูกหนี้ค่ารักษา</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="allow_debtor_lock" id="add_allow_debtor_lock" value="Y">
+                                <label class="form-check-label small text-danger fw-bold" for="add_allow_debtor_lock">Lock ลูกหนี้</label>
+                            </div>
                         </div>
                     </div>
                     <input type="hidden" name="active" value="Y">
@@ -174,6 +241,64 @@
                         </div>
                     </div>
                     <hr class="my-4 opacity-10">
+                    <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-shield-check me-2"></i>Permissions (สิทธิ์การเข้าถึง)</h6>
+                    <div class="row row-cols-2 g-3">
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input p_switch" type="checkbox" name="allow_home" id="edit_allow_home" value="Y">
+                                <label class="form-check-label small" for="edit_allow_home">Home Detail</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input p_switch" type="checkbox" name="allow_import" id="edit_allow_import" value="Y">
+                                <label class="form-check-label small" for="edit_allow_import">นำเข้าข้อมูล</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input p_switch" type="checkbox" name="allow_check" id="edit_allow_check" value="Y">
+                                <label class="form-check-label small" for="edit_allow_check">ตรวจสอบข้อมูล</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input p_switch" type="checkbox" name="allow_emr" id="edit_allow_emr" value="Y">
+                                <label class="form-check-label small" for="edit_allow_emr">งานเวชระเบียน</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input p_switch" type="checkbox" name="allow_claim_op" id="edit_allow_claim_op" value="Y">
+                                <label class="form-check-label small" for="edit_allow_claim_op">เรียกเก็บ OP</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input p_switch" type="checkbox" name="allow_claim_ip" id="edit_allow_claim_ip" value="Y">
+                                <label class="form-check-label small" for="edit_allow_claim_ip">เรียกเก็บ IP</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input p_switch" type="checkbox" name="allow_mishos" id="edit_allow_mishos" value="Y">
+                                <label class="form-check-label small" for="edit_allow_mishos">MIS Hospital</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input p_switch" type="checkbox" name="allow_debtor" id="edit_allow_debtor" value="Y">
+                                <label class="form-check-label small" for="edit_allow_debtor">ลูกหนี้ค่ารักษา</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input p_switch" type="checkbox" name="allow_debtor_lock" id="edit_allow_debtor_lock" value="Y">
+                                <label class="form-check-label small text-danger fw-bold" for="edit_allow_debtor_lock">Lock ลูกหนี้</label>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="my-4 opacity-10">
                     <div class="mb-2">
                         <label class="form-label fw-bold text-danger">Change Password</label>
                         <div class="input-group">
@@ -225,9 +350,37 @@
             $('#editEmail').val(data.email);
             $('#editStatus').val(data.status);
             $('#editActive').prop('checked', data.active === 'Y');
+            
+            // Set Permissions
+            $('#edit_allow_home').prop('checked', data.allow_home === 'Y');
+            $('#edit_allow_import').prop('checked', data.allow_import === 'Y');
+            $('#edit_allow_check').prop('checked', data.allow_check === 'Y');
+            $('#edit_allow_emr').prop('checked', data.allow_emr === 'Y');
+            $('#edit_allow_claim_op').prop('checked', data.allow_claim_op === 'Y');
+            $('#edit_allow_claim_ip').prop('checked', data.allow_claim_ip === 'Y');
+            $('#edit_allow_mishos').prop('checked', data.allow_mishos === 'Y');
+            $('#edit_allow_debtor').prop('checked', data.allow_debtor === 'Y');
+            $('#edit_allow_debtor_lock').prop('checked', data.allow_debtor_lock === 'Y');
+
             updateActiveLabel(data.active === 'Y');
+            
+            // Disable permissions if admin
+            togglePermissionInputs(data.status === 'admin');
+            
             $('#editForm').attr('action', "{{ url('admin/users') }}/" + data.id);
         });
+
+        $('#editStatus').on('change', function() {
+            togglePermissionInputs($(this).val() === 'admin');
+        });
+
+        function togglePermissionInputs(isAdmin) {
+            if (isAdmin) {
+                $('.p_switch').prop('checked', true).prop('disabled', true);
+            } else {
+                $('.p_switch').prop('disabled', false);
+            }
+        }
 
         $('#editActive').on('change', function() {
             updateActiveLabel($(this).is(':checked'));

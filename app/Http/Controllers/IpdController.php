@@ -5,14 +5,23 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Session;
+use Illuminate\Support\Facades\Session;
 
 class IpdController extends Controller
 {
     //Check Login
     public function __construct()
     {
-        $this->middleware('auth');
+        $this->middleware([
+            'auth',
+            function ($request, $next) {
+                $user = auth()->user();
+                if ($user && $user->status !== 'admin' && $user->allow_emr !== 'Y') {
+                    return response()->view('errors.restricted', ['module' => 'งานเวชระเบียน'], 403);
+                }
+                return $next($request);
+            }
+        ])->except(['wait_doctor_dchsummary']);
     }
     #################################################################################################################################
 //Create wait_doctor_dchsummary

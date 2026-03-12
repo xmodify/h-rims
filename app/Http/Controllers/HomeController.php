@@ -19,11 +19,20 @@ class HomeController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('auth')->except([
-            'ipd_non_dchsummary',
-            'ipd_finance_chk_opd_wait_transfer',
-            'ipd_finance_chk_wait_rcpt_money',
-            'nhso_endpoint_pull_yesterday'
+        $this->middleware('auth');
+
+        // 2. ตรวจสอบสิทธิ์ allow_home เฉพาะหน้าที่ระบุ
+        $this->middleware(function ($request, $next) {
+            $user = auth()->user();
+            if ($user && $user->status !== 'admin' && $user->allow_home !== 'Y') {
+                return response()->view('errors.403_home', [], 403);
+            }
+            return $next($request);
+        })->only([
+            'opd_ofc', 'opd_non_authen', 'opd_non_hospmain', 'opd_ucs_anywhere',
+            'opd_ucs_cr', 'opd_ucs_herb', 'opd_ucs_healthmed', 'opd_ppfs',
+            'ipd_homeward', 'ipd_finance_chk_opd_wait_transfer',
+            'ipd_finance_chk_wait_rcpt_money'
         ]);
     }
 

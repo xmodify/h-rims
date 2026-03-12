@@ -43,6 +43,7 @@ class UserController extends Controller
             'allow_mishos' => $request->has('allow_mishos') ? 'Y' : 'N',
             'allow_debtor' => $request->has('allow_debtor') ? 'Y' : 'N',
             'allow_debtor_lock' => $request->has('allow_debtor_lock') ? 'Y' : 'N',
+            'allow_debtor_acc' => $request->has('allow_debtor_acc') ? 'Y' : 'N',
             'allow_receipt' => $request->has('allow_receipt') ? 'Y' : 'N',
         ]);
 
@@ -76,6 +77,7 @@ class UserController extends Controller
             'allow_mishos' => $request->has('allow_mishos') ? 'Y' : 'N',
             'allow_debtor' => $request->has('allow_debtor') ? 'Y' : 'N',
             'allow_debtor_lock' => $request->has('allow_debtor_lock') ? 'Y' : 'N',
+            'allow_debtor_acc' => $request->has('allow_debtor_acc') ? 'Y' : 'N',
             'allow_receipt' => $request->has('allow_receipt') ? 'Y' : 'N',
         ];
 

@@ -21,6 +21,7 @@ use App\Http\Controllers\ClaimOpController;
 use App\Http\Controllers\ClaimIpController;
 use App\Http\Controllers\MishosController;
 use App\Http\Controllers\DebtorController;
+use App\Http\Controllers\DebtorAccController;
 use App\Http\Controllers\ProfileController;
 
 /*
@@ -55,6 +56,14 @@ Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(
 Route::prefix('admin')->middleware(['auth'])->group(function () {
     Route::post('debtor/lock_debtor', [DebtorController::class, 'lock_debtor'])->name('admin.lock_debtor');
 });
+
+Route::get('debtor/acc_ledger', [DebtorAccController::class, 'index'])->middleware(['auth'])->name('debtor.acc_ledger');
+Route::get('debtor/acc_ledger_data', [DebtorAccController::class, 'get_data'])->middleware(['auth']);
+Route::post('debtor/acc_ledger_save_adj', [DebtorAccController::class, 'save_adjustment'])->middleware(['auth']);
+Route::post('debtor/acc_ledger_process', [DebtorAccController::class, 'process_ledger'])->middleware(['auth']);
+Route::post('debtor/acc_ledger_init', [DebtorAccController::class, 'init_month_rows'])->middleware(['auth']);
+Route::get('debtor/acc_ledger_pdf', [DebtorAccController::class, 'export_pdf'])->middleware(['auth']);
+Route::get('debtor/acc_ledger_excel', [DebtorAccController::class, 'export_excel'])->middleware(['auth']);
 
 #################################################################################################
 

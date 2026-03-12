@@ -11,7 +11,7 @@
         </div>
         
         <div class="d-flex align-items-center gap-2">
-            <a class="btn btn-warning btn-sm shadow-sm" href="{{ url('debtor/check_income') }}" target="_blank">
+            <a class="btn btn-warning btn-sm shadow-sm text-primary" href="{{ url('debtor/check_income') }}" target="_blank">
                 <i class="bi bi-search me-1"></i> ตรวจสอบค่ารักษาพยาบาล
             </a>
             <a class="btn btn-outline-danger btn-sm shadow-sm" href="{{ url('debtor/check_nondebtor') }}" target="_blank">
@@ -21,6 +21,11 @@
                 <i class="bi bi-file-earmark-spreadsheet me-1"></i> สรุปบัญชีลูกหนี้
             </a>
             @auth
+                @if(auth()->user()->status === 'admin' || auth()->user()->allow_debtor_acc === 'Y')
+                    <a class="btn btn-outline-primary btn-sm shadow-sm" href="{{ url('debtor/acc_ledger') }}" target="_blank">
+                        <i class="bi bi-journal-text me-1"></i> ทะเบียนคุมลูกหนี้
+                    </a>
+                @endif
                 @if(auth()->user()->status === 'admin' || auth()->user()->allow_debtor_lock === 'Y')
                     <button type="button" class="btn btn-danger btn-sm shadow-sm" data-bs-toggle="modal" data-bs-target="#LockdebtorModal">
                         <i class="bi bi-lock-fill me-1"></i> Lock ลูกหนี้

@@ -74,6 +74,7 @@
                                             @if($user->allow_mishos === 'Y') <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style="font-size: 0.65rem;">MIS Hospital</span> @endif
                                             @if($user->allow_debtor === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">ลูกหนี้ค่ารักษา</span> @endif
                                             @if($user->allow_debtor_lock === 'Y') <span class="badge bg-danger text-white" style="font-size: 0.65rem;">Lock ลูกหนี้</span> @endif
+                                            @if($user->allow_debtor_acc === 'Y') <span class="badge bg-info text-dark" style="font-size: 0.65rem;">ทะเบียนคุมลูกหนี้</span> @endif
                                             @if($user->allow_receipt === 'Y') <span class="badge bg-warning text-dark border border-warning" style="font-size: 0.65rem;">ออกใบเสร็จ</span> @endif
                                         </div>
                                     @endif
@@ -95,6 +96,7 @@
                                             data-allow_mishos="{{ $user->allow_mishos }}"
                                             data-allow_debtor="{{ $user->allow_debtor }}"
                                             data-allow_debtor_lock="{{ $user->allow_debtor_lock }}"
+                                            data-allow_debtor_acc="{{ $user->allow_debtor_acc }}"
                                             data-allow_receipt="{{ $user->allow_receipt }}"
                                             data-bs-toggle="modal"
                                             data-bs-target="#editModal"
@@ -205,6 +207,12 @@
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" name="allow_debtor_lock" id="add_allow_debtor_lock" value="Y">
                                 <label class="form-check-label small text-danger fw-bold" for="add_allow_debtor_lock">Lock ลูกหนี้</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="allow_debtor_acc" id="add_allow_debtor_acc" value="Y">
+                                <label class="form-check-label small text-info fw-bold" for="add_allow_debtor_acc">ทะเบียนคุมลูกหนี้</label>
                             </div>
                         </div>
                         <div class="col">
@@ -325,6 +333,12 @@
                         </div>
                         <div class="col">
                             <div class="form-check form-switch">
+                                <input class="form-check-input p_switch" type="checkbox" name="allow_debtor_acc" id="edit_allow_debtor_acc" value="Y">
+                                <label class="form-check-label small text-info fw-bold" for="edit_allow_debtor_acc">ทะเบียนคุมลูกหนี้</label>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
                                 <input class="form-check-input p_switch" type="checkbox" name="allow_receipt" id="edit_allow_receipt" value="Y">
                                 <label class="form-check-label small text-warning fw-bold" for="edit_allow_receipt">สิทธิ์การออกใบเสร็จ</label>
                             </div>
@@ -395,6 +409,7 @@
             $('#edit_allow_mishos').prop('checked', data.allow_mishos === 'Y');
             $('#edit_allow_debtor').prop('checked', data.allow_debtor === 'Y');
             $('#edit_allow_debtor_lock').prop('checked', data.allow_debtor_lock === 'Y');
+            $('#edit_allow_debtor_acc').prop('checked', data.allow_debtor_acc === 'Y');
             $('#edit_allow_receipt').prop('checked', data.allow_receipt === 'Y');
 
             updateActiveLabel(data.active === 'Y');

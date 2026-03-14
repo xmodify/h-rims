@@ -36,7 +36,11 @@ class Debtor_1102050101_103 extends Model
         'receive',
         'repno',
         'status', 
-        'debtor_lock',             
+        'debtor_lock',
+        'adj_inc',
+        'adj_dec',
+        'adj_date',
+        'adj_note',
     ];
     public $timestamps = false;   
 }

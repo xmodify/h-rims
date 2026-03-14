@@ -1963,6 +1963,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -2104,8 +2108,10 @@ class DebtorController extends Controller
 
         if ($search) {
             $debtor = DB::select('
-                SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.cid, d.ptname, d.hipdata_code, d.pttype, d.hospmain,d.pdx, d.income,  
-                    d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,s.receive_pp, d.receive, s.repno, d.status, d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
+                SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.cid, d.ptname, d.hipdata_code, d.pttype, d.hospmain, d.pdx, d.income,  
+                    d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor, s.receive_pp, d.receive, s.repno, s.repno AS repno_pp, d.status, d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno,
+                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(s.receive_pp,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
+                    ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_209 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
@@ -2114,8 +2120,10 @@ class DebtorController extends Controller
                 AND d.vstdate BETWEEN ? AND ?', [$search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.cid, d.ptname, d.hipdata_code, d.pttype, d.hospmain, d.pdx,d.income,
-                     d.rcpt_money, d.ppfs, d.pp, d.other,d.debtor,s.receive_pp, d.receive, s.repno, d.status, d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
+                SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.cid, d.ptname, d.hipdata_code, d.pttype, d.hospmain, d.pdx, d.income,
+                     d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor, s.receive_pp, d.receive, s.repno, s.repno AS repno_pp, d.status, d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno,
+                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(s.receive_pp,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
+                    ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_209 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
@@ -11910,6 +11918,9 @@ class DebtorController extends Controller
             $row->adj_dec = $request->adj_dec;
             $row->adj_date = $request->adj_date;
             $row->adj_note = $request->adj_note;
+            $row->charge = $request->charge;
+            $row->charge_date = $request->charge_date;
+            $row->charge_no = $request->charge_no;
             $row->save();
             return back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
         }
@@ -12257,11 +12268,13 @@ class DebtorController extends Controller
     public function _1102050101_203_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
         $adjusted_count = 0;
+        
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_203::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                // Detect receive field
+            $row = \App\Models\Debtor_1102050101_203::where('vn', $id)->first();
+            if ($row && $row->debtor_lock == 'Y') {
                 $receive = 0;
                 if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
                 elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
@@ -12276,20 +12289,29 @@ class DebtorController extends Controller
                     $row->adj_inc = 0;
                     $row->adj_dec = abs($diff);
                 }
-                $row->adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-                $row->adj_note = $request->bulk_adj_note ?: 'Bulk Adjustment to Balance 0';
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
                 $row->save();
                 $adjusted_count++;
             }
         }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+        
+        if ($adjusted_count > 0) {
+             return back()->with('success', "ปรับปรุงยอดรายการที่ Lock แล้วจำนวน $adjusted_count รายการเรียบร้อย");
+        } else {
+             return back()->with('error', 'ไม่พบรายการที่ Lock หรือกรุณาเลือกรายการก่อน');
+        }
     }
 
     public function _1102050101_209_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_209::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050101_209::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
                 // Detect receive field
                 $receive = 0;
@@ -12306,12 +12328,18 @@ class DebtorController extends Controller
                     $row->adj_inc = 0;
                     $row->adj_dec = abs($diff);
                 }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
                 $row->save();
+                $adjusted_count++;
             }
         }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
+
+        if ($adjusted_count == 0) {
+            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
 
     public function _1102050101_216_bulk_adj(Request $request)

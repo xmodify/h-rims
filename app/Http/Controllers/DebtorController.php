@@ -1757,7 +1757,7 @@ class DebtorController extends Controller
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.charge,d.charge_date,d.charge_no,d.receive,d.receive_date,
-					d.receive_no,d.repno,s.receive_pp,s.repno AS repno_pp,d.status,d.debtor_lock,
+					d.receive_no,d.repno,s.receive_pp,s.repno AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date,
                     CASE WHEN (IFNULL(d.receive,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
                     ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_203 d   
@@ -1770,7 +1770,7 @@ class DebtorController extends Controller
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.charge,d.charge_date,d.charge_no,d.receive,d.receive_date,
-					d.receive_no,d.repno,s.receive_pp,s.repno AS repno_pp,d.status,d.debtor_lock,
+					d.receive_no,d.repno,s.receive_pp,s.repno AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date,
                     CASE WHEN (IFNULL(d.receive,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
                     ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_203 d   

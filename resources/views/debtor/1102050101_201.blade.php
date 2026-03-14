@@ -117,7 +117,7 @@
                     <thead>
                     <tr class="table-primary align-middle">
                         <th class="text-left text-primary" colspan="10">1102050101.201-ลูกหนี้ค่ารักษา UC-OP ใน CUP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</th> 
-                        <th class="text-center text-primary" colspan="11">การชดเชย</th>                                                 
+                        <th class="text-center text-primary" colspan="10">การชดเชย</th>                                                 
                     </tr>
                     <tr class="table-primary align-middle text-center">
                         <th class="text-center"><input type="checkbox" onClick="toggle_d(this)"> All</th> 

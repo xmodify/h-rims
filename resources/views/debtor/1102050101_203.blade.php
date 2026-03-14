@@ -79,16 +79,18 @@
                 @csrf   
                 @method('DELETE')
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDelete()">
-                        <i class="bi bi-trash-fill me-1"></i> ลบรายการลูกหนี้
-                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDelete()">
+                            <i class="bi bi-trash-fill me-1"></i> ลบรายการลูกหนี้
+                        </button>
+                        <button type="button" class="btn btn-warning btn-sm px-3 shadow-sm text-dark fw-bold" onclick="bulkAdjust()">
+                            <i class="bi bi-tools me-1"></i> ปรับปรุงยอดเป็น 0
+                        </button>
+                    </div>
                     <div>
                         <!-- Extra Button for 203 -->
                          <button type="button" class="btn btn-success btn-sm me-1" data-bs-toggle="modal" data-bs-target="#modalAverageReceive">
                               <i class="bi bi-calculator me-1"></i> กระทบยอดแบบกลุ่ม
-                         </button>
-                         <button type="button" class="btn btn-warning btn-sm me-1 shadow-sm" onclick="bulkAdjust()">
-                              <i class="bi bi-tools me-1"></i> ปรับปรุงยอดเป็น 0
                          </button>
                         <a class="btn btn-outline-success btn-sm" href="{{ url('debtor/1102050101_203_indiv_excel')}}" target="_blank">
                              <i class="bi bi-file-earmark-excel me-1"></i> ส่งออกรายตัว
@@ -100,11 +102,11 @@
                 </div>
                 <div class="table-responsive"><table id="debtor" class="table table-bordered table-striped my-3" width="100%">
                     <thead>
-                    <tr class="table-success">
-                        <th class="text-left text-primary" colspan = "10">1102050101.203-ลูกหนี้ค่ารักษา UC-OP นอก CUP (ในจังหวัดสังกัด สธ.) วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</th> 
-                        <th class="text-center text-primary" colspan = "9">การชดเชย</th>                                                 
+                    <tr class="table-primary align-middle">
+                        <th class="text-left text-primary" colspan="10">1102050101.203-ลูกหนี้ค่ารักษา UC-OP นอก CUP (ในจังหวัดสังกัด สธ.) วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</th> 
+                        <th class="text-center text-primary" colspan="10">การชดเชย</th>                                                 
                     </tr>
-                    <tr class="table-success">
+                    <tr class="table-primary align-middle text-center">
                         <th class="text-center"><input type="checkbox" onClick="toggle_d(this)"> All</th> 
                         <th class="text-center">วันที่</th>
                         <th class="text-center">HN</th>
@@ -118,23 +120,26 @@
                         <th class="text-center text-primary">ลูกหนี้</th>
                         <th class="text-center text-primary">ชดเชย</th> 
                         <th class="text-center text-primary">ชดเชย PPFS</th>
-                        <th class="text-center text-primary">ผลต่าง</th>              
-                        <th class="text-center text-primary" width="5%">สถานะ</th>                        
-                        <th class="text-center text-primary">REP</th>       
+                        <th class="text-center" style="color: #9c27b0;">ปรับเพิ่ม</th>
+                        <th class="text-center" style="color: #673ab7;">ปรับลด</th>
+                        <th class="text-center">ยอดคงเหลือ</th>
+                        <th class="text-center text-primary">REP</th>
                         <th class="text-center text-primary">อายุหนี้</th> 
                         <th class="text-center text-primary" width="5%">Action</th> 
                         <th class="text-center text-primary">Lock</th>                                       
                     </tr>
                     </thead>
-                    <?php $count = 1 ; ?>
-                    <?php $sum_income = 0 ; ?>
-                    <?php $sum_rcpt_money = 0 ; ?>
-                    <?php $sum_other = 0 ; ?>
-                    <?php $sum_ppfs = 0 ; ?>
-                    <?php $sum_debtor = 0 ; ?>
-                    <?php $sum_receive = 0 ; ?>
-                    <?php $sum_receive_pp = 0 ; ?>
+                    @php 
+                        $count = 1;
+                        $sum_income = 0; $sum_rcpt_money = 0; $sum_other = 0;
+                        $sum_ppfs = 0; $sum_debtor = 0; $sum_receive = 0;
+                        $sum_receive_pp = 0;
+                        $s_adj_inc = 0; $s_adj_dec = 0; $s_balance = 0;
+                    @endphp
                     @foreach($debtor as $row) 
+                    @php 
+                        $balance = $row->receive + ($row->adj_inc ?? 0) - ($row->adj_dec ?? 0) - $row->debtor;
+                    @endphp
                     <tr>
                         <td class="text-center"><input type="checkbox" name="checkbox_d[]" value="{{$row->vn}}"></td>   
                         <td align="right">{{ DateThai($row->vstdate) }} {{ $row->vsttime }}</td>
@@ -155,49 +160,47 @@
                             @elseif($row->receive_pp < 0) style="color:red" @endif>
                             {{ number_format($row->receive_pp,2) }}
                         </td>                        
-                        <td align="right" @if(($row->receive-$row->debtor) > 0) style="color:green"
-                            @elseif(($row->receive-$row->debtor) < 0) style="color:red" @endif>
-                            {{ number_format($row->receive-$row->debtor,2) }}
-                        </td>           
-                        <td align="right">{{ $row->status ?? '' }}</td> 
+                        <td align="right" style="color: #9c27b0;">{{ number_format($row->adj_inc ?? 0, 2) }}</td>
+                        <td align="right" style="color: #673ab7;">{{ number_format($row->adj_dec ?? 0, 2) }}</td>
+                        <td align="right" style="color:@if($balance < -0.01) red @elseif($balance > 0.01) green @else black @endif">{{ number_format($balance, 2) }}</td>
                         <td align="right">{{ $row->repno ?? '' }} {{ $row->repno_pp ?? '' }}</td>
-                        <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  
+                        <td align="center" @if($row->days < 90) style="background-color: #90EE90;"  
                             @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" 
                             @else style="background-color: #FF7F7F;" @endif >
                             {{ $row->days }} วัน
                         </td> 
                         <td align="center">         
-                            <button type="button" class="btn btn-outline-warning btn-sm px-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#receive-{{ str_replace('/', '-', $row->vn) }}"> 
-                                <i class="bi bi-cash-stack"></i> ชดเชย
+                            <button type="button" class="btn btn-warning btn-sm px-2 shadow-sm text-dark" data-bs-toggle="modal" data-bs-target="#receive-{{ str_replace('/', '-', $row->vn) }}"> 
+                                <i class="bi bi-pencil-square"></i>
                             </button>                            
                         </td>      
-                        <td align="center" style="color:blue">
+                        <td align="center">
                             @if(Auth::user()->status == 'admin' || Auth::user()->allow_debtor_lock == 'Y')
-                                @if($row->debtor_lock == 'Y')
-                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmUnlock('{{ $row->vn }}')">
-                                        <i class="bi bi-unlock"></i> Unlock
-                                    </button>
-                                @else
-                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="confirmLock('{{ $row->vn }}')">
-                                        <i class="bi bi-lock"></i> Lock
-                                    </button>
-                                @endif
+                                <button type="button" class="btn btn-sm btn-outline-{{$row->debtor_lock == 'Y' ? 'danger' : 'primary'}}" onclick="{{$row->debtor_lock == 'Y' ? 'confirmUnlock' : 'confirmLock'}}('{{ $row->vn }}')">
+                                    <i class="bi bi-{{$row->debtor_lock == 'Y' ? 'unlock' : 'lock'}}"></i>
+                                </button>
                             @else
                                 {{ $row->debtor_lock }}
                             @endif
                         </td>                            
-                    <?php $count++; ?>
-                    <?php $sum_income += $row->income ; ?>
-                    <?php $sum_rcpt_money += $row->rcpt_money ; ?>
-                    <?php $sum_other += $row->other ; ?> 
-                    <?php $sum_ppfs += $row->ppfs ; ?> 
-                    <?php $sum_debtor += $row->debtor ; ?> 
-                    <?php $sum_receive += $row->receive ; ?>  
-                    <?php $sum_receive_pp += $row->receive_pp ; ?>      
+                    </tr>   
+                    @php 
+                        $count++;
+                        $sum_income += $row->income;
+                        $sum_rcpt_money += $row->rcpt_money;
+                        $sum_other += $row->other;
+                        $sum_ppfs += $row->ppfs;
+                        $sum_debtor += $row->debtor;
+                        $sum_receive += $row->receive;
+                        $sum_receive_pp += $row->receive_pp;
+                        $s_adj_inc += $row->adj_inc ?? 0;
+                        $s_adj_dec += $row->adj_dec ?? 0;
+                        $s_balance += $balance;
+                    @endphp
                     @endforeach 
                     </tr>   
                     <tfoot>
-                        <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
+                        <tr class="table-success text-end fw-bold" style="font-size: 14px;">
                             <td colspan="6" class="text-end">รวม</td>
                             <td class="text-end">{{ number_format($sum_income,2) }}</td>
                             <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
@@ -206,10 +209,10 @@
                             <td class="text-end" style="color:blue">{{ number_format($sum_debtor,2) }}</td>
                             <td class="text-end" style="color:green">{{ number_format($sum_receive,2) }}</td>
                             <td class="text-end" style="color:green">{{ number_format($sum_receive_pp,2) }}</td>
-                            <td class="text-end" style="color:red">
-                                {{ number_format($sum_receive - $sum_debtor, 2) }}
-                            </td>
-                            <td colspan="5"></td>
+                            <td class="text-end" style="color: #9c27b0;">{{ number_format($s_adj_inc,2) }}</td>
+                            <td class="text-end" style="color: #673ab7;">{{ number_format($s_adj_dec,2) }}</td>
+                            <td class="text-end" style="color:@if($s_balance < -0.01) red @elseif($s_balance > 0.01) green @else black @endif">{{ number_format($s_balance, 2) }}</td>
+                            <td colspan="4"></td>
                         </tr>
                     </tfoot>                    
                 </table></div>

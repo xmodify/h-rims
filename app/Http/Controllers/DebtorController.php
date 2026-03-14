@@ -1407,23 +1407,41 @@ class DebtorController extends Controller
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,s.receive_pp,d.repno,
-                    IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock
+                    IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
                 FROM debtor_1102050101_201 d   
                 LEFT JOIN ( SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
                     AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%"))
                 AND d.vstdate BETWEEN ? AND ?', [$search, $search, $start_date, $end_date]);
+            
+            $debtor = collect($debtor)->map(function ($item) {
+                if (($item->receive + ($item->adj_inc ?? 0) - ($item->adj_dec ?? 0) - $item->debtor) >= -0.01) {
+                    $item->days = 0;
+                } else {
+                    $item->days = \Carbon\Carbon::parse($item->vstdate)->diffInDays(\Carbon\Carbon::today());
+                }
+                return $item;
+            });
         } else {
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
-                    IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock
+                    IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
                 FROM debtor_1102050101_201 d   
                 LEFT JOIN ( SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
                     AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
                 WHERE d.vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
+
+            $debtor = collect($debtor)->map(function ($item) {
+                if (($item->receive + ($item->adj_inc ?? 0) - ($item->adj_dec ?? 0) - $item->debtor) >= -0.01) {
+                    $item->days = 0;
+                } else {
+                    $item->days = \Carbon\Carbon::parse($item->vstdate)->diffInDays(\Carbon\Carbon::today());
+                }
+                return $item;
+            });
         }
 
         $debtor_search = DB::connection('hosxp')->select('
@@ -2087,7 +2105,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.cid, d.ptname, d.hipdata_code, d.pttype, d.hospmain,d.pdx, d.income,  
-                    d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,s.receive_pp, d.receive, s.repno, d.status, d.debtor_lock
+                    d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,s.receive_pp, d.receive, s.repno, d.status, d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
                 FROM debtor_1102050101_209 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
@@ -2097,7 +2115,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.cid, d.ptname, d.hipdata_code, d.pttype, d.hospmain, d.pdx,d.income,
-                     d.rcpt_money, d.ppfs, d.pp, d.other,d.debtor,s.receive_pp, d.receive, s.repno, d.status, d.debtor_lock
+                     d.rcpt_money, d.ppfs, d.pp, d.other,d.debtor,s.receive_pp, d.receive, s.repno, d.status, d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
                 FROM debtor_1102050101_209 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
@@ -4140,7 +4158,7 @@ class DebtorController extends Controller
             SELECT vstdate,COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM (SELECT d.vstdate,d.vsttime,d.vn,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,
             d.pdx,d.hospmain,d.income,d.rcpt_money,d.kidney,d.debtor,
-            s.amount+s.epopay+s.epoadm AS receive,s.rid AS repno,d.debtor_lock
+            s.amount+s.epopay+s.epoadm AS receive,s.rid AS repno,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
             FROM debtor_1102050101_309 d   
             LEFT JOIN stm_sss_kidney s ON s.cid=d.cid AND s.vstdate = d.vstdate
             WHERE d.vstdate BETWEEN ? AND ?) AS a GROUP BY vstdate ORDER BY vsttime', [$start_date, $end_date]);
@@ -4947,7 +4965,7 @@ class DebtorController extends Controller
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
-                    IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock
+                    IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
                 FROM debtor_1102050101_701 d   
                 LEFT JOIN ( SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
@@ -4958,7 +4976,7 @@ class DebtorController extends Controller
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
-                    IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock
+                    IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
                 FROM debtor_1102050101_701 d   
                 LEFT JOIN ( SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
@@ -5181,7 +5199,7 @@ class DebtorController extends Controller
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
-                    IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock
+                    IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
                 FROM debtor_1102050101_702 d   
                 LEFT JOIN ( SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
@@ -5192,7 +5210,7 @@ class DebtorController extends Controller
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
-                    IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock
+                    IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
                 FROM debtor_1102050101_702 d   
                 LEFT JOIN ( SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
@@ -12179,8 +12197,9 @@ class DebtorController extends Controller
     public function _1102050101_201_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
+        $adjusted_count = 0;
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_201::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050101_201::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
                 // Detect receive field
                 $receive = 0;
@@ -12197,12 +12216,13 @@ class DebtorController extends Controller
                     $row->adj_inc = 0;
                     $row->adj_dec = abs($diff);
                 }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+                $row->adj_note = $request->bulk_adj_note ?: 'Bulk Adjustment to Balance 0';
                 $row->save();
+                $adjusted_count++;
             }
         }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
 
     public function _1102050101_202_bulk_adj(Request $request)
@@ -12237,8 +12257,9 @@ class DebtorController extends Controller
     public function _1102050101_203_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
+        $adjusted_count = 0;
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_203::where('an', $id)->first();
+            $row = \App\Models\Debtor_1102050101_203::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
                 // Detect receive field
                 $receive = 0;
@@ -12255,12 +12276,13 @@ class DebtorController extends Controller
                     $row->adj_inc = 0;
                     $row->adj_dec = abs($diff);
                 }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+                $row->adj_note = $request->bulk_adj_note ?: 'Bulk Adjustment to Balance 0';
                 $row->save();
+                $adjusted_count++;
             }
         }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
 
     public function _1102050101_209_bulk_adj(Request $request)

@@ -170,6 +170,69 @@ class MainSettingController extends Controller
                 array_fill_keys($newColumns, 'Y')
             );
 
+            // 4. Upgrade all debtor_1* tables with new columns
+            $tablesResult = DB::select("SHOW TABLES LIKE 'debtor_1%'");
+            $tables = [];
+            foreach ($tablesResult as $row) {
+                $tables[] = array_values((array)$row)[0];
+            }
+            
+            $debtorColumns = [
+                'adj_inc' => ['type' => 'decimal', 'params' => [10, 2], 'nullable' => true, 'after' => 'repno'],
+                'adj_dec' => ['type' => 'decimal', 'params' => [10, 2], 'nullable' => true, 'after' => 'adj_inc'],
+                'adj_note' => ['type' => 'string', 'params' => [255], 'nullable' => true, 'after' => 'adj_dec'],
+                'adj_date' => ['type' => 'date', 'params' => [], 'nullable' => true, 'after' => 'adj_note'],
+                'debtor_change' => ['type' => 'decimal', 'params' => [10, 2], 'nullable' => true, 'after' => 'adj_date'],
+                'charge_date' => ['type' => 'date', 'params' => [], 'nullable' => true, 'after' => 'status'],
+                'charge_no' => ['type' => 'string', 'params' => [100], 'nullable' => true, 'after' => 'charge_date'],
+                'charge' => ['type' => 'decimal', 'params' => [10, 2], 'nullable' => true, 'after' => 'charge_no'],
+                'receive_date' => ['type' => 'date', 'params' => [], 'nullable' => true, 'after' => 'charge'],
+                'receive_no' => ['type' => 'string', 'params' => [100], 'nullable' => true, 'after' => 'receive_date'],
+                'receive' => ['type' => 'decimal', 'params' => [10, 2], 'nullable' => true, 'after' => 'receive_no'],
+                'repno' => ['type' => 'string', 'params' => [100], 'nullable' => true, 'after' => 'receive']
+            ];
+
+            $upgradedTables = 0;
+            $addedColumnsLog = [];
+            
+            foreach ($tables as $tableName) {
+                if (strpos($tableName, '_tracking') === false) {
+                    $currentCols = Schema::getColumnListing($tableName);
+                    $colsToAdd = [];
+                    foreach ($debtorColumns as $colName => $colDef) {
+                        if (!in_array($colName, $currentCols)) {
+                            $colsToAdd[$colName] = $colDef;
+                        }
+                    }
+                    
+                    if (!empty($colsToAdd)) {
+                        Schema::table($tableName, function (Blueprint $table) use ($colsToAdd) {
+                            foreach ($colsToAdd as $colName => $colDef) {
+                                $method = $colDef['type'];
+                                $params = $colDef['params'];
+                                $column = call_user_func_array([$table, $method], array_merge([$colName], $params));
+                                
+                                if ($colDef['nullable']) {
+                                    $column->nullable();
+                                }
+                                if (isset($colDef['after'])) {
+                                    $column->after($colDef['after']);
+                                }
+                            }
+                        });
+                        $addedColumnsLog[] = $tableName;
+                    }
+                    $upgradedTables++;
+                }
+            }
+            
+            $migrate_result .= "\n Checked $upgradedTables debtor tables.";
+            if (count($addedColumnsLog) > 0) {
+                $migrate_result .= " Added columns to " . count($addedColumnsLog) . " tables: " . implode(', ', $addedColumnsLog);
+            } else {
+                $migrate_result .= " All tables already have required columns.";
+            }
+
             return redirect()->route('admin.main_setting')
                 ->with('success', 'อัปเกรดโครงสร้างฐานข้อมูลเสร็จสิ้น')
                 ->with('migrate_output', $migrate_result);

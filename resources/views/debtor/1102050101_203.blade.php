@@ -84,9 +84,12 @@
                     </button>
                     <div>
                         <!-- Extra Button for 203 -->
-                        <button type="button" class="btn btn-success btn-sm me-1" data-bs-toggle="modal" data-bs-target="#modalAverageReceive">
-                             <i class="bi bi-calculator me-1"></i> กระทบยอดแบบกลุ่ม
-                        </button>
+                         <button type="button" class="btn btn-success btn-sm me-1" data-bs-toggle="modal" data-bs-target="#modalAverageReceive">
+                              <i class="bi bi-calculator me-1"></i> กระทบยอดแบบกลุ่ม
+                         </button>
+                         <button type="button" class="btn btn-warning btn-sm me-1 shadow-sm" onclick="bulkAdjust()">
+                              <i class="bi bi-tools me-1"></i> ปรับปรุงยอดเป็น 0
+                         </button>
                         <a class="btn btn-outline-success btn-sm" href="{{ url('debtor/1102050101_203_indiv_excel')}}" target="_blank">
                              <i class="bi bi-file-earmark-excel me-1"></i> ส่งออกรายตัว
                         </a>                
@@ -762,5 +765,33 @@
             }
         });
         });
+    </script>
+    <script>
+        function bulkAdjust() {
+            const sel = [...document.querySelectorAll('input[name="checkbox_d[]"]:checked')].map(e=>e.value);
+            if(!sel.length) { Swal.fire('แจ้งเตือน','กรุณาเลือกรายการ','warning'); return; }
+            Swal.fire({
+                title: 'ปรับปรุงยอดเป็น 0',
+                html: `
+                    <div class="text-start">
+                        <div class="mb-3"><label class="form-label small fw-bold">หมายเหตุการปรับปรุง</label><input type="text" id="blk_note" class="form-control rounded-pill" value="ปรับปรุงยอดเป็น 0"></div>
+                        <div class="mb-3"><label class="form-label small fw-bold">วันที่ปรับปรุง</label><input type="text" id="blk_date_th" class="form-control rounded-pill datepicker_th" value="{{DateThai(date('Y-m-d'))}}" readonly><input type="hidden" id="blk_date" value="{{date('Y-m-d')}}"></div>
+                        <div style="background-color: #e3f2fd; border-left: 4px solid #007bff; padding: 10px;"><p style="color: #0056b3; margin: 0; font-size: 14px;"><i class="bi bi-info-circle-fill me-1"></i> ระบบจะปรับเพิ่ม หรือ ปรับลดเพื่อให้ยอดคงเหลือเป็น 0 เฉพาะรายการที่ Lock แล้วเท่านั้น</p></div>
+                    </div>
+                `,
+                icon: 'info', showCancelButton: true, confirmButtonColor: '#ffc107', confirmButtonText: 'ยืนยัน',
+                didOpen: () => { $('#blk_date_th').datepicker({ format: 'dd/mm/yyyy', autoclose: true, language: 'th', thaiyear: true }).on('changeDate', (e) => { if (e.date) { const y = e.date.getFullYear(), m=('0'+(e.date.getMonth()+1)).slice(-2), d=('0'+e.date.getDate()).slice(-2); $('#blk_date').val(y+'-'+m+'-'+d); } }); },
+                preConfirm: () => { return { note: $('#blk_note').val(), date: $('#blk_date').val() } }
+            }).then((r) => {
+                if (r.isConfirmed) {
+                    showLoading(); let f=document.createElement('form'); f.method='POST'; f.action="{{ url('debtor/1102050101_203_bulk_adj') }}";
+                    f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'_token', value:'{{csrf_token()}}'}));
+                    f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'bulk_adj_note', value:r.value.note}));
+                    f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'bulk_adj_date', value:r.value.date}));
+                    sel.forEach(id=>f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'checkbox_d[]', value:id})));
+                    document.body.appendChild(f); f.submit();
+                }
+            });
+        }
     </script>
 @endpush

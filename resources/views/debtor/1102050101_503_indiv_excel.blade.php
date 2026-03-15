@@ -48,7 +48,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
             <?php $sum_rcpt_money = 0 ; ?>
 
             <?php $sum_other = 0 ; ?>
-
+            <?php $sum_debtor = 0 ; ?>
             <?php $sum_receive = 0 ; ?>
             <?php $sum_adj_inc = 0 ; ?>
             <?php $sum_adj_dec = 0 ; ?>
@@ -86,7 +86,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
             <?php $sum_rcpt_money += $row->rcpt_money ; ?>
 
             <?php $sum_other += $row->other ; ?>
-
+            <?php $sum_debtor += $row->debtor ; ?>
             <?php $sum_receive += $row->receive ; ?>
             <?php $sum_adj_inc += $row->adj_inc ; ?>
             <?php $sum_adj_dec += $row->adj_dec ; ?>

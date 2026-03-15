@@ -112,7 +112,7 @@
                             <thead>
                             <tr class="table-success">
                                 <th class="text-left text-primary" colspan = "10">1102050101.701-ลูกหนี้ค่ารักษา บุคคลที่มีปัญหาสถานะและสิทธิ OP ใน CUP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</th> 
-                                <th class="text-center text-primary" colspan = "11">การชดเชย</th>                                                 
+                                <th class="text-center text-primary" colspan = "10">การชดเชย</th>                                                 
                             </tr>
                             <tr class="table-success">
                                 <th class="text-center"><input type="checkbox" onClick="toggle_d(this)"> All</th> 
@@ -126,12 +126,11 @@
                                 <th class="text-center">กองทุนอื่น</th> 
                                 <th class="text-center">PPFS</th>      
                                 <th class="text-center text-primary">ลูกหนี้</th>
-                                <th class="text-center text-warning" style="background-color: #fff3cd;">ปรับเพิ่ม</th>
-                                <th class="text-center text-warning" style="background-color: #fff3cd;">ปรับลด</th>
                                 <th class="text-center text-primary">ชดเชย</th> 
                                 <th class="text-center text-primary">ชดเชย PPFS</th>
-                                <th class="text-center text-danger" style="background-color: #f8d7da;">ยอดคงเหลือ</th>
-                                <th class="text-center text-primary">สถานะ</th>                          
+                                <th class="text-center" style="color: #9c27b0;">ปรับเพิ่ม</th>
+                                <th class="text-center" style="color: #673ab7;">ปรับลด</th>
+                                <th class="text-center">ยอดคงเหลือ</th>
                                 <th class="text-center text-primary">REP</th>                          
                                 <th class="text-center text-primary">อายุหนี้</th>
                                 <th class="text-center text-primary">Action</th>
@@ -150,54 +149,49 @@
                             @foreach($debtor as $row) 
                             <tr>
                                 <td class="text-center"><input type="checkbox" name="checkbox_d[]" value="{{$row->vn}}"></td>   
-                                <td align="right">{{ DateThai($row->vstdate) }} {{ $row->vsttime }}</td>
+                                <td align="center">{{ DateThai($row->vstdate) }}</td>
                                 <td align="center">{{ $row->hn }}</td>
                                 <td align="left">{{ $row->ptname }}</td>
                                 <td align="left">{{ $row->pttype }} [{{ $row->hospmain }}]</td>
-                                <td align="right">{{ $row->pdx }}</td>                      
+                                <td align="center">{{ $row->pdx }}</td>                      
                                 <td align="right">{{ number_format($row->income,2) }}</td>
                                 <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
                                 <td align="right">{{ number_format($row->other,2) }}</td>
                                 <td align="right">{{ number_format($row->ppfs,2) }}</td>
                                 <td align="right" class="text-primary fw-bold">{{ number_format($row->debtor,2) }}</td>  
-                                <td align="right" style="background-color: #fffef5;">{{ number_format($row->adj_inc,2) }}</td>
-                                <td align="right" style="background-color: #fffef5;">{{ number_format($row->adj_dec,2) }}</td>
-                                <td align="right" class="text-success fw-bold">
+                                <td align="right" @if($row->receive > 0) style="color:green" 
+                                    @elseif($row->receive < 0) style="color:red" @endif>
                                     {{ number_format($row->receive,2) }}
                                 </td>
-                                <td align="right" class="text-success fw-bold">
+                                <td align="right" @if($row->receive_pp > 0) style="color:green" 
+                                    @elseif($row->receive_pp < 0) style="color:red" @endif>
                                     {{ number_format($row->receive_pp,2) }}
                                 </td>
-                                <td align="right" class="fw-bold" style="background-color: #fff5f5; color: @if($row->balance > 0) green @elseif($row->balance < 0) red @else inherit @endif">
+                                <td align="right" style="color: #9c27b0;">{{ number_format($row->adj_inc,2) }}</td>
+                                <td align="right" style="color: #673ab7;">{{ number_format($row->adj_dec,2) }}</td>
+                                <td align="right" class="fw-bold" style="color: @if($row->balance > 0.1) green @elseif($row->balance < -0.1) red @else black @endif">
                                     {{ number_format($row->balance, 2) }}
                                 </td>                    
-                                <td align="left">{{ $row->status ?? '' }}</td>
                                 <td align="center">{{ $row->repno_pp ?? '' }}</td>                           
-                                <td align="center" @if($row->days < 90) style="background-color: #90EE90;"  {{-- เขียวอ่อน --}}
-                                    @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" {{-- เหลือง --}}
-                                    @else style="background-color: #FF7F7F;" {{-- แดง --}} @endif >
+                                <td align="center" @if($row->days < 90) style="background-color: #90EE90;" 
+                                    @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" 
+                                    @else style="background-color: #FF7F7F;" @endif >
                                     {{ $row->days }} วัน
                                 </td>  
                                 <td align="center">         
-                                    <button type="button" class="btn btn-outline-warning btn-sm px-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#receive-{{ str_replace(['/', '.'], '-', $row->vn) }}"> 
-                                        <i class="bi bi-cash-stack"></i> ชดเชย
+                                    <button type="button" class="btn btn-warning btn-sm px-2 shadow-sm text-dark" data-bs-toggle="modal" data-bs-target="#receive-{{ str_replace(['/', '.'], '-', $row->vn) }}"> 
+                                        <i class="bi bi-pencil-square"></i>
                                     </button>                            
                                 </td> 
-                                <td align="center" style="color:blue">
-                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_debtor_lock == 'Y')
-                                @if($row->debtor_lock == 'Y')
-                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmUnlock('{{ $row->vn }}')">
-                                        <i class="bi bi-unlock"></i> Unlock
-                                    </button>
-                                @else
-                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="confirmLock('{{ $row->vn }}')">
-                                        <i class="bi bi-lock"></i> Lock
-                                    </button>
-                                @endif
-                            @else
-                                {{ $row->debtor_lock }}
-                            @endif
-                        </td>                            
+                                <td align="center">
+                                    @if(Auth::user()->status == 'admin' || Auth::user()->allow_debtor_lock == 'Y')
+                                        <button type="button" class="btn btn-sm btn-outline-{{$row->debtor_lock == 'Y' ? 'danger' : 'primary'}}" onclick="{{$row->debtor_lock == 'Y' ? 'confirmUnlock' : 'confirmLock'}}('{{ $row->vn }}')">
+                                            <i class="bi bi-{{$row->debtor_lock == 'Y' ? 'unlock' : 'lock'}}"></i>
+                                        </button>
+                                    @else
+                                        {{ $row->debtor_lock }}
+                                    @endif
+                                </td>                            
                             <?php $count++; ?>
                             <?php $sum_income += $row->income ; ?>
                             <?php $sum_rcpt_money += $row->rcpt_money ; ?>
@@ -220,15 +214,15 @@
                                     <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
                                     <td class="text-end">{{ number_format($sum_other,2) }}</td>
                                     <td class="text-end">{{ number_format($sum_ppfs,2) }}</td>
-                                    <td class="text-end text-primary">{{ number_format($sum_debtor,2) }}</td>
-                                    <td class="text-end">{{ number_format($sum_adj_inc,2) }}</td>
-                                    <td class="text-end">{{ number_format($sum_adj_dec,2) }}</td>
-                                    <td class="text-end text-success">{{ number_format($sum_receive,2) }}</td>
-                                    <td class="text-end text-success">{{ number_format($sum_receive_pp,2) }}</td>
-                                    <td class="text-end" style="color:red">
+                                    <td class="text-end text-primary" style="color:blue">{{ number_format($sum_debtor,2) }}</td>
+                                    <td class="text-end" style="color:@if($sum_receive > 0.1) green @elseif($sum_receive < -0.1) red @else black @endif">{{ number_format($sum_receive,2) }}</td>
+                                    <td class="text-end" style="color:@if($sum_receive_pp > 0.1) green @elseif($sum_receive_pp < -0.1) red @else black @endif">{{ number_format($sum_receive_pp,2) }}</td>
+                                    <td class="text-end" style="color: #9c27b0;">{{ number_format($sum_adj_inc,2) }}</td>
+                                    <td class="text-end" style="color: #673ab7;">{{ number_format($sum_adj_dec,2) }}</td>
+                                    <td class="text-end" style="color:@if($sum_balance < -0.1) red @elseif($sum_balance > 0.1) green @else black @endif">
                                         {{ number_format($sum_balance, 2) }}
                                     </td>
-                                    <td colspan="5"></td>
+                                    <td colspan="4"></td>
                                 </tr>
                             </tfoot>
                         </table></div>
@@ -320,133 +314,114 @@
 
     <!-- Modal บันทึกชดเชย -->
     @foreach($debtor as $row)
+        @php
+            $balance = ($row->receive + ($row->adj_inc ?? 0) - ($row->adj_dec ?? 0)) - $row->debtor;
+        @endphp
         <div id="receive-{{ str_replace(['/', '.'], '-', $row->vn) }}" class="modal fade" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content border-0 shadow-lg">
                     <div class="modal-header bg-primary text-white border-0 py-3">
-                        <h5 class="modal-title d-flex align-items-center">
-                            <i class="bi bi-cash-stack me-2"></i>
-                            รายการการชดเชยเงิน/ลูกหนี้ (VN/AN: {{ $row->vn }})
-                        </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <h5 class="modal-title d-flex align-items-center"><i class="bi bi-cash-stack me-2"></i> รายการการชดเชยเงิน/ลูกหนี้ (VN: {{ $row->vn }})</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>         
                     <form action="{{ url('debtor/1102050101_701/update', $row->vn) }}" method="POST">
-                        @csrf
-                        @method('PUT')
-                        <div class="modal-body p-4">
-                            <div class="row g-4">
+                        @csrf @method('PUT')
+                        <div class="modal-body p-3 text-start">
+                            <div class="row g-2">
                                 <div class="col-md-12">
-                                    <div class="p-3 rounded-3 bg-primary-soft mb-2">
+                                    <div class="p-2 rounded-3 bg-primary-soft mb-1">
                                         <div class="row align-items-center">
-                                            <div class="col-md-7">
-                                                <label class="text-muted small d-block">ชื่อ-สกุล</label>
-                                                <span class="fw-bold text-primary fs-5">{{ $row->ptname }}</span>
-                                            </div>
-                                            <div class="col-md-5 text-md-end">
-                                                <label class="text-muted small d-block">ยอดลูกหนี้คงเหลือ</label>
-                                                <span class="fw-bold text-primary fs-5">{{ number_format($row->debtor, 2) }} บาท</span>
-                                            </div>
+                                            <div class="col-md-7"><label class="text-muted small d-block">ชื่อ-สกุล</label><span class="fw-bold text-primary fs-6">{{ $row->ptname }}</span></div>
+                                            <div class="col-md-5 text-md-end"><label class="text-muted small d-block">ส่วนต่างลูกหนี้คงเหลือ</label><span class="fw-bold fs-6" style="color:@if($balance < -0.01) red @elseif($balance > 0.01) green @else black @endif">{{ number_format($balance, 2) }} บาท</span></div>
                                         </div>
                                     </div>
                                 </div>
-
-                                <!-- Left Column: การเรียกเก็บ -->
                                 <div class="col-md-6 border-end">
-                                    <h6 class="text-secondary fw-bold mb-3 d-flex align-items-center">
-                                        <i class="bi bi-send-fill me-2 text-primary"></i> ข้อมูลการส่งเบิก (Charge)
-                                    </h6>
-                                    <div class="mb-3">
-                                        <label class="form-label small fw-bold">วันที่เรียกเก็บ</label>
-                                        <input type="hidden" name="charge_date" value="{{ $row->charge_date ?? '' }}">
-                                        <input type="text" class="form-control rounded-pill px-3 datepicker_th" 
-                                            value="{{ !empty($row->charge_date) ? DateThai($row->charge_date) : '' }}" 
-                                            placeholder="วว/ดด/ปปปป" readonly>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label small fw-bold">เลขที่หนังสือเรียกเก็บ</label>
-                                        <input type="text" class="form-control rounded-pill px-3" name="charge_no" value="{{ $row->charge_no ?? '' }}" placeholder="ระบุเลขที่หนังสือ">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label small fw-bold">จำนวนเงินที่เรียกเก็บ</label>
-                                        <div class="input-group">
-                                            <input type="number" step="0.01" class="form-control rounded-pill-start px-3" name="charge" value="{{ $row->charge ?? '' }}">
-                                            <span class="input-group-text rounded-pill-end small bg-light">บาท</span>
+                                    <h6 class="text-secondary fw-bold mb-2 d-flex align-items-center small"><i class="bi bi-send-fill me-2 text-primary"></i> ข้อมูลการส่งเบิก (Charge)</h6>
+                                    <div class="row g-2">
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label mb-1 small fw-bold">วันที่เรียกเก็บ</label>
+                                            <input type="hidden" name="charge_date" id="charge_date_{{ str_replace(['/', '.'], '-', $row->vn) }}" value="{{ $row->charge_date }}">
+                                            <input type="text" class="form-control form-control-sm rounded-pill px-3 datepicker_th" data-hidden-id="charge_date_{{ str_replace(['/', '.'], '-', $row->vn) }}" value="{{ !empty($row->charge_date) ? DateThai($row->charge_date) : '' }}" placeholder="วว/ดด/ปปปป" readonly>
                                         </div>
-                                    </div>
-                                    <div class="mb-0">
-                                        <label class="form-label small fw-bold">สถานะลูกหนี้</label>
-                                        <select class="form-select rounded-pill px-3" name="status">                                                       
-                                            <option value="ยืนยันลูกหนี้" @if (($row->status ?? '') == 'ยืนยันลูกหนี้') selected @endif>ยืนยันลูกหนี้</option>                                           
-                                            <option value="อยู่ระหว่างเรียกเก็บ" @if (($row->status ?? '')  == 'อยู่ระหว่างเรียกเก็บ') selected @endif>อยู่ระหว่างเรียกเก็บ</option> 
-                                            <option value="อยู่ระหว่างการขออุทธรณ์" @if (($row->status ?? '') == 'อยู่ระหว่างการขออุทธรณ์') selected @endif>อยู่ระหว่างการขออุทธรณ์</option>
-                                            <option value="กระทบยอดแล้ว" @if (($row->status ?? '') == 'กระทบยอดแล้ว') selected @endif>กระทบยอดแล้ว</option>  
-                                        </select> 
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label mb-1 small fw-bold">เลขที่หนังสือ</label>
+                                            <input type="text" class="form-control form-control-sm rounded-pill px-3" name="charge_no" value="{{ $row->charge_no }}" placeholder="ระบุเลขที่หนังสือ">
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label mb-1 small fw-bold">จำนวนเงินเรียกเก็บ</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" step="0.01" class="form-control rounded-pill-start px-3" name="charge" value="{{ $row->charge }}">
+                                                <span class="input-group-text rounded-pill-end small bg-light">บาท</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label mb-1 small fw-bold">สถานะลูกหนี้</label>
+                                            <select class="form-select form-select-sm rounded-pill px-3" name="status">                                                       
+                                                <option value="ยืนยันลูกหนี้" @if($row->status == 'ยืนยันลูกหนี้') selected @endif>ยืนยันลูกหนี้</option>                                           
+                                                <option value="อยู่ระหว่างเรียกเก็บ" @if($row->status == 'อยู่ระหว่างเรียกเก็บ') selected @endif>อยู่ระหว่างเรียกเก็บ</option> 
+                                                <option value="อยู่ระหว่างการขออุทธรณ์" @if($row->status == 'อยู่ระหว่างการขออุทธรณ์') selected @endif>อยู่ระหว่างการขออุทธรณ์</option>
+                                                <option value="กระทบยอดแล้ว" @if($row->status == 'กระทบยอดแล้ว') selected @endif>กระทบยอดแล้ว</option>  
+                                            </select> 
+                                        </div>
                                     </div>
                                 </div>
-
-                                <!-- Right Column: การชดเชย -->
                                 <div class="col-md-6">
-                                    <h6 class="text-secondary fw-bold mb-3 d-flex align-items-center">
-                                        <i class="bi bi-wallet2 me-2 text-success"></i> ข้อมูลการชดเชย (Receive)
+                                    <h6 class="text-secondary fw-bold mb-2 d-flex align-items-center small"><i class="bi bi-wallet2 me-2 text-success"></i> ข้อมูลการชดเชย (Receive)</h6>
+                                    <div class="row g-2">
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label mb-1 small fw-bold">วันที่ชดเชย</label>
+                                            <input type="hidden" name="receive_date" id="receive_date_{{ str_replace(['/', '.'], '-', $row->vn) }}" value="{{ $row->receive_date }}">
+                                            <input type="text" class="form-control form-control-sm rounded-pill px-3 datepicker_th" data-hidden-id="receive_date_{{ str_replace(['/', '.'], '-', $row->vn) }}" value="{{ !empty($row->receive_date) ? DateThai($row->receive_date) : '' }}" placeholder="วว/ดด/ปปปป" readonly>
+                                        </div>
+                                        <div class="col-md-6 mb-2">
+                                            <label class="form-label mb-1 small fw-bold">เลขที่หนังสือชดเชย</label>
+                                            <input type="text" class="form-control form-control-sm rounded-pill px-3" name="receive_no" value="{{ $row->receive_no }}" placeholder="ระบุเลขที่โอน">
+                                        </div>
+                                        <div class="col-md-6 mb-0">
+                                            <label class="form-label mb-1 small fw-bold">จำนวนเงินที่ได้รับ</label>
+                                            <div class="input-group input-group-sm">
+                                                <input type="number" step="0.01" class="form-control rounded-pill-start px-3" name="receive" value="{{ $row->receive }}">
+                                                <span class="input-group-text rounded-pill-end small bg-light">บาท</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 mb-0">
+                                            <label class="form-label mb-1 small fw-bold">เลขที่ใบเสร็จ</label>
+                                            <input type="text" class="form-control form-control-sm rounded-pill px-3" name="repno" value="{{ $row->repno }}" placeholder="ระบุเลขที่ใบเสร็จ">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-12">
+                                    <hr class="my-2">
+                                    <h6 class="fw-bold mb-2 d-flex align-items-center small" style="color:#ffc107">
+                                        <i class="bi bi-tools me-2"></i> ปรับปรุงยอดรายคน (Adjustment)
                                     </h6>
-                                    <div class="row g-2 mb-2">
-                                        <div class="col-6">
-                                            <label class="form-label small fw-bold">วันที่ชดเชย</label>
-                                            <input type="hidden" name="receive_date" id="receive_date_{{ $row->vn }}" value="{{ $row->receive_date ?? '' }}">
-                                            <input type="text" class="form-control rounded-pill px-3 border-success-soft datepicker_th" data-hidden-id="receive_date_{{ $row->vn }}"
-                                                value="{{ !empty($row->receive_date) ? DateThai($row->receive_date) : '' }}" 
-                                                placeholder="วว/ดด/ปปปป" readonly>
+                                    <div class="row g-2">
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-1 small fw-bold text-success">ปรับเพิ่ม (+)</label>
+                                            <input type="number" step="0.01" class="form-control form-control-sm rounded-pill px-3" name="adj_inc" value="{{ $row->adj_inc ?? 0 }}">
                                         </div>
-                                        <div class="col-6">
-                                            <label class="form-label small fw-bold">เลขที่หนังสือชดเชย</label>
-                                            <input type="text" class="form-control rounded-pill px-3 border-success-soft" name="receive_no" value="{{ $row->receive_no ?? '' }}" placeholder="ระบุเลขที่โอน">
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-1 small fw-bold text-danger">ปรับลด (-)</label>
+                                            <input type="number" step="0.01" class="form-control form-control-sm rounded-pill px-3" name="adj_dec" value="{{ $row->adj_dec ?? 0 }}">
                                         </div>
-                                    </div>
-                                    <div class="row g-2 mb-2">
-                                        <div class="col-6">
-                                            <label class="form-label small fw-bold text-success">ชดเชย (Charge)</label>
-                                            <input type="number" step="0.01" class="form-control rounded-pill px-3 border-success-soft" name="receive" value="{{ $row->receive ?? '' }}">
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-1 small fw-bold text-muted">วันที่ปรับปรุง</label>
+                                            <input type="hidden" name="adj_date" id="adj_date_{{ str_replace(['/', '.'], '-', $row->vn) }}" value="{{ $row->adj_date ?? date('Y-m-d') }}">
+                                            <input type="text" class="form-control form-control-sm rounded-pill px-3 datepicker_th" data-hidden-id="adj_date_{{ str_replace(['/', '.'], '-', $row->vn) }}" value="{{ !empty($row->adj_date) ? DateThai($row->adj_date) : DateThai(date('Y-m-d')) }}" placeholder="วว/ดด/ปปปป" readonly>
                                         </div>
-                                        <div class="col-6">
-                                            <label class="form-label small fw-bold text-success">ชดเชย PPFS</label>
-                                            <input type="number" step="0.01" class="form-control rounded-pill px-3 border-success-soft" name="receive_pp" value="{{ $row->receive_pp ?? '' }}">
+                                        <div class="col-md-3">
+                                            <label class="form-label mb-1 small fw-bold text-muted">หมายเหตุ</label>
+                                            <input type="text" class="form-control form-control-sm rounded-pill px-3" name="adj_note" value="{{ $row->adj_note }}" placeholder="ระบุเหตุผล">
                                         </div>
-                                    </div>
-                                    <div class="mb-2">
-                                        <label class="form-label small fw-bold">เลขที่ใบเสร็จ</label>
-                                        <input type="text" class="form-control rounded-pill px-3 border-success-soft" name="repno" value="{{ $row->repno ?? ($row->repno_pp ?? '') }}" placeholder="ระบุเลขที่ใบเสร็จ">
-                                    </div>
-
-                                    <hr class="my-3 opacity-50">
-                                    <h6 class="text-secondary fw-bold mb-3 d-flex align-items-center">
-                                        <i class="bi bi-gear-fill me-2 text-warning"></i> การปรับปรุงยอด (Adjustment)
-                                    </h6>
-                                    <div class="row g-2 mb-2">
-                                        <div class="col-6">
-                                            <label class="form-label small fw-bold text-warning">ปรับเพิ่ม (Increase)</label>
-                                            <input type="number" step="0.01" class="form-control rounded-pill px-3 border-warning-soft" name="adj_inc" value="{{ $row->adj_inc ?? '0.00' }}">
-                                        </div>
-                                        <div class="col-6">
-                                            <label class="form-label small fw-bold text-warning">ปรับลด (Decrease)</label>
-                                            <input type="number" step="0.01" class="form-control rounded-pill px-3 border-warning-soft" name="adj_dec" value="{{ $row->adj_dec ?? '0.00' }}">
-                                        </div>
-                                    </div>
-                                    <div class="mb-2">
-                                        <label class="form-label small fw-bold text-warning">วันที่ปรับปรุง</label>
-                                        <input type="hidden" name="adj_date" id="adj_date_{{ $row->vn }}" value="{{ $row->adj_date ?? date('Y-m-d') }}">
-                                        <input type="text" class="form-control rounded-pill px-3 border-warning-soft datepicker_th" data-hidden-id="adj_date_{{ $row->vn }}"
-                                            value="{{ !empty($row->adj_date) ? DateThai($row->adj_date) : DateThai(date('Y-m-d')) }}" readonly>
-                                    </div>
-                                    <div class="mb-0">
-                                        <label class="form-label small fw-bold text-warning">หมายเหตุการปรับปรุง</label>
-                                        <textarea class="form-control rounded-3 border-warning-soft" name="adj_note" rows="2" placeholder="ระบุเหตุผลการปรับปรุง">{{ $row->adj_note ?? '' }}</textarea>
                                     </div>
                                 </div>
                             </div> 
                         </div>
-                        <div class="modal-footer bg-light border-0 p-3">
-                            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">ยกเลิก</button>
-                            <button type="submit" class="btn btn-success rounded-pill px-4 shadow-sm" onclick="showLoading()">
+                        <div class="modal-footer bg-light border-0 p-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                            <button type="submit" class="btn btn-success btn-sm rounded-pill px-4 shadow-sm" onclick="showLoading()">
                                 <i class="bi bi-save me-1"></i> บันทึกข้อมูล
                             </button>
                         </div>

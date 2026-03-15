@@ -5080,9 +5080,8 @@ class DebtorController extends Controller
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $debtor = collect($debtor)->map(function ($item) {
-            $item->days = Carbon::parse($item->vstdate)->diffInDays(Carbon::now());
-            // Balance logic: (receive + receive_pp + adj_inc - adj_dec) - debtor
             $item->balance = ((float)$item->receive + (float)($item->receive_pp ?? 0) + (float)$item->adj_inc - (float)$item->adj_dec) - (float)$item->debtor;
+            $item->days = ($item->balance >= -0.01) ? 0 : Carbon::parse($item->vstdate)->diffInDays(Carbon::today());
             return $item;
         });
 
@@ -5322,9 +5321,8 @@ class DebtorController extends Controller
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $debtor = collect($debtor)->map(function ($item) {
-            $item->days = Carbon::parse($item->vstdate)->diffInDays(Carbon::now());
-            // Balance logic: (receive + receive_pp + adj_inc - adj_dec) - debtor
             $item->balance = ((float)$item->receive + (float)($item->receive_pp ?? 0) + (float)$item->adj_inc - (float)$item->adj_dec) - (float)$item->debtor;
+            $item->days = ($item->balance >= -0.01) ? 0 : Carbon::parse($item->vstdate)->diffInDays(Carbon::today());
             return $item;
         });
 
@@ -5505,11 +5503,12 @@ class DebtorController extends Controller
 
         if ($search) {
             $debtor = DB::connection('hosxp')->select("
-                SELECT d.vstdate,d.vsttime,d.hn,d.vn,d.ptname,d.mobile_phone_number, d.pttype,d.hospmain,
+                    SELECT d.vstdate,d.vsttime,d.hn,d.vn,d.ptname,d.mobile_phone_number, d.pttype,d.hospmain,
                     d.pdx,d.income,d.paid_money,d.rcpt_money,d.debtor,d.debtor_lock, 
                     IF(r.bill_amount IS NOT NULL, 'กระทบยอดแล้ว', d.status) AS status,
                     d.charge_date,d.charge_no,d.charge,d.receive_date, d.receive_no,  
                     IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.bill_amount,0)) AS receive,
+                    d.adj_inc, d.adj_dec,
                     d.repno, r.rcpno, r.bill_amount,IFNULL(t.visit,0) AS visit,
                     CASE WHEN IF( d.receive IS NOT NULL AND d.receive > 0, d.receive,IFNULL(r.bill_amount,0)) 
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.01 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
@@ -5530,6 +5529,7 @@ class DebtorController extends Controller
                     IF(r.bill_amount IS NOT NULL, 'กระทบยอดแล้ว', d.status) AS status,
                     d.charge_date,d.charge_no,d.charge,d.receive_date, d.receive_no,  
                     IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.bill_amount,0)) AS receive,
+                    d.adj_inc, d.adj_dec,
                     d.repno, r.rcpno, r.bill_amount,IFNULL(t.visit,0) AS visit,
                     CASE WHEN IF( d.receive IS NOT NULL AND d.receive > 0, d.receive,IFNULL(r.bill_amount,0)) 
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.01 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
@@ -5785,6 +5785,8 @@ class DebtorController extends Controller
             'receive_date' => $request->input('receive_date'),
             'receive_no' => $request->input('receive_no'),
             'receive' => $request->input('receive'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
         ]);
@@ -5803,7 +5805,8 @@ class DebtorController extends Controller
         $end_date = Session::get('end_date');
         $debtor = DB::connection('hosxp')->select("
             SELECT d.vstdate,COUNT(DISTINCT d.vn) AS anvn, SUM(d.debtor) AS debtor,
-                SUM(IF(d.receive IS NOT NULL AND d.receive > 0, d.receive,IFNULL(r.bill_amount,0))) AS receive
+                SUM(IF(d.receive IS NOT NULL AND d.receive > 0, d.receive,IFNULL(r.bill_amount,0))) AS receive,
+                SUM(IFNULL(d.adj_inc,0)) AS adj_inc, SUM(IFNULL(d.adj_dec,0)) AS adj_dec
             FROM hrims.debtor_1102050102_106 d
             LEFT JOIN (SELECT r.vn, r.bill_date,SUM(r.bill_amount) AS bill_amount,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
@@ -12980,10 +12983,13 @@ class DebtorController extends Controller
     public function _1102050102_106_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
         foreach ($ids as $id) {
             $row = \App\Models\Debtor_1102050102_106::where('vn', $id)->first();
-            if ($row) {
-                // Detect receive field
+            if ($row && $row->debtor_lock == 'Y') {
                 $receive = 0;
                 if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
                 elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
@@ -12998,12 +13004,13 @@ class DebtorController extends Controller
                     $row->adj_inc = 0;
                     $row->adj_dec = abs($diff);
                 }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
                 $row->save();
+                $adjusted_count++;
             }
         }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
 
     public function _1102050102_107_bulk_adj(Request $request)

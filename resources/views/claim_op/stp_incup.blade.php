@@ -101,8 +101,10 @@
                                     <th class="text-center small">ACTION</th>
                                     <th class="text-center small">สถานะ</th>
                                     <th class="text-center">วัน-เวลา | Q</th>  
-                                    <th class="text-center">HN</th>    
-                                    <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
+                                    <th class="text-center">HN</th>
+                                    <th class="text-center">CID</th>    
+                                    <th class="text-center">ชื่อ-สกุล</th>
+                                    <th class="text-center">สิทธิ</th>
                                     <th class="text-center" width="10%">อาการสำคัญ</th>
                                     <th class="text-center">PDX | ICD9</th>
                                     <th class="text-center small">ค่ารักษา</th> 
@@ -145,13 +147,10 @@
                                         <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
                                         <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
                                     </td>            
-                                    <td class="text-center fw-bold text-primary small">{{$row->hn}}</td> 
-                                    <td class="text-start">
-                                        <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
-                                        <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}} [{{$row->hospmain}}]">
-                                            {{$row->pttype}} [{{$row->hospmain}}]
-                                        </div>
-                                    </td> 
+                                    <td class="text-center small">{{$row->hn}}</td>
+                                    <td class="text-center small">{{$row->cid}}</td> 
+                                    <td class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</td> 
+                                    <td class="text-dark small text-truncate" style="max-width: 200px;">[{{$row->hospmain}}] {{$row->pttype}} </td> 
                                     <td class="text-start small text-muted text-wrap">{{ $row->cc }}</td>
                                     <td class="text-center small">
                                         <div class="fw-bold text-dark">{{ $row->pdx }}</div>
@@ -172,7 +171,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="8" class="text-end text-muted small px-3">รวมที่ค้นพบ:</th>
+                                    <th colspan="10" class="text-end text-muted small px-3">รวม:</th>
                                     <th class="text-end small">{{ number_format($sum_income_s,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money_s,2) }}</th>
                                     <th></th>
@@ -193,8 +192,10 @@
                                     <th class="text-center">Action</th>
                                     <th class="text-center">Claim Status</th>
                                     <th class="text-center">วัน-เวลา | Q</th>  
-                                    <th class="text-center">HN</th> 
-                                    <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
+                                    <th class="text-center">HN</th>
+                                    <th class="text-center">CID</th> 
+                                    <th class="text-center">ชื่อ-สกุล</th>
+                                    <th class="text-center">สิทธิ</th>
                                     <th class="text-center" width="10%">อาการสำคัญ</th>
                                     <th class="text-center">PDX | ICD9</th>
                                     <th class="text-center small">ค่ารักษา</th> 
@@ -230,13 +231,10 @@
                                         <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
                                         <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
                                     </td>            
-                                    <td class="text-center fw-bold text-primary small">{{$row->hn}}</td>
-                                    <td class="text-start">
-                                        <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
-                                        <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}} [{{$row->hospmain}}]">
-                                            {{$row->pttype}} [{{$row->hospmain}}]
-                                        </div>
-                                    </td> 
+                                    <td class="text-center small">{{$row->hn}}</td>
+                                    <td class="text-center small">{{$row->cid}}</td> 
+                                    <td class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</td> 
+                                    <td class="text-dark small text-truncate" style="max-width: 200px;">[{{$row->hospmain}}] {{$row->pttype}} </td> 
                                     <td class="text-start small text-muted text-wrap">{{ $row->cc }}</td>
                                     <td class="text-center small">
                                         <div class="fw-bold text-dark">{{ $row->pdx }}</div>
@@ -267,7 +265,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="8" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                    <th colspan="10" class="text-end text-muted small px-3">รวม:</th>
                                     <th class="text-end small">{{ number_format($sum_income_c,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money_c,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_ppfs_c,2) }}</th>

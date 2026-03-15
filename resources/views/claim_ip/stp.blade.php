@@ -109,8 +109,10 @@
                                     <th class="text-center">Admit</th>
                                     <th class="text-center">D/C</th>
                                     <th class="text-center">HN</th>
+                                    <th class="text-center">CID</th>
                                     <th class="text-center">AN</th>
-                                    <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
+                                    <th class="text-center">ชื่อ-สกุล</th>
+                                    <th class="text-center">สิทธิ</th>
                                     <th class="text-center">อายุ</th>
                                     <th class="text-center" width="15%">วินิจฉัยแพทย์</th>
                                     <th class="text-center">ICD10,ICD9</th>
@@ -145,12 +147,11 @@
                                     <td class="text-center small">{{$row->ward}}</td>
                                     <td class="text-center small">{{ DateThai($row->regdate) }}</td>
                                     <td class="text-center small">{{ DateThai($row->dchdate) }}</td>
-                                    <td class="text-center fw-bold text-primary small">{{$row->hn}}</td>
+                                    <td class="text-center small">{{$row->hn}}</td>
+                                    <td class="text-center small">{{$row->cid}}</td>
                                     <td class="text-center small">{{$row->an}}</td>
-                                    <td class="text-start">
-                                        <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
-                                        <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
-                                    </td> 
+                                    <td class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</td>
+                                    <td class="text-start small text-muted text-truncate" style="max-width: 150px;">[{{$row->hospmain}}] {{$row->pttype}}</td> 
                                     <td class="text-center small">{{ $row->age_y }}</td>
                                     <td class="text-start small text-muted text-wrap">{{ $row->diag_text_list }}</td>
                                     <td class="text-center small">
@@ -183,7 +184,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="12" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                    <th colspan="14" class="text-end text-muted small px-3">รวม:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>
@@ -207,8 +208,10 @@
                                     <th class="text-center">Admit</th>
                                     <th class="text-center">D/C</th>
                                     <th class="text-center">HN</th>
+                                    <th class="text-center">CID</th>
                                     <th class="text-center">AN</th>
-                                    <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
+                                    <th class="text-center">ชื่อ-สกุล</th>
+                                    <th class="text-center">สิทธิ</th>
                                     <th class="text-center">อายุ</th>
                                     <th class="text-center" width="15%">วินิจฉัยแพทย์</th>
                                     <th class="text-center">ICD10,ICD9</th>
@@ -250,12 +253,11 @@
                                     <td class="text-center small">{{$row->ward}}</td>
                                     <td class="text-center small">{{ DateThai($row->regdate) }}</td>
                                     <td class="text-center small">{{ DateThai($row->dchdate) }}</td>
-                                    <td class="text-center fw-bold text-primary small">{{$row->hn}}</td>
+                                    <td class="text-center small">{{$row->hn}}</td>
+                                    <td class="text-center small">{{$row->cid}}</td>
                                     <td class="text-center small">{{$row->an}}</td>
-                                    <td class="text-start">
-                                        <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
-                                        <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
-                                    </td> 
+                                    <td class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</td>
+                                    <td class="text-start small text-muted text-truncate" style="max-width: 150px;">[{{$row->hospmain}}] {{$row->pttype}}</td> 
                                     <td class="text-center small">{{ $row->age_y }}</td>
                                     <td class="text-start small text-muted text-wrap">{{ $row->diag_text_list }}</td>
                                     <td class="text-center small">
@@ -289,7 +291,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="12" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
+                                    <th colspan="14" class="text-end text-muted small px-3">รวม:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>

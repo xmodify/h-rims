@@ -519,7 +519,12 @@
             <div class="container-fluid px-lg-4">
                 <a class="navbar-brand-modern" href="{{ url('/') }}">
                     <i class="bi bi-shield-lock-fill" style="color: #6ed3ff;"></i>
-                    <span>RiMS</span>
+                    <div class="d-flex flex-column leading-none">
+                        <span class="fs-5 lh-1">RiMS</span>
+                        @if($hospital_name)
+                            <span class="d-none d-sm-block text-truncate" style="font-size: 0.65rem; color: rgba(255,255,255,0.8); font-weight: 500; letter-spacing: 0;">{{ $hospital_name }}</span>
+                        @endif
+                    </div>
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                     data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
@@ -1104,9 +1109,9 @@
 
                     <!-- Right Side Of Navbar -->
                     <ul class="navbar-nav ms-auto">
-                        <li class="nav-item d-flex align-items-center">
+                        <li class="nav-item d-flex align-items-center me-2">                             
                             <div class="nav-version-badge">
-                                V.69-03-12 23:00
+                                V.69-03-15 11:00
                             </div>
                         </li>
                         <!-- Authentication Links -->

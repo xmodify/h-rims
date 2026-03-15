@@ -34,10 +34,13 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <th class="text-center">กองทุนอื่น</th> 
                 <th class="text-center">PPFS</th> 
                 <th class="text-center">ลูกหนี้</th>
+                <th class="text-center">ปรับเพิ่ม</th>
+                <th class="text-center">ปรับลด</th>
                 <th class="text-center text-primary">ชดเชย</th> 
                 <th class="text-center text-primary">ชดเชย PPFS</th>
-                <th class="text-center text-primary">ผลต่าง</th>  
+                <th class="text-center text-primary">ยอดคงเหลือ</th>  
                 <th class="text-center text-primary">REP</th>   
+                <th class="text-center text-primary">อายุหนี้</th>
             </tr>     
             </thead> 
             <?php $count = 1 ; ?>
@@ -50,11 +53,10 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
 
             <?php $sum_ppfs = 0 ; ?>
 
-            <?php $sum_debtor = 0 ; ?>
-
-            <?php $sum_receive = 0 ; ?>
-
             <?php $sum_receive_pp = 0 ; ?>
+            <?php $sum_adj_inc = 0 ; ?>
+            <?php $sum_adj_dec = 0 ; ?>
+            <?php $sum_balance = 0 ; ?>
 
             @foreach($debtor as $row)          
             <tr>
@@ -71,10 +73,13 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="right">{{ number_format($row->other,2) }}</td>
                 <td align="right">{{ number_format($row->ppfs,2) }}</td>
                 <td align="right">{{ number_format($row->debtor,2) }}</td>
+                <td align="right">{{ number_format($row->adj_inc,2) }}</td>
+                <td align="right">{{ number_format($row->adj_dec,2) }}</td>
                 <td align="right">{{ number_format($row->receive,2) }}</td>
                 <td align="right">{{ number_format($row->receive_pp,2) }}</td>
-                <td align="right">{{ number_format($row->receive-$row->debtor,2) }}</td>
+                <td align="right">{{ number_format($row->balance,2) }}</td>
                 <td align="center">{{ $row->repno }}</td>
+                <td align="center">{{ $row->days }} วัน</td>
             </tr>                
             <?php $count++; ?>
 
@@ -86,11 +91,10 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
  
             <?php $sum_ppfs += $row->ppfs ; ?>
  
-            <?php $sum_debtor += $row->debtor ; ?>
- 
-            <?php $sum_receive += $row->receive ; ?>
-  
             <?php $sum_receive_pp += $row->receive_pp ; ?>
+            <?php $sum_adj_inc += $row->adj_inc ; ?>
+            <?php $sum_adj_dec += $row->adj_dec ; ?>
+            <?php $sum_balance += $row->balance ; ?>
     
             @endforeach   
             <tr>
@@ -100,9 +104,11 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="right"><strong>{{number_format($sum_other,2)}}&nbsp;</strong></td>
                 <td align="right"><strong>{{number_format($sum_ppfs,2)}}&nbsp;</strong></td>
                 <td align="right"><strong>{{number_format($sum_debtor,2)}}&nbsp;</strong></td>
+                <td align="right"><strong>{{number_format($sum_adj_inc,2)}}&nbsp;</strong></td>
+                <td align="right"><strong>{{number_format($sum_adj_dec,2)}}&nbsp;</strong></td>
                 <td align="right"><strong>{{number_format($sum_receive,2)}}&nbsp;</strong></td> 
                 <td align="right"><strong>{{number_format($sum_receive_pp,2)}}&nbsp;</strong></td> 
-                <td align="right"><strong>{{number_format($sum_receive-$sum_debtor,2)}}&nbsp;</strong></td>
+                <td align="right"><strong>{{number_format($sum_balance,2)}}&nbsp;</strong></td>
             </tr>          
         </table> 
     </div>

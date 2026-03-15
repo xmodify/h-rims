@@ -37,6 +37,9 @@ class Debtor_1102050101_209 extends Model
     'adj_dec',
     'adj_date',
     'adj_note',
+    'charge',
+    'charge_date',
+    'charge_no',
     ];
     public $timestamps = false;   
 }

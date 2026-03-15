@@ -2348,7 +2348,7 @@ class DebtorController extends Controller
 
         if ($search) {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,MAX(d.cid) AS cid,MAX(d.ptname) AS ptname,MAX(d.hipdata_code) AS hipdata_code,MAX(d.pttype) AS pttype,
+                SELECT d.vn,d.vstdate,d.vsttime,d.hn,MAX(d.an) AS an,MAX(d.cid) AS cid,MAX(d.ptname) AS ptname,MAX(d.hipdata_code) AS hipdata_code,MAX(d.pttype) AS pttype,
                     MAX(d.hospmain) AS hospmain,MAX(d.pdx) AS pdx,MAX(d.income) AS income,MAX(d.rcpt_money) AS rcpt_money,
                     MAX(d.kidney) AS kidney,MAX(d.cr) AS cr, MAX(d.anywhere) AS anywhere,MAX(d.ppfs) AS ppfs,MAX(d.debtor) AS debtor,
                     IFNULL(MAX(s.receive_total),0)+CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(MAX(sk.receive_total),0) ELSE 0 END AS receive,
@@ -2356,6 +2356,9 @@ class DebtorController extends Controller
                     IFNULL(MAX(s.round_no), MAX(sk.round_no)) AS stm_round_no,
                     IFNULL(MAX(s.receipt_date), MAX(sk.receipt_date)) AS stm_receipt_date,
                     IFNULL(MAX(s.receive_no), MAX(sk.receive_no)) AS stm_receive_no,
+                    MAX(d.status) AS status, MAX(d.adj_inc) AS adj_inc, MAX(d.adj_dec) AS adj_dec, MAX(d.adj_note) AS adj_note, MAX(d.adj_date) AS adj_date,
+                    MAX(d.charge_date) AS charge_date, MAX(d.charge_no) AS charge_no, MAX(d.charge) AS charge,
+                    MAX(d.receive_date) AS receive_date, MAX(d.receive_no) AS receive_no,
                     CASE WHEN (IFNULL(MAX(s.receive_total),0)+CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(MAX(sk.receive_total),0) ELSE 0 END
                     + IFNULL(MAX(d.adj_inc),0) - IFNULL(MAX(d.adj_dec),0) - MAX(d.debtor)) >= -0.01 THEN 0 ELSE DATEDIFF(CURDATE(), MAX(d.vstdate)) END AS days
                 FROM debtor_1102050101_216 d   
@@ -2372,7 +2375,7 @@ class DebtorController extends Controller
                 GROUP BY d.vn', [$search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime,d.hn,MAX(d.cid) AS cid,MAX(d.ptname) AS ptname,MAX(d.hipdata_code) AS hipdata_code,MAX(d.pttype) AS pttype,
+                SELECT d.vn,d.vstdate,d.vsttime,d.hn,MAX(d.an) AS an,MAX(d.cid) AS cid,MAX(d.ptname) AS ptname,MAX(d.hipdata_code) AS hipdata_code,MAX(d.pttype) AS pttype,
                     MAX(d.hospmain) AS hospmain,MAX(d.pdx) AS pdx,MAX(d.income) AS income,MAX(d.rcpt_money) AS rcpt_money,
                     MAX(d.kidney) AS kidney,MAX(d.cr) AS cr, MAX(d.anywhere) AS anywhere,MAX(d.ppfs) AS ppfs,MAX(d.debtor) AS debtor,
                     IFNULL(MAX(s.receive_total),0)+CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(MAX(sk.receive_total),0) ELSE 0 END AS receive,
@@ -2380,6 +2383,9 @@ class DebtorController extends Controller
                     IFNULL(MAX(s.round_no), MAX(sk.round_no)) AS stm_round_no,
                     IFNULL(MAX(s.receipt_date), MAX(sk.receipt_date)) AS stm_receipt_date,
                     IFNULL(MAX(s.receive_no), MAX(sk.receive_no)) AS stm_receive_no,
+                    MAX(d.status) AS status, MAX(d.adj_inc) AS adj_inc, MAX(d.adj_dec) AS adj_dec, MAX(d.adj_note) AS adj_note, MAX(d.adj_date) AS adj_date,
+                    MAX(d.charge_date) AS charge_date, MAX(d.charge_no) AS charge_no, MAX(d.charge) AS charge,
+                    MAX(d.receive_date) AS receive_date, MAX(d.receive_no) AS receive_no,
                     CASE WHEN (IFNULL(MAX(s.receive_total),0)+CASE WHEN MAX(d.kidney) > 0 THEN IFNULL(MAX(sk.receive_total),0) ELSE 0 END
                     + IFNULL(MAX(d.adj_inc),0) - IFNULL(MAX(d.adj_dec),0) - MAX(d.debtor)) >= -0.01 THEN 0 ELSE DATEDIFF(CURDATE(), MAX(d.vstdate)) END AS days
                 FROM debtor_1102050101_216 d   
@@ -11945,6 +11951,9 @@ class DebtorController extends Controller
             $row->adj_dec = $request->adj_dec;
             $row->adj_date = $request->adj_date;
             $row->adj_note = $request->adj_note;
+            $row->charge = $request->charge;
+            $row->charge_date = $request->charge_date;
+            $row->charge_no = $request->charge_no;
             $row->save();
             return back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
         }
@@ -12345,30 +12354,53 @@ class DebtorController extends Controller
     public function _1102050101_216_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_216::where('vn', $id)->first();
-            if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
 
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_216::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                // Fetch dynamic STM totals for this patient
+                $stm = DB::selectOne('
+                    SELECT 
+                        (SELECT IFNULL(SUM(receive_total), 0) - IFNULL(SUM(receive_pp), 0) 
+                         FROM stm_ucs 
+                         WHERE cid = ? AND vstdate = ? AND LEFT(vsttime, 5) = LEFT(?, 5)) as ucs_receive,
+                        (SELECT IFNULL(SUM(receive_total), 0) 
+                         FROM stm_ucs_kidney 
+                         WHERE cid = ? AND datetimeadm = ?) as kidney_receive
+                ', [$row->cid, $row->vstdate, $row->vsttime, $row->cid, $row->vstdate]);
+                
+                $receive = (float)($stm->ucs_receive ?? 0);
+                if ($row->kidney > 0) {
+                    $receive += (float)($stm->kidney_receive ?? 0);
+                }
+
+                // Balance = (receive + adj_inc - adj_dec) - debtor
+                // To make Balance = 0, we need: adj_inc - adj_dec = debtor - receive
+                $diff = (float)$row->debtor - $receive;
+
+                if ($diff >= 0) {
                     $row->adj_inc = $diff;
                     $row->adj_dec = 0;
                 } else {
                     $row->adj_inc = 0;
                     $row->adj_dec = abs($diff);
                 }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
+
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
                 $row->save();
+                $adjusted_count++;
             }
         }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
+
+        if ($adjusted_count == 0) {
+            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
 
     public function _1102050101_217_bulk_adj(Request $request)

@@ -3195,10 +3195,11 @@ class DebtorController extends Controller
 
         if ($search) {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
+                SELECT d.vn,d.an,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no, 
                     d.receive ,d.repno,s.receive_pp,IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
-                    CASE WHEN (IFNULL(d.receive, 0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
+                    d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
+                    CASE WHEN (IFNULL(d.receive, 0) + IFNULL(s.receive_pp, 0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_303 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
@@ -3208,10 +3209,11 @@ class DebtorController extends Controller
                 AND d.vstdate BETWEEN ? AND ?', [$search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
+                SELECT d.vn,d.an,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no, 
                     d.receive ,d.repno,s.receive_pp,IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
-                    CASE WHEN (IFNULL(d.receive, 0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
+                    d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
+                    CASE WHEN (IFNULL(d.receive, 0) + IFNULL(s.receive_pp, 0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_303 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
@@ -3408,6 +3410,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -12502,26 +12508,23 @@ class DebtorController extends Controller
     public function _1102050101_303_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_303::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050101_303::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
-
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
+                $stm = DB::table('stm_ucs')->where('cid', $row->cid)->where('vstdate', $row->vstdate)->whereRaw('LEFT(vsttime,5) = ?', [substr($row->vsttime, 0, 5)])->sum('receive_pp');
+                $balance = ((float)$row->receive + (float)$stm) - (float)$row->debtor;
+                $adj_val = 0 - $balance;
+                if ($adj_val > 0) {
+                    $row->adj_inc = $adj_val;
                     $row->adj_dec = 0;
                 } else {
                     $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
+                    $row->adj_dec = abs($adj_val);
                 }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->adj_date = $date;
+                $row->adj_note = $note;
                 $row->save();
             }
         }

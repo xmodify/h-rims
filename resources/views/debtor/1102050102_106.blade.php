@@ -189,12 +189,10 @@
                                     @else style="background-color: #FF7F7F;" {{-- แดง --}} @endif >
                                     {{ $row->days }} วัน
                                 </td>   
-                                <td align="right" width="9%">
-                                    @if($row->bill_amount == '')          
-                                        <button type="button" class="btn btn-warning btn-sm px-2 shadow-sm text-dark" data-bs-toggle="modal" data-bs-target="#receive-{{ str_replace('/', '-', $row->vn) }}"> 
-                                            <i class="bi bi-pencil-square"></i>
-                                        </button>
-                                    @endif 
+                                <td align="right" width="9%">                                           
+                                    <button type="button" class="btn btn-warning btn-sm px-2 shadow-sm text-dark" data-bs-toggle="modal" data-bs-target="#receive-{{ str_replace('/', '-', $row->vn) }}"> 
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>                            
                                     <a class="btn btn-outline-info btn-sm" href="{{ url('debtor/1102050102_106/tracking', $row->vn) }}" target="_blank">ติดตาม {{ $row->visit }}</a> 
                                 </td>
                                 <td align="center">

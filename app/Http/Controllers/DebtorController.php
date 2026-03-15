@@ -5508,7 +5508,7 @@ class DebtorController extends Controller
                     IF(r.bill_amount IS NOT NULL, 'กระทบยอดแล้ว', d.status) AS status,
                     d.charge_date,d.charge_no,d.charge,d.receive_date, d.receive_no,  
                     IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.bill_amount,0)) AS receive,
-                    d.adj_inc, d.adj_dec,
+                    d.adj_inc, d.adj_dec, d.adj_note, d.adj_date,
                     d.repno, r.rcpno, r.bill_amount,IFNULL(t.visit,0) AS visit,
                     CASE WHEN IF( d.receive IS NOT NULL AND d.receive > 0, d.receive,IFNULL(r.bill_amount,0)) 
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.01 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
@@ -5529,7 +5529,7 @@ class DebtorController extends Controller
                     IF(r.bill_amount IS NOT NULL, 'กระทบยอดแล้ว', d.status) AS status,
                     d.charge_date,d.charge_no,d.charge,d.receive_date, d.receive_no,  
                     IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.bill_amount,0)) AS receive,
-                    d.adj_inc, d.adj_dec,
+                    d.adj_inc, d.adj_dec, d.adj_note, d.adj_date,
                     d.repno, r.rcpno, r.bill_amount,IFNULL(t.visit,0) AS visit,
                     CASE WHEN IF( d.receive IS NOT NULL AND d.receive > 0, d.receive,IFNULL(r.bill_amount,0)) 
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.01 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
@@ -5787,6 +5787,8 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'adj_inc' => $request->input('adj_inc'),
             'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
         ]);

@@ -3789,6 +3789,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -12563,26 +12567,23 @@ class DebtorController extends Controller
     public function _1102050101_307_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_307::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050101_307::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
-
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
+                $stm = DB::table('stm_ucs')->where('cid', $row->cid)->where('vstdate', $row->vstdate)->whereRaw('LEFT(vsttime,5) = ?', [substr($row->vsttime, 0, 5)])->sum('receive_pp');
+                $balance = ((float)$row->receive + (float)$stm) - (float)$row->debtor;
+                $adj_val = 0 - $balance;
+                if ($adj_val > 0) {
+                    $row->adj_inc = $adj_val;
                     $row->adj_dec = 0;
                 } else {
                     $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
+                    $row->adj_dec = abs($adj_val);
                 }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->adj_date = $date;
+                $row->adj_note = $note;
                 $row->save();
             }
         }

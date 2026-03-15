@@ -3846,6 +3846,7 @@ class DebtorController extends Controller
                 SELECT d.vstdate,d.vsttime,d.vn,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.pdx,d.hospmain,
                     d.income,d.rcpt_money,d.kidney,d.debtor,IFNULL(d.receive,0)+IFNULL(s.receive,0) AS receive,d.repno,
                     s.repno AS rid,d.debtor_lock,d.status,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
+                    d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
                     s.round_no AS stm_round_no, s.receipt_date AS stm_receipt_date, s.receive_no AS stm_receive_no,
                     CASE WHEN (IFNULL(d.receive,0) + IFNULL(s.receive,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
@@ -3861,6 +3862,7 @@ class DebtorController extends Controller
                 SELECT d.vstdate,d.vsttime,d.vn,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.pdx,d.hospmain,
                     d.income,d.rcpt_money,d.kidney,d.debtor,IFNULL(d.receive,0)+IFNULL(s.receive,0) AS receive,d.repno,
                     s.repno AS rid,d.debtor_lock,d.status,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
+                    d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
                     s.round_no AS stm_round_no, s.receipt_date AS stm_receipt_date, s.receive_no AS stm_receive_no,
                     CASE WHEN (IFNULL(d.receive,0) + IFNULL(s.receive,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
@@ -4166,6 +4168,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -4218,7 +4224,9 @@ class DebtorController extends Controller
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
-                    d.charge,d.receive_date,d.receive_no,(IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
+                    d.charge,d.receive_date,d.receive_no,
+                    d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
+                    (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
                     + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,stm.repno,csop.rid,hd.rid_hd,d.debtor_lock,
                     CONCAT_WS(CHAR(44), stm.round_no, csop.round_no, hd.round_no) AS stm_round_no,
@@ -4250,7 +4258,9 @@ class DebtorController extends Controller
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
-                    d.charge,d.receive_date,d.receive_no,(IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
+                    d.charge,d.receive_date,d.receive_no,
+                    d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
+                    (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
                     + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,stm.repno,csop.rid,hd.rid_hd,d.debtor_lock,
                     CONCAT_WS(CHAR(44), stm.round_no, csop.round_no, hd.round_no) AS stm_round_no,
@@ -4472,6 +4482,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -12622,26 +12636,23 @@ class DebtorController extends Controller
     public function _1102050101_309_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_309::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050101_309::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
-
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
+                $stm = DB::table('stm_sss_kidney')->where('cid', $row->cid)->where('vstdate', $row->vstdate)->sum(DB::raw('IFNULL(amount,0)+ IFNULL(epopay,0)+ IFNULL(epoadm,0)'));
+                $balance = ((float)$row->receive + (float)$stm) - (float)$row->debtor;
+                $adj_val = 0 - $balance;
+                if ($adj_val > 0) {
+                    $row->adj_inc = $adj_val;
                     $row->adj_dec = 0;
                 } else {
                     $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
+                    $row->adj_dec = abs($adj_val);
                 }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->adj_date = $date;
+                $row->adj_note = $note;
                 $row->save();
             }
         }
@@ -12680,26 +12691,29 @@ class DebtorController extends Controller
     public function _1102050101_401_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_401::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050101_401::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
-
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
+                $stm1 = DB::table('stm_ofc')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where(DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))->sum('receive_total');
+                $stm2 = DB::table('stm_ofc_csop')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where(DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))->where('sys', '<>', 'HD')->sum('amount');
+                $stm3 = 0;
+                if ($row->kidney > 0) {
+                    $stm3 = DB::table('stm_ofc_csop')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where('sys', 'HD')->sum('amount');
+                }
+                
+                $balance = ((float)$row->receive + (float)$stm1 + (float)$stm2 + (float)$stm3) - (float)$row->debtor;
+                $adj_val = 0 - $balance;
+                if ($adj_val > 0) {
+                    $row->adj_inc = $adj_val;
                     $row->adj_dec = 0;
                 } else {
                     $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
+                    $row->adj_dec = abs($adj_val);
                 }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->adj_date = $date;
+                $row->adj_note = $note;
                 $row->save();
             }
         }

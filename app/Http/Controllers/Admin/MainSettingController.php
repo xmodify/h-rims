@@ -178,18 +178,18 @@ class MainSettingController extends Controller
             }
             
             $debtorColumns = [
-                'adj_inc' => ['type' => 'decimal', 'params' => [10, 2], 'nullable' => true, 'after' => 'repno'],
-                'adj_dec' => ['type' => 'decimal', 'params' => [10, 2], 'nullable' => true, 'after' => 'adj_inc'],
-                'adj_note' => ['type' => 'string', 'params' => [255], 'nullable' => true, 'after' => 'adj_dec'],
-                'adj_date' => ['type' => 'date', 'params' => [], 'nullable' => true, 'after' => 'adj_note'],
-                'debtor_change' => ['type' => 'decimal', 'params' => [10, 2], 'nullable' => true, 'after' => 'adj_date'],
                 'charge_date' => ['type' => 'date', 'params' => [], 'nullable' => true, 'after' => 'status'],
                 'charge_no' => ['type' => 'string', 'params' => [100], 'nullable' => true, 'after' => 'charge_date'],
                 'charge' => ['type' => 'decimal', 'params' => [10, 2], 'nullable' => true, 'after' => 'charge_no'],
                 'receive_date' => ['type' => 'date', 'params' => [], 'nullable' => true, 'after' => 'charge'],
                 'receive_no' => ['type' => 'string', 'params' => [100], 'nullable' => true, 'after' => 'receive_date'],
                 'receive' => ['type' => 'decimal', 'params' => [10, 2], 'nullable' => true, 'after' => 'receive_no'],
-                'repno' => ['type' => 'string', 'params' => [100], 'nullable' => true, 'after' => 'receive']
+                'repno' => ['type' => 'string', 'params' => [100], 'nullable' => true, 'after' => 'receive'],
+                'adj_inc' => ['type' => 'decimal', 'params' => [10, 2], 'nullable' => true, 'after' => 'repno'],
+                'adj_dec' => ['type' => 'decimal', 'params' => [10, 2], 'nullable' => true, 'after' => 'adj_inc'],
+                'adj_note' => ['type' => 'string', 'params' => [255], 'nullable' => true, 'after' => 'adj_dec'],
+                'adj_date' => ['type' => 'date', 'params' => [], 'nullable' => true, 'after' => 'adj_note'],
+                'debtor_change' => ['type' => 'decimal', 'params' => [10, 2], 'nullable' => true, 'after' => 'adj_date']
             ];
 
             $upgradedTables = 0;
@@ -206,7 +206,8 @@ class MainSettingController extends Controller
                     }
                     
                     if (!empty($colsToAdd)) {
-                        Schema::table($tableName, function (Blueprint $table) use ($colsToAdd) {
+                        $currentColsListing = $currentCols; // ใช้ list เดิมที่ดึงมาแล้วสำหรับการเช็ค safety after
+                        Schema::table($tableName, function (Blueprint $table) use ($colsToAdd, &$currentColsListing) {
                             foreach ($colsToAdd as $colName => $colDef) {
                                 $method = $colDef['type'];
                                 $params = $colDef['params'];
@@ -215,9 +216,15 @@ class MainSettingController extends Controller
                                 if ($colDef['nullable']) {
                                     $column->nullable();
                                 }
+                                
                                 if (isset($colDef['after'])) {
-                                    $column->after($colDef['after']);
+                                    // Safety Check: ตรวจสอบว่าคอลัมน์ที่จะไปต่อท้าย (after) มีอยู่ในตารางจริงๆ หรือเพิ่งถูกสร้างใน batch นี้
+                                    if (in_array($colDef['after'], $currentColsListing)) {
+                                        $column->after($colDef['after']);
+                                    }
                                 }
+                                // เพิ่มชื่อคอลัมน์ที่เพิ่งสร้างเข้าไปใน list เพื่อให้ตัวถัดไปสามารถอ้างอิง after ได้
+                                $currentColsListing[] = $colName;
                             }
                         });
                         $addedColumnsLog[] = $tableName;

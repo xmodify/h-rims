@@ -5507,17 +5507,17 @@ class DebtorController extends Controller
                     d.pdx,d.income,d.paid_money,d.rcpt_money,d.debtor,d.debtor_lock, 
                     IF(r.bill_amount IS NOT NULL, 'กระทบยอดแล้ว', d.status) AS status,
                     d.charge_date,d.charge_no,d.charge,d.receive_date, d.receive_no,  
-                    IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.bill_amount,0)) AS receive,
+                    IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.bill_amount,0) - d.rcpt_money) AS receive,
                     d.adj_inc, d.adj_dec, d.adj_note, d.adj_date,
                     d.repno, r.rcpno, r.bill_amount,IFNULL(t.visit,0) AS visit,
-                    CASE WHEN IF( d.receive IS NOT NULL AND d.receive > 0, d.receive,IFNULL(r.bill_amount,0)) 
-                    + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.01 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
+                    CASE WHEN (IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.bill_amount,0) - d.rcpt_money)
+                    + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.05 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM hrims.debtor_1102050102_106 d
-                LEFT JOIN (SELECT r.vn,r.bill_date,SUM(r.bill_amount) AS bill_amount,
+                LEFT JOIN (SELECT r.vn, SUM(r.bill_amount) AS bill_amount,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                     FROM rcpt_print r
                     WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)   
-                    GROUP BY r.vn, r.bill_date) r ON r.vn = d.vn AND r.bill_date > d.vstdate
+                    GROUP BY r.vn) r ON r.vn = d.vn
                 LEFT JOIN (SELECT vn, COUNT(vn) AS visit  FROM hrims.debtor_1102050102_106_tracking
                     GROUP BY vn) t ON t.vn = d.vn
                 WHERE (d.ptname LIKE CONCAT('%', ?, '%') OR d.hn LIKE CONCAT('%', ?, '%')) 
@@ -5528,17 +5528,17 @@ class DebtorController extends Controller
                     d.pdx,d.income,d.paid_money,d.rcpt_money,d.debtor,d.debtor_lock, 
                     IF(r.bill_amount IS NOT NULL, 'กระทบยอดแล้ว', d.status) AS status,
                     d.charge_date,d.charge_no,d.charge,d.receive_date, d.receive_no,  
-                    IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.bill_amount,0)) AS receive,
+                    IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.bill_amount,0) - d.rcpt_money) AS receive,
                     d.adj_inc, d.adj_dec, d.adj_note, d.adj_date,
                     d.repno, r.rcpno, r.bill_amount,IFNULL(t.visit,0) AS visit,
-                    CASE WHEN IF( d.receive IS NOT NULL AND d.receive > 0, d.receive,IFNULL(r.bill_amount,0)) 
-                    + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.01 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
+                    CASE WHEN (IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.bill_amount,0) - d.rcpt_money)
+                    + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.05 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM hrims.debtor_1102050102_106 d
-                LEFT JOIN (SELECT r.vn,r.bill_date,SUM(r.bill_amount) AS bill_amount,
+                LEFT JOIN (SELECT r.vn, SUM(r.bill_amount) AS bill_amount,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                     FROM rcpt_print r
                     WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)   
-                    GROUP BY r.vn, r.bill_date) r ON r.vn = d.vn AND r.bill_date > d.vstdate
+                    GROUP BY r.vn) r ON r.vn = d.vn
                 LEFT JOIN (SELECT vn, COUNT(vn) AS visit  FROM hrims.debtor_1102050102_106_tracking
                     GROUP BY vn) t ON t.vn = d.vn
                 WHERE d.vstdate BETWEEN ? AND ?", [$start_date, $end_date]);
@@ -6081,6 +6081,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -6131,8 +6135,10 @@ class DebtorController extends Controller
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
-                    d.charge,d.receive_date,d.receive_no,(IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
+                    d.charge,d.receive_date,d.receive_no, d.receive AS receive_manual,
+                    (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
                     + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
+                    d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,csop.rid,hd.rid_hd,d.debtor_lock,
                     CONCAT_WS(CHAR(44), stm.round_no, csop.round_no, hd.round_no) AS stm_round_no,
                     CONCAT_WS(CHAR(44), stm.receipt_date, csop.receipt_date, hd.receipt_date) AS stm_receipt_date,
@@ -6163,8 +6169,10 @@ class DebtorController extends Controller
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
-                    d.charge,d.receive_date,d.receive_no,(IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
+                    d.charge,d.receive_date,d.receive_no, d.receive AS receive_manual,
+                    (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
                     + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
+                    d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,csop.rid,hd.rid_hd,d.debtor_lock,
                     CONCAT_WS(CHAR(44), stm.round_no, csop.round_no, hd.round_no) AS stm_round_no,
                     CONCAT_WS(CHAR(44), stm.receipt_date, csop.receipt_date, hd.receipt_date) AS stm_receipt_date,
@@ -6198,7 +6206,8 @@ class DebtorController extends Controller
                 IFNULL(ch.kidney_price,0) AS kidney,IFNULL(ch.ppfs_price,0) AS ppfs,IFNULL(ch.other_price,0)  AS other,
                 IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.kidney_price,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0) AS ofc,
                 IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.ppfs_price,0)-IFNULL(ch.other_price,0) AS debtor,
-                ch.kidney_list,ch.ppfs_list,ch.other_list,oe.upload_datetime AS claim,"ยืนยันลูกหนี้" AS status  
+                ch.kidney_list,ch.ppfs_list,ch.other_list,oe.upload_datetime AS claim,"ยืนยันลูกหนี้" AS status,
+                0 AS receive_manual, 0 AS receive, 0 AS adj_inc, 0 AS adj_dec, NULL AS adj_date, NULL AS adj_note, NULL AS charge_date, NULL AS charge_no, 0 AS charge, NULL AS receive_date, NULL AS receive_no, NULL AS repno
             FROM ovst o 
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
@@ -6385,6 +6394,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -12990,25 +13003,41 @@ class DebtorController extends Controller
         $adjusted_count = 0;
 
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_106::where('vn', $id)->first();
+            $row = DB::connection('hosxp')->selectOne("
+                SELECT d.*, IFNULL(r.bill_amount,0) AS total_bill
+                FROM hrims.debtor_1102050102_106 d
+                LEFT JOIN (
+                    SELECT vn, SUM(bill_amount) AS bill_amount
+                    FROM rcpt_print
+                    WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = rcpt_print.rcpno)
+                    GROUP BY vn
+                ) r ON r.vn = d.vn
+                WHERE d.vn = ?
+            ", [$id]);
+
             if ($row && $row->debtor_lock == 'Y') {
                 $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                if ($row->receive > 0) {
+                    $receive = $row->receive;
+                } else {
+                    $receive = max(0, (float)$row->total_bill - (float)$row->rcpt_money);
+                }
 
                 $diff = (float)$row->debtor - (float)$receive;
+                $update_data = [
+                    'adj_date' => $adj_date,
+                    'adj_note' => $adj_note
+                ];
+
                 if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
+                    $update_data['adj_inc'] = $diff;
+                    $update_data['adj_dec'] = 0;
                 } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
+                    $update_data['adj_inc'] = 0;
+                    $update_data['adj_dec'] = abs($diff);
                 }
-                $row->adj_date = $adj_date;
-                $row->adj_note = $adj_note;
-                $row->save();
+
+                \App\Models\Debtor_1102050102_106::where('vn', $id)->update($update_data);
                 $adjusted_count++;
             }
         }
@@ -13047,8 +13076,12 @@ class DebtorController extends Controller
     public function _1102050102_108_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_108::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050102_108::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
                 // Detect receive field
                 $receive = 0;
@@ -13065,12 +13098,13 @@ class DebtorController extends Controller
                     $row->adj_inc = 0;
                     $row->adj_dec = abs($diff);
                 }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
                 $row->save();
+                $adjusted_count++;
             }
         }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
 
     public function _1102050102_109_bulk_adj(Request $request)

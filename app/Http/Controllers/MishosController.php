@@ -1229,10 +1229,10 @@ class MishosController extends Controller
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
 				INNER JOIN opitemrece o1 ON o1.vn=o.vn
-				INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("13001","30104")
+				INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("13001")
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
 				WHERE op.vstdate BETWEEN ? AND ? 
-				AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001","30104")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
+				AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
                 LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
                     FROM hrims.stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) stm ON stm.cid = pt.cid
                     AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
@@ -1256,12 +1256,12 @@ class MishosController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
 			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("Z130")
-			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001","30104"))
+			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
 			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
 			WHERE op.vstdate BETWEEN ? AND ?
-			AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001","30104")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
+			AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
             LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
                 FROM hrims.stm_ucs 
                 WHERE vstdate BETWEEN ? AND ?

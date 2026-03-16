@@ -225,7 +225,7 @@
                                     <td class="text-end" style="color:green">{{ number_format($sum_receive,2) }}</td>
                                     <td class="text-end" style="color:blue">{{ number_format($sum_adj_inc,2) }}</td>
                                     <td class="text-end" style="color:red">{{ number_format($sum_adj_dec,2) }}</td>
-                                    <td class="text-end" style="color:red">
+                                    <td class="text-end" style="color:@if($sum_balance > 0.05) green @elseif($sum_balance < -0.05) red @else black @endif">
                                         {{ number_format($sum_balance, 2) }}
                                     </td>
                                     <td colspan="4"></td>

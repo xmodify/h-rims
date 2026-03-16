@@ -6164,7 +6164,7 @@ class DebtorController extends Controller
                     FROM stm_ucs GROUP BY hn, vstdate, LEFT(vsttime,5)) su ON su.hn = d.hn 
                     AND su.vstdate = d.vstdate AND su.vsttime5 = LEFT(d.vsttime,5)
                 WHERE (d.ptname LIKE CONCAT('%', ?, '%') OR d.hn LIKE CONCAT('%', ?, '%'))
-                AND d.vstdate BETWEEN ? AND ?", [$start_date, $end_date, $search]);
+                AND d.vstdate BETWEEN ? AND ?", [$search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
@@ -6462,6 +6462,7 @@ class DebtorController extends Controller
             })
             ->orderBy('vstdate')->get()
             ->map(function ($item) {
+                $item->receive_manual = $item->receive; // Original manual value
                 if (($item->receive + ($item->adj_inc ?? 0) - ($item->adj_dec ?? 0) - $item->debtor) >= -0.01) {
                     $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
                 } else {
@@ -6474,7 +6475,9 @@ class DebtorController extends Controller
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
                 IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ems.other_price,0) AS other,ems.other_list,
-                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ems.other_price,0) AS debtor,"ยืนยันลูกหนี้" AS status  
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ems.other_price,0) AS debtor,"ยืนยันลูกหนี้" AS status,
+                0 AS receive_manual, 0 AS receive, 0 AS adj_inc, 0 AS adj_dec, NULL AS adj_date, NULL AS adj_note,
+                NULL AS charge_date, NULL AS charge_no, 0 AS charge, NULL AS receive_date, NULL AS receive_no, NULL AS repno
             FROM ovst o  
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
@@ -6642,6 +6645,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -13139,15 +13146,36 @@ class DebtorController extends Controller
     public function _1102050102_110_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_110::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050102_110::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                // Get true receive including STM payments (same as index query)
+                // ไม่เอา ppfs มาคำนวณตามที่แจ้ง
+                $row_calc = DB::selectOne("
+                    SELECT (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
+                        + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive_calc
+                    FROM debtor_1102050102_110 d
+                    LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(receive_total) AS receive_total
+                        FROM stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
+                        AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)
+                    LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount
+                        FROM stm_ofc_csop WHERE sys <> 'HD' GROUP BY hn, vstdate, LEFT(vsttime,5)) csop 
+                        ON csop.hn = d.hn  AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5)
+                    LEFT JOIN (SELECT hn, vstdate,SUM(amount) AS amount
+                        FROM stm_ofc_csop WHERE sys = 'HD' GROUP BY hn, vstdate) hd ON hd.hn = d.hn  AND hd.vstdate = d.vstdate
+                    WHERE d.vn = ?", [$id]);
+
+                $receive = $row_calc ? (float)$row_calc->receive_calc : (float)$row->receive;
+
+                // Check current balance
+                $current_balance = ($receive + (float)($row->adj_inc ?? 0) - (float)($row->adj_dec ?? 0)) - (float)$row->debtor;
+                if (abs($current_balance) < 0.01) {
+                    continue;
+                }
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -13157,12 +13185,17 @@ class DebtorController extends Controller
                     $row->adj_inc = 0;
                     $row->adj_dec = abs($diff);
                 }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
                 $row->save();
+                $adjusted_count++;
             }
         }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
+        
+        if ($adjusted_count == 0) {
+            return back()->with('warning', 'ไม่มีรายการที่ต้องปรับปรุง (ยอดคงเหลือเป็น 0 หรือ ยังไม่ได้ Lock)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
 
     public function _1102050102_111_bulk_adj(Request $request)
@@ -13197,15 +13230,21 @@ class DebtorController extends Controller
     public function _1102050102_602_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_602::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050102_602::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                // Detect receive field (ไม่เอา ppfs มาคำนวณตามที่แจ้ง)
+                $receive = (float)$row->receive;
+
+                // Check current balance
+                $current_balance = ($receive + (float)($row->adj_inc ?? 0) - (float)($row->adj_dec ?? 0)) - (float)$row->debtor;
+                if (abs($current_balance) < 0.01) {
+                    continue;
+                }
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -13215,12 +13254,17 @@ class DebtorController extends Controller
                     $row->adj_inc = 0;
                     $row->adj_dec = abs($diff);
                 }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
                 $row->save();
+                $adjusted_count++;
             }
         }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
+        
+        if ($adjusted_count == 0) {
+            return back()->with('warning', 'ไม่มีรายการที่ต้องปรับปรุง (ยอดคงเหลือเป็น 0 หรือ ยังไม่ได้ Lock)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
 
     public function _1102050102_603_bulk_adj(Request $request)

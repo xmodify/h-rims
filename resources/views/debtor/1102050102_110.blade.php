@@ -597,21 +597,64 @@
                 return;
             }
             Swal.fire({
-                title: 'ยืนยันการปรับปรุงยอด?',
-                text: "ต้องการปรับปรุงยอดลูกหนี้ที่เลือกให้เป็น 0 (สมดุล) ใช่หรือไม่?",
-                icon: 'question',
+                title: 'ปรับปรุงยอดเป็น 0',
+                html: `
+                    <div class="text-start">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">หมายเหตุการปรับปรุง</label>
+                            <input type="text" id="blk_note" class="form-control rounded-pill" value="ปรับปรุงยอดเป็น 0">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold">วันที่ปรับปรุง</label>
+                            <input type="text" id="blk_date_th" class="form-control rounded-pill datepicker_th" value="{{DateThai(date('Y-m-d'))}}" readonly>
+                            <input type="hidden" id="blk_date" value="{{date('Y-m-d')}}">
+                        </div>
+                        <div style="background-color: #e3f2fd; border-left: 4px solid #007bff; padding: 10px;">
+                            <p style="color: #0056b3; margin: 0; font-size: 14px;">
+                                <i class="bi bi-info-circle-fill me-1"></i> ระบบจะปรับเพิ่ม หรือ ปรับลดเพื่อให้ยอดคงเหลือเป็น 0 เฉพาะรายการที่ <b>Lock และยืนยันแล้ว</b> เท่านั้น
+                            </p>
+                        </div>
+                    </div>
+                `,
+                icon: 'info',
                 showCancelButton: true,
                 confirmButtonColor: '#ffc107',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: 'ใช่, ปรับปรุงเลย!',
-                cancelButtonText: 'ยกเลิก'
+                confirmButtonText: 'ยืนยันปรับปรุง',
+                cancelButtonText: 'ยกเลิก',
+                didOpen: () => {
+                    $('#blk_date_th').datepicker({
+                        format: 'dd/mm/yyyy',
+                        autoclose: true,
+                        language: 'th',
+                        thaiyear: true
+                    }).on('changeDate', (e) => {
+                        if (e.date) {
+                            const y = e.date.getFullYear(), m=('0'+(e.date.getMonth()+1)).slice(-2), d=('0'+e.date.getDate()).slice(-2);
+                            $('#blk_date').val(y+'-'+m+'-'+d);
+                        }
+                    });
+                },
+                preConfirm: () => {
+                    return {
+                        note: $('#blk_note').val(),
+                        date: $('#blk_date').val()
+                    }
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
                     showLoading();
-                    let form = document.getElementById('form-delete');
-                    form.action = "{{ url('debtor/1102050102_110_bulk_adj') }}";
-                    form.method = "POST";
-                    form.submit();
+                    let f = document.createElement('form');
+                    f.method = 'POST';
+                    f.action = "{{ url('debtor/1102050102_110_bulk_adj') }}";
+                    f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'_token', value:'{{csrf_token()}}'}));
+                    f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'bulk_adj_note', value:result.value.note}));
+                    f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'bulk_adj_date', value:result.value.date}));
+                    selected.forEach(id => {
+                        f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'checkbox_d[]', value:id}));
+                    });
+                    document.body.appendChild(f);
+                    f.submit();
                 }
             });
         }
@@ -625,14 +668,14 @@
                 return;
             }
             Swal.fire({
-            title: 'ยืนยัน?',
-            text: "ต้องการลบลูกหนี้รายการที่เลือกใช่หรือไม่?",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'ใช่, ลบเลย!',
-            cancelButtonText: 'ยกเลิก'
+                title: 'ยืนยัน?',
+                text: "ต้องการลบลูกหนี้รายการที่เลือกใช่หรือไม่?",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'ใช่, ลบเลย!',
+                cancelButtonText: 'ยกเลิก'
             }).then((result) => {
                 if (result.isConfirmed) {
                     showLoading();
@@ -671,13 +714,13 @@
     <script>
         function confirmUnlock(id) {
             Swal.fire({
-                title: 'ยืนยันการปลดล็อค?',
+                title: 'ยืนยัน?',
                 text: "ต้องการ Unlock รายการนี้ใช่หรือไม่?",
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#28a745',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: 'ใช่, ปลดล็อคเลย!',
+                confirmButtonText: 'ยืนยัน',
                 cancelButtonText: 'ยกเลิก'
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -692,19 +735,20 @@
                     form.appendChild(csrfToken);
                     
                     document.body.appendChild(form);
+                    showLoading();
                     form.submit();
                 }
             });
         }
         function confirmLock(id) {
             Swal.fire({
-                title: 'ยืนยันการล็อค?',
+                title: 'ยืนยัน?',
                 text: "ต้องการ Lock รายการนี้ใช่หรือไม่?",
-                icon: 'warning',
+                icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#0d6efd',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: 'ใช่, ล็อคเลย!',
+                confirmButtonText: 'ยืนยัน',
                 cancelButtonText: 'ยกเลิก'
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -719,6 +763,7 @@
                     form.appendChild(csrfToken);
                     
                     document.body.appendChild(form);
+                    showLoading();
                     form.submit();
                 }
             });

@@ -17,7 +17,18 @@ class Debtor_1102050102_106_tracking extends Model
         'tracking_type',
         'tracking_no',
         'tracking_officer', 
-        'tracking_note',                
-    ];
+        'tracking_note',
+        'charge_date',
+        'charge_no',
+        'charge',
+        'receive_date',
+        'receive_no',
+        'receive',
+        'repno',
+        'status',
+        'adj_inc',
+        'adj_dec',
+        'adj_date',
+        'adj_note',];
    
 }

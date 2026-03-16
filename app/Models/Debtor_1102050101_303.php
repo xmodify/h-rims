@@ -11,6 +11,8 @@ class Debtor_1102050101_303 extends Model
 
     protected $table = 'debtor_1102050101_303'; 
     protected $primaryKey = 'vn';
+    public $incrementing = false;
+    protected $keyType = 'string';
     protected $fillable = [  
         'vn',
         'hn', 

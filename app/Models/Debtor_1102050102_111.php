@@ -11,6 +11,8 @@ class Debtor_1102050102_111 extends Model
 
     protected $table = 'debtor_1102050102_111'; 
     protected $primaryKey = 'an';
+    public $incrementing = false;
+    protected $keyType = 'string';
     protected $fillable = [
         'an',   
         'vn',
@@ -40,6 +42,10 @@ class Debtor_1102050102_111 extends Model
     'adj_dec',
     'adj_date',
     'adj_note',
-    ];
+        'charge_date',
+        'charge_no',
+        'charge',
+        'receive_date',
+        'receive_no',];
     public $timestamps = false;   
 }

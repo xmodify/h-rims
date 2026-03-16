@@ -948,7 +948,7 @@ class DebtorController extends Controller
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
 
 
-        $debtor = Debtor_1102050101_103::whereBetween('vstdate', [$start_date, $end_date])
+        $debtor = Debtor_1102050101_103::select('*', DB::raw('receive AS receive_manual'))->whereBetween('vstdate', [$start_date, $end_date])
             ->where(function ($query) use ($search) {
                 $query->where('ptname', 'like', '%' . $search . '%');
                 $query->orwhere('hn', 'like', '%' . $search . '%');
@@ -1170,7 +1170,7 @@ class DebtorController extends Controller
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search = $request->search ?: Session::get('search');
 
-        $debtor = Debtor_1102050101_109::whereBetween('vstdate', [$start_date, $end_date])
+        $debtor = Debtor_1102050101_109::select('*', DB::raw('receive AS receive_manual'))->whereBetween('vstdate', [$start_date, $end_date])
             ->where(function ($query) use ($search) {
                 $query->where('ptname', 'like', '%' . $search . '%');
                 $query->orwhere('hn', 'like', '%' . $search . '%');
@@ -1406,42 +1406,32 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,s.receive_pp,d.repno,
-                    IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.receive,s.receive_pp,d.repno,
+                    IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
+                    d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change,
+                    d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no,
+                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
+                    ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_201 d   
                 LEFT JOIN ( SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
                     AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%"))
                 AND d.vstdate BETWEEN ? AND ?', [$search, $search, $start_date, $end_date]);
-            
-            $debtor = collect($debtor)->map(function ($item) {
-                if (($item->receive + ($item->adj_inc ?? 0) - ($item->adj_dec ?? 0) - $item->debtor) >= -0.01) {
-                    $item->days = 0;
-                } else {
-                    $item->days = \Carbon\Carbon::parse($item->vstdate)->diffInDays(\Carbon\Carbon::today());
-                }
-                return $item;
-            });
         } else {
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
-                    IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.receive,d.repno,s.receive_pp,
+                    IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
+                    d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change,
+                    d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no,
+                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
+                    ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_201 d   
                 LEFT JOIN ( SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
                     AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
                 WHERE d.vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
-
-            $debtor = collect($debtor)->map(function ($item) {
-                if (($item->receive + ($item->adj_inc ?? 0) - ($item->adj_dec ?? 0) - $item->debtor) >= -0.01) {
-                    $item->days = 0;
-                } else {
-                    $item->days = \Carbon\Carbon::parse($item->vstdate)->diffInDays(\Carbon\Carbon::today());
-                }
-                return $item;
-            });
         }
 
         $debtor_search = DB::connection('hosxp')->select('
@@ -1747,16 +1737,10 @@ class DebtorController extends Controller
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search = $request->search ?: Session::get('search');
 
-        $debtor = Debtor_1102050101_203::whereBetween('vstdate', [$start_date, $end_date])
-            ->where(function ($query) use ($search) {
-                $query->where('ptname', 'like', '%' . $search . '%');
-                $query->orwhere('hn', 'like', '%' . $search . '%');
-            })
-            ->orderBy('vstdate')->get();
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.charge,d.charge_date,d.charge_no,d.receive,d.receive_date,
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.charge,d.charge_date,d.charge_no,d.receive,d.receive_date,
 					d.receive_no,d.repno,s.receive_pp,s.repno AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date,
                     CASE WHEN (IFNULL(d.receive,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
                     ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
@@ -1769,7 +1753,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.charge,d.charge_date,d.charge_no,d.receive,d.receive_date,
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.charge,d.charge_date,d.charge_no,d.receive,d.receive_date,
 					d.receive_no,d.repno,s.receive_pp,s.repno AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date,
                     CASE WHEN (IFNULL(d.receive,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
                     ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
@@ -2109,7 +2093,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.cid, d.ptname, d.hipdata_code, d.pttype, d.hospmain, d.pdx, d.income,  
-                    d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor, s.receive_pp, d.receive, s.repno, s.repno AS repno_pp, d.status, d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno,
+                    d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,d.receive AS receive_manual, s.receive_pp, d.receive, s.repno, s.repno AS repno_pp, d.status, d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno,
                     CASE WHEN (IFNULL(d.receive,0) + IFNULL(s.receive_pp,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
                     ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_209 d   
@@ -2121,7 +2105,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.cid, d.ptname, d.hipdata_code, d.pttype, d.hospmain, d.pdx, d.income,
-                     d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor, s.receive_pp, d.receive, s.repno, s.repno AS repno_pp, d.status, d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno,
+                     d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,d.receive AS receive_manual, s.receive_pp, d.receive, s.repno, s.repno AS repno_pp, d.status, d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno,
                     CASE WHEN (IFNULL(d.receive,0) + IFNULL(s.receive_pp,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
                     ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_209 d   
@@ -2859,7 +2843,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vn,d.an,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no,
                     CASE WHEN (IFNULL(d.receive, 0) + IFNULL(s.receive_pp, 0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
@@ -2873,7 +2857,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.vn,d.an,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no,
                     CASE WHEN (IFNULL(d.receive, 0) + IFNULL(s.receive_pp, 0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
@@ -3196,7 +3180,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vn,d.an,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no, 
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no, 
                     d.receive ,d.repno,s.receive_pp,IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
                     CASE WHEN (IFNULL(d.receive, 0) + IFNULL(s.receive_pp, 0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
@@ -3210,7 +3194,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.vn,d.an,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no, 
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no, 
                     d.receive ,d.repno,s.receive_pp,IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
                     CASE WHEN (IFNULL(d.receive, 0) + IFNULL(s.receive_pp, 0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
@@ -3460,7 +3444,7 @@ class DebtorController extends Controller
         $search = $request->search ?: Session::get('search');
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
 
-        $debtor = Debtor_1102050101_307::selectRaw('*, IFNULL(vstdate, dchdate) as visit_date,IFNULL(vsttime, dchtime) as visit_time')
+        $debtor = Debtor_1102050101_307::select('*', DB::raw('receive AS receive_manual'), DB::raw('IFNULL(vstdate, dchdate) as visit_date'), DB::raw('IFNULL(vsttime, dchtime) as visit_time'))
             ->whereBetween(DB::raw('IFNULL(vstdate, dchdate)'), [$start_date, $end_date])
             ->where(function ($query) use ($search) {
                 $query->where('ptname', 'like', '%' . $search . '%')
@@ -3844,7 +3828,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vstdate,d.vsttime,d.vn,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.pdx,d.hospmain,
-                    d.income,d.rcpt_money,d.kidney,d.debtor,IFNULL(d.receive,0)+IFNULL(s.receive,0) AS receive,d.repno,
+                    d.income,d.rcpt_money,d.kidney,d.debtor,d.receive AS receive_manual,IFNULL(d.receive,0)+IFNULL(s.receive,0) AS receive,d.repno,
                     s.repno AS rid,d.debtor_lock,d.status,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
                     s.round_no AS stm_round_no, s.receipt_date AS stm_receipt_date, s.receive_no AS stm_receive_no,
@@ -3860,7 +3844,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.vstdate,d.vsttime,d.vn,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.pdx,d.hospmain,
-                    d.income,d.rcpt_money,d.kidney,d.debtor,IFNULL(d.receive,0)+IFNULL(s.receive,0) AS receive,d.repno,
+                    d.income,d.rcpt_money,d.kidney,d.debtor,d.receive AS receive_manual,IFNULL(d.receive,0)+IFNULL(s.receive,0) AS receive,d.repno,
                     s.repno AS rid,d.debtor_lock,d.status,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
                     s.round_no AS stm_round_no, s.receipt_date AS stm_receipt_date, s.receive_no AS stm_receive_no,
@@ -4223,7 +4207,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
-                    d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
+                    d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
                     (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
@@ -4257,7 +4241,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
-                    d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
+                    d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
                     (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
@@ -4542,7 +4526,7 @@ class DebtorController extends Controller
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search = $request->search ?: Session::get('search');
 
-        $debtor = Debtor_1102050101_501::whereBetween('vstdate', [$start_date, $end_date])
+        $debtor = Debtor_1102050101_501::select('*', DB::raw('receive AS receive_manual'))->whereBetween('vstdate', [$start_date, $end_date])
             ->where(function ($query) use ($search) {
                 $query->where('ptname', 'like', '%' . $search . '%');
                 $query->orwhere('hn', 'like', '%' . $search . '%');
@@ -4781,7 +4765,7 @@ class DebtorController extends Controller
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search = $request->search ?: Session::get('search');
 
-        $debtor = Debtor_1102050101_503::whereBetween('vstdate', [$start_date, $end_date])
+        $debtor = Debtor_1102050101_503::select('*', DB::raw('receive AS receive_manual'))->whereBetween('vstdate', [$start_date, $end_date])
             ->where(function ($query) use ($search) {
                 $query->where('ptname', 'like', '%' . $search . '%');
                 $query->orwhere('hn', 'like', '%' . $search . '%');
@@ -5021,7 +5005,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
                 FROM debtor_1102050101_701 d   
                 LEFT JOIN ( SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
@@ -5032,7 +5016,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
                 FROM debtor_1102050101_701 d   
                 LEFT JOIN ( SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
@@ -5261,7 +5245,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
                 FROM debtor_1102050101_702 d   
                 LEFT JOIN ( SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
@@ -5272,7 +5256,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive,d.repno,s.receive_pp,
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
                 FROM debtor_1102050101_702 d   
                 LEFT JOIN ( SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
@@ -5504,7 +5488,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::connection('hosxp')->select("
                     SELECT d.vstdate,d.vsttime,d.hn,d.vn,d.ptname,d.mobile_phone_number, d.pttype,d.hospmain,
-                    d.pdx,d.income,d.paid_money,d.rcpt_money,d.debtor,d.debtor_lock, 
+                    d.pdx,d.income,d.paid_money,d.rcpt_money,d.debtor,d.receive AS receive_manual,d.debtor_lock, 
                     IF(r.bill_amount IS NOT NULL, 'กระทบยอดแล้ว', d.status) AS status,
                     d.charge_date,d.charge_no,d.charge,d.receive_date, d.receive_no,  
                     IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.bill_amount,0) - d.rcpt_money) AS receive,
@@ -5525,7 +5509,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::connection('hosxp')->select("
                 SELECT d.vstdate,d.vsttime,d.hn,d.vn,d.cid,d.ptname,d.mobile_phone_number, d.pttype,d.hospmain,
-                    d.pdx,d.income,d.paid_money,d.rcpt_money,d.debtor,d.debtor_lock, 
+                    d.pdx,d.income,d.paid_money,d.rcpt_money,d.debtor,d.receive AS receive_manual,d.debtor_lock, 
                     IF(r.bill_amount IS NOT NULL, 'กระทบยอดแล้ว', d.status) AS status,
                     d.charge_date,d.charge_no,d.charge,d.receive_date, d.receive_no,  
                     IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.bill_amount,0) - d.rcpt_money) AS receive,
@@ -5785,12 +5769,12 @@ class DebtorController extends Controller
             'receive_date' => $request->input('receive_date'),
             'receive_no' => $request->input('receive_no'),
             'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
             'adj_inc' => $request->input('adj_inc'),
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
-            'repno' => $request->input('repno'),
-            'status' => $request->input('status'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -5881,7 +5865,7 @@ class DebtorController extends Controller
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search = $request->search ?: Session::get('search');
 
-        $debtor = Debtor_1102050102_108::whereBetween('vstdate', [$start_date, $end_date])
+        $debtor = Debtor_1102050102_108::select('*', DB::raw('receive AS receive_manual'))->whereBetween('vstdate', [$start_date, $end_date])
             ->where(function ($query) use ($search) {
                 $query->where('ptname', 'like', '%' . $search . '%');
                 $query->orwhere('hn', 'like', '%' . $search . '%');
@@ -6698,16 +6682,17 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,
-                    d.rcpt_money,d.lgo,d.kidney,d.ppfs,d.other,d.debtor,IFNULL(s.compensate_treatment,0) AS receive_lgo,
+                    d.rcpt_money,d.lgo,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,
+                    d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,IFNULL(s.compensate_treatment,0) AS receive_lgo,
                     CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END AS receive_kidney,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,IFNULL(s.compensate_treatment,0)
-                    + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END + IFNULL(su.receive_pp,0) AS receive,
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END AS receive,
                     d.status,s.repno,sk.repno AS rid,d.debtor_lock,
                     IFNULL(s.round_no, sk.round_no) AS stm_round_no,
                     IFNULL(s.receipt_date, sk.receipt_date) AS stm_receipt_date,
                     IFNULL(s.receive_no, sk.receive_no) AS stm_receive_no,
                     CASE WHEN (IFNULL(s.compensate_treatment,0)
-                    + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END + IFNULL(su.receive_pp,0)) 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END) 
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.01 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_801 d  
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment,
@@ -6726,16 +6711,17 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,
-                    d.rcpt_money,d.lgo,d.kidney,d.ppfs,d.other,d.debtor,IFNULL(s.compensate_treatment,0) AS receive_lgo,
+                    d.rcpt_money,d.lgo,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,
+                    d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,IFNULL(s.compensate_treatment,0) AS receive_lgo,
                     CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END AS receive_kidney,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,IFNULL(s.compensate_treatment,0)
-                    + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END + IFNULL(su.receive_pp,0) AS receive,
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END AS receive,
                     d.status,s.repno,sk.repno AS rid,d.debtor_lock,
                     IFNULL(s.round_no, sk.round_no) AS stm_round_no,
                     IFNULL(s.receipt_date, sk.receipt_date) AS stm_receipt_date,
                     IFNULL(s.receive_no, sk.receive_no) AS stm_receive_no,
                     CASE WHEN (IFNULL(s.compensate_treatment,0)
-                    + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END + IFNULL(su.receive_pp,0)) 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END) 
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.01 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_801 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment,
@@ -6947,6 +6933,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -7002,8 +6992,8 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
-                    d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
-                    d.charge,d.receive_date,d.receive_no,(IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
+                    d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual,d.charge_date,d.charge_no,
+                    d.charge,d.receive_date,d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,(IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
                     + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,csop.rid,hd.rid_hd,d.debtor_lock,
                     CONCAT_WS(CHAR(44), stm.round_no, csop.round_no, hd.round_no) AS stm_round_no,
@@ -7034,8 +7024,8 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
-                    d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
-                    d.charge,d.receive_date,d.receive_no,(IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
+                    d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual,d.charge_date,d.charge_no,
+                    d.charge,d.receive_date,d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,(IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
                     + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,csop.rid,hd.rid_hd,d.debtor_lock,
                     CONCAT_WS(CHAR(44), stm.round_no, csop.round_no, hd.round_no) AS stm_round_no,
@@ -7257,6 +7247,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -8014,9 +8008,9 @@ class DebtorController extends Controller
     }
 
     //_1102050101_302_update-------------------------------------------------------------------------------------------------------
-    public function _1102050101_302_update(Request $request, $an)
+    public function _1102050101_302_update(Request $request, $vn)
     {
-        $item = Debtor_1102050101_302::findOrFail($an);
+        $item = Debtor_1102050101_302::findOrFail($vn);
         $item->update([
             'charge_date' => $request->input('charge_date'),
             'charge_no' => $request->input('charge_no'),
@@ -8026,6 +8020,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -8284,9 +8282,9 @@ class DebtorController extends Controller
     }
 
     //_1102050101_304_update-------------------------------------------------------------------------------------------------------
-    public function _1102050101_304_update(Request $request, $an)
+    public function _1102050101_304_update(Request $request, $vn)
     {
-        $item = Debtor_1102050101_304::findOrFail($an);
+        $item = Debtor_1102050101_304::findOrFail($vn);
         $item->update([
             'charge_date' => $request->input('charge_date'),
             'charge_no' => $request->input('charge_no'),
@@ -8296,6 +8294,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -8549,9 +8551,9 @@ class DebtorController extends Controller
     }
 
     //_1102050101_308_update-------------------------------------------------------------------------------------------------------
-    public function _1102050101_308_update(Request $request, $an)
+    public function _1102050101_308_update(Request $request, $vn)
     {
-        $item = Debtor_1102050101_308::findOrFail($an);
+        $item = Debtor_1102050101_308::findOrFail($vn);
         $item->update([
             'charge_date' => $request->input('charge_date'),
             'charge_no' => $request->input('charge_no'),
@@ -8561,6 +8563,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -8800,9 +8806,9 @@ class DebtorController extends Controller
     }
 
     //_1102050101_310_update-------------------------------------------------------------------------------------------------------
-    public function _1102050101_310_update(Request $request, $an)
+    public function _1102050101_310_update(Request $request, $vn)
     {
-        $item = Debtor_1102050101_310::findOrFail($an);
+        $item = Debtor_1102050101_310::findOrFail($vn);
         $item->update([
             'charge_date' => $request->input('charge_date'),
             'charge_no' => $request->input('charge_no'),
@@ -8812,6 +8818,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -9328,9 +9338,9 @@ class DebtorController extends Controller
     }
 
     //_1102050101_502_update-------------------------------------------------------------------------------------------------------
-    public function _1102050101_502_update(Request $request, $an)
+    public function _1102050101_502_update(Request $request, $vn)
     {
-        $item = Debtor_1102050101_502::findOrFail($an);
+        $item = Debtor_1102050101_502::findOrFail($vn);
         $item->update([
             'charge_date' => $request->input('charge_date'),
             'charge_no' => $request->input('charge_no'),
@@ -9340,6 +9350,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -9586,9 +9600,9 @@ class DebtorController extends Controller
     }
 
     //_1102050101_504_update-------------------------------------------------------------------------------------------------------
-    public function _1102050101_504_update(Request $request, $an)
+    public function _1102050101_504_update(Request $request, $vn)
     {
-        $item = Debtor_1102050101_504::findOrFail($an);
+        $item = Debtor_1102050101_504::findOrFail($vn);
         $item->update([
             'charge_date' => $request->input('charge_date'),
             'charge_no' => $request->input('charge_no'),
@@ -9598,6 +9612,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -9846,9 +9864,9 @@ class DebtorController extends Controller
     }
 
     //_1102050101_704_update-------------------------------------------------------------------------------------------------------
-    public function _1102050101_704_update(Request $request, $an)
+    public function _1102050101_704_update(Request $request, $vn)
     {
-        $item = Debtor_1102050101_704::findOrFail($an);
+        $item = Debtor_1102050101_704::findOrFail($vn);
         $item->update([
             'charge_date' => $request->input('charge_date'),
             'charge_no' => $request->input('charge_no'),
@@ -9858,6 +9876,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -10179,9 +10201,9 @@ class DebtorController extends Controller
     }
 
     //_1102050102_107_update-------------------------------------------------------------------------------------------------------
-    public function _1102050102_107_update(Request $request, $an)
+    public function _1102050102_107_update(Request $request, $vn)
     {
-        $item = Debtor_1102050102_107::findOrFail($an);
+        $item = Debtor_1102050102_107::findOrFail($vn);
         $item->update([
             'charge_date' => $request->input('charge_date'),
             'charge_no' => $request->input('charge_no'),
@@ -10191,6 +10213,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -10484,9 +10510,9 @@ class DebtorController extends Controller
     }
 
     //_1102050102_109_update-------------------------------------------------------------------------------------------------------
-    public function _1102050102_109_update(Request $request, $an)
+    public function _1102050102_109_update(Request $request, $vn)
     {
-        $item = Debtor_1102050102_109::findOrFail($an);
+        $item = Debtor_1102050102_109::findOrFail($vn);
         $item->update([
             'charge_date' => $request->input('charge_date'),
             'charge_no' => $request->input('charge_no'),
@@ -10496,6 +10522,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -11004,9 +11034,9 @@ class DebtorController extends Controller
     }
 
     //_1102050102_603_update-------------------------------------------------------------------------------------------------------
-    public function _1102050102_603_update(Request $request, $an)
+    public function _1102050102_603_update(Request $request, $vn)
     {
-        $item = Debtor_1102050102_603::findOrFail($an);
+        $item = Debtor_1102050102_603::findOrFail($vn);
         $item->update([
             'charge_date' => $request->input('charge_date'),
             'charge_no' => $request->input('charge_no'),
@@ -11016,6 +11046,10 @@ class DebtorController extends Controller
             'receive' => $request->input('receive'),
             'repno' => $request->input('repno'),
             'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -11940,302 +11974,244 @@ class DebtorController extends Controller
         ]);
     }
 
-    public function _1102050101_201_update(Request $request, $id)
+    public function _1102050101_201_update(Request $request, $vn)
     {
-        $row = \App\Models\Debtor_1102050101_201::where('vn', $id)->first() ?: \App\Models\Debtor_1102050101_201::where('an', $id)->first();
-        if ($row) {
-            $row->status = $request->status;
-            $row->receive_date = $request->receive_date;
-            $row->receive_no = $request->receive_no;
-            $row->repno = $request->repno;
-            // Detect receive field
-            if (isset($row->receive_ip_compensate_pay)) $row->receive_ip_compensate_pay = $request->receive;
-            elseif (isset($row->receive_op_compensate_pay)) $row->receive_op_compensate_pay = $request->receive;
-            elseif (isset($row->receive_pp)) $row->receive_pp = $request->receive;
-            else $row->receive = $request->receive;
-
-            $row->adj_inc = $request->adj_inc;
-            $row->adj_dec = $request->adj_dec;
-            $row->adj_date = $request->adj_date;
-            $row->adj_note = $request->adj_note;
-            $row->save();
-            return back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-        }
-        return back()->with('error', 'ไม่พบข้อมูล');
+        $item = Debtor_1102050101_201::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
 
-    public function _1102050101_202_update(Request $request, $id)
+    public function _1102050101_202_update(Request $request, $vn)
     {
-        $row = \App\Models\Debtor_1102050101_202::where('vn', $id)->first() ?: \App\Models\Debtor_1102050101_202::where('an', $id)->first();
-        if ($row) {
-            $row->status = $request->status;
-            $row->receive_date = $request->receive_date;
-            $row->receive_no = $request->receive_no;
-            $row->repno = $request->repno;
-            // Detect receive field
-            if (isset($row->receive_ip_compensate_pay)) $row->receive_ip_compensate_pay = $request->receive;
-            elseif (isset($row->receive_op_compensate_pay)) $row->receive_op_compensate_pay = $request->receive;
-            elseif (isset($row->receive_pp)) $row->receive_pp = $request->receive;
-            else $row->receive = $request->receive;
-
-            $row->adj_inc = $request->adj_inc;
-            $row->adj_dec = $request->adj_dec;
-            $row->adj_date = $request->adj_date;
-            $row->adj_note = $request->adj_note;
-            $row->save();
-            return back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-        }
-        return back()->with('error', 'ไม่พบข้อมูล');
+        $item = Debtor_1102050101_202::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
 
-    public function _1102050101_209_update(Request $request, $id)
+    public function _1102050101_209_update(Request $request, $vn)
     {
-        $row = \App\Models\Debtor_1102050101_209::where('vn', $id)->first() ?: \App\Models\Debtor_1102050101_209::where('an', $id)->first();
-        if ($row) {
-            $row->status = $request->status;
-            $row->receive_date = $request->receive_date;
-            $row->receive_no = $request->receive_no;
-            $row->repno = $request->repno;
-            // Detect receive field
-            if (isset($row->receive_ip_compensate_pay)) $row->receive_ip_compensate_pay = $request->receive;
-            elseif (isset($row->receive_op_compensate_pay)) $row->receive_op_compensate_pay = $request->receive;
-            elseif (isset($row->receive_pp)) $row->receive_pp = $request->receive;
-            else $row->receive = $request->receive;
-
-            $row->adj_inc = $request->adj_inc;
-            $row->adj_dec = $request->adj_dec;
-            $row->adj_date = $request->adj_date;
-            $row->adj_note = $request->adj_note;
-            $row->charge = $request->charge;
-            $row->charge_date = $request->charge_date;
-            $row->charge_no = $request->charge_no;
-            $row->save();
-            return back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-        }
-        return back()->with('error', 'ไม่พบข้อมูล');
+        $item = Debtor_1102050101_209::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
 
-    public function _1102050101_216_update(Request $request, $id)
+    public function _1102050101_216_update(Request $request, $vn)
     {
-        $row = \App\Models\Debtor_1102050101_216::where('vn', $id)->first() ?: \App\Models\Debtor_1102050101_216::where('an', $id)->first();
-        if ($row) {
-            $row->status = $request->status;
-            $row->receive_date = $request->receive_date;
-            $row->receive_no = $request->receive_no;
-            $row->repno = $request->repno;
-            // Detect receive field
-            if (isset($row->receive_ip_compensate_pay)) $row->receive_ip_compensate_pay = $request->receive;
-            elseif (isset($row->receive_op_compensate_pay)) $row->receive_op_compensate_pay = $request->receive;
-            elseif (isset($row->receive_pp)) $row->receive_pp = $request->receive;
-            else $row->receive = $request->receive;
-
-            $row->adj_inc = $request->adj_inc;
-            $row->adj_dec = $request->adj_dec;
-            $row->adj_date = $request->adj_date;
-            $row->adj_note = $request->adj_note;
-            $row->charge = $request->charge;
-            $row->charge_date = $request->charge_date;
-            $row->charge_no = $request->charge_no;
-            $row->save();
-            return back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-        }
-        return back()->with('error', 'ไม่พบข้อมูล');
+        $item = Debtor_1102050101_216::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
 
-    public function _1102050101_217_update(Request $request, $id)
+    public function _1102050101_217_update(Request $request, $vn)
     {
-        $row = \App\Models\Debtor_1102050101_217::where('vn', $id)->first() ?: \App\Models\Debtor_1102050101_217::where('an', $id)->first();
-        if ($row) {
-            $row->status = $request->status;
-            $row->receive_date = $request->receive_date;
-            $row->receive_no = $request->receive_no;
-            $row->repno = $request->repno;
-            // Detect receive field
-            if (isset($row->receive_ip_compensate_pay)) $row->receive_ip_compensate_pay = $request->receive;
-            elseif (isset($row->receive_op_compensate_pay)) $row->receive_op_compensate_pay = $request->receive;
-            elseif (isset($row->receive_pp)) $row->receive_pp = $request->receive;
-            else $row->receive = $request->receive;
-
-            $row->adj_inc = $request->adj_inc;
-            $row->adj_dec = $request->adj_dec;
-            $row->adj_date = $request->adj_date;
-            $row->adj_note = $request->adj_note;
-            $row->save();
-            return back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-        }
-        return back()->with('error', 'ไม่พบข้อมูล');
+        $item = Debtor_1102050101_217::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
 
-    public function _1102050101_301_update(Request $request, $id)
+    public function _1102050101_301_update(Request $request, $vn)
     {
-        $row = \App\Models\Debtor_1102050101_301::where('vn', $id)->first() ?: \App\Models\Debtor_1102050101_301::where('an', $id)->first();
-        if ($row) {
-            $row->status = $request->status;
-            $row->receive_date = $request->receive_date;
-            $row->receive_no = $request->receive_no;
-            $row->repno = $request->repno;
-            // Detect receive field
-            if (isset($row->receive_ip_compensate_pay)) $row->receive_ip_compensate_pay = $request->receive;
-            elseif (isset($row->receive_op_compensate_pay)) $row->receive_op_compensate_pay = $request->receive;
-            elseif (isset($row->receive_pp)) $row->receive_pp = $request->receive;
-            else $row->receive = $request->receive;
-            
-            $row->charge_date = $request->charge_date;
-            $row->charge_no = $request->charge_no;
-            $row->charge = $request->charge;
-
-            $row->adj_inc = $request->adj_inc;
-            $row->adj_dec = $request->adj_dec;
-            $row->adj_date = $request->adj_date;
-            $row->adj_note = $request->adj_note;
-            $row->save();
-            return back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-        }
-        return back()->with('error', 'ไม่พบข้อมูล');
+        $item = Debtor_1102050101_301::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
 
-    public function _1102050101_402_update(Request $request, $id)
+    public function _1102050101_402_update(Request $request, $vn)
     {
-        $row = \App\Models\Debtor_1102050101_402::where('vn', $id)->first() ?: \App\Models\Debtor_1102050101_402::where('an', $id)->first();
-        if ($row) {
-            $row->status = $request->status;
-            $row->receive_date = $request->receive_date;
-            $row->receive_no = $request->receive_no;
-            $row->repno = $request->repno;
-            // Detect receive field
-            if (isset($row->receive_ip_compensate_pay)) $row->receive_ip_compensate_pay = $request->receive;
-            elseif (isset($row->receive_op_compensate_pay)) $row->receive_op_compensate_pay = $request->receive;
-            elseif (isset($row->receive_pp)) $row->receive_pp = $request->receive;
-            else $row->receive = $request->receive;
-
-            $row->adj_inc = $request->adj_inc;
-            $row->adj_dec = $request->adj_dec;
-            $row->adj_date = $request->adj_date;
-            $row->adj_note = $request->adj_note;
-            $row->save();
-            return back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-        }
-        return back()->with('error', 'ไม่พบข้อมูล');
+        $item = Debtor_1102050101_402::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
 
-    public function _1102050101_701_update(Request $request, $id)
+    public function _1102050101_701_update(Request $request, $vn)
     {
-        $row = \App\Models\Debtor_1102050101_701::where('vn', $id)->first() ?: \App\Models\Debtor_1102050101_701::where('an', $id)->first();
-        if ($row) {
-            $row->status = $request->status;
-            $row->receive_date = $request->receive_date;
-            $row->receive_no = $request->receive_no;
-            $row->repno = $request->repno;
-            // Detect receive field
-            if (isset($row->receive_ip_compensate_pay)) $row->receive_ip_compensate_pay = $request->receive;
-            elseif (isset($row->receive_op_compensate_pay)) $row->receive_op_compensate_pay = $request->receive;
-            elseif (isset($row->receive_pp)) $row->receive_pp = $request->receive;
-            else $row->receive = $request->receive;
-
-            $row->adj_inc = $request->adj_inc;
-            $row->adj_dec = $request->adj_dec;
-            $row->adj_date = $request->adj_date;
-            $row->adj_note = $request->adj_note;
-            $row->save();
-            return back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-        }
-        return back()->with('error', 'ไม่พบข้อมูล');
+        $item = Debtor_1102050101_701::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
 
-    public function _1102050101_702_update(Request $request, $id)
+    public function _1102050101_702_update(Request $request, $vn)
     {
-        $row = \App\Models\Debtor_1102050101_702::where('vn', $id)->first() ?: \App\Models\Debtor_1102050101_702::where('an', $id)->first();
-        if ($row) {
-            $row->status = $request->status;
-            $row->receive_date = $request->receive_date;
-            $row->receive_no = $request->receive_no;
-            $row->repno = $request->repno;
-            // Detect receive field
-            if (isset($row->receive_ip_compensate_pay)) $row->receive_ip_compensate_pay = $request->receive;
-            elseif (isset($row->receive_op_compensate_pay)) $row->receive_op_compensate_pay = $request->receive;
-            elseif (isset($row->receive_pp)) $row->receive_pp = $request->receive;
-            else $row->receive = $request->receive;
-
-            $row->adj_inc = $request->adj_inc;
-            $row->adj_dec = $request->adj_dec;
-            $row->adj_date = $request->adj_date;
-            $row->adj_note = $request->adj_note;
-            $row->save();
-            return back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-        }
-        return back()->with('error', 'ไม่พบข้อมูล');
+        $item = Debtor_1102050101_702::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
 
-    public function _1102050102_111_update(Request $request, $id)
+    public function _1102050102_111_update(Request $request, $vn)
     {
-        $row = \App\Models\Debtor_1102050102_111::where('vn', $id)->first() ?: \App\Models\Debtor_1102050102_111::where('an', $id)->first();
-        if ($row) {
-            $row->status = $request->status;
-            $row->receive_date = $request->receive_date;
-            $row->receive_no = $request->receive_no;
-            $row->repno = $request->repno;
-            // Detect receive field
-            if (isset($row->receive_ip_compensate_pay)) $row->receive_ip_compensate_pay = $request->receive;
-            elseif (isset($row->receive_op_compensate_pay)) $row->receive_op_compensate_pay = $request->receive;
-            elseif (isset($row->receive_pp)) $row->receive_pp = $request->receive;
-            else $row->receive = $request->receive;
-
-            $row->adj_inc = $request->adj_inc;
-            $row->adj_dec = $request->adj_dec;
-            $row->adj_date = $request->adj_date;
-            $row->adj_note = $request->adj_note;
-            $row->save();
-            return back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-        }
-        return back()->with('error', 'ไม่พบข้อมูล');
+        $item = Debtor_1102050102_111::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
 
-    public function _1102050102_802_update(Request $request, $id)
+    public function _1102050102_802_update(Request $request, $vn)
     {
-        $row = \App\Models\Debtor_1102050102_802::where('vn', $id)->first() ?: \App\Models\Debtor_1102050102_802::where('an', $id)->first();
-        if ($row) {
-            $row->status = $request->status;
-            $row->receive_date = $request->receive_date;
-            $row->receive_no = $request->receive_no;
-            $row->repno = $request->repno;
-            // Detect receive field
-            if (isset($row->receive_ip_compensate_pay)) $row->receive_ip_compensate_pay = $request->receive;
-            elseif (isset($row->receive_op_compensate_pay)) $row->receive_op_compensate_pay = $request->receive;
-            elseif (isset($row->receive_pp)) $row->receive_pp = $request->receive;
-            else $row->receive = $request->receive;
-
-            $row->adj_inc = $request->adj_inc;
-            $row->adj_dec = $request->adj_dec;
-            $row->adj_date = $request->adj_date;
-            $row->adj_note = $request->adj_note;
-            $row->save();
-            return back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-        }
-        return back()->with('error', 'ไม่พบข้อมูล');
+        $item = Debtor_1102050102_802::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
 
-    public function _1102050102_804_update(Request $request, $id)
+    public function _1102050102_804_update(Request $request, $vn)
     {
-        $row = \App\Models\Debtor_1102050102_804::where('vn', $id)->first() ?: \App\Models\Debtor_1102050102_804::where('an', $id)->first();
-        if ($row) {
-            $row->status = $request->status;
-            $row->receive_date = $request->receive_date;
-            $row->receive_no = $request->receive_no;
-            $row->repno = $request->repno;
-            // Detect receive field
-            if (isset($row->receive_ip_compensate_pay)) $row->receive_ip_compensate_pay = $request->receive;
-            elseif (isset($row->receive_op_compensate_pay)) $row->receive_op_compensate_pay = $request->receive;
-            elseif (isset($row->receive_pp)) $row->receive_pp = $request->receive;
-            else $row->receive = $request->receive;
-
-            $row->adj_inc = $request->adj_inc;
-            $row->adj_dec = $request->adj_dec;
-            $row->adj_date = $request->adj_date;
-            $row->adj_note = $request->adj_note;
-            $row->save();
-            return back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-        }
-        return back()->with('error', 'ไม่พบข้อมูล');
+        $item = Debtor_1102050102_804::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
 
     public function _1102050101_103_bulk_adj(Request $request)
@@ -12245,12 +12221,7 @@ class DebtorController extends Controller
         foreach ($ids as $id) {
             $row = \App\Models\Debtor_1102050101_103::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -12276,12 +12247,7 @@ class DebtorController extends Controller
         foreach ($ids as $id) {
             $row = \App\Models\Debtor_1102050101_109::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -12307,12 +12273,7 @@ class DebtorController extends Controller
         foreach ($ids as $id) {
             $row = \App\Models\Debtor_1102050101_201::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -12337,12 +12298,7 @@ class DebtorController extends Controller
         foreach ($ids as $id) {
             $row = \App\Models\Debtor_1102050101_202::where('an', $id)->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -12370,11 +12326,7 @@ class DebtorController extends Controller
         foreach ($ids as $id) {
             $row = \App\Models\Debtor_1102050101_203::where('vn', $id)->first();
             if ($row && $row->debtor_lock == 'Y') {
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -12408,12 +12360,7 @@ class DebtorController extends Controller
         foreach ($ids as $id) {
             $row = \App\Models\Debtor_1102050101_209::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -12495,12 +12442,7 @@ class DebtorController extends Controller
         foreach ($ids as $id) {
             $row = \App\Models\Debtor_1102050101_217::where('an', $id)->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -12527,13 +12469,7 @@ class DebtorController extends Controller
         foreach ($ids as $id) {
             $row = \App\Models\Debtor_1102050101_301::where('vn', $id)->first();
             if ($row && $row->debtor_lock == 'Y') {
-                // Fetch PPFS from stm_ucs
-                $stm_ppfs = DB::selectOne("SELECT SUM(receive_pp) as total FROM stm_ucs 
-                                          WHERE cid = ? AND vstdate = ? AND LEFT(vsttime,5) = LEFT(?,5)", 
-                                          [$row->cid, $row->vstdate, $row->vsttime]);
-                
-                $total_receive = (float)$row->receive + (float)($stm_ppfs->total ?? 0);
-                $adj_val = (float)$row->debtor - $total_receive;
+                $adj_val = (float)$row->debtor - (float)$row->receive;
 
                 if ($adj_val >= 0) {
                     $row->adj_inc = $adj_val;
@@ -12554,14 +12490,9 @@ class DebtorController extends Controller
     {
         $ids = $request->checkbox_d ?: [];
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_302::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050101_302::where('an', $id)->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -12587,8 +12518,7 @@ class DebtorController extends Controller
         foreach ($ids as $id) {
             $row = \App\Models\Debtor_1102050101_303::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                $stm = DB::table('stm_ucs')->where('cid', $row->cid)->where('vstdate', $row->vstdate)->whereRaw('LEFT(vsttime,5) = ?', [substr($row->vsttime, 0, 5)])->sum('receive_pp');
-                $balance = ((float)$row->receive + (float)$stm) - (float)$row->debtor;
+                $balance = (float)$row->receive - (float)$row->debtor;
                 $adj_val = 0 - $balance;
                 if ($adj_val > 0) {
                     $row->adj_inc = $adj_val;
@@ -12609,14 +12539,9 @@ class DebtorController extends Controller
     {
         $ids = $request->checkbox_d ?: [];
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_304::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050101_304::where('an', $id)->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -12642,8 +12567,7 @@ class DebtorController extends Controller
         foreach ($ids as $id) {
             $row = \App\Models\Debtor_1102050101_307::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                $stm = DB::table('stm_ucs')->where('cid', $row->cid)->where('vstdate', $row->vstdate)->whereRaw('LEFT(vsttime,5) = ?', [substr($row->vsttime, 0, 5)])->sum('receive_pp');
-                $balance = ((float)$row->receive + (float)$stm) - (float)$row->debtor;
+                $balance = (float)$row->receive - (float)$row->debtor;
                 $adj_val = 0 - $balance;
                 if ($adj_val > 0) {
                     $row->adj_inc = $adj_val;
@@ -12664,14 +12588,9 @@ class DebtorController extends Controller
     {
         $ids = $request->checkbox_d ?: [];
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_308::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050101_308::where('an', $id)->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -12719,14 +12638,9 @@ class DebtorController extends Controller
     {
         $ids = $request->checkbox_d ?: [];
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_310::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050101_310::where('an', $id)->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -12782,12 +12696,7 @@ class DebtorController extends Controller
         foreach ($ids as $id) {
             $row = \App\Models\Debtor_1102050101_402::where('an', $id)->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -12836,14 +12745,9 @@ class DebtorController extends Controller
     {
         $ids = $request->checkbox_d ?: [];
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_502::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050101_502::where('an', $id)->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -12892,14 +12796,9 @@ class DebtorController extends Controller
     {
         $ids = $request->checkbox_d ?: [];
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_504::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050101_504::where('an', $id)->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -12926,8 +12825,7 @@ class DebtorController extends Controller
         foreach ($ids as $id) {
             $row = \App\Models\Debtor_1102050101_701::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                $stm = DB::table('stm_ucs')->where('cid', $row->cid)->where('vstdate', $row->vstdate)->whereRaw('LEFT(vsttime,5) = ?', [substr($row->vsttime, 0, 5)])->sum('receive_pp');
-                $balance = ((float)$row->receive + (float)$stm) - (float)$row->debtor;
+                $balance = (float)$row->receive - (float)$row->debtor;
                 $adj_val = 0 - $balance;
                 if ($adj_val > 0) {
                     $row->adj_inc = $adj_val;
@@ -12954,8 +12852,7 @@ class DebtorController extends Controller
         foreach ($ids as $id) {
             $row = \App\Models\Debtor_1102050101_702::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                $stm = DB::table('stm_ucs')->where('cid', $row->cid)->where('vstdate', $row->vstdate)->whereRaw('LEFT(vsttime,5) = ?', [substr($row->vsttime, 0, 5)])->sum('receive_pp');
-                $balance = ((float)$row->receive + (float)$stm) - (float)$row->debtor;
+                $balance = (float)$row->receive - (float)$row->debtor;
                 $adj_val = 0 - $balance;
                 if ($adj_val > 0) {
                     $row->adj_inc = $adj_val;
@@ -12977,14 +12874,9 @@ class DebtorController extends Controller
     {
         $ids = $request->checkbox_d ?: [];
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_704::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050101_704::where('an', $id)->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -13055,14 +12947,9 @@ class DebtorController extends Controller
     {
         $ids = $request->checkbox_d ?: [];
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_107::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050102_107::where('an', $id)->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -13090,12 +12977,7 @@ class DebtorController extends Controller
         foreach ($ids as $id) {
             $row = \App\Models\Debtor_1102050102_108::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -13118,14 +13000,9 @@ class DebtorController extends Controller
     {
         $ids = $request->checkbox_d ?: [];
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_109::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050102_109::where('an', $id)->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -13202,14 +13079,9 @@ class DebtorController extends Controller
     {
         $ids = $request->checkbox_d ?: [];
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_111::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050102_111::where('an', $id)->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -13271,14 +13143,9 @@ class DebtorController extends Controller
     {
         $ids = $request->checkbox_d ?: [];
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_603::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050102_603::where('an', $id)->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -13299,15 +13166,18 @@ class DebtorController extends Controller
     public function _1102050102_801_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_801::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050102_801::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
+                $current_balance = ($receive + (float)($row->adj_inc ?? 0) - (float)($row->adj_dec ?? 0)) - (float)$row->debtor;
+                if (abs($current_balance) < 0.01) {
+                    continue;
+                }
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -13317,26 +13187,26 @@ class DebtorController extends Controller
                     $row->adj_inc = 0;
                     $row->adj_dec = abs($diff);
                 }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
                 $row->save();
+                $adjusted_count++;
             }
         }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
+        
+        if ($adjusted_count == 0) {
+            return back()->with('warning', 'ไม่มีรายการที่ต้องปรับปรุง (ยอดคงเหลือเป็น 0 หรือ ยังไม่ได้ Lock)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
 
     public function _1102050102_802_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_802::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050102_802::where('an', $id)->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -13357,15 +13227,18 @@ class DebtorController extends Controller
     public function _1102050102_803_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_803::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050102_803::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
+                $current_balance = ($receive + (float)($row->adj_inc ?? 0) - (float)($row->adj_dec ?? 0)) - (float)$row->debtor;
+                if (abs($current_balance) < 0.01) {
+                    continue;
+                }
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
@@ -13375,26 +13248,26 @@ class DebtorController extends Controller
                     $row->adj_inc = 0;
                     $row->adj_dec = abs($diff);
                 }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
                 $row->save();
+                $adjusted_count++;
             }
         }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
+        
+        if ($adjusted_count == 0) {
+            return back()->with('warning', 'ไม่มีรายการที่ต้องปรับปรุง (ยอดคงเหลือเป็น 0 หรือ ยังไม่ได้ Lock)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
 
     public function _1102050102_804_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_804::where('vn', $id)->first();
+            $row = \App\Models\Debtor_1102050102_804::where('an', $id)->first();
             if ($row) {
-                // Detect receive field
-                $receive = 0;
-                if (isset($row->receive_ip_compensate_pay)) $receive = $row->receive_ip_compensate_pay;
-                elseif (isset($row->receive_op_compensate_pay)) $receive = $row->receive_op_compensate_pay;
-                elseif (isset($row->receive_pp)) $receive = $row->receive_pp;
-                else $receive = $row->receive;
+                $receive = (float)$row->receive;
 
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {

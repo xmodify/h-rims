@@ -11,6 +11,8 @@ class Debtor_1102050101_209 extends Model
 
     protected $table = 'debtor_1102050101_209'; 
     protected $primaryKey = 'vn';
+    public $incrementing = false;
+    protected $keyType = 'string';
     protected $fillable = [  
         'vn',
         'hn', 
@@ -40,6 +42,7 @@ class Debtor_1102050101_209 extends Model
     'charge',
     'charge_date',
     'charge_no',
-    ];
+        'receive_date',
+        'receive_no',];
     public $timestamps = false;   
 }

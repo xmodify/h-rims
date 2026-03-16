@@ -18,7 +18,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
 
 <div class="container">
     <div class="row justify-content-center">            
-        <table width="100%" >
+        <table width="100%" border="1">
             <thead>
             <tr>
                 <th class="text-center">ลำดับ</th>
@@ -77,7 +77,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="center">{{ $count }}</td>
                 <td align="right">{{ DateThai($row->vstdate) }} {{ $row->vsttime }}</td>
                 <td align="center" style='mso-number-format:"@"'>{{ $row->vn }}</td>
-                <td align="center">{{ $row->hn }}</td>
+                <td align="center" style='mso-number-format:"@"'>{{ $row->hn }}</td>
                 <td align="center" style='mso-number-format:"@"'>{{ $row->cid }}</td>
                 <td align="left">{{ $row->ptname }}</td>
                 <td align="left">{{ $row->pttype }}</td>
@@ -97,9 +97,9 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="center">{{ $row->stm_round_no }}</td>
                 <td align="center" style='mso-number-format:"@"'>{{ $row->stm_receipt_date }}</td>
                 <td align="center" style='mso-number-format:"@"'>{{ $row->stm_receive_no }}</td>
-                <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  {{-- เขียวอ่อน --}}
-                    @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" {{-- เหลือง --}}
-                    @else style="background-color: #FF7F7F;" {{-- แดง --}} @endif >
+                <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  
+                    @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" 
+                    @else style="background-color: #FF7F7F;" @endif >
                     {{ $row->days }} วัน
                 </td>    
             </tr>                
@@ -149,9 +149,3 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
         </table> 
     </div>
 </div>    
-
-
-
-
-
-

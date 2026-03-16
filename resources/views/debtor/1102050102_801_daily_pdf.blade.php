@@ -61,13 +61,6 @@
                 line-height: 0.75;               
             }
             body {
-                /* font-family: 'THSarabunNew', sans-serif;
-                    font-size: 13px;
-                line-height: 0.9;  
-                margin-top:    0.2cm;
-                margin-bottom: 0.2cm;
-                margin-left:   1cm;
-                margin-right:  1cm;  */
                 font-family: "THSarabunNew";
                 font-size: 12px;
                 line-height: 0.75;  
@@ -92,18 +85,13 @@
                 padding-right:10px; */
                 }                     
                 table{
-                    border-collapse: collapse;  //กรอบด้านในหายไป
+                    border-collapse: collapse; /* กรอบด้านในหายไป */
                 }
                 table.one{
                 border: 1px solid rgb(5, 5, 5);
-                /* height: 800px; */
-                /* padding: 15px; */
                 }
                 td {
                     margin: .2rem;
-                /* height: 3px; */
-                /* padding: 5px; */
-                /* text-align: left; */
                 }
                 td.o{
                     border: 1px solid rgb(5, 5, 5); 
@@ -116,10 +104,6 @@
                 td.d{
                     border: 1px solid rgb(5, 5, 5); 
                     height: 170px;
-                }
-                td.e{
-                    border: 1px solid rgb(5, 5, 5);
-                    
                 }
                 td.h{
                     border: 1px solid rgb(5, 5, 5); 
@@ -230,6 +214,3 @@
         </main>           
     </body>
 </html>
-
-
-

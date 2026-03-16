@@ -948,7 +948,7 @@ class DebtorController extends Controller
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
 
 
-        $debtor = Debtor_1102050101_103::select('*', DB::raw('receive AS receive_manual'))->whereBetween('vstdate', [$start_date, $end_date])
+        $debtor = Debtor_1102050101_103::select('*', DB::raw('receive AS receive_manual'), DB::raw('repno AS repno_manual'))->whereBetween('vstdate', [$start_date, $end_date])
             ->where(function ($query) use ($search) {
                 $query->where('ptname', 'like', '%' . $search . '%');
                 $query->orwhere('hn', 'like', '%' . $search . '%');
@@ -1170,7 +1170,7 @@ class DebtorController extends Controller
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search = $request->search ?: Session::get('search');
 
-        $debtor = Debtor_1102050101_109::select('*', DB::raw('receive AS receive_manual'))->whereBetween('vstdate', [$start_date, $end_date])
+        $debtor = Debtor_1102050101_109::select('*', DB::raw('receive AS receive_manual'), DB::raw('repno AS repno_manual'))->whereBetween('vstdate', [$start_date, $end_date])
             ->where(function ($query) use ($search) {
                 $query->where('ptname', 'like', '%' . $search . '%');
                 $query->orwhere('hn', 'like', '%' . $search . '%');
@@ -1406,7 +1406,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.receive,s.receive_pp,d.repno,
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.receive,s.receive_pp,d.repno,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
                     d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change,
                     d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no,
@@ -1421,7 +1421,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.receive,d.repno,s.receive_pp,
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
                     d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change,
                     d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no,
@@ -1740,7 +1740,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.charge,d.charge_date,d.charge_no,d.receive,d.receive_date,
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge,d.charge_date,d.charge_no,d.receive,d.receive_date,
 					d.receive_no,d.repno,s.receive_pp,s.repno AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date,
                     CASE WHEN (IFNULL(d.receive,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
                     ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
@@ -1753,7 +1753,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.charge,d.charge_date,d.charge_no,d.receive,d.receive_date,
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge,d.charge_date,d.charge_no,d.receive,d.receive_date,
 					d.receive_no,d.repno,s.receive_pp,s.repno AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date,
                     CASE WHEN (IFNULL(d.receive,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
                     ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
@@ -2093,7 +2093,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.cid, d.ptname, d.hipdata_code, d.pttype, d.hospmain, d.pdx, d.income,  
-                    d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,d.receive AS receive_manual, s.receive_pp, d.receive, s.repno, s.repno AS repno_pp, d.status, d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno,
+                    d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,d.receive AS receive_manual, d.repno AS repno_manual, s.receive_pp, d.receive, s.repno, s.repno AS repno_pp, d.status, d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno,
                     CASE WHEN (IFNULL(d.receive,0)  + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
                     ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_209 d   
@@ -2105,7 +2105,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.cid, d.ptname, d.hipdata_code, d.pttype, d.hospmain, d.pdx, d.income,
-                     d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,d.receive AS receive_manual, s.receive_pp, d.receive, s.repno, s.repno AS repno_pp, d.status, d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno,
+                     d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,d.receive AS receive_manual, d.repno AS repno_manual, s.receive_pp, d.receive, s.repno, s.repno AS repno_pp, d.status, d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno,
                     CASE WHEN (IFNULL(d.receive,0)  + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
                     ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_209 d   
@@ -2843,7 +2843,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vn,d.an,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.receive,d.repno,s.receive_pp,
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no,
                     CASE WHEN (IFNULL(d.receive, 0)  + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
@@ -2857,7 +2857,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.vn,d.an,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.receive,d.repno,s.receive_pp,
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no,
                     CASE WHEN (IFNULL(d.receive, 0)  + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
@@ -3180,7 +3180,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vn,d.an,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no, 
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no, 
                     d.receive ,d.repno,s.receive_pp,IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
                     CASE WHEN (IFNULL(d.receive, 0)  + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
@@ -3194,7 +3194,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.vn,d.an,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no, 
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no, 
                     d.receive ,d.repno,s.receive_pp,IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
                     CASE WHEN (IFNULL(d.receive, 0)  + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
@@ -3444,7 +3444,7 @@ class DebtorController extends Controller
         $search = $request->search ?: Session::get('search');
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
 
-        $debtor = Debtor_1102050101_307::select('*', DB::raw('receive AS receive_manual'), DB::raw('IFNULL(vstdate, dchdate) as visit_date'), DB::raw('IFNULL(vsttime, dchtime) as visit_time'))
+        $debtor = Debtor_1102050101_307::select('*', DB::raw('receive AS receive_manual'), DB::raw('repno AS repno_manual'), DB::raw('IFNULL(vstdate, dchdate) as visit_date'), DB::raw('IFNULL(vsttime, dchtime) as visit_time'))
             ->whereBetween(DB::raw('IFNULL(vstdate, dchdate)'), [$start_date, $end_date])
             ->where(function ($query) use ($search) {
                 $query->where('ptname', 'like', '%' . $search . '%')
@@ -3828,7 +3828,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vstdate,d.vsttime,d.vn,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.pdx,d.hospmain,
-                    d.income,d.rcpt_money,d.kidney,d.debtor,d.receive AS receive_manual,IFNULL(d.receive,0)+IFNULL(s.receive,0) AS receive,d.repno,
+                    d.income,d.rcpt_money,d.kidney,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,IFNULL(d.receive,0)+IFNULL(s.receive,0) AS receive,d.repno,
                     s.repno AS rid,d.debtor_lock,d.status,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
                     s.round_no AS stm_round_no, s.receipt_date AS stm_receipt_date, s.receive_no AS stm_receive_no,
@@ -3844,7 +3844,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.vstdate,d.vsttime,d.vn,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.pdx,d.hospmain,
-                    d.income,d.rcpt_money,d.kidney,d.debtor,d.receive AS receive_manual,IFNULL(d.receive,0)+IFNULL(s.receive,0) AS receive,d.repno,
+                    d.income,d.rcpt_money,d.kidney,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,IFNULL(d.receive,0)+IFNULL(s.receive,0) AS receive,d.repno,
                     s.repno AS rid,d.debtor_lock,d.status,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
                     s.round_no AS stm_round_no, s.receipt_date AS stm_receipt_date, s.receive_no AS stm_receive_no,
@@ -4207,9 +4207,9 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
-                    d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual,d.charge_date,d.charge_no,
+                    d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no,
-                    d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
+                    d.adj_inc, d.adj_dec, d.adj_date, d.adj_note, 
                     (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
                     + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,stm.repno,csop.rid,hd.rid_hd,d.debtor_lock,
@@ -4241,7 +4241,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
-                    d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual,d.charge_date,d.charge_no,
+                    d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
                     (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
@@ -4526,7 +4526,7 @@ class DebtorController extends Controller
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search = $request->search ?: Session::get('search');
 
-        $debtor = Debtor_1102050101_501::select('*', DB::raw('receive AS receive_manual'))->whereBetween('vstdate', [$start_date, $end_date])
+        $debtor = Debtor_1102050101_501::select('*', DB::raw('receive AS receive_manual'), DB::raw('repno AS repno_manual'))->whereBetween('vstdate', [$start_date, $end_date])
             ->where(function ($query) use ($search) {
                 $query->where('ptname', 'like', '%' . $search . '%');
                 $query->orwhere('hn', 'like', '%' . $search . '%');
@@ -4765,7 +4765,7 @@ class DebtorController extends Controller
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search = $request->search ?: Session::get('search');
 
-        $debtor = Debtor_1102050101_503::select('*', DB::raw('receive AS receive_manual'))->whereBetween('vstdate', [$start_date, $end_date])
+        $debtor = Debtor_1102050101_503::select('*', DB::raw('receive AS receive_manual'), DB::raw('repno AS repno_manual'))->whereBetween('vstdate', [$start_date, $end_date])
             ->where(function ($query) use ($search) {
                 $query->where('ptname', 'like', '%' . $search . '%');
                 $query->orwhere('hn', 'like', '%' . $search . '%');
@@ -5005,7 +5005,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.receive,d.repno,s.receive_pp,
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
                 FROM debtor_1102050101_701 d   
                 LEFT JOIN ( SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
@@ -5016,7 +5016,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.receive,d.repno,s.receive_pp,
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
                 FROM debtor_1102050101_701 d   
                 LEFT JOIN ( SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
@@ -5245,7 +5245,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.receive,d.repno,s.receive_pp,
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
                 FROM debtor_1102050101_702 d   
                 LEFT JOIN ( SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
@@ -5256,7 +5256,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select('
                 SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.receive,d.repno,s.receive_pp,
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
                 FROM debtor_1102050101_702 d   
                 LEFT JOIN ( SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
@@ -5488,7 +5488,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::connection('hosxp')->select("
                     SELECT d.vstdate,d.vsttime,d.hn,d.vn,d.ptname,d.mobile_phone_number, d.pttype,d.hospmain,
-                    d.pdx,d.income,d.paid_money,d.rcpt_money,d.debtor,d.receive AS receive_manual,d.debtor_lock, 
+                    d.pdx,d.income,d.paid_money,d.rcpt_money,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.debtor_lock, 
                     IF(r.bill_amount IS NOT NULL, 'กระทบยอดแล้ว', d.status) AS status,
                     d.charge_date,d.charge_no,d.charge,d.receive_date, d.receive_no,  
                     IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.bill_amount,0) - d.rcpt_money) AS receive,
@@ -5509,7 +5509,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::connection('hosxp')->select("
                 SELECT d.vstdate,d.vsttime,d.hn,d.vn,d.cid,d.ptname,d.mobile_phone_number, d.pttype,d.hospmain,
-                    d.pdx,d.income,d.paid_money,d.rcpt_money,d.debtor,d.receive AS receive_manual,d.debtor_lock, 
+                    d.pdx,d.income,d.paid_money,d.rcpt_money,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.debtor_lock, 
                     IF(r.bill_amount IS NOT NULL, 'กระทบยอดแล้ว', d.status) AS status,
                     d.charge_date,d.charge_no,d.charge,d.receive_date, d.receive_no,  
                     IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.bill_amount,0) - d.rcpt_money) AS receive,
@@ -5865,7 +5865,7 @@ class DebtorController extends Controller
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search = $request->search ?: Session::get('search');
 
-        $debtor = Debtor_1102050102_108::select('*', DB::raw('receive AS receive_manual'))->whereBetween('vstdate', [$start_date, $end_date])
+        $debtor = Debtor_1102050102_108::select('*', DB::raw('receive AS receive_manual'), DB::raw('repno AS repno_manual'))->whereBetween('vstdate', [$start_date, $end_date])
             ->where(function ($query) use ($search) {
                 $query->where('ptname', 'like', '%' . $search . '%');
                 $query->orwhere('hn', 'like', '%' . $search . '%');
@@ -6119,7 +6119,7 @@ class DebtorController extends Controller
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
-                    d.charge,d.receive_date,d.receive_no, d.receive AS receive_manual,
+                    d.charge,d.receive_date,d.receive_no, d.receive AS receive_manual, d.repno AS repno_manual,
                     (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
                     + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
@@ -6153,7 +6153,7 @@ class DebtorController extends Controller
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
-                    d.charge,d.receive_date,d.receive_no, d.receive AS receive_manual,
+                    d.charge,d.receive_date,d.receive_no, d.receive AS receive_manual, d.repno AS repno_manual,
                     (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
                     + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
@@ -6447,6 +6447,7 @@ class DebtorController extends Controller
             ->orderBy('vstdate')->get()
             ->map(function ($item) {
                 $item->receive_manual = $item->receive; // Original manual value
+                $item->repno_manual = $item->repno; // Original manual value
                 if (($item->receive + ($item->adj_inc ?? 0) - ($item->adj_dec ?? 0) - $item->debtor) >= -0.01) {
                     $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
                 } else {
@@ -6682,7 +6683,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,
-                    d.rcpt_money,d.lgo,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,
+                    d.rcpt_money,d.lgo,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,
                     d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,IFNULL(s.compensate_treatment,0) AS receive_lgo,
                     CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END AS receive_kidney,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,IFNULL(s.compensate_treatment,0)
@@ -6711,7 +6712,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,
-                    d.rcpt_money,d.lgo,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,
+                    d.rcpt_money,d.lgo,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,
                     d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,IFNULL(s.compensate_treatment,0) AS receive_lgo,
                     CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END AS receive_kidney,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,IFNULL(s.compensate_treatment,0)
@@ -6992,7 +6993,7 @@ class DebtorController extends Controller
         if ($search) {
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
-                    d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual,d.charge_date,d.charge_no,
+                    d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,(IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
                     + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,csop.rid,hd.rid_hd,d.debtor_lock,
@@ -7024,7 +7025,7 @@ class DebtorController extends Controller
         } else {
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
-                    d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual,d.charge_date,d.charge_no,
+                    d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,(IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
                     + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
                     IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,csop.rid,hd.rid_hd,d.debtor_lock,

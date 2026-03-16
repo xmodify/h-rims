@@ -194,7 +194,7 @@
                                         data-receive-date-th="{{ !empty($row->receive_date) ? DateThai($row->receive_date) : '' }}"
                                         data-receive-no="{{ $row->receive_no }}"
                                         data-receive="{{ $row->receive_manual ?? 0 }}"
-                                        data-repno="{{ $row->repno }}"
+                                        data-repno="{{ $row->repno_manual ?? '' }}"
                                         data-adj-inc="{{ $row->adj_inc ?? 0 }}"
                                         data-adj-dec="{{ $row->adj_dec ?? 0 }}"
                                         data-adj-date="{{ $row->adj_date ?? date('Y-m-d') }}"

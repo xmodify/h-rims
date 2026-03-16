@@ -168,7 +168,7 @@
                                 <td align="right" style="color: #9c27b0;">{{ number_format($row->adj_inc ?? 0, 2) }}</td>
                                 <td align="right" style="color: #673ab7;">{{ number_format($row->adj_dec ?? 0, 2) }}</td>
                                 <td align="right" style="color:@if($balance < -0.01) red @elseif($balance > 0.01) green @else black @endif">{{ number_format($balance, 2) }}</td>
-                                <td align="right">{{ $row->repno ?? '' }} {{ $row->rid ?? '' }} {{ $row->rid_hd ?? '' }}</td> 
+                                <td align="right">{{ $row->repno_manual ?? '' }} {{ $row->repno ?? '' }} {{ $row->rid ?? '' }} {{ $row->rid_hd ?? '' }}</td> 
                                 <td align="center" @if($row->days < 90) style="background-color: #90EE90;"  
                                     @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" 
                                     @else style="background-color: #FF7F7F;" @endif >
@@ -189,7 +189,7 @@
                                         data-receive-date-th="{{ !empty($row->receive_date) ? DateThai($row->receive_date) : '' }}"
                                         data-receive-no="{{ $row->receive_no }}"
                                         data-receive="{{ $row->receive_manual ?? 0 }}"
-                                        data-repno="{{ $row->repno }}"
+                                        data-repno="{{ $row->repno_manual ?? '' }}"
                                         data-adj-inc="{{ $row->adj_inc ?? 0 }}"
                                         data-adj-dec="{{ $row->adj_dec ?? 0 }}"
                                         data-adj-date="{{ $row->adj_date ?? date('Y-m-d') }}"

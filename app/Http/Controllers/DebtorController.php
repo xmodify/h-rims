@@ -2094,7 +2094,7 @@ class DebtorController extends Controller
             $debtor = DB::select('
                 SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.cid, d.ptname, d.hipdata_code, d.pttype, d.hospmain, d.pdx, d.income,  
                     d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,d.receive AS receive_manual, s.receive_pp, d.receive, s.repno, s.repno AS repno_pp, d.status, d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno,
-                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(s.receive_pp,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
+                    CASE WHEN (IFNULL(d.receive,0)  + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
                     ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_209 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
@@ -2106,7 +2106,7 @@ class DebtorController extends Controller
             $debtor = DB::select('
                 SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.cid, d.ptname, d.hipdata_code, d.pttype, d.hospmain, d.pdx, d.income,
                      d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,d.receive AS receive_manual, s.receive_pp, d.receive, s.repno, s.repno AS repno_pp, d.status, d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno,
-                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(s.receive_pp,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
+                    CASE WHEN (IFNULL(d.receive,0)  + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
                     ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_209 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
@@ -2846,7 +2846,7 @@ class DebtorController extends Controller
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no,
-                    CASE WHEN (IFNULL(d.receive, 0) + IFNULL(s.receive_pp, 0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
+                    CASE WHEN (IFNULL(d.receive, 0)  + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_301 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
@@ -2860,7 +2860,7 @@ class DebtorController extends Controller
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.receive,d.repno,s.receive_pp,
                     IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no,
-                    CASE WHEN (IFNULL(d.receive, 0) + IFNULL(s.receive_pp, 0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
+                    CASE WHEN (IFNULL(d.receive, 0)  + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_301 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
@@ -3183,7 +3183,7 @@ class DebtorController extends Controller
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no, 
                     d.receive ,d.repno,s.receive_pp,IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
-                    CASE WHEN (IFNULL(d.receive, 0) + IFNULL(s.receive_pp, 0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
+                    CASE WHEN (IFNULL(d.receive, 0)  + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_303 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
@@ -3197,7 +3197,7 @@ class DebtorController extends Controller
                     d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no, 
                     d.receive ,d.repno,s.receive_pp,IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
-                    CASE WHEN (IFNULL(d.receive, 0) + IFNULL(s.receive_pp, 0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
+                    CASE WHEN (IFNULL(d.receive, 0)  + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_303 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
@@ -5064,7 +5064,7 @@ class DebtorController extends Controller
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $debtor = collect($debtor)->map(function ($item) {
-            $item->balance = ((float)$item->receive + (float)($item->receive_pp ?? 0) + (float)$item->adj_inc - (float)$item->adj_dec) - (float)$item->debtor;
+            $item->balance = ((float)$item->receive  + (float)$item->adj_inc - (float)$item->adj_dec) - (float)$item->debtor;
             $item->days = ($item->balance >= -0.01) ? 0 : Carbon::parse($item->vstdate)->diffInDays(Carbon::today());
             return $item;
         });
@@ -5305,7 +5305,7 @@ class DebtorController extends Controller
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $debtor = collect($debtor)->map(function ($item) {
-            $item->balance = ((float)$item->receive + (float)($item->receive_pp ?? 0) + (float)$item->adj_inc - (float)$item->adj_dec) - (float)$item->debtor;
+            $item->balance = ((float)$item->receive  + (float)$item->adj_inc - (float)$item->adj_dec) - (float)$item->debtor;
             $item->days = ($item->balance >= -0.01) ? 0 : Carbon::parse($item->vstdate)->diffInDays(Carbon::today());
             return $item;
         });

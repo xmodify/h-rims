@@ -158,7 +158,7 @@
                             @endphp
                             @foreach($debtor as $row) 
                             @php 
-                                $balance = ($row->receive + $row->receive_pp + ($row->adj_inc ?? 0) - ($row->adj_dec ?? 0)) - $row->debtor;
+                                $balance = ($row->receive + ($row->adj_inc ?? 0) - ($row->adj_dec ?? 0)) - $row->debtor;
                             @endphp
                             <tr>
                                 <td class="text-center"><input type="checkbox" name="checkbox_d[]" value="{{$row->vn}}"></td>   

@@ -77,7 +77,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="right">{{ number_format($row->other,2) }}</td>
                 <td align="right">{{ number_format($row->ppfs,2) }}</td>
                 @php
-                    $balance = ($row->receive + $row->receive_pp + ($row->adj_inc ?? 0) - ($row->adj_dec ?? 0)) - $row->debtor;
+                    $balance = ($row->receive + ($row->adj_inc ?? 0) - ($row->adj_dec ?? 0)) - $row->debtor;
                 @endphp
                 <td align="right">{{ number_format($row->debtor,2) }}</td>
                 <td align="right">{{ number_format($row->receive,2) }}</td>

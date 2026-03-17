@@ -291,6 +291,7 @@
                         <td align="right">{{ number_format($row->other,2) }}</td>
                         <td align="right">{{ number_format($row->debtor,2) }}</td>
                         <td align="left">{{ $row->other_list }}</td>
+                        <td align="center">{{ $row->status }}</td>
                     </tr>
                     @php 
                         $sum_income_search += $row->income;
@@ -315,6 +316,18 @@
         </div>
     </div>
 </div>  
+
+</div>  
+
+@if (session('success'))
+    <script>Swal.fire({ icon: 'success', title: 'สำเร็จ', text: '{{ session('success') }}', timer: 2000, showConfirmButton: false });</script>
+@endif
+@if (session('error'))
+    <script>Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: '{{ session('error') }}', timer: 4000, showConfirmButton: false });</script>
+@endif
+@if (session('warning'))
+    <script>Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: '{{ session('warning') }}', timer: 4000, showConfirmButton: false });</script>
+@endif
 
 <!-- Single Debtor Modal -->
 <div id="debtorModal" class="modal fade" tabindex="-1" aria-hidden="true">
@@ -450,6 +463,13 @@
             if (!selected.length) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะลบ', 'warning'); return; }
             Swal.fire({ title: 'ยืนยัน?', text: "ต้องการลบลูกหนี้รายการที่เลือกใช่หรือไม่?", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'ใช่, ลบเลย!', cancelButtonText: 'ยกเลิก' })
             .then((res) => { if (res.isConfirmed) { document.querySelector("form[action='{{ url('debtor/1102050101_304_delete') }}']").submit(); } });
+        }
+
+        function confirmSubmit() {
+            const selected = [...document.querySelectorAll('input[name="checkbox[]"]:checked')].map(e => e.value);    
+            if (!selected.length) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะยืนยัน', 'warning'); return; }
+            Swal.fire({ title: 'ยืนยัน?', text: "ต้องการยืนยันลูกหนี้รายการที่เลือกใช่หรือไม่?", icon: 'question', showCancelButton: true, confirmButtonColor: '#28a745', cancelButtonColor: '#6c757d', confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก' })
+            .then((result) => { if (result.isConfirmed) { document.querySelector("form[action='{{ url('debtor/1102050101_304_confirm') }}']").submit(); } });
         }
 
         function bulkAdjust() {

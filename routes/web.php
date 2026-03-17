@@ -572,8 +572,13 @@ Route::post('debtor/1102050101_308_bulk_adj', [DebtorController::class, '_110205
 Route::post('debtor/1102050101_309_bulk_adj', [DebtorController::class, '_1102050101_309_bulk_adj']);
 Route::post('debtor/1102050101_310_bulk_adj', [DebtorController::class, '_1102050101_310_bulk_adj']);
 Route::post('debtor/1102050101_401_bulk_adj', [DebtorController::class, '_1102050101_401_bulk_adj']);
-Route::put('debtor/1102050101_402/update/{id}', [DebtorController::class, '_1102050101_402_update']);
+Route::put('debtor/1102050101_402/update/{an}', [DebtorController::class, '_1102050101_402_update']);
 Route::post('debtor/1102050101_402_bulk_adj', [DebtorController::class, '_1102050101_402_bulk_adj']);
+Route::put('debtor/1102050101_502/update/{an}', [DebtorController::class, '_1102050101_502_update']);
+Route::post('debtor/1102050101_502_bulk_adj', [DebtorController::class, '_1102050101_502_bulk_adj']);
+Route::put('debtor/1102050101_504/update/{an}', [DebtorController::class, '_1102050101_504_update']);
+Route::post('debtor/1102050101_504_bulk_adj', [DebtorController::class, '_1102050101_504_bulk_adj']);
+Route::put('debtor/1102050101_704/update/{an}', [DebtorController::class, '_1102050101_704_update']);
 Route::post('debtor/1102050101_501_bulk_adj', [DebtorController::class, '_1102050101_501_bulk_adj']);
 Route::post('debtor/1102050101_502_bulk_adj', [DebtorController::class, '_1102050101_502_bulk_adj']);
 Route::post('debtor/1102050101_503_bulk_adj', [DebtorController::class, '_1102050101_503_bulk_adj']);

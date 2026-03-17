@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('content')
     <!-- Page Header & Logic Filters -->
     <div class="page-header-box mt-2 mb-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center flex-wrap">
@@ -291,6 +291,7 @@
                         <td align="right">{{ number_format($row->other,2) }}</td>
                         <td align="right">{{ number_format($row->debtor,2) }}</td>
                         <td align="left">{{ $row->other_list }}</td>
+                        <td align="left">{{ $row->ipt_coll_status_type_name }}</td>
                     </tr>
                     @php 
                         $sum_income_search += $row->income;
@@ -315,6 +316,18 @@
         </div>
     </div>
 </div>  
+
+</div>  
+
+@if (session('success'))
+    <script>Swal.fire({ icon: 'success', title: 'สำเร็จ', text: '{{ session('success') }}', timer: 2000, showConfirmButton: false });</script>
+@endif
+@if (session('error'))
+    <script>Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: '{{ session('error') }}', timer: 4000, showConfirmButton: false });</script>
+@endif
+@if (session('warning'))
+    <script>Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: '{{ session('warning') }}', timer: 4000, showConfirmButton: false });</script>
+@endif
 
 <!-- Single Debtor Modal -->
 <div id="debtorModal" class="modal fade" tabindex="-1" aria-hidden="true">
@@ -386,8 +399,8 @@
                                     </div>
                                 </div>
                                 <div class="col-md-6 mb-0">
-                                    <label class="form-label mb-1 small fw-bold">REP</label>
-                                    <input type="text" class="form-control form-control-sm rounded-pill px-3" name="repno" id="modal_repno" placeholder="ระบุREP">
+                                    <label class="form-label mb-1 small fw-bold">เลขที่ใบเสร็จ</label>
+                                    <input type="text" class="form-control form-control-sm rounded-pill px-3" name="repno" id="modal_repno" placeholder="ระบุเลขที่ใบเสร็จ">
                                 </div>
                             </div>
                         </div>
@@ -450,6 +463,13 @@
             if (!selected.length) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะลบ', 'warning'); return; }
             Swal.fire({ title: 'ยืนยัน?', text: "ต้องการลบลูกหนี้รายการที่เลือกใช่หรือไม่?", icon: 'warning', showCancelButton: true, confirmButtonColor: '#d33', confirmButtonText: 'ใช่, ลบเลย!', cancelButtonText: 'ยกเลิก' })
             .then((res) => { if (res.isConfirmed) { document.querySelector("form[action='{{ url('debtor/1102050101_308_delete') }}']").submit(); } });
+        }
+
+        function confirmSubmit() {
+            const selected = [...document.querySelectorAll('input[name="checkbox[]"]:checked')].map(e => e.value);    
+            if (!selected.length) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะยืนยัน', 'warning'); return; }
+            Swal.fire({ title: 'ยืนยัน?', text: "ต้องการยืนยันลูกหนี้รายการที่เลือกใช่หรือไม่?", icon: 'question', showCancelButton: true, confirmButtonColor: '#28a745', cancelButtonColor: '#6c757d', confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก' })
+            .then((result) => { if (result.isConfirmed) { document.querySelector("form[action='{{ url('debtor/1102050101_308_confirm') }}']").submit(); } });
         }
 
         function bulkAdjust() {

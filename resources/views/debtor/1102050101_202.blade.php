@@ -118,7 +118,7 @@
                         <th class="text-center text-primary" colspan = "11">การชดเชย</th>                                                 
                     </tr>
                     <tr class="table-success">
-                        <th class="text-center"><input type="checkbox" onClick="toggle_d(this)"> All</th>
+                        <th class="text-center">All <input type="checkbox" onClick="toggle_d(this)"></th>
                         <th class="text-center">HN</th>
                         <th class="text-center">AN</th>
                         <th class="text-center">ชื่อ-สกุล</th>  

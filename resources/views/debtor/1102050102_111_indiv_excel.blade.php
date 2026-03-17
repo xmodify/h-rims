@@ -38,6 +38,9 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <th class="text-center text-primary">ลูกหนี้</th>
                 <th class="text-center text-primary">ชดเชย</th>
                 <th class="text-center text-primary">ผลต่าง</th>
+                <th class="text-center" style="color: #9c27b0;">ปรับเพิ่ม</th>
+                <th class="text-center" style="color: #673ab7;">ปรับลด</th>
+                <th class="text-center text-primary">ยอดคงเหลือ</th>
                 <th class="text-center text-primary">REP</th>
                 <th class="text-center text-primary">เลขงวด</th>
                 <th class="text-center text-primary">วันที่ออกใบเสร็จ</th>
@@ -47,17 +50,17 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
             </thead> 
             <?php $count = 1 ; ?>
 
-            <?php $sum_income = 0 ; ?>
-
-            <?php $sum_rcpt_money = 0 ; ?>
-
-            <?php $sum_kidney = 0 ; ?>
-
-            <?php $sum_debtor = 0 ; ?>
-
-            <?php $sum_receive = 0 ; ?>
+            <?php 
+                $sum_income = 0 ; $sum_rcpt_money = 0 ; $sum_kidney = 0 ; $sum_debtor = 0 ; 
+                $sum_receive = 0 ; 
+                $sum_adj_inc = 0; $sum_adj_dec = 0; $sum_balance = 0; 
+            ?>
 
             @foreach($debtor as $row)          
+            @php
+                $total_received = ($row->receive ?? 0);
+                $balance = ($total_received + ($row->adj_inc ?? 0) - ($row->adj_dec ?? 0)) - $row->debtor;
+            @endphp
             <tr>
                 <td align="center">{{ $count }}</td>
                 <td align="center">{{ $row->hn }}</td>
@@ -73,14 +76,19 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
                 <td align="right">{{ number_format($row->kidney,2) }}</td> 
                 <td align="right" class="text-primary">{{ number_format($row->debtor,2) }}</td>                 
-                <td align="right" @if($row->receive > 0) style="color:green" 
-                    @elseif($row->receive < 0) style="color:red" @endif>
-                    {{ number_format($row->receive,2) }}
+                <td align="right" @if($total_received > 0) style="color:green" 
+                    @elseif($total_received < 0) style="color:red" @endif>
+                    {{ number_format($total_received,2) }}
                 </td>
-                <td align="right" @if(($row->receive-$row->debtor) > 0) style="color:green" 
-                    @elseif(($row->receive-$row->debtor) < 0) style="color:red" @endif>
-                    {{ number_format($row->receive-$row->debtor,2) }}
+                <td align="right" @if(($total_received-$row->debtor) > 0) style="color:green" 
+                    @elseif(($total_received-$row->debtor) < 0) style="color:red" @endif>
+                    {{ number_format($total_received-$row->debtor,2) }}
                 </td>                        
+                <td align="right" style="color: #9c27b0;">{{ number_format($row->adj_inc ?? 0, 2) }}</td>
+                <td align="right" style="color: #673ab7;">{{ number_format($row->adj_dec ?? 0, 2) }}</td>
+                <td align="right" style="color:@if($balance < -0.01) red @elseif($balance > 0.01) green @else black @endif">
+                    {{ number_format($balance,2) }}
+                </td>                                        
                 <td align="center">{{ $row->repno }}</td>
                 <td align="center">{{ $row->stm_round_no }}</td>
                 <td align="center">{{ $row->stm_receipt_date }}</td>
@@ -89,19 +97,19 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                     @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" {{-- เหลือง --}}
                     @else style="background-color: #FF7F7F;" {{-- แดง --}} @endif >
                     {{ $row->days }} วัน
-                </td> 
+                </td>   
             </tr>                
-            <?php $count++; ?>
-
-            <?php $sum_income += $row->income ; ?>
-
-            <?php $sum_rcpt_money += $row->rcpt_money ; ?>
-
-            <?php $sum_kidney += $row->kidney ; ?>
-
-            <?php $sum_debtor += $row->debtor ; ?>
-            
-            <?php $sum_receive += $row->receive ; ?>
+            <?php 
+                $count++; 
+                $sum_income += $row->income ; 
+                $sum_rcpt_money += $row->rcpt_money ; 
+                $sum_kidney += $row->kidney ; 
+                $sum_debtor += $row->debtor ; 
+                $sum_receive += $total_received ;
+                $sum_adj_inc += ($row->adj_inc ?? 0);
+                $sum_adj_dec += ($row->adj_dec ?? 0);
+                $sum_balance += $balance;
+            ?>
       
             @endforeach   
             <tr>
@@ -109,14 +117,14 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="right"><strong>{{number_format($sum_income,2)}}&nbsp;</strong></td>  
                 <td align="right"><strong>{{number_format($sum_rcpt_money,2)}}&nbsp;</strong></td>  
                 <td align="right"><strong>{{number_format($sum_kidney,2)}}&nbsp;</strong></td>  
-                <td align="right"><strong>{{number_format($sum_debtor,2)}}&nbsp;</strong></td>                
+                <td align="right"><strong>{{number_format($sum_debtor,2)}}&nbsp;</strong></td>
                 <td align="right"><strong>{{number_format($sum_receive,2)}}&nbsp;</strong></td>  
                 <td align="right"><strong>{{number_format($sum_receive-$sum_debtor,2)}}&nbsp;</strong></td>
+                <td align="right"><strong>{{number_format($sum_adj_inc,2)}}&nbsp;</strong></td>
+                <td align="right"><strong>{{number_format($sum_adj_dec,2)}}&nbsp;</strong></td>
+                <td align="right"><strong>{{number_format($sum_balance,2)}}&nbsp;</strong></td>
+                <td colspan="5"></td>
             </tr>          
         </table> 
     </div>
 </div>    
-
-
-
-

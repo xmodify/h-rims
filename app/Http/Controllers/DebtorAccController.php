@@ -308,6 +308,10 @@ class DebtorAccController extends Controller
         foreach ($this->accounts_map as $acc_code => $info) {
             $tableName = $info['table'];
             $dateField = $info['date_field'];
+
+            if (!\Illuminate\Support\Facades\Schema::hasTable($tableName)) {
+                continue;
+            }
             
             // 1. Debt New calculation (Always based on Visit/Dch Date)
             $query_new = DB::table($tableName)
@@ -461,12 +465,32 @@ class DebtorAccController extends Controller
                 }
             }
 
+            // 3. Adjustments calculation (BASED ON adj_date)
+            $adj_map = [];
+            $hasAdjDate = \Illuminate\Support\Facades\Schema::hasColumn($tableName, 'adj_date');
+            if ($hasAdjDate) {
+                $adj_rows = DB::table($tableName)
+                    ->select(
+                        DB::raw("YEAR(adj_date) as y, MONTH(adj_date) as m"),
+                        DB::raw("SUM(adj_inc) as inc_total, SUM(adj_dec) as dec_total"),
+                        DB::raw("GROUP_CONCAT(DISTINCT adj_note SEPARATOR ', ') as notes")
+                    )
+                    ->whereBetween('adj_date', [$fiscal_start_date, $fiscal_end_date])
+                    ->groupBy('y', 'm')
+                    ->get();
+                foreach($adj_rows as $row) {
+                    $m_no = ($row->m >= 10) ? $row->m - 9 : $row->m + 3;
+                    $adj_map[intval($m_no)] = ['inc' => $row->inc_total, 'dec' => $row->dec_total, 'notes' => $row->notes];
+                }
+            }
+
             foreach ($month_range as $month_no) {
                 $debt_new = $new_map[$month_no] ?? 0;
                 $debt_receive = $receive_map[$month_no] ?? 0;
 
                 if ($month_no <= 3) { $m = $month_no + 9; $y = $budget_year - 544; } else { $m = $month_no - 3; $y = $budget_year - 543; }
                 $vst_month = sprintf("%04d-%02d", $y, $m);
+                $month_end = date('Y-m-t', strtotime("$y-$m-01"));
 
                 $current_balance_old = 0;
                 if ($month_no > 1) {
@@ -480,8 +504,13 @@ class DebtorAccController extends Controller
                     $current_balance_old = $existing_ledger[$acc_code][1]->balance_old;
                 }
 
-                $adj_dec = 0; $adj_inc = 0; $adj_note = null;
-                if (isset($existing_ledger[$acc_code][$month_no])) {
+                // Adjustments from Source Table
+                $adj_dec = $adj_map[$month_no]['dec'] ?? 0;
+                $adj_inc = $adj_map[$month_no]['inc'] ?? 0;
+                $adj_note = $adj_map[$month_no]['notes'] ?? null;
+
+                // If no adjustments in source table for this month, check existing manual entries
+                if ($adj_dec == 0 && $adj_inc == 0 && isset($existing_ledger[$acc_code][$month_no])) {
                     $row = $existing_ledger[$acc_code][$month_no];
                     $adj_dec = $row->debt_adj_dec;
                     $adj_inc = $row->debt_adj_inc;
@@ -489,6 +518,24 @@ class DebtorAccController extends Controller
                 }
 
                 $balance_total = $current_balance_old + $debt_new + $adj_inc - $debt_receive - $adj_dec;
+
+                // Aging Calculation (As of end of month)
+                $aging_90 = 0; $aging_365 = 0; $aging_over = 0;
+                $aging_rows = DB::table($tableName)
+                    ->select(
+                        DB::raw("SUM(CASE WHEN DATEDIFF('$month_end', $dateField) <= 90 THEN (debtor + adj_inc - receive - adj_dec) ELSE 0 END) as a90"),
+                        DB::raw("SUM(CASE WHEN DATEDIFF('$month_end', $dateField) BETWEEN 91 AND 365 THEN (debtor + adj_inc - receive - adj_dec) ELSE 0 END) as a365"),
+                        DB::raw("SUM(CASE WHEN DATEDIFF('$month_end', $dateField) > 365 THEN (debtor + adj_inc - receive - adj_dec) ELSE 0 END) as aover")
+                    )
+                    ->whereRaw("$dateField <= ?", [$month_end])
+                    ->whereRaw("(debtor + adj_inc - receive - adj_dec) > 0")
+                    ->first();
+                
+                if ($aging_rows) {
+                    $aging_90 = $aging_rows->a90 ?? 0;
+                    $aging_365 = $aging_rows->a365 ?? 0;
+                    $aging_over = $aging_rows->aover ?? 0;
+                }
 
                 DB::table('debtor_acc_ledger')->updateOrInsert(
                     ['budget_year' => $budget_year, 'month_no' => $month_no, 'acc_code' => $acc_code],
@@ -502,6 +549,9 @@ class DebtorAccController extends Controller
                         'debt_adj_inc' => $adj_inc,
                         'adj_note' => $adj_note,
                         'balance_total' => $balance_total,
+                        'aging_90' => $aging_90,
+                        'aging_365' => $aging_365,
+                        'aging_over' => $aging_over,
                         'updated_at' => now(),
                     ]
                 );

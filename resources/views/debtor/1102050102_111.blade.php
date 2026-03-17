@@ -130,7 +130,6 @@
                         <th class="text-center">ฟอกไต</th>
                         <th class="text-center text-primary">ลูกหนี้</th>
                         <th class="text-center text-primary">ชดเชย</th>
-                        <th class="text-center text-primary">ผลต่าง</th>
                         <th class="text-center" style="color: #9c27b0;">ปรับเพิ่ม</th>
                         <th class="text-center" style="color: #673ab7;">ปรับลด</th>
                         <th class="text-center text-primary">ยอดคงเหลือ</th>
@@ -168,10 +167,6 @@
                         <td align="right" @if($total_received > 0) style="color:green" 
                             @elseif($total_received < 0) style="color:red" @endif>
                             {{ number_format($total_received,2) }}
-                        </td>
-                        <td align="right" @if(($total_received-$row->debtor) > 0) style="color:green" 
-                            @elseif(($total_received-$row->debtor) < 0) style="color:red" @endif>
-                            {{ number_format($total_received-$row->debtor,2) }}
                         </td>
                         <td align="right" style="color: #9c27b0;">{{ number_format($row->adj_inc ?? 0, 2) }}</td>
                         <td align="right" style="color: #673ab7;">{{ number_format($row->adj_dec ?? 0, 2) }}</td>
@@ -246,9 +241,6 @@
                             <td class="text-end">{{ number_format($sum_kidney,2) }}</td>
                             <td class="text-end" style="color:blue">{{ number_format($sum_debtor,2) }}</td>
                             <td class="text-end" style="color:green">{{ number_format($sum_receive,2) }}</td>
-                            <td class="text-end" style="color:red">
-                                {{ number_format($sum_receive - $sum_debtor, 2) }}
-                            </td>
                             <td class="text-end" style="color: #9c27b0;">{{ number_format($sum_adj_inc,2) }}</td>
                             <td class="text-end" style="color: #673ab7;">{{ number_format($sum_adj_dec,2) }}</td>
                             <td class="text-end" @if($sum_balance > 0.01) style="color:green" 

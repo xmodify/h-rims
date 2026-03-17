@@ -16,7 +16,6 @@
         }
     </script>    
 @section('content')
-
     <!-- Page Header & Logic Filters -->
     <div class="page-header-box mt-2 mb-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center flex-wrap">
         <div>
@@ -30,12 +29,12 @@
         <div class="d-flex align-items-center gap-4">
             <!-- Filter Section -->
             <div class="filter-group">
-                <form method="POST" enctype="multipart/form-data" class="m-0 d-flex flex-wrap align-items-center gap-2">
+                <form method="POST" action="{{ url('debtor/1102050102_603') }}" enctype="multipart/form-data" class="m-0 d-flex flex-wrap align-items-center gap-2">
                     @csrf
                     
                     <!-- Date Range -->
                     <div class="d-flex align-items-center">
-                        <span class="input-group-text bg-white text-muted border-end-0 rounded-start"><i class="bi bi-calendar-event me-1"></i> วันที่</span>
+                        <span class="input-group-text bg-white text-muted border-end-0 rounded-start">วันที่</span>
                         <input type="hidden" name="start_date" id="start_date" value="{{ $start_date }}">
                         <input type="text" id="start_date_picker" class="form-control border-start-0 rounded-0 datepicker_th" value="{{ DateThai($start_date) }}" style="width: 120px;" placeholder="วว/ดด/ปปปป" readonly>
                         <span class="input-group-text bg-white border-start-0 border-end-0 rounded-0">ถึง</span>
@@ -61,7 +60,7 @@
     </div>
 
     <!-- Main Dashboard Container -->
-    <div class="card dash-card border-0">
+    <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">
         
         <!-- Section: Tabs -->
         <div class="card-header bg-transparent border-0 pt-3 px-4 pb-0">
@@ -69,7 +68,7 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span class=" badge bg-primary-soft text-primary ms-2">{{ count($debtor) }}</span>
+                        <span class="badge bg-primary-soft text-primary ms-2">{{ count($debtor) }}</span>
                     </button>
                 </li>       
                 <li class="nav-item" role="presentation">
@@ -89,10 +88,17 @@
                     <form action="{{ url('debtor/1102050102_603_delete') }}" method="POST" enctype="multipart/form-data">
                         @csrf   
                         @method('DELETE')
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDelete()">
-                                <i class="bi bi-trash-fill me-1"></i> ลบรายการลูกหนี้
-                            </button>
+                        <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="confirmDelete()">
+                                    <i class="bi bi-trash-fill me-1"></i> ลบรายการลูกหนี้
+                                </button>
+                                @if(Auth::user()->status == 'admin' || Auth::user()->allow_debtor_lock == 'Y')
+                                <button type="button" class="btn btn-warning btn-sm px-3 shadow-sm text-dark fw-bold" onclick="bulkAdjust()">
+                                    <i class="bi bi-tools me-1"></i> ปรับปรุงยอดเป็น 0
+                                </button>
+                                @endif
+                            </div>
                             <div>
                                 <a class="btn btn-outline-success btn-sm px-3 shadow-sm ms-2" href="{{ url('debtor/1102050102_603_indiv_excel')}}" target="_blank">
                                     <i class="bi bi-file-earmark-excel me-1"></i> ส่งออกรายตัว
@@ -106,9 +112,9 @@
                             <thead>
                             <tr class="table-success">
                                 <th class="text-left text-primary" colspan = "12">1102050102.603-ลูกหนี้ค่ารักษา พรบ.รถ IP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</th> 
-                                <th class="text-center text-primary" colspan = "8">การชดเชย</th>                                                 
+                                <th class="text-center text-primary" colspan = "10">การชดเชย</th>                                                 
                             </tr>
-                            <tr class="table-success">
+                            <tr class="table-success align-middle text-center">
                                 <th class="text-center"><input type="checkbox" onClick="toggle_d(this)"> All</th>
                                 <th class="text-center">HN</th>
                                 <th class="text-center">AN</th>
@@ -118,26 +124,29 @@
                                 <th class="text-center">Discharge</th>
                                 <th class="text-center">ICD10</th>
                                 <th class="text-center">AdjRW</th>
-                                <th class="text-center" width ="5%">ค่ารักษาทั้งหมด</th>  
+                                <th class="text-center" width ="5%">ค่ารักษา</th>  
                                 <th class="text-center">ชำระเอง</th>
                                 <th class="text-center">กองทุนอื่น</th>
                                 <th class="text-center text-primary">ลูกหนี้</th>
                                 <th class="text-center text-primary">ชดเชย</th>
-                                <th class="text-center text-primary">ผลต่าง</th>                         
-                                <th class="text-center text-primary" width="6%">สถานะ</th>  
+                                <th class="text-center" style="color: #9c27b0;">ปรับเพิ่ม</th>
+                                <th class="text-center" style="color: #673ab7;">ปรับลด</th>
+                                <th class="text-center text-primary">ยอดคงเหลือ</th>
                                 <th class="text-center text-primary">เลขที่ใบเสร็จ</th>                        
                                 <th class="text-center text-primary">อายุหนี้</th>     
                                 <th class="text-center text-primary" width="5%">Action</th>          
                                 <th class="text-center text-primary">Lock</th> 
                             </tr>
                             </thead>
-                            <?php $count = 1 ; ?>
-                            <?php $sum_income = 0 ; ?>
-                            <?php $sum_rcpt_money = 0 ; ?>
-                            <?php $sum_other = 0 ; ?>
-                            <?php $sum_debtor = 0 ; ?>
-                            <?php $sum_receive  = 0 ; ?>
+                            <tbody>
+                            @php 
+                                $count = 1; $s_income = 0; $s_rcpt = 0; $s_other = 0; $s_debtor = 0;
+                                $s_receive = 0; $s_adj_inc = 0; $s_adj_dec = 0; $s_balance = 0;
+                            @endphp
                             @foreach($debtor as $row)
+                            @php 
+                                $balance = ($row->receive + ($row->adj_inc ?? 0) - ($row->adj_dec ?? 0)) - $row->debtor;
+                            @endphp
                             <tr>
                                 <td class="text-center"><input type="checkbox" name="checkbox_d[]" value="{{$row->an}}"></td> 
                                 <td align="center">{{ $row->hn }}</td>
@@ -156,11 +165,9 @@
                                     @elseif($row->receive < 0) style="color:red" @endif>
                                     {{ number_format($row->receive,2) }}
                                 </td>
-                                <td align="right" @if(($row->receive-$row->debtor) > 0) style="color:green" 
-                                    @elseif(($row->receive-$row->debtor) < 0) style="color:red" @endif>
-                                    {{ number_format($row->receive-$row->debtor,2) }}
-                                </td>  
-                                <td align="right">{{ $row->status ?? '' }}</td> 
+                                <td align="right" style="color: #9c27b0;">{{ number_format($row->adj_inc ?? 0, 2) }}</td>
+                                <td align="right" style="color: #673ab7;">{{ number_format($row->adj_dec ?? 0, 2) }}</td>
+                                <td align="right" style="color:@if($balance < -0.01) red @elseif($balance > 0.01) green @else black @endif">{{ number_format($balance, 2) }}</td>
                                 <td align="center">{{ $row->repno ?? '' }}</td>                            
                                 <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  
                                     @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" 
@@ -168,43 +175,65 @@
                                     {{ $row->days }} วัน
                                 </td>    
                                 <td align="center">         
-                                    <button type="button" class="btn btn-outline-warning btn-sm px-2 shadow-sm" data-bs-toggle="modal" data-bs-target="#receive-{{ str_replace('/', '-', $row->an) }}"> 
-                                        <i class="bi bi-cash-stack"></i> ชดเชย
+                                    <button type="button" class="btn btn-warning btn-sm px-2 shadow-sm text-dark btn-edit-debtor"
+                                        data-vn="{{ $row->an }}"
+                                        data-ptname="{{ $row->ptname }}"
+                                        data-balance="{{ number_format($balance,2) }}"
+                                        data-balance-raw="{{ $balance }}"
+                                        data-charge-date="{{ $row->charge_date }}"
+                                        data-charge-date-th="{{ !empty($row->charge_date) ? DateThai($row->charge_date) : '' }}"
+                                        data-charge_no="{{ $row->charge_no }}"
+                                        data-charge="{{ $row->charge }}"
+                                        data-status="{{ $row->status }}"
+                                        data-receive-date="{{ $row->receive_date }}"
+                                        data-receive-date-th="{{ !empty($row->receive_date) ? DateThai($row->receive_date) : '' }}"
+                                        data-receive_no="{{ $row->receive_no }}"
+                                        data-receive="{{ $row->receive_manual ?? 0 }}"
+                                        data-repno="{{ $row->repno_manual ?? '' }}"
+                                        data-adj-inc="{{ $row->adj_inc ?? 0 }}"
+                                        data-adj-dec="{{ $row->adj_dec ?? 0 }}"
+                                        data-adj-date="{{ $row->adj_date ?? date('Y-m-d') }}"
+                                        data-adj-date-th="{{ !empty($row->adj_date) ? DateThai($row->adj_date) : DateThai(date('Y-m-d')) }}"
+                                        data-adj-note="{{ $row->adj_note }}"
+                                        data-update-url="{{ url('debtor/1102050102_603/update', $row->an) }}">
+                                        <i class="bi bi-pencil-square"></i>
                                     </button>                            
                                 </td>
-                                <td align="center" style="color:blue">
-                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_debtor_lock == 'Y')
-                                @if($row->debtor_lock == 'Y')
-                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmUnlock('{{ $row->an }}')">
-                                        <i class="bi bi-unlock"></i> Unlock
-                                    </button>
-                                @else
-                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="confirmLock('{{ $row->an }}')">
-                                        <i class="bi bi-lock"></i> Lock
-                                    </button>
-                                @endif
-                            @else
-                                {{ $row->debtor_lock }}
-                            @endif
-                        </td>                          
-                            <?php $count++; ?>
-                            <?php $sum_income += $row->income ; ?>
-                            <?php $sum_rcpt_money += $row->rcpt_money ; ?>
-                            <?php $sum_other += $row->other ; ?> 
-                            <?php $sum_debtor += $row->debtor ; ?> 
-                            <?php $sum_receive += $row->receive ; ?>       
+                                <td align="center">
+                                    @if(Auth::user()->status == 'admin' || Auth::user()->allow_debtor_lock == 'Y')
+                                        @if($row->debtor_lock == 'Y')
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="confirmUnlock('{{ $row->an }}')">
+                                                <i class="bi bi-unlock"></i>
+                                            </button>
+                                        @else
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="confirmLock('{{ $row->an }}')">
+                                                <i class="bi bi-lock"></i>
+                                            </button>
+                                        @endif
+                                    @else
+                                        {{ $row->debtor_lock }}
+                                    @endif
+                                </td>                          
+                            @php 
+                                $count++; $s_income += $row->income; $s_rcpt += $row->rcpt_money;
+                                $s_other += $row->other; $s_debtor += $row->debtor;
+                                $s_receive += $row->receive;
+                                $s_adj_inc += $row->adj_inc ?? 0; $s_adj_dec += $row->adj_dec ?? 0; $s_balance += $balance;
+                            @endphp
                             @endforeach 
-                            </tr>   
+                            </tbody>   
                             <tfoot>
-                                <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
+                                <tr class="table-success text-end fw-bold" style="font-size: 14px;">
                                     <td colspan="9" class="text-end">รวม</td>
-                                    <td class="text-end">{{ number_format($sum_income,2) }}</td>
-                                    <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
-                                    <td class="text-end">{{ number_format($sum_other,2) }}</td>
-                                    <td class="text-end" style="color:blue">{{ number_format($sum_debtor,2) }}</td>
-                                    <td class="text-end" style="@if($sum_receive > 0) color:green @elseif($sum_receive < 0) color:red @endif">{{ number_format($sum_receive,2) }}</td>
-                                    <td class="text-end" style="@if(($sum_receive-$sum_debtor) > 0) color:green @elseif(($sum_receive-$sum_debtor) < 0) color:red @endif">{{ number_format($sum_receive-$sum_debtor,2) }}</td>
-                                    <td colspan="5"></td>
+                                    <td class="text-end">{{ number_format($s_income,2) }}</td>
+                                    <td class="text-end">{{ number_format($s_rcpt,2) }}</td>
+                                    <td class="text-end">{{ number_format($s_other,2) }}</td>
+                                    <td class="text-end" style="color:blue">{{ number_format($s_debtor,2) }}</td>
+                                    <td class="text-end" style="color:green">{{ number_format($s_receive,2) }}</td>
+                                    <td class="text-end" style="color: #9c27b0;">{{ number_format($s_adj_inc,2) }}</td>
+                                    <td class="text-end" style="color: #673ab7;">{{ number_format($s_adj_dec,2) }}</td>
+                                    <td class="text-end" style="color:@if($s_balance < -0.01) red @elseif($s_balance > 0.01) green @else black @endif">{{ number_format($s_balance, 2) }}</td>
+                                    <td colspan="3"></td>
                                 </tr>
                             </tfoot>
                         </table></div>
@@ -215,7 +244,7 @@
                 <div class="tab-pane fade" id="confirm-pane" role="tabpanel"> 
                     <form action="{{ url('debtor/1102050102_603_confirm') }}" method="POST" enctype="multipart/form-data">
                         @csrf                
-                        <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
                             <button type="button" class="btn btn-outline-success btn-sm"  onclick="confirmSubmit()">
                                 <i class="bi bi-check-circle me-1"></i> ยืนยันลูกหนี้
                             </button>
@@ -226,7 +255,7 @@
                             <tr class="table-secondary">
                                 <th class="text-left text-primary" colspan = "17">1102050102.603-ลูกหนี้ค่ารักษา พรบ.รถ IP รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                         
                             </tr>
-                            <tr class="table-secondary">
+                            <tr class="table-secondary align-middle text-center">
                                 <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th>  
                                 <th class="text-center">ตึกผู้ป่วย</th>
                                 <th class="text-center">HN</th>
@@ -234,11 +263,11 @@
                                 <th class="text-center">ชื่อ-สกุล</th>              
                                 <th class="text-center">อายุ</th>
                                 <th class="text-center" width ="8%">สิทธิ</th>
-                                <th class="text-center" width ="6%">Admit</th>
-                                <th class="text-center" width ="6%">Discharge</th>
+                                <th class="text-center">Admit</th>
+                                <th class="text-center">Discharge</th>
                                 <th class="text-center">ICD10</th>
                                 <th class="text-center">AdjRW</th>
-                                <th class="text-center" width ="5%">ค่ารักษาทั้งหมด</th>  
+                                <th class="text-center">ค่ารักษา</th>  
                                 <th class="text-center">ชำระเอง</th>
                                 <th class="text-center">กองทุนอื่น</th>
                                 <th class="text-center">ลูกหนี้</th>
@@ -246,7 +275,10 @@
                                 <th class="text-center">สถานะ</th> 
                             </tr>
                             </thead>
-                            <?php $count = 1 ; ?>
+                            <tbody>
+                            @php 
+                                $s_income_sec = 0; $s_rcpt_sec = 0; $s_other_sec = 0; $s_debtor_sec = 0;
+                            @endphp
                             @foreach($debtor_search as $row)
                             <tr>
                                 <td class="text-center"><input type="checkbox" name="checkbox[]" value="{{$row->an}}"></td> 
@@ -256,134 +288,153 @@
                                 <td align="left">{{ $row->ptname }}</td>
                                 <td align="center">{{ $row->age_y }}</td>
                                 <td align="left" width ="8%">{{ $row->pttype }}</td>
-                                <td align="right" width ="6%">{{ DateThai($row->regdate) }}</td>
-                                <td align="right" width ="6%">{{ DateThai($row->dchdate) }}</td>
+                                <td align="right">{{ DateThai($row->regdate) }}</td>
+                                <td align="right">{{ DateThai($row->dchdate) }}</td>
                                 <td align="right">{{ $row->pdx }}</td>      
                                 <td align="right">{{ $row->adjrw }}</td>                        
-                                <td align="right" width ="5%">{{ number_format($row->income,2) }}</td>
+                                <td align="right">{{ number_format($row->income,2) }}</td>
                                 <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
                                 <td align="right">{{ number_format($row->other,2) }}</td>
                                 <td align="right">{{ number_format($row->debtor,2) }}</td>
                                 <td align="left">{{ $row->other_list }}</td>
                                 <td align="left">{{ $row->ipt_coll_status_type_name }}</td>
-                            <?php $count++; ?>
-                            @endforeach 
+                            @php 
+                                $s_income_sec += $row->income; $s_rcpt_sec += $row->rcpt_money;
+                                $s_other_sec += $row->other; $s_debtor_sec += $row->debtor;
+                            @endphp
                             </tr> 
+                            @endforeach 
+                            </tbody>
+                            <tfoot>
+                                <tr class="table-secondary text-end fw-bold" style="font-size: 14px;">
+                                    <td colspan="11" class="text-end">รวม</td>
+                                    <td class="text-end">{{ number_format($s_income_sec,2) }}</td>
+                                    <td class="text-end">{{ number_format($s_rcpt_sec,2) }}</td>
+                                    <td class="text-end">{{ number_format($s_other_sec,2) }}</td>
+                                    <td class="text-end" style="color:blue">{{ number_format($s_debtor_sec,2) }}</td>
+                                    <td colspan="2"></td>
+                                </tr>
+                            </tfoot>
                         </table></div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
-        <!-- Modal บันทึกชดเชย -->
-        @foreach($debtor as $row)
-            <div id="receive-{{ str_replace('/', '-', $row->an) }}" class="modal fade" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-lg modal-dialog-centered">
-                    <div class="modal-content border-0 shadow-lg">
-                        <div class="modal-header bg-primary text-white border-0 py-3">
-                            <h5 class="modal-title d-flex align-items-center">
-                                <i class="bi bi-cash-stack me-2"></i>
-                                รายการการชดเชยเงิน/ลูกหนี้ (AN: {{ $row->an }})
-                            </h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>         
-                        <form action="{{ url('debtor/1102050102_603/update', $row->an) }}" method="POST">
-                            @csrf
-                            @method('PUT')
-                            <div class="modal-body p-4">
-                                <div class="row g-4">
-                                    <div class="col-md-12">
-                                        <div class="p-3 rounded-3 bg-primary-soft mb-2">
-                                            <div class="row align-items-center">
-                                                <div class="col-md-7">
-                                                    <label class="text-muted small d-block">ชื่อ-สกุล</label>
-                                                    <span class="fw-bold text-primary fs-5">{{ $row->ptname }}</span>
-                                                </div>
-                                                <div class="col-md-5 text-md-end">
-                                                    <label class="text-muted small d-block">ยอดลูกหนี้คงเหลือ</label>
-                                                    <span class="fw-bold text-primary fs-5">{{ number_format($row->debtor, 2) }} บาท</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+</div>
 
-                                    <!-- Left Column: การเรียกเก็บ -->
-                                    <div class="col-md-6 border-end">
-                                        <h6 class="text-secondary fw-bold mb-3 d-flex align-items-center">
-                                            <i class="bi bi-send-fill me-2 text-primary"></i> ข้อมูลการส่งเบิก (Charge)
-                                        </h6>
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-bold">วันที่เรียกเก็บ</label>
-                                            <input type="hidden" name="charge_date" value="{{ $row->charge_date }}">
-                                        <input type="text" class="form-control rounded-pill px-3 datepicker_th" 
-                                            value="{{ !empty($row->charge_date) ? DateThai($row->charge_date) : '' }}" 
-                                            placeholder="วว/ดด/ปปปป" readonly>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-bold">เลขที่หนังสือเรียกเก็บ</label>
-                                            <input type="text" class="form-control rounded-pill px-3" name="charge_no" value="{{ $row->charge_no }}" placeholder="ระบุเลขที่หนังสือ">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-bold">จำนวนเงินที่เรียกเก็บ</label>
-                                            <div class="input-group">
-                                                <input type="number" step="0.01" class="form-control rounded-pill-start px-3" name="charge" value="{{ $row->charge }}">
-                                                <span class="input-group-text rounded-pill-end small bg-light">บาท</span>
-                                            </div>
-                                        </div>
-                                        <div class="mb-0">
-                                            <label class="form-label small fw-bold">สถานะลูกหนี้</label>
-                                            <select class="form-select rounded-pill px-3" name="status">                                                       
-                                                <option value="ยืนยันลูกหนี้" @if ($row->status == 'ยืนยันลูกหนี้') selected @endif>ยืนยันลูกหนี้</option>                                           
-                                                <option value="อยู่ระหว่างเรียกเก็บ" @if ($row->status  == 'อยู่ระหว่างเรียกเก็บ') selected @endif>อยู่ระหว่างเรียกเก็บ</option> 
-                                                <option value="อยู่ระหว่างการขออุทธรณ์" @if ($row->status == 'อยู่ระหว่างการขออุทธรณ์') selected @endif>อยู่ระหว่างการขออุทธรณ์</option>
-                                                <option value="กระทบยอดแล้ว" @if ($row->status == 'กระทบยอดแล้ว') selected @endif>กระทบยอดแล้ว</option>  
-                                            </select> 
-                                        </div>
-                                    </div>
-
-                                    <!-- Right Column: การชดเชย -->
-                                    <div class="col-md-6">
-                                        <h6 class="text-secondary fw-bold mb-3 d-flex align-items-center">
-                                            <i class="bi bi-wallet2 me-2 text-success"></i> ข้อมูลการชดเชย (Receive)
-                                        </h6>
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-bold">วันที่ชดเชย</label>
-                                            <input type="hidden" name="receive_date" value="{{ $row->receive_date }}">
-                                        <input type="text" class="form-control rounded-pill px-3 border-success-soft datepicker_th" 
-                                            value="{{ !empty($row->receive_date) ? DateThai($row->receive_date) : '' }}" 
-                                            placeholder="วว/ดด/ปปปป" readonly>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-bold">เลขที่หนังสือชดเชย</label>
-                                            <input type="text" class="form-control rounded-pill px-3 border-success-soft" name="receive_no" value="{{ $row->receive_no }}" placeholder="ระบุเลขที่โอน">
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label small fw-bold">จำนวนเงินที่ได้รับ</label>
-                                            <div class="input-group">
-                                                <input type="number" step="0.01" class="form-control rounded-pill-start px-3 border-success-soft" name="receive" value="{{ $row->receive }}">
-                                                <span class="input-group-text rounded-pill-end small bg-success-soft text-success border-success-soft">บาท</span>
-                                            </div>
-                                        </div>
-                                        <div class="mb-0">
-                                            <label class="form-label small fw-bold">เลขที่ใบเสร็จ</label>
-                                            <input type="text" class="form-control rounded-pill px-3 border-success-soft" name="repno" value="{{ $row->repno }}" placeholder="ระบุเลขที่ใบเสร็จ">
-                                        </div>
-                                    </div>
-                                </div> 
+<!-- Single Debtor Modal -->
+<div id="debtorModal" class="modal fade" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white border-0 py-3">
+                <h5 class="modal-title d-flex align-items-center"><i class="bi bi-cash-stack me-2"></i> รายการการชดเชยเงิน/ลูกหนี้ (AN: <span id="modal_vn"></span>)</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="debtorModalForm" method="POST">
+                @csrf @method('PUT')
+                <div class="modal-body p-3 text-start">
+                    <div class="row g-2">
+                        <div class="col-md-12">
+                            <div class="p-2 rounded-3 bg-primary-soft mb-1">
+                                <div class="row align-items-center">
+                                    <div class="col-md-7"><label class="text-muted small d-block">ชื่อ-สกุล</label><span id="modal_ptname" class="fw-bold text-primary fs-6"></span></div>
+                                    <div class="col-md-5 text-md-end"><label class="text-muted small d-block">ส่วนต่างลูกหนี้คงเหลือ</label><span id="modal_balance" class="fw-bold fs-6"></span></div>
+                                </div>
                             </div>
-                            <div class="modal-footer bg-light border-0 p-3">
-                                <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">ยกเลิก</button>
-                                <button type="submit" class="btn btn-success rounded-pill px-4 shadow-sm" onclick="showLoading()">
-                                    <i class="bi bi-save me-1"></i> บันทึกข้อมูล
-                                </button>
+                        </div>
+                        <div class="col-md-6 border-end">
+                            <h6 class="text-secondary fw-bold mb-2 d-flex align-items-center small"><i class="bi bi-send-fill me-2 text-primary"></i> ข้อมูลการส่งเบิก (Charge)</h6>
+                            <div class="row g-2">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label mb-1 small fw-bold">วันที่เรียกเก็บ</label>
+                                    <input type="hidden" name="charge_date" id="modal_charge_date">
+                                    <input type="text" id="modal_charge_date_picker" class="form-control form-control-sm rounded-pill px-3 datepicker_th" placeholder="วว/ดด/ปปปป" readonly>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label mb-1 small fw-bold">เลขที่หนังสือ</label>
+                                    <input type="text" class="form-control form-control-sm rounded-pill px-3" name="charge_no" id="modal_charge_no" placeholder="ระบุเลขที่หนังสือ">
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label mb-1 small fw-bold">จำนวนเงินเรียกเก็บ</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" step="0.01" class="form-control rounded-pill-start px-3" name="charge" id="modal_charge">
+                                        <span class="input-group-text rounded-pill-end small bg-light">บาท</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label mb-1 small fw-bold">สถานะลูกหนี้</label>
+                                    <select class="form-select form-select-sm rounded-pill px-3" name="status" id="modal_status">
+                                        <option value="ยืนยันลูกหนี้">ยืนยันลูกหนี้</option>
+                                        <option value="อยู่ระหว่างเรียกเก็บ">อยู่ระหว่างเรียกเก็บ</option>
+                                        <option value="อยู่ระหว่างการขออุทธรณ์">อยู่ระหว่างการขออุทธรณ์</option>
+                                        <option value="กระทบยอดแล้ว">กระทบยอดแล้ว</option>
+                                    </select>
+                                </div>
                             </div>
-                        </form>     
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-secondary fw-bold mb-2 d-flex align-items-center small"><i class="bi bi-wallet2 me-2 text-success"></i> ข้อมูลการชดเชย (Receive)</h6>
+                            <div class="row g-2">
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label mb-1 small fw-bold">วันที่ชดเชย</label>
+                                    <input type="hidden" name="receive_date" id="modal_receive_date">
+                                    <input type="text" id="modal_receive_date_picker" class="form-control form-control-sm rounded-pill px-3 datepicker_th" placeholder="วว/ดด/ปปปป" readonly>
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label class="form-label mb-1 small fw-bold">เลขที่หนังสือชดเชย</label>
+                                    <input type="text" class="form-control form-control-sm rounded-pill px-3" name="receive_no" id="modal_receive_no" placeholder="ระบุเลขที่โอน">
+                                </div>
+                                <div class="col-md-6 mb-0">
+                                    <label class="form-label mb-1 small fw-bold">จำนวนเงินที่ได้รับ</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" step="0.01" class="form-control rounded-pill-start px-3" name="receive" id="modal_receive">
+                                        <span class="input-group-text rounded-pill-end small bg-light">บาท</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-0">
+                                    <label class="form-label mb-1 small fw-bold">เลขที่ใบเสร็จ</label>
+                                    <input type="text" class="form-control form-control-sm rounded-pill px-3" name="repno" id="modal_repno" placeholder="ระบุเลขที่ใบเสร็จ">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <hr class="my-2">
+                            <h6 class="fw-bold mb-2 d-flex align-items-center small" style="color:#ffc107">
+                                <i class="bi bi-tools me-2"></i> ปรับปรุงยอดรายคน (Adjustment)
+                            </h6>
+                            <div class="row g-2">
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1 small fw-bold text-success">ปรับเพิ่ม (+)</label>
+                                    <input type="number" step="0.01" class="form-control form-control-sm rounded-pill px-3" name="adj_inc" id="modal_adj_inc">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1 small fw-bold text-danger">ปรับลด (-)</label>
+                                    <input type="number" step="0.01" class="form-control form-control-sm rounded-pill px-3" name="adj_dec" id="modal_adj_dec">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1 small fw-bold text-muted">วันที่ปรับปรุง</label>
+                                    <input type="hidden" name="adj_date" id="modal_adj_date">
+                                    <input type="text" id="modal_adj_date_picker" class="form-control form-control-sm rounded-pill px-3 datepicker_th" placeholder="วว/ดด/ปปปป" readonly>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label mb-1 small fw-bold text-muted">หมายเหตุ</label>
+                                    <input type="text" class="form-control form-control-sm rounded-pill px-3" name="adj_note" id="modal_adj_note" placeholder="ระบุเหตุผล">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        @endforeach 
-        <!-- end modal -->         
+                <div class="modal-footer bg-light border-0 p-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-success btn-sm rounded-pill px-4 shadow-sm" onclick="showLoading()">
+                        <i class="bi bi-save me-1"></i> บันทึกข้อมูล
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
+</div>
 
     @if (session('success'))
         <script>
@@ -518,6 +569,32 @@
                 }
             });
         }
+
+        function bulkAdjust() {
+            const sel = [...document.querySelectorAll('input[name="checkbox_d[]"]:checked')].map(e=>e.value);
+            if(!sel.length) { Swal.fire('แจ้งเตือน','กรุณาเลือกรายการ','warning'); return; }
+            Swal.fire({
+                title: 'ปรับปรุงยอดเป็น 0',
+                html: `
+                    <div class="text-start">
+                        <div class="mb-3"><label class="form-label small fw-bold">หมายเหตุการปรับปรุง</label><input type="text" id="blk_note" class="form-control rounded-pill" value="ปรับปรุงยอดเป็น 0"></div>
+                        <div class="mb-3"><label class="form-label small fw-bold">วันที่ปรับปรุง</label><input type="text" id="blk_date_th" class="form-control rounded-pill datepicker_th" value="{{DateThai(date('Y-m-d'))}}" readonly><input type="hidden" id="blk_date" value="{{date('Y-m-d')}}"></div>
+                    </div>
+                `,
+                icon: 'info', showCancelButton: true, confirmButtonColor: '#ffc107', confirmButtonText: 'ยืนยัน',
+                didOpen: () => { $('#blk_date_th').datepicker({ format: 'd M yyyy', autoclose: true, language: 'th-th', thaiyear: true, todayBtn: 'linked', todayHighlight: true }).on('changeDate', (e) => { if (e.date) { const y = e.date.getFullYear(), m=('0'+(e.date.getMonth()+1)).slice(-2), d=('0'+e.date.getDate()).slice(-2); $('#blk_date').val(y+'-'+m+'-'+d); } }); },
+                preConfirm: () => { return { note: $('#blk_note').val(), date: $('#blk_date').val() } }
+            }).then((r) => {
+                if (r.isConfirmed) {
+                    showLoading(); let f=document.createElement('form'); f.method='POST'; f.action="{{ url('debtor/1102050102_603_bulk_adj') }}";
+                    f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'_token', value:'{{csrf_token()}}'}));
+                    f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'bulk_adj_note', value:r.value.note}));
+                    f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'bulk_adj_date', value:r.value.date}));
+                    sel.forEach(id=>f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'checkbox_d[]', value:id})));
+                    document.body.appendChild(f); f.submit();
+                }
+            });
+        }
     </script>
 
 
@@ -551,7 +628,7 @@
         $(document).ready(function() {
             // Initialize Datepicker Thai
             $('.datepicker_th').datepicker({
-                format: 'd M yyyy', // Matches DateThai() helper output
+                format: 'd M yyyy', 
                 todayBtn: "linked",
                 todayHighlight: true,
                 autoclose: true,
@@ -559,18 +636,11 @@
                 thaiyear: true,
                 zIndexOffset: 1050
             });
-
-            // Set initial values (ensures calendar is synced)
             var start_date_val = "{{ $start_date }}";
             var end_date_val = "{{ $end_date }}";
-            if(start_date_val) {
-                $('#start_date_display').datepicker('setDate', new Date(start_date_val));
-            }
-            if(end_date_val) {
-                $('#end_date_display').datepicker('setDate', new Date(end_date_val));
-            }
-
-            // Sync Date Inputs (Generic Handler)
+            if(start_date_val) { $('#start_date_picker').datepicker('setDate', new Date(start_date_val)); }
+            if(end_date_val) { $('#end_date_picker').datepicker('setDate', new Date(end_date_val)); }
+            
             $(document).on('changeDate', '.datepicker_th', function(e) {
                 var date = e.date;
                 var hiddenInput = $(this).prev('input[type="hidden"]');
@@ -578,9 +648,86 @@
                     var day = ("0" + date.getDate()).slice(-2);
                     var month = ("0" + (date.getMonth() + 1)).slice(-2);
                     var year = date.getFullYear();
-                    hiddenInput.val(year + "-" + month + "-" + day);
+                    if(hiddenInput.length) { hiddenInput.val(year + "-" + month + "-" + day); }
                 } else {
-                    hiddenInput.val('');
+                    if(hiddenInput.length) { hiddenInput.val(''); }
+                }
+            });
+
+            function initModalDatepicker(pickerId, hiddenId) {
+                var $picker = $('#' + pickerId);
+                if ($picker.length) {
+                    $picker.datepicker({
+                        format: 'd M yyyy', 
+                        autoclose: true, 
+                        language: 'th-th', 
+                        thaiyear: true, 
+                        todayBtn: 'linked',
+                        todayHighlight: true,
+                        zIndexOffset: 1100
+                    }).on('changeDate', function(e) {
+                        if (e.date) {
+                            var d = e.date, y = d.getFullYear(), m = ('0'+(d.getMonth()+1)).slice(-2), day = ('0'+d.getDate()).slice(-2);
+                            $(hiddenId).val(y + '-' + m + '-' + day);
+                        }
+                    });
+                }
+            }
+            initModalDatepicker('modal_charge_date_picker', '#modal_charge_date');
+            initModalDatepicker('modal_receive_date_picker', '#modal_receive_date');
+            initModalDatepicker('modal_adj_date_picker', '#modal_adj_date');
+
+            $(document).on('click', '.btn-edit-debtor', function() {
+                var d = $(this).data();
+                var updateUrl = $(this).attr('data-update-url');
+                
+                $('#debtorModalForm').attr('action', updateUrl);
+                $('#modal_vn').text(d.vn);
+                $('#modal_ptname').text(d.ptname);
+                
+                var balEl = $('#modal_balance');
+                balEl.text(d.balance + ' บาท');
+                var raw = parseFloat(d.balanceRaw);
+                balEl.css('color', raw < -0.01 ? 'red' : (raw > 0.01 ? 'green' : 'black'));
+                
+                function setPickerDate(pickerId, hiddenId, dateStr) {
+                    $(hiddenId).val(dateStr || '');
+                    if(dateStr && dateStr !== '0000-00-00') {
+                        var p = dateStr.split('-');
+                        if(p.length === 3) {
+                            $(pickerId).val('');
+                            $(pickerId).datepicker('setDate', new Date(p[0], p[1]-1, p[2]));
+                        }
+                    } else {
+                        $(pickerId).val(''); 
+                    }
+                }
+
+                setPickerDate('#modal_charge_date_picker', '#modal_charge_date', d.chargeDate);
+                $('#modal_charge_no').val(d.charge_no || '');
+                $('#modal_charge').val(d.charge || '');
+                $('#modal_status').val(d.status || 'ยืนยันลูกหนี้');
+                
+                setPickerDate('#modal_receive_date_picker', '#modal_receive_date', d.receiveDate);
+                $('#modal_receive_no').val(d.receive_no || '');
+                $('#modal_receive').val(d.receive || '');
+                $('#modal_repno').val(d.repno || '');
+                
+                $('#modal_adj_inc').val(d.adjInc || 0);
+                $('#modal_adj_dec').val(d.adjDec || 0);
+                setPickerDate('#modal_adj_date_picker', '#modal_adj_date', d.adjDate);
+                $('#modal_adj_note').val(d.adjNote || '');
+                
+                var $modal = $('#debtorModal');
+                if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                    try {
+                        var myModal = bootstrap.Modal.getOrCreateInstance($modal[0]);
+                        myModal.show();
+                    } catch(e) {
+                        if (typeof $modal.modal === 'function') { $modal.modal('show'); }
+                    }
+                } else if (typeof $.fn.modal === 'function') {
+                    $modal.modal('show');
                 }
             });
         });
@@ -637,6 +784,3 @@
         });
     </script>
 @endpush
-
-
-

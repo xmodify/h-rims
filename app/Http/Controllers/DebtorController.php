@@ -81,6 +81,10 @@ class DebtorController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d', strtotime("-1 day"));
         $end_date = $request->end_date ?: date('Y-m-d', strtotime("-1 day"));
 
+        // Validate and format dates to prevent SQL Injection
+        $start_date = date('Y-m-d', strtotime($start_date));
+        $end_date = date('Y-m-d', strtotime($end_date));
+
         Session::put('start_date', $start_date);
         Session::put('end_date', $end_date);
 
@@ -97,13 +101,14 @@ class DebtorController extends Controller
                 LEFT JOIN ( SELECT r.vn,SUM(r.bill_amount) AS rcpt_money 
                     FROM rcpt_print r
                     WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                    AND r.bill_date BETWEEN '{$start_date}' AND '{$end_date}'
                     GROUP BY r.vn) rc ON rc.vn = o.vn
                 LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS ppfs_price
                     FROM opitemrece op
                     INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = 'Y' 
-                    WHERE op.vstdate BETWEEN ? AND ? AND op.paidst IN ('02')
+                    WHERE op.vstdate BETWEEN '{$start_date}' AND '{$end_date}' AND op.paidst IN ('02')
                     GROUP BY op.vn) pp ON pp.vn = o.vn 
-                WHERE o.vstdate BETWEEN ? AND ?
+                WHERE o.vstdate BETWEEN '{$start_date}' AND '{$end_date}'
                 AND i.vn IS NULL) v
                 
             CROSS JOIN
@@ -113,30 +118,30 @@ class DebtorController extends Controller
                 FROM ovst o
                 INNER JOIN opitemrece op ON op.vn = o.vn
                 LEFT JOIN ipt i ON i.vn = o.vn
-                WHERE o.vstdate BETWEEN ? AND ?
+                WHERE o.vstdate BETWEEN '{$start_date}' AND '{$end_date}'
                 AND (op.an IS NULL OR op.an = '')
-                AND i.vn IS NULL) o", [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+                AND i.vn IS NULL) o");
 
-        $check_income_pttype = DB::connection('hosxp')->select('
+        $check_income_pttype = DB::connection('hosxp')->select("
             SELECT p.hipdata_code AS inscl,  
-                CASE WHEN p.hipdata_code IN ("A1","CSH") THEN "ชำระเงิน"
-                    WHEN p.hipdata_code IN ("A9","INS") THEN "พรบ."
-                    WHEN p.hipdata_code = "BKK" THEN "กทม."
-                    WHEN p.hipdata_code = "PTY" THEN "พัทยา"
-                    WHEN p.hipdata_code = "BMT" THEN "ขสมก."
-                    WHEN p.hipdata_code = "KKT" THEN "กกต."
-                    WHEN p.hipdata_code = "GOF" THEN "เบิกต้นสังกัด"
-                    WHEN p.hipdata_code = "LGO" THEN "อปท."
-                    WHEN p.hipdata_code = "NRD" THEN "ต่างด้าวไม่ขึ้นทะเบียน"
-                    WHEN p.hipdata_code = "NRH" THEN "ต่างด้าวขึ้นทะเบียน"
-                    WHEN p.hipdata_code = "OFC" THEN "กรมบัญชีกลาง"
-                    WHEN p.hipdata_code = "SSI" THEN "ปกส.ทุพพลภาพ"
-                    WHEN p.hipdata_code = "SSS" THEN "ปกส."
-                    WHEN p.hipdata_code = "STP" THEN "ผู้มีปัญหาสถานะสิทธิ"
-                    WHEN p.hipdata_code = "UCS" THEN "ประกันสุขภาพ"
-                    WHEN p.hipdata_code = "SRT" THEN "การรถไฟแห่งประเทศไทย"
-                    WHEN p.hipdata_code = "NHS" THEN "สิทธิ สปสช."
-                    ELSE "ไม่พบเงื่อนไข" END AS pttype_group,
+                CASE WHEN p.hipdata_code IN ('A1','CSH') THEN 'ชำระเงิน'
+                    WHEN p.hipdata_code IN ('A9','INS') THEN 'พรบ.'
+                    WHEN p.hipdata_code = 'BKK' THEN 'กทม.'
+                    WHEN p.hipdata_code = 'PTY' THEN 'พัทยา'
+                    WHEN p.hipdata_code = 'BMT' THEN 'ขสมก.'
+                    WHEN p.hipdata_code = 'KKT' THEN 'กกต.'
+                    WHEN p.hipdata_code = 'GOF' THEN 'เบิกต้นสังกัด'
+                    WHEN p.hipdata_code = 'LGO' THEN 'อปท.'
+                    WHEN p.hipdata_code = 'NRD' THEN 'ต่างด้าวไม่ขึ้นทะเบียน'
+                    WHEN p.hipdata_code = 'NRH' THEN 'ต่างด้าวขึ้นทะเบียน'
+                    WHEN p.hipdata_code = 'OFC' THEN 'กรมบัญชีกลาง'
+                    WHEN p.hipdata_code = 'SSI' THEN 'ปกส.ทุพพลภาพ'
+                    WHEN p.hipdata_code = 'SSS' THEN 'ปกส.'
+                    WHEN p.hipdata_code = 'STP' THEN 'ผู้มีปัญหาสถานะสิทธิ'
+                    WHEN p.hipdata_code = 'UCS' THEN 'ประกันสุขภาพ'
+                    WHEN p.hipdata_code = 'SRT' THEN 'การรถไฟแห่งประเทศไทย'
+                    WHEN p.hipdata_code = 'NHS' THEN 'สิทธิ สปสช.'
+                    ELSE 'ไม่พบเงื่อนไข' END AS pttype_group,
                 COUNT(DISTINCT o.vn) AS vn,
                 SUM(IFNULL(v.income,0)) AS income,
                 SUM(IFNULL(v.paid_money,0)) AS paid_money,
@@ -146,64 +151,63 @@ class DebtorController extends Controller
             FROM (SELECT DISTINCT o.vn, vp.pttype 
                   FROM ovst o 
                   INNER JOIN visit_pttype vp ON vp.vn = o.vn
-                  WHERE o.vstdate BETWEEN ? AND ?) o_split
+                  WHERE o.vstdate BETWEEN '{$start_date}' AND '{$end_date}') o_split
             JOIN ovst o ON o.vn = o_split.vn
             LEFT JOIN ipt i ON i.vn = o.vn
             LEFT JOIN pttype p ON p.pttype = o_split.pttype
             LEFT JOIN (SELECT vn, pttype, SUM(sum_price) AS income,
-                       SUM(CASE WHEN paidst IN ("01","03") THEN sum_price ELSE 0 END) AS paid_money
+                       SUM(CASE WHEN paidst IN ('01','03') THEN sum_price ELSE 0 END) AS paid_money
                        FROM opitemrece 
-                       WHERE vstdate BETWEEN ? AND ?
+                       WHERE vstdate BETWEEN '{$start_date}' AND '{$end_date}'
                        GROUP BY vn, pttype) v ON v.vn = o_split.vn AND v.pttype = o_split.pttype
             LEFT JOIN (SELECT r.vn, r.pttype, SUM(r.bill_amount) AS rcpt_money 
                        FROM rcpt_print r
                        WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                       AND r.bill_date BETWEEN '{$start_date}' AND '{$end_date}'
                        GROUP BY r.vn, r.pttype) rc ON rc.vn = o_split.vn AND rc.pttype = o_split.pttype
             LEFT JOIN (SELECT op.vn, op.pttype, SUM(op.sum_price) AS ppfs_price
                        FROM opitemrece op
-                       INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = "Y" 
-                       WHERE op.vstdate BETWEEN ? AND ? AND op.paidst IN ("02")
+                       INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = 'Y' 
+                       WHERE op.vstdate BETWEEN '{$start_date}' AND '{$end_date}' AND op.paidst IN ('02')
                        GROUP BY op.vn, op.pttype) pp ON pp.vn = o_split.vn AND pp.pttype = o_split.pttype
-            WHERE o.vstdate BETWEEN ? AND ?
+            WHERE o.vstdate BETWEEN '{$start_date}' AND '{$end_date}'
             AND i.vn IS NULL
             GROUP BY p.hipdata_code
-            ORDER BY p.hipdata_code', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            ORDER BY p.hipdata_code");
 
-        $check_income_ipd = DB::connection('hosxp')->select(
-            "
+        $check_income_ipd = DB::connection('hosxp')->select("
             SELECT o.op_income,o.op_paid,v.an_income,v.an_paid,v.an_rcpt,v.an_income-v.an_rcpt AS an_debtor,
             IF(v.an_income <> o.op_income, 'Resync AN', 'Success') AS status_check
             FROM (SELECT SUM(income) AS an_income,SUM(paid_money) AS an_paid,SUM(rcpt_money) AS an_rcpt
                 FROM an_stat 
-                WHERE dchdate BETWEEN ? AND ?) v
+                WHERE dchdate BETWEEN '{$start_date}' AND '{$end_date}') v
             CROSS JOIN
                 (SELECT SUM(o.sum_price) AS op_income,SUM(CASE WHEN o.paidst IN ('01','03') THEN o.sum_price ELSE 0 END) AS op_paid
                 FROM opitemrece o 
                 INNER JOIN an_stat a ON a.an = o.an 
-                WHERE a.dchdate BETWEEN ? AND ?) o",
-            [$start_date, $end_date, $start_date, $end_date]
+                WHERE a.dchdate BETWEEN '{$start_date}' AND '{$end_date}') o"
         );
 
-        $check_income_ipd_pttype = DB::connection('hosxp')->select('
+        $check_income_ipd_pttype = DB::connection('hosxp')->select("
             SELECT p.hipdata_code AS inscl,
-                CASE WHEN p.hipdata_code IN ("A1","CSH") THEN "ชำระเงิน"
-                    WHEN p.hipdata_code IN ("A9","INS") THEN "พรบ."
-                    WHEN p.hipdata_code = "BKK" THEN "กทม."
-                    WHEN p.hipdata_code = "PTY" THEN "พัทยา"
-                    WHEN p.hipdata_code = "BMT" THEN "ขสมก."
-                    WHEN p.hipdata_code = "KKT" THEN "กกต."
-                    WHEN p.hipdata_code = "GOF" THEN "เบิกต้นสังกัด"
-                    WHEN p.hipdata_code = "LGO" THEN "อปท."
-                    WHEN p.hipdata_code = "NRD" THEN "ต่างด้าวไม่ขึ้นทะเบียน"
-                    WHEN p.hipdata_code = "NRH" THEN "ต่างด้าวขึ้นทะเบียน"
-                    WHEN p.hipdata_code = "OFC" THEN "กรมบัญชีกลาง"
-                    WHEN p.hipdata_code = "SSI" THEN "ปกส.ทุพพลภาพ"
-                    WHEN p.hipdata_code = "SSS" THEN "ปกส."
-                    WHEN p.hipdata_code = "STP" THEN "ผู้มีปัญหาสถานะสิทธิ"
-                    WHEN p.hipdata_code = "UCS" THEN "ประกันสุขภาพ"
-                    WHEN p.hipdata_code = "SRT" THEN "การรถไฟแห่งประเทศไทย"
-                    WHEN p.hipdata_code = "NHS" THEN "สิทธิ สปสช."
-                    ELSE "ไม่พบเงื่อนไข" END AS pttype_group,
+                CASE WHEN p.hipdata_code IN ('A1','CSH') THEN 'ชำระเงิน'
+                    WHEN p.hipdata_code IN ('A9','INS') THEN 'พรบ.'
+                    WHEN p.hipdata_code = 'BKK' THEN 'กทม.'
+                    WHEN p.hipdata_code = 'PTY' THEN 'พัทยา'
+                    WHEN p.hipdata_code = 'BMT' THEN 'ขสมก.'
+                    WHEN p.hipdata_code = 'KKT' THEN 'กกต.'
+                    WHEN p.hipdata_code = 'GOF' THEN 'เบิกต้นสังกัด'
+                    WHEN p.hipdata_code = 'LGO' THEN 'อปท.'
+                    WHEN p.hipdata_code = 'NRD' THEN 'ต่างด้าวไม่ขึ้นทะเบียน'
+                    WHEN p.hipdata_code = 'NRH' THEN 'ต่างด้าวขึ้นทะเบียน'
+                    WHEN p.hipdata_code = 'OFC' THEN 'กรมบัญชีกลาง'
+                    WHEN p.hipdata_code = 'SSI' THEN 'ปกส.ทุพพลภาพ'
+                    WHEN p.hipdata_code = 'SSS' THEN 'ปกส.'
+                    WHEN p.hipdata_code = 'STP' THEN 'ผู้มีปัญหาสถานะสิทธิ'
+                    WHEN p.hipdata_code = 'UCS' THEN 'ประกันสุขภาพ'
+                    WHEN p.hipdata_code = 'SRT' THEN 'การรถไฟแห่งประเทศไทย'
+                    WHEN p.hipdata_code = 'NHS' THEN 'สิทธิ สปสช.'
+                    ELSE 'ไม่พบเงื่อนไข' END AS pttype_group,
                 COUNT(DISTINCT i.an) AS an,
                 SUM(IFNULL(v_inc.income,0)) AS income,
                 SUM(IFNULL(v_inc.paid_money,0)) AS paid_money,   
@@ -214,18 +218,18 @@ class DebtorController extends Controller
             LEFT JOIN an_stat a ON a.an = i.an
             LEFT JOIN pttype p ON p.pttype = ip.pttype
             LEFT JOIN (SELECT an, pttype, SUM(sum_price) AS income,
-                       SUM(CASE WHEN paidst IN ("01","03") THEN sum_price ELSE 0 END) AS paid_money
+                       SUM(CASE WHEN paidst IN ('01','03') THEN sum_price ELSE 0 END) AS paid_money
                        FROM opitemrece 
-                       WHERE an IS NOT NULL AND an <> ""
+                       WHERE an IS NOT NULL AND an <> ''
                        GROUP BY an, pttype) v_inc ON v_inc.an = ip.an AND v_inc.pttype = ip.pttype
             LEFT JOIN (SELECT r.vn AS an, r.pttype, SUM(r.bill_amount) AS rcpt_money
                        FROM rcpt_print r                    
                        WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                        GROUP BY r.vn, r.pttype) rc ON rc.an = ip.an AND rc.pttype = ip.pttype
-            WHERE i.confirm_discharge = "Y"
-            AND i.dchdate BETWEEN ? AND ?
+            WHERE i.confirm_discharge = 'Y'
+            AND i.dchdate BETWEEN '{$start_date}' AND '{$end_date}'
             GROUP BY p.hipdata_code
-            ORDER BY p.hipdata_code', [$start_date, $end_date]);
+            ORDER BY p.hipdata_code");
 
         return view('debtor._check_income', compact(
             'start_date',
@@ -248,6 +252,10 @@ class DebtorController extends Controller
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d', strtotime("-1 day"));
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d', strtotime("-1 day"));
 
+        // Validate and format dates to prevent SQL Injection
+        $start_date = date('Y-m-d', strtotime($start_date));
+        $end_date = date('Y-m-d', strtotime($end_date));
+
         if ($type === 'opd') {
             // ---------------- OPD ----------------
             $data = DB::connection('hosxp')->select("
@@ -257,7 +265,7 @@ class DebtorController extends Controller
                     FROM ovst o
                     INNER JOIN vn_stat v ON v.vn = o.vn
                     LEFT JOIN ipt i ON i.vn = o.vn
-                    WHERE o.vstdate BETWEEN ? AND ?
+                    WHERE o.vstdate BETWEEN '{$start_date}' AND '{$end_date}'
                     AND i.vn IS NULL
                     
                     UNION ALL
@@ -266,14 +274,14 @@ class DebtorController extends Controller
                     FROM ovst o
                     INNER JOIN opitemrece op ON op.vn = o.vn
                     LEFT JOIN ipt i ON i.vn = o.vn
-                    WHERE o.vstdate BETWEEN ? AND ?
+                    WHERE o.vstdate BETWEEN '{$start_date}' AND '{$end_date}'
                     AND (op.an IS NULL OR op.an = '')
                     AND i.vn IS NULL
                 ) t
                 GROUP BY anvn
                 HAVING ROUND(SUM(income), 2) <> ROUND(SUM(sum_price), 2)
                 ORDER BY ABS(SUM(income) - SUM(sum_price)) DESC
-            ", [$start_date, $end_date, $start_date, $end_date]);
+            ");
         } else {
             // ---------------- IPD ----------------
             $data = DB::connection('hosxp')->select("
@@ -281,15 +289,15 @@ class DebtorController extends Controller
                 IFNULL(o.sum_price,0) AS sum_price,a.income - IFNULL(o.sum_price,0) AS diff
                 FROM (SELECT dchdate,an,hn,SUM(income) AS income
                     FROM an_stat
-                    WHERE dchdate BETWEEN ? and ?
+                    WHERE dchdate BETWEEN '{$start_date}' and '{$end_date}'
                     GROUP BY dchdate,an,hn) a
                 LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS sum_price
                     FROM opitemrece o
                     INNER JOIN an_stat a2 ON a2.an = o.an
-                    WHERE a2.dchdate BETWEEN ? and ?
+                    WHERE a2.dchdate BETWEEN '{$start_date}' and '{$end_date}'
                     GROUP BY o.an) o ON o.an = a.an
                 WHERE ROUND(a.income, 2) <> ROUND(IFNULL(o.sum_price,0), 2)
-                ORDER BY ABS(a.income - IFNULL(o.sum_price,0)) DESC ", [$start_date, $end_date, $start_date, $end_date]);
+                ORDER BY ABS(a.income - IFNULL(o.sum_price,0)) DESC");
         }
 
         return response()->json($data);
@@ -8073,6 +8081,8 @@ class DebtorController extends Controller
             $debtor = DB::select('
                 SELECT d.*, 
                        IFNULL(d.receive,0) AS receive,
+                       d.receive AS receive_manual,
+                       d.repno AS repno_manual,
                        CASE WHEN (IFNULL(d.receive,0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor,0)) >= -0.01 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_304 d
@@ -8085,6 +8095,8 @@ class DebtorController extends Controller
             $debtor = DB::select('
                 SELECT d.*, 
                        IFNULL(d.receive,0) AS receive,
+                       d.receive AS receive_manual,
+                       d.repno AS repno_manual,
                        CASE WHEN (IFNULL(d.receive,0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor,0)) >= -0.01 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_304 d
@@ -8604,24 +8616,42 @@ class DebtorController extends Controller
 
         if ($search) {
             $debtor = DB::select('
-                SELECT d.*, 
-                       IFNULL(d.receive,0) AS receive,
-                       CASE WHEN (IFNULL(d.receive,0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor,0)) >= -0.01 
+                SELECT d.*, d.receive AS receive_manual, d.repno AS repno_manual,
+                       (IFNULL(d.receive,0) + IFNULL(stm.stm_receive,0)) AS receive,
+                       stm.stm_round_no, stm.stm_receipt_date, stm.stm_receive_no,
+                       CASE WHEN (IFNULL(d.receive,0) + IFNULL(stm.stm_receive,0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor,0)) >= -0.01 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_310 d
-
+                LEFT JOIN (
+                    SELECT d2.an, SUM(IFNULL(s.amount,0) + IFNULL(s.epopay,0) + IFNULL(s.epoadm,0)) AS stm_receive,
+                           GROUP_CONCAT(DISTINCT s.round_no) AS stm_round_no,
+                           GROUP_CONCAT(DISTINCT s.receipt_date) AS stm_receipt_date,
+                           GROUP_CONCAT(DISTINCT s.receive_no) AS stm_receive_no
+                    FROM debtor_1102050101_310 d2
+                    JOIN stm_sss_kidney s ON s.hn = d2.hn AND s.vstdate BETWEEN d2.regdate AND d2.dchdate
+                    GROUP BY d2.an
+                ) stm ON stm.an = d.an
                 WHERE d.dchdate BETWEEN ? AND ?
                 AND (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
                 ORDER BY d.dchdate
             ', [$start_date, $end_date, $search, $search, $search]);
         } else {
             $debtor = DB::select('
-                SELECT d.*, 
-                       IFNULL(d.receive,0) AS receive,
-                       CASE WHEN (IFNULL(d.receive,0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor,0)) >= -0.01 
+                SELECT d.*, d.receive AS receive_manual, d.repno AS repno_manual,
+                       (IFNULL(d.receive,0) + IFNULL(stm.stm_receive,0)) AS receive,
+                       stm.stm_round_no, stm.stm_receipt_date, stm.stm_receive_no,
+                       CASE WHEN (IFNULL(d.receive,0) + IFNULL(stm.stm_receive,0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor,0)) >= -0.01 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_310 d
-
+                LEFT JOIN (
+                    SELECT d2.an, SUM(IFNULL(s.amount,0) + IFNULL(s.epopay,0) + IFNULL(s.epoadm,0)) AS stm_receive,
+                           GROUP_CONCAT(DISTINCT s.round_no) AS stm_round_no,
+                           GROUP_CONCAT(DISTINCT s.receipt_date) AS stm_receipt_date,
+                           GROUP_CONCAT(DISTINCT s.receive_no) AS stm_receive_no
+                    FROM debtor_1102050101_310 d2
+                    JOIN stm_sss_kidney s ON s.hn = d2.hn AND s.vstdate BETWEEN d2.regdate AND d2.dchdate
+                    GROUP BY d2.an
+                ) stm ON stm.an = d.an
                 WHERE d.dchdate BETWEEN ? AND ?
                 ORDER BY d.dchdate
             ', [$start_date, $end_date]);
@@ -8824,10 +8854,20 @@ class DebtorController extends Controller
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $debtor = DB::select('
-            SELECT dchdate AS vstdate,COUNT(DISTINCT an) AS anvn,SUM(debtor) AS debtor,SUM(receive) AS receive
-            FROM debtor_1102050101_310   
-            WHERE dchdate BETWEEN ? AND ?
-            GROUP BY dchdate ORDER BY dchdate', [$start_date, $end_date]);
+            SELECT a.dchdate AS vstdate,COUNT(DISTINCT a.an) AS anvn,SUM(a.debtor) AS debtor,SUM(a.receive_total) AS receive
+            FROM (
+                SELECT d.dchdate, d.an, MAX(d.debtor) AS debtor, (IFNULL(MAX(d.receive),0) + IFNULL(stm.stm_receive,0)) AS receive_total
+                FROM debtor_1102050101_310 d
+                LEFT JOIN (
+                    SELECT d2.an, SUM(IFNULL(s.amount,0) + IFNULL(s.epopay,0) + IFNULL(s.epoadm,0)) AS stm_receive
+                    FROM debtor_1102050101_310 d2
+                    JOIN stm_sss_kidney s ON s.hn = d2.hn AND s.vstdate BETWEEN d2.regdate AND d2.dchdate
+                    GROUP BY d2.an
+                ) stm ON stm.an = d.an
+                WHERE d.dchdate BETWEEN ? AND ?
+                GROUP BY d.dchdate, d.an
+            ) a
+            GROUP BY a.dchdate ORDER BY a.dchdate', [$start_date, $end_date]);
 
         $pdf = PDF::loadView('debtor.1102050101_310_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
             ->setPaper('A4', 'portrait');
@@ -12557,6 +12597,7 @@ class DebtorController extends Controller
     public function _1102050101_304_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
+        $adjusted_count = 0;
         foreach ($ids as $id) {
             $row = \App\Models\Debtor_1102050101_304::where('an', $id)->first();
             if ($row) {
@@ -12570,12 +12611,13 @@ class DebtorController extends Controller
                     $row->adj_inc = 0;
                     $row->adj_dec = abs($diff);
                 }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+                $row->adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
                 $row->save();
+                $adjusted_count++;
             }
         }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
 
     public function _1102050101_307_bulk_adj(Request $request)
@@ -12606,11 +12648,12 @@ class DebtorController extends Controller
     public function _1102050101_308_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_308::where('an', $id)->first();
+            $row = \App\Models\Debtor_1102050101_308::where('an', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
                 $receive = (float)$row->receive;
-
                 $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
                     $row->adj_inc = $diff;
@@ -12619,8 +12662,8 @@ class DebtorController extends Controller
                     $row->adj_inc = 0;
                     $row->adj_dec = abs($diff);
                 }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->adj_date = $date;
+                $row->adj_note = $note;
                 $row->save();
             }
         }
@@ -12656,12 +12699,21 @@ class DebtorController extends Controller
     public function _1102050101_310_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
         foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_310::where('an', $id)->first();
+            $row = \App\Models\Debtor_1102050101_310::where('an', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                $receive = (float)$row->receive;
+                // ดึงยอด STM ล่าสุดมาคำนวณด้วยเพื่อให้ยอดคงเหลือเป็น 0 จริงๆ
+                $stm = DB::selectOne('
+                    SELECT SUM(IFNULL(s.amount,0) + IFNULL(s.epopay,0) + IFNULL(s.epoadm,0)) AS stm_receive
+                    FROM stm_sss_kidney s 
+                    WHERE s.hn = ? AND s.vstdate BETWEEN ? AND ?
+                ', [$row->hn, $row->regdate, $row->dchdate]);
+                
+                $total_receive = (float)$row->receive + (float)($stm->stm_receive ?? 0);
+                $diff = (float)$row->debtor - $total_receive;
 
-                $diff = (float)$row->debtor - (float)$receive;
                 if ($diff > 0) {
                     $row->adj_inc = $diff;
                     $row->adj_dec = 0;
@@ -12669,8 +12721,8 @@ class DebtorController extends Controller
                     $row->adj_inc = 0;
                     $row->adj_dec = abs($diff);
                 }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->adj_date = $date;
+                $row->adj_note = $note;
                 $row->save();
             }
         }

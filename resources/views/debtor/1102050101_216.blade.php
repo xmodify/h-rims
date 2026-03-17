@@ -527,31 +527,38 @@
         } });
     }
 
-    function confirmSubmit() {
-        const selected = [...document.querySelectorAll('input[name="checkbox[]"]:checked')].map(e => e.value);    
+    function confirmSubmit_kidney() {
+        const selected = [...document.querySelectorAll('input[name="checkbox_kidney[]"]:checked')].map(e => e.value);    
         if (selected.length === 0) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะยืนยัน', 'warning'); return; }
         Swal.fire({
             title: 'ยืนยัน?', text: "ต้องการยืนยันลูกหนี้รายการที่เลือกใช่หรือไม่?", icon: 'question',
             showCancelButton: true, confirmButtonColor: '#28a745', cancelButtonColor: '#6c757d', confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก'
         }).then((result) => { if (result.isConfirmed) { 
-            const f = document.getElementById('form-confirm') || document.querySelector('form[action*="confirm"]');
+            const f = document.querySelector('form[action*="confirm_kidney"]');
             if(f) f.submit(); 
         } });
     }
 
-    function toggle_ae(source) {
-        checkboxes = document.getElementsByName('checkbox_ae[]');
-        for (var i = 0; i < checkboxes.length; i++) { checkboxes[i].checked = source.checked; }
-    }
-
-    function confirmSubmit_ae() {
-        const selected = [...document.querySelectorAll('input[name="checkbox_ae[]"]:checked')].map(e => e.value);    
+    function confirmSubmit_cr() {
+        const selected = [...document.querySelectorAll('input[name="checkbox_cr[]"]:checked')].map(e => e.value);    
         if (selected.length === 0) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะยืนยัน', 'warning'); return; }
         Swal.fire({
             title: 'ยืนยัน?', text: "ต้องการยืนยันลูกหนี้รายการที่เลือกใช่หรือไม่?", icon: 'question',
             showCancelButton: true, confirmButtonColor: '#28a745', cancelButtonColor: '#6c757d', confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก'
         }).then((result) => { if (result.isConfirmed) { 
-            const f = document.querySelector('form[action*="confirm_ae"]');
+            const f = document.querySelector('form[action*="confirm_cr"]');
+            if(f) f.submit(); 
+        } });
+    }
+
+    function confirmSubmit_anywhere() {
+        const selected = [...document.querySelectorAll('input[name="checkbox_anywhere[]"]:checked')].map(e => e.value);    
+        if (selected.length === 0) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะยืนยัน', 'warning'); return; }
+        Swal.fire({
+            title: 'ยืนยัน?', text: "ต้องการยืนยันลูกหนี้รายการที่เลือกใช่หรือไม่?", icon: 'question',
+            showCancelButton: true, confirmButtonColor: '#28a745', cancelButtonColor: '#6c757d', confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก'
+        }).then((result) => { if (result.isConfirmed) { 
+            const f = document.querySelector('form[action*="confirm_anywhere"]');
             if(f) f.submit(); 
         } });
     }

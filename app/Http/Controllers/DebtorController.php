@@ -7310,8 +7310,9 @@ class DebtorController extends Controller
 
         if ($search) {
             $debtor = DB::select('
-                SELECT d.*,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
-                CASE WHEN (IFNULL(stm.receive_total,0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0
+                SELECT d.*, d.receive AS receive_manual, d.repno AS repno_manual,
+                stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                CASE WHEN (IFNULL(stm.receive_total,0) + IFNULL(d.receive,0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0
                    ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_202 d
                 LEFT JOIN ( SELECT an,MAX(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay,
@@ -7322,8 +7323,9 @@ class DebtorController extends Controller
                 GROUP BY d.an', [$search, $search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.*,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
-                CASE WHEN (IFNULL(stm.receive_total,0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0
+                SELECT d.*, d.receive AS receive_manual, d.repno AS repno_manual,
+                stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno, stm.round_no AS stm_round_no, stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
+                CASE WHEN (IFNULL(stm.receive_total,0) + IFNULL(d.receive,0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0
                    ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_202 d
                 LEFT JOIN ( SELECT an,MAX(fund_ip_payrate) AS fund_ip_payrate,SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay,
@@ -7550,7 +7552,7 @@ class DebtorController extends Controller
 
         if ($search) {
             $debtor = DB::select('
-                SELECT d.*,(IFNULL(stm.receive_total,0)-IFNULL(stm.receive_ip_compensate_pay,0))+IFNULL(k.receive_total,0) AS receive,
+                SELECT d.*,d.receive AS receive_manual, d.repno AS repno_manual, (IFNULL(stm.receive_total,0)-IFNULL(stm.receive_ip_compensate_pay,0))+IFNULL(k.receive_total,0) AS receive,
                     stm.repno,k.repno AS repno_kidney, CONCAT_WS(CHAR(44), stm.round_no, k.round_no) AS stm_round_no, CONCAT_WS(CHAR(44), stm.receipt_date, k.receipt_date) AS stm_receipt_date, CONCAT_WS(CHAR(44), stm.receive_no, k.receive_no) AS stm_receive_no, CASE WHEN ((IFNULL(stm.receive_total,0) - IFNULL(stm.receive_ip_compensate_pay,0))
                     + IFNULL(k.receive_total,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_217 d
@@ -7564,7 +7566,7 @@ class DebtorController extends Controller
                 AND d.dchdate BETWEEN ? AND ?', [$start_date, $end_date, $search, $search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.*,(IFNULL(stm.receive_total,0)-IFNULL(stm.receive_ip_compensate_pay,0))+IFNULL(k.receive_total,0) AS receive,
+                SELECT d.*,d.receive AS receive_manual, d.repno AS repno_manual, (IFNULL(stm.receive_total,0)-IFNULL(stm.receive_ip_compensate_pay,0))+IFNULL(k.receive_total,0) AS receive,
                     stm.repno,k.repno AS repno_kidney, CONCAT_WS(CHAR(44), stm.round_no, k.round_no) AS stm_round_no, CONCAT_WS(CHAR(44), stm.receipt_date, k.receipt_date) AS stm_receipt_date, CONCAT_WS(CHAR(44), stm.receive_no, k.receive_no) AS stm_receive_no, CASE WHEN ((IFNULL(stm.receive_total,0) - IFNULL(stm.receive_ip_compensate_pay,0))
                     + IFNULL(k.receive_total,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050101_217 d
@@ -12280,25 +12282,42 @@ class DebtorController extends Controller
     public function _1102050101_202_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_202::where('an', $id)->first();
-            if ($row) {
-                $receive = (float)$row->receive;
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
 
-                $diff = (float)$row->debtor - (float)$receive;
+        foreach ($ids as $id) {
+            $row = DB::table('debtor_1102050101_202 as d')
+                ->leftJoin(DB::raw('(SELECT an, SUM(receive_total) as receive_total FROM stm_ucs GROUP BY an) stm'), 'stm.an', '=', 'd.an')
+                ->where('d.an', $id)
+                ->select('d.*', 'stm.receive_total')
+                ->first();
+
+            if ($row) {
+                $total_received = (float)($row->receive_total ?? 0) + (float)($row->receive ?? 0);
+                $diff = (float)$row->debtor - $total_received;
+                
+                // We want: (total_received + new_adj_inc - new_adj_dec) - debtor = 0
+                // So: new_adj_inc - new_adj_dec = debtor - total_received
+                
                 if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
+                    $adj_inc = $diff;
+                    $adj_dec = 0;
                 } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
+                    $adj_inc = 0;
+                    $adj_dec = abs($diff);
                 }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
-                $row->save();
+
+                \App\Models\Debtor_1102050101_202::where('an', $id)->update([
+                    'adj_inc' => $adj_inc,
+                    'adj_dec' => $adj_dec,
+                    'adj_date' => $adj_date,
+                    'adj_note' => $adj_note,
+                ]);
+                $adjusted_count++;
             }
         }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
 
     public function _1102050101_203_bulk_adj(Request $request)
@@ -12424,25 +12443,40 @@ class DebtorController extends Controller
     public function _1102050101_217_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_217::where('an', $id)->first();
-            if ($row) {
-                $receive = (float)$row->receive;
+        $adjusted_count = 0;
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
 
-                $diff = (float)$row->debtor - (float)$receive;
+        foreach ($ids as $id) {
+            $row = DB::table('debtor_1102050101_217 as d')
+                ->leftJoin(DB::raw('(SELECT an, SUM(receive_total) - SUM(receive_ip_compensate_pay) as stm_total FROM stm_ucs GROUP BY an) stm'), 'stm.an', '=', 'd.an')
+                ->leftJoin(DB::raw('(SELECT d2.an, SUM(sk.receive_total) as kidney_total FROM debtor_1102050101_217 d2 JOIN stm_ucs_kidney sk ON sk.cid = d2.cid AND sk.datetimeadm BETWEEN d2.regdate AND d2.dchdate GROUP BY d2.an) k'), 'k.an', '=', 'd.an')
+                ->where('d.an', $id)
+                ->select('d.*', DB::raw('IFNULL(stm.stm_total,0) + IFNULL(k.kidney_total,0) as stm_receive'))
+                ->first();
+
+            if ($row) {
+                $total_received = (float)($row->stm_receive ?? 0) + (float)($row->receive ?? 0);
+                $diff = (float)$row->debtor - $total_received;
+                
                 if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
+                    $adj_inc = $diff;
+                    $adj_dec = 0;
                 } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
+                    $adj_inc = 0;
+                    $adj_dec = abs($diff);
                 }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
-                $row->save();
+
+                \App\Models\Debtor_1102050101_217::where('an', $id)->update([
+                    'adj_inc' => $adj_inc,
+                    'adj_dec' => $adj_dec,
+                    'adj_date' => $adj_date,
+                    'adj_note' => $adj_note,
+                ]);
+                $adjusted_count++;
             }
         }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
 
     public function _1102050101_301_bulk_adj(Request $request)

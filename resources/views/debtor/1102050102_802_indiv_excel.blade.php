@@ -5,8 +5,6 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
 ?>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 
- 
- 
 <div>        
     <strong>
         <p align=center>
@@ -19,7 +17,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
 
 <div class="container">
     <div class="row justify-content-center">            
-        <table width="100%" >
+        <table width="100%" border="1">
             <thead>
             <tr>
                 <th class="text-center">ลำดับ</th>
@@ -29,41 +27,39 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <th class="text-center">ชื่อ-สกุล</th>  
                 <th class="text-center">สิทธิ</th>
                 <th class="text-center">Admit</th>
-                <th class="text-center">Discharge</th>
+                <th class="text-center" width = "5%">Discharge</th>
                 <th class="text-center">ICD10</th>
                 <th class="text-center">AdjRW</th>
                 <th class="text-center">ค่ารักษาทั้งหมด</th>  
                 <th class="text-center">ชำระเอง</th>
                 <th class="text-center">ฟอกไต</th>
                 <th class="text-center text-primary">ลูกหนี้</th>
-                <th class="text-center text-primary">ชดเชย LGO</th> 
-                <th class="text-center text-primary">ชดเชย ฟอกไต</th>
-                <th class="text-center text-primary">ชดเชย ทั้งหมด</th>
-                <th class="text-center text-primary">ผลต่าง</th>
+                <th class="text-center text-primary">LGO</th> 
+                <th class="text-center text-primary">ฟอกไต</th>
+                <th class="text-center" style="color: #9c27b0;">ปรับเพิ่ม</th>
+                <th class="text-center" style="color: #673ab7;">ปรับลด</th>
+                <th class="text-center">ยอดคงเหลือ</th>
                 <th class="text-center text-primary">REP</th>
-                <th class="text-center text-primary">เลขงวด</th>
-                <th class="text-center text-primary">วันที่ออกใบเสร็จ</th>
-                <th class="text-center text-primary">เลขที่ใบเสร็จ</th>
                 <th class="text-center text-primary">อายุหนี้</th>   
             </tr>     
             </thead> 
+            <tbody>
             <?php $count = 1 ; ?>
-
             <?php $sum_income = 0 ; ?>
-
             <?php $sum_rcpt_money = 0 ; ?>
-
             <?php $sum_kidney = 0 ; ?>
-
             <?php $sum_debtor = 0 ; ?>
-
             <?php $sum_receive_lgo = 0 ; ?>
-
             <?php $sum_receive_kidney = 0 ; ?>
-
             <?php $sum_receive = 0 ; ?>
+            <?php $sum_adj_inc = 0 ; ?>
+            <?php $sum_adj_dec = 0 ; ?>
+            <?php $sum_balance = 0 ; ?>
 
             @foreach($debtor as $row)          
+            @php 
+                $balance = ($row->receive + ($row->adj_inc ?? 0) - ($row->adj_dec ?? 0)) - $row->debtor;
+            @endphp
             <tr>
                 <td align="center">{{ $count }}</td>
                 <td align="center">{{ $row->hn }}</td>
@@ -87,56 +83,44 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                     @elseif($row->receive_kidney < 0) style="color:red" @endif>
                     {{ number_format($row->receive_kidney,2) }}
                 </td>
-                <td align="right" @if($row->receive > 0) style="color:green" 
-                    @elseif($row->receive < 0) style="color:red" @endif>
-                    {{ number_format($row->receive,2) }}
-                </td>
-                <td align="right" @if(($row->receive-$row->debtor) > 0) style="color:green" 
-                    @elseif(($row->receive-$row->debtor) < 0) style="color:red" @endif>
-                    {{ number_format($row->receive-$row->debtor,2) }}
-                </td>                        
-                <td align="center">{{ $row->repno }}</td>
-                <td align="center">{{ $row->stm_round_no }}</td>
-                <td align="center">{{ $row->stm_receipt_date }}</td>
-                <td align="center">{{ $row->stm_receive_no }}</td>
-                <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  {{-- เขียวอ่อน --}}
-                    @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" {{-- เหลือง --}}
-                    @else style="background-color: #FF7F7F;" {{-- แดง --}} @endif >
+                <td align="right" style="color: #9c27b0;">{{ number_format($row->adj_inc ?? 0, 2) }}</td>
+                <td align="right" style="color: #673ab7;">{{ number_format($row->adj_dec ?? 0, 2) }}</td>
+                <td align="right" style="color:@if($balance < -0.01) red @elseif($balance > 0.01) green @else black @endif">{{ number_format($balance, 2) }}</td>
+                <td align="left">{{ $row->stm_repno ?? '' }} {{ $row->rid ?? '' }}</td>
+                <td align="center" @if($row->days < 90) style="background-color: #90EE90;" 
+                    @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" 
+                    @else style="background-color: #FF7F7F;" @endif >
                     {{ $row->days }} วัน
                 </td> 
             </tr>                
             <?php $count++; ?>
-
             <?php $sum_income += $row->income ; ?>
-
             <?php $sum_rcpt_money += $row->rcpt_money ; ?>
-
             <?php $sum_kidney += $row->kidney ; ?>
-
             <?php $sum_debtor += $row->debtor ; ?>
- 
             <?php $sum_receive_lgo += $row->receive_lgo ; ?>
-      
             <?php $sum_receive_kidney += $row->receive_kidney ; ?>
-  
             <?php $sum_receive += $row->receive ; ?>
-      
+            <?php $sum_adj_inc += $row->adj_inc ?? 0; ?>
+            <?php $sum_adj_dec += $row->adj_dec ?? 0; ?>
+            <?php $sum_balance += $balance; ?>
             @endforeach   
+            </tbody>
+            <tfoot>
             <tr>
-                <td align="right" colspan = "10"><strong>รวมค่ารักษาพยาบาลทั้งสิ้น &nbsp;</strong><br></td> 
-                <td align="right"><strong>{{number_format($sum_income,2)}}&nbsp;</strong></td>  
-                <td align="right"><strong>{{number_format($sum_rcpt_money,2)}}&nbsp;</strong></td>  
-                <td align="right"><strong>{{number_format($sum_kidney,2)}}&nbsp;</strong></td>  
-                <td align="right"><strong>{{number_format($sum_debtor,2)}}&nbsp;</strong></td>
-                <td align="right"><strong>{{number_format($sum_receive_lgo,2)}}&nbsp;</strong></td> 
-                <td align="right"><strong>{{number_format($sum_receive_kidney,2)}}&nbsp;</strong></td> 
-                <td align="right"><strong>{{number_format($sum_receive,2)}}&nbsp;</strong></td>  
-                <td align="right"><strong>{{number_format($sum_receive-$sum_debtor,2)}}&nbsp;</strong></td>
+                <td align="right" colspan = "10"><strong>รวม &nbsp;</strong></td> 
+                <td align="right"><strong>{{number_format($sum_income,2)}}</strong></td>  
+                <td align="right"><strong>{{number_format($sum_rcpt_money,2)}}</strong></td>  
+                <td align="right"><strong>{{number_format($sum_kidney,2)}}</strong></td>  
+                <td align="right"><strong>{{number_format($sum_debtor,2)}}</strong></td>
+                <td align="right"><strong>{{number_format($sum_receive_lgo,2)}}</strong></td> 
+                <td align="right"><strong>{{number_format($sum_receive_kidney,2)}}</strong></td> 
+                <td align="right"><strong>{{number_format($sum_adj_inc,2)}}</strong></td>
+                <td align="right"><strong>{{number_format($sum_adj_dec,2)}}</strong></td>
+                <td align="right"><strong>{{number_format($sum_balance,2)}}</strong></td>
+                <td colspan="2"></td>
             </tr>          
+            </tfoot>
         </table> 
     </div>
 </div>    
-
-
-
-

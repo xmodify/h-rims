@@ -11120,42 +11120,44 @@ class DebtorController extends Controller
 
         if ($search) {
             $debtor = DB::select('
-                SELECT d.*, IFNULL(sk.amount,0) AS kidney, stm.repno, stm.round_no AS stm_round_no, 
-                       stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
-                       IFNULL(stm.pay,0) AS receive_lgo,
+                SELECT d.*, d.receive AS receive_manual, d.repno AS repno_manual,
+                       IFNULL(sk.amount,0) AS kidney, st.repno AS stm_repno, st.round_no AS stm_round_no, 
+                       st.receipt_date AS stm_receipt_date, st.receive_no AS stm_receive_no,
+                       IFNULL(st.pay,0) AS receive_lgo,
                        IFNULL(sk.amount,0) AS receive_kidney,
-                       (IFNULL(d.receive,0) + IFNULL(stm.pay,0) + IFNULL(sk.amount,0)) AS receive,
-                       CASE WHEN (IFNULL(d.receive,0) + IFNULL(stm.pay,0) + IFNULL(sk.amount,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 
+                       (IFNULL(d.receive,0) + IFNULL(st.pay,0) + IFNULL(sk.amount,0)) AS receive,
+                       CASE WHEN (IFNULL(d.receive,0) + IFNULL(st.pay,0) + IFNULL(sk.amount,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_802 d
-                LEFT JOIN (SELECT d2.an,SUM(k.compensate_kidney) AS amount 
+                LEFT JOIN (SELECT d2.an, SUM(k.compensate_kidney) AS amount 
                            FROM debtor_1102050102_802 d2 
                            JOIN stm_lgo_kidney k ON k.cid = d2.cid AND k.datetimeadm BETWEEN d2.regdate AND d2.dchdate
                            GROUP BY d2.an) sk ON sk.an = d.an
                 LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(pay) AS pay, 
                                   GROUP_CONCAT(round_no) AS round_no, GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
-                           FROM stm_lgo GROUP BY an) stm ON stm.an = d.an
+                           FROM stm_lgo GROUP BY an) st ON st.an = d.an
                 WHERE d.dchdate BETWEEN ? AND ?
                 AND (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
                 ORDER BY d.dchdate
             ', [$start_date, $end_date, $search, $search, $search]);
         } else {
             $debtor = DB::select('
-                SELECT d.*, IFNULL(sk.amount,0) AS kidney, stm.repno, stm.round_no AS stm_round_no, 
-                       stm.receipt_date AS stm_receipt_date, stm.receive_no AS stm_receive_no,
-                       IFNULL(stm.pay,0) AS receive_lgo,
+                SELECT d.*, d.receive AS receive_manual, d.repno AS repno_manual,
+                       IFNULL(sk.amount,0) AS kidney, st.repno AS stm_repno, st.round_no AS stm_round_no, 
+                       st.receipt_date AS stm_receipt_date, st.receive_no AS stm_receive_no,
+                       IFNULL(st.pay,0) AS receive_lgo,
                        IFNULL(sk.amount,0) AS receive_kidney,
-                       (IFNULL(d.receive,0) + IFNULL(stm.pay,0) + IFNULL(sk.amount,0)) AS receive,
-                       CASE WHEN (IFNULL(d.receive,0) + IFNULL(stm.pay,0) + IFNULL(sk.amount,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 
+                       (IFNULL(d.receive,0) + IFNULL(st.pay,0) + IFNULL(sk.amount,0)) AS receive,
+                       CASE WHEN (IFNULL(d.receive,0) + IFNULL(st.pay,0) + IFNULL(sk.amount,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_802 d
-                LEFT JOIN (SELECT d2.an,SUM(k.compensate_kidney) AS amount 
+                LEFT JOIN (SELECT d2.an, SUM(k.compensate_kidney) AS amount 
                            FROM debtor_1102050102_802 d2 
                            JOIN stm_lgo_kidney k ON k.cid = d2.cid AND k.datetimeadm BETWEEN d2.regdate AND d2.dchdate
                            GROUP BY d2.an) sk ON sk.an = d.an
                 LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(pay) AS pay, 
                                   GROUP_CONCAT(round_no) AS round_no, GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
-                           FROM stm_lgo GROUP BY an) stm ON stm.an = d.an
+                           FROM stm_lgo GROUP BY an) st ON st.an = d.an
                 WHERE d.dchdate BETWEEN ? AND ?
                 ORDER BY d.dchdate
             ', [$start_date, $end_date]);
@@ -13185,23 +13187,14 @@ class DebtorController extends Controller
         foreach ($ids as $id) {
             $row = \App\Models\Debtor_1102050102_110::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                // Get true receive including STM payments (same as index query)
-                // ไม่เอา ppfs มาคำนวณตามที่แจ้ง
-                $row_calc = DB::selectOne("
-                    SELECT (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
-                        + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive_calc
-                    FROM debtor_1102050102_110 d
-                    LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(receive_total) AS receive_total
-                        FROM stm_ofc GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
-                        AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)
-                    LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount
-                        FROM stm_ofc_csop WHERE sys <> 'HD' GROUP BY hn, vstdate, LEFT(vsttime,5)) csop 
-                        ON csop.hn = d.hn  AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime,5)
-                    LEFT JOIN (SELECT hn, vstdate,SUM(amount) AS amount
-                        FROM stm_ofc_csop WHERE sys = 'HD' GROUP BY hn, vstdate) hd ON hd.hn = d.hn  AND hd.vstdate = d.vstdate
-                    WHERE d.vn = ?", [$id]);
-
-                $receive = $row_calc ? (float)$row_calc->receive_calc : (float)$row->receive;
+                $stm1 = DB::table('stm_ofc')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where(DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))->sum('receive_total');
+                $stm2 = DB::table('stm_ofc_csop')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where(DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))->where('sys', '<>', 'HD')->sum('amount');
+                $stm3 = 0;
+                if ($row->kidney > 0) {
+                    $stm3 = DB::table('stm_ofc_csop')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where('sys', 'HD')->sum('amount');
+                }
+                
+                $receive = (float)$row->receive + (float)$stm1 + (float)$stm2 + (float)$stm3;
 
                 // Check current balance
                 $current_balance = ($receive + (float)($row->adj_inc ?? 0) - (float)($row->adj_dec ?? 0)) - (float)$row->debtor;
@@ -13422,7 +13415,16 @@ class DebtorController extends Controller
         foreach ($ids as $id) {
             $row = \App\Models\Debtor_1102050102_803::where('vn', $id)->where('debtor_lock', 'Y')->first();
             if ($row) {
-                $receive = (float)$row->receive;
+                $stm1 = DB::table('stm_ofc')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where(DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))->sum('receive_total');
+                $stm2 = DB::table('stm_ofc_csop')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where(DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))->where('sys', '<>', 'HD')->sum('amount');
+                $stm3 = 0;
+                if ($row->kidney > 0) {
+                    $stm3 = DB::table('stm_ofc_csop')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where('sys', 'HD')->sum('amount');
+                }
+                
+                $receive = (float)$row->receive + (float)$stm1 + (float)$stm2 + (float)$stm3;
+                
+                // Check current balance
                 $current_balance = ($receive + (float)($row->adj_inc ?? 0) - (float)($row->adj_dec ?? 0)) - (float)$row->debtor;
                 if (abs($current_balance) < 0.01) {
                     continue;

@@ -162,8 +162,7 @@ class DebtorController extends Controller
                        GROUP BY vn, pttype) v ON v.vn = o_split.vn AND v.pttype = o_split.pttype
             LEFT JOIN (SELECT r.vn, r.pttype, SUM(r.bill_amount) AS rcpt_money 
                        FROM rcpt_print r
-                       WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
-                       AND r.bill_date BETWEEN '{$start_date}' AND '{$end_date}'
+                       WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)                       
                        GROUP BY r.vn, r.pttype) rc ON rc.vn = o_split.vn AND rc.pttype = o_split.pttype
             LEFT JOIN (SELECT op.vn, op.pttype, SUM(op.sum_price) AS ppfs_price
                        FROM opitemrece op

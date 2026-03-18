@@ -220,6 +220,7 @@ class DebtorController extends Controller
                        SUM(CASE WHEN paidst IN ('01','03') THEN sum_price ELSE 0 END) AS paid_money
                        FROM opitemrece 
                        WHERE an IS NOT NULL AND an <> ''
+                       AND rxdate BETWEEN '{$start_date}' AND '{$end_date}'
                        GROUP BY an, pttype) v_inc ON v_inc.an = ip.an AND v_inc.pttype = ip.pttype
             LEFT JOIN (SELECT r.vn AS an, r.pttype, SUM(r.bill_amount) AS rcpt_money
                        FROM rcpt_print r                    

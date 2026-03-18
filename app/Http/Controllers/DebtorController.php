@@ -216,18 +216,15 @@ class DebtorController extends Controller
             INNER JOIN ipt_pttype ip ON ip.an = i.an
             LEFT JOIN an_stat a ON a.an = i.an
             LEFT JOIN pttype p ON p.pttype = ip.pttype
-            LEFT JOIN ( SELECT op.an, op.pttype, SUM(op.sum_price) AS income, 
-                        SUM(CASE WHEN op.paidst IN ('01','03') THEN op.sum_price ELSE 0 END) AS paid_money
-                        FROM opitemrece op
-                        INNER JOIN ipt i ON i.an = op.an 
-                        WHERE op.an IS NOT NULL 
-                        AND op.an <> ''
-                        AND op.rxdate BETWEEN i.regdate AND i.dchdate 
-                        GROUP BY op.an, op.pttype) v_inc ON v_inc.an = ip.an AND v_inc.pttype = ip.pttype
-            LEFT JOIN ( SELECT r.vn AS an, r.pttype, SUM(r.bill_amount) AS rcpt_money
-                        FROM rcpt_print r                    
-                        WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
-                        GROUP BY r.vn, r.pttype) rc ON rc.an = ip.an AND rc.pttype = ip.pttype
+            LEFT JOIN (SELECT an, pttype, SUM(sum_price) AS income,
+                       SUM(CASE WHEN paidst IN ('01','03') THEN sum_price ELSE 0 END) AS paid_money
+                       FROM opitemrece 
+                       WHERE an IS NOT NULL AND an <> ''
+                       GROUP BY an, pttype) v_inc ON v_inc.an = ip.an AND v_inc.pttype = ip.pttype
+            LEFT JOIN (SELECT r.vn AS an, r.pttype, SUM(r.bill_amount) AS rcpt_money
+                       FROM rcpt_print r                    
+                       WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                       GROUP BY r.vn, r.pttype) rc ON rc.an = ip.an AND rc.pttype = ip.pttype
             WHERE i.confirm_discharge = 'Y'
             AND i.dchdate BETWEEN '{$start_date}' AND '{$end_date}'
             GROUP BY p.hipdata_code

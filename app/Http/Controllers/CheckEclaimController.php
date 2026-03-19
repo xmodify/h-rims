@@ -22,7 +22,7 @@ class CheckEclaimController extends Controller
                 }
                 return $next($request);
             }
-        ]);
+        ])->except(['sync_eclaim_extension']);
     }
     // หน้าจอหลัก eclaim_status
     public function eclaim_status(Request $request)

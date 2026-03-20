@@ -192,7 +192,15 @@ class CheckEclaimController extends Controller
         // ดึงรหัสสถานพยาบาลของตัวเองจาก main_setting มาเทียบ
         $hospital_code_local = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
 
-        if ($hospcode_incoming && $hospital_code_local && $hospcode_incoming !== $hospital_code_local) {
+        if (!$hospital_code_local) {
+            return response()->json(['status' => 'error', 'message' => 'ยังไม่ได้ตั้งค่ารหัสสถานพยาบาลในระะบบ RiMS'], 500);
+        }
+
+        if (!$hospcode_incoming) {
+            return response()->json(['status' => 'error', 'message' => 'ไม่พบรหัสสถานพยาบาลจากหน้าเว็บ E-Claim'], 403);
+        }
+
+        if ($hospcode_incoming !== $hospital_code_local) {
             return response()->json([
                 'status' => 'error',
                 'message' => "รหัสสถานพยาบาลไม่ตรงกัน (E-Claim: $hospcode_incoming, RiMS: $hospital_code_local)"

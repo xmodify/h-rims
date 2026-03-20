@@ -80,23 +80,33 @@
 
         // Send to RiMS API
         const targetUrl = window.rimsApiUrl || 'http://127.0.0.1:8000/api/eclaim/sync';
-        const response = await fetch(targetUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({
-                hospcode: hcode,
-                data: dataToSync
-            }) // matching the API expected payload format
-        });
+        try {
+            const response = await fetch(targetUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    hospcode: hcode,
+                    data: dataToSync
+                })
+            });
 
-        if (response.ok) {
-            const apiRes = await response.json();
-            return { success: true, message: "ซิงค์ข้อมูลสำเร็จ " + apiRes.count + " รายการ" };
-        } else {
-            return { success: false, message: "ไม่สามารถส่งข้อมูลได้ HTTP: " + response.status };
+            if (response.ok) {
+                const apiRes = await response.json();
+                return { success: true, message: "ซิงค์ข้อมูลสำเร็จ " + apiRes.count + " รายการ" };
+            } else if (response.status === 403) {
+                const apiRes = await response.json();
+                return { success: false, message: "ปฏิเสธการนำเข้า: " + (apiRes.message || "รหัสสถานพยาบาลไม่ถูกต้อง") };
+            } else {
+                return { success: false, message: "ส่งข้อมูลไม่สำเร็จ HTTP: " + response.status };
+            }
+        } catch (fetchError) {
+            if (fetchError.message.includes('Failed to fetch')) {
+                return { success: false, message: "เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (ตรวจสอบ Firewall หรือใช้ HTTPS ให้ตรงกับหน้าเว็บ)" };
+            }
+            throw fetchError; // Rethrow other errors to be caught by the outer catch
         }
     } catch (e) {
         console.error(e);

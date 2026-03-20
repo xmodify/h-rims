@@ -28,6 +28,42 @@ document.getElementById('saveBtn').addEventListener('click', () => {
     });
 });
 
+// Test Connection
+document.getElementById('testBtn').addEventListener('click', async () => {
+    const baseUrl = document.getElementById('apiUrl').value.trim() || defaultBaseUrl;
+    const testUrl = baseUrl + '/eclaim/sync'; // We use the same endpoint for testing but with no data
+    const resultDiv = document.getElementById('testResult');
+
+    resultDiv.style.display = 'block';
+    resultDiv.style.color = 'orange';
+    resultDiv.textContent = 'กำลังทดสอบเชื่อมต่อ...';
+
+    try {
+        const response = await fetch(testUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify({ hospcode: 'TEST', data: [] }) // Test payload
+        });
+
+        if (response.status === 403 || response.ok) {
+            // 403 is actually a "good" sign for connectivity because it means we reached the server 
+            // and it processed our (invalid) hospcode.
+            resultDiv.style.color = '#198754';
+            resultDiv.textContent = 'เชื่อมต่อเซิร์ฟเวอร์สำเร็จ (Ready)';
+        } else {
+            resultDiv.style.color = 'red';
+            resultDiv.textContent = 'เชื่อมต่อได้แต่เซิร์ฟเวอร์ตอบกลับ error: ' + response.status;
+        }
+    } catch (e) {
+        resultDiv.style.color = 'red';
+        if (e.message.includes('Failed to fetch')) {
+            resultDiv.textContent = 'เชื่อมต่อไม่ได้: ตรวจสอบ URL หรือ Firewall/SSL (Mixed Content)';
+        } else {
+            resultDiv.textContent = 'Error: ' + e.message;
+        }
+    }
+});
+
 // ==================== E-Claim Status Sync ====================
 document.getElementById('syncBtn').addEventListener('click', async () => {
     if (isScraping) return;

@@ -796,16 +796,16 @@ $(document).ready(function() {
         });
     }
 
-    // 4. DataTable for search/confirm table
-    if ($('#debtor_search').length) {
-        $('#debtor_search').DataTable({
+    // 4. DataTable for Kidney table
+    if ($('#debtor_search_kidney').length) {
+        $('#debtor_search_kidney').DataTable({
             dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
             buttons: [
                 {
                     extend: 'excelHtml5',
                     text: 'Excel',
                     className: 'btn btn-success btn-sm',
-                    title: '1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR) รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+                    title: '1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR) รอยืนยัน ฟอกไต วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
                 }
             ],
             language: {
@@ -817,16 +817,37 @@ $(document).ready(function() {
         });
     }
 
-    // 5. DataTable for AE table
-    if ($('#debtor_search_ae').length) {
-        $('#debtor_search_ae').DataTable({
+    // 5. DataTable for CR table
+    if ($('#debtor_search_cr').length) {
+        $('#debtor_search_cr').DataTable({
             dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
             buttons: [
                 {
                     extend: 'excelHtml5',
                     text: 'Excel',
                     className: 'btn btn-success btn-sm',
-                    title: '1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR) รอยืนยัน AE/OP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+                    title: '1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR) รอยืนยัน บริการเฉพาะ วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+                }
+            ],
+            language: {
+                search: 'ค้นหา:',
+                lengthMenu: 'แสดง _MENU_ รายการ',
+                info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
+                paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
+            }
+        });
+    }
+
+    // 6. DataTable for Anywhere table
+    if ($('#debtor_search_anywhere').length) {
+        $('#debtor_search_anywhere').DataTable({
+            dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+            buttons: [
+                {
+                    extend: 'excelHtml5',
+                    text: 'Excel',
+                    className: 'btn btn-success btn-sm',
+                    title: '1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR) รอยืนยัน Anywhere วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
                 }
             ],
             language: {

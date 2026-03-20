@@ -5,14 +5,17 @@
     try {
         let dataToSync = [];
 
-        // Scrape Hospital Code from NHSO E-Claim Header (usually "[5-digit] Hospital Name")
-        let hcode = "";
-        const headerText = document.querySelector('.ant-layout-header')?.innerText ||
-            document.querySelector('.user-info-detail')?.innerText ||
-            document.body.innerText;
-        const hcodeMatch = headerText.match(/\b\d{5}\b/);
-        if (hcodeMatch) {
-            hcode = hcodeMatch[0];
+        // Use Hospital Code from settings (if provided), otherwise fallback to scraping
+        let hcode = window.rimsHospCode || "";
+
+        if (!hcode) {
+            const headerText = document.querySelector('.ant-layout-header')?.innerText ||
+                document.querySelector('.user-info-detail')?.innerText ||
+                document.body.innerText;
+            const hcodeMatch = headerText.match(/\b\d{5}\b/);
+            if (hcodeMatch) {
+                hcode = hcodeMatch[0];
+            }
         }
 
         // This is a generic table scraper. 

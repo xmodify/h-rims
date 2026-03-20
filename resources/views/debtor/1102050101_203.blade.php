@@ -1,4 +1,20 @@
 @extends('layouts.app')
+<script>
+    function toggle_d(source) {
+        checkboxes = document.getElementsByName('checkbox_d[]');
+        for (var i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = source.checked;
+        }
+    }
+</script>
+<script>
+    function toggle(source) {
+        checkboxes = document.getElementsByName('checkbox[]');
+        for (var i = 0; i < checkboxes.length; i++) {
+            checkboxes[i].checked = source.checked;
+        }
+    }
+</script>
     
 @section('content')
     <!-- Page Header & Logic Filters -->
@@ -107,7 +123,7 @@
                         <th class="text-center text-primary" colspan="10">การชดเชย</th>                                                 
                     </tr>
                     <tr class="table-primary align-middle text-center">
-                        <th class="text-center"><input type="checkbox" onClick="toggle_d(this)"> All</th> 
+                        <th class="text-center" width="4%"><input type="checkbox" onClick="toggle_d(this)"> ALL</th> 
                         <th class="text-center">วันที่</th>
                         <th class="text-center">HN</th>
                         <th class="text-center">ชื่อ-สกุล</th>
@@ -256,7 +272,7 @@
                         <th class="text-left text-primary" colspan = "13">1102050101.203-ลูกหนี้ค่ารักษา UC-OP นอก CUP (ในจังหวัดสังกัด สธ.) รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                         
                     </tr>
                     <tr class="table-secondary">
-                        <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th> 
+                        <th class="text-center" width="4%"><input type="checkbox" onClick="toggle(this)"> ALL</th> 
                         <th class="text-center">วันที่</th>
                         <th class="text-center">HN</th>
                         <th class="text-center">ชื่อ-สกุล</th>

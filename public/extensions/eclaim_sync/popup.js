@@ -2,11 +2,14 @@ let isScraping = false;
 const defaultBaseUrl = 'http://127.0.0.1:8000/api';
 
 // Load saved settings
-chrome.storage.local.get(['apiUrl'], function (result) {
+chrome.storage.local.get(['apiUrl', 'hospCode'], function (result) {
     if (result.apiUrl) {
         document.getElementById('apiUrl').value = result.apiUrl;
     } else {
         document.getElementById('apiUrl').value = defaultBaseUrl;
+    }
+    if (result.hospCode) {
+        document.getElementById('hospCode').value = result.hospCode;
     }
 });
 
@@ -19,8 +22,9 @@ document.getElementById('toggleSettings').addEventListener('click', () => {
 // Save Settings
 document.getElementById('saveBtn').addEventListener('click', () => {
     let url = document.getElementById('apiUrl').value.trim();
+    let hcode = document.getElementById('hospCode').value.trim();
     if (url.endsWith('/')) { url = url.slice(0, -1); } // Remove trailing slash
-    chrome.storage.local.set({ apiUrl: url }, () => {
+    chrome.storage.local.set({ apiUrl: url, hospCode: hcode }, () => {
         updateStatus("บันทึกการตั้งค่าแล้ว", "#198754");
         setTimeout(() => {
             document.getElementById('settingsPanel').style.display = 'none';
@@ -31,7 +35,8 @@ document.getElementById('saveBtn').addEventListener('click', () => {
 // Test Connection
 document.getElementById('testBtn').addEventListener('click', async () => {
     const baseUrl = document.getElementById('apiUrl').value.trim() || defaultBaseUrl;
-    const testUrl = baseUrl + '/eclaim/sync'; // We use the same endpoint for testing but with no data
+    const hcode = document.getElementById('hospCode').value.trim();
+    const testUrl = baseUrl + '/eclaim/sync'; // We use the same endpoint for testing
     const resultDiv = document.getElementById('testResult');
 
     resultDiv.style.display = 'block';
@@ -42,7 +47,7 @@ document.getElementById('testBtn').addEventListener('click', async () => {
         const response = await fetch(testUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-            body: JSON.stringify({ hospcode: 'TEST', data: [] }) // Test payload
+            body: JSON.stringify({ hospcode: hcode || 'TEST', data: [] }) // Use setting hcode if available
         });
 
         if (response.status === 403 || response.ok) {
@@ -76,6 +81,7 @@ document.getElementById('syncBtn').addEventListener('click', async () => {
     }
 
     const baseUrl = document.getElementById('apiUrl').value.trim() || defaultBaseUrl;
+    const hcode = document.getElementById('hospCode').value.trim();
     const targetUrl = baseUrl + '/eclaim/sync'; // Append endpoint
 
     isScraping = true;
@@ -83,8 +89,11 @@ document.getElementById('syncBtn').addEventListener('click', async () => {
 
     chrome.scripting.executeScript({
         target: { tabId: tab.id },
-        func: (apiUrl) => { window.rimsApiUrl = apiUrl; },
-        args: [targetUrl]
+        func: (apiUrl, hcode) => { 
+            window.rimsApiUrl = apiUrl; 
+            window.rimsHospCode = hcode; 
+        },
+        args: [targetUrl, hcode]
     }, () => {
         chrome.scripting.executeScript({
             target: { tabId: tab.id },

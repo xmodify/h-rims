@@ -75,6 +75,7 @@ class CheckController extends Controller
             AND (o.an = "" OR o.an IS NULL)
             AND vs.uc_money > 0
             AND (vp.auth_code NOT LIKE "EP%" OR vp.auth_code IS NULL)
+            AND ep.cid IS NULL
             AND kidney.vn IS NULL
             ORDER BY o.vstdate DESC, o.vsttime DESC', 
             [$start_date, $end_date, $start_date, $end_date]);

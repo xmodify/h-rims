@@ -73,7 +73,7 @@ class CheckController extends Controller
             ) kidney ON kidney.vn = o.vn
             WHERE o.vstdate BETWEEN ? AND ?
             AND (o.an = "" OR o.an IS NULL)
-            AND vs.uc_money > 0
+            AND p.hipdata_code IN ("UCS","OFC","SSS","LGO","NHS","STP","BKK","BMT","SRT","KKT","PTY")
             AND (vp.auth_code NOT LIKE "EP%" OR vp.auth_code IS NULL)
             AND ep.cid IS NULL
             AND kidney.vn IS NULL

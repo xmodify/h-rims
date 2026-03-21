@@ -61,7 +61,7 @@
             @foreach($search as $index => $row) 
             <tr>
               <td align="center" class="text-muted">{{ $index + 1 }}</td>
-              <td align="center">                  
+              <td align="center" data-order="{{ $row->claim_status === 'success' ? 3 : (in_array($row->claim_status, ['pulled', 'failed']) ? 2 : 1) }}">                  
                 @php
                     $status = $row->claim_status;
                 @endphp
@@ -335,6 +335,7 @@ function showLoading() {
       });
 
       $('#list').DataTable({
+        order: [[1, 'asc']],
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 
                 '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 

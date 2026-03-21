@@ -45,6 +45,8 @@ class UserController extends Controller
             'allow_debtor_lock' => $request->has('allow_debtor_lock') ? 'Y' : 'N',
             'allow_debtor_acc' => $request->has('allow_debtor_acc') ? 'Y' : 'N',
             'allow_receipt' => $request->has('allow_receipt') ? 'Y' : 'N',
+            'cid' => $request->cid,
+            'allow_nhso_endpoint' => $request->has('allow_nhso_endpoint') ? 'Y' : 'N',
         ]);
 
         return redirect()->route('admin.users.index')->with('success', 'เพิ่มข้อมูลสำเร็จ');
@@ -79,6 +81,8 @@ class UserController extends Controller
             'allow_debtor_lock' => $request->has('allow_debtor_lock') ? 'Y' : 'N',
             'allow_debtor_acc' => $request->has('allow_debtor_acc') ? 'Y' : 'N',
             'allow_receipt' => $request->has('allow_receipt') ? 'Y' : 'N',
+            'cid' => $request->cid,
+            'allow_nhso_endpoint' => $request->has('allow_nhso_endpoint') ? 'Y' : 'N',
         ];
 
         // ถ้ามีการกรอก password ใหม่ ให้ hash แล้วอัปเดต

@@ -76,6 +76,7 @@
                                             @if($user->allow_debtor_lock === 'Y') <span class="badge bg-danger text-white" style="font-size: 0.65rem;">Lock ลูกหนี้</span> @endif
                                             @if($user->allow_debtor_acc === 'Y') <span class="badge bg-info text-dark" style="font-size: 0.65rem;">ทะเบียนคุมลูกหนี้</span> @endif
                                             @if($user->allow_receipt === 'Y') <span class="badge bg-warning text-dark border border-warning" style="font-size: 0.65rem;">ออกใบเสร็จ</span> @endif
+                                            @if($user->allow_nhso_endpoint === 'Y') <span class="badge bg-primary text-white" style="font-size: 0.65rem;">ปิดสิทธิ สปสช. (API)</span> @endif
                                         </div>
                                     @endif
                                 </td>
@@ -98,6 +99,8 @@
                                             data-allow_debtor_lock="{{ $user->allow_debtor_lock }}"
                                             data-allow_debtor_acc="{{ $user->allow_debtor_acc }}"
                                             data-allow_receipt="{{ $user->allow_receipt }}"
+                                            data-cid="{{ $user->cid }}"
+                                            data-allow_nhso_endpoint="{{ $user->allow_nhso_endpoint }}"
                                             data-bs-toggle="modal"
                                             data-bs-target="#editModal"
                                             title="แก้ไข">
@@ -150,6 +153,13 @@
                         <div class="input-group">
                             <span class="input-group-text bg-light border-end-0"><i class="bi bi-key"></i></span>
                             <input name="password" type="password" class="form-control bg-light border-start-0 ps-0" placeholder="ไม่ต่ำกว่า 6 ตัวอักษร" required minlength="6">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">เลข CID (เจ้าหน้าที่ปิดสิทธิ สปสช.)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-card-heading"></i></span>
+                            <input name="cid" type="text" class="form-control bg-light border-start-0 ps-0" placeholder="เลขบัตรประชาชน 13 หลัก">
                         </div>
                     </div>
                     <hr class="my-4 opacity-10">
@@ -221,6 +231,12 @@
                                 <label class="form-check-label small text-warning fw-bold" for="add_allow_receipt">สิทธิ์การออกใบเสร็จ</label>
                             </div>
                         </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="allow_nhso_endpoint" id="add_allow_nhso_endpoint" value="Y">
+                                <label class="form-check-label small text-primary fw-bold" for="add_allow_nhso_endpoint">ปิดสิทธิ สปสช. (API)</label>
+                            </div>
+                        </div>
                     </div>
                     <input type="hidden" name="active" value="Y">
                 </div>
@@ -256,6 +272,13 @@
                         <div class="input-group">
                             <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope"></i></span>
                             <input class="form-control bg-light border-start-0 ps-0" id="editEmail" name="email" type="email" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">เลข CID (เจ้าหน้าที่ปิดสิทธิ สปสช.)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-card-heading"></i></span>
+                            <input class="form-control bg-light border-start-0 ps-0" id="editCid" name="cid" type="text" placeholder="เลขบัตรประชาชน 13 หลัก">
                         </div>
                     </div>
                     <div class="row">
@@ -343,6 +366,12 @@
                                 <label class="form-check-label small text-warning fw-bold" for="edit_allow_receipt">สิทธิ์การออกใบเสร็จ</label>
                             </div>
                         </div>
+                        <div class="col">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input p_switch" type="checkbox" name="allow_nhso_endpoint" id="edit_allow_nhso_endpoint" value="Y">
+                                <label class="form-check-label small text-primary fw-bold" for="edit_allow_nhso_endpoint">ปิดสิทธิ สปสช. (API)</label>
+                            </div>
+                        </div>
                     </div>
                     <hr class="my-4 opacity-10">
                     <div class="mb-2">
@@ -411,6 +440,8 @@
             $('#edit_allow_debtor_lock').prop('checked', data.allow_debtor_lock === 'Y');
             $('#edit_allow_debtor_acc').prop('checked', data.allow_debtor_acc === 'Y');
             $('#edit_allow_receipt').prop('checked', data.allow_receipt === 'Y');
+            $('#edit_allow_nhso_endpoint').prop('checked', data.allow_nhso_endpoint === 'Y');
+            $('#editCid').val(data.cid);
 
             updateActiveLabel(data.active === 'Y');
             

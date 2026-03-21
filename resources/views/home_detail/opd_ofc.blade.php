@@ -34,12 +34,11 @@
     <div class="card-body">
       <div class="table-responsive">            
         <table id="list" class="table table-hover table-bordered align-middle" width="100%">
-          <thead class="bg-light">
+           <thead class="bg-light">
             <tr>
                 <th class="text-center">ลำดับ</th>
-                <th class="text-center" width="6%">ดึงปิดสิทธิ</th>
-                <th class="text-center text-nowrap">Authen</th>  
-                <th class="text-center text-nowrap">ปิดสิทธิ</th>
+                <th class="text-center" width="6%">ปิดสิทธิ</th>
+                <th class="text-center text-nowrap">Authen</th>
                 <th class="text-center">PPFS</th>
                 <th class="text-center">EDC</th>
                 <th class="text-center">วันที่รับบริการ/เวลา</th> 
@@ -56,10 +55,25 @@
             @foreach($sql as $index => $row) 
             <tr>
               <td align="center" class="text-muted">{{ $index + 1 }}</td>
-              <td align="center">                                 
-                  <button onclick="pullNhsoData('{{ $row->vstdate }}', '{{ $row->cid }}')" class="btn btn-outline-info btn-sm">
-                      <i class="bi bi-cloud-download"></i>
-                  </button>              
+              <td align="center">                  
+                @php
+                    $status = $row->claim_status;
+                @endphp
+
+                @if(in_array($status, ['success_rims', 'success']))
+                    <button onclick="alertAlreadyClosed('สปสช.')" class="btn btn-outline-success btn-sm rounded-circle" title="ปิดสิทธิเรียบร้อยแล้ว">
+                        <i class="bi bi-check-circle-fill"></i>
+                    </button>
+                @elseif(in_array($status, ['pulled', 'failed']))
+
+                    <button onclick="pushNhsoData('{{ $row->cid }}', '{{ $row->vstdate }}')" class="btn btn-outline-warning btn-sm rounded-circle" title="รอยืนยันปิดสิทธิ (Push)">
+                        <i class="bi bi-arrow-up-circle-fill"></i>
+                    </button>
+                @else
+                    <button onclick="pullNhsoData('{{ $row->vstdate }}', '{{ $row->cid }}')" class="btn btn-outline-info btn-sm rounded-circle" title="ดึงข้อมูลจาก สปสช. (Pull)">
+                        <i class="bi bi-cloud-download-fill"></i>
+                    </button>
+                @endif
               </td> 
               <td align="center">
                 @if($row->auth_code == 'Y')
@@ -68,13 +82,6 @@
                   <span class="badge bg-danger shadow-sm">N</span>
                 @endif
               </td>               
-              <td align="center">
-                @if($row->endpoint == 'Y')
-                  <span class="badge bg-success shadow-sm">Y</span>
-                @else
-                  <span class="badge bg-danger shadow-sm">N</span>
-                @endif
-              </td> 
               <td align="center">
                 @if($row->ppfs == 'Y')
                   <span class="badge bg-success shadow-sm">Y</span>
@@ -117,54 +124,153 @@
 </div>      
 
 <script>
-  function pullNhsoData(vstdate, cid) {
-      Swal.fire({
-          title: 'กำลังดึงข้อมูล...',
-          text: 'กรุณารอสักครู่',
-          allowOutsideClick: false,
-          didOpen: () => {
-              Swal.showLoading()
-          }
-      });
+function alertAlreadyClosed(source) {
+    Swal.fire({
+        icon: 'info',
+        title: 'ปิดสิทธิเรียบร้อยแล้ว',
+        text: 'รายการนี้ปิดสิทธิโดย' + source + 'เรียบร้อยแล้ว ไม่จำเป็นต้องส่งซ้ำอีกครั้ง',
+        confirmButtonText: 'รับทราบ',
+        confirmButtonColor: '#0d6efd'
+    });
+}
 
-      fetch("{{ url('api/nhso_endpoint_pull_indiv') }}", {
-          method: "POST",
-          headers: {
-              "Content-Type": "application/json",
-              "X-CSRF-TOKEN": "{{ csrf_token() }}",
-              "Accept": "application/json"
-          },
-          body: JSON.stringify({
-              vstdate: vstdate,
-              cid: cid
-          })
-      })
-          .then(async response => {
-              const data = await response.json();
-              if (!response.ok) {
-                  throw new Error(data.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล');
-              }
-              return data;
-          })
-          .then(data => {
-              Swal.fire({
-                  icon: 'success',
-                  title: 'ดึงข้อมูลสำเร็จ',
-                  text: data.message || 'ข้อมูลถูกบันทึกเรียบร้อยแล้ว',
-                  timer: 2000,
-                  showConfirmButton: false
-              }).then(() => {
-                  location.reload();
-              });
-          })
-          .catch(error => {
-              Swal.fire({
-                  icon: 'error',
-                  title: 'เกิดข้อผิดพลาด',
-                  text: error.message || 'ไม่สามารถเชื่อมต่อกับระบบได้',
-              });
-          });
-  }
+function pullNhsoData(vstdate, cid) {
+    Swal.fire({
+        title: 'กำลังดึงข้อมูล...',
+        text: 'กรุณารอสักครู่',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading()
+        }
+    });
+
+    fetch("{{ url('api/nhso_endpoint_pull_indiv') }}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-TOKEN": "{{ csrf_token() }}",
+            "Accept": "application/json"
+        },
+        body: JSON.stringify({
+            vstdate: vstdate,
+            cid: cid
+        })
+    })
+        .then(async response => {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล');
+            }
+            return data;
+        })
+        .then(data => {
+            if (data.found) {
+                // ✅ พบข้อมูล → บันทึกแล้ว รีโหลดหน้า
+                Swal.fire({
+                    icon: 'success',
+                    title: 'พบข้อมูลปิดสิทธิ',
+                    text: data.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    location.reload();
+                });
+            } else {
+                // ❌ ไม่พบข้อมูล → ถามก่อนว่าต้องการปิดเองไหม
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ไม่พบการปิดสิทธิจากระบบอื่น',
+                    text: 'ยังไม่มีการปิดสิทธิสำหรับรายการนี้ใน สปสช. ต้องการปิดสิทธิด้วยระบบ RiMS หรือไม่?',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'ปิดสิทธิเลย',
+                    cancelButtonText: 'ยกเลิก'
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        pushNhsoData(cid, vstdate);
+                    }
+                });
+            }
+        })
+        .catch(error => {
+            Swal.fire({
+                icon: 'error',
+                title: 'เกิดข้อผิดพลาด',
+                text: error.message || 'ไม่สามารถเชื่อมต่อกับระบบได้',
+            });
+        });
+}
+
+function pushNhsoData(cid, vstdate) {
+    Swal.fire({
+        title: 'ยืนยันการส่งข้อมูล?',
+        text: "ระบบจะดึงข้อมูลจาก HOSxP และส่งไปปิดสิทธิที่ สปสช.",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'ตกลง, ส่งข้อมูล!',
+        cancelButtonText: 'ยกเลิก'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'กำลังดำเนินการ...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading()
+                }
+            });
+
+            $.ajax({
+                url: "{{ route('api.nhso.push_indiv') }}",
+                type: "POST",
+                data: {
+                    _token: "{{ csrf_token() }}",
+                    cid: cid,
+                    vstdate: vstdate
+                },
+                success: function(response) {
+                    if (response.status == 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'สำเร็จ!',
+                            text: response.message,
+                            timer: 2000,
+                            showConfirmButton: false
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: response.message
+                        });
+                    }
+                },
+                error: function(xhr) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: xhr.responseJSON ? xhr.responseJSON.message : 'ไม่สามารถติดต่อ Server ได้'
+                    });
+                }
+            });
+        }
+    })
+}
+
+function showLoading() {
+    Swal.fire({
+        title: 'กำลังดำเนินการ...',
+        text: 'กรุณารอสักครู่',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+}
 </script>
 
 @endsection

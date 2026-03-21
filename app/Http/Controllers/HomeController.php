@@ -28,6 +28,7 @@ class HomeController extends Controller
                 return response()->view('errors.403_home', [], 403);
             }
             return $next($request);
+
         })->only([
             'opd_ofc', 'opd_non_authen', 'opd_non_hospmain', 'opd_ucs_anywhere',
             'opd_ucs_cr', 'opd_ucs_herb', 'opd_ucs_healthmed', 'opd_ppfs',
@@ -96,7 +97,7 @@ class HomeController extends Controller
                 MAX(CASE WHEN li.herb32 = "Y" THEN "Y" ELSE "N" END) as herb_flag,
                 IF(hms.vn IS NOT NULL, "Y", "N") as healthmed_flag,
                 MAX(CASE WHEN vp.Claim_Code IS NOT NULL AND vp.Claim_Code <> "" THEN "Y" ELSE "N" END) as claim_code_flag,
-                IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%" OR ep.claimType = "PG0140001"),"Y",NULL) AS endpoint
+                IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success","success_rims") OR ep.claimType = "PG0140001"),"Y",NULL) AS endpoint
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1
@@ -110,7 +111,7 @@ class HomeController extends Controller
                 INNER JOIN health_med_service_operation hso ON hso.health_med_service_id = h.health_med_service_id
                 GROUP BY h.vn
             ) hms ON hms.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             WHERE o.vstdate = DATE(NOW()) AND (o.an = "" OR o.an IS NULL)
             GROUP BY o.vn
         ) AS a');
@@ -152,7 +153,7 @@ class HomeController extends Controller
             LEFT JOIN ovst o ON o.an = i.an
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN hrims.lookup_ward lw ON lw.ward = i.ward
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate AND (ep.claimCode LIKE "EP%" OR ep.claimType = "PG0140001")
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             WHERE i.confirm_discharge = "N" OR o.vstdate = DATE(NOW())
         ) AS a')[0];
 
@@ -322,7 +323,7 @@ class HomeController extends Controller
         SELECT o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
         pt.cid,pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         v.pdx,IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
-        IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
+        IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success","success_rims")),"Y",NULL) AS endpoint, ep.claim_status,
         IFNULL(vp.Claim_Code,os.edc_approve_list_text) AS edc,IF(ppfs.vn IS NOT NULL,"Y",NULL) AS ppfs
         FROM ovst o
         LEFT JOIN patient pt ON pt.hn=o.hn
@@ -337,7 +338,7 @@ class HomeController extends Controller
             WHERE ori.vstdate BETWEEN ? AND ?
             GROUP BY ori.vn
         ) ppfs ON ppfs.vn=o.vn
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
         WHERE o.vstdate BETWEEN ? AND ? AND p.hipdata_code = "OFC" AND (o.an ="" OR o.an IS NULL)
         GROUP BY o.vn ORDER BY ep.claimCode DESC ,o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date]);
 
@@ -396,7 +397,7 @@ class HomeController extends Controller
 
         $search = DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
-        IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,o.oqueue,
+        IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success","success_rims")),"Y",NULL) AS endpoint, ep.claim_status, o.oqueue,
         o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
         p.`name` AS pttype,vp.hospmain,v.pdx,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         et.ucae AS er,p24.project,vp.nhso_ucae_type_code AS ae,
@@ -417,7 +418,8 @@ class HomeController extends Controller
         LEFT JOIN vn_stat v ON v.vn = o.vn
         LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
         LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND stm.vstdate = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"     
+        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
+
         WHERE (o.an ="" OR o.an IS NULL) 
         AND o.vstdate BETWEEN ? AND ?
         AND p.hipdata_code IN ("UCS","WEL") 
@@ -434,7 +436,7 @@ class HomeController extends Controller
 
         $search = DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
-        IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,o.oqueue,
+        IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success","success_rims")),"Y",NULL) AS endpoint, ep.claim_status, o.oqueue,
         o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
         p.`name` AS pttype,vp.hospmain,v.pdx,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         GROUP_CONCAT(DISTINCT s.`name`) AS claim_list, SUM(o1.sum_price) AS claim_price,
@@ -458,7 +460,8 @@ class HomeController extends Controller
         ) p24 ON p24.vn = o.vn
         LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
         LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND stm.vstdate = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"       
+        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
+
         WHERE p.hipdata_code IN ("UCS","WEL") 
         AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
         AND (o.an IS NULL OR o.an ="") 
@@ -475,7 +478,7 @@ class HomeController extends Controller
 
         $search = DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
-        IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,o.oqueue,
+        IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success","success_rims")),"Y",NULL) AS endpoint, ep.claim_status, o.oqueue,
         o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
         p.`name` AS pttype,vp.hospmain,v.pdx,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         GROUP_CONCAT(DISTINCT s.`name`) AS claim_list, SUM(o1.sum_price) AS claim_price,
@@ -498,7 +501,8 @@ class HomeController extends Controller
         ) p24 ON p24.vn = o.vn
         LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
         LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND stm.vstdate = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"       
+        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
+
         WHERE p.hipdata_code IN ("UCS","WEL") 
         AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
         AND (o.an IS NULL OR o.an ="") 
@@ -515,7 +519,7 @@ class HomeController extends Controller
 
         $search = DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
-        IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,o.vstdate,o.vsttime,
+        IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success","success_rims") OR ep.claimType = "PG0140001"),"Y",NULL) AS endpoint, ep.claim_status, o.vstdate,o.vsttime,
         o.oqueue,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
         p.`name` AS pttype,vp.hospmain,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,k.department ,
 			GROUP_CONCAT(DISTINCT hm.operation) AS operation
@@ -532,7 +536,7 @@ class HomeController extends Controller
             INNER JOIN health_med_operation_item h2 ON h2.health_med_operation_item_id=h1.health_med_operation_item_id
             WHERE h.service_date BETWEEN ? AND ?
         ) hm ON hm.vn=o.vn
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
         WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN ? AND ?
         AND p.hipdata_code IN ("UCS","WEL") AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y")          
         GROUP BY o.vn ORDER BY ep.claimCode DESC,o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date]);
@@ -548,7 +552,7 @@ class HomeController extends Controller
 
         $search = DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
-        IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,o.oqueue,
+        IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success","success_rims")),"Y",NULL) AS endpoint, ep.claim_status, o.oqueue,
         o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
         p.`name` AS pttype,vp.hospmain,v.pdx,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         GROUP_CONCAT(DISTINCT s.`name`) AS claim_list, SUM(o1.sum_price) AS claim_price,
@@ -571,7 +575,8 @@ class HomeController extends Controller
         ) p24 ON p24.vn = o.vn
         LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
         LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND stm.vstdate = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"       
+        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
+
         WHERE (o.an IS NULL OR o.an ="") AND o.vstdate BETWEEN ? AND ?
         GROUP BY o.vn ORDER BY o.vstdate,o.oqueue', [$start_date, $end_date, $start_date, $end_date]);
 
@@ -595,7 +600,7 @@ class HomeController extends Controller
         LEFT JOIN pttype p1 ON p1.pttype=vp.pttype				
         LEFT JOIN kskdepartment k ON k.depcode=o.main_dep
 		LEFT JOIN ipt i ON i.an=o.an AND i.ward IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")
-        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND (ep.claimCode LIKE "EP%" OR ep.claimType = "PG0140001")
+        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
         WHERE (i.an IS NOT NULL OR i.an <>"") AND o.vstdate BETWEEN ? AND ?
 		GROUP BY o.vn ORDER BY o.vsttime', [$start_date, $end_date]);
 

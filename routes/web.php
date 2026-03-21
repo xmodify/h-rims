@@ -23,6 +23,7 @@ use App\Http\Controllers\MishosController;
 use App\Http\Controllers\DebtorController;
 use App\Http\Controllers\DebtorAccController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Api\NhsoEndpointController;
 
 /*
 |--------------------------------------------------------------------------
@@ -602,4 +603,12 @@ Route::put('debtor/1102050102_802/update/{id}', [DebtorController::class, '_1102
 Route::post('debtor/1102050102_802_bulk_adj', [DebtorController::class, '_1102050102_802_bulk_adj']);
 Route::post('debtor/1102050102_803_bulk_adj', [DebtorController::class, '_1102050102_803_bulk_adj']);
 Route::put('debtor/1102050102_804/update/{id}', [DebtorController::class, '_1102050102_804_update']);
-Route::post('debtor/1102050102_804_bulk_adj', [DebtorController::class, '_1102050102_804_bulk_adj']);
+Route::post('debtor/1102050102_804_bulk_adj', [DebtorAccController::class, '_1102050102_804_bulk_adj']);
+
+// NHSO API (Integrated with Web Session)
+Route::prefix('api')->middleware(['auth'])->group(function () {
+    Route::post('nhso_endpoint_pull', [NhsoEndpointController::class, 'pull'])->name('nhso_endpoint_pull');
+    Route::post('nhso_endpoint_pull_indiv', [NhsoEndpointController::class, 'pullIndiv'])->name('nhso_endpoint_pull_indiv');
+    Route::post('nhso_endpoint_pull_yesterday', [NhsoEndpointController::class, 'pullYesterday'])->name('nhso_endpoint_pull_yesterday');
+    Route::post('nhso_endpoint_push_indiv', [NhsoEndpointController::class, 'pushIndiv'])->name('api.nhso.push_indiv');
+});

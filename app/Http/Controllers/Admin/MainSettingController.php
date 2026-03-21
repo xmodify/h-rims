@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\MainSetting;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Schema\Blueprint;
 
 class MainSettingController extends Controller
@@ -158,13 +159,26 @@ class MainSettingController extends Controller
             $newColumns = [
                 'allow_home', 'allow_import', 'allow_check', 'allow_emr', 
                 'allow_claim_op', 'allow_claim_ip', 'allow_mishos', 
-                'allow_debtor', 'allow_debtor_lock', 'allow_debtor_acc', 'allow_receipt'
+                'allow_debtor', 'allow_debtor_lock', 'allow_debtor_acc', 'allow_receipt',
+                'allow_nhso_endpoint'
             ];
 
             Schema::table('users', function (Blueprint $table) use ($newColumns) {
                 foreach ($newColumns as $column) {
                     if (!Schema::hasColumn('users', $column)) {
                         $table->string($column, 1)->default('N')->after('status');
+                    }
+                }
+
+                // Handle 'cid' column specifically
+                if (!Schema::hasColumn('users', 'cid')) {
+                    $table->string('cid', 13)->nullable()->after('email');
+                } else {
+                    try {
+                        // Attempt to modify the column type if it already exists
+                        DB::statement("ALTER TABLE users MODIFY COLUMN cid VARCHAR(13) NULL");
+                    } catch (\Exception $e) {
+                        Log::warning("Could not modify users.cid to VARCHAR(13): " . $e->getMessage());
                     }
                 }
             });
@@ -236,13 +250,44 @@ class MainSettingController extends Controller
                     $upgradedTables++;
                 }
             }
-            
             $migrate_result .= "\n Checked $upgradedTables debtor tables.";
             if (count($addedColumnsLog) > 0) {
                 $migrate_result .= " Added columns to " . count($addedColumnsLog) . " tables: " . implode(', ', $addedColumnsLog);
             } else {
                 $migrate_result .= " All tables already have required columns.";
             }
+
+            // 5. Upgrade nhso_endpoint table with claim status columns
+            $nhso_tables = [
+                ['connection' => 'mysql', 'table' => 'nhso_endpoint'],
+                ['connection' => 'hosxp', 'table' => 'hrims.nhso_endpoint']
+            ];
+
+            foreach ($nhso_tables as $item) {
+                try {
+                    $conn = $item['connection'];
+                    $table = $item['table'];
+                    
+                    if (Schema::connection($conn)->hasTable($table)) {
+                        Schema::connection($conn)->table($table, function (Blueprint $tableObj) use ($conn, $table) {
+                            if (!Schema::connection($conn)->hasColumn($table, 'claim_status')) {
+                                $tableObj->string('claim_status', 20)->nullable()->after('claimType');
+                            }
+                            if (!Schema::connection($conn)->hasColumn($table, 'saved_at')) {
+                                $tableObj->dateTime('saved_at')->nullable()->after('claim_status');
+                            }
+                            if (!Schema::connection($conn)->hasColumn($table, 'nhso_response')) {
+                                $tableObj->text('nhso_response')->nullable()->after('saved_at');
+                            }
+                        });
+                    }
+                } catch (\Exception $e) {
+                    // ข้ามถ้าไม่มีสิทธิ์หรือไม่มีตารางใน connection นั้น
+                    Log::warning("Could not upgrade $table on $conn: " . $e->getMessage());
+                }
+            }
+
+            $migrate_result .= " and updated nhso_endpoint.";
 
             return redirect()->route('admin.main_setting')
                 ->with('success', 'อัปเกรดโครงสร้างฐานข้อมูลเสร็จสิ้น')

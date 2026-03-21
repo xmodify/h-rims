@@ -23,6 +23,7 @@ class User extends Authenticatable
         'password',
         'active',
         'status',
+        'cid',
         'allow_home',
         'allow_import',
         'allow_check',
@@ -32,7 +33,9 @@ class User extends Authenticatable
         'allow_mishos',
         'allow_debtor',
         'allow_debtor_lock',
+        'allow_debtor_acc',
         'allow_receipt',
+        'allow_nhso_endpoint',
     ];
 
     /**

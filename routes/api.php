@@ -22,10 +22,7 @@ Route::post('fdh/check-claim', [FdhClaimStatusController::class, 'check'])->name
 Route::post('fdh/check-claim-indiv', [FdhClaimStatusController::class, 'check_indiv'])->name('api.fdh.check_claim_indiv');
 Route::post('fdh/check-claim-lastdays', [FdhClaimStatusController::class, 'checkLastDays'])->name('api.fdh.check_claim_lastdays');
 
-// API NHSO -----------------------------------------------------------------------------------
-Route::post('nhso_endpoint_pull', [NhsoEndpointController::class, 'pull'])->name('nhso_endpoint_pull');
-Route::post('nhso_endpoint_pull_indiv', [NhsoEndpointController::class, 'pullIndiv'])->name('nhso_endpoint_pull_indiv');
-Route::post('nhso_endpoint_pull_yesterday', [NhsoEndpointController::class, 'pullYesterday'])->name('nhso_endpoint_pull_yesterday');
+
 
 // API AOPOD -----------------------------------------------------------------------------------
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {

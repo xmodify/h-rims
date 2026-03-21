@@ -61,12 +61,12 @@
             @foreach($search as $index => $row) 
             <tr>
               <td align="center" class="text-muted">{{ $index + 1 }}</td>
-              <td align="center" data-order="{{ $row->claim_status === 'success' ? 3 : (in_array($row->claim_status, ['pulled', 'failed']) ? 2 : 1) }}">                  
+              <td align="center" data-order="{{ $row->endpoint === 'Y' ? 3 : (in_array($row->claim_status, ['pulled', 'failed']) ? 2 : 1) }}">                  
                 @php
                     $status = $row->claim_status;
                 @endphp
 
-                @if($status === 'success')
+                @if($row->endpoint === 'Y')
                     <button onclick="alertAlreadyClosed('สปสช.')" class="btn btn-outline-success btn-sm rounded-circle" title="ปิดสิทธิเรียบร้อยแล้ว">
                         <i class="bi bi-check-circle-fill"></i>
                     </button>

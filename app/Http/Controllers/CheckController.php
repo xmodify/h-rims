@@ -65,14 +65,19 @@ class CheckController extends Controller
             LEFT JOIN vn_stat vs ON vs.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate 
                  AND (ep.claim_status = "success" OR ep.claimCode LIKE "EP%" OR ep.claimType = "PG0140001")
+            LEFT JOIN (
+                SELECT ori.vn FROM opitemrece ori 
+                INNER JOIN hrims.lookup_icode li ON li.icode = ori.icode 
+                WHERE li.kidney = "Y" AND ori.vstdate BETWEEN ? AND ?
+                GROUP BY ori.vn
+            ) kidney ON kidney.vn = o.vn
             WHERE o.vstdate BETWEEN ? AND ?
             AND (o.an = "" OR o.an IS NULL)
             AND vs.uc_money > 0
-            AND (ep.cid IS NULL OR (vp.auth_code LIKE "PP%" AND (ep.claimCode NOT LIKE "EP%" OR ep.claimCode IS NULL)))
             AND (vp.auth_code NOT LIKE "EP%" OR vp.auth_code IS NULL)
-            AND o.vn NOT IN (SELECT vn FROM opitemrece ori INNER JOIN hrims.lookup_icode li ON li.icode = ori.icode WHERE li.kidney = "Y")
+            AND kidney.vn IS NULL
             ORDER BY o.vstdate DESC, o.vsttime DESC', 
-            [$start_date, $end_date]);
+            [$start_date, $end_date, $start_date, $end_date]);
 
         return view('check.nhso_endpoint', compact('start_date', 'end_date', 'closed', 'pending'));
     }

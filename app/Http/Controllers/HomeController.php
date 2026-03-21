@@ -108,7 +108,7 @@ class HomeController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1
             LEFT JOIN pttype p ON p.pttype = vp.pttype
             LEFT JOIN ovst_seq os ON os.vn = o.vn
-            LEFT JOIN opitemrece ori ON ori.vn = o.vn
+            LEFT JOIN opitemrece ori ON ori.vn = o.vn AND ori.vstdate = DATE(NOW())
             LEFT JOIN hrims.lookup_icode li ON li.icode = ori.icode
             LEFT JOIN hrims.lookup_hospcode lh ON lh.hospcode = vp.hospmain
             LEFT JOIN (

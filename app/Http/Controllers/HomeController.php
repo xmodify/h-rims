@@ -74,6 +74,7 @@ class HomeController extends Controller
         $opd_monitor = DB::connection('hosxp')->select('
         SELECT 
             COUNT(vn) AS total,
+            SUM(CASE WHEN auth_code_flag = "Y" THEN 1 ELSE 0 END) AS opd_auth,
             SUM(CASE WHEN endpoint IS NOT NULL THEN 1 ELSE 0 END) AS endpoint,
             SUM(CASE WHEN hipdata_code = "OFC" THEN 1 ELSE 0 END) AS ofc,
             SUM(CASE WHEN hipdata_code = "OFC" AND (edc_approve_list_text <> "" OR claim_code_flag = "Y") THEN 1 ELSE 0 END) AS ofc_edc,
@@ -99,6 +100,7 @@ class HomeController extends Controller
                 MAX(CASE WHEN li.herb32 = "Y" THEN "Y" ELSE "N" END) as herb_flag,
                 MAX(CASE WHEN li.kidney = "Y" THEN "Y" ELSE "N" END) as kidney_flag,
                 IF(hms.vn IS NOT NULL, "Y", "N") as healthmed_flag,
+                IF(vp.auth_code IS NOT NULL AND vp.auth_code <> "", "Y", "N") as auth_code_flag,
                 MAX(CASE WHEN vp.Claim_Code IS NOT NULL AND vp.Claim_Code <> "" THEN "Y" ELSE "N" END) as claim_code_flag,
                 IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success","success_rims") OR ep.claimType = "PG0140001"),"Y",NULL) AS endpoint
             FROM ovst o
@@ -121,6 +123,7 @@ class HomeController extends Controller
 
         $row = $opd_monitor[0] ?? (object) [];
         $opd_total = $row->total ?? 0;
+        $opd_auth = $row->opd_auth ?? 0;
         $endpoint = $row->endpoint ?? 0;
         $ofc = $row->ofc ?? 0;
         $ofc_edc = $row->ofc_edc ?? 0;
@@ -288,6 +291,7 @@ class HomeController extends Controller
             'budget_year_select',
             'budget_year',
             'opd_total',
+            'opd_auth',
             'endpoint',
             'ofc',
             'ofc_edc',

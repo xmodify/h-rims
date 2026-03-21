@@ -34,6 +34,10 @@
                 <div class="h6 mb-0 fw-bold text-dark text-center">{{$opd_total}}</div>
               </div>
               <div class="px-3 border-end">
+                <small class="text-muted d-block" style="font-size: 0.65rem;">Authen</small>
+                <div class="h6 mb-0 fw-bold text-success text-center">{{$opd_auth}}</div>
+              </div>
+              <div class="px-3 border-end">
                 <small class="text-muted d-block" style="font-size: 0.65rem;">ปิดสิทธิ สปสช.</small>
                 <div class="h6 mb-0 fw-bold text-primary text-center">{{$endpoint}}</div>
               </div>

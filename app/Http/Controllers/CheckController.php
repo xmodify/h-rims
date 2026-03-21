@@ -69,6 +69,7 @@ class CheckController extends Controller
             AND vs.uc_money > 0
             AND (ep.cid IS NULL OR (vp.auth_code LIKE "PP%" AND (ep.claimCode NOT LIKE "EP%" OR ep.claimCode IS NULL)))
             AND (vp.auth_code NOT LIKE "EP%" OR vp.auth_code IS NULL)
+            AND o.vn NOT IN (SELECT vn FROM opitemrece ori INNER JOIN hrims.lookup_icode li ON li.icode = ori.icode WHERE li.kidney = "Y")
             ORDER BY o.vstdate DESC, o.vsttime DESC', 
             [$start_date, $end_date]);
 

@@ -100,9 +100,9 @@ class HomeController extends Controller
                 MAX(CASE WHEN li.herb32 = "Y" THEN "Y" ELSE "N" END) as herb_flag,
                 MAX(CASE WHEN li.kidney = "Y" THEN "Y" ELSE "N" END) as kidney_flag,
                 IF(hms.vn IS NOT NULL, "Y", "N") as healthmed_flag,
-                IF(vp.auth_code IS NOT NULL AND vp.auth_code <> "", "Y", "N") as auth_code_flag,
+                IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""), "Y", "N") as auth_code_flag,
                 MAX(CASE WHEN vp.Claim_Code IS NOT NULL AND vp.Claim_Code <> "" THEN "Y" ELSE "N" END) as claim_code_flag,
-                IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType = "PG0140001"),"Y",NULL) AS endpoint
+                IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1
@@ -334,7 +334,7 @@ class HomeController extends Controller
         SELECT o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
         pt.cid,pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         v.pdx,IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
-        IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint, ep.claim_status,
+        IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint, ep.claim_status,
         IFNULL(vp.Claim_Code,os.edc_approve_list_text) AS edc,IF(ppfs.vn IS NOT NULL,"Y",NULL) AS ppfs
         FROM ovst o
         LEFT JOIN patient pt ON pt.hn=o.hn
@@ -408,8 +408,9 @@ class HomeController extends Controller
 
         $search = DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
-        IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint, ep.claim_status, o.oqueue,
+        IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint, ep.claim_status, o.oqueue,
         o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
+        p.`name` AS pttype,vp.hospmain,v.pdx,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         et.ucae AS er,p24.project,vp.nhso_ucae_type_code AS ae
         FROM ovst o
         LEFT JOIN patient pt ON pt.hn=o.hn
@@ -443,7 +444,7 @@ class HomeController extends Controller
 
         $search = DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
-        IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint, ep.claim_status, o.oqueue,
+        IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint, ep.claim_status, o.oqueue,
         o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
         p.`name` AS pttype,vp.hospmain,v.pdx,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         GROUP_CONCAT(DISTINCT s.`name`) AS claim_list, SUM(o1.sum_price) AS claim_price,
@@ -481,7 +482,7 @@ class HomeController extends Controller
 
         $search = DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
-        IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint, ep.claim_status, o.oqueue,
+        IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint, ep.claim_status, o.oqueue,
         o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
         p.`name` AS pttype,vp.hospmain,v.pdx,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         GROUP_CONCAT(DISTINCT s.`name`) AS claim_list, SUM(o1.sum_price) AS claim_price,
@@ -519,7 +520,7 @@ class HomeController extends Controller
 
         $search = DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
-        IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType = "PG0140001"),"Y",NULL) AS endpoint, ep.claim_status, o.vstdate,o.vsttime,
+        IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint, ep.claim_status, o.vstdate,o.vsttime,
         o.oqueue,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
         p.`name` AS pttype,vp.hospmain,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,k.department ,
 			GROUP_CONCAT(DISTINCT hm.operation) AS operation
@@ -588,7 +589,7 @@ class HomeController extends Controller
 
         $search = DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
-        IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType = "PG0130001"),"Y",NULL) AS endpoint, ep.claim_status, o.oqueue,
+        IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint, ep.claim_status, o.oqueue,
         o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
         p.`name` AS pttype,vp.hospmain,v.pdx,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         GROUP_CONCAT(DISTINCT s.`name`) AS claim_list, SUM(o1.sum_price) AS claim_price,

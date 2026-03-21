@@ -53,10 +53,11 @@ class CheckController extends Controller
             AND (o.an = "" OR o.an IS NULL)
             ORDER BY o.vstdate DESC, o.vsttime DESC', [$start_date, $end_date]);
 
-        // 2. Pending Records (Visits in HOSxP without EP closure, or with PP authen)
         $pending = DB::connection('hosxp')->select('
-            SELECT o.vn, pt.cid, pt.fname AS firstName, pt.lname AS lastName, 
-                   p.name AS subInsclName, CONCAT(o.vstdate, " ", o.vsttime) as serviceDateTime, vp.auth_code AS claimCode, p.name as subInscl
+            SELECT o.vn, pt.cid, pt.hn, CONCAT(pt.pname, pt.fname, pt.lname) AS ptname, pt.mobile_phone_number,
+                   p.name AS subInsclName, o.vstdate, o.vsttime, o.oqueue, vp.hospmain, vs.pdx, vs.income, vs.rcpt_money,
+                   (vs.income - vs.paid_money) as debtor,
+                   CONCAT(o.vstdate, " ", o.vsttime) as serviceDateTime, vp.auth_code AS claimCode
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1

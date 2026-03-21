@@ -141,12 +141,17 @@
                                     <th class="text-center" style="width: 30px;">
                                         <input type="checkbox" class="form-check-input" id="check_all_pending">
                                     </th>
-                                    <th class="text-center">ลำดับ</th>               
-                                    <th class="text-center">ชื่อ-นามสกุล</th>
-                                    <th class="text-center">CID</th>
-                                    <th class="text-center">สิทธิ (HOSxP)</th> 
-                                    <th class="text-center">วัน-เวลาที่รับบริการ</th>
-                                    <th class="text-center">Authen (HOSxP)</th>          
+                                    <th class="text-center">ลำดับ</th>
+                                    <th class="text-center">AUTHEN</th>
+                                    <th class="text-center">วันที่รับบริการ/เวลา</th>
+                                    <th class="text-center">QUEUE</th>
+                                    <th class="text-center">ชื่อ-สกุล | CID | HN</th>
+                                    <th class="text-center">การติดต่อ</th>
+                                    <th class="text-center">สิทธิ | HMAIN</th>
+                                    <th class="text-center">PDX</th>
+                                    <th class="text-center">ค่ารักษาทั้งหมด</th>
+                                    <th class="text-center">ชำระเอง</th>
+                                    <th class="text-center">ที่เบิกได้</th>
                                 </tr>     
                             </thead> 
                             <tbody> 
@@ -155,16 +160,10 @@
                                     <td class="text-center">
                                         <input type="checkbox" class="form-check-input pending-checkbox" 
                                                data-cid="{{ $row->cid }}" 
-                                               data-vstdate="{{ date('Y-m-d', strtotime($row->serviceDateTime)) }}"
-                                               data-name="{{ $row->firstName }} {{ $row->lastName }}">
+                                               data-vstdate="{{ date('Y-m-d', strtotime($row->vstdate)) }}"
+                                               data-name="{{ $row->ptname }}">
                                     </td>
-                                    <td class="text-center text-muted small">{{ $index + 1 }}</td>                 
-                                    <td class="text-start fw-bold text-dark small">{{ $row->firstName }} {{ $row->lastName }}</td>
-                                    <td class="text-center small text-muted">{{ $row->cid }}</td>
-                                    <td class="text-start">
-                                        <div class="small text-muted lh-1" style="font-size: 0.75rem;">{{ $row->subInsclName }}</div>
-                                    </td>  
-                                    <td class="text-center small">{{ DatetimeThai($row->serviceDateTime) }}</td>
+                                    <td class="text-center text-muted small">{{ $index + 1 }}</td>
                                     <td class="text-center">
                                         @if($row->claimCode)
                                             <span class="badge bg-info-soft text-info">{{ $row->claimCode }}</span>
@@ -172,6 +171,24 @@
                                             <span class="text-muted small">-</span>
                                         @endif
                                     </td>
+                                    <td class="text-center small">
+                                        <div class="fw-bold">{{ DateThai($row->vstdate) }}</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">{{ $row->vsttime }}</div>
+                                    </td>
+                                    <td class="text-center"><span class="badge bg-light text-dark border">{{ $row->oqueue }}</span></td>
+                                    <td class="text-start">
+                                        <div class="fw-bold text-dark small">{{ $row->ptname }}</div>
+                                        <div class="text-muted small" style="font-size: 0.7rem;">CID: {{ $row->cid }} | HN: {{ $row->hn }}</div>
+                                    </td>
+                                    <td class="text-center small text-muted">{{ $row->mobile_phone_number ?: '-' }}</td>
+                                    <td class="text-start">
+                                        <small class="text-truncate d-block" style="max-width: 150px;">{{ $row->subInsclName }}</small>
+                                        <span class="badge bg-secondary-soft text-secondary" style="font-size: 0.65rem;">H: {{ $row->hospmain }}</span>
+                                    </td>
+                                    <td class="text-center"><span class="badge bg-light text-dark border">{{ $row->pdx ?: '-' }}</span></td>
+                                    <td class="text-end fw-bold small">{{ number_format($row->income, 2) }}</td>
+                                    <td class="text-end text-danger small">{{ number_format($row->rcpt_money, 2) }}</td>
+                                    <td class="text-end text-primary fw-bold small">{{ number_format($row->debtor, 2) }}</td>
                                 </tr>
                                 @endforeach                 
                             </tbody>

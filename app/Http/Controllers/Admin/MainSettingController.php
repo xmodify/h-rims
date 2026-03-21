@@ -27,7 +27,9 @@ class MainSettingController extends Controller
             'git_token',
             'telegram_token',
             'telegram_chat_id_register',
-            'telegram_chat_id_notify_summary'
+            'telegram_chat_id_notify_summary',
+            'moph_notify_secret',
+            'moph_notify_client_id'
         ];
 
         if ($hospcode === '00025') {
@@ -135,6 +137,8 @@ class MainSettingController extends Controller
                 ['name' => 'fdh_secretKey', 'name_th' => 'FDH Secret Key', 'value' => '$jwt@moph#'],
                 ['name' => 'pttype_sss_ae', 'name_th' => 'สิทธิ ปกส. อุบัติเหตุ/ฉุกเฉิน (รหัสสิทธิ HOSxP)', 'value' => '000'],
                 ['name' => 'git_token', 'name_th' => 'GitHub Token (สำหรับ Private Repo)', 'value' => ''],
+                ['name' => 'moph_notify_secret', 'name_th' => 'Moph Notify SecretKEY', 'value' => ''],
+                ['name' => 'moph_notify_client_id', 'name_th' => 'Moph Notify ClientID', 'value' => ''],
             ];
 
             // Clean up obsolete settings

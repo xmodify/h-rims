@@ -20,19 +20,21 @@ class NhsoEndpointController extends Controller
         set_time_limit(600);
 
         $vstdate = $request->input('vstdate') ?? now()->format('Y-m-d');
-        $hosxp = DB::connection('hosxp')->select(
-            '
-        SELECT DISTINCT pt.cid
-        FROM ovst o
-        INNER JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1
-        INNER JOIN pttype p ON p.pttype = vp.pttype
-        LEFT JOIN patient pt ON pt.hn = o.hn
-        WHERE o.vstdate = ?
-        AND p.hipdata_code IN ("UCS","WEL")
-        AND (o.an = "" OR o.an IS NULL)
-        AND pt.cid IS NOT NULL',
-            [$vstdate]
-        );
+        $hosxp = DB::connection('hosxp')->select('
+            SELECT DISTINCT pt.cid 
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN vn_stat vs ON vs.vn = o.vn
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate 
+                 AND (ep.claim_status = "success" OR ep.claimCode LIKE "EP%" OR ep.claimType = "PG0140001")
+            WHERE o.vstdate = ?
+            AND (o.an = "" OR o.an IS NULL)
+            AND vs.uc_money > 0
+            AND (ep.cid IS NULL OR (vp.auth_code LIKE "PP%" AND (ep.claimCode NOT LIKE "EP%" OR ep.claimCode IS NULL)))
+            AND (vp.auth_code NOT LIKE "EP%" OR vp.auth_code IS NULL)
+            AND pt.cid IS NOT NULL', [$vstdate]);
 
         $cids = array_column($hosxp, 'cid');
 
@@ -250,19 +252,21 @@ class NhsoEndpointController extends Controller
         set_time_limit(600);
         $vstdate = Carbon::yesterday('Asia/Bangkok')->format('Y-m-d');
 
-        $hosxp = DB::connection('hosxp')->select(
-            '
-        SELECT DISTINCT pt.cid
-        FROM ovst o
-        INNER JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1
-        INNER JOIN pttype p ON p.pttype = vp.pttype
-        LEFT JOIN patient pt ON pt.hn = o.hn
-        WHERE o.vstdate = ?
-        AND p.hipdata_code IN ("UCS","WEL")
-        AND (o.an = "" OR o.an IS NULL)
-        AND pt.cid IS NOT NULL',
-            [$vstdate]
-        );
+        $hosxp = DB::connection('hosxp')->select('
+            SELECT DISTINCT pt.cid 
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN vn_stat vs ON vs.vn = o.vn
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate 
+                 AND (ep.claim_status = "success" OR ep.claimCode LIKE "EP%" OR ep.claimType = "PG0140001")
+            WHERE o.vstdate = ?
+            AND (o.an = "" OR o.an IS NULL)
+            AND vs.uc_money > 0
+            AND (ep.cid IS NULL OR (vp.auth_code LIKE "PP%" AND (ep.claimCode NOT LIKE "EP%" OR ep.claimCode IS NULL)))
+            AND (vp.auth_code NOT LIKE "EP%" OR vp.auth_code IS NULL)
+            AND pt.cid IS NOT NULL', [$vstdate]);
 
         $cids = array_map(static fn($row) => $row->cid, $hosxp);
         $token = DB::connection('hosxp')->table('sys_var')->where('sys_name', 'NHSO-13FILE-FEE-SCHEDULE-API-TOKEN')->value('sys_value');

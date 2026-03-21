@@ -127,9 +127,20 @@
             <div class="card dash-card border-top-0 shadow-sm" style="height: auto !important;">
                 <div class="card-body p-4">
                     <div class="table-responsive">            
+                        <div class="mb-2 d-flex justify-content-between align-items-center">
+                            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm" id="btn_bulk_push" disabled>
+                                <i class="bi bi-send-check-fill me-1"></i> ส่งปิดสิทธิรายการที่เลือก (<span id="selected_count">0</span>)
+                            </button>
+                            <div class="text-muted small">
+                                <i class="bi bi-info-circle me-1"></i> เลือกรายการที่ต้องการแล้วกดปุ่มเพื่อส่งปิดสิทธิทีละรายการ
+                            </div>
+                        </div>
                         <table id="list_pending" class="table table-modern w-100">
                             <thead>
                                 <tr>
+                                    <th class="text-center" style="width: 30px;">
+                                        <input type="checkbox" class="form-check-input" id="check_all_pending">
+                                    </th>
                                     <th class="text-center">ลำดับ</th>               
                                     <th class="text-center">ชื่อ-นามสกุล</th>
                                     <th class="text-center">CID</th>
@@ -141,6 +152,12 @@
                             <tbody> 
                                 @foreach($pending as $index => $row) 
                                 <tr>
+                                    <td class="text-center">
+                                        <input type="checkbox" class="form-check-input pending-checkbox" 
+                                               data-cid="{{ $row->cid }}" 
+                                               data-vstdate="{{ date('Y-m-d', strtotime($row->serviceDateTime)) }}"
+                                               data-name="{{ $row->firstName }} {{ $row->lastName }}">
+                                    </td>
                                     <td class="text-center text-muted small">{{ $index + 1 }}</td>                 
                                     <td class="text-start fw-bold text-dark small">{{ $row->firstName }} {{ $row->lastName }}</td>
                                     <td class="text-center small text-muted">{{ $row->cid }}</td>
@@ -332,6 +349,10 @@
 
       $('#list_pending').DataTable({
         ...commonConfig,
+        columnDefs: [
+            { orderable: false, targets: 0 }
+        ],
+        order: [[1, 'asc']],
         buttons: [
             {
               extend: 'excelHtml5',
@@ -340,6 +361,93 @@
               title: 'รายชื่อผู้มารับบริการ รอปิดสิทธิ สปสช. วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
             }
         ]
+      });
+
+      // --- Bulk Action Logic ---
+      const checkAll = $('#check_all_pending');
+      const btnBulk = $('#btn_bulk_push');
+      const selectedCount = $('#selected_count');
+
+      function updateSelectedCount() {
+          const count = $('.pending-checkbox:checked').length;
+          selectedCount.text(count);
+          btnBulk.prop('disabled', count === 0);
+      }
+
+      checkAll.on('change', function() {
+          $('.pending-checkbox').prop('checked', this.checked);
+          updateSelectedCount();
+      });
+
+      $(document).on('change', '.pending-checkbox', function() {
+          updateSelectedCount();
+          if(!this.checked) checkAll.prop('checked', false);
+          if($('.pending-checkbox:checked').length === $('.pending-checkbox').length) checkAll.prop('checked', true);
+      });
+
+      btnBulk.on('click', async function() {
+          const selected = $('.pending-checkbox:checked');
+          if (selected.length === 0) return;
+
+          const result = await Swal.fire({
+              title: 'ยืนยันการส่งปิดสิทธิ?',
+              text: `ระบบจะดำเนินการส่งข้อมูลปิดสิทธิทีละรายการ จำนวน ${selected.length} รายการ`,
+              icon: 'question',
+              showCancelButton: true,
+              confirmButtonText: 'ยืนยัน',
+              cancelButtonText: 'ยกเลิก',
+              confirmButtonColor: '#3b82f6'
+          });
+
+          if (!result.isConfirmed) return;
+
+          // Process Sequential
+          Swal.fire({
+              title: 'กำลังดำเนินการ...',
+              html: 'รายการที่ <b id="current_idx">1</b> จาก <b>' + selected.length + '</b><br><small id="current_name"></small>',
+              allowOutsideClick: false,
+              didOpen: () => { Swal.showLoading(); }
+          });
+
+          let successCount = 0;
+          let failCount = 0;
+
+          for (let i = 0; i < selected.length; i++) {
+              const item = $(selected[i]);
+              const cid = item.data('cid');
+              const vstdate = item.data('vstdate');
+              const name = item.data('name');
+
+              $('#current_idx').text(i + 1);
+              $('#current_name').text(name);
+
+              try {
+                  const res = await fetch("{{ url('api/nhso_endpoint_push_indiv') }}", {
+                      method: "POST",
+                      headers: {
+                          "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                          "Content-Type": "application/json",
+                          "Accept": "application/json"
+                      },
+                      body: JSON.stringify({ cid, vstdate })
+                  });
+                  const data = await res.json();
+                  if (data.status === 'success') successCount++; else failCount++;
+              } catch (e) {
+                  failCount++;
+              }
+              // Small delay to avoid hammering
+              await new Promise(r => setTimeout(r, 200));
+          }
+
+          Swal.fire({
+              title: 'ดำเนินการเสร็จสิ้น',
+              text: `สำเร็จ ${successCount} รายการ, ล้มเหลว ${failCount} รายการ`,
+              icon: successCount > 0 ? 'success' : 'error',
+              confirmButtonText: 'ตกลง'
+          }).then(() => {
+              window.location.reload();
+          });
       });
     });
   </script>

@@ -280,6 +280,10 @@
             border-top: 4px solid #991b1b !important;
         }
 
+        .accent-13 {
+            border-top: 4px solid #0d9488 !important;
+        }
+
         /* Maroon */
 
         .icon-color-1,
@@ -342,6 +346,11 @@
             color: #991b1b !important;
         }
 
+        .icon-color-13,
+        .text-color-13 {
+            color: #0d9488 !important;
+        }
+
         .icon-bg-1 {
             background: var(--dash-blue) !important;
             color: #fff !important;
@@ -399,6 +408,11 @@
 
         .icon-bg-12 {
             background: var(--dash-maroon) !important;
+            color: #fff !important;
+        }
+
+        .icon-bg-13 {
+            background: #0d9488 !important;
             color: #fff !important;
         }
 

@@ -134,6 +134,17 @@
             </div>
           </div>
       </div>
+      <div class="col-sm-3 mb-3">
+          <div class="card dash-card accent-13">
+            <div class="card-body">
+              <span class="card-label"><i class="bi bi-droplet me-1 icon-color-13"></i> UC ฟอกไต : ปิดสิทธิ</span>
+              <div class="card-metric">{{$uc_kidney}} : {{$uc_kidney_endpoint}}</div>  
+              <a href="{{ url('/opd_ucs_kidney') }}" target="_blank" class="card-footer-link text-color-13">
+                View Report <i class="bi bi-chevron-right"></i>
+              </a>
+            </div>
+          </div>
+      </div>
       
       <!-- IPD Section -->
       <div class="col-12 px-3 mt-1">

@@ -88,13 +88,16 @@ class HomeController extends Controller
             SUM(CASE WHEN ppfs_flag = "Y" THEN 1 ELSE 0 END) AS ppfs,
             SUM(CASE WHEN ppfs_flag = "Y" AND endpoint = "Y" THEN 1 ELSE 0 END) AS ppfs_endpoint,
             SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND healthmed_flag = "Y" THEN 1 ELSE 0 END) AS uc_healthmed,
-            SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND healthmed_flag = "Y" AND endpoint = "Y" THEN 1 ELSE 0 END) AS uc_healthmed_endpoint
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND healthmed_flag = "Y" AND endpoint = "Y" THEN 1 ELSE 0 END) AS uc_healthmed_endpoint,
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND kidney_flag = "Y" THEN 1 ELSE 0 END) AS uc_kidney,
+            SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND kidney_flag = "Y" AND endpoint = "Y" THEN 1 ELSE 0 END) AS uc_kidney_endpoint
         FROM (
             SELECT o.vn, pt.cid, vp.auth_code, p.hipdata_code, vp.hospmain, os.edc_approve_list_text,
                 lh.in_province,
                 MAX(CASE WHEN li.ppfs = "Y" THEN "Y" ELSE "N" END) as ppfs_flag,
                 MAX(CASE WHEN li.uc_cr = "Y" THEN "Y" ELSE "N" END) as uc_cr_flag,
                 MAX(CASE WHEN li.herb32 = "Y" THEN "Y" ELSE "N" END) as herb_flag,
+                MAX(CASE WHEN li.kidney = "Y" THEN "Y" ELSE "N" END) as kidney_flag,
                 IF(hms.vn IS NOT NULL, "Y", "N") as healthmed_flag,
                 MAX(CASE WHEN vp.Claim_Code IS NOT NULL AND vp.Claim_Code <> "" THEN "Y" ELSE "N" END) as claim_code_flag,
                 IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success","success_rims") OR ep.claimType = "PG0140001"),"Y",NULL) AS endpoint
@@ -133,6 +136,8 @@ class HomeController extends Controller
         $uc_healthmed_endpoint = $row->uc_healthmed_endpoint ?? 0;
         $ppfs = $row->ppfs ?? 0;
         $ppfs_endpoint = $row->ppfs_endpoint ?? 0;
+        $uc_kidney = $row->uc_kidney ?? 0;
+        $uc_kidney_endpoint = $row->uc_kidney_endpoint ?? 0;
 
         // 2. IPD Stats & Counts
         $ipd_stats = DB::connection('hosxp')->select('
@@ -298,6 +303,8 @@ class HomeController extends Controller
             'uc_healthmed_endpoint',
             'ppfs',
             'ppfs_endpoint',
+            'uc_kidney',
+            'uc_kidney_endpoint',
             'admit_homeward',
             'admit_homeward_endpoint',
             'non_diagtext',
@@ -399,9 +406,7 @@ class HomeController extends Controller
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
         IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success","success_rims")),"Y",NULL) AS endpoint, ep.claim_status, o.oqueue,
         o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
-        p.`name` AS pttype,vp.hospmain,v.pdx,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
-        et.ucae AS er,p24.project,vp.nhso_ucae_type_code AS ae,
-        rep.rep_eclaim_detail_nhso AS rep_nhso,rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno        
+        et.ucae AS er,p24.project,vp.nhso_ucae_type_code AS ae
         FROM ovst o
         LEFT JOIN patient pt ON pt.hn=o.hn
         LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
@@ -416,8 +421,6 @@ class HomeController extends Controller
             GROUP BY ori.vn
         ) p24 ON p24.vn = o.vn    
         LEFT JOIN vn_stat v ON v.vn = o.vn
-        LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
-        LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND stm.vstdate = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
 
         WHERE (o.an ="" OR o.an IS NULL) 
@@ -440,9 +443,7 @@ class HomeController extends Controller
         o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
         p.`name` AS pttype,vp.hospmain,v.pdx,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         GROUP_CONCAT(DISTINCT s.`name`) AS claim_list, SUM(o1.sum_price) AS claim_price,
-        p24.project, rep.rep_eclaim_detail_nhso AS rep_nhso,
-        rep.rep_eclaim_detail_error_code AS rep_error, stm.receive_inst+stm.receive_op+stm.receive_palliative
-            +stm.receive_dmis_drug+stm.receive_hc_drug+stm.receive_hc_hc AS receive_total,stm.repno 
+        p24.project
         FROM ovst o    
         LEFT JOIN patient pt ON pt.hn=o.hn
         LEFT JOIN vn_stat v ON v.vn=o.vn
@@ -458,8 +459,6 @@ class HomeController extends Controller
             WHERE ori.vstdate BETWEEN ? AND ?
             GROUP BY ori.vn
         ) p24 ON p24.vn = o.vn
-        LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
-        LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND stm.vstdate = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
 
         WHERE p.hipdata_code IN ("UCS","WEL") 
@@ -482,8 +481,7 @@ class HomeController extends Controller
         o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
         p.`name` AS pttype,vp.hospmain,v.pdx,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         GROUP_CONCAT(DISTINCT s.`name`) AS claim_list, SUM(o1.sum_price) AS claim_price,
-        p24.project,rep.rep_eclaim_detail_nhso AS rep_nhso,
-        rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_hc_hc AS receive_total,stm.repno 
+        p24.project
         FROM ovst o    
         LEFT JOIN patient pt ON pt.hn=o.hn
         LEFT JOIN vn_stat v ON v.vn=o.vn
@@ -499,8 +497,6 @@ class HomeController extends Controller
             WHERE ori.vstdate BETWEEN ? AND ?
             GROUP BY ori.vn
         ) p24 ON p24.vn = o.vn
-        LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
-        LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND stm.vstdate = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
 
         WHERE p.hipdata_code IN ("UCS","WEL") 
@@ -556,8 +552,7 @@ class HomeController extends Controller
         o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
         p.`name` AS pttype,vp.hospmain,v.pdx,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         GROUP_CONCAT(DISTINCT s.`name`) AS claim_list, SUM(o1.sum_price) AS claim_price,
-        p24.project,rep.rep_eclaim_detail_nhso AS rep_nhso,
-        rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_pp AS receive_total,stm.repno
+        p24.project
         FROM ovst o    
         LEFT JOIN patient pt ON pt.hn=o.hn
         LEFT JOIN vn_stat v ON v.vn=o.vn
@@ -573,14 +568,51 @@ class HomeController extends Controller
             WHERE ori.vstdate BETWEEN ? AND ?
             GROUP BY ori.vn
         ) p24 ON p24.vn = o.vn
-        LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
-        LEFT JOIN hrims.stm_ucs stm ON stm.hn=o.hn AND stm.vstdate = o.vstdate AND LEFT(TIME(stm.datetimeadm),5) =LEFT(o.vsttime,5)
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
 
         WHERE (o.an IS NULL OR o.an ="") AND o.vstdate BETWEEN ? AND ?
         GROUP BY o.vn ORDER BY o.vstdate,o.oqueue', [$start_date, $end_date, $start_date, $end_date]);
 
         return view('home_detail.opd_ppfs', compact('start_date', 'end_date', 'search'));
+    }
+
+    ##############################################################################################
+    public function opd_ucs_kidney(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
+
+        $search = DB::connection('hosxp')->select('
+        SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
+        IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success","success_rims") OR ep.claimType = "PG0130001"),"Y",NULL) AS endpoint, ep.claim_status, o.oqueue,
+        o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
+        p.`name` AS pttype,vp.hospmain,v.pdx,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
+        GROUP_CONCAT(DISTINCT s.`name`) AS claim_list, SUM(o1.sum_price) AS claim_price,
+        p24.project
+        FROM ovst o    
+        LEFT JOIN patient pt ON pt.hn=o.hn
+        LEFT JOIN vn_stat v ON v.vn=o.vn
+        LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
+        LEFT JOIN pttype p ON p.pttype=vp.pttype
+        INNER JOIN opitemrece o1 ON o1.vn=o.vn
+        INNER JOIN hrims.lookup_icode li ON o1.icode = li.icode AND li.kidney = "Y" 
+        LEFT JOIN s_drugitems s ON s.icode = o1.icode
+        LEFT JOIN (
+            SELECT ori.vn, GROUP_CONCAT(DISTINCT ni.nhso_adp_code) as project
+            FROM opitemrece ori
+            INNER JOIN nondrugitems ni ON ni.icode = ori.icode AND ni.nhso_adp_code IN ("WALKIN","UCEP24")
+            WHERE ori.vstdate BETWEEN ? AND ?
+            GROUP BY ori.vn
+        ) p24 ON p24.vn = o.vn
+        LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
+
+        WHERE p.hipdata_code IN ("UCS","WEL") 
+        AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
+        AND (o.an IS NULL OR o.an ="") 
+        AND o.vstdate BETWEEN ? AND ?
+        GROUP BY o.vn ORDER BY o.vstdate,o.oqueue', [$start_date, $end_date, $start_date, $end_date]);
+
+        return view('home_detail.opd_ucs_kidney', compact('start_date', 'end_date', 'search'));
     }
 
     ##############################################################################################

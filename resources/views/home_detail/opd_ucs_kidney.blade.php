@@ -7,8 +7,8 @@
     <div class="card-header bg-white pt-4 pb-0 border-0">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="card-title text-primary mb-0">
-          <i class="bi bi-flower1 mr-2"></i> 
-          รายงานผู้มารับบริการแพทย์แผนไทย
+          <i class="bi bi-droplet mr-2"></i> 
+          รายงานผู้มารับบริการ UC (ฟอกไต)
           <small class="text-muted d-block mt-1" style="font-size: 0.8rem;">
             วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}
           </small>
@@ -33,7 +33,7 @@
 
     <div class="card-body pt-0">
       <div class="table-responsive">            
-        <table id="list" class="table table-hover table-bordered align-middle" width="100%">
+        <table id="t_search" class="table table-hover table-bordered align-middle" width="100%">
           <thead class="bg-light">
             <tr>
                 <th class="text-center">ลำดับ</th>
@@ -45,11 +45,11 @@
                 <th class="text-center">ชื่อ-สกุล | CID | HN</th>    
                 <th class="text-center">การติดต่อ</th>
                 <th class="text-center">สิทธิ | Hmain</th>
+                <th class="text-center">PDX</th>
                 <th class="text-center">ค่ารักษาทั้งหมด</th>
                 <th class="text-center">ชำระเอง</th>
                 <th class="text-center">ที่เบิกได้</th>
-                <th class="text-center">จุดบริการ</th>
-                <th class="text-center">หัตถการแพทย์แผนไทย</th>    
+                <th class="text-center">รายการเรียกเก็บ</th>
             </tr>
           </thead> 
           <tbody> 
@@ -57,6 +57,7 @@
               $sum_income = 0; 
               $sum_rcpt_money = 0;
               $sum_debtor = 0;
+              $sum_claim_price = 0;
             ?>
             @foreach($search as $index => $row) 
             <tr>
@@ -105,41 +106,44 @@
                 <small class="d-block text-truncate" style="max-width: 150px;" title="{{ $row->pttype }}">{{ $row->pttype }}</small>
                 <span class="badge bg-secondary shadow-sm">H: {{ $row->hospmain ?: 'N/A' }}</span>
               </td>
+              <td align="center"><span class="badge bg-light text-dark border shadow-sm">{{ $row->pdx ?: '-' }}</span></td>
               <td align="right" class="fw-bold">{{ number_format($row->income, 2) }}</td>
               <td align="right" class="text-danger">{{ number_format($row->rcpt_money, 2) }}</td>
               <td align="right" class="text-primary fw-bold">{{ number_format($row->debtor, 2) }}</td>
-              <td align="left"><small class="text-muted">{{$row->department}}</small></td>
               <td align="left">
-                <div style="font-size: 0.8rem; line-height: 1.2;">{{$row->operation}}</div>
-              </td>                  
+                <div style="font-size: 0.8rem; line-height: 1.2;">{{$row->claim_list}}</div>
+              </td>
             </tr>
             <?php 
               $sum_income += $row->income;
               $sum_rcpt_money += $row->rcpt_money;
               $sum_debtor += $row->debtor;
+              $sum_claim_price += $row->claim_price;
             ?>
             @endforeach                 
           </tbody>
-        </table>  
-      </div>          
-      <!-- Summary Footer -->
-      <div class="row g-0 bg-light border-top p-3 text-center">
-        <div class="col-md-4 border-end">
-          <small class="text-muted d-block">ค่ารักษาจริง</small>
-          <span class="h6 mb-0">{{ number_format($sum_income,2)}}</span>
-        </div>
-        <div class="col-md-4 border-end">
-          <small class="text-muted d-block">ชำระเอง</small>
-          <span class="h6 mb-0 text-danger">{{ number_format($sum_rcpt_money,2)}}</span>
-        </div>
-        <div class="col-md-4">
-          <small class="text-muted d-block">ที่เบิกได้</small>
-          <span class="h6 mb-0 text-primary">{{ number_format($sum_debtor,2)}}</span>
-        </div>
+        </table>
       </div>
-    </div> 
-  </div>  
-</div> 
+    </div>
+    <div class="card-footer bg-light border-0 py-3">
+        <div class="row text-center g-3">
+          <div class="col-md-4 border-end">
+            <small class="text-muted d-block">ค่ารักษาจริง</small>
+            <span class="h6 mb-0">{{ number_format($sum_income,2)}}</span>
+          </div>
+          <div class="col-md-4 border-end">
+            <small class="text-muted d-block">ชำระเอง</small>
+            <span class="h6 mb-0 text-danger">{{ number_format($sum_rcpt_money,2)}}</span>
+          </div>
+          <div class="col-md-4">
+            <small class="text-muted d-block">ที่เบิกได้</small>
+            <span class="h6 mb-0 text-primary">{{ number_format($sum_debtor,2)}}</span>
+          </div>
+          </div>
+        </div>
+    </div>
+  </div> 
+</div>      
 
 <script>
 function alertAlreadyClosed(source) {
@@ -221,7 +225,7 @@ function pullNhsoData(vstdate, cid) {
 function pushNhsoData(cid, vstdate) {
     Swal.fire({
         title: 'ยืนยันการส่งข้อมูล?',
-        text: "ระบบจะดึงข้อมูลจาก HOSxP และส่งไปปิดสิทธิที่ สปสช.",
+        text: "ระบบจะดึงข้อมูลจาก HOSxP และส่งไปปิดสิทธิที่ สปสช. (ฟอกไต)",
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
@@ -245,7 +249,7 @@ function pushNhsoData(cid, vstdate) {
                     _token: "{{ csrf_token() }}",
                     cid: cid,
                     vstdate: vstdate,
-                    claim_service_code: "PG0140001"
+                    claim_service_code: "PG0130001"
                 },
                 success: function(response) {
                     if (response.status == 'success') {
@@ -335,7 +339,7 @@ function showLoading() {
           }
       });
 
-      $('#list').DataTable({
+      $('#t_search').DataTable({
         order: [[1, 'asc']],
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 
@@ -351,7 +355,7 @@ function showLoading() {
               extend: 'excelHtml5',
               text: '<i class="bi bi-file-earmark-excel mr-1"></i> Excel',
               className: 'btn btn-success btn-sm',
-              title: 'HealthMed_Reports_{{ $start_date }}_{{ $end_date }}'
+              title: 'UC_Kidney_Reports_{{ $start_date }}_{{ $end_date }}'
             }
         ],
         language: {

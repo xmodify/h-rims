@@ -85,6 +85,7 @@ Route::match(['get', 'post'], 'opd_ucs_cr', [HomeController::class, 'opd_ucs_cr'
 Route::match(['get', 'post'], 'opd_ucs_herb', [HomeController::class, 'opd_ucs_herb']);
 Route::match(['get', 'post'], 'opd_ucs_healthmed', [HomeController::class, 'opd_ucs_healthmed']);
 Route::match(['get', 'post'], 'opd_ppfs', [HomeController::class, 'opd_ppfs']);
+Route::match(['get', 'post'], 'opd_ucs_kidney', [HomeController::class, 'opd_ucs_kidney']);
 Route::match(['get', 'post'], 'ipd_homeward', [HomeController::class, 'ipd_homeward']);
 Route::match(['get', 'post'], 'ipd_non_dchsummary', [HomeController::class, 'ipd_non_dchsummary']);
 Route::match(['get', 'post'], 'ipd_finance_chk_opd_wait_transfer', [HomeController::class, 'ipd_finance_chk_opd_wait_transfer']);

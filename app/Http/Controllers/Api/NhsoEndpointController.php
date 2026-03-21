@@ -178,7 +178,7 @@ class NhsoEndpointController extends Controller
             if (!$claimCode || !$claimType) {
                 continue;
             }
-            if (!($sourceChannel === 'ENDPOINT' || $claimType === 'PG0140001')) {
+            if (!($sourceChannel === 'ENDPOINT' || in_array($claimType, ['PG0130001', 'PG0140001']))) {
                 continue;
             }
 
@@ -283,7 +283,7 @@ class NhsoEndpointController extends Controller
                             if ($existing_claims[$claimCode] !== $claimType) {
                                 Nhso_Endpoint::where('claimCode', $claimCode)->update(['claimType' => $claimType]);
                             }
-                        } elseif ($sourceChannel === 'ENDPOINT' || $claimType === 'PG0140001') {
+                        } elseif ($sourceChannel === 'ENDPOINT' || in_array($claimType, ['PG0130001', 'PG0140001'])) {
                             $claimStatus = (strpos($claimCode, 'EP') === 0) ? 'success' : 'pulled';
                             $upsertData[] = [
                                 'cid'             => $cid,
@@ -401,7 +401,7 @@ class NhsoEndpointController extends Controller
                 "totalAmount"      => (float)$data->totalAmount,
                 "paidAmount"       => (float)$data->paidAmount,
                 "privilegeAmount"  => (float)$data->privilegeAmount,
-                "claimServiceCode" => "PG0060001",
+                "claimServiceCode" => $request->claim_service_code ?: "PG0060001",
                 "sourceId"         => "RiMS",
                 "recorderPid"      => $recorderPid,
             ];

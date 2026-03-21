@@ -150,6 +150,7 @@
                                     <th class="text-center">สิทธิ | HMAIN</th>
                                     <th class="text-center">PDX</th>
                                     <th class="text-center">ค่ารักษาทั้งหมด</th>
+                                    <th class="text-center">ต้องชำระ</th>
                                     <th class="text-center">ชำระเอง</th>
                                     <th class="text-center">ที่เบิกได้</th>
                                 </tr>     
@@ -187,6 +188,7 @@
                                     </td>
                                     <td class="text-center"><span class="badge bg-light text-dark border">{{ $row->pdx ?: '-' }}</span></td>
                                     <td class="text-end fw-bold small">{{ number_format($row->income, 2) }}</td>
+                                    <td class="text-end text-dark small">{{ number_format($row->paid_money, 2) }}</td>
                                     <td class="text-end text-danger small">{{ number_format($row->rcpt_money, 2) }}</td>
                                     <td class="text-end text-primary fw-bold small">{{ number_format($row->debtor, 2) }}</td>
                                 </tr>

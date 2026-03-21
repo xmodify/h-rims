@@ -55,8 +55,8 @@ class CheckController extends Controller
 
         $pending = DB::connection('hosxp')->select('
             SELECT o.vn, pt.cid, pt.hn, CONCAT(pt.pname, pt.fname, pt.lname) AS ptname, pt.mobile_phone_number,
-                   p.name AS subInsclName, o.vstdate, o.vsttime, o.oqueue, vp.hospmain, vs.pdx, vs.income, vs.rcpt_money,
-                   (vs.income - vs.paid_money) as debtor,
+                   p.name AS subInsclName, o.vstdate, o.vsttime, o.oqueue, vp.hospmain, vs.pdx, vs.income, 
+                   vs.paid_money,vs.rcpt_money,vs.uc_money as debtor,
                    CONCAT(o.vstdate, " ", o.vsttime) as serviceDateTime, vp.auth_code AS claimCode
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
@@ -73,7 +73,7 @@ class CheckController extends Controller
             ) kidney ON kidney.vn = o.vn
             WHERE o.vstdate BETWEEN ? AND ?
             AND (o.an = "" OR o.an IS NULL)
-            AND ((vs.income - vs.paid_money) > 0 OR vs.uc_money > 0)
+            AND vs.uc_money > 0
             AND p.hipdata_code IN ("UCS","OFC","SSS","LGO","NHS","STP","BKK","BMT","SRT","KKT","PTY")
             AND (vp.auth_code NOT LIKE "EP%" OR vp.auth_code IS NULL)
             AND ep.cid IS NULL

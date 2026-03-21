@@ -19,7 +19,7 @@ class HomeController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('auth');
+        $this->middleware('auth')->except(['ipd_non_dchsummary']);
 
         // 2. ตรวจสอบสิทธิ์ allow_home เฉพาะหน้าที่ระบุ
         $this->middleware(function ($request, $next) {

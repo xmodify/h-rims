@@ -4,81 +4,166 @@
 
 <div class="container-fluid px-lg-4">
     <!-- Page Header & Search -->
-    <div class="page-header-box mt-3 mb-4">
-        <div>
-            <h5 class="text-dark mb-0 fw-bold">
-                <i class="bi bi-hospital-fill text-danger me-2"></i>
-                ดึงข้อมูลปิดสิทธิจาก สปสช. (NHSO Endpoint Pull)
-            </h5>
-            <div class="text-muted small mt-1">วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</div>
-        </div>
-        
-        <div class="d-flex flex-column flex-md-row align-items-md-center gap-3">
-            <form method="POST" enctype="multipart/form-data" class="d-flex align-items-center gap-2 m-0">
-                @csrf
-                <div class="input-group input-group-sm">
-                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-calendar-event"></i></span>
-                    <input type="hidden" id="start_date" name="start_date" value="{{ $start_date }}">
-                    <input type="text" id="start_date_picker" class="form-control datepicker_th border-start-0 text-center" readonly style="width: 140px; cursor: pointer;">
+    <div class="row">
+        <div class="col-12 px-3">
+            <div class="page-header-box mt-3 mb-4">
+                <div>
+                    <h5 class="text-dark mb-0 fw-bold">
+                        <i class="bi bi-hospital-fill text-danger me-2"></i>
+                        ดึงข้อมูลปิดสิทธิจาก สปสช. (NHSO Endpoint Pull)
+                    </h5>
+                    <div class="text-muted small mt-1">วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</div>
+                </div>
+                
+                <div class="d-flex flex-column flex-md-row align-items-md-center gap-3">
+                    <form method="POST" enctype="multipart/form-data" class="d-flex align-items-center gap-2 m-0">
+                        @csrf
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-white border-end-0"><i class="bi bi-calendar-event"></i></span>
+                            <input type="hidden" id="start_date" name="start_date" value="{{ $start_date }}">
+                            <input type="text" id="start_date_picker" class="form-control datepicker_th border-start-0 text-center" readonly style="width: 140px; cursor: pointer;">
+                            
+                            <span class="input-group-text bg-white">ถึง</span>
+                            
+                            <input type="hidden" id="end_date" name="end_date" value="{{ $end_date }}">
+                            <input type="text" id="end_date_picker" class="form-control datepicker_th text-center" readonly style="width: 140px; cursor: pointer;">
+                            <button type="submit" class="btn btn-primary px-3">
+                                <i class="bi bi-search me-1"></i> ค้นหา
+                            </button>
+                        </div>
+                    </form>
                     
-                    <span class="input-group-text bg-white">ถึง</span>
-                    
-                    <input type="hidden" id="end_date" name="end_date" value="{{ $end_date }}">
-                    <input type="text" id="end_date_picker" class="form-control datepicker_th text-center" readonly style="width: 140px; cursor: pointer;">
-                    <button type="submit" class="btn btn-primary px-3">
-                        <i class="bi bi-search me-1"></i> ค้นหา
+                    <button type="button" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#nhsoModal">
+                        <i class="bi bi-download me-1"></i> ดึงปิดสิทธิ สปสช.
                     </button>
                 </div>
-            </form>
-            
-            <button type="button" class="btn btn-danger btn-sm rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#nhsoModal">
-                <i class="bi bi-download me-1"></i> ดึงปิดสิทธิ สปสช.
-            </button>
+            </div>
         </div>
     </div>
 
-    <!-- Data Table Card -->
-    <div class="card dash-card border-top-0 shadow-sm" style="height: auto !important;">
-        <div class="card-body p-4">
-            <div class="table-responsive">            
-                <table id="list" class="table table-modern w-100">
-                    <thead>
-                        <tr>
-                            <th class="text-center">ลำดับ</th>               
-                            <th class="text-center">ชื่อ-นามสกุล</th>
-                            <th class="text-center">CID</th>
-                            <th class="text-center">สปสช (SubInscl)</th> 
-                            <th class="text-center">วัน-เวลาที่รับบริการ</th>
-                            <th class="text-center">Claim Type</th>
-                            <th class="text-center">Claim Code</th>          
-                        </tr>     
-                    </thead> 
-                    <tbody> 
-                        @php $count = 1; @endphp
-                        @foreach($sql as $row) 
-                        <tr>
-                            <td class="text-center text-muted small">{{ $count }}</td>                 
-                            <td class="text-start fw-bold text-dark small">{{ $row->firstName }} {{ $row->lastName }}</td>
-                            <td class="text-center small text-muted">{{ $row->cid }}</td>
-                            <td class="text-start">
-                                <span class="badge bg-light text-dark border px-2 py-1 mb-1" style="font-size: 0.7rem;">{{ $row->subInscl }}</span>
-                                <div class="small text-muted lh-1" style="font-size: 0.75rem;">{{ $row->subInsclName }}</div>
-                            </td>  
-                            <td class="text-center small">{{ DatetimeThai($row->serviceDateTime) }}</td>
-                            <td class="text-center">
-                                <div class="small text-primary fw-bold">{{ $row->claimType }}</div>
-                            </td>
-                            <td class="text-center">
-                                <span class="badge bg-success-soft text-success">{{ $row->claimCode }}</span>
-                            </td>
-                        </tr>
-                        @php $count++; @endphp
-                        @endforeach                 
-                    </tbody>
-                </table> 
-            </div>          
-        </div> 
-    </div>  
+    <style>
+        .custom-pills .nav-link {
+            background: #fff;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .custom-pills .nav-link.active {
+            background: #3b82f6 !important;
+            color: #fff !important;
+            border-color: #3b82f6 !important;
+        }
+        .custom-pills .nav-link:hover:not(.active) {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+        }
+        .badge-pending { background-color: #ef4444; }
+        .badge-closed { background-color: #3b82f6; }
+    </style>
+
+    <!-- Tabs Navigation -->
+    <ul class="nav nav-pills custom-pills mb-3 gap-2" id="endpointTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active rounded-pill px-4 shadow-sm" id="closed-tab" data-bs-toggle="tab" data-bs-target="#closed" type="button" role="tab" aria-controls="closed" aria-selected="true">
+                <i class="bi bi-check-circle-fill me-2"></i> ปิดสิทธิ สปสช. แล้ว 
+                <span class="badge bg-white text-primary ms-1">{{ count($closed) }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link rounded-pill px-4 shadow-sm" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab" aria-controls="pending" aria-selected="false">
+                <i class="bi bi-clock-history me-2"></i> รอปิดสิทธิ สปสช.
+                <span class="badge bg-white text-danger ms-1">{{ count($pending) }}</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content mt-3" id="endpointTabContent">
+        <!-- Tab 1: Closed Records -->
+        <div class="tab-pane fade show active" id="closed" role="tabpanel" aria-labelledby="closed-tab">
+            <div class="card dash-card border-top-0 shadow-sm" style="height: auto !important;">
+                <div class="card-body p-4">
+                    <div class="table-responsive">            
+                        <table id="list_closed" class="table table-modern w-100">
+                            <thead>
+                                <tr>
+                                    <th class="text-center">ลำดับ</th>               
+                                    <th class="text-center">ชื่อ-นามสกุล</th>
+                                    <th class="text-center">CID</th>
+                                    <th class="text-center">สิทธิ สปสช.</th> 
+                                    <th class="text-center">วัน-เวลาที่รับบริการ</th>
+                                    <th class="text-center">Claim Type</th>
+                                    <th class="text-center">Claim Code</th>          
+                                </tr>     
+                            </thead> 
+                            <tbody> 
+                                @foreach($closed as $index => $row) 
+                                <tr>
+                                    <td class="text-center text-muted small">{{ $index + 1 }}</td>                 
+                                    <td class="text-start fw-bold text-dark small">{{ $row->firstName }} {{ $row->lastName }}</td>
+                                    <td class="text-center small text-muted">{{ $row->cid }}</td>
+                                    <td class="text-start">
+                                        <div class="small text-muted lh-1" style="font-size: 0.75rem;">{{ $row->subInsclName ?: $row->subInscl }}</div>
+                                    </td>  
+                                    <td class="text-center small">{{ DatetimeThai($row->serviceDateTime) }}</td>
+                                    <td class="text-center">
+                                        <div class="small text-primary fw-bold">{{ $row->claimType }}</div>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-success-soft text-success">{{ $row->claimCode }}</span>
+                                    </td>
+                                </tr>
+                                @endforeach                 
+                            </tbody>
+                        </table> 
+                    </div>          
+                </div> 
+            </div>
+        </div>
+
+        <!-- Tab 2: Pending Records -->
+        <div class="tab-pane fade" id="pending" role="tabpanel" aria-labelledby="pending-tab">
+            <div class="card dash-card border-top-0 shadow-sm" style="height: auto !important;">
+                <div class="card-body p-4">
+                    <div class="table-responsive">            
+                        <table id="list_pending" class="table table-modern w-100">
+                            <thead>
+                                <tr>
+                                    <th class="text-center">ลำดับ</th>               
+                                    <th class="text-center">ชื่อ-นามสกุล</th>
+                                    <th class="text-center">CID</th>
+                                    <th class="text-center">สิทธิ (HOSxP)</th> 
+                                    <th class="text-center">วัน-เวลาที่รับบริการ</th>
+                                    <th class="text-center">Authen (HOSxP)</th>          
+                                </tr>     
+                            </thead> 
+                            <tbody> 
+                                @foreach($pending as $index => $row) 
+                                <tr>
+                                    <td class="text-center text-muted small">{{ $index + 1 }}</td>                 
+                                    <td class="text-start fw-bold text-dark small">{{ $row->firstName }} {{ $row->lastName }}</td>
+                                    <td class="text-center small text-muted">{{ $row->cid }}</td>
+                                    <td class="text-start">
+                                        <div class="small text-muted lh-1" style="font-size: 0.75rem;">{{ $row->subInsclName }}</div>
+                                    </td>  
+                                    <td class="text-center small">{{ DatetimeThai($row->serviceDateTime) }}</td>
+                                    <td class="text-center">
+                                        @if($row->claimCode)
+                                            <span class="badge bg-info-soft text-info">{{ $row->claimCode }}</span>
+                                        @else
+                                            <span class="text-muted small">-</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @endforeach                 
+                            </tbody>
+                        </table> 
+                    </div>          
+                </div> 
+            </div>
+        </div>
+    </div>
 </div>     
 
 <!-- Modal -->
@@ -209,7 +294,7 @@
               hiddenInput.val('');
           }
       });
-      $('#list').DataTable({
+      const commonConfig = {
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + // Show รายการ
                 '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
@@ -219,16 +304,8 @@
                 '<"col-md-6"i>' + // Info
                 '<"col-md-6"p>' + // Pagination
               '>',
-        buttons: [
-            {
-              extend: 'excelHtml5',
-              text: 'Excel',
-              className: 'btn btn-success',
-              title: 'รายชื่อผู้มารับบริการ ที่ปิดสิทธิ สปสช. วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
-            }
-        ],
         lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"] ],
-        pageLength: 50,
+        pageLength: 10,
         stateSave: false,
         language: {
             search: "ค้นหา:",
@@ -239,6 +316,30 @@
               next: "ถัดไป"
             }
         }
+      };
+
+      $('#list_closed').DataTable({
+        ...commonConfig,
+        buttons: [
+            {
+              extend: 'excelHtml5',
+              text: 'Excel (ปิดสิทธิแล้ว)',
+              className: 'btn btn-success btn-sm',
+              title: 'รายชื่อผู้มารับบริการ ปิดสิทธิ สปสช. แล้ว วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+            }
+        ]
+      });
+
+      $('#list_pending').DataTable({
+        ...commonConfig,
+        buttons: [
+            {
+              extend: 'excelHtml5',
+              text: 'Excel (รอปิดสิทธิ)',
+              className: 'btn btn-danger btn-sm',
+              title: 'รายชื่อผู้มารับบริการ รอปิดสิทธิ สปสช. วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+            }
+        ]
       });
     });
   </script>

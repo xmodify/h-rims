@@ -32,17 +32,47 @@ class CheckController extends Controller
     {
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        // อัปเดตค่าเก็บใน Session เผื่อครั้งถัดไป
         Session::put('start_date', $start_date);
         Session::put('end_date', $end_date);
 
-        $sql = DB::select(
-            '
-            SELECT * FROM nhso_endpoint WHERE vstdate BETWEEN ? AND ?',
-            [$start_date, $end_date]
-        );
+        // 1. Closed Records (Visits that have an EP prefix in HOSxP or RiMS)
+        $closed = DB::connection('hosxp')->select('
+            SELECT pt.fname AS firstName, pt.lname AS lastName, pt.cid, 
+                   COALESCE(ep.subInsclName, p.name) as subInsclName, 
+                   CONCAT(o.vstdate, " ", o.vsttime) as serviceDateTime,
+                   COALESCE(ep.claimType, "") as claimType,
+                   COALESCE(ep.claimCode, vp.auth_code) as claimCode
+            FROM ovst o
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+                 AND (ep.claim_status = "success" OR ep.claimCode LIKE "EP%")
+            WHERE o.vstdate BETWEEN ? AND ?
+            AND (vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%")        
+            AND (o.an = "" OR o.an IS NULL)
+            ORDER BY o.vstdate DESC, o.vsttime DESC', [$start_date, $end_date]);
 
-        return view('check.nhso_endpoint', compact('start_date', 'end_date', 'sql'));
+        // 2. Pending Records (Visits in HOSxP without EP closure, or with PP authen)
+        $pending = DB::connection('hosxp')->select('
+            SELECT o.vn, pt.cid, pt.fname AS firstName, pt.lname AS lastName, 
+                   p.name AS subInsclName, CONCAT(o.vstdate, " ", o.vsttime) as serviceDateTime, vp.auth_code AS claimCode, p.name as subInscl
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN vn_stat vs ON vs.vn = o.vn
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate 
+                 AND (ep.claim_status = "success" OR ep.claimCode LIKE "EP%" OR ep.claimType = "PG0140001")
+            WHERE o.vstdate BETWEEN ? AND ?
+            AND (o.an = "" OR o.an IS NULL)
+            AND vs.uc_money > 0
+            AND (ep.cid IS NULL OR (vp.auth_code LIKE "PP%" AND (ep.claimCode NOT LIKE "EP%" OR ep.claimCode IS NULL)))
+            AND (vp.auth_code NOT LIKE "EP%" OR vp.auth_code IS NULL)
+            ORDER BY o.vstdate DESC, o.vsttime DESC', 
+            [$start_date, $end_date]);
+
+        return view('check.nhso_endpoint', compact('start_date', 'end_date', 'closed', 'pending'));
     }
     ###################################################################################################################################################
     //ข้อมูล FDH Claim Status---------------------------------------------------------------------------------------------------------------------------

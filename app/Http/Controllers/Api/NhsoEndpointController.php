@@ -22,13 +22,16 @@ class NhsoEndpointController extends Controller
         $vstdate = $request->input('vstdate') ?? now()->format('Y-m-d');
         $hosxp = DB::connection('hosxp')->select(
             '
-        SELECT o.vn, o.hn, pt.cid, vp.auth_code
+        SELECT DISTINCT pt.cid
         FROM ovst o
-        INNER JOIN visit_pttype vp ON vp.vn = o.vn 
+        INNER JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1
+        INNER JOIN pttype p ON p.pttype = vp.pttype
         LEFT JOIN patient pt ON pt.hn = o.hn
         WHERE o.vstdate = ?
-        AND pt.cid NOT IN (SELECT cid FROM hrims.nhso_endpoint WHERE vstdate = ? AND cid IS NOT NULL)',
-            [$vstdate, $vstdate]
+        AND p.hipdata_code IN ("UCS","WEL")
+        AND (o.an = "" OR o.an IS NULL)
+        AND pt.cid IS NOT NULL',
+            [$vstdate]
         );
 
         $cids = array_column($hosxp, 'cid');
@@ -79,12 +82,26 @@ class NhsoEndpointController extends Controller
                         $serviceDateTime = $row['serviceDateTime'] ?? null;
 
                         if (!$claimCode) continue;
+                        
+                        // กรองตามเงื่อนไข: ทั่วไป/ฟอกไต เอาเฉพาะ EP, Homeward เอาเฉพาะ PP
+                        $shouldPull = false;
+                        if (in_array($claimType, ['PG0060001', 'PG0130001'])) {
+                            if (strpos($claimCode, 'EP') === 0) $shouldPull = true;
+                        } elseif ($claimType === 'PG0140001') {
+                            if (strpos($claimCode, 'PP') === 0) $shouldPull = true;
+                        } elseif ($sourceChannel === 'ENDPOINT') {
+                            $shouldPull = true;
+                        }
+
+                        if (!$shouldPull) {
+                            continue;
+                        }
 
                         if (isset($existing_claims[$claimCode])) {
                             if ($existing_claims[$claimCode] !== $claimType) {
                                 Nhso_Endpoint::where('claimCode', $claimCode)->update(['claimType' => $claimType]);
                             }
-                        } elseif ($sourceChannel === 'ENDPOINT' || $claimType === 'PG0140001') {
+                        } else {
                             $claimStatus = (strpos($claimCode, 'EP') === 0) ? 'success' : 'pulled';
                             $upsertData[] = [
                                 'cid'             => $cid,
@@ -178,7 +195,17 @@ class NhsoEndpointController extends Controller
             if (!$claimCode || !$claimType) {
                 continue;
             }
-            if (!($sourceChannel === 'ENDPOINT' || in_array($claimType, ['PG0130001', 'PG0140001']))) {
+            // กรองตามเงื่อนไข: ทั่วไป/ฟอกไต เอาเฉพาะ EP, Homeward เอาเฉพาะ PP
+            $shouldPull = false;
+            if (in_array($claimType, ['PG0060001', 'PG0130001'])) {
+                if (strpos($claimCode, 'EP') === 0) $shouldPull = true;
+            } elseif ($claimType === 'PG0140001') {
+                if (strpos($claimCode, 'PP') === 0) $shouldPull = true;
+            } elseif ($sourceChannel === 'ENDPOINT') {
+                $shouldPull = true;
+            }
+
+            if (!$shouldPull) {
                 continue;
             }
 
@@ -225,12 +252,15 @@ class NhsoEndpointController extends Controller
 
         $hosxp = DB::connection('hosxp')->select(
             '
-        SELECT o.vn, o.hn, pt.cid, vp.auth_code
+        SELECT DISTINCT pt.cid
         FROM ovst o
-        INNER JOIN visit_pttype vp ON vp.vn = o.vn 
+        INNER JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1
+        INNER JOIN pttype p ON p.pttype = vp.pttype
         LEFT JOIN patient pt ON pt.hn = o.hn
-        LEFT JOIN hrims.nhso_endpoint nep ON nep.vstdate = o.vstdate AND nep.cid = pt.cid
-        WHERE o.vstdate = ? AND nep.cid IS NULL',
+        WHERE o.vstdate = ?
+        AND p.hipdata_code IN ("UCS","WEL")
+        AND (o.an = "" OR o.an IS NULL)
+        AND pt.cid IS NOT NULL',
             [$vstdate]
         );
 
@@ -283,7 +313,21 @@ class NhsoEndpointController extends Controller
                             if ($existing_claims[$claimCode] !== $claimType) {
                                 Nhso_Endpoint::where('claimCode', $claimCode)->update(['claimType' => $claimType]);
                             }
-                        } elseif ($sourceChannel === 'ENDPOINT' || in_array($claimType, ['PG0130001', 'PG0140001'])) {
+                        } else {
+                            // กรองตามเงื่อนไข: ทั่วไป/ฟอกไต เอาเฉพาะ EP, Homeward เอาเฉพาะ PP
+                            $shouldPull = false;
+                            if (in_array($claimType, ['PG0060001', 'PG0130001'])) {
+                                if (strpos($claimCode, 'EP') === 0) $shouldPull = true;
+                            } elseif ($claimType === 'PG0140001') {
+                                if (strpos($claimCode, 'PP') === 0) $shouldPull = true;
+                            } elseif ($sourceChannel === 'ENDPOINT') {
+                                $shouldPull = true;
+                            }
+
+                            if (!$shouldPull) {
+                                continue;
+                            }
+
                             $claimStatus = (strpos($claimCode, 'EP') === 0) ? 'success' : 'pulled';
                             $upsertData[] = [
                                 'cid'             => $cid,
@@ -336,7 +380,7 @@ class NhsoEndpointController extends Controller
             $this->pullIndiv($request);
             // ตรวจสอบสถานะหลังดึงข้อมูล (ถ้าสำเร็จจากที่อื่นแล้ว status จะเป็น 'success')
             $checkLocal = DB::table('nhso_endpoint')->where('cid', $cid)->where('vstdate', $vstdate)->first();
-            if ($checkLocal && in_array(@$checkLocal->claim_status, ['success', 'success_rims'])) {
+            if ($checkLocal && @$checkLocal->claim_status === 'success') {
                 return response()->json([
                     'status' => 'success', 
                     'message' => 'ตรวจสอบพบข้อมูลปิดสิทธิเรียบร้อยแล้วในระบบ สปสช. (ดึงสถานะล่าสุดให้แล้ว)',

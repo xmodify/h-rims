@@ -60,7 +60,7 @@
                     $status = $row->claim_status;
                 @endphp
 
-                @if(in_array($status, ['success_rims', 'success']))
+                @if($status === 'success')
                     <button onclick="alertAlreadyClosed('สปสช.')" class="btn btn-outline-success btn-sm rounded-circle" title="ปิดสิทธิเรียบร้อยแล้ว">
                         <i class="bi bi-check-circle-fill"></i>
                     </button>

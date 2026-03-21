@@ -40,7 +40,7 @@ class NhsoEndpointController extends Controller
 
 
         if (!$token) {
-            return response()->json(['success' => false, 'message' => 'ไม่พบ Token NHSO ในระบบ'], 500);
+            return response()->json(['status' => 'error', 'message' => 'ไม่พบ Token NHSO ในระบบ'], 500);
         }
 
         foreach (array_chunk($cids, 50) as $chunk) {
@@ -85,6 +85,7 @@ class NhsoEndpointController extends Controller
                                 Nhso_Endpoint::where('claimCode', $claimCode)->update(['claimType' => $claimType]);
                             }
                         } elseif ($sourceChannel === 'ENDPOINT' || $claimType === 'PG0140001') {
+                            $claimStatus = (strpos($claimCode, 'EP') === 0) ? 'success' : 'pulled';
                             $upsertData[] = [
                                 'cid'             => $cid,
                                 'firstName'       => $result['firstName'] ?? null,
@@ -98,6 +99,8 @@ class NhsoEndpointController extends Controller
                                 'sourceChannel'   => $sourceChannel,
                                 'claimCode'       => $claimCode,
                                 'claimType'       => $claimType,
+                                'claim_status'    => $claimStatus,
+                                'saved_at'        => now(),
                             ];
                         }
                     }
@@ -113,7 +116,7 @@ class NhsoEndpointController extends Controller
             usleep(200000); // 0.2s delay between chunks
         }
 
-        return response()->json(['success' => true, 'message' => 'ดึงข้อมูลจาก สปสช สำเร็จ']);
+        return response()->json(['status' => 'success', 'message' => 'ดึงข้อมูลจาก สปสช สำเร็จ']);
     }
 
     /**
@@ -125,7 +128,7 @@ class NhsoEndpointController extends Controller
         $cid = $request->input('cid');
 
         if (!$vstdate || !$cid) {
-            return response()->json(['error' => 'Vstdate and CID are required'], 400);
+            return response()->json(['status' => 'error', 'message' => 'Vstdate and CID are required'], 400);
         }
 
         $token = DB::connection('hosxp')
@@ -135,7 +138,7 @@ class NhsoEndpointController extends Controller
 
 
         if (!$token) {
-            return response()->json(['error' => 'Token not found'], 500);
+            return response()->json(['status' => 'error', 'message' => 'Token not found'], 500);
         }
 
         $response = Http::withToken($token)
@@ -146,13 +149,13 @@ class NhsoEndpointController extends Controller
             ]);
 
         if ($response->failed()) {
-            return response()->json(['error' => 'NHSO API request failed', 'message' => $response->body()], 500);
+            return response()->json(['status' => 'error', 'message' => 'NHSO API request failed', 'raw' => $response->body()], 500);
         }
 
         $result = $response->json();
 
         if (!isset($result['firstName']) || !isset($result['serviceHistories'])) {
-            return response()->json(['error' => 'Invalid data from NHSO API'], 500);
+            return response()->json(['status' => 'error', 'message' => 'Invalid data from NHSO API'], 500);
         }
 
         $firstName = $result['firstName'];
@@ -184,8 +187,8 @@ class NhsoEndpointController extends Controller
                 'claimCode' => $claimCode,
             ]);
 
-            // กำหนด claim_status จาก claimType ที่ดึงมา (ปิดจากระบบอื่น)
-            $claimStatus = ($claimType === 'PG0060001') ? 'success' : 'pulled';
+            // กำหนด claim_status จาก claimCode (EP = เขียว, อื่นๆ = ส้ม)
+            $claimStatus = (strpos($claimCode, 'EP') === 0) ? 'success' : 'pulled';
 
             $indiv->firstName = $firstName;
             $indiv->lastName = $lastName;
@@ -206,7 +209,7 @@ class NhsoEndpointController extends Controller
         }
 
         return response()->json([
-            'success' => true,
+            'status' => 'success',
             'found' => $foundPiSit,
             'message' => $foundPiSit ? 'พบข้อมูลปิดสิทธิจาก สปสช. แล้วครับ' : 'ไม่พบข้อมูลปิดสิทธิที่ สปสช. ยังไม่เคยปิดสิทธิสำหรับรายการนี้'
         ]);
@@ -235,7 +238,7 @@ class NhsoEndpointController extends Controller
         $token = DB::connection('hosxp')->table('sys_var')->where('sys_name', 'NHSO-13FILE-FEE-SCHEDULE-API-TOKEN')->value('sys_value');
 
         if (!$token) {
-            return response()->json(['success' => false, 'message' => 'Token not found'], 500);
+            return response()->json(['status' => 'error', 'message' => 'Token not found'], 500);
         }
 
         foreach (array_chunk($cids, 50) as $chunk) {
@@ -281,6 +284,7 @@ class NhsoEndpointController extends Controller
                                 Nhso_Endpoint::where('claimCode', $claimCode)->update(['claimType' => $claimType]);
                             }
                         } elseif ($sourceChannel === 'ENDPOINT' || $claimType === 'PG0140001') {
+                            $claimStatus = (strpos($claimCode, 'EP') === 0) ? 'success' : 'pulled';
                             $upsertData[] = [
                                 'cid'             => $cid,
                                 'firstName'       => $result['firstName'] ?? null,
@@ -294,6 +298,8 @@ class NhsoEndpointController extends Controller
                                 'sourceChannel'   => $sourceChannel,
                                 'claimCode'       => $claimCode,
                                 'claimType'       => $claimType,
+                                'claim_status'    => $claimStatus,
+                                'saved_at'        => now(),
                             ];
                         }
                     }
@@ -309,7 +315,7 @@ class NhsoEndpointController extends Controller
             usleep(200000);
         }
 
-        return response()->json(['success' => true, 'message' => 'ดึงข้อมูลจาก สปสช สำเร็จ']);
+        return response()->json(['status' => 'success', 'message' => 'ดึงข้อมูลจาก สปสช สำเร็จ']);
     }
     public function pushIndiv(Request $request)
     {
@@ -423,7 +429,7 @@ class NhsoEndpointController extends Controller
             // 6. อัปเดตสถานะกลับลงฐานข้อมูล
             $hasDataError = isset($resultArr['dataError']) || isset($resultArr['error']);
             $success = ($apiResponse->successful() && !$hasDataError && (($resultArr['status'] ?? '') == '200' || ($resultArr['success'] ?? false) || isset($resultArr['authenCode'])));
-            $status = $success ? 'success_rims' : 'failed';
+            $status = $success ? 'success' : 'failed';
 
             // Extract claimCode (authenCode)
             $claimCode = $resultArr['data']['authenCode'] ?? null;

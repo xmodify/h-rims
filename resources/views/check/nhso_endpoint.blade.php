@@ -38,7 +38,7 @@
     </div>
 
     <!-- Data Table Card -->
-    <div class="card dash-card border-top-0">
+    <div class="card dash-card border-top-0 shadow-sm" style="height: auto !important;">
         <div class="card-body p-4">
             <div class="table-responsive">            
                 <table id="list" class="table table-modern w-100">
@@ -227,6 +227,9 @@
               title: 'รายชื่อผู้มารับบริการ ที่ปิดสิทธิ สปสช. วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
             }
         ],
+        lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"] ],
+        pageLength: 50,
+        stateSave: false,
         language: {
             search: "ค้นหา:",
             lengthMenu: "แสดง _MENU_ รายการ",

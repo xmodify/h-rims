@@ -65,7 +65,7 @@
                     $status = $row->claim_status;
                 @endphp
 
-                @if(in_array($status, ['success_rims', 'success']))
+                @if($status === 'success')
                     <button onclick="alertAlreadyClosed('สปสช.')" class="btn btn-outline-success btn-sm rounded-circle" title="ปิดสิทธิเรียบร้อยแล้ว">
                         <i class="bi bi-check-circle-fill"></i>
                     </button>
@@ -81,6 +81,12 @@
                 @endif
               </td>  
               <td align="center">
+                @if($row->auth_code == 'Y')
+                  <span class="badge bg-success shadow-sm">Y</span>
+                @else
+                  <span class="badge bg-danger shadow-sm">N</span>
+                @endif
+              </td>
 
               <td align="left">
                 <small class="d-block fw-bold text-dark">{{ DateThai($row->vstdate) }}</small>

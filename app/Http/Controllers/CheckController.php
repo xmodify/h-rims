@@ -30,8 +30,8 @@ class CheckController extends Controller
     //ข้อมูลปิดสิทธิ สปสช---------------------------------------------------------------------------------------------------------------------------
     public function nhso_endpoint(Request $request)
     {
-        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
-        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
         Session::put('start_date', $start_date);
         Session::put('end_date', $end_date);
 
@@ -87,8 +87,8 @@ class CheckController extends Controller
     //ข้อมูล FDH Claim Status---------------------------------------------------------------------------------------------------------------------------
     public function fdh_claim_status(Request $request)
     {
-        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
-        $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
         // อัปเดตค่าเก็บใน Session เผื่อครั้งถัดไป
         Session::put('start_date', $start_date);
         Session::put('end_date', $end_date);

@@ -335,13 +335,14 @@ class HomeController extends Controller
         pt.cid,pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         v.pdx,IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
         IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint, ep.claim_status,
-        IFNULL(vp.Claim_Code,os.edc_approve_list_text) AS edc,IF(ppfs.vn IS NOT NULL,"Y",NULL) AS ppfs
+        IFNULL(vp.Claim_Code,os.edc_approve_list_text) AS edc,IF(ppfs.vn IS NOT NULL,"Y",NULL) AS ppfs,k.department
         FROM ovst o
         LEFT JOIN patient pt ON pt.hn=o.hn
         LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
         LEFT JOIN pttype p ON p.pttype=vp.pttype
         LEFT JOIN ovst_seq os ON os.vn = o.vn
         LEFT JOIN vn_stat v ON v.vn = o.vn
+        LEFT JOIN kskdepartment k ON k.depcode = o.cur_dep
         LEFT JOIN (
             SELECT ori.vn 
             FROM opitemrece ori 

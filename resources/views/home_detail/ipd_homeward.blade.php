@@ -73,7 +73,7 @@
               <td align="center"><span class="badge bg-secondary shadow-sm">{{ $row->oqueue }}</span></td>
               <td align="left">
                 <div class="fw-bold text-dark">{{ $row->ptname }}</div>
-                <small class="text-muted">CID: {{ $row->cid }} | HN: {{ $row->hn }}</small>
+                <small class="text-muted">CID: <span>{{ $row->cid }}</span> | HN: <span>{{ $row->hn }}</span></small>
               </td>
               <td align="left">
                 <div class="mt-1"><small class="text-muted"><i class="bi bi-phone"></i> {{ $row->mobile_phone_number ?: '-' }}</small></div>

@@ -252,7 +252,6 @@
                             <thead>
                             <tr class="table-secondary">
                                 <th class="text-left text-primary" colspan = "10">1102050102.108-ลูกหนี้ค่ารักษา เบิกต้นสังกัด OP รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                         
-                                <th class="text-center text-primary">Action</th>
                             </tr>
                             <tr class="table-secondary">
                                 <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th>   
@@ -265,7 +264,6 @@
                                 <th class="text-center">ชำระเอง</th>   
                                 <th class="text-center">กองทุนอื่น</th>                                      
                                 <th class="text-center text-primary">ลูกหนี้</th>
-                                <th class="text-center text-primary">Action</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -286,31 +284,6 @@
                                 <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
                                 <td align="right">{{ number_format($row->other,2) }}</td>
                                 <td align="right">{{ number_format($row->debtor,2) }}</td>
-                                <td align="center">         
-                                    <button type="button" class="btn btn-warning btn-sm px-2 shadow-sm text-dark btn-edit-debtor"
-                                        data-vn="{{ $row->vn }}"
-                                        data-ptname="{{ $row->ptname }}"
-                                        data-balance="{{ number_format($balance,2) }}"
-                                        data-balance-raw="{{ $balance }}"
-                                        data-charge-date="{{ $row->charge_date }}"
-                                        data-charge-date-th="{{ !empty($row->charge_date) ? DateThai($row->charge_date) : '' }}"
-                                        data-charge-no="{{ $row->charge_no }}"
-                                        data-charge="{{ $row->charge }}"
-                                        data-status="{{ $row->status }}"
-                                        data-receive-date="{{ $row->receive_date }}"
-                                        data-receive-date-th="{{ !empty($row->receive_date) ? DateThai($row->receive_date) : '' }}"
-                                        data-receive-no="{{ $row->receive_no }}"
-                                        data-receive="{{ $row->receive_manual ?? 0 }}"
-                                        data-repno="{{ $row->repno_manual ?? '' }}"
-                                        data-adj-inc="{{ $row->adj_inc ?? 0 }}"
-                                        data-adj-dec="{{ $row->adj_dec ?? 0 }}"
-                                        data-adj-date="{{ $row->adj_date ?? date('Y-m-d') }}"
-                                        data-adj-date-th="{{ !empty($row->adj_date) ? DateThai($row->adj_date) : DateThai(date('Y-m-d')) }}"
-                                        data-adj-note="{{ $row->adj_note }}"
-                                        data-update-url="{{ url('debtor/1102050102_108/update', $row->vn) }}">
-                                        <i class="bi bi-pencil-square"></i>
-                                    </button>                            
-                                </td> 
                             <?php $count++; ?>
                             <?php $sum_income_search += $row->income; ?>
                             <?php $sum_rcpt_money_search += $row->rcpt_money; ?>
@@ -326,7 +299,6 @@
                                     <td class="text-end">{{ number_format($sum_rcpt_money_search,2) }}</td>
                                     <td class="text-end">{{ number_format($sum_other_search,2) }}</td>
                                     <td class="text-end" style="color:blue">{{ number_format($sum_debtor_search,2) }}</td>
-                                    <td></td>
                                 </tr>
                             </tfoot>
                         </table></div>

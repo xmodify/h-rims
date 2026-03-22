@@ -388,11 +388,12 @@ class HomeController extends Controller
         $sql = DB::connection('hosxp')->select('
         SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
         o.vstdate,o.vsttime,o.oqueue,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-        pt.cid,pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,v.income,v.rcpt_money,v.income-v.paid_money AS debtor        
+        pt.cid,pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,k.department
         FROM ovst o
         LEFT JOIN patient pt ON pt.hn=o.hn
         LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
         LEFT JOIN pttype p ON p.pttype=vp.pttype
+        LEFT JOIN kskdepartment k ON k.depcode = o.cur_dep
         LEFT JOIN vn_stat v ON v.vn = o.vn
         WHERE o.vstdate BETWEEN ? AND ?
         AND p.hipdata_code IN ("UCS","WEL","SSS","STP") 
@@ -412,11 +413,12 @@ class HomeController extends Controller
         IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint, ep.claim_status, o.oqueue,
         o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
         p.`name` AS pttype,vp.hospmain,v.pdx,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
-        et.ucae AS er,p24.project,vp.nhso_ucae_type_code AS ae
+        et.ucae AS er,p24.project,vp.nhso_ucae_type_code AS ae,k.department
         FROM ovst o
         LEFT JOIN patient pt ON pt.hn=o.hn
         LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
         LEFT JOIN pttype p ON p.pttype=vp.pttype
+        LEFT JOIN kskdepartment k ON k.depcode = o.cur_dep
         LEFT JOIN er_regist e ON e.vn=o.vn 
         LEFT JOIN er_pt_type et ON et.er_pt_type=e.er_pt_type AND et.ucae IN ("A","E")        
         LEFT JOIN (
@@ -449,12 +451,13 @@ class HomeController extends Controller
         o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
         p.`name` AS pttype,vp.hospmain,v.pdx,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         GROUP_CONCAT(DISTINCT s.`name`) AS claim_list, SUM(o1.sum_price) AS claim_price,
-        p24.project
+        p24.project,k.department
         FROM ovst o    
         LEFT JOIN patient pt ON pt.hn=o.hn
         LEFT JOIN vn_stat v ON v.vn=o.vn
         LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
         LEFT JOIN pttype p ON p.pttype=vp.pttype
+        LEFT JOIN kskdepartment k ON k.depcode = o.cur_dep
         INNER JOIN opitemrece o1 ON o1.vn=o.vn
         INNER JOIN hrims.lookup_icode li ON o1.icode = li.icode AND li.uc_cr = "Y" 
         LEFT JOIN s_drugitems s ON s.icode = o1.icode
@@ -487,12 +490,13 @@ class HomeController extends Controller
         o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
         p.`name` AS pttype,vp.hospmain,v.pdx,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         GROUP_CONCAT(DISTINCT s.`name`) AS claim_list, SUM(o1.sum_price) AS claim_price,
-        p24.project
+        p24.project,k.department
         FROM ovst o    
         LEFT JOIN patient pt ON pt.hn=o.hn
         LEFT JOIN vn_stat v ON v.vn=o.vn
         LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
         LEFT JOIN pttype p ON p.pttype=vp.pttype
+        LEFT JOIN kskdepartment k ON k.depcode = o.cur_dep
         INNER JOIN opitemrece o1 ON o1.vn=o.vn
         INNER JOIN hrims.lookup_icode li ON o1.icode = li.icode AND li.herb32 = "Y" 
         LEFT JOIN s_drugitems s ON s.icode = o1.icode
@@ -558,12 +562,13 @@ class HomeController extends Controller
         o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
         p.`name` AS pttype,vp.hospmain,v.pdx,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         GROUP_CONCAT(DISTINCT s.`name`) AS claim_list, SUM(o1.sum_price) AS claim_price,
-        p24.project
+        p24.project,k.department
         FROM ovst o    
         LEFT JOIN patient pt ON pt.hn=o.hn
         LEFT JOIN vn_stat v ON v.vn=o.vn
         LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
         LEFT JOIN pttype p ON p.pttype=vp.pttype
+        LEFT JOIN kskdepartment k ON k.depcode = o.cur_dep
         INNER JOIN opitemrece o1 ON o1.vn=o.vn
         INNER JOIN hrims.lookup_icode li ON o1.icode = li.icode AND li.ppfs = "Y" 
         LEFT JOIN s_drugitems s ON s.icode = o1.icode
@@ -594,12 +599,13 @@ class HomeController extends Controller
         o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,pt.cid,pt.mobile_phone_number,
         p.`name` AS pttype,vp.hospmain,v.pdx,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         GROUP_CONCAT(DISTINCT s.`name`) AS claim_list, SUM(o1.sum_price) AS claim_price,
-        p24.project
+        p24.project,k.department
         FROM ovst o    
         LEFT JOIN patient pt ON pt.hn=o.hn
         LEFT JOIN vn_stat v ON v.vn=o.vn
         LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
         LEFT JOIN pttype p ON p.pttype=vp.pttype
+        LEFT JOIN kskdepartment k ON k.depcode = o.cur_dep
         INNER JOIN opitemrece o1 ON o1.vn=o.vn
         INNER JOIN hrims.lookup_icode li ON o1.icode = li.icode AND li.kidney = "Y" 
         LEFT JOIN s_drugitems s ON s.icode = o1.icode

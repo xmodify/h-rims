@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <?php
 $files = "ลูกหนี้รายตัวผังบัญชี-1102050102.603-ลูกหนี้ค่ารักษา พรบ.รถ IP.xls";
 header("Content-Type: application/vnd.ms-excel");
@@ -51,7 +50,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
             ?>
             @foreach($debtor as $row)          
             @php 
-                $balance = ($row->receive + ($row->adj_inc ?? 0) - ($row->adj_dec ?? 0)) - $row->debtor;
+                $balance = (($row->receive ?? 0) + ($row->adj_inc ?? 0) - ($row->adj_dec ?? 0)) - ($row->debtor ?? 0);
             @endphp
             <tr>
                 <td align="center">{{ $count }}</td>
@@ -64,11 +63,11 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="right">{{ DateThai($row->dchdate) }}</td>
                 <td align="right">{{ $row->pdx }}</td>  
                 <td align="right">{{ $row->adjrw }}</td>                        
-                <td align="right">{{ number_format($row->income,2) }}</td>
-                <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
-                <td align="right">{{ number_format($row->other,2) }}</td>
-                <td align="right" class="text-primary">{{ number_format($row->debtor,2) }}</td>  
-                <td align="right">{{ number_format($row->receive,2) }}</td>
+                <td align="right">{{ number_format($row->income ?? 0,2) }}</td>
+                <td align="right">{{ number_format($row->rcpt_money ?? 0,2) }}</td>
+                <td align="right">{{ number_format($row->other ?? 0,2) }}</td>
+                <td align="right" class="text-primary">{{ number_format($row->debtor ?? 0,2) }}</td>  
+                <td align="right">{{ number_format($row->receive ?? 0,2) }}</td>
                 <td align="right">{{ number_format($row->adj_inc ?? 0,2) }}</td>
                 <td align="right">{{ number_format($row->adj_dec ?? 0,2) }}</td>
                 <td align="right">{{ number_format($balance,2) }}</td>
@@ -77,9 +76,9 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="right">{{ $row->days }} วัน</td>    
             </tr>                
             <?php 
-                $count++; $sum_income += $row->income; $sum_rcpt += $row->rcpt_money;
-                $sum_other += $row->other; $sum_debtor += $row->debtor;
-                $sum_receive += $row->receive; $sum_adj_inc += ($row->adj_inc ?? 0);
+                $count++; $sum_income += ($row->income ?? 0); $sum_rcpt += ($row->rcpt_money ?? 0);
+                $sum_other += ($row->other ?? 0); $sum_debtor += ($row->debtor ?? 0);
+                $sum_receive += ($row->receive ?? 0); $sum_adj_inc += ($row->adj_inc ?? 0);
                 $sum_adj_dec += ($row->adj_dec ?? 0); $sum_balance += $balance;
             ?>
             @endforeach   
@@ -87,14 +86,14 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
             <tfoot>
             <tr style="font-weight:bold;">
                 <td align="right" colspan = "10">รวมทั้งสิ้น</td> 
-                <td align="right">{{number_format($sum_income,2)}}</td>  
-                <td align="right">{{number_format($sum_rcpt,2)}}</td>  
-                <td align="right">{{number_format($sum_other,2)}}</td>  
-                <td align="right">{{number_format($sum_debtor,2)}}</td>               
-                <td align="right">{{number_format($sum_receive,2)}}</td>  
-                <td align="right">{{number_format($sum_adj_inc,2)}}</td>
-                <td align="right">{{number_format($sum_adj_dec,2)}}</td>
-                <td align="right">{{number_format($sum_balance,2)}}</td>
+                <td align="right">{{number_format($sum_income ?? 0,2)}}</td>  
+                <td align="right">{{number_format($sum_rcpt ?? 0,2)}}</td>  
+                <td align="right">{{number_format($sum_other ?? 0,2)}}</td>  
+                <td align="right">{{number_format($sum_debtor ?? 0,2)}}</td>               
+                <td align="right">{{number_format($sum_receive ?? 0,2)}}</td>  
+                <td align="right">{{number_format($sum_adj_inc ?? 0,2)}}</td>
+                <td align="right">{{number_format($sum_adj_dec ?? 0,2)}}</td>
+                <td align="right">{{number_format($sum_balance ?? 0,2)}}</td>
                 <td colspan="3"></td>
             </tr>          
             </tfoot>

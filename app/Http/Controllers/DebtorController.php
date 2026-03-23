@@ -119,7 +119,7 @@ class DebtorController extends Controller
                     GROUP BY op.vn) pp ON pp.vn = o.vn 
                 LEFT JOIN (
                     SELECT op.vn, SUM(op.sum_price) AS income,
-                           SUM(CASE WHEN op.paidst IN ('01','03') THEN op.sum_price ELSE 0 END) AS paid_money
+                           SUM(op.sum_price) AS paid_money -- No paidst filter for EMS
                     FROM opitemrece op
                     INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ems = 'Y'
                     WHERE op.vstdate BETWEEN '{$start_date}' AND '{$end_date}'
@@ -186,14 +186,9 @@ class DebtorController extends Controller
                         ELSE 0 
                     END) AS income,
                     SUM(CASE 
-                        WHEN op.paidst IN ('01','03') THEN 
-                            CASE 
-                                WHEN i.vn IS NULL THEN op.sum_price 
-                                WHEN i.vn IS NOT NULL AND li.ems = 'Y' THEN op.sum_price 
-                                ELSE 0 
-                            END
-                        ELSE 0 
-                    END) AS paid_money
+                        WHEN (i.vn IS NOT NULL AND li.ems = 'Y') THEN op.sum_price 
+                        WHEN op.paidst IN ('01','03') AND i.vn IS NULL THEN op.sum_price 
+                        ELSE 0 END) AS paid_money
                 FROM opitemrece op
                 LEFT JOIN ipt i ON i.vn = op.vn
                 LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode

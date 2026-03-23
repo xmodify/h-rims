@@ -164,50 +164,67 @@ class DebtorController extends Controller
                 COUNT(DISTINCT o_split.vn) AS vn,
                 SUM(IFNULL(vi.income,0)) AS income,
                 SUM(IFNULL(vi.paid_money,0)) AS paid_money,
-                SUM(IFNULL(rc.rcpt_money,0)) + SUM(IFNULL(rc_orph.rcpt_money,0)) AS rcpt_money,
+                SUM(IFNULL(rc.rcpt_money,0)) AS rcpt_money,
                 SUM(IFNULL(pp.ppfs_price,0)) AS ppfs,
-                SUM(IFNULL(vi.income,0)) - (SUM(IFNULL(rc.rcpt_money,0)) + SUM(IFNULL(rc_orph.rcpt_money,0))) - SUM(IFNULL(pp.ppfs_price,0)) AS debtor
-            FROM (SELECT DISTINCT o.vn, IFNULL(vp.pttype, o.pttype) AS pttype
-                  FROM ovst o 
-                  LEFT JOIN visit_pttype vp ON vp.vn = o.vn
-                  WHERE o.vstdate BETWEEN '{$start_date}' AND '{$end_date}') o_split
-            INNER JOIN ovst o ON o.vn = o_split.vn
+                SUM(IFNULL(vi.income,0)) - SUM(IFNULL(rc.rcpt_money,0)) - SUM(IFNULL(pp.ppfs_price,0)) AS debtor
+            FROM (
+                SELECT DISTINCT o.vn, o.pttype AS main_pttype, IFNULL(vp.pttype, o.pttype) AS pttype
+                FROM ovst o 
+                LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+                WHERE o.vstdate BETWEEN '{$start_date}' AND '{$end_date}'
+            ) o_split
             LEFT JOIN ipt i ON i.vn = o_split.vn
             LEFT JOIN pttype p ON p.pttype = o_split.pttype
-            LEFT JOIN (SELECT op.vn, op.pttype, 
-                       SUM(CASE 
-                            WHEN i.vn IS NULL THEN op.sum_price 
-                            WHEN i.vn IS NOT NULL AND li.ems = 'Y' THEN op.sum_price 
-                            ELSE 0 END) AS income,
-                       SUM(CASE 
-                            WHEN op.paidst IN ('01','03') THEN 
-                                CASE 
-                                    WHEN i.vn IS NULL THEN op.sum_price 
-                                    WHEN i.vn IS NOT NULL AND li.ems = 'Y' THEN op.sum_price 
-                                    ELSE 0 END
-                            ELSE 0 END) AS paid_money
-                       FROM opitemrece op
-                       LEFT JOIN ipt i ON i.vn = op.vn
-                       LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
-                       WHERE op.vstdate BETWEEN '{$start_date}' AND '{$end_date}'
-                       AND (op.an IS NULL OR op.an = '')
-                       GROUP BY op.vn, op.pttype) vi ON vi.vn = o_split.vn AND vi.pttype = o_split.pttype
-            LEFT JOIN (SELECT r.vn, r.pttype, SUM(r.bill_amount) AS rcpt_money 
-                       FROM rcpt_print r
-                       WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)                       
-                       GROUP BY r.vn, r.pttype) rc ON rc.vn = o_split.vn AND rc.pttype = o_split.pttype
-            -- Orphan Receipts: Add receipts for the VN that don't match any visit_pttype to the MAIN pttype row
-            LEFT JOIN (SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
-                       FROM rcpt_print r
-                       WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
-                       AND r.pttype NOT IN (SELECT pttype FROM visit_pttype vp WHERE vp.vn = r.vn)
-                       GROUP BY r.vn) rc_orph ON rc_orph.vn = o.vn AND o_split.pttype = o.pttype
-            LEFT JOIN (SELECT op.vn, op.pttype, SUM(op.sum_price) AS ppfs_price
-                       FROM opitemrece op
-                       INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = 'Y' 
-                       WHERE op.vstdate BETWEEN '{$start_date}' AND '{$end_date}' AND op.paidst IN ('02')
-                       GROUP BY op.vn, op.pttype) pp ON pp.vn = o_split.vn AND pp.pttype = o_split.pttype
-            WHERE o.vstdate BETWEEN '{$start_date}' AND '{$end_date}'
+
+            -- 1. Subquery ค่าใช้จ่าย
+            LEFT JOIN (
+                SELECT 
+                    op.vn, op.pttype, 
+                    SUM(CASE 
+                        WHEN i.vn IS NULL THEN op.sum_price 
+                        WHEN i.vn IS NOT NULL AND li.ems = 'Y' THEN op.sum_price 
+                        ELSE 0 
+                    END) AS income,
+                    SUM(CASE 
+                        WHEN op.paidst IN ('01','03') THEN 
+                            CASE 
+                                WHEN i.vn IS NULL THEN op.sum_price 
+                                WHEN i.vn IS NOT NULL AND li.ems = 'Y' THEN op.sum_price 
+                                ELSE 0 
+                            END
+                        ELSE 0 
+                    END) AS paid_money
+                FROM opitemrece op
+                LEFT JOIN ipt i ON i.vn = op.vn
+                LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
+                WHERE op.vstdate BETWEEN '{$start_date}' AND '{$end_date}'
+                AND (op.an IS NULL OR op.an = '')
+                GROUP BY op.vn, op.pttype
+            ) vi ON vi.vn = o_split.vn AND vi.pttype = o_split.pttype
+
+            -- 2. Subquery ใบเสร็จ (Merged Original + Orphan)
+            LEFT JOIN (
+                SELECT 
+                    r.vn, 
+                    IF(vp.pttype IS NOT NULL, r.pttype, o.pttype) AS mapped_pttype,
+                    SUM(r.bill_amount) AS rcpt_money 
+                FROM ovst o
+                INNER JOIN rcpt_print r ON r.vn = o.vn
+                LEFT JOIN visit_pttype vp ON vp.vn = r.vn AND vp.pttype = r.pttype
+                WHERE o.vstdate BETWEEN '{$start_date}' AND '{$end_date}'
+                AND NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)                       
+                GROUP BY r.vn, mapped_pttype
+            ) rc ON rc.vn = o_split.vn AND rc.mapped_pttype = o_split.pttype
+
+            -- 3. Subquery PPFS
+            LEFT JOIN (
+                SELECT op.vn, op.pttype, SUM(op.sum_price) AS ppfs_price
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = 'Y' 
+                WHERE op.vstdate BETWEEN '{$start_date}' AND '{$end_date}' AND op.paidst IN ('02')
+                GROUP BY op.vn, op.pttype
+            ) pp ON pp.vn = o_split.vn AND pp.pttype = o_split.pttype
+
             GROUP BY p.hipdata_code
             ORDER BY p.hipdata_code");
 
@@ -244,36 +261,49 @@ class DebtorController extends Controller
                     WHEN p.hipdata_code = 'SRT' THEN 'การรถไฟแห่งประเทศไทย'
                     WHEN p.hipdata_code = 'NHS' THEN 'สิทธิ สปสช.'
                     ELSE 'ไม่พบเงื่อนไข' END AS pttype_group,
-                SUM(IFNULL(ip.num_an,0)) AS an,
+                SUM(ip.num_an) AS an,
                 SUM(IFNULL(v_inc.income,0)) AS income,
                 SUM(IFNULL(v_inc.paid_money,0)) AS paid_money,
-                SUM(IFNULL(rc.rcpt_money,0)) + SUM(IFNULL(rc_orph.rcpt_money,0)) AS rcpt_money,
-                SUM(IFNULL(v_inc.income,0)) - (SUM(IFNULL(rc.rcpt_money,0)) + SUM(IFNULL(rc_orph.rcpt_money,0))) AS debtor
-            FROM (SELECT DISTINCT i.an, ipt_p.pttype, 1 AS num_an
-                  FROM ipt i
-                  INNER JOIN ipt_pttype ipt_p ON ipt_p.an = i.an
-                  WHERE i.dchdate BETWEEN '{$start_date}' AND '{$end_date}') ip
+                SUM(IFNULL(rc.rcpt_money,0)) AS rcpt_money,
+                SUM(IFNULL(v_inc.income,0)) - SUM(IFNULL(rc.rcpt_money,0)) AS debtor
+            FROM (
+                SELECT DISTINCT i.an, ipt_p.pttype, 1 AS num_an
+                FROM ipt i
+                INNER JOIN ipt_pttype ipt_p ON ipt_p.an = i.an
+                WHERE i.dchdate BETWEEN '{$start_date}' AND '{$end_date}'
+            ) ip
             INNER JOIN ipt i ON i.an = ip.an
-            INNER JOIN ipt_pttype ipt_p ON ipt_p.an = i.an AND ipt_p.pttype = ip.pttype
-            LEFT JOIN an_stat a ON a.an = i.an
             LEFT JOIN pttype p ON p.pttype = ip.pttype
-            LEFT JOIN (SELECT op.an, op.pttype, SUM(op.sum_price) AS income,
-                       SUM(CASE WHEN op.paidst IN ('01','03') THEN op.sum_price ELSE 0 END) AS paid_money
-                       FROM opitemrece op
-                       LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
-                       WHERE op.an IS NOT NULL AND op.an <> ''
-                       AND (li.ems IS NULL OR li.ems <> 'Y')
-                       GROUP BY op.an, op.pttype) v_inc ON v_inc.an = ip.an AND v_inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, r.pttype, SUM(r.bill_amount) AS rcpt_money
-                       FROM rcpt_print r                    
-                       WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
-                       GROUP BY r.vn, r.pttype) rc ON rc.an = ip.an AND rc.pttype = ip.pttype
-            -- Orphan Receipts: Add receipts for the AN that don't match any ipt_pttype to the MAIN pttype row
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money
-                       FROM rcpt_print r
-                       WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
-                       AND r.pttype NOT IN (SELECT pttype FROM ipt_pttype ipt_p WHERE ipt_p.an = r.vn)
-                       GROUP BY r.vn) rc_orph ON rc_orph.an = i.an AND ip.pttype = (SELECT pttype FROM ipt_pttype WHERE an = i.an ORDER BY pttype_number LIMIT 1)
+
+            -- 1. Subquery รายได้ (หัก EMS ออก)
+            LEFT JOIN (
+                SELECT 
+                    op.an, op.pttype, 
+                    SUM(op.sum_price) AS income,
+                    SUM(CASE WHEN op.paidst IN ('01','03') THEN op.sum_price ELSE 0 END) AS paid_money
+                FROM opitemrece op
+                LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
+                WHERE op.an IS NOT NULL AND op.an <> ''
+                AND (li.ems IS NULL OR li.ems <> 'Y')
+                GROUP BY op.an, op.pttype
+            ) v_inc ON v_inc.an = ip.an AND v_inc.pttype = ip.pttype
+
+            -- 2. Subquery ใบเสร็จ (Optimization Map สิทธิใบเสร็จที่ผิดเข้าสิทธิหลักของ Admit)
+            LEFT JOIN (
+                SELECT 
+                    r.vn AS an, 
+                    IF(ipt_p.pttype IS NOT NULL, r.pttype, 
+                       (SELECT pttype FROM ipt_pttype WHERE an = r.vn ORDER BY pttype_number LIMIT 1)
+                    ) AS mapped_pttype,
+                    SUM(r.bill_amount) AS rcpt_money 
+                FROM ipt i
+                INNER JOIN rcpt_print r ON r.vn = i.an
+                LEFT JOIN ipt_pttype ipt_p ON ipt_p.an = r.vn AND ipt_p.pttype = r.pttype
+                WHERE i.dchdate BETWEEN '{$start_date}' AND '{$end_date}'
+                AND NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)                       
+                GROUP BY r.vn, mapped_pttype
+            ) rc ON rc.an = ip.an AND rc.mapped_pttype = ip.pttype
+
             WHERE i.dchdate BETWEEN '{$start_date}' AND '{$end_date}'
             GROUP BY p.hipdata_code
             ORDER BY p.hipdata_code");

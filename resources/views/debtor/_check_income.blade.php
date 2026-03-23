@@ -98,6 +98,7 @@
                                 <th class="text-center">ค่าใช้จ่ายทั้งหมด [สรุป]</th>
                                 <th class="text-center">ต้องชำระเงิน [สรุป]</th>  
                                 <th class="text-center">ชำระเงินแล้ว [สรุป]</th> 
+                                <th class="text-center">PPFS [สรุป]</th> 
                                 <th class="text-center">ลูกหนี้ [สรุป]</th>                           
                                 <th class="text-center">สถานะ</th>
                                 <th class="text-center">รายตัว</th>
@@ -118,6 +119,7 @@
                                 </td>
                                 <td align="right">{{ number_format($row->vn_paid,2) }}</td>  
                                 <td align="right">{{ number_format($row->vn_rcpt,2) }}</td>  
+                                <td align="right">{{ number_format($row->vn_ppfs,2) }}</td>  
                                 <td align="right" class="text-success"><strong>{{ number_format($row->vn_debtor,2) }}</strong></td>                         
                                 <td class="text-center"@if($row->status_check == 'Success') style="color:green"
                                     @elseif($row->status_check == 'Resync VN') style="color:red" @endif>

@@ -93,23 +93,41 @@ class DebtorController extends Controller
                 v.vn_income - v.vn_rcpt - v.vn_ppfs AS vn_debtor,
                 IF(v.vn_income <> o.op_income, 'Resync VN', 'Success') AS status_check
             FROM(
-                SELECT SUM(v.income) AS vn_income,SUM(v.paid_money) AS vn_paid,SUM(IFNULL(rc.rcpt_money,0)) AS vn_rcpt,
-                SUM(IFNULL(pp.ppfs_price,0)) AS vn_ppfs
+                SELECT 
+                    SUM(CASE 
+                        WHEN i.vn IS NULL THEN v.income 
+                        ELSE IFNULL(ems.income, 0)
+                    END) AS vn_income,
+                    SUM(CASE 
+                        WHEN i.vn IS NULL THEN v.paid_money 
+                        ELSE IFNULL(ems.paid_money, 0)
+                    END) AS vn_paid,
+                    SUM(IFNULL(rc.rcpt_money,0)) AS vn_rcpt,
+                    SUM(IFNULL(pp.ppfs_price,0)) AS vn_ppfs
                 FROM ovst o
                 INNER JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN ipt i ON i.vn = o.vn
                 LEFT JOIN ( SELECT r.vn,SUM(r.bill_amount) AS rcpt_money 
                     FROM rcpt_print r
                     WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
-                    AND r.bill_date BETWEEN '{$start_date}' AND '{$end_date}'
+                    AND EXISTS (SELECT 1 FROM ovst WHERE vn = r.vn) -- OPD receipts only
                     GROUP BY r.vn) rc ON rc.vn = o.vn
                 LEFT JOIN (SELECT op.vn,SUM(op.sum_price) AS ppfs_price
                     FROM opitemrece op
                     INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = 'Y' 
                     WHERE op.vstdate BETWEEN '{$start_date}' AND '{$end_date}' AND op.paidst IN ('02')
                     GROUP BY op.vn) pp ON pp.vn = o.vn 
+                LEFT JOIN (
+                    SELECT op.vn, SUM(op.sum_price) AS income,
+                           SUM(CASE WHEN op.paidst IN ('01','03') THEN op.sum_price ELSE 0 END) AS paid_money
+                    FROM opitemrece op
+                    INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ems = 'Y'
+                    WHERE op.vstdate BETWEEN '{$start_date}' AND '{$end_date}'
+                    AND (op.an IS NULL OR op.an = '')
+                    GROUP BY op.vn
+                ) ems ON ems.vn = o.vn
                 WHERE o.vstdate BETWEEN '{$start_date}' AND '{$end_date}'
-                AND i.vn IS NULL) v
+                ) v
                 
             CROSS JOIN
             
@@ -118,12 +136,13 @@ class DebtorController extends Controller
                 FROM ovst o
                 INNER JOIN opitemrece op ON op.vn = o.vn
                 LEFT JOIN ipt i ON i.vn = o.vn
+                LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                 WHERE o.vstdate BETWEEN '{$start_date}' AND '{$end_date}'
-                AND (op.an IS NULL OR op.an = '')
-                AND i.vn IS NULL) o");
+                AND (i.vn IS NULL OR (i.vn IS NOT NULL AND li.ems = 'Y'))
+                ) o");
 
         $check_income_pttype = DB::connection('hosxp')->select("
-            SELECT p.hipdata_code AS inscl,  
+            SELECT p.hipdata_code AS inscl,
                 CASE WHEN p.hipdata_code IN ('A1','CSH') THEN 'ชำระเงิน'
                     WHEN p.hipdata_code IN ('A9','INS') THEN 'พรบ.'
                     WHEN p.hipdata_code = 'BKK' THEN 'กทม.'
@@ -141,36 +160,54 @@ class DebtorController extends Controller
                     WHEN p.hipdata_code = 'UCS' THEN 'ประกันสุขภาพ'
                     WHEN p.hipdata_code = 'SRT' THEN 'การรถไฟแห่งประเทศไทย'
                     WHEN p.hipdata_code = 'NHS' THEN 'สิทธิ สปสช.'
-                    ELSE 'ไม่พบเงื่อนไข' END AS pttype_group,
-                COUNT(DISTINCT o.vn) AS vn,
-                SUM(IFNULL(v.income,0)) AS income,
-                SUM(IFNULL(v.paid_money,0)) AS paid_money,
-                SUM(IFNULL(rc.rcpt_money,0)) AS rcpt_money,
+                    ELSE 'คนไข้ไม่ลงสิทธิ' END AS pttype_group,
+                COUNT(DISTINCT o_split.vn) AS vn,
+                SUM(IFNULL(vi.income,0)) AS income,
+                SUM(IFNULL(vi.paid_money,0)) AS paid_money,
+                SUM(IFNULL(rc.rcpt_money,0)) + SUM(IFNULL(rc_orph.rcpt_money,0)) AS rcpt_money,
                 SUM(IFNULL(pp.ppfs_price,0)) AS ppfs,
-                SUM(IFNULL(v.income,0)) - SUM(IFNULL(rc.rcpt_money,0)) - SUM(IFNULL(pp.ppfs_price,0)) AS debtor
-            FROM (SELECT DISTINCT o.vn, vp.pttype 
+                SUM(IFNULL(vi.income,0)) - (SUM(IFNULL(rc.rcpt_money,0)) + SUM(IFNULL(rc_orph.rcpt_money,0))) - SUM(IFNULL(pp.ppfs_price,0)) AS debtor
+            FROM (SELECT DISTINCT o.vn, IFNULL(vp.pttype, o.pttype) AS pttype
                   FROM ovst o 
-                  INNER JOIN visit_pttype vp ON vp.vn = o.vn
+                  LEFT JOIN visit_pttype vp ON vp.vn = o.vn
                   WHERE o.vstdate BETWEEN '{$start_date}' AND '{$end_date}') o_split
-            JOIN ovst o ON o.vn = o_split.vn
-            LEFT JOIN ipt i ON i.vn = o.vn
+            INNER JOIN ovst o ON o.vn = o_split.vn
+            LEFT JOIN ipt i ON i.vn = o_split.vn
             LEFT JOIN pttype p ON p.pttype = o_split.pttype
-            LEFT JOIN (SELECT vn, pttype, SUM(sum_price) AS income,
-                       SUM(CASE WHEN paidst IN ('01','03') THEN sum_price ELSE 0 END) AS paid_money
-                       FROM opitemrece 
-                       WHERE vstdate BETWEEN '{$start_date}' AND '{$end_date}'
-                       GROUP BY vn, pttype) v ON v.vn = o_split.vn AND v.pttype = o_split.pttype
+            LEFT JOIN (SELECT op.vn, op.pttype, 
+                       SUM(CASE 
+                            WHEN i.vn IS NULL THEN op.sum_price 
+                            WHEN i.vn IS NOT NULL AND li.ems = 'Y' THEN op.sum_price 
+                            ELSE 0 END) AS income,
+                       SUM(CASE 
+                            WHEN op.paidst IN ('01','03') THEN 
+                                CASE 
+                                    WHEN i.vn IS NULL THEN op.sum_price 
+                                    WHEN i.vn IS NOT NULL AND li.ems = 'Y' THEN op.sum_price 
+                                    ELSE 0 END
+                            ELSE 0 END) AS paid_money
+                       FROM opitemrece op
+                       LEFT JOIN ipt i ON i.vn = op.vn
+                       LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
+                       WHERE op.vstdate BETWEEN '{$start_date}' AND '{$end_date}'
+                       AND (op.an IS NULL OR op.an = '')
+                       GROUP BY op.vn, op.pttype) vi ON vi.vn = o_split.vn AND vi.pttype = o_split.pttype
             LEFT JOIN (SELECT r.vn, r.pttype, SUM(r.bill_amount) AS rcpt_money 
                        FROM rcpt_print r
                        WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)                       
                        GROUP BY r.vn, r.pttype) rc ON rc.vn = o_split.vn AND rc.pttype = o_split.pttype
+            -- Orphan Receipts: Add receipts for the VN that don't match any visit_pttype to the MAIN pttype row
+            LEFT JOIN (SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                       FROM rcpt_print r
+                       WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                       AND r.pttype NOT IN (SELECT pttype FROM visit_pttype vp WHERE vp.vn = r.vn)
+                       GROUP BY r.vn) rc_orph ON rc_orph.vn = o.vn AND o_split.pttype = o.pttype
             LEFT JOIN (SELECT op.vn, op.pttype, SUM(op.sum_price) AS ppfs_price
                        FROM opitemrece op
                        INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = 'Y' 
                        WHERE op.vstdate BETWEEN '{$start_date}' AND '{$end_date}' AND op.paidst IN ('02')
                        GROUP BY op.vn, op.pttype) pp ON pp.vn = o_split.vn AND pp.pttype = o_split.pttype
             WHERE o.vstdate BETWEEN '{$start_date}' AND '{$end_date}'
-            AND i.vn IS NULL
             GROUP BY p.hipdata_code
             ORDER BY p.hipdata_code");
 
@@ -207,26 +244,37 @@ class DebtorController extends Controller
                     WHEN p.hipdata_code = 'SRT' THEN 'การรถไฟแห่งประเทศไทย'
                     WHEN p.hipdata_code = 'NHS' THEN 'สิทธิ สปสช.'
                     ELSE 'ไม่พบเงื่อนไข' END AS pttype_group,
-                COUNT(DISTINCT i.an) AS an,
+                SUM(IFNULL(ip.num_an,0)) AS an,
                 SUM(IFNULL(v_inc.income,0)) AS income,
-                SUM(IFNULL(v_inc.paid_money,0)) AS paid_money,   
-                SUM(IFNULL(rc.rcpt_money,0)) AS rcpt_money,
-                SUM(IFNULL(v_inc.income,0))-SUM(IFNULL(rc.rcpt_money,0)) AS debtor
-            FROM ipt i
-            INNER JOIN ipt_pttype ip ON ip.an = i.an
+                SUM(IFNULL(v_inc.paid_money,0)) AS paid_money,
+                SUM(IFNULL(rc.rcpt_money,0)) + SUM(IFNULL(rc_orph.rcpt_money,0)) AS rcpt_money,
+                SUM(IFNULL(v_inc.income,0)) - (SUM(IFNULL(rc.rcpt_money,0)) + SUM(IFNULL(rc_orph.rcpt_money,0))) AS debtor
+            FROM (SELECT DISTINCT i.an, ipt_p.pttype, 1 AS num_an
+                  FROM ipt i
+                  INNER JOIN ipt_pttype ipt_p ON ipt_p.an = i.an
+                  WHERE i.dchdate BETWEEN '{$start_date}' AND '{$end_date}') ip
+            INNER JOIN ipt i ON i.an = ip.an
+            INNER JOIN ipt_pttype ipt_p ON ipt_p.an = i.an AND ipt_p.pttype = ip.pttype
             LEFT JOIN an_stat a ON a.an = i.an
             LEFT JOIN pttype p ON p.pttype = ip.pttype
-            LEFT JOIN (SELECT an, pttype, SUM(sum_price) AS income,
-                       SUM(CASE WHEN paidst IN ('01','03') THEN sum_price ELSE 0 END) AS paid_money
-                       FROM opitemrece 
-                       WHERE an IS NOT NULL AND an <> ''                      
-                       GROUP BY an, pttype) v_inc ON v_inc.an = ip.an AND v_inc.pttype = ip.pttype
+            LEFT JOIN (SELECT op.an, op.pttype, SUM(op.sum_price) AS income,
+                       SUM(CASE WHEN op.paidst IN ('01','03') THEN op.sum_price ELSE 0 END) AS paid_money
+                       FROM opitemrece op
+                       LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
+                       WHERE op.an IS NOT NULL AND op.an <> ''
+                       AND (li.ems IS NULL OR li.ems <> 'Y')
+                       GROUP BY op.an, op.pttype) v_inc ON v_inc.an = ip.an AND v_inc.pttype = ip.pttype
             LEFT JOIN (SELECT r.vn AS an, r.pttype, SUM(r.bill_amount) AS rcpt_money
                        FROM rcpt_print r                    
                        WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
                        GROUP BY r.vn, r.pttype) rc ON rc.an = ip.an AND rc.pttype = ip.pttype
-            WHERE i.confirm_discharge = 'Y'
-            AND i.dchdate BETWEEN '{$start_date}' AND '{$end_date}'
+            -- Orphan Receipts: Add receipts for the AN that don't match any ipt_pttype to the MAIN pttype row
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money
+                       FROM rcpt_print r
+                       WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                       AND r.pttype NOT IN (SELECT pttype FROM ipt_pttype ipt_p WHERE ipt_p.an = r.vn)
+                       GROUP BY r.vn) rc_orph ON rc_orph.an = i.an AND ip.pttype = (SELECT pttype FROM ipt_pttype WHERE an = i.an ORDER BY pttype_number LIMIT 1)
+            WHERE i.dchdate BETWEEN '{$start_date}' AND '{$end_date}'
             GROUP BY p.hipdata_code
             ORDER BY p.hipdata_code");
 
@@ -257,10 +305,12 @@ class DebtorController extends Controller
 
         if ($type === 'opd') {
             // ---------------- OPD ----------------
+            // Compare vn_stat.income vs Total opitemrece.sum_price
             $data = DB::connection('hosxp')->select("
-                SELECT MAX(date_serv) AS date_serv, anvn, MAX(hn) AS hn, SUM(income) AS income, SUM(sum_price) AS sum_price, SUM(income) - SUM(sum_price) AS diff
+                SELECT date_serv, anvn, hn, SUM(vn_stat_inc) AS income, SUM(op_inc) AS sum_price, ROUND(SUM(vn_stat_inc) - SUM(op_inc), 2) AS diff
                 FROM (
-                    SELECT o.vstdate AS date_serv, o.vn AS anvn, o.hn, v.income, 0 AS sum_price
+                    -- Section 1: VN_STAT Income (Truth from HOSxP summary table)
+                    SELECT o.vstdate AS date_serv, o.vn AS anvn, o.hn, v.income AS vn_stat_inc, 0 AS op_inc
                     FROM ovst o
                     INNER JOIN vn_stat v ON v.vn = o.vn
                     LEFT JOIN ipt i ON i.vn = o.vn
@@ -269,34 +319,43 @@ class DebtorController extends Controller
                     
                     UNION ALL
                     
-                    SELECT o.vstdate AS date_serv, o.vn AS anvn, o.hn, 0 AS income, op.sum_price
+                    -- Section 2: OP Income (All items in opitemrece related to this VN)
+                    SELECT o.vstdate AS date_serv, o.vn AS anvn, o.hn, 0 AS vn_stat_inc, SUM(op.sum_price) AS op_inc
                     FROM ovst o
                     INNER JOIN opitemrece op ON op.vn = o.vn
                     LEFT JOIN ipt i ON i.vn = o.vn
                     WHERE o.vstdate BETWEEN '{$start_date}' AND '{$end_date}'
-                    AND (op.an IS NULL OR op.an = '')
                     AND i.vn IS NULL
+                    GROUP BY o.vn
                 ) t
                 GROUP BY anvn
-                HAVING ROUND(SUM(income), 2) <> ROUND(SUM(sum_price), 2)
-                ORDER BY ABS(SUM(income) - SUM(sum_price)) DESC
+                HAVING ROUND(SUM(vn_stat_inc), 2) <> ROUND(SUM(op_inc), 2)
+                ORDER BY ABS(SUM(vn_stat_inc) - SUM(op_inc)) DESC
             ");
         } else {
             // ---------------- IPD ----------------
+            // Compare an_stat.income vs Total opitemrece.sum_price
             $data = DB::connection('hosxp')->select("
-                SELECT a.dchdate AS date_serv,a.an AS anvn,a.hn,a.income,
-                IFNULL(o.sum_price,0) AS sum_price,a.income - IFNULL(o.sum_price,0) AS diff
-                FROM (SELECT dchdate,an,hn,SUM(income) AS income
-                    FROM an_stat
-                    WHERE dchdate BETWEEN '{$start_date}' and '{$end_date}'
-                    GROUP BY dchdate,an,hn) a
-                LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS sum_price
-                    FROM opitemrece o
-                    INNER JOIN an_stat a2 ON a2.an = o.an
-                    WHERE a2.dchdate BETWEEN '{$start_date}' and '{$end_date}'
-                    GROUP BY o.an) o ON o.an = a.an
-                WHERE ROUND(a.income, 2) <> ROUND(IFNULL(o.sum_price,0), 2)
-                ORDER BY ABS(a.income - IFNULL(o.sum_price,0)) DESC");
+                SELECT date_serv, anvn, hn, SUM(an_stat_inc) AS income, SUM(op_inc) AS sum_price, ROUND(SUM(an_stat_inc) - SUM(op_inc), 2) AS diff
+                FROM (
+                    -- Section 1: AN_STAT Income (Truth from HOSxP summary table)
+                    SELECT a.dchdate AS date_serv, a.an AS anvn, a.hn, a.income AS an_stat_inc, 0 AS op_inc
+                    FROM an_stat a
+                    WHERE a.dchdate BETWEEN '{$start_date}' AND '{$end_date}'
+                    
+                    UNION ALL
+                    
+                    -- Section 2: OP Income (All items in opitemrece related to this AN)
+                    SELECT a.dchdate AS date_serv, a.an AS anvn, a.hn, 0 AS an_stat_inc, SUM(op.sum_price) AS op_inc
+                    FROM an_stat a
+                    INNER JOIN opitemrece op ON op.an = a.an
+                    WHERE a.dchdate BETWEEN '{$start_date}' AND '{$end_date}'
+                    GROUP BY a.an
+                ) t
+                GROUP BY anvn
+                HAVING ROUND(SUM(an_stat_inc), 2) <> ROUND(SUM(op_inc), 2)
+                ORDER BY ABS(SUM(an_stat_inc) - SUM(op_inc)) DESC
+            ");
         }
 
         return response()->json($data);

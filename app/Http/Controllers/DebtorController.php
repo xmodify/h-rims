@@ -11231,18 +11231,18 @@ class DebtorController extends Controller
                 SELECT d.*, d.receive AS receive_manual, d.repno AS repno_manual,
                        IFNULL(sk.amount,0) AS kidney, st.repno AS stm_repno, st.round_no AS stm_round_no, 
                        st.receipt_date AS stm_receipt_date, st.receive_no AS stm_receive_no,
-                       IFNULL(st.pay,0) AS receive_lgo,
+                       IFNULL(st.total,0) AS receive_lgo,
                        IFNULL(sk.amount,0) AS receive_kidney,
-                       (IFNULL(d.receive,0) + IFNULL(st.pay,0) + IFNULL(sk.amount,0)) AS receive,
-                       CASE WHEN (IFNULL(d.receive,0) + IFNULL(st.pay,0) + IFNULL(sk.amount,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 
+                       (IFNULL(d.receive,0) + IFNULL(st.total,0) + IFNULL(sk.amount,0)) AS receive,
+                       CASE WHEN (IFNULL(d.receive,0) + IFNULL(st.total,0) + IFNULL(sk.amount,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_802 d
                 LEFT JOIN (SELECT d2.an, SUM(k.compensate_kidney) AS amount 
                            FROM debtor_1102050102_802 d2 
                            JOIN stm_lgo_kidney k ON k.cid = d2.cid AND k.datetimeadm BETWEEN d2.regdate AND d2.dchdate
                            GROUP BY d2.an) sk ON sk.an = d.an
-                LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(pay) AS pay, 
-                                  GROUP_CONCAT(round_no) AS round_no, GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
+                LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(compensate_treatment) AS total, 
+                            GROUP_CONCAT(round_no) AS round_no, GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
                            FROM stm_lgo GROUP BY an) st ON st.an = d.an
                 WHERE d.dchdate BETWEEN ? AND ?
                 AND (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
@@ -11253,17 +11253,17 @@ class DebtorController extends Controller
                 SELECT d.*, d.receive AS receive_manual, d.repno AS repno_manual,
                        IFNULL(sk.amount,0) AS kidney, st.repno AS stm_repno, st.round_no AS stm_round_no, 
                        st.receipt_date AS stm_receipt_date, st.receive_no AS stm_receive_no,
-                       IFNULL(st.pay,0) AS receive_lgo,
+                       IFNULL(st.total,0) AS receive_lgo,
                        IFNULL(sk.amount,0) AS receive_kidney,
-                       (IFNULL(d.receive,0) + IFNULL(st.pay,0) + IFNULL(sk.amount,0)) AS receive,
-                       CASE WHEN (IFNULL(d.receive,0) + IFNULL(st.pay,0) + IFNULL(sk.amount,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 
+                       (IFNULL(d.receive,0) + IFNULL(st.total,0) + IFNULL(sk.amount,0)) AS receive,
+                       CASE WHEN (IFNULL(d.receive,0) + IFNULL(st.total,0) + IFNULL(sk.amount,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 
                        THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_802 d
                 LEFT JOIN (SELECT d2.an, SUM(k.compensate_kidney) AS amount 
                            FROM debtor_1102050102_802 d2 
                            JOIN stm_lgo_kidney k ON k.cid = d2.cid AND k.datetimeadm BETWEEN d2.regdate AND d2.dchdate
                            GROUP BY d2.an) sk ON sk.an = d.an
-                LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(pay) AS pay, 
+                LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(compensate_treatment) AS total, 
                                   GROUP_CONCAT(round_no) AS round_no, GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
                            FROM stm_lgo GROUP BY an) st ON st.an = d.an
                 WHERE d.dchdate BETWEEN ? AND ?

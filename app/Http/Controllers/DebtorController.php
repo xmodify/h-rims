@@ -2427,7 +2427,7 @@ class DebtorController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL")
             AND IFNULL(rc.rcpt_money,0) <> IFNULL(kid.claim_price,0)
-            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL) 
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE kidney > 0) 
             GROUP BY o.vn, vp.pttype
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
@@ -2461,7 +2461,7 @@ class DebtorController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL")            
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL)
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE cr > 0)
             GROUP BY o.vn, vp.pttype
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
@@ -2501,7 +2501,7 @@ class DebtorController extends Controller
             AND p.hipdata_code IN ("UCS","WEL")
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")  
             AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
-            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL)
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE anywhere > 0)
             GROUP BY o.vn, vp.pttype
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
@@ -2565,29 +2565,37 @@ class DebtorController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL")
             AND IFNULL(rc.rcpt_money,0) <> IFNULL(kid.claim_price,0)
-            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL) 
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE kidney > 0) 
             AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         foreach ($debtor as $row) {
-            Debtor_1102050101_216::insert([
-                'vn' => $row->vn,
-                'hn' => $row->hn,
-                'cid' => $row->cid,
-                'ptname' => $row->ptname,
-                'vstdate' => $row->vstdate,
-                'vsttime' => $row->vsttime,
-                'pttype' => $row->pttype,
-                'hospmain' => $row->hospmain,
-                'hipdata_code' => $row->hipdata_code,
-                'pdx' => $row->pdx,
-                'income' => $row->income,
-                'rcpt_money' => $row->rcpt_money,
-                'kidney' => $row->debtor,
-                'debtor' => $row->debtor,
-                'status' => $row->status,
-            ]);
+            $check = Debtor_1102050101_216::where('vn', $row->vn)->first();
+            if ($check) {
+                $check->update([
+                    'kidney' => $row->debtor,
+                    'debtor' => (float)($check->cr ?? 0) + (float)($check->anywhere ?? 0) + (float)$row->debtor + (float)($check->ppfs ?? 0),
+                ]);
+            } else {
+                Debtor_1102050101_216::insert([
+                    'vn' => $row->vn,
+                    'hn' => $row->hn,
+                    'cid' => $row->cid,
+                    'ptname' => $row->ptname,
+                    'vstdate' => $row->vstdate,
+                    'vsttime' => $row->vsttime,
+                    'pttype' => $row->pttype,
+                    'hospmain' => $row->hospmain,
+                    'hipdata_code' => $row->hipdata_code,
+                    'pdx' => $row->pdx,
+                    'income' => $row->income,
+                    'rcpt_money' => $row->rcpt_money,
+                    'kidney' => $row->debtor,
+                    'debtor' => $row->debtor,
+                    'status' => $row->status,
+                ]);
+            }
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -2645,29 +2653,37 @@ class DebtorController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("UCS","WEL")            
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL)
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE cr > 0)
             AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         foreach ($debtor as $row) {
-            Debtor_1102050101_216::insert([
-                'vn' => $row->vn,
-                'hn' => $row->hn,
-                'cid' => $row->cid,
-                'ptname' => $row->ptname,
-                'vstdate' => $row->vstdate,
-                'vsttime' => $row->vsttime,
-                'pttype' => $row->pttype,
-                'hospmain' => $row->hospmain,
-                'hipdata_code' => $row->hipdata_code,
-                'pdx' => $row->pdx,
-                'income' => $row->income,
-                'rcpt_money' => $row->rcpt_money,
-                'cr' => $row->debtor,
-                'debtor' => $row->debtor,
-                'status' => $row->status,
-            ]);
+            $check = Debtor_1102050101_216::where('vn', $row->vn)->first();
+            if ($check) {
+                $check->update([
+                    'cr' => $row->debtor,
+                    'debtor' => (float)($check->kidney ?? 0) + (float)($check->anywhere ?? 0) + (float)$row->debtor + (float)($check->ppfs ?? 0),
+                ]);
+            } else {
+                Debtor_1102050101_216::insert([
+                    'vn' => $row->vn,
+                    'hn' => $row->hn,
+                    'cid' => $row->cid,
+                    'ptname' => $row->ptname,
+                    'vstdate' => $row->vstdate,
+                    'vsttime' => $row->vsttime,
+                    'pttype' => $row->pttype,
+                    'hospmain' => $row->hospmain,
+                    'hipdata_code' => $row->hipdata_code,
+                    'pdx' => $row->pdx,
+                    'income' => $row->income,
+                    'rcpt_money' => $row->rcpt_money,
+                    'cr' => $row->debtor,
+                    'debtor' => $row->debtor,
+                    'status' => $row->status,
+                ]);
+            }
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {
@@ -2731,30 +2747,39 @@ class DebtorController extends Controller
             AND p.hipdata_code IN ("UCS","WEL")
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")  
             AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
-            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE vn IS NOT NULL)
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_216 WHERE anywhere > 0)
             AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         foreach ($debtor as $row) {
-            Debtor_1102050101_216::insert([
-                'vn' => $row->vn,
-                'hn' => $row->hn,
-                'cid' => $row->cid,
-                'ptname' => $row->ptname,
-                'vstdate' => $row->vstdate,
-                'vsttime' => $row->vsttime,
-                'pttype' => $row->pttype,
-                'hospmain' => $row->hospmain,
-                'hipdata_code' => $row->hipdata_code,
-                'pdx' => $row->pdx,
-                'income' => $row->income,
-                'rcpt_money' => $row->rcpt_money,
-                'anywhere' => $row->debtor,
-                'ppfs' => $row->ppfs,
-                'debtor' => $row->debtor,
-                'status' => $row->status,
-            ]);
+            $check = Debtor_1102050101_216::where('vn', $row->vn)->first();
+            if ($check) {
+                $check->update([
+                    'anywhere' => $row->debtor,
+                    'ppfs' => $row->ppfs,
+                    'debtor' => (float)($check->kidney ?? 0) + (float)($check->cr ?? 0) + (float)$row->debtor + (float)$row->ppfs,
+                ]);
+            } else {
+                Debtor_1102050101_216::insert([
+                    'vn' => $row->vn,
+                    'hn' => $row->hn,
+                    'cid' => $row->cid,
+                    'ptname' => $row->ptname,
+                    'vstdate' => $row->vstdate,
+                    'vsttime' => $row->vsttime,
+                    'pttype' => $row->pttype,
+                    'hospmain' => $row->hospmain,
+                    'hipdata_code' => $row->hipdata_code,
+                    'pdx' => $row->pdx,
+                    'income' => $row->income,
+                    'rcpt_money' => $row->rcpt_money,
+                    'anywhere' => $row->debtor,
+                    'ppfs' => $row->ppfs,
+                    'debtor' => $row->debtor,
+                    'status' => $row->status,
+                ]);
+            }
         }
 
         if (empty($checkbox) || !is_array($checkbox)) {

@@ -1,0 +1,66 @@
+1.Set Laravel Public Directory as Document Root
+------------------------------------------------------------------
+	C:\xampp\apache\conf\extra\httpd-vhosts.conf
+
+	<VirtualHost *:88>
+    		DocumentRoot "C:/xampp/htdocs/h-rims/public" 
+    		<Directory "C:/xampp/htdocs/h-rims/public">
+        		AllowOverride All
+        		Require all granted
+    		</Directory>
+	</VirtualHost>
+
+	# disable directory browsing 
+		C:\xampp\apache\conf\httpd.conf
+			Options All -Indexes
+			listen 88
+#################################################################
+2.Enable mod_rewrite and Restart Apache
+-----------------------------------------------------------------
+	LoadModule rewrite_module modules/mod_rewrite.so
+#################################################################
+3.Clone the repository (first time only)
+-----------------------------------------------------------------
+	git clone https://github.com/xmodify/h-rims.git rims
+	cd rims
+#################################################################
+4.Pull latest changes (if already cloned)
+-----------------------------------------------------------------
+	git pull origin main
+#################################################################
+5.Install PHP dependencies
+-----------------------------------------------------------------
+	composer install
+#################################################################
+7.Setup your .env file
+-----------------------------------------------------------------
+	cp .env.example .env
+	nano .env
+#################################################################
+8.Generate Key
+-----------------------------------------------------------------
+	php artisan key:generate
+#################################################################
+9.ปิดการใช้งาน push ด้วย Git hook (เฉพาะเครื่อง)
+----------------------------------------------------------------
+	9.1 สร้างไฟล์ pre-push ที่โฟลเดอร์ .git/hooks/:
+		touch .git/hooks/pre-push
+		chmod +x .git/hooks/pre-push
+	9.2 ใส่โค้ดใน pre-push เพื่อบล็อกทุกการ push:
+		nano .git/hooks/pre-push
+			#!/bin/sh
+			echo "❌ git push ถูกบล็อกไว้ ห้าม push ไปยัง GitHub"
+			exit 1
+#################################################################
+กรณี up Laravel xampp
+----------------------------------------------------------------
+	composer install --no-dev --optimize-autoloader
+	composer dump-autoload -o
+	php artisan optimize:clear
+#################################################################
+tip git
+-----------------------------------------------------------------
+อยากรวมโค้ด GitHub เข้ามา	git pull origin main --rebase
+ไม่แคร์โค้ดที่ เครื่อง  git reset --hard && git pull origin main
+ไม่แคร์โค้ด GitHub ลบมันทิ้ง	git push --force origin main
+

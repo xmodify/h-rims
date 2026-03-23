@@ -1,0 +1,58 @@
+Listen 443
+
+SSLCipherSuite HIGH:MEDIUM:!MD5:!RC4:!3DES
+SSLProxyCipherSuite HIGH:MEDIUM:!MD5:!RC4:!3DES
+
+SSLHonorCipherOrder on 
+
+SSLProtocol all -SSLv3
+SSLProxyProtocol all -SSLv3
+
+SSLPassPhraseDialog  builtin
+
+SSLSessionCache "shmcb:C:/xampp/apache/logs/ssl_scache(512000)"
+SSLSessionCacheTimeout  300
+
+<VirtualHost _default_:443>
+
+# General setup for the virtual host
+	DocumentRoot "C:/xampp/htdocs"
+	ServerName 127.0.0.1
+	ServerAdmin admin@example.com
+	ErrorLog "C:/xampp/apache/logs/error.log"
+	TransferLog "C:/xampp/apache/logs/access.log"
+
+# การตั้งค่า Proxy
+    	ProxyRequests Off
+    	ProxyPreserveHost On
+    	AllowEncodedSlashes NoDecode
+    	RewriteEngine On
+    	RequestHeader set X-Forwarded-Proto "https"
+
+    # RIMS SYSTEM
+    	RewriteRule ^/rims$ /rims/ [R,L]
+    	ProxyPass        /rims/        http://127.0.0.1:88/
+    	ProxyPassReverse /rims/        http://127.0.0.1:88/
+    	ProxyPass        /rims         http://127.0.0.1:88
+    	ProxyPassReverse /rims         http://127.0.0.1:88
+    	ProxyPassReverseCookiePath / /rims/
+# สิ้นสุดการตั้งค่า Proxy
+
+	SSLEngine on
+
+	SSLCertificateFile "conf/ssl.crt/server.crt"
+	SSLCertificateKeyFile "conf/ssl.key/server.key"
+	<FilesMatch "\.(cgi|shtml|phtml|php)$">
+    		SSLOptions +StdEnvVars
+	</FilesMatch>
+	<Directory "C:/xampp/apache/cgi-bin">
+    		SSLOptions +StdEnvVars
+	</Directory>
+
+	BrowserMatch "MSIE [2-5]" \
+        nokeepalive ssl-unclean-shutdown \
+        downgrade-1.0 force-response-1.0
+	CustomLog "C:/xampp/apache/logs/ssl_request.log" \
+          	"%t %h %{SSL_PROTOCOL}x %{SSL_CIPHER}x \"%r\" %b"
+
+</VirtualHost>                                  

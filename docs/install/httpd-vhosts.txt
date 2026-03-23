@@ -1,0 +1,22 @@
+<VirtualHost *:80>
+    ServerName 127.0.0.1
+    ProxyRequests Off
+    ProxyPreserveHost On
+    
+    # RIMS
+    RewriteEngine On
+    RewriteRule ^/rims$ /rims/ [R,L]
+    ProxyPass /rims/ http://127.0.0.1:88/
+    ProxyPassReverse /rims/ http://127.0.0.1:88/ 
+</VirtualHost>
+
+# RIMS APP (PORT 88)
+<VirtualHost *:88>
+    DocumentRoot "C:/xampp/htdocs/h-rims/public"
+    <Directory "C:/xampp/htdocs/h-rims/public">
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+
+

@@ -67,6 +67,12 @@
                         </tr>
                     </thead> 
                     <tbody>          
+                        @php 
+                            $total_visit = 0; $total_income = 0; $total_rcpt_money = 0; 
+                            $total_other_price = 0; $total_claim_price = 0; 
+                            $total_er_visit = 0; $total_er_price = 0; 
+                            $total_normal_visit = 0; $total_normal_price = 0;
+                        @endphp
                         @foreach($sum as $row) 
                         <tr>
                             <td class="text-start fw-bold small">{{$row->hospmain}}</td>
@@ -80,8 +86,33 @@
                             <td class="text-center bg-primary-soft">{{ number_format($row->normal_visit) }}</td> 
                             <td class="text-end bg-primary-soft small">{{ number_format($row->normal_price,2) }}</td> 
                         </tr>
+                        @php 
+                            $total_visit += $row->visit; 
+                            $total_income += $row->income; 
+                            $total_rcpt_money += $row->rcpt_money; 
+                            $total_other_price += $row->other_price; 
+                            $total_claim_price += $row->claim_price; 
+                            $total_er_visit += $row->er_visit; 
+                            $total_er_price += $row->er_price; 
+                            $total_normal_visit += $row->normal_visit; 
+                            $total_normal_price += $row->normal_price;
+                        @endphp
                         @endforeach                 
                     </tbody>
+                    <tfoot class="bg-light-soft">
+                        <tr>
+                            <th class="text-end text-muted px-3">รวมทั้งสิ้น:</th>
+                            <th class="text-center">{{ number_format($total_visit) }}</th>
+                            <th class="text-end">{{ number_format($total_income,2) }}</th>
+                            <th class="text-end">{{ number_format($total_rcpt_money,2) }}</th>
+                            <th class="text-end">{{ number_format($total_other_price,2) }}</th>
+                            <th class="text-end text-primary">{{ number_format($total_claim_price,2) }}</th>
+                            <th class="text-center bg-info-soft">{{ number_format($total_er_visit) }}</th>
+                            <th class="text-end bg-info-soft small">{{ number_format($total_er_price,2) }}</th>
+                            <th class="text-center bg-primary-soft">{{ number_format($total_normal_visit) }}</th>
+                            <th class="text-end bg-primary-soft small">{{ number_format($total_normal_price,2) }}</th>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>
@@ -245,7 +276,85 @@
             extend: 'excelHtml5',
             text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
             className: 'btn btn-success btn-sm shadow-sm',
-            title: 'สรุปผู้มารับบริการ UC-OP ในจังหวัด VA แยกสถานพยาบาลหลัก วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+            title: 'สรุปผู้มารับบริการ UC-OP ในจังหวัด VA แยกสถานพยาบาลหลัก วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}',
+            footer: true,
+            exportOptions: {
+                columns: ':visible'
+            },
+            customize: function (xlsx) {
+                var sheet = xlsx.xl.worksheets['sheet1.xml'];
+                var sheetData = sheet.getElementsByTagName('sheetData')[0];
+                var rows = sheetData.getElementsByTagName('row');
+                
+                // --- Part 1: Shift existing header and data rows down by 1 (except the title row at r="1") ---
+                for (var i = 1; i < rows.length; i++) {
+                    var row = rows[i];
+                    var r = parseInt(row.getAttribute('r'), 10);
+                    row.setAttribute('r', r + 1);
+                    var cells = row.getElementsByTagName('c');
+                    for (var j = 0; j < cells.length; j++) {
+                        var cell = cells[j];
+                        var ref = cell.getAttribute('r');
+                        cell.setAttribute('r', ref.replace(/\d+/, r + 1));
+                    }
+                }
+
+                // --- Part 2: Create and Add the category header row (now at r="2") ---
+                var newRow = sheet.createElement('row');
+                newRow.setAttribute('r', '2');
+
+                function createCell(ref, val, style) {
+                    var cell = sheet.createElement('c');
+                    cell.setAttribute('r', ref);
+                    if (style) cell.setAttribute('s', style);
+                    cell.setAttribute('t', 'inlineStr');
+                    var is = sheet.createElement('is');
+                    var t = sheet.createElement('t');
+                    t.textContent = val;
+                    is.appendChild(t);
+                    cell.appendChild(is);
+                    return cell;
+                }
+
+                // Add labels for columns A-F in Row 2 so they don't disappear after merging with Row 3
+                newRow.appendChild(createCell('A2', 'Hmain', '51'));
+                newRow.appendChild(createCell('B2', 'Visit ทั้งหมด', '51'));
+                newRow.appendChild(createCell('C2', 'ค่ารักษา', '51'));
+                newRow.appendChild(createCell('D2', 'ชำระเอง', '51'));
+                newRow.appendChild(createCell('E2', 'กองทุนอื่น', '51'));
+                newRow.appendChild(createCell('F2', 'เรียกเก็บรวม', '51'));
+
+                // Append cells for G2 and I2 (the category headers) 
+                newRow.appendChild(createCell('G2', 'อุบัติเหตุฉุกเฉิน', '51'));
+                newRow.appendChild(createCell('I2', 'ผู้ป่วยทั่วไป', '51'));
+
+                sheetData.insertBefore(newRow, rows[1]);
+
+                // --- Part 3: Merge cells ---
+                var mergeCells = sheet.getElementsByTagName('mergeCells')[0];
+                if (!mergeCells) {
+                    mergeCells = sheet.createElement('mergeCells');
+                    sheet.appendChild(mergeCells);
+                }
+                
+                function addMergeCell(ref) {
+                    var mCell = sheet.createElement('mergeCell');
+                    mCell.setAttribute('ref', ref);
+                    mergeCells.appendChild(mCell);
+                    var count = parseInt(mergeCells.getAttribute('count') || 0, 10);
+                    mergeCells.setAttribute('count', count + 1);
+                }
+
+                // Adjust merge ranges to Rows 2-3 (A2:A3 etc.) instead of 1-2
+                addMergeCell('A2:A3');
+                addMergeCell('B2:B3');
+                addMergeCell('C2:C3');
+                addMergeCell('D2:D3');
+                addMergeCell('E2:E3');
+                addMergeCell('F2:F3');
+                addMergeCell('G2:H2');
+                addMergeCell('I2:J2');
+            }
           }
         ]
       });

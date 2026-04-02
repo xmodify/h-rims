@@ -81,13 +81,13 @@
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="pay-tab" data-bs-toggle="pill" data-bs-target="#pay-pane" type="button" role="tab">
-                        <i class="bi bi-cash-coin me-1"></i> ชำระเงิน OP
+                        <i class="bi bi-cash-coin me-1"></i> รอยืนยันลูกหนี้ ชำระเงิน OP
                         <span class="badge bg-warning-soft text-warning ms-2">{{ count($debtor_search) }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="iclaim-tab" data-bs-toggle="pill" data-bs-target="#iclaim-pane" type="button" role="tab">
-                        <i class="bi bi-shield-check me-1"></i> iClaim
+                        <i class="bi bi-shield-check me-1"></i> รอยืนยันลูกหนี้ iClaim
                         <span class="badge bg-info-soft text-info ms-2">{{ count($debtor_search_iclaim) }}</span>
                     </button>
                 </li>

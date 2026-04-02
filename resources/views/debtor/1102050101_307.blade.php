@@ -255,7 +255,7 @@
         <hr>
                 <!-- Tab 2: Confirm OPD -->
                 <div class="tab-pane fade" id="op-pane" role="tabpanel">
-                    <form action="{{ url('debtor/1102050101_307_confirm') }}" method="POST" enctype="multipart/form-data">
+                    <form id="form-confirm-op" action="{{ url('debtor/1102050101_307_confirm') }}" method="POST" enctype="multipart/form-data">
                         @csrf                
                         <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
                             <button type="button" class="btn btn-outline-success btn-sm" onclick="confirmSubmit()">
@@ -307,7 +307,7 @@
 
                 <!-- Tab 3: Confirm IPD -->
                 <div class="tab-pane fade" id="ip-pane" role="tabpanel">
-                    <form action="{{ url('debtor/1102050101_307_confirm_ip') }}" method="POST" enctype="multipart/form-data">
+                    <form id="form-confirm-ip" action="{{ url('debtor/1102050101_307_confirm_ip') }}" method="POST" enctype="multipart/form-data">
                         @csrf                
                         <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
                             <button type="button" class="btn btn-outline-success btn-sm" onclick="confirmSubmit_ip()">
@@ -415,7 +415,19 @@
             title: 'ยืนยัน?', text: "ต้องการยืนยันลูกหนี้รายการที่เลือกใช่หรือไม่?", icon: 'question',
             showCancelButton: true, confirmButtonColor: '#28a745', cancelButtonColor: '#6c757d', confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก'
         }).then((result) => { if (result.isConfirmed) { 
-            const f = document.getElementById('form-confirm') || document.querySelector('form[action*="confirm"]');
+            const f = document.getElementById('form-confirm-op');
+            if(f) f.submit(); 
+        } });
+    }
+
+    function confirmSubmit_ip() {
+        const selected = [...document.querySelectorAll('input[name="checkbox_ip[]"]:checked')].map(e => e.value);    
+        if (selected.length === 0) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะยืนยัน', 'warning'); return; }
+        Swal.fire({
+            title: 'ยืนยัน?', text: "ต้องการยืนยันลูกหนี้ IPD รายการที่เลือกใช่หรือไม่?", icon: 'question',
+            showCancelButton: true, confirmButtonColor: '#28a745', cancelButtonColor: '#6c757d', confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก'
+        }).then((result) => { if (result.isConfirmed) { 
+            const f = document.getElementById('form-confirm-ip');
             if(f) f.submit(); 
         } });
     }

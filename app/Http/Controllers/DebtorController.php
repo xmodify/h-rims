@@ -3685,7 +3685,7 @@ class DebtorController extends Controller
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox = $request->input('checkbox'); // รับ array
-        $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
+        $checkbox_string = "'" . implode("','", $checkbox) . "'"; // แปลงเป็น string สำหรับ SQL IN พร้อมใส่ single quote
 
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate, o.vsttime,
@@ -3767,10 +3767,10 @@ class DebtorController extends Controller
         $request->validate([
             'checkbox_ip' => 'required|array',
         ], [
-            'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
+            'checkbox_ip.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
         $checkbox_ip = $request->input('checkbox_ip'); // รับ array
-        $checkbox_string = implode(",", $checkbox_ip); // แปลงเป็น string สำหรับ SQL IN
+        $checkbox_string = "'" . implode("','", $checkbox_ip) . "'"; // แปลงเป็น string สำหรับ SQL IN พร้อมใส่ single quote
 
         $debtor = DB::connection('hosxp')->select(
             '

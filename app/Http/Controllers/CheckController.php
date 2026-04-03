@@ -38,7 +38,7 @@ class CheckController extends Controller
         // 1. Closed Records (Visits that have an EP prefix in HOSxP or RiMS)
         $closed = DB::connection('hosxp')->select('
             SELECT pt.fname AS firstName, pt.lname AS lastName, pt.cid, 
-                   COALESCE(ep.subInsclName, p.name) as subInsclName, 
+                   COALESCE(ep.subInsclName, p.name) as subInsclName, ep.subInscl,
                    CONCAT(o.vstdate, " ", o.vsttime) as serviceDateTime,
                    COALESCE(ep.claimType, "") as claimType,
                    COALESCE(ep.claimCode, vp.auth_code) as claimCode

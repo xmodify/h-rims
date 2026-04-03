@@ -1131,7 +1131,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item d-flex align-items-center me-2">
                             <div class="nav-version-badge">
-                                V.69-04-02 12:00
+                                V.69-04-03 19:00
                             </div>
                         </li>
                         <!-- Authentication Links -->
@@ -1182,7 +1182,7 @@
                                     </a>
                                     <a class="dropdown-item dropdown-item-modern text-danger" href="{{ route('logout') }}"
                                         onclick="event.preventDefault();
-                                                                         document.getElementById('logout-form').submit();">
+                                                                             document.getElementById('logout-form').submit();">
                                         {{ __('Logout') }}
                                     </a>
                                     <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
@@ -1310,7 +1310,7 @@
                         borderRadius: '15px'
                     });
                 @endif
-                                });
+                                    });
         </script>
     @endauth
 

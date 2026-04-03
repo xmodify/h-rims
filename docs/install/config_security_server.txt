@@ -1,0 +1,93 @@
+================================================================================
+🔒 คูมือการตั้งค่าความปลอดภัยระดับ Server สำหรับระบบ Hnplus Productivity
+================================================================================
+แก้ไขล่าสุด: 2026-04-02
+ครอบคลุม: AlmaLinux (Apache) และ XAMPP (Windows)
+
+--------------------------------------------------------------------------------
+1. การตั้งค่า Laravel สำหรับ Production (ในไฟล์ .env)
+--------------------------------------------------------------------------------
+เมื่อนำระบบขึ้นใช้งานจริง (Production) ต้องตั้งค่าดังนี้:
+
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://huataphanhospital.go.th/nplus   <-- เปลี่ยนเป็น URL จริง
+
+# สำคัญมาก: ต้องเป็น HTTPS เท่านั้นถึงจะใช้ Secure Cookie ได้
+SESSION_SECURE_COOKIE=true
+SESSION_HTTP_ONLY=true
+
+--------------------------------------------------------------------------------
+2. สำหรับ AlmaLinux + Apache (httpd)
+--------------------------------------------------------------------------------
+แก้ไขไฟล์คอนฟิกหลัก (เช่น /etc/httpd/conf/httpd.conf หรือไฟล์ใน conf.d/)
+
+2.1 ปิดการแสดงข้อมูล Server Version และ PHP Version
+--------------------------------------------------
+แก้ไขไฟล์ /etc/httpd/conf/httpd.conf:
+ServerTokens Prod
+ServerSignature Off
+
+2.2 ปิด X-Powered-By ใน PHP
+--------------------------
+แก้ไขไฟล์ /etc/php.ini:
+expose_php = Off
+
+2.3 เพิ่ม Security Headers (หากไม่ได้กำหนดใน .htaccess)
+---------------------------------------------------
+เพิ่มใน VirtualHost หรือ Directory config:
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+2.4 Restart Service
+------------------
+sudo systemctl restart httpd
+sudo systemctl restart php-fpm (ถ้ามี)
+
+--------------------------------------------------------------------------------
+3. สำหรับ XAMPP บน Windows
+--------------------------------------------------------------------------------
+
+3.1 ปิดการแสดงข้อมูล Server ใน httpd.conf
+---------------------------------------
+เปิดไฟล์ C:\xampp\apache\conf\httpd.conf
+ค้นหาและแก้ไข:
+ServerTokens Prod
+ServerSignature Off
+
+3.2 ปิด Directory Browsing
+-------------------------
+ตรวจสอบในไฟล์ httpd.conf หรือ .htaccess ในโฟลเดอร์ public:
+Options -Indexes
+
+3.3 ปิด X-Powered-By ใน php.ini
+-----------------------------
+เปิดไฟล์ C:\xampp\php\php.ini
+ค้นหาและแก้ไข:
+expose_php = Off
+
+3.4 เพิ่ม Module Headers ใน httpd.conf
+------------------------------------
+ตรวจสอบว่าบรรทัดนี้ไม่มีเครื่องหมาย # ด้านหน้า:
+LoadModule headers_module modules/mod_headers.so
+
+--------------------------------------------------------------------------------
+4. การจัดการ SSL (HTTPS)
+--------------------------------------------------------------------------------
+- สำหรับ AlmaLinux: แนะนำใช้ Let's Encrypt (Certbot)
+- สำหรับ Windows: หากใช้งานภายในโรงพยาบาล แนะนำใช้ Self-signed หรือ CA ภายใน
+- หากไม่ใช้ HTTPS จะไม่สามารถตั้งค่า SESSION_SECURE_COOKIE=true ได้ (Session จะหลุดตลอดเวลา)
+
+--------------------------------------------------------------------------------
+5. การตรวจสอบความปลอดภัย (VA Scan)
+--------------------------------------------------------------------------------
+หลังจากตั้งค่าทั้งหมดแล้ว ให้รัน ZAP Scan อีกครั้ง ระบบควรจะไม่พบปัญหา:
+- Anti-clickjacking (ผ่าน Middleware)
+- Content Security Policy (ผ่าน Middleware)
+- Cookie No HttpOnly (ผ่าน .env)
+- Directory Browsing (ผ่าน .htaccess/Server Config)
+- SRI (ผ่าน Blade Template)
+================================================================================

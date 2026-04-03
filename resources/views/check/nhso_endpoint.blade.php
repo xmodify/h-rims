@@ -104,7 +104,7 @@
                                     <td class="text-start fw-bold text-dark small">{{ $row->firstName }} {{ $row->lastName }}</td>
                                     <td class="text-center small text-muted">{{ $row->cid }}</td>
                                     <td class="text-start">
-                                        <div class="small text-muted lh-1" style="font-size: 0.75rem;">{{ $row->subInsclName ?: $row->subInscl }}</div>
+                                        <div class="small text-muted lh-1" style="font-size: 0.75rem;">{{ $row->subInsclName ?: ($row->subInscl ?? '-') }}</div>
                                     </td>  
                                     <td class="text-center small">{{ DatetimeThai($row->serviceDateTime) }}</td>
                                     <td class="text-center">

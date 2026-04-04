@@ -4297,7 +4297,7 @@ class DebtorController extends Controller
             SELECT vstdate,COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,SUM(receive) AS receive
             FROM (SELECT d.vstdate,d.vsttime,d.vn,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,
             d.pdx,d.hospmain,d.income,d.rcpt_money,d.kidney,d.debtor,
-            s.amount+s.epopay+s.epoadm AS receive,s.rid AS repno,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno
+            s.amount+s.epopay+s.epoadm AS receive,s.rid AS repno,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive AS receive_manual, d.repno AS repno_manual
             FROM debtor_1102050101_309 d   
             LEFT JOIN stm_sss_kidney s ON s.cid=d.cid AND s.vstdate = d.vstdate
             WHERE d.vstdate BETWEEN ? AND ?) AS a GROUP BY vstdate ORDER BY vsttime', [$start_date, $end_date]);

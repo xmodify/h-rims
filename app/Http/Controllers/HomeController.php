@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -71,7 +72,8 @@ class HomeController extends Controller
         }
 
         // 1. Optimized OPD Monitor Query
-        $opd_monitor = DB::connection('hosxp')->select('
+        $opd_monitor = Cache::remember('home_opd_monitor', 120, function() {
+            return DB::connection('hosxp')->select('
         SELECT 
             COUNT(vn) AS total,
             SUM(CASE WHEN auth_code_flag = "Y" THEN 1 ELSE 0 END) AS opd_auth,
@@ -120,6 +122,7 @@ class HomeController extends Controller
             WHERE o.vstdate = DATE(NOW()) AND (o.an = "" OR o.an IS NULL)
             GROUP BY o.vn
         ) AS a');
+        });
 
         $row = $opd_monitor[0] ?? (object) [];
         $opd_total = $row->total ?? 0;
@@ -143,7 +146,8 @@ class HomeController extends Controller
         $uc_kidney_endpoint = $row->uc_kidney_endpoint ?? 0;
 
         // 2. IPD Stats & Counts
-        $ipd_stats = DB::connection('hosxp')->select('
+        $ipd_stats = Cache::remember('home_ipd_stats', 120, function() {
+            return DB::connection('hosxp')->select('
         SELECT 
             COUNT(DISTINCT CASE WHEN confirm_discharge = "N" THEN an END) as admit_now,
             SUM(CASE WHEN confirm_discharge = "N" AND ward_m = "Y" THEN 1 ELSE 0 END) as ward_m,
@@ -164,6 +168,7 @@ class HomeController extends Controller
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             WHERE i.confirm_discharge = "N" OR o.vstdate = DATE(NOW())
         ) AS a')[0];
+        });
 
         $admit_now = $ipd_stats->admit_now;
         $ward_m = $ipd_stats->ward_m;
@@ -175,7 +180,8 @@ class HomeController extends Controller
         $admit_homeward_endpoint = $ipd_stats->admit_homeward_endpoint;
 
         // 3. IPD Summary Diagnostics & Finance
-        $ipd_summary = DB::connection('hosxp')->select('
+        $ipd_summary = Cache::remember("home_ipd_summary_{$start_date}_{$end_date}", 600, function() use ($start_date, $end_date) {
+            return DB::connection('hosxp')->select('
         SELECT 
             SUM(CASE WHEN (dchdate BETWEEN ? AND ?) AND (diag_text_list IS NULL OR diag_text_list = "") THEN 1 ELSE 0 END) AS non_diagtext,
             SUM(CASE WHEN (dchdate BETWEEN ? AND ?) AND (diag_text_list IS NOT NULL AND diag_text_list <> "") AND (dx IS NULL OR dx = "") THEN 1 ELSE 0 END) AS non_icd10,
@@ -190,6 +196,7 @@ class HomeController extends Controller
             WHERE ((i.dchdate BETWEEN ? AND ?) OR i.confirm_discharge = "N")
             AND i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")
         ) AS a', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date])[0];
+        });
 
         $non_diagtext = $ipd_summary->non_diagtext;
         $non_icd10 = $ipd_summary->non_icd10;
@@ -200,7 +207,8 @@ class HomeController extends Controller
         $bed_qty = DB::table('main_setting')->where('name', 'bed_qty')->value('value') ?: 1;
 
         // 4. Combined Monthly IPD Statistics
-        $monthly_stats = DB::connection('hosxp')->select('
+        $monthly_stats = Cache::remember("home_monthly_stats_{$start_date}_{$end_date}", 1800, function() use ($start_date, $end_date) {
+            return DB::connection('hosxp')->select('
         SELECT 
             CASE 
                 WHEN MONTH(a.dchdate)="10" THEN CONCAT("ต.ค. ",YEAR(a.dchdate)+543)
@@ -242,6 +250,7 @@ class HomeController extends Controller
         AND a.pdx NOT IN ("Z290","Z208")
         GROUP BY YEAR(a.dchdate), MONTH(a.dchdate)
         ORDER BY YEAR(a.dchdate), MONTH(a.dchdate)', [$start_date, $end_date]);
+        });
 
         $ip_all = [];
         $ip_normal = [];

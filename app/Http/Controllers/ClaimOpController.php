@@ -2646,8 +2646,8 @@ class ClaimOpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
-                    AND r.bill_date BETWEEN ? AND ?
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn 
+                    WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.vn = o.vn
                 WHERE (o.an IS NULL OR o.an = "")
@@ -2656,7 +2656,7 @@ class ClaimOpController extends Controller
                 GROUP BY o.vn
             ) AS a
             GROUP BY month
-            ORDER BY MIN(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+            ORDER BY MIN(vstdate)', [$start_date_b, $end_date_b]);
 
         $month = array_column($sum_data, 'month');
         $claim_price = array_column($sum_data, 'claim_price');
@@ -2680,8 +2680,8 @@ class ClaimOpController extends Controller
                 SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno) 
-                AND r.bill_date BETWEEN ? AND ?
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn 
+                WHERE a.rcpno IS NULL 
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn           
             LEFT JOIN vn_stat v ON v.vn = o.vn
@@ -2689,7 +2689,7 @@ class ClaimOpController extends Controller
             AND v.paid_money > 0
             AND v.paid_money - IFNULL(rc.rcpt_money,0) > 0
             AND o.vstdate BETWEEN ? AND ?
-            GROUP BY o.vn ORDER BY o.vstdate, o.oqueue ', [$start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate, o.oqueue ', [$start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vstdate, o.vsttime, o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
@@ -2710,14 +2710,14 @@ class ClaimOpController extends Controller
                 SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno) 
-                AND r.bill_date BETWEEN ? AND ?
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn 
+                WHERE a.rcpno IS NULL 
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
             LEFT JOIN rcpt_print r1 ON r1.vn = p2.vn AND r1.`status` ="OK" AND r1.department="OPD" 
             WHERE (o.an IS NULL OR o.an ="") AND o.vstdate BETWEEN ? AND ? 
             AND v.paid_money > 0 AND v.paid_money - IFNULL(rc.rcpt_money,0) = 0
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date]);
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date]);
 
         return view('claim_op.rcpt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
     }

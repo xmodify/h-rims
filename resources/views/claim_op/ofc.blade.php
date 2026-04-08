@@ -118,8 +118,7 @@
                                     <th class="text-center">PDX | ICD9</th>
                                     <th class="text-center small">ค่ารักษา</th> 
                                     <th class="text-center small">ชำระเอง</th>
-                                    <th class="text-center small">PPFS</th>  
-                                    <th class="text-center small">E-Claim</th>
+                                    <th class="text-center small">PPFS</th>
                                     <th class="text-center text-primary small">เรียกเก็บ</th> 
                                 </tr>
                             </thead> 
@@ -178,8 +177,7 @@
                                             elseif($st_code == '3') $ec_color = '#fd7e14';
                                             elseif($st_code == '4') $ec_color = '#0dcaf0';
                                         }
-                                    @endphp
-                                    <td class="text-start small fw-bold" style="color: {{ $ec_color }}; word-break: break-word;">{{ $row->ec_status }}</td>
+                                    @endphp                                    
                                     <td class="text-end fw-bold text-primary small">{{ number_format($row->debtor,2) }}</td>         
                                 </tr>
                                 @php 

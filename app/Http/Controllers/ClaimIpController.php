@@ -85,7 +85,8 @@ class ClaimIpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                    WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an           
                 LEFT JOIN (
@@ -130,7 +131,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -181,7 +183,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -272,7 +275,8 @@ class ClaimIpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                    WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an           
                 LEFT JOIN (
@@ -318,7 +322,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -369,7 +374,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -460,7 +466,8 @@ class ClaimIpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                    WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
                 LEFT JOIN (
@@ -505,7 +512,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -554,7 +562,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -645,7 +654,8 @@ class ClaimIpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                    WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
                 LEFT JOIN (
@@ -708,7 +718,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -773,7 +784,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -879,7 +891,8 @@ class ClaimIpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                    WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
                 LEFT JOIN (
@@ -924,7 +937,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -970,7 +984,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -1059,7 +1074,8 @@ class ClaimIpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                    WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
                 LEFT JOIN (
@@ -1122,7 +1138,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -1186,7 +1203,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -1293,7 +1311,8 @@ class ClaimIpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                    WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
                 LEFT JOIN (
@@ -1356,7 +1375,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -1420,7 +1440,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -1527,7 +1548,8 @@ class ClaimIpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                    WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
                 LEFT JOIN (
@@ -1590,7 +1612,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -1654,7 +1677,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -1760,7 +1784,8 @@ class ClaimIpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                    WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
                 LEFT JOIN hrims.debtor_1102050101_302 d ON d.an = i.an
@@ -1801,7 +1826,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -1838,7 +1864,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -1939,7 +1966,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
 			LEFT JOIN iptdiag id ON id.an=a.an AND id.diagtype = 1
@@ -2016,7 +2044,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN hrims.debtor_1102050102_109 d ON d.an = i.an
@@ -2052,7 +2081,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -2087,7 +2117,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN ipt_accident ia ON ia.an=i.an
@@ -2150,7 +2181,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             WHERE i.confirm_discharge = "Y" 
@@ -2181,7 +2213,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             WHERE i.confirm_discharge = "Y" 
@@ -2217,7 +2250,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -2255,7 +2289,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -2330,7 +2365,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN hrims.debtor_1102050102_602 d ON d.an = i.an
@@ -2365,7 +2401,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
@@ -2399,7 +2436,8 @@ class ClaimIpController extends Controller
             LEFT JOIN (
                 SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                 FROM rcpt_print r
-                WHERE NOT EXISTS (SELECT 1 FROM rcpt_abort a WHERE a.rcpno = r.rcpno)
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1

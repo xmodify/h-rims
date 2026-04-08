@@ -254,11 +254,11 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-				INNER JOIN opitemrece o1 ON o1.vn=o.vn
+				INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 				INNER JOIN hrims.lookup_icode li ON o1.icode = li.icode AND li.herb32 = "Y"						
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price	FROM opitemrece op
 					INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
-					WHERE op.vstdate BETWEEN ? AND ? AND li.herb32 = "Y" GROUP BY op.vn) herb ON herb.vn=o.vn						
+					WHERE op.vstdate BETWEEN ? AND ? AND li.herb32 = "Y" AND op.paidst = "02" GROUP BY op.vn) herb ON herb.vn=o.vn						
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_hc_drug) AS receive_hc_drug,
                     SUM(receive_hc_hc) AS receive_hc_hc FROM hrims.stm_ucs  
                     WHERE vstdate BETWEEN ? AND ?
@@ -285,12 +285,12 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-			INNER JOIN opitemrece o1 ON o1.vn=o.vn
+			INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 			INNER JOIN hrims.lookup_icode li ON o1.icode = li.icode AND li.herb32 = "Y"
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price	FROM opitemrece op
 				INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
-				WHERE op.vstdate BETWEEN ? AND ? AND li.herb32 = "Y" GROUP BY op.vn) herb ON herb.vn=o.vn						
+				WHERE op.vstdate BETWEEN ? AND ? AND li.herb32 = "Y" AND op.paidst = "02" GROUP BY op.vn) herb ON herb.vn=o.vn						
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_hc_drug) AS receive_hc_drug,
                 SUM(receive_hc_hc) AS receive_hc_hc FROM hrims.stm_ucs 
@@ -352,10 +352,10 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-				INNER JOIN opitemrece o1 ON o1.vn=o.vn
+				INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 				INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("TELMED")		
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-					WHERE op.vstdate BETWEEN ? AND ?
+					WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 					AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("TELMED")) GROUP BY op.vn) tele ON tele.vn=o.vn						
                 LEFT JOIN ( SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_op) AS receive_op
                     FROM hrims.stm_ucs 
@@ -383,11 +383,11 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-			INNER JOIN opitemrece o1 ON o1.vn=o.vn
+			INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 			INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("TELMED")	
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-				WHERE op.vstdate BETWEEN ? AND ? 
+				WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 				AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("TELMED")) GROUP BY op.vn) tele ON tele.vn=o.vn						
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ( SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_op) AS receive_op
@@ -450,10 +450,10 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-				INNER JOIN opitemrece o1 ON o1.vn=o.vn
+				INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 				INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("DRUGP")		
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-					WHERE op.vstdate BETWEEN ? AND ?
+					WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 					AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("DRUGP")) GROUP BY op.vn) rider ON rider.vn=o.vn						
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_op) AS receive_op   
                     FROM hrims.stm_ucs 
@@ -481,11 +481,11 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-			INNER JOIN opitemrece o1 ON o1.vn=o.vn
+			INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 			INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("DRUGP")	
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-				WHERE op.vstdate BETWEEN ? AND ? 
+				WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 				AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("DRUGP")) GROUP BY op.vn) rider ON rider.vn=o.vn						
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_op) AS receive_op   
@@ -548,10 +548,10 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-				INNER JOIN opitemrece o1 ON o1.vn=o.vn
+				INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 				INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("80008")
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-				    WHERE op.vstdate BETWEEN ? AND ? 
+				    WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 				    AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("80008")) 
                     GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_dmis_compensate_pay) AS receive_dmis_compensate_pay
@@ -580,12 +580,12 @@ class MishosController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
 			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("O244","O249")
-			LEFT JOIN opitemrece o1 ON o1.vn=o.vn 
+			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
                 AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("80008"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
 			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-			WHERE op.vstdate BETWEEN ? AND ?
+			WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 			AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("80008")) 
             GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
             LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_dmis_compensate_pay) AS receive_dmis_compensate_pay
@@ -648,9 +648,9 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-				INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode = ?						
+				INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode = ?	AND o1.paidst = "02"					
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-					WHERE op.vstdate BETWEEN ? AND ? AND op.icode = ? GROUP BY op.vn) drug ON drug.vn=o.vn						
+					WHERE op.vstdate BETWEEN ? AND ? AND op.icode = ? AND op.paidst = "02" GROUP BY op.vn) drug ON drug.vn=o.vn						
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_hc_drug) AS receive_hc_drug
                     FROM hrims.stm_ucs 
                     WHERE vstdate BETWEEN ? AND ?
@@ -676,10 +676,10 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-			INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode = ?			
+			INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode = ?	AND o1.paidst = "02"		
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-				WHERE op.vstdate BETWEEN ? AND ? AND op.icode=? GROUP BY op.vn) drug ON drug.vn=o.vn
+				WHERE op.vstdate BETWEEN ? AND ? AND op.icode=? AND op.paidst = "02" GROUP BY op.vn) drug ON drug.vn=o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn						
             LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_hc_drug) AS receive_hc_drug
                 FROM hrims.stm_ucs 
@@ -739,10 +739,10 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-				INNER JOIN opitemrece o1 ON o1.vn=o.vn
+				INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 				INNER JOIN drugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("STEMI1")		
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price	FROM opitemrece op					
-					WHERE op.vstdate BETWEEN ? AND ?
+					WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 					AND op.icode IN (SELECT icode FROM drugitems WHERE nhso_adp_code IN ("STEMI1")) GROUP BY op.vn) sk ON sk.vn=o.vn						
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_dmis_drug) AS receive_dmis_drug
                     FROM hrims.stm_ucs 
@@ -770,11 +770,11 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-			INNER JOIN opitemrece o1 ON o1.vn=o.vn
+			INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 			INNER JOIN drugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("STEMI1")	
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price	FROM opitemrece op					
-				WHERE op.vstdate BETWEEN ? AND ? 
+				WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 				AND op.icode IN (SELECT icode FROM drugitems WHERE nhso_adp_code IN ("STEMI1")) GROUP BY op.vn) sk ON sk.vn=o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn						
             LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_dmis_drug) AS receive_dmis_drug
@@ -836,10 +836,10 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-				INNER JOIN opitemrece o1 ON o1.vn=o.vn
+				INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 				INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_type_id = "2"	AND nt.nhso_adp_code NOT IN ("8901","8902","8904")
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-					WHERE op.vstdate BETWEEN ? AND ?
+					WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 					AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_type_id = "2"
                     AND nhso_adp_code NOT IN ("8901","8902","8904")) GROUP BY op.vn) ins ON ins.vn=o.vn						
                 LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_inst) AS receive_inst
@@ -867,11 +867,11 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-			INNER JOIN opitemrece o1 ON o1.vn=o.vn
+			INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 			INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_type_id = "2"	AND nt.nhso_adp_code NOT IN ("8901","8902","8904")
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-				WHERE op.vstdate BETWEEN ? AND ? 
+				WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 				AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_type_id = "2"
                 AND nhso_adp_code NOT IN ("8901","8902","8904")) GROUP BY op.vn) ins ON ins.vn=o.vn	
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn					
@@ -933,10 +933,10 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-				INNER JOIN opitemrece o1 ON o1.vn=o.vn
+				INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 				INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("30001","Cons01","Eva001")
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-				    WHERE op.vstdate BETWEEN ? AND ? 
+				    WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 				    AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30001","Cons01","Eva001")) 
                     GROUP BY op.vn) palli ON palli.vn=o.vn						
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_palliative) AS receive_palliative
@@ -964,11 +964,11 @@ class MishosController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
-			INNER JOIN opitemrece o1 ON o1.vn=o.vn
+			INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 			INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("30001","Cons01","Eva001")
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-				WHERE op.vstdate BETWEEN ? AND ? 
+				WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 				AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30001","Cons01","Eva001")) 
                 GROUP BY op.vn) palli ON palli.vn=o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn						
@@ -1031,11 +1031,11 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-				LEFT JOIN opitemrece o1 ON o1.vn=o.vn 
+				LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
                     AND (o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("FP001","FP002","FP002_1","FP002_2","FP003_1","FP003_2","FP003_3","FP003_4"))
 			        OR o1.icode IN (SELECT icode FROM drugitems WHERE nhso_adp_code IN ("FP001","FP002","FP002_1","FP002_2","FP003_1","FP003_2","FP003_3","FP003_4")))
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-			        WHERE op.vstdate BETWEEN ? AND ?
+			        WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 				    AND (op.icode IN (SELECT icode FROM nondrugitems	WHERE nhso_adp_code IN ("FP001","FP002","FP002_1","FP002_2","FP003_1","FP003_2","FP003_3","FP003_4"))
 				    OR op.icode IN (SELECT icode FROM drugitems	WHERE nhso_adp_code IN ("FP001","FP002","FP002_1","FP002_2","FP003_1","FP003_2","FP003_3","FP003_4")))
 				    GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
@@ -1065,13 +1065,13 @@ class MishosController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
 			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("Z301","Z304","Z308","G431","697","9923")
-			LEFT JOIN opitemrece o1 ON o1.vn=o.vn 
+			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
                 AND (o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("FP001","FP002","FP002_1","FP002_2","FP003_1","FP003_2","FP003_3","FP003_4"))
 			    OR o1.icode IN (SELECT icode FROM drugitems WHERE nhso_adp_code IN ("FP001","FP002","FP002_1","FP002_2","FP003_1","FP003_2","FP003_3","FP003_4")))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
 			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-			WHERE op.vstdate BETWEEN ? AND ?
+			WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 				AND (op.icode IN (SELECT icode FROM nondrugitems	WHERE nhso_adp_code IN ("FP001","FP002","FP002_1","FP002_2","FP003_1","FP003_2","FP003_3","FP003_4"))
 				OR op.icode IN (SELECT icode FROM drugitems	WHERE nhso_adp_code IN ("FP001","FP002","FP002_1","FP002_2","FP003_1","FP003_2","FP003_3","FP003_4")))
 				GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
@@ -1133,10 +1133,10 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-				INNER JOIN opitemrece o1 ON o1.vn=o.vn
+				INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 				INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("30014")
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-				WHERE op.vstdate BETWEEN ? AND ? 
+				WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 				AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30014")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
                 LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
                     FROM hrims.stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) stm ON stm.cid = pt.cid
@@ -1161,13 +1161,13 @@ class MishosController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
 			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("Z320","Z321")
-			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30014"))
+			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30014"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
 			LEFT JOIN lab_head lh ON lh.vn=o.vn
 			LEFT JOIN lab_order lo ON lo.lab_order_number=lh.lab_order_number AND lo.lab_items_code IN (' . $lab_prt . ') 
 			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-			WHERE op.vstdate BETWEEN ? AND ?
+			WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 			AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30014")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
             LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
                 FROM hrims.stm_ucs 
@@ -1228,10 +1228,10 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-				INNER JOIN opitemrece o1 ON o1.vn=o.vn
+				INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 				INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("13001")
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-				WHERE op.vstdate BETWEEN ? AND ? 
+				WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 				AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
                 LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
                     FROM hrims.stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) stm ON stm.cid = pt.cid
@@ -1256,11 +1256,11 @@ class MishosController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
 			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("Z130")
-			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001"))
+			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
 			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-			WHERE op.vstdate BETWEEN ? AND ?
+			WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 			AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
             LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
                 FROM hrims.stm_ucs 
@@ -1321,10 +1321,10 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-				INNER JOIN opitemrece o1 ON o1.vn=o.vn
+				INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 				INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("14001")
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-				WHERE op.vstdate BETWEEN ? AND ? 
+				WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 				AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("14001")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
                 LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
                     FROM hrims.stm_ucs 
@@ -1351,11 +1351,11 @@ class MishosController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
 			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("Z130")
-			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("14001"))
+			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("14001"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
 			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-			WHERE op.vstdate BETWEEN ? AND ?
+			WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 			AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("14001")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
             LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
                 FROM hrims.stm_ucs 
@@ -1416,10 +1416,10 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-				INNER JOIN opitemrece o1 ON o1.vn=o.vn
+				INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 				INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("15001")
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-				WHERE op.vstdate BETWEEN ? AND ? 
+				WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 				AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("15001")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
                 LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
                     FROM hrims.stm_ucs 
@@ -1446,11 +1446,11 @@ class MishosController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
 			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("K020","K1170","Z298","9654","2387021")
-			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("15001"))
+			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("15001"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
 			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-			WHERE op.vstdate BETWEEN ? AND ?
+			WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 			AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("15001")) GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
             LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
                 FROM hrims.stm_ucs 
@@ -1511,10 +1511,10 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-				INNER JOIN opitemrece o1 ON o1.vn=o.vn
+				INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 				INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("30008","30009","30010","30011","30012","30013")
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-				    WHERE op.vstdate BETWEEN ? AND ? 
+				    WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 				    AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30008","30009","30010","30011","30012","30013")) 
                     GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
                 LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
@@ -1544,12 +1544,12 @@ class MishosController extends Controller
             LEFT JOIN vn_stat v ON v.vn = o.vn
 			LEFT JOIN ovstdiag ov ON ov.vn=o.vn
                 AND ov.icd10 IN ("Z340","Z348","Z350","Z359","8878","2387010","2277310","2277320","2287310","2287320")
-			LEFT JOIN opitemrece o1 ON o1.vn=o.vn 
+			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" 
                 AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30008","30009","30010","30011","30012","30013"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
 			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-			WHERE op.vstdate BETWEEN ? AND ?
+			WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 			AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30008","30009","30010","30011","30012","30013")) 
             GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
             LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
@@ -1611,10 +1611,10 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-				INNER JOIN opitemrece o1 ON o1.vn=o.vn
+				INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 				INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("30015","30016")
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-				    WHERE op.vstdate BETWEEN ? AND ? 
+				    WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 				    AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30015","30016")) 
                     GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
                 LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
@@ -1642,12 +1642,12 @@ class MishosController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
 			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("Z390","Z392")
-			LEFT JOIN opitemrece o1 ON o1.vn=o.vn 
+			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" 
                 AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30015","30016"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
 			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-			WHERE op.vstdate BETWEEN ? AND ?
+			WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 			AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30015","30016")) 
             GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
             LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
@@ -1709,10 +1709,10 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-				INNER JOIN opitemrece o1 ON o1.vn=o.vn
+				INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 				INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("90005")
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-				    WHERE op.vstdate BETWEEN ? AND ? 
+				    WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 				    AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("90005")) 
                     GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
                 LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
@@ -1740,12 +1740,12 @@ class MishosController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
 			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("Z121")
-			LEFT JOIN opitemrece o1 ON o1.vn=o.vn 
+			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" 
                 AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("90005"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
 			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-			WHERE op.vstdate BETWEEN ? AND ?
+			WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 			AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("90005")) 
             GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
             LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
@@ -1807,10 +1807,10 @@ class MishosController extends Controller
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
-				INNER JOIN opitemrece o1 ON o1.vn=o.vn
+				INNER JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
 				INNER JOIN nondrugitems nt ON o1.icode = nt.icode AND nt.nhso_adp_code IN ("12003","12004")
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-				    WHERE op.vstdate BETWEEN ? AND ? 
+				    WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 				    AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("12003","12004")) 
                     GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
                 LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
@@ -1838,12 +1838,12 @@ class MishosController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype          
             LEFT JOIN vn_stat v ON v.vn = o.vn
 			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("Z131","Z136")
-			LEFT JOIN opitemrece o1 ON o1.vn=o.vn 
+			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" 
                 AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("12003","12004"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
 			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
 			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-			WHERE op.vstdate BETWEEN ? AND ?
+			WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
 			AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("12003","12004")) 
             GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
             LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp

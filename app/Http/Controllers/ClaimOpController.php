@@ -72,6 +72,7 @@ class ClaimOpController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype           
             LEFT JOIN vn_stat v ON v.vn = o.vn            
+
             INNER JOIN (
                 SELECT op.vn, 
                     SUM(op.sum_price) AS total_price
@@ -105,7 +106,7 @@ class ClaimOpController extends Controller
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,claim_items.claim_list,
-            v.income,v.rcpt_money,COALESCE(claim_items.claim_price, 0) AS claim_price,GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
+            v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(claim_items.claim_price, 0) AS claim_price,GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
             fdh.status_message_th AS fdh_status,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -114,6 +115,14 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
+
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             INNER JOIN (
                 SELECT op.vn, 
@@ -153,7 +162,7 @@ class ClaimOpController extends Controller
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            o.vn AS seq,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,
+            o.vn AS seq,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             claim_items.claim_list,
             COALESCE(claim_items.uc_cr, 0) AS uc_cr,COALESCE(claim_items.ppfs, 0) AS ppfs,COALESCE(claim_items.herb, 0) AS herb,
             GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
@@ -165,6 +174,14 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
+
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn        
             INNER JOIN (
                 SELECT op.vn, 
@@ -253,6 +270,7 @@ class ClaimOpController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype           
             LEFT JOIN vn_stat v ON v.vn = o.vn            
+
             INNER JOIN (
                 SELECT op.vn, 
                     SUM(op.sum_price) AS total_price
@@ -286,7 +304,7 @@ class ClaimOpController extends Controller
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,claim_items.claim_list,
-            v.income,v.rcpt_money,COALESCE(claim_items.claim_price, 0) AS claim_price,GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
+            v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(claim_items.claim_price, 0) AS claim_price,GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
             fdh.status_message_th AS fdh_status,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -295,6 +313,14 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
+
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             INNER JOIN (
                 SELECT op.vn, 
@@ -334,7 +360,7 @@ class ClaimOpController extends Controller
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            o.vn AS seq,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,
+            o.vn AS seq,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             claim_items.claim_list,
             COALESCE(claim_items.uc_cr, 0) AS uc_cr,COALESCE(claim_items.ppfs, 0) AS ppfs,COALESCE(claim_items.herb, 0) AS herb,
             GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
@@ -346,6 +372,14 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
+
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn        
             INNER JOIN (
                 SELECT op.vn, 
@@ -401,8 +435,8 @@ class ClaimOpController extends Controller
 			FROM (SELECT v.vn,CONCAT(vp.hospmain," ",hc.`name`) AS hospmain,
 			    CASE WHEN er.vn IS NOT NULL AND v1.vn IS NULL THEN "อุบัติเหตุฉุกเฉิน"
 				WHEN er.vn IS NULL OR v1.vn IS NOT NULL THEN "ผู้ป่วยทั่วไป" END AS pt_status,						
-				o.vstdate,o.vsttime,p.`name` AS pttype,v.pdx,v.income,v.rcpt_money,COALESCE(claim_items.other_price, 0) AS other_price,
-				v.income-v.rcpt_money-COALESCE(claim_items.other_price,0) AS claim_price            
+				o.vstdate,o.vsttime,p.`name` AS pttype,v.pdx,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(claim_items.other_price, 0) AS other_price,
+				v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0) AS claim_price            
                 FROM ovst o
 				LEFT JOIN er_regist er ON er.vn=o.vn
                 LEFT JOIN patient pt ON pt.hn=o.hn
@@ -410,6 +444,14 @@ class ClaimOpController extends Controller
 				LEFT JOIN hospcode hc ON hc.hospcode=vp.hospmain
                 LEFT JOIN pttype p ON p.pttype=vp.pttype
                 LEFT JOIN vn_stat v ON v.vn = o.vn
+                LEFT JOIN (
+                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                    FROM rcpt_print r
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                    WHERE a.rcpno IS NULL
+                    GROUP BY r.vn
+                ) rc ON rc.vn = o.vn
+
 				LEFT JOIN vn_stat v1 ON v1.vn = o.vn AND v1.pdx IN ("Z242","Z235","Z439","Z488","Z489","Z480","Z098","Z549","Z479")
                 LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price FROM opitemrece op
                     INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
@@ -417,7 +459,7 @@ class ClaimOpController extends Controller
                 WHERE (o.an ="" OR o.an IS NULL) 
                     AND p.hipdata_code IN ("UCS","WEL") 
                     AND o.vstdate BETWEEN ? AND ? 
-                    AND v.income-v.rcpt_money-COALESCE(claim_items.other_price,0) <> 0
+                    AND v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0) <> 0
                     AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs =""))
                     AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10)
                 GROUP BY o.vn ORDER BY vp.hospmain,pt_status DESC,o.vstdate,o.vsttime) AS a	GROUP BY hospmain ORDER BY hospmain', [$start_date, $end_date, $start_date, $end_date]);
@@ -428,8 +470,8 @@ class ClaimOpController extends Controller
 			WHEN er.vn IS NULL OR v1.vn IS NOT NULL THEN "ผู้ป่วยทั่วไป" 
             WHEN v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y" ) THEN "ส่งเสริมป้องกันโรคPP" 
 			END AS pt_status,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-			p.`name` AS pttype,os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,
-            COALESCE(claim_items.other_price, 0) AS other_price,v.income-v.rcpt_money-COALESCE(claim_items.other_price,0) AS claim_price,
+			p.`name` AS pttype,os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+            COALESCE(claim_items.other_price, 0) AS other_price,v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0) AS claim_price,
             claim_items.other_list
             FROM ovst o
 			LEFT JOIN er_regist er ON er.vn=o.vn
@@ -440,6 +482,14 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
+
 			LEFT JOIN vn_stat v1 ON v1.vn = o.vn AND v1.pdx IN ("Z242","Z235","Z439","Z488","Z480","Z098","Z549","Z479")
             LEFT JOIN (
                 SELECT op.vn, 
@@ -452,7 +502,7 @@ class ClaimOpController extends Controller
                 GROUP BY op.vn
             ) claim_items ON claim_items.vn = o.vn            
             WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code IN ("UCS","WEL") AND o.vstdate BETWEEN ? AND ? 
-			AND v.income-v.rcpt_money-COALESCE(claim_items.other_price,0) <> 0
+            AND v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0) <> 0
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs =""))
             AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10)
             GROUP BY o.vn ORDER BY vp.hospmain,pt_status DESC,o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date]);
@@ -503,12 +553,20 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-v.rcpt_money,0) AS claim_price,stm.receive_total
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,stm.receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
             LEFT JOIN pttype p ON p.pttype=vp.pttype           
             LEFT JOIN vn_stat v ON v.vn = o.vn            
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
+
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
                 GROUP_CONCAT(DISTINCT repno) AS repno FROM hrims.stm_ucs
@@ -532,7 +590,7 @@ class ClaimOpController extends Controller
             IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,COALESCE(op_data.refer, 0) AS refer,
+            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.refer, 0) AS refer,
             op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
             fdh.status_message_th AS fdh_status,ec.status AS ec_status
             FROM ovst o
@@ -544,6 +602,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN (
                 SELECT op.vn, 
@@ -583,7 +648,7 @@ class ClaimOpController extends Controller
             IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,COALESCE(op_data.refer, 0) AS refer,
+            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.refer, 0) AS refer,
             op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
             stm.receive_total,stm.repno,
             fdh.status_message_th AS fdh_status,ec.status AS ec_status
@@ -596,6 +661,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn            
             LEFT JOIN (
                 SELECT op.vn, 
@@ -699,7 +771,7 @@ class ClaimOpController extends Controller
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
-            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,
+            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
             COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno
             FROM ovst o
@@ -709,6 +781,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn        
             INNER JOIN (
                 SELECT op.vn, 
@@ -772,12 +851,19 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,v.income-v.rcpt_money AS claim_price,stm.receive_total
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,stm.receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype           
             LEFT JOIN vn_stat v ON v.vn = o.vn           
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
                 GROUP_CONCAT(DISTINCT repno) AS repno FROM hrims.stm_ucs
@@ -802,7 +888,7 @@ class ClaimOpController extends Controller
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,claim_items.claim_list,
-            v.income,v.rcpt_money,v.income-v.rcpt_money AS claim_price,
+            v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,
             fdh.status_message_th AS fdh_status,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -811,6 +897,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN (
                 SELECT op.vn, 
@@ -843,9 +936,9 @@ class ClaimOpController extends Controller
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,
+            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             claim_items.claim_list,o.vn AS seq,
-            COALESCE(claim_items.ppfs, 0) AS ppfs,v.income-v.rcpt_money AS claim_price,rep.rep_eclaim_detail_nhso AS rep_nhso,
+            COALESCE(claim_items.ppfs, 0) AS ppfs,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,rep.rep_eclaim_detail_nhso AS rep_nhso,
             rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno,
             fdh.status_message_th AS fdh_status,ec.status AS ec_status
             FROM ovst o
@@ -855,6 +948,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn        
             LEFT JOIN (
                 SELECT op.vn, 
@@ -932,12 +1032,19 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-v.rcpt_money,0) AS claim_price,stm.receive_total
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,stm.receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype           
             LEFT JOIN vn_stat v ON v.vn = o.vn           
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
                 GROUP_CONCAT(DISTINCT repno) AS repno FROM hrims.stm_ucs
@@ -962,7 +1069,7 @@ class ClaimOpController extends Controller
             IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,COALESCE(op_data.refer, 0) AS refer,
+            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.refer, 0) AS refer,
             op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
             fdh.status_message_th AS fdh_status,ec.status AS ec_status
             FROM ovst o
@@ -974,6 +1081,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN (
                 SELECT op.vn, 
@@ -1013,7 +1127,7 @@ class ClaimOpController extends Controller
             IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,COALESCE(op_data.refer, 0) AS refer,
+            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.refer, 0) AS refer,
             op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
             rep.rep_eclaim_detail_nhso AS rep_nhso,rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno,
             fdh.status_message_th AS fdh_status,ec.status AS ec_status
@@ -1026,6 +1140,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN (
                 SELECT op.vn, 
@@ -1105,13 +1226,20 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vn,o.vstdate,IFNULL(v.income-v.rcpt_money,0) AS claim_price,
+            FROM (SELECT o.vn,o.vstdate,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
             IFNULL(stm.receive_total, 0) + IFNULL(csop.amount, 0) AS receive_total
             FROM ovst o        
 			LEFT JOIN patient pt ON pt.hn=o.hn				
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype 
 			LEFT JOIN vn_stat v ON v.vn = o.vn 	
+			LEFT JOIN (
+			    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+			    FROM rcpt_print r
+			    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+			    WHERE a.rcpno IS NULL
+			    GROUP BY r.vn
+			) rc ON rc.vn = o.vn
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
                 FROM hrims.stm_ofc 
@@ -1144,7 +1272,7 @@ class ClaimOpController extends Controller
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
             op_data.ppfs_list,v.income,
-            v.rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-v.rcpt_money AS debtor,ec.status AS ec_status
+            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1152,6 +1280,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -1198,8 +1333,8 @@ class ClaimOpController extends Controller
             IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
-            oe.upload_datetime AS ecliam,v.income,v.rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            v.income-v.rcpt_money AS debtor,IFNULL(stm.receive_total, 0) + IFNULL(csop.amount, 0) AS receive_total,
+            oe.upload_datetime AS ecliam,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            v.income-IFNULL(rc.rcpt_money, 0) AS debtor,IFNULL(stm.receive_total, 0) + IFNULL(csop.amount, 0) AS receive_total,
             stm_uc.receive_pp,IFNULL(stm.repno,csop.rid) AS repno,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -1208,6 +1343,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -1303,6 +1445,7 @@ class ClaimOpController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype           
             LEFT JOIN vn_stat v ON v.vn = o.vn           
+
             INNER JOIN (
                 SELECT op.vn, SUM(op.sum_price) AS claim_price
                 FROM opitemrece op
@@ -1327,7 +1470,7 @@ class ClaimOpController extends Controller
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
-            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,
+            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
             COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(csop.amount, 0) AS receive_total ,csop.rid AS repno
             FROM ovst o
@@ -1337,6 +1480,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn        
             INNER JOIN (
                 SELECT op.vn, 
@@ -1402,13 +1552,20 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-v.rcpt_money,0) AS claim_price,
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
             IFNULL(stm.compensate_treatment,0)+IFNULL(stm_uc.receive_pp,0) AS receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype            
             LEFT JOIN vn_stat v ON v.vn = o.vn           
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN (
                 SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment,
                 GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno FROM hrims.stm_lgo 
@@ -1440,7 +1597,7 @@ class ClaimOpController extends Controller
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
             op_data.ppfs_list,v.income,
-            v.rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-v.rcpt_money AS debtor,ec.status AS ec_status
+            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1448,6 +1605,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -1486,8 +1650,8 @@ class ClaimOpController extends Controller
             IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
-            oe.upload_datetime AS ecliam,v.income,v.rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            v.income-v.rcpt_money AS debtor,stm.compensate_treatment AS receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
+            oe.upload_datetime AS ecliam,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            v.income-IFNULL(rc.rcpt_money, 0) AS debtor,stm.compensate_treatment AS receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1495,6 +1659,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -1583,6 +1754,14 @@ class ClaimOpController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype            
             LEFT JOIN vn_stat v ON v.vn = o.vn                 
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             INNER JOIN (
                 SELECT op.vn, SUM(op.sum_price) AS claim_price
                 FROM opitemrece op
@@ -1602,7 +1781,7 @@ class ClaimOpController extends Controller
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
-            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,
+            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
             COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno
             FROM ovst o
@@ -1612,6 +1791,15 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
+
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn        
             INNER JOIN (
                 SELECT op.vn, 
@@ -1675,13 +1863,20 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-v.rcpt_money,0) AS claim_price,
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
             IFNULL(stm.receive_total,0)+IFNULL(stm_uc.receive_pp,0) AS receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype           
             LEFT JOIN vn_stat v ON v.vn = o.vn           
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
                 FROM hrims.stm_ofc 
@@ -1713,7 +1908,7 @@ class ClaimOpController extends Controller
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
             op_data.ppfs_list,v.income,
-            v.rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-v.rcpt_money AS debtor,ec.status AS ec_status
+            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1721,6 +1916,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -1759,8 +1961,8 @@ class ClaimOpController extends Controller
             IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
-            oe.upload_datetime AS ecliam,v.income,v.rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            v.income-v.rcpt_money AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
+            oe.upload_datetime AS ecliam,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            v.income-IFNULL(rc.rcpt_money, 0) AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1768,6 +1970,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -1850,13 +2059,20 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-v.rcpt_money,0) AS claim_price,
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
             IFNULL(stm.receive_total,0)+IFNULL(stm_uc.receive_pp,0) AS receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype           
             LEFT JOIN vn_stat v ON v.vn = o.vn           
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
                 FROM hrims.stm_ofc 
@@ -1888,7 +2104,7 @@ class ClaimOpController extends Controller
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
             op_data.ppfs_list,v.income,
-            v.rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-v.rcpt_money AS debtor,ec.status AS ec_status
+            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1896,6 +2112,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -1934,8 +2157,8 @@ class ClaimOpController extends Controller
             IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
-            oe.upload_datetime AS ecliam,v.income,v.rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            v.income-v.rcpt_money AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
+            oe.upload_datetime AS ecliam,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            v.income-IFNULL(rc.rcpt_money, 0) AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1943,6 +2166,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -2025,13 +2255,20 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-v.rcpt_money,0) AS claim_price,
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
             IFNULL(stm.receive_total,0)+IFNULL(stm_uc.receive_pp,0) AS receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype           
             LEFT JOIN vn_stat v ON v.vn = o.vn           
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
                 FROM hrims.stm_ofc 
@@ -2063,7 +2300,7 @@ class ClaimOpController extends Controller
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
             op_data.ppfs_list,v.income,
-            v.rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-v.rcpt_money AS debtor,ec.status AS ec_status
+            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -2071,6 +2308,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -2109,8 +2353,8 @@ class ClaimOpController extends Controller
             IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
-            oe.upload_datetime AS ecliam,v.income,v.rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            v.income-v.rcpt_money AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
+            oe.upload_datetime AS ecliam,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            v.income-IFNULL(rc.rcpt_money, 0) AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -2118,6 +2362,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
@@ -2206,6 +2457,7 @@ class ClaimOpController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype            
             LEFT JOIN vn_stat v ON v.vn = o.vn           
+
             INNER JOIN (
                 SELECT op.vn, SUM(op.sum_price) AS claim_price
                 FROM opitemrece op
@@ -2236,7 +2488,7 @@ class ClaimOpController extends Controller
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
             op_data.claim_list,
-            v.income,v.rcpt_money,COALESCE(op_data.claim_price, 0) AS claim_price,
+            v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.claim_price, 0) AS claim_price,
             ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -2245,6 +2497,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             INNER JOIN (
                 SELECT op.vn, 
                     GROUP_CONCAT(DISTINCT IFNULL(n.`name`, d.`name`)) AS claim_list,
@@ -2274,7 +2533,7 @@ class ClaimOpController extends Controller
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,
+            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             op_data.claim_list,
             COALESCE(op_data.claim_price, 0) AS ppfs,rep.rep_eclaim_detail_nhso AS rep_nhso,
             rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno,
@@ -2286,6 +2545,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn        
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             INNER JOIN (
                 SELECT op.vn, 
                     GROUP_CONCAT(DISTINCT IFNULL(n.`name`, d.`name`)) AS claim_list,
@@ -2360,11 +2626,18 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,v.income-v.rcpt_money AS claim_price,d.receive AS receive_total
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,d.receive AS receive_total
             FROM ovst o            
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
 			LEFT JOIN vn_stat v ON v.vn = o.vn
+			LEFT JOIN (
+			    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+			    FROM rcpt_print r
+			    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+			    WHERE a.rcpno IS NULL
+			    GROUP BY r.vn
+			) rc ON rc.vn = o.vn
             LEFT JOIN hrims.debtor_1102050101_307 d ON d.vn=o.vn
             WHERE p.pttype IN (' . $pttype_sss_fund . ') 
                 AND o.vstdate BETWEEN ? AND ?
@@ -2377,7 +2650,7 @@ class ClaimOpController extends Controller
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
-            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,v.income-v.rcpt_money AS claim_price
+            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -2385,6 +2658,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             WHERE p.pttype IN (' . $pttype_sss_fund . ') 
             AND o.vstdate BETWEEN ? AND ?
@@ -2443,6 +2723,7 @@ class ClaimOpController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype         
             LEFT JOIN vn_stat v ON v.vn = o.vn                
+
             INNER JOIN (
                 SELECT op.vn, SUM(op.sum_price) AS claim_price
                 FROM opitemrece op
@@ -2461,7 +2742,7 @@ class ClaimOpController extends Controller
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
-            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,
+            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
             COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno
             FROM ovst o
@@ -2471,6 +2752,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn        
             INNER JOIN (
                 SELECT op.vn, 
@@ -2539,6 +2827,7 @@ class ClaimOpController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype            
             LEFT JOIN vn_stat v ON v.vn = o.vn             
+
             INNER JOIN (
                 SELECT op.vn, SUM(op.sum_price) AS claim_price
                 FROM opitemrece op
@@ -2560,7 +2849,7 @@ class ClaimOpController extends Controller
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
-            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,
+            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             hc_items.claim_list,
             COALESCE(hc_items.claim_price, 0) AS claim_price,d.receive AS receive_total,d.repno
             FROM ovst o
@@ -2570,6 +2859,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn             
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             INNER JOIN (
                 SELECT op.vn, 
                     GROUP_CONCAT(DISTINCT IFNULL(sd.`name`, n.`name`)) AS claim_list,
@@ -2646,10 +2942,11 @@ class ClaimOpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn 
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.vn = o.vn
+
                 WHERE (o.an IS NULL OR o.an = "")
                     AND o.vstdate BETWEEN ? AND ?
                     AND v.paid_money > 0
@@ -2680,11 +2977,12 @@ class ClaimOpController extends Controller
                 SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn 
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn           
             LEFT JOIN vn_stat v ON v.vn = o.vn
+
             WHERE (o.an IS NULL OR o.an = "")
             AND v.paid_money > 0
             AND v.paid_money - IFNULL(rc.rcpt_money,0) > 0
@@ -2693,7 +2991,7 @@ class ClaimOpController extends Controller
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vstdate, o.vsttime, o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
-                os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,v.paid_money,
+                os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,v.paid_money,
                 v.paid_money - IFNULL(rc.rcpt_money,0) AS claim_price,
                 rc.rcpno,p2.arrear_date,p2.amount AS arrear_amount,r1.bill_amount AS paid_arrear,r1.rcpno AS rcpno_arrear,fd.deposit_amount,fd1.debit_amount
             FROM ovst o
@@ -2703,6 +3001,7 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+
             LEFT JOIN patient_arrear p2 ON p2.vn=o.vn
             LEFT JOIN patient_finance_deposit fd ON fd.anvn = o.vn
             LEFT JOIN patient_finance_debit fd1 ON fd1.anvn = o.vn
@@ -2710,7 +3009,7 @@ class ClaimOpController extends Controller
                 SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn 
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
@@ -2755,7 +3054,7 @@ class ClaimOpController extends Controller
         $sum_month = DB::connection('hosxp')->select('
             SELECT month, COUNT(vn) AS visit, SUM(IFNULL(claim_price,0)) AS claim_price, SUM(IFNULL(receive_total,0)) AS receive_total
             FROM (
-                SELECT o.vstdate, o.vn, v.income-v.rcpt_money AS claim_price, d.receive AS receive_total,
+                SELECT o.vstdate, o.vn, v.income-IFNULL(rc.rcpt_money, 0) AS claim_price, d.receive AS receive_total,
                     CASE WHEN MONTH(o.vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(o.vstdate)+543, 2))
                         WHEN MONTH(o.vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(o.vstdate)+543, 2))
                         WHEN MONTH(o.vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(o.vstdate)+543, 2))
@@ -2772,6 +3071,13 @@ class ClaimOpController extends Controller
                 FROM ovst o            
                 LEFT JOIN pttype p ON p.pttype=o.pttype
                 LEFT JOIN vn_stat v ON v.vn = o.vn
+                LEFT JOIN (
+                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                    FROM rcpt_print r
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                    WHERE a.rcpno IS NULL
+                    GROUP BY r.vn
+                ) rc ON rc.vn = o.vn
                 LEFT JOIN hrims.debtor_1102050102_602 d ON d.vn=o.vn
                 WHERE p.pttype IN (' . $pttype_act . ') 
                     AND o.vstdate BETWEEN ? AND ?
@@ -2785,7 +3091,7 @@ class ClaimOpController extends Controller
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
-            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,v.rcpt_money,v.income-v.rcpt_money AS claim_price,
+            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,
             d.receive AS receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -2794,6 +3100,13 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             LEFT JOIN hrims.debtor_1102050102_602 d ON d.vn=o.vn
             WHERE p.pttype IN (' . $pttype_act . ') AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date]);

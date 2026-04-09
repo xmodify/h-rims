@@ -83,9 +83,10 @@ class ClaimIpController extends Controller
                     GROUP BY o.an, o.pttype
                 ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
                 LEFT JOIN (
-                    SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                    SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an           
@@ -129,9 +130,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -181,9 +183,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -273,9 +276,10 @@ class ClaimIpController extends Controller
                     GROUP BY o.an, o.pttype
                 ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
                 LEFT JOIN (
-                    SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                    SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an           
@@ -320,9 +324,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -372,9 +377,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -464,9 +470,10 @@ class ClaimIpController extends Controller
                     GROUP BY o.an, o.pttype
                 ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
                 LEFT JOIN (
-                    SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                    SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
@@ -510,9 +517,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -560,9 +568,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -652,9 +661,10 @@ class ClaimIpController extends Controller
                     GROUP BY o.an, o.pttype
                 ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
                 LEFT JOIN (
-                    SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                    SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
@@ -716,9 +726,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -782,9 +793,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -891,7 +903,7 @@ class ClaimIpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
@@ -935,9 +947,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -982,9 +995,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1074,7 +1088,7 @@ class ClaimIpController extends Controller
                 LEFT JOIN (
                     SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
                     FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
@@ -1136,9 +1150,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1201,9 +1216,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1309,9 +1325,10 @@ class ClaimIpController extends Controller
                     GROUP BY o.an, o.pttype
                 ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
                 LEFT JOIN (
-                    SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                    SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
@@ -1373,9 +1390,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1438,9 +1456,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1546,9 +1565,10 @@ class ClaimIpController extends Controller
                     GROUP BY o.an, o.pttype
                 ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
                 LEFT JOIN (
-                    SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                    SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
@@ -1610,9 +1630,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1675,9 +1696,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1782,9 +1804,10 @@ class ClaimIpController extends Controller
                     GROUP BY o.an, o.pttype
                 ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
                 LEFT JOIN (
-                    SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                    SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
@@ -1824,9 +1847,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1862,9 +1886,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -1964,9 +1989,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -2042,9 +2068,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -2079,9 +2106,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -2115,9 +2143,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -2179,9 +2208,10 @@ class ClaimIpController extends Controller
             FROM ipt i                                 
             LEFT JOIN an_stat a ON a.an=i.an           
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -2211,9 +2241,10 @@ class ClaimIpController extends Controller
             FROM ipt i                                 
             LEFT JOIN an_stat a ON a.an=i.an           
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -2233,7 +2264,7 @@ class ClaimIpController extends Controller
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,i.adjrw,
                 IFNULL(inc.income,0) AS income, a.paid_money, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 a.paid_money - IFNULL(rc.rcpt_money,0) AS claim_price,
-                r.rcpno,p2.arrear_date,p2.amount AS arrear_amount, r1.bill_amount AS paid_arrear,
+                rc.rcpno,p2.arrear_date,p2.amount AS arrear_amount, r1.bill_amount AS paid_arrear,
                 r1.rcpno AS rcpno_arrear,fd.deposit_amount,fd1.debit_amount,ict.ipt_coll_status_type_name,IF(id.an <> "","Y",NULL) AS dch_sum
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -2248,9 +2279,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -2261,7 +2293,6 @@ class ClaimIpController extends Controller
             LEFT JOIN patient_arrear p2 ON p2.an=i.an
             LEFT JOIN patient_finance_deposit fd ON fd.anvn = i.an
             LEFT JOIN patient_finance_debit fd1 ON fd1.anvn = i.an
-            LEFT JOIN rcpt_print r ON r.vn = i.an AND r.`status` ="OK" AND r.department="IPD" AND r.bill_date BETWEEN i.regdate AND i.dchdate
             LEFT JOIN rcpt_print r1 ON r1.vn = p2.an AND r1.`status` ="OK" AND r1.department="IPD"
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
             AND a.paid_money <> "0" AND IFNULL(rc.rcpt_money,0) <> a.paid_money 
@@ -2272,7 +2303,7 @@ class ClaimIpController extends Controller
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,i.adjrw,
                 IFNULL(inc.income,0) AS income, a.paid_money, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 a.paid_money - IFNULL(rc.rcpt_money,0) AS claim_price,
-                r.rcpno,p2.arrear_date,p2.amount AS arrear_amount, r1.bill_amount AS paid_arrear,r1.rcpno AS rcpno_arrear,
+                rc.rcpno,p2.arrear_date,p2.amount AS arrear_amount, r1.bill_amount AS paid_arrear,r1.rcpno AS rcpno_arrear,
                 fd.deposit_amount,fd1.debit_amount,ict.ipt_coll_status_type_name,IF(id.an <> "","Y",NULL) AS dch_sum
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -2287,9 +2318,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -2300,7 +2332,6 @@ class ClaimIpController extends Controller
             LEFT JOIN patient_arrear p2 ON p2.an=i.an
             LEFT JOIN patient_finance_deposit fd ON fd.anvn = i.an
             LEFT JOIN patient_finance_debit fd1 ON fd1.anvn = i.an
-            LEFT JOIN rcpt_print r ON r.vn = i.an AND r.`status` ="OK" AND r.department="IPD" AND r.bill_date BETWEEN i.regdate AND i.dchdate
             LEFT JOIN rcpt_print r1 ON r1.vn = p2.an AND r1.`status` ="OK"
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
             AND a.paid_money <> "0" AND IFNULL(rc.rcpt_money,0) = a.paid_money 
@@ -2363,9 +2394,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -2399,9 +2431,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
@@ -2434,9 +2467,10 @@ class ClaimIpController extends Controller
                 GROUP BY o.an, o.pttype
             ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (
-                SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno AND a.vn = r.vn
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an

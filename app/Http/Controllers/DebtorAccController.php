@@ -422,7 +422,7 @@ class DebtorAccController extends Controller
 
             } else if ($acc_code == '1102050102.106') {
                 $rec_rows = DB::connection('hosxp')->select("
-                    SELECT YEAR(r.bill_date) as y, MONTH(r.bill_date) as m, SUM(r.bill_amount) as total
+                    SELECT YEAR(r.bill_date) as y, MONTH(r.bill_date) as m, SUM(r.total_amount) as total
                     FROM rcpt_print r 
                     JOIN hrims.debtor_1102050102_106 d ON r.vn = d.vn
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -433,7 +433,7 @@ class DebtorAccController extends Controller
 
             } else if ($acc_code == '1102050102.107') {
                 $rec_rows = DB::connection('hosxp')->select("
-                    SELECT YEAR(r.bill_date) as y, MONTH(r.bill_date) as m, SUM(r.bill_amount) as total
+                    SELECT YEAR(r.bill_date) as y, MONTH(r.bill_date) as m, SUM(r.total_amount) as total
                     FROM rcpt_print r 
                     JOIN hrims.debtor_1102050102_107 d ON r.vn = d.an
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno

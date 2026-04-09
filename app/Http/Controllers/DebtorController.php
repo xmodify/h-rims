@@ -107,7 +107,7 @@ class DebtorController extends Controller
                 FROM ovst o
                 INNER JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN ipt i ON i.vn = o.vn
-                LEFT JOIN (SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -204,7 +204,7 @@ class DebtorController extends Controller
                 SELECT 
                     r.vn, 
                     IF(vp.pttype IS NOT NULL, r.pttype, o.pttype) AS mapped_pttype,
-                    SUM(r.bill_amount) AS rcpt_money,
+                    SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM ovst o
                 INNER JOIN rcpt_print r ON r.vn = o.vn
@@ -294,7 +294,7 @@ class DebtorController extends Controller
                     IF(ipt_p.pttype IS NOT NULL, r.pttype, 
                        (SELECT pttype FROM ipt_pttype WHERE an = r.vn ORDER BY pttype_number LIMIT 1)
                     ) AS mapped_pttype,
-                    SUM(r.bill_amount) AS rcpt_money,
+                    SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM ipt i
                 INNER JOIN rcpt_print r ON r.vn = i.an
@@ -415,7 +415,7 @@ class DebtorController extends Controller
                     FROM opitemrece op
                     WHERE op.vstdate BETWEEN ? AND ?
                     GROUP BY op.vn, op.pttype) inc ON inc.vn = v.vn AND inc.pttype = vp.pttype
-                LEFT JOIN (SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno                 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -471,7 +471,7 @@ class DebtorController extends Controller
                     FROM opitemrece o
                     INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = 'Y' AND i2.dchdate BETWEEN ? AND ?
                     GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-                LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+                LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -689,9 +689,9 @@ class DebtorController extends Controller
             WHERE vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050102_106 = DB::connection('hosxp')->select("
             SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,
-                SUM(IFNULL(d.receive,0) + IFNULL(r.bill_amount,0)) AS receive
+                SUM(IFNULL(d.receive,0) + IFNULL(r.total_amount,0)) AS receive
             FROM hrims.debtor_1102050102_106 d
-            LEFT JOIN (SELECT r.vn, r.bill_date, SUM(r.bill_amount) AS bill_amount,
+            LEFT JOIN (SELECT r.vn, r.bill_date, SUM(r.total_amount) AS total_amount,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -812,9 +812,9 @@ class DebtorController extends Controller
             WHERE dchdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050102_107 = DB::connection('hosxp')->select("
             SELECT COUNT(DISTINCT d.an) AS anvn,SUM(d.debtor) AS debtor, 
-                SUM(IFNULL(d.receive,0) + IFNULL(r.bill_amount,0)) AS receive
+                SUM(IFNULL(d.receive,0) + IFNULL(r.total_amount,0)) AS receive
             FROM hrims.debtor_1102050102_107 d
-            LEFT JOIN (SELECT r.vn, r.bill_date, SUM(r.bill_amount) AS bill_amount
+            LEFT JOIN (SELECT r.vn, r.bill_date, SUM(r.total_amount) AS total_amount
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -1088,7 +1088,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
                 FROM opitemrece op WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -1140,7 +1140,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
                 FROM opitemrece op WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn, SUM(r.bill_amount) AS rcpt_money, 
+            LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money, 
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -1312,7 +1312,7 @@ class DebtorController extends Controller
                 FROM opitemrece op 
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -1367,7 +1367,7 @@ class DebtorController extends Controller
                 FROM opitemrece op 
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -1564,7 +1564,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ? 
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -1627,7 +1627,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ? 
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -1896,7 +1896,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ? 
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -1960,7 +1960,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ? 
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -2249,7 +2249,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ? 
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -2315,7 +2315,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ? 
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -2519,7 +2519,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -2553,7 +2553,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -2589,7 +2589,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -2660,7 +2660,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -2748,7 +2748,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -2838,7 +2838,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -3035,7 +3035,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
                 FROM opitemrece op WHERE op.vstdate BETWEEN ? AND ?    
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -3100,7 +3100,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
                 FROM opitemrece op WHERE op.vstdate BETWEEN ? AND ?    
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -3374,7 +3374,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
                 FROM opitemrece op WHERE op.vstdate BETWEEN ? AND ?    
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -3441,7 +3441,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
                 FROM opitemrece op WHERE op.vstdate BETWEEN ? AND ?    
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -3634,7 +3634,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -3676,7 +3676,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -3737,7 +3737,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -3827,7 +3827,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -4032,7 +4032,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -4067,7 +4067,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -4128,7 +4128,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -4211,7 +4211,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -4453,7 +4453,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -4521,7 +4521,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -4724,7 +4724,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -4783,7 +4783,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -4954,7 +4954,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -5021,7 +5021,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -5210,7 +5210,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -5279,7 +5279,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -5452,7 +5452,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -5522,7 +5522,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -5663,15 +5663,15 @@ class DebtorController extends Controller
             $debtor = DB::connection('hosxp')->select("
                     SELECT d.vstdate,d.vsttime,d.hn,d.vn,d.ptname,d.mobile_phone_number, d.pttype,d.hospmain,
                     d.pdx,d.income,d.paid_money,d.rcpt_money,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.debtor_lock, 
-                    IF(r.bill_amount IS NOT NULL, 'กระทบยอดแล้ว', d.status) AS status,
+                    IF(r.total_amount IS NOT NULL, 'กระทบยอดแล้ว', d.status) AS status,
                     d.charge_date,d.charge_no,d.charge,d.receive_date, d.receive_no,  
-                    IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.bill_amount,0) - d.rcpt_money) AS receive,
+                    IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.total_amount,0) - d.rcpt_money) AS receive,
                     d.adj_inc, d.adj_dec, d.adj_note, d.adj_date,
-                    d.repno, r.rcpno, r.bill_amount,IFNULL(t.visit,0) AS visit,
-                    CASE WHEN (IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.bill_amount,0) - d.rcpt_money)
+                    d.repno, r.rcpno, r.total_amount,IFNULL(t.visit,0) AS visit,
+                    CASE WHEN (IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.total_amount,0) - d.rcpt_money)
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.05 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM hrims.debtor_1102050102_106 d
-                LEFT JOIN (SELECT r.vn, SUM(r.bill_amount) AS bill_amount,
+                LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS total_amount,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -5685,15 +5685,15 @@ class DebtorController extends Controller
             $debtor = DB::connection('hosxp')->select("
                 SELECT d.vstdate,d.vsttime,d.hn,d.vn,d.cid,d.ptname,d.mobile_phone_number, d.pttype,d.hospmain,
                     d.pdx,d.income,d.paid_money,d.rcpt_money,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.debtor_lock, 
-                    IF(r.bill_amount IS NOT NULL, 'กระทบยอดแล้ว', d.status) AS status,
+                    IF(r.total_amount IS NOT NULL, 'กระทบยอดแล้ว', d.status) AS status,
                     d.charge_date,d.charge_no,d.charge,d.receive_date, d.receive_no,  
-                    IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.bill_amount,0) - d.rcpt_money) AS receive,
+                    IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.total_amount,0) - d.rcpt_money) AS receive,
                     d.adj_inc, d.adj_dec, d.adj_note, d.adj_date,
-                    d.repno, r.rcpno, r.bill_amount,IFNULL(t.visit,0) AS visit,
-                    CASE WHEN (IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.bill_amount,0) - d.rcpt_money)
+                    d.repno, r.rcpno, r.total_amount,IFNULL(t.visit,0) AS visit,
+                    CASE WHEN (IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.total_amount,0) - d.rcpt_money)
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.05 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM hrims.debtor_1102050102_106 d
-                LEFT JOIN (SELECT r.vn, SUM(r.bill_amount) AS bill_amount,
+                LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS total_amount,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -5722,7 +5722,7 @@ class DebtorController extends Controller
                 FROM opitemrece op 
                 INNER JOIN ovst o2 ON o2.vn = op.vn AND o2.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn) inc ON inc.vn = o.vn
-            LEFT JOIN (SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -5797,7 +5797,7 @@ class DebtorController extends Controller
                 FROM opitemrece op 
                 INNER JOIN ovst o2 ON o2.vn = op.vn AND o2.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn) inc ON inc.vn = o.vn
-            LEFT JOIN (SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -5983,10 +5983,10 @@ class DebtorController extends Controller
         $end_date = Session::get('end_date');
         $debtor = DB::connection('hosxp')->select("
             SELECT d.vstdate,COUNT(DISTINCT d.vn) AS anvn, SUM(d.debtor) AS debtor,
-                SUM(IF(d.receive IS NOT NULL AND d.receive > 0, d.receive,IFNULL(r.bill_amount,0))) AS receive,
+                SUM(IF(d.receive IS NOT NULL AND d.receive > 0, d.receive,IFNULL(r.total_amount,0))) AS receive,
                 SUM(IFNULL(d.adj_inc,0)) AS adj_inc, SUM(IFNULL(d.adj_dec,0)) AS adj_dec
             FROM hrims.debtor_1102050102_106 d
-            LEFT JOIN (SELECT r.vn, r.bill_date, SUM(r.bill_amount) AS bill_amount,
+            LEFT JOIN (SELECT r.vn, r.bill_date, SUM(r.total_amount) AS total_amount,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -6089,7 +6089,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -6154,7 +6154,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -6396,7 +6396,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -6464,7 +6464,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -6669,7 +6669,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -6728,7 +6728,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -6955,7 +6955,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -7024,7 +7024,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -7272,7 +7272,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -7340,7 +7340,7 @@ class DebtorController extends Controller
                 FROM opitemrece op
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.bill_amount ) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
                 GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -7556,7 +7556,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -7619,7 +7619,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -7803,7 +7803,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -7866,7 +7866,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -8050,7 +8050,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -8119,7 +8119,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -8324,7 +8324,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -8393,7 +8393,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -8593,7 +8593,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -8660,7 +8660,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -8875,7 +8875,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -8934,7 +8934,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -9175,7 +9175,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -9237,7 +9237,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -9419,7 +9419,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -9482,7 +9482,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -9677,7 +9677,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -9741,7 +9741,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -9938,7 +9938,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -10002,7 +10002,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -10159,12 +10159,12 @@ class DebtorController extends Controller
 
         if ($search) {
             $debtor = DB::connection('hosxp')->select('
-                SELECT d.*, r.bill_amount, IFNULL(d.receive,0) + IFNULL(r.bill_amount,0) AS receive,
+                SELECT d.*, r.total_amount, IFNULL(d.receive,0) + IFNULL(r.total_amount,0) AS receive,
                     IFNULL(t.visit,0) AS visit,
-                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.bill_amount,0)) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.01
+                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.total_amount,0)) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.01
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM hrims.debtor_1102050102_107 d
-                LEFT JOIN (SELECT r.vn,r.bill_date,SUM(r.bill_amount) AS bill_amount,
+                LEFT JOIN (SELECT r.vn,r.bill_date,SUM(r.total_amount) AS total_amount,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -10175,12 +10175,12 @@ class DebtorController extends Controller
                 AND d.dchdate BETWEEN ? AND ?', [$search, $search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::connection('hosxp')->select('
-                SELECT d.*, r.bill_amount, IFNULL(d.receive,0) + IFNULL(r.bill_amount,0) AS receive,
+                SELECT d.*, r.total_amount, IFNULL(d.receive,0) + IFNULL(r.total_amount,0) AS receive,
                     IFNULL(t.visit,0) AS visit,
-                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.bill_amount,0)) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.01
+                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.total_amount,0)) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.01
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM hrims.debtor_1102050102_107 d
-                LEFT JOIN (SELECT r.vn,r.bill_date,SUM(r.bill_amount) AS bill_amount,
+                LEFT JOIN (SELECT r.vn,r.bill_date,SUM(r.total_amount) AS total_amount,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -10211,7 +10211,7 @@ class DebtorController extends Controller
                 FROM opitemrece op 
                 INNER JOIN ipt i2 ON i2.an = op.an AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY op.an) inc ON inc.an = i.an
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -10288,7 +10288,7 @@ class DebtorController extends Controller
                 FROM opitemrece op 
                 INNER JOIN ipt i2 ON i2.an = op.an AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY op.an) inc ON inc.an = i.an
-            LEFT JOIN (SELECT r.vn AS an, SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -10475,9 +10475,9 @@ class DebtorController extends Controller
         $end_date = Session::get('end_date');
         $debtor = DB::connection('hosxp')->select("
             SELECT d.dchdate AS vstdate,COUNT(DISTINCT d.vn) AS anvn,
-                SUM(d.debtor) AS debtor,SUM(IFNULL(d.receive,0) + IFNULL(r.bill_amount,0)) AS receive
+                SUM(d.debtor) AS debtor,SUM(IFNULL(d.receive,0) + IFNULL(r.total_amount,0)) AS receive
             FROM hrims.debtor_1102050102_107 d
-            LEFT JOIN (SELECT r.vn, r.bill_date,SUM(r.bill_amount) AS bill_amount
+            LEFT JOIN (SELECT r.vn, r.bill_date,SUM(r.total_amount) AS total_amount
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
@@ -10589,7 +10589,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -10653,7 +10653,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -10885,7 +10885,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -10950,7 +10950,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -11131,7 +11131,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -11197,7 +11197,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -11415,7 +11415,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -11480,7 +11480,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -11699,7 +11699,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -11764,7 +11764,7 @@ class DebtorController extends Controller
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.bill_amount) AS rcpt_money,
+            LEFT JOIN (SELECT r.vn AS an,SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -12137,7 +12137,7 @@ class DebtorController extends Controller
                             SELECT {$month_case} AS month_name, SUM(debtor) AS claim_price, SUM(IFNULL(receive,0)) AS receive_total, YEAR(vstdate) AS y, MONTH(vstdate) AS m
                             FROM hrims.{$table_name} WHERE vstdate BETWEEN ? AND ? GROUP BY y, m
                             UNION ALL
-                            SELECT " . str_replace($filter_date_col, 'd.vstdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(r.bill_amount,0)) AS receive_total, YEAR(d.vstdate) AS y, MONTH(d.vstdate) AS m
+                            SELECT " . str_replace($filter_date_col, 'd.vstdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(r.total_amount,0)) AS receive_total, YEAR(d.vstdate) AS y, MONTH(d.vstdate) AS m
                             FROM rcpt_print r 
                             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                             JOIN hrims.{$table_name} d ON r.vn = d.vn
@@ -12213,7 +12213,7 @@ class DebtorController extends Controller
                             SELECT {$month_case} AS month_name, SUM(debtor) AS claim_price, SUM(IFNULL(receive,0)) AS receive_total, YEAR(dchdate) AS y, MONTH(dchdate) AS m
                             FROM hrims.{$table_name} WHERE dchdate BETWEEN ? AND ? GROUP BY y, m
                             UNION ALL
-                            SELECT " . str_replace($filter_date_col, 'd.dchdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(r.bill_amount,0)) AS receive_total, YEAR(d.dchdate) AS y, MONTH(d.dchdate) AS m
+                            SELECT " . str_replace($filter_date_col, 'd.dchdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(r.total_amount,0)) AS receive_total, YEAR(d.dchdate) AS y, MONTH(d.dchdate) AS m
                             FROM rcpt_print r 
                             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                             JOIN hrims.{$table_name} d ON r.vn = d.an
@@ -13319,10 +13319,10 @@ class DebtorController extends Controller
 
         foreach ($ids as $id) {
             $row = DB::connection('hosxp')->selectOne("
-                SELECT d.*, IFNULL(r.bill_amount,0) AS total_bill
+                SELECT d.*, IFNULL(r.total_amount,0) AS total_bill
                 FROM hrims.debtor_1102050102_106 d
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS bill_amount
+                    SELECT r.vn, SUM(r.total_amount) AS total_amount
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                     WHERE a.rcpno IS NULL

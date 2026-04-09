@@ -116,7 +116,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -175,7 +175,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -314,7 +314,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -373,7 +373,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -445,7 +445,7 @@ class ClaimOpController extends Controller
                 LEFT JOIN pttype p ON p.pttype=vp.pttype
                 LEFT JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                     WHERE a.rcpno IS NULL
@@ -483,7 +483,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -560,7 +560,7 @@ class ClaimOpController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype           
             LEFT JOIN vn_stat v ON v.vn = o.vn            
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -603,7 +603,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -662,7 +662,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -782,7 +782,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -858,7 +858,7 @@ class ClaimOpController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype           
             LEFT JOIN vn_stat v ON v.vn = o.vn           
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -898,7 +898,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -949,7 +949,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -1039,7 +1039,7 @@ class ClaimOpController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype           
             LEFT JOIN vn_stat v ON v.vn = o.vn           
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -1082,7 +1082,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -1141,7 +1141,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -1234,7 +1234,7 @@ class ClaimOpController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype 
 			LEFT JOIN vn_stat v ON v.vn = o.vn 	
 			LEFT JOIN (
-			    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+			    SELECT r.vn, SUM(r.total_amount) AS rcpt_money
 			    FROM rcpt_print r
 			    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
 			    WHERE a.rcpno IS NULL
@@ -1281,7 +1281,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -1344,7 +1344,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -1481,7 +1481,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -1560,7 +1560,7 @@ class ClaimOpController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype            
             LEFT JOIN vn_stat v ON v.vn = o.vn           
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -1606,7 +1606,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -1660,7 +1660,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -1755,7 +1755,7 @@ class ClaimOpController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype            
             LEFT JOIN vn_stat v ON v.vn = o.vn                 
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -1792,7 +1792,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -1871,7 +1871,7 @@ class ClaimOpController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype           
             LEFT JOIN vn_stat v ON v.vn = o.vn           
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -1917,7 +1917,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -1971,7 +1971,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -2067,7 +2067,7 @@ class ClaimOpController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype           
             LEFT JOIN vn_stat v ON v.vn = o.vn           
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -2113,7 +2113,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -2167,7 +2167,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -2263,7 +2263,7 @@ class ClaimOpController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype           
             LEFT JOIN vn_stat v ON v.vn = o.vn           
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -2309,7 +2309,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -2363,7 +2363,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -2498,7 +2498,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -2546,7 +2546,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn        
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -2632,7 +2632,7 @@ class ClaimOpController extends Controller
             LEFT JOIN pttype p ON p.pttype=vp.pttype
 			LEFT JOIN vn_stat v ON v.vn = o.vn
 			LEFT JOIN (
-			    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+			    SELECT r.vn, SUM(r.total_amount) AS rcpt_money
 			    FROM rcpt_print r
 			    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
 			    WHERE a.rcpno IS NULL
@@ -2659,7 +2659,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -2753,7 +2753,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -2860,7 +2860,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn             
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
@@ -2940,7 +2940,7 @@ class ClaimOpController extends Controller
                 FROM ovst o
                 LEFT JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                     WHERE a.rcpno IS NULL
@@ -2974,7 +2974,7 @@ class ClaimOpController extends Controller
             LEFT JOIN patient_finance_deposit fd ON fd.anvn = o.vn
             LEFT JOIN patient_finance_debit fd1 ON fd1.anvn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -2993,7 +2993,7 @@ class ClaimOpController extends Controller
             SELECT o.vstdate, o.vsttime, o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
                 os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,v.paid_money,
                 v.paid_money - IFNULL(rc.rcpt_money,0) AS claim_price,
-                rc.rcpno,p2.arrear_date,p2.amount AS arrear_amount,r1.bill_amount AS paid_arrear,r1.rcpno AS rcpno_arrear,fd.deposit_amount,fd1.debit_amount
+                rc.rcpno,p2.arrear_date,p2.amount AS arrear_amount,r1.total_amount AS paid_arrear,r1.rcpno AS rcpno_arrear,fd.deposit_amount,fd1.debit_amount
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -3006,7 +3006,7 @@ class ClaimOpController extends Controller
             LEFT JOIN patient_finance_deposit fd ON fd.anvn = o.vn
             LEFT JOIN patient_finance_debit fd1 ON fd1.anvn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
@@ -3072,7 +3072,7 @@ class ClaimOpController extends Controller
                 LEFT JOIN pttype p ON p.pttype=o.pttype
                 LEFT JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                     WHERE a.rcpno IS NULL
@@ -3101,7 +3101,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL

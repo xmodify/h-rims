@@ -72,7 +72,7 @@ class MishosController extends Controller
                     WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
                 ) inc ON inc.vn = o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -114,7 +114,7 @@ class MishosController extends Controller
                 WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
             ) inc ON inc.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -190,7 +190,7 @@ class MishosController extends Controller
                     WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
                 ) inc ON inc.vn = o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -232,7 +232,7 @@ class MishosController extends Controller
                 WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
             ) inc ON inc.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -309,7 +309,7 @@ class MishosController extends Controller
                     WHERE vstdate BETWEEN ? AND ? AND paidst = "02"
                 ) o1 ON o1.vn=o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -351,7 +351,7 @@ class MishosController extends Controller
                 WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
             ) inc ON inc.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -426,7 +426,7 @@ class MishosController extends Controller
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -471,7 +471,7 @@ class MishosController extends Controller
                 WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
             ) inc ON inc.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -546,7 +546,7 @@ class MishosController extends Controller
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -591,7 +591,7 @@ class MishosController extends Controller
                 WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
             ) inc ON inc.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -666,7 +666,7 @@ class MishosController extends Controller
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -711,7 +711,7 @@ class MishosController extends Controller
                 WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
             ) inc ON inc.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -820,7 +820,7 @@ class MishosController extends Controller
                 WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
             ) inc ON inc.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -891,7 +891,7 @@ class MishosController extends Controller
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -936,7 +936,7 @@ class MishosController extends Controller
                 WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
             ) inc ON inc.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -1010,7 +1010,7 @@ class MishosController extends Controller
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -1054,7 +1054,7 @@ class MishosController extends Controller
                 WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
             ) inc ON inc.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -1128,7 +1128,7 @@ class MishosController extends Controller
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -1171,7 +1171,7 @@ class MishosController extends Controller
                 WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
             ) inc ON inc.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -1246,7 +1246,7 @@ class MishosController extends Controller
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -1291,7 +1291,7 @@ class MishosController extends Controller
                 WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
             ) inc ON inc.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -1370,7 +1370,7 @@ class MishosController extends Controller
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -1413,7 +1413,7 @@ class MishosController extends Controller
                 WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
             ) inc ON inc.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -1489,7 +1489,7 @@ class MishosController extends Controller
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -1532,7 +1532,7 @@ class MishosController extends Controller
                 WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
             ) inc ON inc.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -1606,7 +1606,7 @@ class MishosController extends Controller
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -1649,7 +1649,7 @@ class MishosController extends Controller
                 WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
             ) inc ON inc.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -1756,7 +1756,7 @@ class MishosController extends Controller
                 WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
             ) inc ON inc.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -1830,7 +1830,7 @@ class MishosController extends Controller
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -1875,7 +1875,7 @@ class MishosController extends Controller
                 WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
             ) inc ON inc.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -1952,7 +1952,7 @@ class MishosController extends Controller
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -1996,7 +1996,7 @@ class MishosController extends Controller
                 WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
             ) inc ON inc.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -2072,7 +2072,7 @@ class MishosController extends Controller
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -2116,7 +2116,7 @@ class MishosController extends Controller
                 WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
             ) inc ON inc.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -2192,7 +2192,7 @@ class MishosController extends Controller
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
                 LEFT JOIN (
-                    SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                         GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -2236,7 +2236,7 @@ class MishosController extends Controller
                 WHERE vstdate BETWEEN ? AND ? AND paidst = "02" GROUP BY vn
             ) inc ON inc.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.bill_amount) AS rcpt_money,
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno

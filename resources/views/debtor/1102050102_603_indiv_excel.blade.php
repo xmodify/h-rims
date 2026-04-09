@@ -72,7 +72,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="right">{{ number_format($row->adj_dec ?? 0,2) }}</td>
                 <td align="right">{{ number_format($balance,2) }}</td>
                 <td align="center">{{ $row->repno }}</td>
-                <td align="center">{{ $row->receive_date }}</td>                
+                <td align="center">{{ $row->receive_date ? DateThai($row->receive_date) : '' }}</td>
                 <td align="right">{{ $row->days }} วัน</td>    
             </tr>                
             <?php 

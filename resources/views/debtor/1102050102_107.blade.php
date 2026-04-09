@@ -81,13 +81,13 @@
                 </li>       
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="pay-tab" data-bs-toggle="pill" data-bs-target="#pay-pane" type="button" role="tab">
-                        <i class="bi bi-cash-stack me-1"></i> ชำระเงิน IP
+                        <i class="bi bi-cash-stack me-1"></i> รอยืนยันลูกหนี้ ชำระเงิน IP
                         <span class="badge bg-warning-soft text-warning ms-2">{{ count($debtor_search) }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="iclaim-tab" data-bs-toggle="pill" data-bs-target="#iclaim-pane" type="button" role="tab">
-                        <i class="bi bi-shield-check me-1"></i> iClaim
+                        <i class="bi bi-shield-check me-1"></i> รอยืนยันลูกหนี้ iClaim
                         <span class="badge bg-info-soft text-info ms-2">{{ count($debtor_search_iclaim) }}</span>
                     </button>
                 </li>
@@ -293,8 +293,27 @@
                                 <th class="text-center">ถอนมัดจำ</th>
                             </tr>
                             </thead>
-                            <?php $count = 1 ; ?>
+                            <?php 
+                                $count = 1 ; 
+                                $sum_s_income = 0;
+                                $sum_s_paid = 0;
+                                $sum_s_rcpt = 0;
+                                $sum_s_debtor = 0;
+                                $sum_s_arrear = 0;
+                                $sum_s_deposit = 0;
+                                $sum_s_debit = 0;
+                            ?>
                             @foreach($debtor_search as $row)
+                            @php
+                                $s_debtor = $row->paid_money - $row->rcpt_money;
+                                $sum_s_income += $row->income;
+                                $sum_s_paid += $row->paid_money;
+                                $sum_s_rcpt += $row->rcpt_money;
+                                $sum_s_debtor += $s_debtor;
+                                $sum_s_arrear += $row->arrear_amount;
+                                $sum_s_deposit += $row->deposit_amount;
+                                $sum_s_debit += $row->debit_amount;
+                            @endphp
                             <tr>
                                 <td class="text-center"><input type="checkbox" name="checkbox[]" value="{{$row->an}}"></td> 
                                 <td align="left">{{$row->ward}}</td>
@@ -316,7 +335,18 @@
                                 <td align="right">{{ number_format($row->debit_amount,2) }}</td>   
                             <?php $count++; ?>
                             @endforeach 
-                            </tr> 
+                            <tfoot>
+                                <tr class="table-secondary text-end" style="font-weight:bold; font-size: 13px;">
+                                    <td colspan="11" class="text-end">รวม</td>
+                                    <td class="text-end">{{ number_format($sum_s_income,2) }}</td>
+                                    <td class="text-end">{{ number_format($sum_s_paid,2) }}</td>
+                                    <td class="text-end">{{ number_format($sum_s_rcpt,2) }}</td>
+                                    <td class="text-end" style="color:blue">{{ number_format($sum_s_debtor,2) }}</td>
+                                    <td class="text-end">{{ number_format($sum_s_arrear,2) }}</td>
+                                    <td class="text-end">{{ number_format($sum_s_deposit,2) }}</td>
+                                    <td class="text-end">{{ number_format($sum_s_debit,2) }}</td>
+                                </tr>
+                            </tfoot>
                         </table></div>
                     </form>
                 </div>
@@ -354,8 +384,20 @@
                                 <th class="text-center">ลูกหนี้</th> 
                             </tr>
                             </thead>
-                            <?php $count = 1 ; ?>
+                            <?php 
+                                $count = 1 ; 
+                                $sum_ic_income = 0;
+                                $sum_ic_rcpt = 0;
+                                $sum_ic_other = 0;
+                                $sum_ic_debtor = 0;
+                            ?>
                             @foreach($debtor_search_iclaim as $row)
+                            @php
+                                $sum_ic_income += $row->income;
+                                $sum_ic_rcpt += $row->rcpt_money;
+                                $sum_ic_other += $row->other;
+                                $sum_ic_debtor += $row->debtor;
+                            @endphp
                             <tr>
                                 <td class="text-center"><input type="checkbox" name="checkbox_iclaim[]" value="{{$row->an}}"></td>                   
                                 <td align="right">{{$row->ward}}</td>
@@ -374,7 +416,15 @@
                                 <td align="right">{{ number_format($row->debtor,2) }}</td>
                             <?php $count++; ?>
                             @endforeach 
-                            </tr>   
+                            <tfoot>
+                                <tr class="table-secondary text-end" style="font-weight:bold; font-size: 13px;">
+                                    <td colspan="11" class="text-end">รวม</td>
+                                    <td class="text-end">{{ number_format($sum_ic_income,2) }}</td>
+                                    <td class="text-end">{{ number_format($sum_ic_rcpt,2) }}</td>
+                                    <td class="text-end">{{ number_format($sum_ic_other,2) }}</td>
+                                    <td class="text-end" style="color:blue">{{ number_format($sum_ic_debtor,2) }}</td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </form>
                 </div>

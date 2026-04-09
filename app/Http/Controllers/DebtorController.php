@@ -7527,8 +7527,8 @@ class DebtorController extends Controller
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
-                COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
-                COALESCE(inc.income,0)-COALESCE(rc.rcpt_money,0)-COALESCE(oth.other_price,0) AS debtor,oth.other_list,
+                COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(cr.cr_price,0) AS other,
+                COALESCE(inc.income,0)-COALESCE(rc.rcpt_money,0)-COALESCE(cr.cr_price,0) AS debtor,cr.cr_list AS other_list,
                 ict.ipt_coll_status_type_name,i.data_ok,"ยืนยันลูกหนี้" AS status
             FROM ipt i
             LEFT JOIN patient pt ON pt.hn = i.hn
@@ -7548,13 +7548,14 @@ class DebtorController extends Controller
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn) rc ON rc.an = i.an
-            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name) AS other_list
+            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS cr_price,GROUP_CONCAT(DISTINCT COALESCE(s.name, n.name)) AS cr_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
-                LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode LEFT JOIN nondrugitems n ON n.icode = o.icode
+                LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode 
+                LEFT JOIN nondrugitems n ON n.icode = o.icode
                 LEFT JOIN s_drugitems s ON s.icode = o.icode 
-                WHERE (li.kidney = "Y" OR li.ems = "Y" OR li.uc_cr = "Y"OR n.nhso_adp_code IN ("S1801","S1802"))
-            GROUP BY o.an, o.pttype) oth ON oth.an = i.an AND oth.pttype = ip.pttype
+                WHERE (li.uc_cr = "Y" OR li.kidney = "Y" OR n.nhso_adp_code IN ("S1801","S1802"))
+            GROUP BY o.an, o.pttype) cr ON cr.an = i.an AND cr.pttype = ip.pttype
             WHERE i.confirm_discharge = "Y"
             AND p.hipdata_code IN ("UCS","WEL") 
             AND i.dchdate BETWEEN ? AND ?
@@ -7589,8 +7590,8 @@ class DebtorController extends Controller
         $debtor = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
-                COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
-                COALESCE(inc.income,0)-COALESCE(rc.rcpt_money,0)-COALESCE(oth.other_price,0) AS debtor,oth.other_list,
+                COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(cr.cr_price,0) AS other,
+                COALESCE(inc.income,0)-COALESCE(rc.rcpt_money,0)-COALESCE(cr.cr_price,0) AS debtor,cr.cr_list AS other_list,
                 ict.ipt_coll_status_type_name,i.data_ok,"ยืนยันลูกหนี้" AS status
             FROM ipt i
             LEFT JOIN patient pt ON pt.hn = i.hn
@@ -7610,13 +7611,14 @@ class DebtorController extends Controller
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn) rc ON rc.an = i.an
-            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name) AS other_list
+            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS cr_price,GROUP_CONCAT(DISTINCT COALESCE(s.name, n.name)) AS cr_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
-                LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode LEFT JOIN nondrugitems n ON n.icode = o.icode
+                LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode 
+                LEFT JOIN nondrugitems n ON n.icode = o.icode
                 LEFT JOIN s_drugitems s ON s.icode = o.icode 
-                WHERE (li.kidney = "Y" OR li.ems = "Y" OR li.uc_cr = "Y"OR n.nhso_adp_code IN ("S1801","S1802"))
-                GROUP BY o.an, o.pttype) oth ON oth.an = i.an AND oth.pttype = ip.pttype
+                WHERE (li.uc_cr = "Y" OR li.kidney = "Y" OR n.nhso_adp_code IN ("S1801","S1802"))
+                GROUP BY o.an, o.pttype) cr ON cr.an = i.an AND cr.pttype = ip.pttype
             WHERE i.confirm_discharge = "Y"
             AND p.hipdata_code IN ("UCS","WEL") 
             AND i.dchdate BETWEEN ? AND ?

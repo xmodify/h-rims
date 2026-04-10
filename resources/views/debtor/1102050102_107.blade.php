@@ -272,10 +272,6 @@
                             <p class="mt-2 text-muted">กำลังดึงข้อมูลจาก HOSxP...</p>
                             <p class="small text-danger">โปรดรอซักครู่</p>
                         </div>
-                        <div id="empty-tab2" class="text-center p-5 d-none">
-                            <i class="bi bi-info-circle fs-1 text-muted"></i>
-                            <p class="mt-2 text-muted">ไม่พบข้อมูลรอยืนยัน</p>
-                        </div>
                         <div class="table-responsive">
                             <table id="debtor_search" class="table table-bordered table-striped my-3 d-none" width="100%">
                                 <thead>
@@ -337,10 +333,6 @@
                             <div class="spinner-border text-warning" role="status"></div>
                             <p class="mt-2 text-muted">กำลังดึงข้อมูล iClaim...</p>
                             <p class="small text-danger">โปรดรอซักครู่</p>
-                        </div>
-                        <div id="empty-tab3" class="text-center p-5 d-none">
-                            <i class="bi bi-info-circle fs-1 text-muted"></i>
-                            <p class="mt-2 text-muted">ไม่พบข้อมูล iClaim</p>
                         </div>
                         <div class="table-responsive">
                             <table id="debtor_search_iclaim_table" class="table table-bordered table-striped my-3 d-none" width="100%">
@@ -781,10 +773,7 @@
 
             $.get("{{ url('debtor/1102050102_107_search_ajax') }}", { start_date, end_date }, function(data) {
                 $('#loading-tab2').addClass('d-none');
-                if (!data || data.length === 0) {
-                    $('#empty-tab2').removeClass('d-none');
-                    return;
-                }
+                $('#debtor_search').removeClass('d-none');
                 
                 let html = '';
                 let sum_inc = 0, sum_paid = 0, sum_rcpt = 0, sum_debt = 0, sum_arr = 0, sum_dep = 0, sum_deb = 0;
@@ -852,10 +841,7 @@
 
             $.get("{{ url('debtor/1102050102_107_iclaim_ajax') }}", { start_date, end_date }, function(data) {
                 $('#loading-tab3').addClass('d-none');
-                if (!data || data.length === 0) {
-                    $('#empty-tab3').removeClass('d-none');
-                    return;
-                }
+                $('#debtor_search_iclaim_table').removeClass('d-none');
                 
                 let html = '';
                 let sum_inc = 0, sum_rcpt = 0, sum_other = 0, sum_debt = 0;

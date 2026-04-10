@@ -76,19 +76,19 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span class="badge bg-primary-soft text-primary ms-2">{{ count($debtor) }}</span>
+                        <span class="badge bg-success text-white ms-2">{{ count($debtor) }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="pay-tab" data-bs-toggle="pill" data-bs-target="#pay-pane" type="button" role="tab">
+                    <button class="nav-link" id="pay-tab" data-bs-toggle="pill" data-bs-target="#pay-pane" type="button" role="tab" onclick="loadTab2()">
                         <i class="bi bi-cash-coin me-1"></i> รอยืนยันลูกหนี้ ชำระเงิน OP
-                        <span class="badge bg-warning-soft text-warning ms-2">{{ count($debtor_search) }}</span>
+                        <span id="badge-tab2" class="badge bg-warning text-white ms-2">0</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="iclaim-tab" data-bs-toggle="pill" data-bs-target="#iclaim-pane" type="button" role="tab">
+                    <button class="nav-link" id="iclaim-tab" data-bs-toggle="pill" data-bs-target="#iclaim-pane" type="button" role="tab" onclick="loadTab3()">
                         <i class="bi bi-shield-check me-1"></i> รอยืนยันลูกหนี้ iClaim
-                        <span class="badge bg-info-soft text-info ms-2">{{ count($debtor_search_iclaim) }}</span>
+                        <span id="badge-tab3" class="badge bg-info text-white ms-2">0</span>
                     </button>
                 </li>
             </ul>
@@ -268,77 +268,55 @@
                             <div></div>
                         </div>
 
-                        <div class="table-responsive"><table id="debtor_search" class="table table-bordered table-striped my-3" width="100%">
-                            <thead>
-                            <tr class="table-secondary">
-                                <th class="text-left text-primary" colspan = "14">ผู้มารับบริการรอชําระเงิน OP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                         
-                            </tr>
-                            <tr class="table-secondary">
-                                <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th>   
-                                <th class="text-center">วันที่</th>
-                                <th class="text-center">HN</th>
-                                <th class="text-center">ชื่อ-สกุล</th>
-                                <th class="text-center">เบอร์โทร</th>
-                                <th class="text-center">สิทธิ</th>
-                                <th class="text-center">ICD10</th>
-                                <th class="text-center">ค่ารักษาทั้งหมด</th>  
-                                <th class="text-center">ต้องชำระ</th>   
-                                <th class="text-center">ชำระเอง</th>                                      
-                                <th class="text-center">ลูกหนี้</th>
-                                <th class="text-center">ค้างชำระ</th>
-                                <th class="text-center">ฝากมัดจำ</th>
-                                <th class="text-center">ถอนมัดจำ</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <?php $count = 1 ; ?>
-                            <?php $sum_income_search = 0; ?>
-                            <?php $sum_paid_money_search = 0; ?>
-                            <?php $sum_rcpt_money_search = 0; ?>
-                            <?php $sum_debtor_search = 0; ?>
-                            <?php $sum_arrear = 0; ?>
-                            <?php $sum_deposit = 0; ?>
-                            <?php $sum_debit = 0; ?>
-                            @foreach($debtor_search as $row)
-                            @php $balance = -($row->debtor ?? 0); @endphp <tr>
-                                <td class="text-center"><input type="checkbox" name="checkbox[]" value="{{$row->vn}}"></td> 
-                                <td align="right">{{ DateThai($row->vstdate) }} {{ $row->vsttime }}</td>
-                                <td align="center">{{ $row->hn }}</td>
-                                <td align="left">{{ $row->ptname }}</td>
-                                <td align="center">{{ $row->mobile_phone_number }}</td>
-                                <td align="right">{{ $row->pttype }}</td>
-                                <td align="right">{{ $row->pdx }}</td>                  
-                                <td align="right">{{ number_format($row->income,2) }}</td>
-                                <td align="right">{{ number_format($row->paid_money,2) }}</td>  
-                                <td align="right">{{ number_format($row->rcpt_money,2) }}</td>  
-                                <td align="right">{{ number_format($row->paid_money-$row->rcpt_money,2) }}</td>
-                                <td align="right">{{ number_format($row->arrear_amount,2) }}</td>               
-                                <td align="right">{{ number_format($row->deposit_amount,2) }}</td>    
-                                <td align="right">{{ number_format($row->debit_amount,2) }}</td>   
-                            <?php $count++; ?>
-                            <?php $sum_income_search += $row->income; ?>
-                            <?php $sum_paid_money_search += $row->paid_money; ?>
-                            <?php $sum_rcpt_money_search += $row->rcpt_money; ?>
-                            <?php $sum_debtor_search += ($row->paid_money - $row->rcpt_money); ?>
-                            <?php $sum_arrear += $row->arrear_amount; ?>
-                            <?php $sum_deposit += $row->deposit_amount; ?>
-                            <?php $sum_debit += $row->debit_amount; ?>
-                            </tr>
-                            @endforeach 
-                            </tbody>
-                            <tfoot>
-                                <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                                    <td colspan="7" class="text-end">รวม</td>
-                                    <td class="text-end">{{ number_format($sum_income_search,2) }}</td>
-                                    <td class="text-end">{{ number_format($sum_paid_money_search,2) }}</td>
-                                    <td class="text-end">{{ number_format($sum_rcpt_money_search,2) }}</td>
-                                    <td class="text-end" style="color:blue">{{ number_format($sum_debtor_search,2) }}</td>
-                                    <td class="text-end">{{ number_format($sum_arrear,2) }}</td>
-                                    <td class="text-end">{{ number_format($sum_deposit,2) }}</td>
-                                    <td class="text-end">{{ number_format($sum_debit,2) }}</td>
+                        <div class="table-responsive">
+                            <div id="loading-tab2" class="text-center p-5 d-none">
+                                <div class="spinner-border text-warning" role="status"></div>
+                                <p class="mt-2 text-muted">กำลังดึงข้อมูลจาก HOSxP...</p>
+                                <p class="small text-danger">โปรดรอซักครู่</p>
+                            </div>
+                            <div id="empty-tab2" class="text-center p-5">
+                                <i class="bi bi-search fs-1 text-muted"></i>
+                                <p class="mt-2">คลิกที่ Tab หรือกดปุ่มค้นหาเพื่อโหลดข้อมูล</p>
+                                <button type="button" class="btn btn-warning btn-sm" onclick="loadTab2()">โหลดข้อมูล HOSxP</button>
+                            </div>
+                            <table id="debtor_search" class="table table-bordered table-striped my-3 d-none" width="100%">
+                                <thead>
+                                <tr class="table-secondary">
+                                    <th class="text-left text-primary" colspan = "14">ผู้มารับบริการรอชําระเงิน OP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                         
                                 </tr>
-                            </tfoot>
-                        </table></div>
+                                <tr class="table-secondary">
+                                    <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th>   
+                                    <th class="text-center">วันที่</th>
+                                    <th class="text-center">HN</th>
+                                    <th class="text-center">ชื่อ-สกุล</th>
+                                    <th class="text-center">เบอร์โทร</th>
+                                    <th class="text-center">สิทธิ</th>
+                                    <th class="text-center">ICD10</th>
+                                    <th class="text-center">ค่ารักษาทั้งหมด</th>  
+                                    <th class="text-center">ต้องชำระ</th>   
+                                    <th class="text-center">ชำระเอง</th>                                      
+                                    <th class="text-center">ลูกหนี้</th>
+                                    <th class="text-center">ค้างชำระ</th>
+                                    <th class="text-center">ฝากมัดจำ</th>
+                                    <th class="text-center">ถอนมัดจำ</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
+                                        <td colspan="7" class="text-end">รวม</td>
+                                        <td id="sum_income_search" class="text-end">0.00</td>
+                                        <td id="sum_paid_money_search" class="text-end">0.00</td>
+                                        <td id="sum_rcpt_money_search" class="text-end">0.00</td>
+                                        <td id="sum_debtor_search" class="text-end" style="color:blue">0.00</td>
+                                        <td id="sum_arrear" class="text-end">0.00</td>
+                                        <td id="sum_deposit" class="text-end">0.00</td>
+                                        <td id="sum_debit" class="text-end">0.00</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
                     </form>
                 </div> 
 
@@ -354,62 +332,48 @@
                             <div></div>
                         </div>
 
-                        <table id="debtor_search_iclaim" class="table table-bordered table-striped my-3" width="100%">
-                            <thead>
-                            <tr class="table-secondary">
-                                <th class="text-left text-primary" colspan = "11">ผู้มารับบริการใช้ประกันชีวิต iClaim วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>      
-                            </tr>
-                            <tr class="table-secondary">
-                                <th class="text-center"><input type="checkbox" onClick="toggle_iclaim(this)"> All</th>  
-                                <th class="text-center" width="6%">วันที่</th>
-                                <th class="text-center">Queue</th>
-                                <th class="text-center">HN</th>
-                                <th class="text-center">ชื่อ-สกุล</th>
-                                <th class="text-center">สิทธิ</th>
-                                <th class="text-center">ICD10</th>
-                                <th class="text-center">ค่ารักษาทั้งหมด</th>  
-                                <th class="text-center">ชำระเอง</th> 
-                                <th class="text-center">กองทุนอื่น</th> 
-                                <th class="text-center">ลูกหนี้</th>  
-                            </tr>
-                            </thead>
-                            <tbody>
-                            <?php $count = 1 ; ?>
-                            <?php $sum_income_iclaim = 0; ?>
-                            <?php $sum_rcpt_money_iclaim = 0; ?>
-                            <?php $sum_other_iclaim = 0; ?>
-                            <?php $sum_debtor_iclaim = 0; ?>
-                            @foreach($debtor_search_iclaim as $row)
-                            <tr>
-                                <td class="text-center"><input type="checkbox" name="checkbox_iclaim[]" value="{{$row->vn}}"></td>                   
-                                <td align="center">{{ DateThai($row->vstdate) }} {{ $row->vsttime }}</td>
-                                <td align="center">{{ $row->oqueue }}</td>
-                                <td align="center">{{ $row->hn }}</td>
-                                <td align="left">{{ $row->ptname }}</td>
-                                <td align="left">{{ $row->pttype }}</td>
-                                <td align="right">{{ $row->pdx }}</td>  
-                                <td align="right">{{ number_format($row->income,2) }}</td>
-                                <td align="right">{{ number_format($row->rcpt_money,2) }}</td>     
-                                <td align="right">{{ number_format($row->other,2) }}</td>
-                                <td align="right">{{ number_format($row->debtor,2) }}</td>
-                            <?php $count++; ?>
-                            <?php $sum_income_iclaim += $row->income; ?>
-                            <?php $sum_rcpt_money_iclaim += $row->rcpt_money; ?>
-                            <?php $sum_other_iclaim += $row->other; ?>
-                            <?php $sum_debtor_iclaim += $row->debtor; ?>
-                            @endforeach 
-                            </tr>   
-                            </tbody>
-                            <tfoot>
-                                <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                                    <td colspan="7" class="text-end">รวม</td>
-                                    <td class="text-end">{{ number_format($sum_income_iclaim,2) }}</td>
-                                    <td class="text-end">{{ number_format($sum_rcpt_money_iclaim,2) }}</td>
-                                    <td class="text-end">{{ number_format($sum_other_iclaim,2) }}</td>
-                                    <td class="text-end" style="color:blue">{{ number_format($sum_debtor_iclaim,2) }}</td>
+                        <div class="table-responsive">
+                            <div id="loading-tab3" class="text-center p-5 d-none">
+                                <div class="spinner-border text-info" role="status"></div>
+                                <p class="mt-2 text-muted">กำลังดึงข้อมูลจาก HOSxP...</p>
+                            </div>
+                            <div id="empty-tab3" class="text-center p-5">
+                                <i class="bi bi-search fs-1 text-muted"></i>
+                                <p class="mt-2">คลิกที่ Tab หรือกดปุ่มค้นหาเพื่อโหลดข้อมูล</p>
+                                <button type="button" class="btn btn-info btn-sm" onclick="loadTab3()">โหลดข้อมูล iClaim</button>
+                            </div>
+                            <table id="debtor_search_iclaim_table" class="table table-bordered table-striped my-3 d-none" width="100%">
+                                <thead>
+                                <tr class="table-secondary">
+                                    <th class="text-left text-primary" colspan = "11">ผู้มารับบริการใช้ประกันชีวิต iClaim วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>      
                                 </tr>
-                            </tfoot>
-                        </table>
+                                <tr class="table-secondary">
+                                    <th class="text-center"><input type="checkbox" onClick="toggle_iclaim(this)"> All</th>  
+                                    <th class="text-center" width="6%">วันที่</th>
+                                    <th class="text-center">Queue</th>
+                                    <th class="text-center">HN</th>
+                                    <th class="text-center">ชื่อ-สกุล</th>
+                                    <th class="text-center">สิทธิ</th>
+                                    <th class="text-center">ICD10</th>
+                                    <th class="text-center">ค่ารักษาทั้งหมด</th>  
+                                    <th class="text-center">ชำระเอง</th> 
+                                    <th class="text-center">กองทุนอื่น</th> 
+                                    <th class="text-center">ลูกหนี้</th>  
+                                </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
+                                        <td colspan="7" class="text-end">รวม</td>
+                                        <td id="sum_income_iclaim" class="text-end">0.00</td>
+                                        <td id="sum_rcpt_money_iclaim" class="text-end">0.00</td>
+                                        <td id="sum_other_iclaim" class="text-end">0.00</td>
+                                        <td id="sum_debtor_iclaim" class="text-end" style="color:blue">0.00</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -440,7 +404,7 @@
 
 <script>
     function showLoading() {
-        Swal.fire({ title: 'กำลังโหลด...', text: 'กรุณารอสักครู่', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+        Swal.fire({ title: 'กำลังโหลด...', text: 'โปรดรอซักครู่', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
     }
     function fetchData() { showLoading(); }
 
@@ -718,48 +682,27 @@ $(document).ready(function() {
         });
     }
 
-    // 4. DataTable for search/confirm table
-    if ($('#debtor_search').length) {
-        $('#debtor_search').DataTable({
-            dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-            buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: 'Excel',
-                    className: 'btn btn-success btn-sm',
-                    title: '1102050102.106-ลูกหนี้ค่ารักษา ชําระเงิน OP รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
-                }
-            ],
-            language: {
-                search: 'ค้นหา:',
-                lengthMenu: 'แสดง _MENU_ รายการ',
-                info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
-                paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
-            }
-        });
-    }
-
-    // 5. DataTable for AE table
-    if ($('#debtor_search_ae').length) {
-        $('#debtor_search_ae').DataTable({
-            dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-            buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: 'Excel',
-                    className: 'btn btn-success btn-sm',
-                    title: '1102050102.106-ลูกหนี้ค่ารักษา ชําระเงิน OP รอยืนยัน AE/OP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
-                }
-            ],
-            language: {
-                search: 'ค้นหา:',
-                lengthMenu: 'แสดง _MENU_ รายการ',
-                info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
-                paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
-            }
-        });
-    }
+    // Auto-load background data
+    loadCounts(); // Get numbers immediately
+    loadTab2();   // Fetch detail in background
+    loadTab3();   // Fetch detail in background
 });
+
+function loadCounts() {
+    // Show spinner in badges
+    $('#badge-tab2').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+    $('#badge-tab3').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+
+    $.ajax({
+        url: "{{ url('debtor/1102050102_106_counts_ajax') }}",
+        data: { start_date: $('#start_date').val(), end_date: $('#end_date').val() },
+        success: function(res) {
+            // Update labels with actual counts
+            $('#badge-tab2').text(res.tab2).removeClass('bg-warning-soft text-warning').addClass('bg-warning text-white');
+            $('#badge-tab3').text(res.tab3).removeClass('bg-info-soft text-info').addClass('bg-info text-white');
+        }
+    });
+}
 </script>
 
 <script id="single-modal-js">
@@ -798,51 +741,170 @@ $(document).ready(function () {
         $('#modal_ptname').text(d.ptname);
         
         var balEl = $('#modal_balance');
-        balEl.text(d.balance + ' บาท');
-        var raw = parseFloat(d.balanceRaw);
-        balEl.css('color', raw < -0.01 ? 'red' : (raw > 0.01 ? 'green' : 'black'));
-        
-        function setPickerDate(pickerId, hiddenId, dateStr) {
-            $(hiddenId).val(dateStr || '');
-            if(dateStr && dateStr !== '0000-00-00') {
-                var p = dateStr.split('-');
-                if(p.length === 3) {
-                    // Force refresh by clearing first
-                    $(pickerId).val('');
-                    $(pickerId).datepicker('setDate', new Date(p[0], p[1]-1, p[2]));
-                }
-            } else {
-                $(pickerId).val(''); 
-            }
-        }
+        balEl.text(d.balance).removeClass('text-success text-danger');
+        if(parseFloat(d.balanceRaw) > 0.05) balEl.addClass('text-success');
+        else if(parseFloat(d.balanceRaw) < -0.05) balEl.addClass('text-danger');
 
-        setPickerDate('#modal_charge_date_picker', '#modal_charge_date', d.chargeDate);
-        $('#modal_charge_no').val(d.chargeNo || '');
-        $('#modal_charge').val(d.charge || '');
-        $('#modal_status').val(d.status || 'ยืนยันลูกหนี้');
+        $('#modal_charge_date').val(d.chargeDate);
+        $('#modal_charge_date_picker').val(d.chargeDateTh);
+        $('#modal_charge_no').val(d.chargeNo);
+        $('#modal_charge').val(d.charge);
+        $('#modal_status').val(d.status);
+        $('#modal_receive_date').val(d.receiveDate);
+        $('#modal_receive_date_picker').val(d.receiveDateTh);
+        $('#modal_receive_no').val(d.receiveNo);
+        $('#modal_receive').val(d.receive);
+        $('#modal_repno').val(d.repno);
+        $('#modal_adj_inc').val(d.adjInc);
+        $('#modal_adj_dec').val(d.adjDec);
+        $('#modal_adj_date').val(d.adjDate);
+        $('#modal_adj_date_picker').val(d.adjDateTh);
+        $('#modal_adj_note').val(d.adjNote);
         
-        setPickerDate('#modal_receive_date_picker', '#modal_receive_date', d.receiveDate);
-        $('#modal_receive_no').val(d.receiveNo || '');
-        $('#modal_receive').val(d.receive || '');
-        $('#modal_repno').val(d.repno || '');
-        
-        $('#modal_adj_inc').val(d.adjInc || 0);
-        $('#modal_adj_dec').val(d.adjDec || 0);
-        setPickerDate('#modal_adj_date_picker', '#modal_adj_date', d.adjDate);
-        $('#modal_adj_note').val(d.adjNote || '');
-        
-        var $modal = $('#debtorModal');
-        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            try {
-                var myModal = bootstrap.Modal.getOrCreateInstance($modal[0]);
-                myModal.show();
-            } catch(e) {
-                if (typeof $modal.modal === 'function') { $modal.modal('show'); }
-            }
-        } else if (typeof $.fn.modal === 'function') {
-            $modal.modal('show');
-        }
+        $('#debtorModal').modal('show');
     });
 });
+
+function loadTab2() {
+    if (!$('#debtor_search').hasClass('d-none')) return;
+    $('#empty-tab2').addClass('d-none');
+    $('#loading-tab2').removeClass('d-none');
+    
+    $.ajax({
+        url: "{{ url('debtor/1102050102_106_search_ajax') }}",
+        data: { start_date: $('#start_date').val(), end_date: $('#end_date').val() },
+        success: function(res) {
+            $('#loading-tab2').addClass('d-none');
+            $('#debtor_search').removeClass('d-none');
+            $('#badge-tab2').text(res.length).removeClass('bg-warning-soft text-warning').addClass('bg-warning text-white');
+            
+            let html = '';
+            let s_inc = 0, s_paid = 0, s_rcpt = 0, s_debt = 0, s_arr = 0, s_dep = 0, s_deb = 0;
+            res.forEach(r => {
+                let d = r.paid_money - r.rcpt_money;
+                html += `<tr>
+                    <td class="text-center"><input type="checkbox" name="checkbox[]" value="${r.vn}"></td>
+                    <td align="right">${thaiDate(r.vstdate)} ${r.vsttime}</td>
+                    <td align="center">${r.hn}</td>
+                    <td align="left">${r.ptname}</td>
+                    <td align="center">${r.mobile_phone_number || ''}</td>
+                    <td align="left">${r.pttype}</td>
+                    <td align="right">${r.pdx || ''}</td>
+                    <td align="right">${formatMoney(r.income)}</td>
+                    <td align="right">${formatMoney(r.paid_money)}</td>
+                    <td align="right">${formatMoney(r.rcpt_money)}</td>
+                    <td align="right">${formatMoney(d)}</td>
+                    <td align="right">${formatMoney(r.arrear_amount)}</td>
+                    <td align="right">${formatMoney(r.deposit_amount)}</td>
+                    <td align="right">${formatMoney(r.debit_amount)}</td>
+                </tr>`;
+                s_inc += parseFloat(r.income || 0);
+                s_paid += parseFloat(r.paid_money || 0);
+                s_rcpt += parseFloat(r.rcpt_money || 0);
+                s_debt += d;
+                s_arr += parseFloat(r.arrear_amount || 0);
+                s_dep += parseFloat(r.deposit_amount || 0);
+                s_deb += parseFloat(r.debit_amount || 0);
+            });
+            $('#debtor_search tbody').html(html);
+            $('#sum_income_search').text(formatMoney(s_inc));
+            $('#sum_paid_money_search').text(formatMoney(s_paid));
+            $('#sum_rcpt_money_search').text(formatMoney(s_rcpt));
+            $('#sum_debtor_search').text(formatMoney(s_debt));
+            $('#sum_arrear').text(formatMoney(s_arr));
+            $('#sum_deposit').text(formatMoney(s_dep));
+            $('#sum_debit').text(formatMoney(s_deb));
+
+            $('#debtor_search').DataTable({
+                destroy: true,
+                dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                buttons: [{ extend: 'excelHtml5', text: 'Excel', className: 'btn btn-success btn-sm', title: 'รอยืนยืนลูกหนี้ ชำระเงิน OP' }],
+                language: { search: 'ค้นหา:', lengthMenu: 'แสดง _MENU_ รายการ', info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ', paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' } }
+            });
+        },
+        error: function() { 
+            $('#loading-tab2').addClass('d-none'); 
+            $('#empty-tab2').removeClass('d-none');
+            $('#badge-tab2').text('!').addClass('bg-danger text-white');
+            Swal.fire('Error', 'ไม่สามารถดึงข้อมูลได้ โปรดลองอีกครั้ง', 'error'); 
+        }
+    });
+}
+
+function loadTab3() {
+    if (!$('#debtor_search_iclaim_table').hasClass('d-none')) return;
+    $('#empty-tab3').addClass('d-none');
+    $('#loading-tab3').removeClass('d-none');
+
+    $.ajax({
+        url: "{{ url('debtor/1102050102_106_iclaim_ajax') }}",
+        data: { start_date: $('#start_date').val(), end_date: $('#end_date').val() },
+        success: function(res) {
+            $('#loading-tab3').addClass('d-none');
+            $('#debtor_search_iclaim_table').removeClass('d-none');
+            $('#badge-tab3').text(res.length).removeClass('bg-info-soft text-info').addClass('bg-info text-white');
+
+            let html = '';
+            let s_inc = 0, s_rcpt = 0, s_oth = 0, s_debt = 0;
+            res.forEach(r => {
+                html += `<tr>
+                    <td class="text-center"><input type="checkbox" name="checkbox_iclaim[]" value="${r.vn}"></td>
+                    <td align="center">${thaiDate(r.vstdate)} ${r.vsttime}</td>
+                    <td align="center">${r.oqueue}</td>
+                    <td align="center">${r.hn}</td>
+                    <td align="left">${r.ptname}</td>
+                    <td align="left">${r.pttype}</td>
+                    <td align="right">${r.pdx || ''}</td>
+                    <td align="right">${formatMoney(r.income)}</td>
+                    <td align="right">${formatMoney(r.rcpt_money)}</td>
+                    <td align="right">${formatMoney(r.other)}</td>
+                    <td align="right">${formatMoney(r.debtor)}</td>
+                </tr>`;
+                s_inc += parseFloat(r.income || 0);
+                s_rcpt += parseFloat(r.rcpt_money || 0);
+                s_oth += parseFloat(r.other || 0);
+                s_debt += parseFloat(r.debtor || 0);
+            });
+            $('#debtor_search_iclaim_table tbody').html(html);
+            $('#sum_income_iclaim').text(formatMoney(s_inc));
+            $('#sum_rcpt_money_iclaim').text(formatMoney(s_rcpt));
+            $('#sum_other_iclaim').text(formatMoney(s_oth));
+            $('#sum_debtor_iclaim').text(formatMoney(s_debt));
+
+            $('#debtor_search_iclaim_table').DataTable({
+                destroy: true,
+                dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                buttons: [{ extend: 'excelHtml5', text: 'Excel', className: 'btn btn-success btn-sm', title: 'รอยืนยืนลูกหนี้ iClaim' }],
+                language: { search: 'ค้นหา:', lengthMenu: 'แสดง _MENU_ รายการ', info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ', paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' } }
+            });
+        },
+        error: function() { 
+            $('#loading-tab3').addClass('d-none'); 
+            $('#empty-tab3').removeClass('d-none');
+            Swal.fire('Error', 'ไม่สามารถดึงข้อมูลได้ โปรดลองอีกครั้ง', 'error'); 
+        }
+    });
+}
+
+function formatMoney(n) { return parseFloat(n || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+
+function thaiDate(dateStr) {
+    if(!dateStr) return '';
+    const months = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+    const d = new Date(dateStr);
+    return d.getDate() + ' ' + months[d.getMonth()] + ' ' + (d.getFullYear() + 543);
+}
+
+function confirmSubmit_iclaim() {
+    const selected = [...document.querySelectorAll('input[name="checkbox_iclaim[]"]:checked')].map(e => e.value);    
+    if (selected.length === 0) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะยืนยัน', 'warning'); return; }
+    Swal.fire({
+        title: 'ยืนยัน?', text: "ต้องการยืนยันลูกหนี้รายการที่เลือกใช่หรือไม่?", icon: 'question',
+        showCancelButton: true, confirmButtonColor: '#28a745', cancelButtonColor: '#6c757d', confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก'
+    }).then((result) => { if (result.isConfirmed) { 
+        const f = document.getElementById('form-confirm-iclaim');
+        if(f) f.submit(); 
+    } });
+}
 </script>
 @endpush

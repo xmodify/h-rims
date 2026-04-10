@@ -3234,12 +3234,14 @@ class DebtorController extends Controller
             'date_end' => 'required|date',
             'repno' => 'required|string',
             'total_receive' => 'required|numeric|min:0.01',
+            'receive_date' => 'required|date',
         ]);
 
         $dateStart = $request->date_start;
         $dateEnd = $request->date_end;
         $repno = $request->repno;
         $total = (float) $request->total_receive;
+        $receive_date = $request->receive_date;
 
         // ดึงข้อมูล
         $rows = DB::table('debtor_1102050101_301')
@@ -3302,6 +3304,7 @@ class DebtorController extends Controller
                 ->update([
                     'receive' => $it['assign'],
                     'repno' => $repno,
+                    'receive_date' => $receive_date,
                     'status' => 'กระทบยอดแล้ว',
                 ]);
         }
@@ -3320,6 +3323,93 @@ class DebtorController extends Controller
     }
     ##############################################################################################################################################################
     //_1102050101_303--------------------------------------------------------------------------------------------------------------
+    public function _1102050101_302_average_receive(Request $request)
+    {
+        $request->validate([
+            'date_start' => 'required|date',
+            'date_end' => 'required|date',
+            'repno' => 'required|string',
+            'total_receive' => 'required|numeric|min:0.01',
+            'receive_date' => 'required|date',
+        ]);
+
+        $dateStart = $request->date_start;
+        $dateEnd = $request->date_end;
+        $repno = $request->repno;
+        $total = (float) $request->total_receive;
+        $receive_date = $request->receive_date;
+
+        // ดึงข้อมูล
+        $rows = DB::table('debtor_1102050101_302')
+            ->whereBetween('dchdate', [$dateStart, $dateEnd])
+            ->get();
+
+        $count = $rows->count();
+        if ($count === 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "ไม่พบข้อมูล"
+            ]);
+        }
+
+        // ===== 1) คำนวณน้ำหนักตาม debtor =====
+        $sumDebtor = $rows->sum('debtor');
+        if($sumDebtor <= 0) {
+            return response()->json(['status' => 'error', 'message' => "ยอดรวมลูกหนี้เป็น 0"]);
+        }
+
+        $items = [];
+        foreach ($rows as $row) {
+            $weight = $row->debtor / $sumDebtor;
+            $assign = round($total * $weight, 2);
+            $items[] = [
+                'an' => $row->an,
+                'assign' => $assign,
+            ];
+        }
+
+        // ===== 2) ปรับ diff ให้ผลรวมตรง total_receive =====
+        $sumAssigned = array_sum(array_column($items, 'assign'));
+        $diff = round($total - $sumAssigned, 2);
+        $i = 0;
+        while (abs($diff) >= 0.01) {
+            if ($diff > 0) {
+                $items[$i]['assign'] = round($items[$i]['assign'] + 0.01, 2);
+                $diff = round($diff - 0.01, 2);
+            } else {
+                if ($items[$i]['assign'] > 0.01) {
+                    $items[$i]['assign'] = round($items[$i]['assign'] - 0.01, 2);
+                    $diff = round($diff + 0.01, 2);
+                }
+            }
+            $i = ($i + 1) % $count;
+        }
+
+        // ===== 3) บันทึกจริงลงฐานข้อมูล =====
+        foreach ($items as $it) {
+            DB::table('debtor_1102050101_302')
+                ->where('an', $it['an'])
+                ->update([
+                    'receive' => $it['assign'],
+                    'repno' => $repno,
+                    'receive_date' => $receive_date,
+                    'status' => 'กระทบยอดแล้ว',
+                ]);
+        }
+        
+        $finalSum = array_sum(array_column($items, 'assign'));
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "
+                วันที่ : <b>{$dateStart}</b> ถึง <b>{$dateEnd}</b><br>
+                จำนวน AN : <b>{$count}</b><br>
+                ยอดชดเชย : <b>" . number_format($total, 2) . "</b><br>
+                ยอดที่จัดสรรได้จริง : <b>" . number_format($finalSum, 2) . "</b> ✔ ตรง 100%
+            "
+        ]);
+    }
+
     public function _1102050101_303(Request $request)
     {
         set_time_limit(0);
@@ -5704,7 +5794,25 @@ class DebtorController extends Controller
                 WHERE d.vstdate BETWEEN ? AND ?", [$start_date, $end_date]);
         }
 
-        $debtor_search = DB::connection('hosxp')->select('
+        // Lazy Loading: Defaults to empty, search via AJAX
+        $debtor_search = [];
+        $debtor_search_iclaim = [];
+
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
+        $request->session()->save();
+
+        return view('debtor.1102050102_106', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'debtor_search_iclaim'));
+    }
+
+    public function _1102050102_106_search_ajax(Request $request)
+    {
+        $start_date = $request->start_date;
+        $end_date = $request->end_date;
+
+        $data = DB::connection('hosxp')->select('
             SELECT o.vstdate, o.vsttime, o.oqueue,o.vn, o.an,o.hn,v.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
                 pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,
                 IFNULL(inc.paid_money,0) AS paid_money,
@@ -5720,7 +5828,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS income,
                 SUM(CASE WHEN op.paidst IN ("00","01","03") THEN op.sum_price ELSE 0 END) AS paid_money
                 FROM opitemrece op 
-                INNER JOIN ovst o2 ON o2.vn = op.vn AND o2.vstdate BETWEEN ? AND ?
+                WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn) inc ON inc.vn = o.vn
             LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
@@ -5734,11 +5842,20 @@ class DebtorController extends Controller
             AND IFNULL(inc.paid_money,0) > 0
             AND IFNULL(inc.paid_money,0) - IFNULL(rc.rcpt_money,0) > 0
             AND o.vstdate BETWEEN ? AND ?
-            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_106 WHERE vn IS NOT NULL)
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_106 WHERE vstdate BETWEEN ? AND ?)
             GROUP BY o.vn
-            ORDER BY o.vstdate, o.oqueue ', [$start_date, $end_date, $start_date, $end_date]);
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $debtor_search_iclaim = DB::connection('hosxp')->select('
+        return response()->json($data);
+    }
+
+    public function _1102050102_106_iclaim_ajax(Request $request)
+    {
+        $start_date = $request->start_date;
+        $end_date = $request->end_date;
+        $pttype_iclaim = DB::table('main_setting')->where('name', 'pttype_iclaim')->value('value');
+
+        $data = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.oqueue,o.an,pt.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,o.vstdate,o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,v.income,v.rcpt_money,GROUP_CONCAT(s.`name`) AS other_list,
                 IFNULL(SUM(o1.sum_price),0) AS other,v.income-v.rcpt_money-IFNULL(SUM(o1.sum_price),0) AS debtor
@@ -5748,36 +5865,66 @@ class DebtorController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y")
-			LEFT JOIN s_drugitems s ON s.icode = o1.icode	
+            LEFT JOIN s_drugitems s ON s.icode = o1.icode	
             WHERE (o.an IS NULL OR o.an ="") 
                 AND vp.pttype = ?
-				AND o.vstdate BETWEEN ? AND ?
-				AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_106 WHERE vn IS NOT NULL)
-            GROUP BY o.vn ORDER BY sum_price DESC ,o.vstdate,o.oqueue', [$pttype_iclaim, $start_date, $end_date]);
+                AND o.vstdate BETWEEN ? AND ?
+                AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_106 WHERE vstdate BETWEEN ? AND ?)
+            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue', [$pttype_iclaim, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date', $start_date);
-        $request->session()->put('end_date', $end_date);
-        $request->session()->put('search', $search);
-        $request->session()->put('debtor', $debtor);
-        $request->session()->save();
-
-        return view('debtor.1102050102_106', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'debtor_search_iclaim'));
+        return response()->json($data);
     }
+
+    public function _1102050102_106_counts_ajax(Request $request)
+    {
+        $start_date = $request->start_date;
+        $end_date = $request->end_date;
+        $pttype_iclaim = DB::table('main_setting')->where('name', 'pttype_iclaim')->value('value');
+
+        // Fast count for Tab 2
+        $count2 = DB::connection('hosxp')->table('ovst as o')
+            ->leftJoin('visit_pttype as vp', 'vp.vn', '=', 'o.vn')
+            ->leftJoin(DB::raw('(SELECT vn, SUM(CASE WHEN paidst IN ("00","01","03") THEN sum_price ELSE 0 END) as paid_money FROM opitemrece WHERE vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'" GROUP BY vn) inc'), 'inc.vn', '=', 'o.vn')
+            ->leftJoin(DB::raw('(SELECT r.vn, SUM(r.total_amount) as rcpt_money FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE a.rcpno IS NULL GROUP BY r.vn) rc'), 'rc.vn', '=', 'o.vn')
+            ->whereNull('o.an')
+            ->whereBetween('o.vstdate', [$start_date, $end_date])
+            ->where(DB::raw('IFNULL(inc.paid_money,0)'), '>', 0)
+            ->where(DB::raw('IFNULL(inc.paid_money,0) - IFNULL(rc.rcpt_money,0)'), '>', 0)
+            ->whereNotIn('o.vn', function($query) use ($start_date, $end_date) {
+                $query->select('vn')->from('hrims.debtor_1102050102_106')->whereBetween('vstdate', [$start_date, $end_date]);
+            })
+            ->count('o.vn');
+
+        // Fast count for Tab 3
+        $count3 = DB::connection('hosxp')->table('ovst as o')
+            ->leftJoin('visit_pttype as vp', 'vp.vn', '=', 'o.vn')
+            ->whereNull('o.an')
+            ->where('vp.pttype', $pttype_iclaim)
+            ->whereBetween('o.vstdate', [$start_date, $end_date])
+            ->whereNotIn('o.vn', function($query) use ($start_date, $end_date) {
+                $query->select('vn')->from('hrims.debtor_1102050102_106')->whereBetween('vstdate', [$start_date, $end_date]);
+            })
+            ->count('o.vn');
+
+        return response()->json([
+            'tab2' => $count2,
+            'tab3' => $count3
+        ]);
+    }
+
     //_1102050102_106_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050102_106_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
-        $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');
         $request->validate([
             'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
-        $checkbox = $request->input('checkbox'); // รับ array
-        $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
+        $checkbox = $request->input('checkbox');
+        $checkbox_string = implode(",", $checkbox);
 
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vstdate, o.vsttime, o.oqueue,o.vn, o.an,o.hn,v.cid,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -5795,24 +5942,20 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS income,
                 SUM(CASE WHEN op.paidst IN ("00","01","03") THEN op.sum_price ELSE 0 END) AS paid_money
                 FROM opitemrece op 
-                INNER JOIN ovst o2 ON o2.vn = op.vn AND o2.vstdate BETWEEN ? AND ?
+                WHERE op.vn IN (' . $checkbox_string . ')
                 GROUP BY op.vn) inc ON inc.vn = o.vn
             LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL 
+                AND r.vn IN (' . $checkbox_string . ')
                 GROUP BY r.vn) rc ON rc.vn = o.vn       
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN hospcode h ON h.hospcode = vp.hospmain
-            WHERE (o.an IS NULL OR o.an = "")
-            AND IFNULL(inc.paid_money,0) > 0
-            AND IFNULL(inc.paid_money,0) - IFNULL(rc.rcpt_money,0) > 0
-            AND o.vstdate BETWEEN ? AND ?
-            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_106 WHERE vn IS NOT NULL)
-            AND o.vn IN (' . $checkbox_string . ')
+            WHERE o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn
-            ORDER BY o.vstdate, o.oqueue ', [$start_date, $end_date, $start_date, $end_date]);
+            ORDER BY o.vstdate, o.oqueue ');
 
         foreach ($debtor as $row) {
             Debtor_1102050102_106::insert([
@@ -5873,12 +6016,9 @@ class DebtorController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y")
-			LEFT JOIN s_drugitems s ON s.icode = o1.icode	
-            WHERE (o.an IS NULL OR o.an ="") 
-                AND vp.pttype = ?
-				AND o.vstdate BETWEEN ? AND ?  
-                AND o.vn IN (' . $checkbox_string . ') 
-            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue', [$pttype_iclaim, $start_date, $end_date]);
+            LEFT JOIN s_drugitems s ON s.icode = o1.icode	
+            WHERE o.vn IN (' . $checkbox_string . ') 
+            GROUP BY o.vn ORDER BY o.vstdate,o.oqueue');
 
         foreach ($debtor as $row) {
             Debtor_1102050102_106::insert([
@@ -10155,42 +10295,59 @@ class DebtorController extends Controller
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search = $request->search ?: Session::get('search');
-        $pttype_iclaim = DB::table('main_setting')->where('name', 'pttype_iclaim')->value('value');
 
         if ($search) {
             $debtor = DB::connection('hosxp')->select('
                 SELECT d.*, r.total_amount, IFNULL(d.receive,0) + IFNULL(r.total_amount,0) AS receive,
                     IFNULL(t.visit,0) AS visit,
-                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.total_amount,0)) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.01
+                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.total_amount,0)) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.05
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM hrims.debtor_1102050102_107 d
                 LEFT JOIN (SELECT r.vn,r.bill_date,SUM(r.total_amount) AS total_amount,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL
+                    WHERE a.rcpno IS NULL AND r.bill_date > ?
                     GROUP BY r.vn, r.bill_date) r ON r.vn = d.an AND r.bill_date > d.dchdate
                 LEFT JOIN (SELECT an, COUNT(an) AS visit FROM hrims.debtor_1102050102_107_tracking GROUP BY an) t ON t.an = d.an
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
-                AND d.dchdate BETWEEN ? AND ?', [$search, $search, $search, $start_date, $end_date]);
+                AND d.dchdate BETWEEN ? AND ?', [$start_date, $search, $search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::connection('hosxp')->select('
                 SELECT d.*, r.total_amount, IFNULL(d.receive,0) + IFNULL(r.total_amount,0) AS receive,
                     IFNULL(t.visit,0) AS visit,
-                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.total_amount,0)) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.01
+                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.total_amount,0)) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.05
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM hrims.debtor_1102050102_107 d
                 LEFT JOIN (SELECT r.vn,r.bill_date,SUM(r.total_amount) AS total_amount,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL
+                    WHERE a.rcpno IS NULL AND r.bill_date > ?
                     GROUP BY r.vn, r.bill_date) r ON r.vn = d.an AND r.bill_date > d.dchdate
                 LEFT JOIN (SELECT an, COUNT(an) AS visit FROM hrims.debtor_1102050102_107_tracking GROUP BY an) t ON t.an = d.an
-                WHERE d.dchdate BETWEEN ? AND ?', [$start_date, $end_date]);
+                WHERE d.dchdate BETWEEN ? AND ?', [$start_date, $start_date, $end_date]);
         }
 
-        $debtor_search = DB::connection('hosxp')->select('
+        // Lazy Loading: Defaults to empty, fetched via AJAX
+        $debtor_search = [];
+        $debtor_search_iclaim = [];
+
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
+        $request->session()->save();
+
+        return view('debtor.1102050102_107', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'debtor_search_iclaim'));
+    }
+
+    public function _1102050102_107_search_ajax(Request $request)
+    {
+        $start_date = $request->start_date;
+        $end_date = $request->end_date;
+
+        $data = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.regdate, i.regtime,i.dchdate, i.dchtime,i.hn, i.vn, i.an,p.cid,
                 CONCAT(p.pname,p.fname,SPACE(1),p.lname) AS ptname,p.mobile_phone_number,a.age_y,
                 p1.`name` AS pttype,ip.hospmain,p1.hipdata_code,a.pdx,i.adjrw,a.income,
@@ -10221,11 +10378,20 @@ class DebtorController extends Controller
             WHERE i.dchdate BETWEEN ? AND ?
             AND IFNULL(inc.paid_money,0) > 0
             AND IFNULL(inc.paid_money,0) - IFNULL(rc.rcpt_money,0) > 0
-            AND NOT EXISTS (SELECT 1 FROM hrims.debtor_1102050102_107 d WHERE d.an = i.an )
+            AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_107 WHERE dchdate BETWEEN ? AND ?)
             GROUP BY i.an
-            ORDER BY i.dchdate', [$start_date, $end_date, $start_date, $end_date]);
+            ORDER BY i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $debtor_search_iclaim = DB::connection('hosxp')->select('
+        return response()->json($data);
+    }
+
+    public function _1102050102_107_iclaim_ajax(Request $request)
+    {
+        $start_date = $request->start_date;
+        $end_date = $request->end_date;
+        $pttype_iclaim = DB::table('main_setting')->where('name', 'pttype_iclaim')->value('value');
+
+        $data = DB::connection('hosxp')->select('
             SELECT * FROM (SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.vn,i.hn,i.an,
                 CONCAT(p.pname,p.fname,SPACE(1),p.lname) AS ptname,p.mobile_phone_number,a.pdx,p.cid,a.age_y,p1.name AS pttype,
                 ip.hospmain,p1.hipdata_code,i.adjrw,a.income,a.paid_money ,a.rcpt_money,IFNULL(SUM(o1.sum_price),0) AS other,
@@ -10238,34 +10404,62 @@ class DebtorController extends Controller
             LEFT JOIN patient p ON p.hn=i.hn
             LEFT JOIN opitemrece o1 ON o1.an=i.an AND o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y")
             WHERE i.confirm_discharge = "Y" 
-            AND p1.pttype = ?
+            AND ip.pttype = ?
             AND i.dchdate BETWEEN ? AND ?
-            AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_107 WHERE an IS NOT NULL) 
-            GROUP BY i.an ORDER BY i.ward,i.dchdate) AS a WHERE debtor <> "0"', [$pttype_iclaim, $start_date, $end_date]);
+            AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_107 WHERE dchdate BETWEEN ? AND ?) 
+            GROUP BY i.an ORDER BY i.ward,i.dchdate) AS a WHERE debtor <> "0"', [$pttype_iclaim, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date', $start_date);
-        $request->session()->put('end_date', $end_date);
-        $request->session()->put('search', $search);
-        $request->session()->put('debtor', $debtor);
-        $request->session()->save();
-
-        return view('debtor.1102050102_107', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'debtor_search_iclaim'));
+        return response()->json($data);
     }
+
+    public function _1102050102_107_counts_ajax(Request $request)
+    {
+        $start_date = $request->start_date;
+        $end_date = $request->end_date;
+        $pttype_iclaim = DB::table('main_setting')->where('name', 'pttype_iclaim')->value('value');
+
+        // Fast count for Tab 2
+        $count2 = DB::connection('hosxp')->table('ipt as i')
+            ->leftJoin(DB::raw('(SELECT op.an, SUM(CASE WHEN op.paidst IN ("00","01","03") THEN op.sum_price ELSE 0 END) as paid_money FROM opitemrece op INNER JOIN ipt i2 ON i2.an = op.an AND i2.dchdate BETWEEN "'.$start_date.'" AND "'.$end_date.'" GROUP BY op.an) inc'), 'inc.an', '=', 'i.an')
+            ->leftJoin(DB::raw('(SELECT r.vn as an, SUM(r.total_amount) as rcpt_money FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE a.rcpno IS NULL GROUP BY r.vn) rc'), 'rc.an', '=', 'i.an')
+            ->whereBetween('i.dchdate', [$start_date, $end_date])
+            ->where(DB::raw('IFNULL(inc.paid_money,0)'), '>', 0)
+            ->where(DB::raw('IFNULL(inc.paid_money,0) - IFNULL(rc.rcpt_money,0)'), '>', 0)
+            ->whereNotIn('i.an', function($query) use ($start_date, $end_date) {
+                $query->select('an')->from('hrims.debtor_1102050102_107')->whereBetween('dchdate', [$start_date, $end_date]);
+            })
+            ->count('i.an');
+
+        // Fast count for Tab 3
+        $count3 = DB::connection('hosxp')->table('ipt as i')
+            ->leftJoin('ipt_pttype as ip', 'ip.an', '=', 'i.an')
+            ->where('i.confirm_discharge', 'Y')
+            ->where('ip.pttype', $pttype_iclaim)
+            ->whereBetween('i.dchdate', [$start_date, $end_date])
+            ->whereNotIn('i.an', function($query) use ($start_date, $end_date) {
+                $query->select('an')->from('hrims.debtor_1102050102_107')->whereBetween('dchdate', [$start_date, $end_date]);
+            })
+            ->count('i.an');
+
+        return response()->json([
+            'tab2' => $count2,
+            'tab3' => $count3
+        ]);
+    }
+
     //_1102050102_107_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050102_107_confirm(Request $request)
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
-        $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');
         $request->validate([
             'checkbox' => 'required|array',
         ], [
             'checkbox.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
-        $checkbox = $request->input('checkbox'); // รับ array
-        $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
+        $checkbox = $request->input('checkbox');
+        $checkbox_string = implode(",", $checkbox);
 
         $debtor = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.regdate, i.regtime,i.dchdate, i.dchtime,i.hn, i.vn, i.an,p.cid,
@@ -10286,22 +10480,17 @@ class DebtorController extends Controller
             LEFT JOIN patient_finance_debit fd1 ON fd1.anvn = i.an
             LEFT JOIN (SELECT op.an, SUM(CASE WHEN op.paidst IN ("00","01","03") THEN op.sum_price ELSE 0 END) AS paid_money
                 FROM opitemrece op 
-                INNER JOIN ipt i2 ON i2.an = op.an AND i2.dchdate BETWEEN ? AND ?
+                WHERE op.an IN (' . $checkbox_string . ')
                 GROUP BY op.an) inc ON inc.an = i.an
             LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL 
+                WHERE a.rcpno IS NULL AND r.vn IN (' . $checkbox_string . ')
                 GROUP BY r.vn) rc ON rc.an = i.an
             LEFT JOIN hospcode h ON h.hospcode = ip.hospmain
-            WHERE i.dchdate BETWEEN ? AND ?
-            AND IFNULL(inc.paid_money,0) > 0
-            AND IFNULL(inc.paid_money,0) - IFNULL(rc.rcpt_money,0) > 0
-            AND NOT EXISTS (SELECT 1 FROM hrims.debtor_1102050102_107 d WHERE d.an = i.an )
-            AND i.an IN (' . $checkbox_string . ') 
-            GROUP BY i.an
-            ORDER BY i.dchdate	', [$start_date, $end_date, $start_date, $end_date]);
+            WHERE i.an IN (' . $checkbox_string . ')
+            GROUP BY i.an');
 
         foreach ($debtor as $row) {
             Debtor_1102050102_107::insert([
@@ -10327,13 +10516,6 @@ class DebtorController extends Controller
             ]);
         }
 
-        if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะยืนยัน'
-            ]);
-        }
-
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
     //_1102050102_107_confirm_iclaim-------------------------------------------------------------------------------------------------------
@@ -10342,16 +10524,13 @@ class DebtorController extends Controller
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
 
-        $start_date = Session::get('start_date');
-        $end_date = Session::get('end_date');
-        $pttype_iclaim = DB::table('main_setting')->where('name', 'pttype_iclaim')->value('value');
         $request->validate([
             'checkbox_iclaim' => 'required|array',
         ], [
             'checkbox_iclaim.required' => 'กรุณาเลือกรายการที่ต้องการยืนยันลูกหนี้'
         ]);
-        $checkbox = $request->input('checkbox_iclaim'); // รับ array
-        $checkbox_string = implode(",", $checkbox); // แปลงเป็น string สำหรับ SQL IN
+        $checkbox = $request->input('checkbox_iclaim');
+        $checkbox_string = implode(",", $checkbox);
 
         $debtor = DB::connection('hosxp')->select('
             SELECT * FROM (SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.vn,i.hn,i.an,
@@ -10366,10 +10545,8 @@ class DebtorController extends Controller
             LEFT JOIN patient p ON p.hn=i.hn
             LEFT JOIN opitemrece o1 ON o1.an=i.an AND o1.icode IN (SELECT icode FROM hrims.lookup_icode WHERE ems ="Y")
             WHERE i.confirm_discharge = "Y" 
-            AND p1.pttype = ?
-            AND i.dchdate BETWEEN ? AND ?
             AND i.an IN (' . $checkbox_string . ') 
-            GROUP BY i.an,ip.pttype ORDER BY i.ward,i.dchdate ) AS a', [$pttype_iclaim, $start_date, $end_date]);
+            GROUP BY i.an,ip.pttype ORDER BY i.ward,i.dchdate ) AS a');
 
         foreach ($debtor as $row) {
             Debtor_1102050102_107::insert([
@@ -10392,13 +10569,6 @@ class DebtorController extends Controller
                 'rcpt_money' => $row->rcpt_money,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
-            ]);
-        }
-
-        if (empty($checkbox) || !is_array($checkbox)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'กรุณาเลือกรายการที่จะยืนยัน'
             ]);
         }
 

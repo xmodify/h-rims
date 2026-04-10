@@ -361,6 +361,11 @@
                             <label>ยอดชดเชย (บาท)</label>
                             <input type="number" step="0.01" name="total_receive" class="form-control" required>
                         </div>
+                        <div class="mb-2">
+                            <label>วันที่ออกใบเสร็จ</label>
+                            <input type="hidden" name="receive_date" id="avg_receive_date">
+                            <input type="text" id="avg_receive_date_picker" class="form-control datepicker_th" readonly required placeholder="วว/ดด/ปปปป">
+                        </div>
                         <!-- ข้อความผลลัพธ์ -->
                         <div id="avgResultMessage" class="mt-2 d-none"></div>
                         <!-- Loading -->
@@ -667,6 +672,20 @@ $(document).ready(function() {
     setInitialDate('#start_date_picker', start_date_val);
     setInitialDate('#end_date_picker', end_date_val);
 
+    // Also set for modal
+    function setInitialModalDate(pickerId, hiddenId, dateStr) {
+        if(dateStr && dateStr !== '0000-00-00') {
+            var parts = dateStr.split('-');
+            if(parts.length === 3) {
+                var d = new Date(parts[0], parts[1]-1, parts[2]);
+                $(pickerId).datepicker('setDate', d);
+                $(hiddenId).val(dateStr);
+            }
+        }
+    }
+    setInitialModalDate('#date_start_picker', '#date_start', start_date_val);
+    setInitialModalDate('#date_end_picker', '#date_end', end_date_val);
+
     // 3. DataTable for main table
     if ($('#debtor').length) {
         $('#debtor').DataTable({
@@ -804,6 +823,55 @@ $(document).ready(function () {
         } else if (typeof $.fn.modal === 'function') {
             $modal.modal('show');
         }
+    });
+
+    // Bulk Reconciliation (Average Receive) AJAX
+    initModalDatepicker('avg_receive_date_picker', '#avg_receive_date');
+    initModalDatepicker('date_start_picker', '#date_start');
+    initModalDatepicker('date_end_picker', '#date_end');
+    
+    $('#averageReceiveForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        let formData = $(this).serialize();
+        let $btn = $('#avgSubmitBtn');
+        let $spinner = $('#avgLoadingSpinner');
+        let $message = $('#avgResultMessage');
+        
+        $btn.prop('disabled', true);
+        $spinner.removeClass('d-none');
+        $message.addClass('d-none').removeClass('alert alert-danger');
+        
+        $.ajax({
+            url: "{{ url('debtor/1102050101_301_average_receive') }}",
+            type: 'POST',
+            data: formData,
+            success: function(res) {
+                $btn.prop('disabled', false);
+                $spinner.addClass('d-none');
+                
+                if (res.status === 'success') {
+                    Swal.fire({
+                        title: 'สำเร็จ!',
+                        html: res.message,
+                        icon: 'success',
+                        confirmButtonText: 'ตกลง'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    $message.html(res.message).addClass('alert alert-danger').removeClass('d-none');
+                    Swal.fire('ข้อผิดพลาด', res.message, 'error');
+                }
+            },
+            error: function(xhr) {
+                $btn.prop('disabled', false);
+                $spinner.addClass('d-none');
+                let err = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
+                $message.html(err).addClass('alert alert-danger').removeClass('d-none');
+                Swal.fire('ข้อผิดพลาด', err, 'error');
+            }
+        });
     });
 });
 </script>

@@ -103,6 +103,9 @@
                         @endif
                     </div>
                     <div>
+                        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalAverageReceive">
+                             <i class="bi bi-calculator me-1"></i> กระทบยอดแบบกลุ่ม
+                        </button>
                         <a class="btn btn-outline-success btn-sm" href="{{ url('debtor/1102050101_302_indiv_excel')}}" target="_blank">
                              <i class="bi bi-file-earmark-excel me-1"></i> ส่งออก Excel
                         </a>                
@@ -471,6 +474,56 @@
     </div>
 </div>
 
+<!-- Modal กระทบยอดแบบกลุ่ม -->
+<div class="modal fade" id="modalAverageReceive" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">        
+        <div class="modal-header bg-success text-white">
+            <h5 class="modal-title">กระทบยอดแบบกลุ่ม</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+            <form id="averageReceiveForm">
+                @csrf
+                <div class="modal-body text-start">
+                    <div class="mb-2">
+                        <label>วันที่เริ่มต้น (Discharge Date)</label>
+                        <input type="hidden" name="date_start" id="date_start">
+                        <input type="text" id="date_start_picker" class="form-control datepicker_th" readonly required>
+                    </div>
+                    <div class="mb-2">
+                        <label>วันที่สิ้นสุด (Discharge Date)</label>
+                        <input type="hidden" name="date_end" id="date_end">
+                        <input type="text" id="date_end_picker" class="form-control datepicker_th" readonly required>
+                    </div>
+                    <div class="mb-2">
+                        <label>เลขที่ใบเสร็จ (REP NO)</label>
+                        <input type="text" name="repno" class="form-control" required placeholder="ระบุเลขที่ใบเสร็จ">
+                    </div>
+                    <div class="mb-2">
+                        <label>ยอดชดเชยรวม (บาท)</label>
+                        <input type="number" step="0.01" name="total_receive" class="form-control" required placeholder="0.00">
+                    </div>
+                    <div class="mb-2">
+                        <label>วันที่ออกใบเสร็จ</label>
+                        <input type="hidden" name="receive_date" id="avg_receive_date">
+                        <input type="text" id="avg_receive_date_picker" class="form-control datepicker_th" readonly required placeholder="วว/ดด/ปปปป">
+                    </div>
+                    <!-- ข้อความผลลัพธ์ -->
+                    <div id="avgResultMessage" class="mt-2 d-none"></div>
+                    <!-- Loading -->
+                    <div id="avgLoadingSpinner" class="text-center d-none">
+                        <div class="spinner-border text-success"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-success" id="avgSubmitBtn">ยืนยัน</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- สำเร็จ -->
     @if (session('success'))
         <script>
@@ -833,5 +886,94 @@
             }
         });
         });
+    </script>
+    <script>
+    $(document).ready(function() {
+        // Shared functions for modal datepickers
+        function initModalDatepicker(pickerId, hiddenId) {
+            var $picker = $('#' + pickerId);
+            if ($picker.length) {
+                $picker.datepicker({
+                    format: 'd M yyyy', 
+                    autoclose: true, 
+                    language: 'th-th', 
+                    thaiyear: true, 
+                    todayBtn: 'linked',
+                    todayHighlight: true,
+                    zIndexOffset: 1200
+                }).on('changeDate', function(e) {
+                    if (e.date) {
+                        var d = e.date, y = d.getFullYear(), m = ('0'+(d.getMonth()+1)).slice(-2), day = ('0'+d.getDate()).slice(-2);
+                        $(hiddenId).val(y + '-' + m + '-' + day);
+                    }
+                });
+            }
+        }
+
+        function setInitialModalDate(pickerId, hiddenId, dateStr) {
+            if(dateStr && dateStr !== '0000-00-00') {
+                var parts = dateStr.split('-');
+                if(parts.length === 3) {
+                    var d = new Date(parts[0], parts[1]-1, parts[2]);
+                    $(pickerId).datepicker('setDate', d);
+                    $(hiddenId).val(dateStr);
+                }
+            }
+        }
+
+        // Initialize modal datepickers
+        initModalDatepicker('avg_receive_date_picker', '#avg_receive_date');
+        initModalDatepicker('date_start_picker', '#date_start');
+        initModalDatepicker('date_end_picker', '#date_end');
+
+        // Pre-set modal dates from filter
+        setInitialModalDate('#date_start_picker', '#date_start', "{{ $start_date }}");
+        setInitialModalDate('#date_end_picker', '#date_end', "{{ $end_date }}");
+
+        // AJAX Handler for Bulk Reconciliation
+        $('#averageReceiveForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            let formData = $(this).serialize();
+            let $btn = $('#avgSubmitBtn');
+            let $spinner = $('#avgLoadingSpinner');
+            let $message = $('#avgResultMessage');
+            
+            $btn.prop('disabled', true);
+            $spinner.removeClass('d-none');
+            $message.addClass('d-none').removeClass('alert alert-danger');
+            
+            $.ajax({
+                url: "{{ url('debtor/1102050101_302_average_receive') }}",
+                type: 'POST',
+                data: formData,
+                success: function(res) {
+                    $btn.prop('disabled', false);
+                    $spinner.addClass('d-none');
+                    
+                    if (res.status === 'success') {
+                        Swal.fire({
+                            title: 'สำเร็จ!',
+                            html: res.message,
+                            icon: 'success',
+                            confirmButtonText: 'ตกลง'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        $message.html(res.message).addClass('alert alert-danger').removeClass('d-none');
+                        Swal.fire('ข้อผิดพลาด', res.message, 'error');
+                    }
+                },
+                error: function(xhr) {
+                    $btn.prop('disabled', false);
+                    $spinner.addClass('d-none');
+                    let err = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
+                    $message.html(err).addClass('alert alert-danger').removeClass('d-none');
+                    Swal.fire('ข้อผิดพลาด', err, 'error');
+                }
+            });
+        });
+    });
     </script>
 @endpush

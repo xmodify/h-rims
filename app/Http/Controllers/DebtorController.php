@@ -1075,7 +1075,51 @@ class DebtorController extends Controller
                 return $item;
             });
 
-        $debtor_search = DB::connection('hosxp')->select('
+        $debtor_search = [];
+
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
+        $request->session()->save();
+
+        return view('debtor.1102050101_103', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
+    }
+
+    //_1102050101_103_counts_ajax-------------------------------------------------------------------------------------------------------
+    public function _1102050101_103_counts_ajax(Request $request)
+    {
+        $start_date = $request->start_date;
+        $end_date = $request->end_date;
+        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
+
+        $data = DB::connection('hosxp')->select('
+            SELECT COUNT(DISTINCT o.vn) as count2
+            FROM ovst o    
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE a.rcpno IS NULL GROUP BY r.vn) rc ON rc.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "") 
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) > 0
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_103 WHERE vn IS NOT NULL)
+            AND vp.pttype IN (' . $pttype_checkup . ')', [$start_date, $end_date, $start_date, $end_date]);
+
+        return response()->json([
+            'tab2' => $data[0]->count2 ?? 0
+        ]);
+    }
+
+    //_1102050101_103_search_ajax-------------------------------------------------------------------------------------------------------
+    public function _1102050101_103_search_ajax(Request $request)
+    {
+        $start_date = $request->start_date;
+        $end_date = $request->end_date;
+        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
+
+        $data = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,o.vstdate,
                 o.vsttime,v.pdx,p.`name` AS pttype,vp.hospmain,p.hipdata_code,IFNULL(inc.income,0) AS income,
                 IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS debtor,
@@ -1102,13 +1146,7 @@ class DebtorController extends Controller
             GROUP BY o.vn, vp.pttype
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date', $start_date);
-        $request->session()->put('end_date', $end_date);
-        $request->session()->put('search', $search);
-        $request->session()->put('debtor', $debtor);
-        $request->session()->save();
-
-        return view('debtor.1102050101_103', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
+        return response()->json($data);
     }
     //_1102050101_103_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_103_confirm(Request $request)
@@ -1272,6 +1310,33 @@ class DebtorController extends Controller
 
         return view('debtor.1102050101_103_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
+    //1102050101_103_bulk_adj--------------------------------------------------------------------------------------------------------------
+    public function _1102050101_103_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adjusted_count = 0;
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_103::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $receive = (float)$row->receive;
+
+                $diff = (float)$row->debtor - (float)$receive;
+                if ($diff > 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+                $row->adj_note = $request->bulk_adj_note ?: 'Bulk Adjustment to Balance 0';
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
+
     ##############################################################################################################################################################
     //_1102050101_109--------------------------------------------------------------------------------------------------------------
     public function _1102050101_109(Request $request)
@@ -12667,32 +12732,6 @@ class DebtorController extends Controller
             'adj_note' => $request->input('adj_note'),
         ]);
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-    }
-
-    public function _1102050101_103_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adjusted_count = 0;
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_103::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $receive = (float)$row->receive;
-
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-                $row->adj_note = $request->bulk_adj_note ?: 'Bulk Adjustment to Balance 0';
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
 
     public function _1102050101_109_bulk_adj(Request $request)

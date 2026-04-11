@@ -59,13 +59,13 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span class="badge bg-primary-soft text-primary ms-2">{{ count($debtor) }}</span>
+                        <span class="badge bg-primary text-white ms-2">{{ count($debtor) }}</span>
                     </button>
                 </li>       
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab">
-                        <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้
-                        <span class="badge bg-warning-soft text-warning ms-2">{{ count($debtor_search) }}</span>
+                    <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab" onclick="loadTab2()">
+                        <i class="bi bi-clock-history me-1 text-warning"></i> รอยืนยันลูกหนี้
+                        <span id="badge-tab2" class="badge bg-warning text-white ms-2">0</span>
                     </button>
                 </li>
             </ul>
@@ -213,58 +213,48 @@
                                 <i class="bi bi-check-circle me-1"></i> ยืนยันลูกหนี้
                             </button>
                         </div>                
-                        <div class="table-responsive"><table id="debtor_search" class="table table-bordered table-striped my-3" width="100%">
-                            <thead>
-                            <tr class="table-secondary">
-                                <th class="text-left text-primary" colspan="9">
-                                    1102050101.103-ลูกหนี้ค่าตรวจสุขภาพ หน่วยงานภาครัฐ รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} 
-                                    (จำนวน: {{ count($debtor_search) }} รายการ)
-                                </th>                         
-                            </tr>
-                            <tr class="table-secondary">
-                                <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th> 
-                                <th class="text-center">วันที่</th>
-                                <th class="text-center">HN</th>
-                                <th class="text-center">ชื่อ-สกุล</th>
-                                <th class="text-center">สิทธิ</th>
-                                <th class="text-center">ICD10</th>
-                                <th class="text-center text-primary">ค่ารักษาทั้งหมด</th>  
-                                <th class="text-center text-primary">ชำระเอง</th>                    
-                                <th class="text-center text-primary">ลูกหนี้</th>
-                            </tr>
-                            </thead>
-                            @php 
-                                $sum_income_search = 0;
-                                $sum_rcpt_money_search = 0;
-                                $sum_debtor_search = 0;
-                            @endphp
-                            @foreach($debtor_search as $row)
-                            @php $balance = -($row->debtor ?? 0); @endphp <tr>
-                                <td class="text-center"><input type="checkbox" name="checkbox[]" value="{{$row->vn}}"></td> 
-                                <td align="center">{{ DateThai($row->vstdate) }} {{ $row->vsttime }}</td>
-                                <td align="center">{{ $row->hn }}</td>
-                                <td align="left">{{ $row->ptname }}</td>
-                                <td align="left">{{ $row->pttype }}</td>
-                                <td align="center">{{ $row->pdx }}</td>
-                                <td align="right">{{ number_format($row->income,2) }}</td>
-                                <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
-                                <td align="right">{{ number_format($row->debtor,2) }}</td>
-                            </tr>
-                            @php 
-                                $sum_income_search += $row->income;
-                                $sum_rcpt_money_search += $row->rcpt_money;
-                                $sum_debtor_search += $row->debtor;
-                            @endphp
-                            @endforeach 
-                            <tfoot>
-                                <tr class="table-success text-end fw-bold" style="font-size: 14px;">
-                                    <td colspan="6" class="text-end">รวม</td>
-                                    <td>{{ number_format($sum_income_search, 2) }}</td>
-                                    <td>{{ number_format($sum_rcpt_money_search, 2) }}</td>
-                                    <td style="color:blue">{{ number_format($sum_debtor_search, 2) }}</td>
-                                </tr>
-                            </tfoot>
-                        </table></div>
+                        <div class="table-responsive">
+                            <div id="loading-tab2" class="text-center p-5 d-none">
+                                <div class="spinner-border text-warning" role="status"></div>
+                                <p class="mt-2 text-muted">กำลังดึงข้อมูลจาก HOSxP...</p>
+                                <p class="small text-danger">โปรดรอซักครู่</p>
+                            </div>
+                            <div id="empty-tab2" class="text-center p-5">
+                                <i class="bi bi-search fs-1 text-muted"></i>
+                                <p class="mt-2">คลิกที่ Tab หรือกดปุ่มค้นหาเพื่อโหลดข้อมูล</p>
+                                <button type="button" class="btn btn-warning btn-sm" onclick="loadTab2()">โหลดข้อมูล HOSxP</button>
+                            </div>
+                            <table id="debtor_search_table" class="table table-bordered table-striped my-3 d-none" width="100%">
+                                <thead>
+                                    <tr class="table-secondary">
+                                        <th class="text-left text-primary" colspan="9">
+                                            1102050101.103-ลูกหนี้ค่าตรวจสุขภาพ หน่วยงานภาครัฐ รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} 
+                                        </th>                         
+                                    </tr>
+                                    <tr class="table-secondary">
+                                        <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th> 
+                                        <th class="text-center">วันที่</th>
+                                        <th class="text-center">HN</th>
+                                        <th class="text-center">ชื่อ-สกุล</th>
+                                        <th class="text-center">สิทธิ</th>
+                                        <th class="text-center">ICD10</th>
+                                        <th class="text-center text-primary">ค่ารักษาทั้งหมด</th>  
+                                        <th class="text-center text-primary">ชำระเอง</th>                    
+                                        <th class="text-center text-primary">ลูกหนี้</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-success text-end fw-bold" style="font-size: 14px;">
+                                        <td colspan="6" class="text-end">รวม</td>
+                                        <td id="sum_income_search">0.00</td>
+                                        <td id="sum_rcpt_money_search">0.00</td>
+                                        <td id="sum_debtor_search" style="color:blue">0.00</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -614,7 +604,83 @@ $(document).ready(function() {
             }
         });
     }
+
+    // Auto-load background data
+    loadCounts(); 
+    loadTab2();   
 });
+
+function loadCounts() {
+    $('#badge-tab2').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+    $.ajax({
+        url: "{{ url('debtor/1102050101_103_counts_ajax') }}",
+        data: { start_date: $('#start_date').val(), end_date: $('#end_date').val() },
+        success: function(res) {
+            $('#badge-tab2').text(res.tab2).removeClass('bg-warning-soft text-warning').addClass('bg-warning text-white');
+        }
+    });
+}
+
+function loadTab2() {
+    if (!$('#debtor_search_table').hasClass('d-none')) return;
+    $('#empty-tab2').addClass('d-none');
+    $('#loading-tab2').removeClass('d-none');
+    
+    $.ajax({
+        url: "{{ url('debtor/1102050101_103_search_ajax') }}",
+        data: { start_date: $('#start_date').val(), end_date: $('#end_date').val() },
+        success: function(res) {
+            $('#loading-tab2').addClass('d-none');
+            $('#debtor_search_table').removeClass('d-none');
+            $('#badge-tab2').text(res.length);
+            
+            let html = '';
+            let s_inc = 0, s_rcpt = 0, s_debt = 0;
+            res.forEach(r => {
+                let d = parseFloat(r.debtor) || 0;
+                s_inc += parseFloat(r.income) || 0;
+                s_rcpt += parseFloat(r.rcpt_money) || 0;
+                s_debt += d;
+
+                html += `<tr>
+                    <td class="text-center"><input type="checkbox" name="checkbox[]" value="${r.vn}"></td>
+                    <td align="center">${thaiDate(r.vstdate)} ${r.vsttime || ''}</td>
+                    <td align="center">${r.hn}</td>
+                    <td align="left">${r.ptname}</td>
+                    <td align="left">${r.pttype}</td>
+                    <td align="center">${r.pdx || ''}</td>
+                    <td align="right">${formatMoney(r.income)}</td>
+                    <td align="right">${formatMoney(r.rcpt_money)}</td>
+                    <td align="right" class="text-primary">${formatMoney(d)}</td>
+                </tr>`;
+            });
+            $('#debtor_search_table tbody').html(html);
+            $('#sum_income_search').text(formatMoney(s_inc));
+            $('#sum_rcpt_money_search').text(formatMoney(s_rcpt));
+            $('#sum_debtor_search').text(formatMoney(s_debt));
+
+            if ($.fn.DataTable.isDataTable('#debtor_search_table')) {
+                $('#debtor_search_table').DataTable().destroy();
+            }
+            $('#debtor_search_table').DataTable({
+                dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                buttons: [{ extend: 'excelHtml5', text: 'Excel', className: 'btn btn-success btn-sm' }],
+                language: { search: 'ค้นหา:', lengthMenu: 'แสดง _MENU_ รายการ', info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ', paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' } }
+            });
+        }
+    });
+}
+
+function thaiDate(dateStr) {
+    if(!dateStr || dateStr === '0000-00-00') return '';
+    const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+    const d = new Date(dateStr);
+    return d.getDate() + ' ' + months[d.getMonth()] + ' ' + (d.getFullYear() + 543).toString().substr(-2);
+}
+
+function formatMoney(num) {
+    return parseFloat(num).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 </script>
 
 <script id="single-modal-js">

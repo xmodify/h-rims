@@ -238,6 +238,8 @@ Route::get('debtor/forget_search', function () {
     return redirect()->back();
 });
 Route::match(['get', 'post'], 'debtor/1102050101_103', [DebtorController::class, '_1102050101_103']);
+Route::get('debtor/1102050101_103_counts_ajax', [DebtorController::class, '_1102050101_103_counts_ajax']);
+Route::get('debtor/1102050101_103_search_ajax', [DebtorController::class, '_1102050101_103_search_ajax']);
 Route::post('debtor/1102050101_103_confirm', [DebtorController::class, '_1102050101_103_confirm']);
 Route::delete('debtor/1102050101_103_delete', [DebtorController::class, '_1102050101_103_delete']);
 Route::put('debtor/1102050101_103/update/{vn}', [DebtorController::class, '_1102050101_103_update']);

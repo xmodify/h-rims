@@ -607,7 +607,21 @@ $(document).ready(function() {
 
     // Auto-load background data
     loadCounts(); 
-    loadTab2();   
+    setInterval(loadCounts, 60000); 
+
+    // Load Tab 2 on Click
+    let tab2Loaded = false;
+    $('[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
+        const targetId = $(e.currentTarget).data('bs-target') || $(e.currentTarget).attr('href');
+        if (targetId === '#confirm-pane') {
+            if (!tab2Loaded) {
+                tab2Loaded = true;
+                loadTab2();
+            }
+        }
+    });
+
+    window.refreshTab2 = function() { tab2Loaded = true; loadTab2(); };
 });
 
 function loadCounts() {

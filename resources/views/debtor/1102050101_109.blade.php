@@ -249,25 +249,33 @@
                                 <i class="bi bi-check-circle me-1"></i> ยืนยันลูกหนี้
                             </button>
                         </div>                
-                <div class="table-responsive"><table id="table_109_ajax" class="table table-bordered table-striped my-3" width="100%">
-                    <thead>
-                    <tr class="table-secondary">
-                        <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th> 
-                        <th class="text-center">วันที่</th>
-                        <th class="text-center">HN</th>
-                        <th class="text-center">ชื่อ-สกุล</th>
-                        <th class="text-center">สิทธิ</th>
-                        <th class="text-center">ICD10</th>
-                        <th class="text-center text-primary">ค่ารักษาทั้งหมด</th>  
-                        <th class="text-center text-primary">ชำระเอง</th>                    
-                        <th class="text-center text-primary">ลูกหนี้</th>
-                        <th class="text-center text-primary">รายการเรียกเก็บ</th>
-                    </tr>
-                    </thead>
-                    <tbody id="table2-body">
-                        <tr>
-                            <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted">กำลังโหลดข้อมูล...</td>
+                <div class="table-responsive">
+                    <div id="loading-tab2" class="text-center p-5 d-none">
+                        <div class="spinner-border text-warning" role="status"></div>
+                        <p class="mt-2 text-muted">กำลังดึงข้อมูลจาก HOSxP...</p>
+                        <p class="small text-danger">โปรดรอซักครู่</p>
+                    </div>
+                    <div id="empty-tab2" class="text-center p-5">
+                        <i class="bi bi-search fs-1 text-muted"></i>
+                        <p class="mt-2">คลิกที่ Tab หรือกดปุ่มค้นหาเพื่อโหลดข้อมูล</p>
+                        <button type="button" class="btn btn-warning btn-sm" onclick="loadTab2()">โหลดข้อมูล HOSxP</button>
+                    </div>
+                    <table id="table_109_ajax" class="table table-bordered table-striped my-3 d-none" width="100%">
+                        <thead>
+                        <tr class="table-secondary">
+                            <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th> 
+                            <th class="text-center">วันที่</th>
+                            <th class="text-center">HN</th>
+                            <th class="text-center">ชื่อ-สกุล</th>
+                            <th class="text-center">สิทธิ</th>
+                            <th class="text-center">ICD10</th>
+                            <th class="text-center text-primary">ค่ารักษาทั้งหมด</th>  
+                            <th class="text-center text-primary">ชำระเอง</th>                    
+                            <th class="text-center text-primary">ลูกหนี้</th>
+                            <th class="text-center text-primary">รายการเรียกเก็บ</th>
                         </tr>
+                        </thead>
+                    <tbody id="table2-body">
                     </tbody>   
                     <tfoot>
                         <tr class="table-success text-end fw-bold" style="font-size: 14px;">
@@ -279,7 +287,8 @@
                             <th class="text-end"></th>
                         </tr>
                     </tfoot>
-                </table></div>
+                    </table>
+                </div>
                     </form>
                 </div>
             </div>
@@ -733,8 +742,11 @@ $(document).ready(function () {
     }
 
     function loadTab2() {
-        if (tab2Loaded) return;
+        if (!$('#table_109_ajax').hasClass('d-none')) return;
         
+        $('#empty-tab2').addClass('d-none');
+        $('#loading-tab2').removeClass('d-none');
+
         const body = $('#table2-body');
         const sumIncome = $('#sum-income-search');
         const sumRcpt = $('#sum-rcpt-search');
@@ -744,14 +756,14 @@ $(document).ready(function () {
             start_date: '{{ $start_date }}',
             end_date: '{{ $end_date }}'
         }, function(data) {
+            $('#loading-tab2').addClass('d-none');
+            $('#table_109_ajax').removeClass('d-none');
+
             tab2Data = data;
             const body = $('#table2-body');
+            let htmlRows = '';
             let sInc = 0, sRcp = 0, sDeb = 0;
-            
-            if (data.length === 0) {
-                body.html('<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted">--- ไม่พบข้อมูลรอยืนยัน ---</td></tr>');
-            } else {
-                let htmlRows = '';
+            if (data && data.length > 0) {
                 data.forEach(row => {
                     sInc += parseFloat(row.income || 0);
                     sRcp += parseFloat(row.rcpt_money || 0);
@@ -775,8 +787,8 @@ $(document).ready(function () {
                         </tr>
                     `;
                 });
-                body.html(htmlRows);
             }
+            body.html(htmlRows);
 
             sumIncome.text(formatMoney(sInc));
             sumRcpt.text(formatMoney(sRcp));
@@ -801,8 +813,20 @@ $(document).ready(function () {
 
     $(document).ready(function() {
         loadCounts();
-        // Start loading Tab 2 data in background after 500ms
-        setTimeout(loadTab2, 500);
+
+        // Load Tab 2 on Click
+        let tab2Loaded = false;
+        $('[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
+            const targetId = $(e.currentTarget).data('bs-target') || $(e.currentTarget).attr('href');
+            if (targetId === '#confirm-pane') {
+                if (!tab2Loaded) {
+                    tab2Loaded = true;
+                    loadTab2();
+                }
+            }
+        });
+
+        window.refreshTab2 = function() { tab2Loaded = false; loadTab2(); };
     });
 });
 </script>

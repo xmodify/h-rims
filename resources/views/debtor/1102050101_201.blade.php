@@ -264,28 +264,36 @@
                     </button>
                     <div></div>
                 </div>                
-                <div class="table-responsive"><table id="debtor_search" class="table table-bordered table-striped my-3" width="100%">
-                    <thead>
-                    <tr class="table-secondary align-middle">
-                        <th class="text-center"><input type="checkbox" onClick="toggle(this)"> ALL</th> 
-                        <th class="text-center">วันที่</th>
-                        <th class="text-center">HN</th>
-                        <th class="text-center">ชื่อ-สกุล</th>
-                        <th class="text-center">สิทธิ</th>
-                        <th class="text-center">ICD10</th>
-                        <th class="text-center">ค่ารักษาทั้งหมด</th>  
-                        <th class="text-center">ชำระเอง</th>    
-                        <th class="text-center">กองทุนอื่น</th>   
-                        <th class="text-center">PPFS</th>                                     
-                        <th class="text-center">ลูกหนี้</th>
-                        <th class="text-center">รายการกองทุนอื่น</th> 
-                        <th class="text-center">รายการ PPFS</th>
-                    </tr>
-                    </thead>
-                    <tbody id="table2-body">
-                        <tr>
-                            <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted">กำลังโหลดข้อมูล...</td>
+                <div class="table-responsive">
+                    <div id="loading-tab2" class="text-center p-5 d-none">
+                        <div class="spinner-border text-warning" role="status"></div>
+                        <p class="mt-2 text-muted">กำลังดึงข้อมูลจาก HOSxP...</p>
+                        <p class="small text-danger">โปรดรอซักครู่</p>
+                    </div>
+                    <div id="empty-tab2" class="text-center p-5">
+                        <i class="bi bi-search fs-1 text-muted"></i>
+                        <p class="mt-2">คลิกที่ Tab หรือกดปุ่มค้นหาเพื่อโหลดข้อมูล</p>
+                        <button type="button" class="btn btn-warning btn-sm" onclick="loadTab2()">โหลดข้อมูล HOSxP</button>
+                    </div>
+                    <table id="debtor_search" class="table table-bordered table-striped my-3 d-none" width="100%">
+                        <thead>
+                        <tr class="table-secondary align-middle">
+                            <th class="text-center"><input type="checkbox" onClick="toggle(this)"> ALL</th> 
+                            <th class="text-center">วันที่</th>
+                            <th class="text-center">HN</th>
+                            <th class="text-center">ชื่อ-สกุล</th>
+                            <th class="text-center">สิทธิ</th>
+                            <th class="text-center">ICD10</th>
+                            <th class="text-center">ค่ารักษาทั้งหมด</th>  
+                            <th class="text-center">ชำระเอง</th>    
+                            <th class="text-center">กองทุนอื่น</th>   
+                            <th class="text-center">PPFS</th>                                     
+                            <th class="text-center">ลูกหนี้</th>
+                            <th class="text-center">รายการกองทุนอื่น</th> 
+                            <th class="text-center">รายการ PPFS</th>
                         </tr>
+                        </thead>
+                    <tbody id="table2-body">
                     </tbody>
                     <tfoot>
                         <tr class="table-success text-end fw-bold" style="font-size: 14px;">
@@ -299,7 +307,8 @@
                             <th></th><th></th>
                         </tr>
                     </tfoot>
-                </table></div>
+                    </table>
+                </div>
             </form>
                 </div>
             </div>
@@ -678,19 +687,24 @@ $(document).ready(function() {
     // 4. Load Tab 2 Data Function
     function loadTab2() {
         const tableId = '#debtor_search';
+        if (!$(tableId).hasClass('d-none')) return;
+        
+        $('#empty-tab2').addClass('d-none');
+        $('#loading-tab2').removeClass('d-none');
+
         const body = $('#table2-body');
         
         $.get("{{ url('debtor/1102050101_201_search_ajax') }}", {
             start_date: '{{ $start_date }}',
             end_date: '{{ $end_date }}'
         }, function(data) {
+            $('#loading-tab2').addClass('d-none');
+            $(tableId).removeClass('d-none');
+
             tab2Data = data;
+            let htmlRows = '';
             let sInc = 0, sRcp = 0, sOth = 0, sPpf = 0, sDeb = 0;
-            
-            if (data.length === 0) {
-                body.html('<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted">--- ไม่พบข้อมูลรอยืนยัน ---</td></tr>');
-            } else {
-                let htmlRows = '';
+            if (data && data.length > 0) {
                 data.forEach(row => {
                     const ptname = escapeHtml(row.ptname);
                     const pttype = escapeHtml(row.pttype);
@@ -722,8 +736,8 @@ $(document).ready(function() {
                         </tr>
                     `;
                 });
-                body.html(htmlRows);
             }
+            body.html(htmlRows);
 
             // Update Totals
             $('#sum-income-search').text(formatMoney(sInc));
@@ -818,8 +832,22 @@ $(document).ready(function() {
     }
 
     loadCounts();
-    setTimeout(loadTab2, 500);
     setInterval(loadCounts, 60000); 
+
+    // Load Tab 2 on Click
+    let tab2Loaded = false;
+    $('[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
+        const targetId = $(e.currentTarget).data('bs-target') || $(e.currentTarget).attr('href');
+        if (targetId === '#confirm-pane') {
+            if (!tab2Loaded) {
+                tab2Loaded = true;
+                loadTab2();
+            }
+        }
+    });
+
+    window.refreshTab2 = function() { tab2Loaded = false; loadTab2(); };
+    window.loadTab2 = loadTab2; // Expose to global scope for HTML inline onclick
 
     // 5. DataTable for AE table
     if ($('#debtor_search_ae').length) {

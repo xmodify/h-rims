@@ -474,55 +474,100 @@
     </div>
 </div>
 
-<!-- Modal กระทบยอดแบบกลุ่ม -->
+<!-- Modal กระทบยอดแบบกลุ่ม (Premium UI Version) -->
 <div class="modal fade" id="modalAverageReceive" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">        
-        <div class="modal-header bg-success text-white">
-            <h5 class="modal-title">กระทบยอดแบบกลุ่ม</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">        
+            <div class="modal-header bg-success text-white py-3 border-0">
+                <h5 class="modal-title d-flex align-items-center fw-bold">
+                    <i class="bi bi-calculator-fill me-2 fs-4"></i> 
+                    กระทบยอดแบบกลุ่ม
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
             <form id="averageReceiveForm">
                 @csrf
-                <div class="modal-body text-start">
-                    <div class="mb-2">
-                        <label>วันที่เริ่มต้น (Discharge Date)</label>
-                        <input type="hidden" name="date_start" id="date_start">
-                        <input type="text" id="date_start_picker" class="form-control datepicker_th" readonly required>
+                <div class="modal-body p-4 text-start">
+                    <!-- Date Range Section -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted mb-2 d-flex align-items-center">
+                            <i class="bi bi-calendar-range me-2 text-success"></i> ช่วงวันที่ดำเนินการ
+                        </label>
+                        <div class="input-group input-group-sm border rounded-pill overflow-hidden custom-date-group">
+                            <input type="hidden" name="date_start" id="date_start" value="{{ $start_date }}">
+                            <input type="text" id="date_start_picker" class="form-control border-0 bg-light text-center" readonly required>
+                            <span class="input-group-text bg-white border-0 text-muted small">ถึง</span>
+                            <input type="hidden" name="date_end" id="date_end" value="{{ $end_date }}">
+                            <input type="text" id="date_end_picker" class="form-control border-0 bg-light text-center" readonly required>
+                        </div>
                     </div>
-                    <div class="mb-2">
-                        <label>วันที่สิ้นสุด (Discharge Date)</label>
-                        <input type="hidden" name="date_end" id="date_end">
-                        <input type="text" id="date_end_picker" class="form-control datepicker_th" readonly required>
+
+                    <div class="row g-3">
+                        <!-- Total Amount - Now First -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold small mb-1">
+                                <i class="bi bi-currency-dollar me-1 text-success"></i> ยอดชดเชยรวม (บาท)
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white border-end-0 rounded-pill-start px-3"><i class="bi bi-cash-stack"></i></span>
+                                <input type="number" step="0.01" name="total_receive" class="form-control border-start-0 rounded-pill-end px-3 fs-6 fw-bold text-success" required placeholder="0.00" style="height: 40px;">
+                            </div>
+                        </div>
+
+                        <!-- Receipt Number -->
+                        <div class="col-md-7">
+                            <label class="form-label fw-bold small mb-1">
+                                <i class="bi bi-file-earmark-text me-1 text-success"></i> เลขที่ใบเสร็จ / เลขที่ REP
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white border-end-0 rounded-pill-start px-3"><i class="bi bi-hash"></i></span>
+                                <input type="text" name="repno" class="form-control border-start-0 rounded-pill-end px-3" required placeholder="ระบุเลขที่" style="height: 40px;">
+                            </div>
+                        </div>
+
+                        <!-- Receipt Date -->
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold small mb-1">
+                                <i class="bi bi-calendar-check me-1 text-success"></i> วันที่ออกใบเสร็จ
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white border-end-0 rounded-pill-start px-3"><i class="bi bi-calendar3"></i></span>
+                                <input type="hidden" name="receive_date" id="avg_receive_date">
+                                <input type="text" id="avg_receive_date_picker" class="form-control border-start-0 rounded-pill-end px-2 text-center datepicker_th" readonly required placeholder="วว/ดด/ปปปป" style="height: 40px;">
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-2">
-                        <label>เลขที่ใบเสร็จ (REP NO)</label>
-                        <input type="text" name="repno" class="form-control" required placeholder="ระบุเลขที่ใบเสร็จ">
-                    </div>
-                    <div class="mb-2">
-                        <label>ยอดชดเชยรวม (บาท)</label>
-                        <input type="number" step="0.01" name="total_receive" class="form-control" required placeholder="0.00">
-                    </div>
-                    <div class="mb-2">
-                        <label>วันที่ออกใบเสร็จ</label>
-                        <input type="hidden" name="receive_date" id="avg_receive_date">
-                        <input type="text" id="avg_receive_date_picker" class="form-control datepicker_th" readonly required placeholder="วว/ดด/ปปปป">
-                    </div>
-                    <!-- ข้อความผลลัพธ์ -->
-                    <div id="avgResultMessage" class="mt-2 d-none"></div>
-                    <!-- Loading -->
-                    <div id="avgLoadingSpinner" class="text-center d-none">
-                        <div class="spinner-border text-success"></div>
+
+                    <!-- Result Messages -->
+                    <div id="avgResultMessage" class="alert d-none mt-3 py-2 px-3 small rounded-3 animate__animated animate__fadeIn"></div>
+
+                    <!-- Loading Animation -->
+                    <div id="avgLoadingSpinner" class="text-center d-none py-4">
+                        <div class="spinner-grow text-success" role="status" style="width: 1.5rem; height: 1.5rem;"></div>
+                        <div class="spinner-grow text-success mx-1" role="status" style="width: 1.5rem; height: 1.5rem; animation-delay: 0.2s"></div>
+                        <div class="spinner-grow text-success" role="status" style="width: 1.5rem; height: 1.5rem; animation-delay: 0.4s"></div>
+                        <div class="small text-muted mt-3 fw-medium">กำลังประมวลผลการคำนวณและบันทึกข้อมูล...</div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="submit" class="btn btn-success" id="avgSubmitBtn">ยืนยัน</button>
+                <div class="modal-footer bg-light border-0 py-3 d-flex justify-content-between">
+                    <button type="button" class="btn btn-link text-decoration-none text-muted fw-bold" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4 py-2 shadow-sm fw-bold" id="avgSubmitBtn">
+                        <i class="bi bi-check-circle-fill me-2"></i> ยืนยันข้อมูลทั้งหมด
+                    </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<style>
+    .rounded-pill-start { border-top-left-radius: 50rem !important; border-bottom-left-radius: 50rem !important; }
+    .rounded-pill-end { border-top-right-radius: 50rem !important; border-bottom-right-radius: 50rem !important; }
+    .custom-date-group .form-control:focus { box-shadow: none; }
+    .custom-date-group:focus-within { border-color: #198754 !important; ring: 0.25rem rgba(25, 135, 84, 0.25); }
+    #modalAverageReceive .form-control { border-color: #dee2e6; }
+    #modalAverageReceive .form-control:focus { border-color: #198754; box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.15); }
+</style>
 
 <!-- สำเร็จ -->
     @if (session('success'))
@@ -939,40 +984,38 @@
             let $spinner = $('#avgLoadingSpinner');
             let $message = $('#avgResultMessage');
             
-            $btn.prop('disabled', true);
-            $spinner.removeClass('d-none');
-            $message.addClass('d-none').removeClass('alert alert-danger');
-            
-            $.ajax({
-                url: "{{ url('debtor/1102050101_302_average_receive') }}",
-                type: 'POST',
-                data: formData,
-                success: function(res) {
-                    $btn.prop('disabled', false);
-                    $spinner.addClass('d-none');
-                    
-                    if (res.status === 'success') {
-                        Swal.fire({
-                            title: 'สำเร็จ!',
-                            html: res.message,
-                            icon: 'success',
-                            confirmButtonText: 'ตกลง'
-                        }).then(() => {
-                            location.reload();
-                        });
-                    } else {
-                        $message.html(res.message).addClass('alert alert-danger').removeClass('d-none');
-                        Swal.fire('ข้อผิดพลาด', res.message, 'error');
-                    }
-                },
-                error: function(xhr) {
-                    $btn.prop('disabled', false);
-                    $spinner.addClass('d-none');
-                    let err = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
-                    $message.html(err).addClass('alert alert-danger').removeClass('d-none');
-                    Swal.fire('ข้อผิดพลาด', err, 'error');
+        $btn.prop('disabled', true);
+        $spinner.removeClass('d-none');
+        $message.addClass('d-none').removeClass('alert alert-danger alert-success');
+        
+        $.ajax({
+            url: "{{ url('debtor/1102050101_302_average_receive') }}",
+            type: 'POST',
+            data: formData,
+            success: function(res) {
+                $btn.prop('disabled', false);
+                $spinner.addClass('d-none');
+                
+                if (res.status === 'success') {
+                    Swal.fire({
+                        title: 'สำเร็จ!',
+                        html: res.message,
+                        icon: 'success',
+                        confirmButtonText: 'ตกลง'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    $message.html(res.message).addClass('alert alert-danger').removeClass('d-none');
                 }
-            });
+            },
+            error: function(xhr) {
+                $btn.prop('disabled', false);
+                $spinner.addClass('d-none');
+                let err = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
+                $message.html(err).addClass('alert alert-danger').removeClass('d-none');
+            }
+        });
         });
     });
     </script>

@@ -72,12 +72,13 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span class="badge bg-primary-soft text-primary ms-2">{{ count($debtor) }}</span>
+                        <span id="badge-tab1" class="text-success fw-bold ms-2">{{ count($debtor) }}</span>
                     </button>
+                </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab" onclick="loadTab2()">
-                        <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้
-                        <span id="badge-tab2" class="badge bg-warning-soft text-warning ms-2 shadow-sm border border-warning-subtle">
+                        <i class="bi bi-check-circle me-1"></i> <span>รอยืนยันลูกหนี้</span>
+                        <span id="badge-tab2" class="text-warning fw-bold ms-2">
                             <span class="spinner-border spinner-border-sm" role="status"></span>
                         </span>
                     </button>
@@ -725,7 +726,8 @@ $(document).ready(function () {
             start_date: '{{ $start_date }}',
             end_date: '{{ $end_date }}'
         }, function(res) {
-            $('#badge-tab2').text(res.tab2 || 0);
+            $('#badge-tab1').text('{{ count($debtor) }}').addClass('text-success fw-bold');
+            $('#badge-tab2').text(res.tab2 || 0).addClass('text-warning fw-bold');
             $('#count-pending').text(`(จำนวน: ${res.tab2 || 0} รายการ)`);
         });
     }

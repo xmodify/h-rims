@@ -70,13 +70,13 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span class="badge bg-primary-soft text-primary ms-2">{{ count($debtor) }}</span>
+                        <span id="badge-tab1" class="text-success fw-bold ms-2"><span class="spinner-border spinner-border-sm" role="status"></span></span>
                     </button>
                 </li>       
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab">
-                        <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้
-                        <span class="badge bg-warning-soft text-warning ms-2">{{ count($debtor_search) }}</span>
+                        <i class="bi bi-check-circle me-1"></i> <span>รอยืนยันลูกหนี้</span>
+                        <span id="badge-tab2" class="text-warning fw-bold ms-2"><span class="spinner-border spinner-border-sm" role="status"></span></span>
                     </button>
                 </li>
             </ul>
@@ -266,11 +266,8 @@
                 </div>                
                 <div class="table-responsive"><table id="debtor_search" class="table table-bordered table-striped my-3" width="100%">
                     <thead>
-                    <tr class="table-secondary">
-                        <th class="text-left text-primary" colspan = "13">1102050101.201-ลูกหนี้ค่ารักษา UC-OP ใน CUP รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                         
-                    </tr>
-                    <tr class="table-secondary">
-                        <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th> 
+                    <tr class="table-secondary align-middle">
+                        <th class="text-center"><input type="checkbox" onClick="toggle(this)"> ALL</th> 
                         <th class="text-center">วันที่</th>
                         <th class="text-center">HN</th>
                         <th class="text-center">ชื่อ-สกุล</th>
@@ -281,50 +278,25 @@
                         <th class="text-center">กองทุนอื่น</th>   
                         <th class="text-center">PPFS</th>                                     
                         <th class="text-center">ลูกหนี้</th>
-                        <th class="text-center" width = "10%">รายการกองทุนอื่น</th> 
-                        <th class="text-center" width = "10%">รายการ PPFS</th>
+                        <th class="text-center">รายการกองทุนอื่น</th> 
+                        <th class="text-center">รายการ PPFS</th>
                     </tr>
                     </thead>
-                    <?php $count = 1 ; ?>
-                    <?php 
-                        $sum_income = 0;
-                        $sum_rcpt_money = 0;
-                        $sum_other = 0;
-                        $sum_ppfs = 0;
-                        $sum_debtor = 0;
-                    ?>
-                    @foreach($debtor_search as $row)
-                    @php $balance = -($row->debtor ?? 0); @endphp <tr>
-                        <td class="text-center"><input type="checkbox" name="checkbox[]" value="{{$row->vn}}"></td> 
-                        <td align="right">{{ DateThai($row->vstdate) }} {{ $row->vsttime }}</td>
-                        <td align="center">{{ $row->hn }}</td>
-                        <td align="left">{{ $row->ptname }}</td>
-                        <td align="left">{{ $row->pttype }} [{{ $row->hospmain }}]</td>
-                        <td align="right">{{ $row->pdx }}</td>                  
-                        <td align="right">{{ number_format($row->income,2) }}</td>
-                        <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
-                        <td align="right">{{ number_format($row->other,2) }}</td>
-                        <td align="right">{{ number_format($row->ppfs,2) }}</td>
-                        <td align="right">{{ number_format($row->debtor,2) }}</td>
-                        <td align="left" width = "15%">{{ $row->other_list }}</td>
-                        <td align="left" width = "15%">{{ $row->ppfs_list }}</td>
-                    <?php $count++; ?>
-                    <?php $sum_income += $row->income; ?>
-                    <?php $sum_rcpt_money += $row->rcpt_money; ?>
-                    <?php $sum_other += $row->other; ?>
-                    <?php $sum_ppfs += $row->ppfs; ?>
-                    <?php $sum_debtor += $row->debtor; ?>
-                    @endforeach 
-                   </tr>
+                    <tbody id="table2-body">
+                        <tr>
+                            <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted">กำลังโหลดข้อมูล...</td>
+                        </tr>
+                    </tbody>
                     <tfoot>
-                        <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                            <td colspan="6" class="text-end">รวม</td>
-                            <td class="text-end">{{ number_format($sum_income,2) }}</td>
-                            <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
-                            <td class="text-end">{{ number_format($sum_other,2) }}</td>
-                            <td class="text-end">{{ number_format($sum_ppfs,2) }}</td>
-                            <td class="text-end" style="color:blue">{{ number_format($sum_debtor,2) }}</td>
-                            <td colspan="2"></td>
+                        <tr class="table-success text-end fw-bold" style="font-size: 14px;">
+                            <th></th><th></th><th></th><th></th><th></th>
+                            <th class="text-end">รวม</th>
+                            <th id="sum-income-search" class="text-end">0.00</th>
+                            <th id="sum-rcpt-search" class="text-end">0.00</th>
+                            <th id="sum-other-search" class="text-end">0.00</th>
+                            <th id="sum-ppfs-search" class="text-end">0.00</th>
+                            <th id="sum-debtor-search" class="text-end" style="color:blue">0.00</th>
+                            <th></th><th></th>
                         </tr>
                     </tfoot>
                 </table></div>
@@ -445,7 +417,7 @@
             preConfirm: () => { return { note: $('#blk_note').val(), date: $('#blk_date').val() } }
         }).then((r) => {
             if (r.isConfirmed) {
-                showLoading(); let f=document.createElement('form'); f.method='POST'; f.action="{{ url('debtor/1102050101_201_bulk_adj') }}";
+                showLoading(); let f=document.createElement('form'); f.id = 'form-bulk-adj'; f.method='POST'; f.action="{{ url('debtor/1102050101_201_bulk_adj') }}";
                 f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'_token', value:'{{csrf_token()}}'}));
                 f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'bulk_adj_note', value:r.value.note}));
                 f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'bulk_adj_date', value:r.value.date}));
@@ -568,14 +540,223 @@
         </div>
     </div>
 </div>
+
+<!-- Modal กระทบยอด (Premium UI Version) -->
+<div class="modal fade" id="modalAverageReceive" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">        
+            <div class="modal-header bg-success text-white py-3 border-0">
+                <h5 class="modal-title d-flex align-items-center fw-bold">
+                    <i class="bi bi-calculator-fill me-2 fs-4"></i> 
+                    กระทบยอดแบบกลุ่ม
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="averageReceiveForm">
+                @csrf
+                <div class="modal-body p-4">
+                    <!-- Date Range Section -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small text-muted mb-2 d-flex align-items-center">
+                            <i class="bi bi-calendar-range me-2 text-success"></i> ช่วงวันที่ดำเนินการ
+                        </label>
+                        <div class="input-group input-group-sm custom-date-group border rounded-pill overflow-hidden">
+                            <input type="hidden" name="date_start" id="date_start_avg" value="{{ $start_date }}">
+                            <input type="text" id="date_start_picker_avg" class="form-control border-0 bg-light text-center" readonly required>
+                            <span class="input-group-text bg-white border-0 text-muted small">ถึง</span>
+                            <input type="hidden" name="date_end" id="date_end_avg" value="{{ $end_date }}">
+                            <input type="text" id="date_end_picker_avg" class="form-control border-0 bg-light text-center" readonly required>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <!-- Total Amount - Now First -->
+                        <div class="col-12">
+                            <label class="form-label fw-bold small mb-1">
+                                <i class="bi bi-currency-dollar me-1 text-success"></i> ยอดชดเชยรวม (บาท)
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white border-end-0 rounded-pill-start px-3"><i class="bi bi-cash-stack"></i></span>
+                                <input type="number" step="0.01" name="total_receive" class="form-control border-start-0 rounded-pill-end px-3 fs-6 fw-bold text-success" required placeholder="0.00" style="height: 40px;">
+                            </div>
+                        </div>
+
+                        <!-- Receipt Number -->
+                        <div class="col-md-7">
+                            <label class="form-label fw-bold small mb-1">
+                                <i class="bi bi-file-earmark-text me-1 text-success"></i> เลขที่ใบเสร็จ / เลขที่ REP
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white border-end-0 rounded-pill-start px-3"><i class="bi bi-hash"></i></span>
+                                <input type="text" name="repno" class="form-control border-start-0 rounded-pill-end px-3" required placeholder="ระบุเลขที่" style="height: 40px;">
+                            </div>
+                        </div>
+
+                        <!-- Receipt Date -->
+                        <div class="col-md-5">
+                            <label class="form-label fw-bold small mb-1">
+                                <i class="bi bi-calendar-check me-1 text-success"></i> วันที่ออกใบเสร็จ
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white border-end-0 rounded-pill-start px-3"><i class="bi bi-calendar3"></i></span>
+                                <input type="hidden" name="receive_date" id="avg_receive_date">
+                                <input type="text" id="avg_receive_date_picker" class="form-control border-start-0 rounded-pill-end px-2 text-center datepicker_th" readonly required placeholder="วว/ดด/ปปปป" style="height: 40px;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Result Messages -->
+                    <div id="avgResultMessage" class="alert d-none mt-3 py-2 px-3 small rounded-3 animate__animated animate__fadeIn"></div>
+
+                    <!-- Loading Animation -->
+                    <div id="avgLoadingSpinner" class="text-center d-none py-4">
+                        <div class="spinner-grow text-success" role="status" style="width: 1.5rem; height: 1.5rem;"></div>
+                        <div class="spinner-grow text-success mx-1" role="status" style="width: 1.5rem; height: 1.5rem; animation-delay: 0.2s"></div>
+                        <div class="spinner-grow text-success" role="status" style="width: 1.5rem; height: 1.5rem; animation-delay: 0.4s"></div>
+                        <div class="small text-muted mt-3 fw-medium">กำลังประมวลผลการคำนวณและบันทึกข้อมูล...</div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 py-3 d-flex justify-content-between">
+                    <button type="button" class="btn btn-link text-decoration-none text-muted fw-bold" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="submit" class="btn btn-success rounded-pill px-4 py-2 shadow-sm fw-bold" id="avgSubmitBtn">
+                        <i class="bi bi-check-circle-fill me-2"></i> ยืนยันข้อมูลทั้งหมด
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .modal-content { box-shadow: 0 1rem 3rem rgba(0,0,0,0.175) !important; }
+    .rounded-pill-start { border-top-left-radius: 50rem !important; border-bottom-left-radius: 50rem !important; }
+    .rounded-pill-end { border-top-right-radius: 50rem !important; border-bottom-right-radius: 50rem !important; }
+    .custom-date-group .form-control:focus { box-shadow: none; }
+    .custom-date-group:focus-within { border-color: #198754 !important; ring: 0.25rem rgba(25, 135, 84, 0.25); }
+    #modalAverageReceive .form-control { border-color: #dee2e6; }
+    #modalAverageReceive .form-control:focus { border-color: #198754; box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.15); }
+</style>
 @endsection
 
 @push('scripts')
 
 <script>
 $(document).ready(function() {
-    // 1. Initialize Datepicker Thai for Filter with Today button
-    // language: 'th-th' and thaiyear: true work together for BE year display.
+    // 1. Helpers
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    function thaiDate(dateStr) {
+        if(!dateStr) return '';
+        const d = new Date(dateStr);
+        const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+        return d.getDate() + ' ' + thaiMonths[d.getMonth()] + ' ' + (d.getFullYear() + 543);
+    }
+
+    function formatMoney(num) {
+        return parseFloat(num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // 2. Global Data Variable for Tab 2
+    let tab2Data = [];
+
+    // 3. Load Counts Function
+    function loadCounts() {
+        $.get("{{ url('debtor/1102050101_201_counts_ajax') }}", {
+            start_date: '{{ $start_date }}',
+            end_date: '{{ $end_date }}'
+        }, function(res) {
+            $('#badge-tab1').text(res.tab1).removeClass('badge bg-success text-white').addClass('text-success fw-bold');
+            $('#badge-tab2').text(res.tab2).removeClass('badge bg-warning text-white').addClass('text-warning fw-bold');
+        });
+    }
+
+    // 4. Load Tab 2 Data Function
+    function loadTab2() {
+        const tableId = '#debtor_search';
+        const body = $('#table2-body');
+        
+        $.get("{{ url('debtor/1102050101_201_search_ajax') }}", {
+            start_date: '{{ $start_date }}',
+            end_date: '{{ $end_date }}'
+        }, function(data) {
+            tab2Data = data;
+            let sInc = 0, sRcp = 0, sOth = 0, sPpf = 0, sDeb = 0;
+            
+            if (data.length === 0) {
+                body.html('<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted">--- ไม่พบข้อมูลรอยืนยัน ---</td></tr>');
+            } else {
+                let htmlRows = '';
+                data.forEach(row => {
+                    const ptname = escapeHtml(row.ptname);
+                    const pttype = escapeHtml(row.pttype);
+                    const otherList = escapeHtml(row.other_list);
+                    const ppfsList = escapeHtml(row.ppfs_list);
+                    const income = parseFloat(row.income || 0);
+                    const rcpt = parseFloat(row.rcpt_money || 0);
+                    const other = parseFloat(row.other || 0);
+                    const ppfs = parseFloat(row.ppfs || 0);
+                    const debtor = parseFloat(row.debtor || 0);
+                    
+                    sInc += income; sRcp += rcpt; sOth += other; sPpf += ppfs; sDeb += debtor;
+
+                    htmlRows += `
+                        <tr class="align-middle">
+                            <td class="text-center"><input type="checkbox" name="checkbox[]" value="${row.vn}"></td>
+                            <td align="right">${thaiDate(row.vstdate)} ${row.vsttime ? row.vsttime.substring(0,5) : ''}</td>
+                            <td align="center">${row.hn}</td>
+                            <td align="left">${ptname}</td>
+                            <td align="left">${pttype} [${row.hospmain}]</td>
+                            <td align="right">${row.pdx || ''}</td>
+                            <td align="right">${formatMoney(income)}</td>
+                            <td align="right">${formatMoney(rcpt)}</td>
+                            <td align="right">${formatMoney(other)}</td>
+                            <td align="right">${formatMoney(ppfs)}</td>
+                            <td align="right" class="fw-bold text-primary">${formatMoney(debtor)}</td>
+                            <td align="left"><small class="text-muted text-wrap">${otherList}</small></td>
+                            <td align="left"><small class="text-muted text-wrap">${ppfsList}</small></td>
+                        </tr>
+                    `;
+                });
+                body.html(htmlRows);
+            }
+
+            // Update Totals
+            $('#sum-income-search').text(formatMoney(sInc));
+            $('#sum-rcpt-search').text(formatMoney(sRcp));
+            $('#sum-other-search').text(formatMoney(sOth));
+            $('#sum-ppfs-search').text(formatMoney(sPpf));
+            $('#sum-debtor-search').text(formatMoney(sDeb));
+
+            // Initialize/Re-initialize DataTable
+            if ($.fn.DataTable.isDataTable(tableId)) {
+                $(tableId).DataTable().destroy();
+            }
+            $(tableId).DataTable({
+                dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                buttons: [
+                    {
+                        extend: 'excelHtml5',
+                        text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                        className: 'btn btn-success btn-sm px-3 shadow-sm',
+                        title: '1102050101.201-ลูกหนี้ค่ารักษา UC-OP ใน CUP รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+                    }
+                ],
+                language: {
+                    search: 'ค้นหา:',
+                    lengthMenu: 'แสดง _MENU_ รายการ',
+                    info: 'แสดงเฉพาะ _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
+                    paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
+                }
+            });
+        });
+    }
+
+    // 5. Initialize Datepicker Thai for Filter
     $('#start_date_picker, #end_date_picker').datepicker({
         format: 'd M yyyy',
         todayBtn: 'linked',
@@ -624,7 +805,7 @@ $(document).ready(function() {
     setInitialDate('#end_date_picker', end_date_val);
 
     // 3. DataTable for main table
-    if ($('#debtor').length) {
+    if ($('#debtor').length && !$.fn.DataTable.isDataTable('#debtor')) {
         $('#debtor').DataTable({
             dom: '<"row mb-3"<"col-md-6"l>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
             ordering: true,
@@ -636,26 +817,9 @@ $(document).ready(function() {
         });
     }
 
-    // 4. DataTable for search/confirm table
-    if ($('#debtor_search').length) {
-        $('#debtor_search').DataTable({
-            dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-            buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: 'Excel',
-                    className: 'btn btn-success btn-sm',
-                    title: '1102050101.201-ลูกหนี้ค่ารักษา UC-OP ใน CUP รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
-                }
-            ],
-            language: {
-                search: 'ค้นหา:',
-                lengthMenu: 'แสดง _MENU_ รายการ',
-                info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
-                paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
-            }
-        });
-    }
+    loadCounts();
+    setTimeout(loadTab2, 500);
+    setInterval(loadCounts, 60000); 
 
     // 5. DataTable for AE table
     if ($('#debtor_search_ae').length) {
@@ -677,6 +841,65 @@ $(document).ready(function() {
             }
         });
     }
+
+    // --- ระบบกระทบยอดแบบกลุ่ม (Average Receive) ---
+    function initAvgDatepicker(pickerId, hiddenId, initialVal) {
+        var $picker = $('#' + pickerId);
+        if ($picker.length) {
+            $picker.datepicker({
+                format: 'd M yyyy', autoclose: true, language: 'th-th', thaiyear: true, todayBtn: 'linked', todayHighlight: true, zIndexOffset: 1100
+            }).on('changeDate', function(e) {
+                if (e.date) {
+                    var d = e.date, y = d.getFullYear(), m = ('0'+(d.getMonth()+1)).slice(-2), day = ('0'+d.getDate()).slice(-2);
+                    $('#' + hiddenId).val(y + '-' + m + '-' + day);
+                }
+            });
+            if (initialVal) {
+                var p = initialVal.split('-');
+                if (p.length === 3) { $picker.datepicker('setDate', new Date(p[0], p[1]-1, p[2])); }
+            }
+        }
+    }
+
+    initAvgDatepicker('date_start_picker_avg', 'date_start_avg', "{{ $start_date }}");
+    initAvgDatepicker('date_end_picker_avg', 'date_end_avg', "{{ $end_date }}");
+    initAvgDatepicker('avg_receive_date_picker', 'avg_receive_date', "");
+
+    $('#averageReceiveForm').on('submit', function(e) {
+        e.preventDefault();
+        let formData = $(this).serialize();
+        let $btn = $('#avgSubmitBtn'), $spinner = $('#avgLoadingSpinner'), $message = $('#avgResultMessage');
+        
+        $btn.prop('disabled', true);
+        $spinner.removeClass('d-none');
+        $message.addClass('d-none').removeClass('alert-danger alert-success');
+        
+        $.ajax({
+            url: "{{ url('debtor/1102050101_201_average_receive') }}",
+            type: 'POST',
+            data: formData,
+            success: function(res) {
+                $btn.prop('disabled', false); $spinner.addClass('d-none');
+                if (res.status === 'success') {
+                    Swal.fire({ 
+                        title: 'สำเร็จ!', 
+                        html: res.message, 
+                        icon: 'success', 
+                        confirmButtonText: 'ตกลง' 
+                    }).then(() => { 
+                        location.reload(); 
+                    });
+                } else {
+                    $message.html(res.message).addClass('alert-danger').removeClass('d-none');
+                }
+            },
+            error: function(xhr) {
+                $btn.prop('disabled', false); $spinner.addClass('d-none');
+                let err = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
+                $message.html(err).addClass('alert-danger').removeClass('d-none');
+            }
+        });
+    });
 });
 </script>
 

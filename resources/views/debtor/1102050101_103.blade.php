@@ -59,13 +59,13 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span class="badge bg-primary text-white ms-2">{{ count($debtor) }}</span>
+                        <span id="badge-tab1" class="text-success fw-bold ms-2">{{ count($debtor) }}</span>
                     </button>
                 </li>       
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab" onclick="loadTab2()">
-                        <i class="bi bi-clock-history me-1 text-warning"></i> รอยืนยันลูกหนี้
-                        <span id="badge-tab2" class="badge bg-warning text-white ms-2">0</span>
+                        <i class="bi bi-clock-history me-1"></i> <span>รอยืนยันลูกหนี้</span>
+                        <span id="badge-tab2" class="text-warning fw-bold ms-2">0</span>
                     </button>
                 </li>
             </ul>
@@ -616,7 +616,7 @@ function loadCounts() {
         url: "{{ url('debtor/1102050101_103_counts_ajax') }}",
         data: { start_date: $('#start_date').val(), end_date: $('#end_date').val() },
         success: function(res) {
-            $('#badge-tab2').text(res.tab2).removeClass('bg-warning-soft text-warning').addClass('bg-warning text-white');
+            $('#badge-tab2').text(res.tab2).removeClass('badge bg-warning text-white').addClass('text-warning fw-bold');
         }
     });
 }

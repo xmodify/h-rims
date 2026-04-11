@@ -74,11 +74,12 @@
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
                         <span class="badge bg-primary-soft text-primary ms-2">{{ count($debtor) }}</span>
                     </button>
-                </li>       
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab">
+                    <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab" onclick="loadTab2()">
                         <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้
-                        <span class="badge bg-warning-soft text-warning ms-2">{{ count($debtor_search) }}</span>
+                        <span id="badge-tab2" class="badge bg-warning-soft text-warning ms-2 shadow-sm border border-warning-subtle">
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                        </span>
                     </button>
                 </li>
             </ul>
@@ -247,14 +248,8 @@
                                 <i class="bi bi-check-circle me-1"></i> ยืนยันลูกหนี้
                             </button>
                         </div>                
-                <div class="table-responsive"><table id="debtor_search" class="table table-bordered table-striped my-3" width="100%">
+                <div class="table-responsive"><table id="table_109_ajax" class="table table-bordered table-striped my-3" width="100%">
                     <thead>
-                    <tr class="table-secondary">
-                        <th class="text-left text-primary" colspan="13">
-                            1102050101.109-ลูกหนี้-ระบบปฏิบัติการฉุกเฉิน รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} 
-                            (จำนวน: {{ count($debtor_search) }} รายการ)
-                        </th>                         
-                    </tr>
                     <tr class="table-secondary">
                         <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th> 
                         <th class="text-center">วันที่</th>
@@ -268,40 +263,19 @@
                         <th class="text-center text-primary">รายการเรียกเก็บ</th>
                     </tr>
                     </thead>
-                    <?php $count = 1 ; ?>
-                    <?php 
-                        $sum_income_search = 0;
-                        $sum_rcpt_money_search = 0;
-                        $sum_debtor_search = 0;
-                    ?>
-                    @foreach($debtor_search as $row)
-                    @php $balance = -($row->debtor ?? 0); @endphp <tr>
-                        <td class="text-center"><input type="checkbox" name="checkbox[]" value="{{$row->vn}}"></td> 
-                        <td align="right">{{ DateThai($row->vstdate) }} {{ $row->vsttime }}</td>
-                        <td align="center">{{ $row->hn }}</td>
-                        <td align="left">{{ $row->ptname }}</td>
-                        <td align="left">{{ $row->pttype }}</td>
-                        <td align="right">{{ $row->pdx }}</td>                  
-                        <td align="right">{{ number_format($row->income,2) }}</td>
-                        <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
-                        <td align="right">{{ number_format($row->debtor,2) }}</td>
-                        <td align="left">{{ $row->claim_list }}</td>
-                    <?php $count++; ?>
-                    <?php 
-                        $sum_income_search += $row->income;
-                        $sum_rcpt_money_search += $row->rcpt_money;
-                        $sum_debtor_search += $row->debtor;
-                    ?>
-                    @endforeach 
-                </tr>   
+                    <tbody id="table2-body">
+                        <tr>
+                            <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted">กำลังโหลดข้อมูล...</td>
+                        </tr>
+                    </tbody>   
                     <tfoot>
-
-                        <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                            <td colspan="6" class="text-end">รวม</td>
-                            <td class="text-end">{{ number_format($sum_income_search ?? 0,2) }}</td>
-                            <td class="text-end">{{ number_format($sum_rcpt_money_search ?? 0,2) }}</td>
-                            <td class="text-end" style="color:blue">{{ number_format($sum_debtor_search ?? 0,2) }}</td>
-                            <td class="text-end"></td>
+                        <tr class="table-success text-end fw-bold" style="font-size: 14px;">
+                            <th></th><th></th><th></th><th></th><th></th>
+                            <th class="text-end">รวม</th>
+                            <th id="sum-income-search" class="text-end">0.00</th>
+                            <th id="sum-rcpt-search" class="text-end">0.00</th>
+                            <th id="sum-debtor-search" class="text-end" style="color:blue">0.00</th>
+                            <th class="text-end"></th>
                         </tr>
                     </tfoot>
                 </table></div>
@@ -613,26 +587,7 @@ $(document).ready(function() {
         });
     }
 
-    // 4. DataTable for search/confirm table
-    if ($('#debtor_search').length) {
-        $('#debtor_search').DataTable({
-            dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-            buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: 'Excel',
-                    className: 'btn btn-success btn-sm',
-                    title: '1102050101.109-ลูกหนี้-ระบบปฏิบัติการฉุกเฉิน รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
-                }
-            ],
-            language: {
-                search: 'ค้นหา:',
-                lengthMenu: 'แสดง _MENU_ รายการ',
-                info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
-                paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
-            }
-        });
-    }
+
 
     // 5. DataTable for AE table
     if ($('#debtor_search_ae').length) {
@@ -737,6 +692,115 @@ $(document).ready(function () {
         } else if (typeof $.fn.modal === 'function') {
             $modal.modal('show');
         }
+    });
+    // Data storage for Tab 2
+    let tab2Loaded = false;
+    let tab2Data = [];
+
+    // Thai Month Mapping
+    const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+    
+    function escapeHtml(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function thaiDate(dateStr) {
+        if(!dateStr) return '';
+        const d = new Date(dateStr);
+        return `${d.getDate()} ${thaiMonths[d.getMonth()]} ${d.getFullYear() + 543}`;
+    }
+
+    function formatMoney(n) {
+        return parseFloat(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function loadCounts() {
+        $.get("{{ url('debtor/1102050101_109_counts_ajax') }}", {
+            start_date: '{{ $start_date }}',
+            end_date: '{{ $end_date }}'
+        }, function(res) {
+            $('#badge-tab2').text(res.tab2 || 0);
+            $('#count-pending').text(`(จำนวน: ${res.tab2 || 0} รายการ)`);
+        });
+    }
+
+    function loadTab2() {
+        if (tab2Loaded) return;
+        
+        const body = $('#table2-body');
+        const sumIncome = $('#sum-income-search');
+        const sumRcpt = $('#sum-rcpt-search');
+        const sumDebtor = $('#sum-debtor-search');
+
+        $.get("{{ url('debtor/1102050101_109_search_ajax') }}", {
+            start_date: '{{ $start_date }}',
+            end_date: '{{ $end_date }}'
+        }, function(data) {
+            tab2Data = data;
+            const body = $('#table2-body');
+            let sInc = 0, sRcp = 0, sDeb = 0;
+            
+            if (data.length === 0) {
+                body.html('<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td class="text-center text-muted">--- ไม่พบข้อมูลรอยืนยัน ---</td></tr>');
+            } else {
+                let htmlRows = '';
+                data.forEach(row => {
+                    sInc += parseFloat(row.income || 0);
+                    sRcp += parseFloat(row.rcpt_money || 0);
+                    sDeb += parseFloat(row.debtor || 0);
+                    
+                    const timeStr = row.vsttime ? row.vsttime.substring(0, 5) : '';
+                    const claimText = row.claim_list ? row.claim_list : '';
+                    
+                    htmlRows += `
+                        <tr class="align-middle">
+                            <td class="text-center"><input type="checkbox" name="checkbox[]" value="${row.vn}"></td>
+                            <td align="right">${thaiDate(row.vstdate)} ${timeStr}</td>
+                            <td align="center">${row.hn}</td>
+                            <td align="left">${row.ptname}</td>
+                            <td align="left">${row.pttype}</td>
+                            <td align="right">${row.pdx || ''}</td>
+                            <td align="right">${formatMoney(row.income)}</td>
+                            <td align="right">${formatMoney(row.rcpt_money)}</td>
+                            <td align="right" class="fw-bold text-primary">${formatMoney(row.debtor)}</td>
+                            <td align="left"><small class="text-muted text-wrap">${claimText}</small></td>
+                        </tr>
+                    `;
+                });
+                body.html(htmlRows);
+            }
+
+            sumIncome.text(formatMoney(sInc));
+            sumRcpt.text(formatMoney(sRcp));
+            sumDebtor.text(formatMoney(sDeb));
+
+            const tableId = '#table_109_ajax';
+            if ($.fn.DataTable.isDataTable(tableId)) {
+                $(tableId).DataTable().destroy();
+            }
+            $(tableId).DataTable({
+                dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                buttons: [{
+                    extend: 'excelHtml5', text: 'Excel', className: 'btn btn-success btn-sm',
+                    title: '1102050101.109-ลูกหนี้-ระบบปฏิบัติการฉุกเฉิน รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+                }],
+                language: { search: 'ค้นหา:', lengthMenu: 'แสดง _MENU_ รายการ', info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ', paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' } }
+            });
+
+            tab2Loaded = true;
+        });
+    }
+
+    $(document).ready(function() {
+        loadCounts();
+        // Start loading Tab 2 data in background after 500ms
+        setTimeout(loadTab2, 500);
     });
 });
 </script>

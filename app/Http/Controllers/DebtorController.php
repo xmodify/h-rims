@@ -1363,7 +1363,42 @@ class DebtorController extends Controller
                 return $item;
             });
 
-        $debtor_search = DB::connection('hosxp')->select('
+        $debtor_search = [];
+
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
+        $request->session()->save();
+
+        return view('debtor.1102050101_109', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
+    }
+
+    //_1102050101_109_counts_ajax-------------------------------------------------------------------------------------------------------
+    public function _1102050101_109_counts_ajax(Request $request)
+    {
+        $start_date = $request->start_date;
+        $end_date = $request->end_date;
+
+        $data = DB::connection('hosxp')->select('
+            SELECT COUNT(DISTINCT o.vn) as count2
+            FROM ovst o  
+            INNER JOIN (SELECT op.vn FROM opitemrece op INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems = "Y" WHERE op.vstdate BETWEEN ? AND ?) ems ON ems.vn = o.vn
+            WHERE o.vstdate BETWEEN ? AND ?
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_109 WHERE vn IS NOT NULL)', [$start_date, $end_date, $start_date, $end_date]);
+
+        return response()->json([
+            'tab2' => $data[0]->count2 ?? 0
+        ]);
+    }
+
+    //_1102050101_109_search_ajax-------------------------------------------------------------------------------------------------------
+    public function _1102050101_109_search_ajax(Request $request)
+    {
+        $start_date = $request->start_date;
+        $end_date = $request->end_date;
+
+        $data = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,p.cid,CONCAT(p.pname, p.fname, " ", p.lname) AS ptname,o.vstdate,v.pdx,
                 o.vsttime,p1.`name` AS pttype,vp.hospmain,p1.hipdata_code,IFNULL(inc.income,0) AS income,
                 IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ems.claim_price,0) AS debtor,ems.claim_list AS claim_list,
@@ -1394,13 +1429,7 @@ class DebtorController extends Controller
             GROUP BY o.vn, vp.pttype
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date', $start_date);
-        $request->session()->put('end_date', $end_date);
-        $request->session()->put('search', $search);
-        $request->session()->put('debtor', $debtor);
-        $request->session()->save();
-
-        return view('debtor.1102050101_109', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
+        return response()->json($data);
     }
     //_1102050101_109_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_109_confirm(Request $request)

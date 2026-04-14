@@ -66,13 +66,13 @@
         <div class="card-header bg-transparent border-0 pt-3 px-4 pb-0">
             <ul class="nav nav-tabs-modern" id="pills-tab" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
+                    <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab" onclick="loadTab1()">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
                         <span class="ms-2 fw-bold text-success" id="badge-tab1"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab">
+                    <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab" onclick="loadTab2()">
                         <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้
                         <span class="ms-2 fw-bold text-warning" id="badge-tab2"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
                     </button>
@@ -286,6 +286,19 @@
                             </thead>
                             <tbody id="table2-body">
                             </tbody>
+                            <tfoot>
+                                <tr class="table-success text-end fw-bold" style="font-size: 14px;">
+                                    <td colspan="6" class="text-end">รวม</td>
+                                    <td class="text-end" id="sum_income_search">0.00</td>
+                                    <td class="text-end" id="sum_rcpt_money_search">0.00</td>
+                                    <td class="text-end" id="sum_ofc_search">0.00</td>
+                                    <td class="text-end" id="sum_kidney_search">0.00</td>
+                                    <td class="text-end" id="sum_ppfs_search">0.00</td>
+                                    <td class="text-end" id="sum_other_search">0.00</td>
+                                    <td class="text-end" id="sum_debtor_search" style="color:blue">0.00</td>
+                                    <td colspan="4"></td>
+                                </tr>
+                            </tfoot>
                         </table>
                         </div>
                     </form>
@@ -597,7 +610,14 @@ $(document).ready(function() {
     }
 
     // 4. DataTable for search/confirm table
+    var tab1Loaded = false;
+    var tab2Loaded = false;
     var dtSearchInstance = null;
+
+    window.loadTab1 = function() {
+        if (tab1Loaded) return;
+        tab1Loaded = true;
+    };
 
     function formatNumber(num) {
         if (!num) return '0.00';
@@ -615,13 +635,16 @@ $(document).ready(function() {
     }
 
     window.loadTab2 = function() {
-        const tableId = '#debtor_search';
-        if (!$(tableId).hasClass('d-none')) return;
+        if (tab2Loaded) return;
         
         $('#empty-tab2').addClass('d-none');
         $('#loading-tab2').removeClass('d-none');
 
+        // Set flag early
+        tab2Loaded = true;
+
         const body = $('#table2-body');
+        const tableId = '#debtor_search';
         
         $.get("{{ url('debtor/1102050101_401_search_ajax') }}", {
             start_date: start_date_val,
@@ -635,10 +658,27 @@ $(document).ready(function() {
             }
             body.empty();
 
+            let sum_income = 0, sum_rcpt_money = 0, sum_ofc = 0, sum_kidney = 0, sum_ppfs = 0, sum_other = 0, sum_debtor = 0;
+
             if (data.length === 0) {
                 body.html('<tr><td colspan="17" class="text-center py-3">ไม่พบข้อมูล</td></tr>');
+                $('#sum_income_search').text('0.00');
+                $('#sum_rcpt_money_search').text('0.00');
+                $('#sum_ofc_search').text('0.00');
+                $('#sum_kidney_search').text('0.00');
+                $('#sum_ppfs_search').text('0.00');
+                $('#sum_other_search').text('0.00');
+                $('#sum_debtor_search').text('0.00');
             } else {
                 data.forEach(function(row) {
+                    sum_income += parseFloat(row.income) || 0;
+                    sum_rcpt_money += parseFloat(row.rcpt_money) || 0;
+                    sum_ofc += parseFloat(row.ofc) || 0;
+                    sum_kidney += parseFloat(row.kidney) || 0;
+                    sum_ppfs += parseFloat(row.ppfs) || 0;
+                    sum_other += parseFloat(row.other) || 0;
+                    sum_debtor += parseFloat(row.debtor) || 0;
+
                     const tr = `<tr>
                         <td class="text-center"><input type="checkbox" name="checkbox[]" value="${row.vn}"></td>
                         <td align="left" class="text-nowrap">${formThaiDate(row.vstdate)} ${row.vsttime || ''}</td>
@@ -652,7 +692,7 @@ $(document).ready(function() {
                         <td align="right">${formatNumber(row.kidney)}</td>
                         <td align="right">${formatNumber(row.ppfs)}</td>
                         <td align="right">${formatNumber(row.other)}</td>
-                        <td align="right" class="text-primary">${formatNumber(row.debtor)}</td>
+                        <td align="right" class="text-primary fw-bold">${formatNumber(row.debtor)}</td>
                         <td align="left" width="10%">${row.kidney_list || ''}</td>
                         <td align="left" width="10%">${row.ppfs_list || ''}</td>
                         <td align="left" width="10%">${row.other_list || ''}</td>
@@ -660,6 +700,14 @@ $(document).ready(function() {
                     </tr>`;
                     body.append(tr);
                 });
+
+                $('#sum_income_search').text(formatNumber(sum_income));
+                $('#sum_rcpt_money_search').text(formatNumber(sum_rcpt_money));
+                $('#sum_ofc_search').text(formatNumber(sum_ofc));
+                $('#sum_kidney_search').text(formatNumber(sum_kidney));
+                $('#sum_ppfs_search').text(formatNumber(sum_ppfs));
+                $('#sum_other_search').text(formatNumber(sum_other));
+                $('#sum_debtor_search').text(formatNumber(sum_debtor));
             }
 
             if (data.length > 0) {
@@ -682,31 +730,37 @@ $(document).ready(function() {
                 });
             }
         }).fail(function() {
+            tab2Loaded = false;
             $('#loading-tab2').addClass('d-none');
             $('#empty-tab2').removeClass('d-none');
-            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูล HOSxP ได้', 'error');
+            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูล HOSxP ได้ หรือเกิดข้อผิดพลาดในการโหลดข้อมูล', 'error');
         });
     };
 
     $('button[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
         if ($(e.target).attr("id") === 'confirm-tab') {
             loadTab2();
+        } else if ($(e.target).attr("id") === 'debtor-tab') {
+            loadTab1();
         }
     });
 
     function loadCounts() {
+        $('#badge-tab1').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+        $('#badge-tab2').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+
         var searchVal = $('#search').val();
          $.ajax({
             url: "{{ url('debtor/1102050101_401_counts_ajax') }}",
             type: "GET",
             data: { start_date: start_date_val, end_date: end_date_val, search: searchVal },
             success: function(res) {
-                $('#badge-tab1').text(res.tab1);
-                $('#badge-tab2').text(res.tab2);
+                $('#badge-tab1').text(res.tab1 || '0');
+                $('#badge-tab2').text(res.tab2 || '0');
             },
             error: function() {
-                $('#badge-tab1').text('-');
-                $('#badge-tab2').text('-');
+                $('#badge-tab1').text('0');
+                $('#badge-tab2').text('0');
             }
         });
     }

@@ -3796,6 +3796,83 @@ class DebtorController extends Controller
                 WHERE d.vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         }
 
+        $debtor_search = [];
+
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
+        $request->session()->save();
+
+        return view('debtor.1102050101_303', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
+    }
+
+    public function _1102050101_303_counts_ajax(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
+        $search = $request->search;
+        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value') ?: "''";
+        $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value') ?: "''";
+
+        // Tab 1 count
+        if ($search) {
+            $tab1 = DB::table('debtor_1102050101_303')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->where(function($q) use ($search) {
+                    $q->where('ptname', 'LIKE', "%{$search}%")
+                      ->orWhere('hn', 'LIKE', "%{$search}%");
+                })
+                ->count();
+        } else {
+            $tab1 = DB::table('debtor_1102050101_303')
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->count();
+        }
+
+        // Tab 2 count
+        $tab2Query = DB::connection('hosxp')->select('
+            SELECT COUNT(DISTINCT o.vn) AS c
+            FROM ovst o 
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op WHERE op.vstdate BETWEEN ? AND ?    
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS other_price
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(v.paid_money,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
+            AND p.hipdata_code = "SSS"            
+            AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
+            AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_303 WHERE vn IS NOT NULL)
+            AND p.pttype NOT IN (' . $pttype_sss_fund . ')
+            AND p.pttype NOT IN (' . $pttype_sss_ae . ')
+        ', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+        
+        $tab2 = $tab2Query[0]->c ?? 0;
+
+        return response()->json(['tab1' => $tab1, 'tab2' => $tab2]);
+    }
+
+    public function _1102050101_303_search_ajax(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
+        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value') ?: "''";
+        $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value') ?: "''";
+
         $debtor_search = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,v.paid_money,
@@ -3837,13 +3914,7 @@ class DebtorController extends Controller
             GROUP BY o.vn, vp.pttype
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date', $start_date);
-        $request->session()->put('end_date', $end_date);
-        $request->session()->put('search', $search);
-        $request->session()->put('debtor', $debtor);
-        $request->session()->save();
-
-        return view('debtor.1102050101_303', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
+        return response()->json($debtor_search);
     }
     //_1102050101_303_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_303_confirm(Request $request)

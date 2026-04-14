@@ -250,7 +250,7 @@
                             <div id="empty-tab2" class="text-center p-5">
                                 <i class="bi bi-search fs-1 text-muted"></i>
                                 <p class="mt-2 text-muted">คลิกที่ Tab หรือกดปุ่มค้นหาเพื่อโหลดข้อมูล</p>
-                                <button type="button" class="btn btn-warning btn-sm" onclick="loadTab2()">โหลดข้อมูล HOSxP</button>
+                                <button type="button" class="btn btn-warning btn-sm text-dark fw-bold" onclick="loadTab2()">โหลดข้อมูล HOSxP</button>
                             </div>
                             <table id="debtor_search" class="table table-bordered table-striped my-3 d-none" width="100%">
                             <thead>

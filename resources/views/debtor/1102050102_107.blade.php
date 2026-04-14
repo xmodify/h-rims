@@ -76,19 +76,19 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span class="badge bg-success text-white ms-2">{{ count($debtor) }}</span>
+                        <span class="ms-2 fw-bold text-success">{{ count($debtor) }}</span>
                     </button>
-                </li>       
+                </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="pay-tab" data-bs-toggle="pill" data-bs-target="#pay-pane" type="button" role="tab" onclick="loadTab2()">
-                        <i class="bi bi-cash-stack me-1"></i> รอยืนยันลูกหนี้ ชำระเงิน IP
-                        <span id="badge-tab2" class="badge bg-warning text-white ms-2">0</span>
+                        <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้ ชำระเงิน IP
+                        <span class="ms-2 fw-bold text-warning" id="badge-tab2"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="iclaim-tab" data-bs-toggle="pill" data-bs-target="#iclaim-pane" type="button" role="tab" onclick="loadTab3()">
-                        <i class="bi bi-shield-check me-1"></i> รอยืนยันลูกหนี้ iClaim
-                        <span id="badge-tab3" class="badge bg-info text-white ms-2">0</span>
+                        <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้ iClaim
+                        <span class="ms-2 fw-bold text-info" id="badge-tab3"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
                     </button>
                 </li>
             </ul>
@@ -269,10 +269,15 @@
                             </button>
                             <div></div>
                         </div>
-                        <div id="loading-tab2" class="text-center p-5">
+                        <div id="loading-tab2" class="text-center p-5 d-none">
                             <div class="spinner-border text-warning" role="status"></div>
                             <p class="mt-2 text-muted">กำลังดึงข้อมูลจาก HOSxP...</p>
                             <p class="small text-danger">โปรดรอซักครู่</p>
+                        </div>
+                        <div id="empty-tab2" class="text-center p-5">
+                            <i class="bi bi-search fs-1 text-muted"></i>
+                            <p class="mt-2 text-muted">คลิกที่ Tab หรือกดปุ่มโหลดข้อมูลเพื่อแสดงรายการ</p>
+                            <button type="button" class="btn btn-warning btn-sm text-dark fw-bold" onclick="loadTab2()">โหลดข้อมูล HOSxP</button>
                         </div>
                         <div class="table-responsive">
                             <table id="debtor_search" class="table table-bordered table-striped my-3 d-none" width="100%">
@@ -331,10 +336,15 @@
                             </button>
                             <div></div>
                         </div>
-                        <div id="loading-tab3" class="text-center p-5">
+                        <div id="loading-tab3" class="text-center p-5 d-none">
                             <div class="spinner-border text-warning" role="status"></div>
-                            <p class="mt-2 text-muted">กำลังดึงข้อมูล iClaim...</p>
+                            <p class="mt-2 text-muted">กำลังดึงข้อมูลจาก HOSxP...</p>
                             <p class="small text-danger">โปรดรอซักครู่</p>
+                        </div>
+                        <div id="empty-tab3" class="text-center p-5">
+                            <i class="bi bi-search fs-1 text-muted"></i>
+                            <p class="mt-2 text-muted">คลิกที่ Tab หรือกดปุ่มโหลดข้อมูลเพื่อแสดงรายการ</p>
+                            <button type="button" class="btn btn-warning btn-sm text-dark fw-bold" onclick="loadTab3()">โหลดข้อมูล iClaim</button>
                         </div>
                         <div class="table-responsive">
                             <table id="debtor_search_iclaim_table" class="table table-bordered table-striped my-3 d-none" width="100%">
@@ -773,6 +783,9 @@
             $('#debtor_search').addClass('d-none');
             $('#empty-tab2').addClass('d-none');
 
+            // Set tab2Loaded to true immediately to prevent double clicks
+            tab2Loaded = true;
+
             $.get("{{ url('debtor/1102050102_107_search_ajax') }}", { start_date, end_date }, function(data) {
                 $('#loading-tab2').addClass('d-none');
                 $('#debtor_search').removeClass('d-none');
@@ -821,13 +834,22 @@
                 $('#sum_deposit').text(formatMoney(sum_dep));
                 $('#sum_debit').text(formatMoney(sum_deb));
 
+                if ($.fn.DataTable.isDataTable('#debtor_search')) {
+                    $('#debtor_search').DataTable().destroy();
+                }
+
                 $('#debtor_search').removeClass('d-none').DataTable({
+                    destroy: true,
                     dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                     buttons: [{ extend: 'excelHtml5', text: 'Excel', className: 'btn btn-success btn-sm', title: '1102050102.107-ลูกหนี้ IP รอยืนยัน' }],
                     language: { search: "ค้นหา:", lengthMenu: "แสดง _MENU_ รายการ", info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ", paginate: { previous: "ก่อนหน้า", next: "ถัดไป" } }
                 });
                 
                 tab2Loaded = true;
+            }).fail(function() {
+                tab2Loaded = false;
+                $('#loading-tab2').addClass('d-none');
+                $('#empty-tab2').removeClass('d-none');
             });
         }
 
@@ -879,7 +901,12 @@
                 $('#sum_ic_other').text(formatMoney(sum_other));
                 $('#sum_ic_debtor').text(formatMoney(sum_debt));
 
+                if ($.fn.DataTable.isDataTable('#debtor_search_iclaim_table')) {
+                    $('#debtor_search_iclaim_table').DataTable().destroy();
+                }
+
                 $('#debtor_search_iclaim_table').removeClass('d-none').DataTable({
+                    destroy: true,
                     dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                     buttons: [{ extend: 'excelHtml5', text: 'Excel', className: 'btn btn-success btn-sm', title: '1102050102.107-ลูกหนี้ iClaim IP รอยืนยัน' }],
                     language: { search: "ค้นหา:", lengthMenu: "แสดง _MENU_ รายการ", info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ", paginate: { previous: "ก่อนหน้า", next: "ถัดไป" } }
@@ -903,6 +930,14 @@
 
         $(document).ready(function () {
             loadCounts();
+            
+            // Performance: Lazy load secondary tabs when clicked
+            $('button[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
+                var targetId = $(e.target).attr("id");
+                if (targetId === 'pay-tab') { loadTab2(); }
+                else if (targetId === 'iclaim-tab') { loadTab3(); }
+            });
+
             $('#debtor').DataTable({
                 dom: '<"row mb-3"<"col-md-6"l>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',            
                 language: { lengthMenu: "แสดง _MENU_ รายการ", info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ", paginate: { previous: "ก่อนหน้า", next: "ถัดไป" } }

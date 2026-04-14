@@ -276,8 +276,8 @@
                             </div>
                             <div id="empty-tab2" class="text-center p-5">
                                 <i class="bi bi-search fs-1 text-muted"></i>
-                                <p class="mt-2">คลิกที่ Tab หรือกดปุ่มค้นหาเพื่อโหลดข้อมูล</p>
-                                <button type="button" class="btn btn-warning btn-sm" onclick="loadTab2()">โหลดข้อมูล HOSxP</button>
+                                <p class="mt-2 text-muted">คลิกที่ Tab หรือกดปุ่มโหลดข้อมูลเพื่อแสดงรายการ</p>
+                                <button type="button" class="btn btn-warning btn-sm text-dark fw-bold" onclick="loadTab2()">โหลดข้อมูล HOSxP</button>
                             </div>
                             <table id="debtor_search" class="table table-bordered table-striped my-3 d-none" width="100%">
                                 <thead>
@@ -334,13 +334,14 @@
 
                         <div class="table-responsive">
                             <div id="loading-tab3" class="text-center p-5 d-none">
-                                <div class="spinner-border text-info" role="status"></div>
+                                <div class="spinner-border text-warning" role="status"></div>
                                 <p class="mt-2 text-muted">กำลังดึงข้อมูลจาก HOSxP...</p>
+                                <p class="small text-danger">โปรดรอซักครู่</p>
                             </div>
                             <div id="empty-tab3" class="text-center p-5">
                                 <i class="bi bi-search fs-1 text-muted"></i>
-                                <p class="mt-2">คลิกที่ Tab หรือกดปุ่มค้นหาเพื่อโหลดข้อมูล</p>
-                                <button type="button" class="btn btn-info btn-sm" onclick="loadTab3()">โหลดข้อมูล iClaim</button>
+                                <p class="mt-2 text-muted">คลิกที่ Tab หรือกดปุ่มโหลดข้อมูลเพื่อแสดงรายการ</p>
+                                <button type="button" class="btn btn-warning btn-sm text-dark fw-bold" onclick="loadTab3()">โหลดข้อมูล iClaim</button>
                             </div>
                             <table id="debtor_search_iclaim_table" class="table table-bordered table-striped my-3 d-none" width="100%">
                                 <thead>
@@ -684,8 +685,13 @@ $(document).ready(function() {
 
     // Auto-load background data
     loadCounts(); // Get numbers immediately
-    loadTab2();   // Fetch detail in background
-    loadTab3();   // Fetch detail in background
+    
+    // Performance: Lazy load secondary tabs when clicked
+    $('button[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
+        var targetId = $(e.target).attr("id");
+        if (targetId === 'pay-tab') { loadTab2(); }
+        else if (targetId === 'iclaim-tab') { loadTab3(); }
+    });
 });
 
 function loadCounts() {
@@ -765,15 +771,22 @@ $(document).ready(function () {
     });
 });
 
+let tab2Loaded = false;
 function loadTab2() {
-    if (!$('#debtor_search').hasClass('d-none')) return;
+    if (tab2Loaded) return;
     $('#empty-tab2').addClass('d-none');
     $('#loading-tab2').removeClass('d-none');
     
+    // Set flag early to prevent double requests
+    tab2Loaded = true;
+
     $.ajax({
         url: "{{ url('debtor/1102050102_106_search_ajax') }}",
         data: { start_date: $('#start_date').val(), end_date: $('#end_date').val() },
         success: function(res) {
+            $('#loading-tab2').addClass('d-none');
+            $('#debtor_search').removeClass('d-none');
+            $('#badge-tab2').text(res.length);
             $('#loading-tab2').addClass('d-none');
             $('#debtor_search').removeClass('d-none');
             $('#badge-tab2').text(res.length);

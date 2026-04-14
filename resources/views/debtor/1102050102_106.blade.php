@@ -76,19 +76,19 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span class="badge bg-success text-white ms-2">{{ count($debtor) }}</span>
+                        <span class="ms-2 fw-bold text-success">{{ count($debtor) }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="pay-tab" data-bs-toggle="pill" data-bs-target="#pay-pane" type="button" role="tab" onclick="loadTab2()">
-                        <i class="bi bi-cash-coin me-1"></i> รอยืนยันลูกหนี้ ชำระเงิน OP
-                        <span id="badge-tab2" class="badge bg-warning text-white ms-2">0</span>
+                        <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้ ชำระเงิน OP
+                        <span class="ms-2 fw-bold text-warning" id="badge-tab2"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="iclaim-tab" data-bs-toggle="pill" data-bs-target="#iclaim-pane" type="button" role="tab" onclick="loadTab3()">
-                        <i class="bi bi-shield-check me-1"></i> รอยืนยันลูกหนี้ iClaim
-                        <span id="badge-tab3" class="badge bg-info text-white ms-2">0</span>
+                        <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้ iClaim
+                        <span class="ms-2 fw-bold text-info" id="badge-tab3"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
                     </button>
                 </li>
             </ul>
@@ -698,8 +698,8 @@ function loadCounts() {
         data: { start_date: $('#start_date').val(), end_date: $('#end_date').val() },
         success: function(res) {
             // Update labels with actual counts
-            $('#badge-tab2').text(res.tab2).removeClass('bg-warning-soft text-warning').addClass('bg-warning text-white');
-            $('#badge-tab3').text(res.tab3).removeClass('bg-info-soft text-info').addClass('bg-info text-white');
+            $('#badge-tab2').text(res.tab2);
+            $('#badge-tab3').text(res.tab3);
         }
     });
 }
@@ -776,7 +776,7 @@ function loadTab2() {
         success: function(res) {
             $('#loading-tab2').addClass('d-none');
             $('#debtor_search').removeClass('d-none');
-            $('#badge-tab2').text(res.length).removeClass('bg-warning-soft text-warning').addClass('bg-warning text-white');
+            $('#badge-tab2').text(res.length);
             
             let html = '';
             let s_inc = 0, s_paid = 0, s_rcpt = 0, s_debt = 0, s_arr = 0, s_dep = 0, s_deb = 0;
@@ -842,7 +842,7 @@ function loadTab3() {
         success: function(res) {
             $('#loading-tab3').addClass('d-none');
             $('#debtor_search_iclaim_table').removeClass('d-none');
-            $('#badge-tab3').text(res.length).removeClass('bg-info-soft text-info').addClass('bg-info text-white');
+            $('#badge-tab3').text(res.length);
 
             let html = '';
             let s_inc = 0, s_rcpt = 0, s_oth = 0, s_debt = 0;

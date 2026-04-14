@@ -8831,7 +8831,48 @@ class DebtorController extends Controller
                 GROUP BY d.an', [$start_date, $end_date]);
         }
 
-        $debtor_search = DB::connection('hosxp')->select('
+        $debtor_search = [];
+
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
+        $request->session()->save();
+
+        return view('debtor.1102050101_202', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
+    }
+    //_1102050101_202_counts_ajax-------------------------------------------------------------------------------------------------------
+    public function _1102050101_202_counts_ajax(Request $request)
+    {
+        $start_date = $request->start_date;
+        $end_date = $request->end_date;
+
+        $tab1 = DB::table('debtor_1102050101_202')
+            ->whereBetween('dchdate', [$start_date, $end_date])
+            ->count('an');
+
+        $tab2 = DB::connection('hosxp')->select('
+            SELECT COUNT(DISTINCT i.an) AS total
+            FROM ipt i
+            LEFT JOIN ipt_pttype ip ON ip.an = i.an
+            LEFT JOIN pttype p ON p.pttype = ip.pttype
+            WHERE i.confirm_discharge = "Y"
+            AND p.hipdata_code IN ("UCS","WEL") 
+            AND i.dchdate BETWEEN ? AND ?
+            AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_202 WHERE an IS NOT NULL)', [$start_date, $end_date]);
+
+        return response()->json([
+            'tab1' => $tab1,
+            'tab2' => $tab2[0]->total ?? 0
+        ]);
+    }
+    //_1102050101_202_search_ajax-------------------------------------------------------------------------------------------------------
+    public function _1102050101_202_search_ajax(Request $request)
+    {
+        $start_date = $request->start_date;
+        $end_date = $request->end_date;
+
+        $data = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
                 COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(cr.cr_price,0) AS other,
@@ -8870,13 +8911,7 @@ class DebtorController extends Controller
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date', $start_date);
-        $request->session()->put('end_date', $end_date);
-        $request->session()->put('search', $search);
-        $request->session()->put('debtor', $debtor);
-        $request->session()->save();
-
-        return view('debtor.1102050101_202', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
+        return response()->json($data);
     }
     //_1102050101_202_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_202_confirm(Request $request)

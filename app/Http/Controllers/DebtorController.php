@@ -9114,6 +9114,55 @@ class DebtorController extends Controller
                 WHERE d.dchdate BETWEEN ? AND ? GROUP BY d.an', [$start_date, $end_date, $start_date, $end_date]);
         }
 
+        $debtor_search = []; // Lazy load
+
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
+        $request->session()->save();
+
+        return view('debtor.1102050101_217', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
+    }
+
+    public function _1102050101_217_counts_ajax(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
+
+        $tab1 = DB::table('debtor_1102050101_217')
+            ->whereBetween('dchdate', [$start_date, $end_date])
+            ->count();
+
+        $tab2 = DB::connection('hosxp')->table('ipt as i')
+            ->join('ipt_pttype as ip', 'ip.an', '=', 'i.an')
+            ->join('pttype as p', 'p.pttype', '=', 'ip.pttype')
+            ->join('opitemrece as o', 'o.an', '=', 'i.an')
+            ->leftJoin('hrims.lookup_icode as li', 'li.icode', '=', 'o.icode')
+            ->leftJoin('nondrugitems as n', 'n.icode', '=', 'o.icode')
+            ->where('i.confirm_discharge', 'Y')
+            ->whereIn('p.hipdata_code', ['UCS', 'WEL'])
+            ->whereBetween('i.dchdate', [$start_date, $end_date])
+            ->whereRaw('(li.uc_cr = "Y" OR li.kidney = "Y" OR n.nhso_adp_code IN ("S1801","S1802"))')
+            ->whereNotExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('hrims.debtor_1102050101_217')
+                    ->whereRaw('hrims.debtor_1102050101_217.an = i.an');
+            })
+            ->distinct('i.an')
+            ->count('i.an');
+
+        return response()->json([
+            'tab1' => $tab1,
+            'tab2' => $tab2
+        ]);
+    }
+
+    public function _1102050101_217_search_ajax(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
+
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
@@ -9152,13 +9201,7 @@ class DebtorController extends Controller
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date', $start_date);
-        $request->session()->put('end_date', $end_date);
-        $request->session()->put('search', $search);
-        $request->session()->put('debtor', $debtor);
-        $request->session()->save();
-
-        return view('debtor.1102050101_217', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
+        return response()->json($debtor_search);
     }
     //_1102050101_217_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_217_confirm(Request $request)

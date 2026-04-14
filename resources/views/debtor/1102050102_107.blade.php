@@ -68,7 +68,7 @@
     </div>
 
     <!-- Main Dashboard Container -->
-    <div class="card dash-card border-0">
+    <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">
         
         <!-- Section: Tabs -->
         <div class="card-header bg-transparent border-0 pt-3 px-4 pb-0">
@@ -123,8 +123,8 @@
                         <div class="table-responsive"><table id="debtor" class="table table-bordered table-striped my-3" width="100%">
                             <thead>
                             <tr class="table-success">
-                                <th class="text-left text-primary" colspan = "12">1102050102.107-ลูกหนี้ค่ารักษา ชําระเงิน IP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</th> 
-                                <th class="text-center text-primary" colspan = "10">การชดเชย</th>                                                 
+                                <th class="text-left text-primary" colspan="12">1102050102.107-ลูกหนี้ค่ารักษา ชําระเงิน IP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</th> 
+                                <th class="text-center text-primary" colspan="9">การชดเชย</th>                                                 
                             </tr>
                             <tr class="table-success">
                                 <th class="text-center"><input type="checkbox" onClick="toggle_d(this)"> All</th>
@@ -150,6 +150,7 @@
                                 <th class="text-center text-primary">Lock</th>   
                             </tr>
                             </thead>
+                            <tbody>
                             <?php $count = 1 ; ?>
                             <?php $sum_income = 0 ; ?>
                             <?php $sum_paid_money  = 0 ; ?>
@@ -226,6 +227,7 @@
                                         {{ $row->debtor_lock }}
                                     @endif
                                 </td>                         
+                            </tr>
                             <?php $count++; ?>
                             <?php $sum_income += $row->income ; ?>
                             <?php $sum_paid_money  += $row->paid_money ; ?>
@@ -236,7 +238,7 @@
                             <?php $sum_adj_dec += $row->adj_dec ; ?>
                             <?php $sum_balance += $balance; ?>
                             @endforeach 
-                            </tr>   
+                            </tbody>
                             <tfoot>
                                 <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
                                     <td colspan="9" class="text-end">รวม</td>

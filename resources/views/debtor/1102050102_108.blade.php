@@ -66,13 +66,13 @@
         <div class="card-header bg-transparent border-0 pt-3 px-4 pb-0">
             <ul class="nav nav-tabs-modern" id="pills-tab" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
+                    <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab" onclick="loadTab1()">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
                         <span class="ms-2 fw-bold text-success" id="badge-tab1"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab">
+                    <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab" onclick="loadTab2()">
                         <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้
                         <span class="ms-2 fw-bold text-warning" id="badge-tab2"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
                     </button>
@@ -279,7 +279,14 @@
                             </thead>
                             <tbody id="table2-body">
                             </tbody>
-                            <tfoot id="table2-foot">
+                            <tfoot>
+                                <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
+                                    <td colspan="6" class="text-end">รวม</td>
+                                    <td class="text-end" id="sum_income_search">0.00</td>
+                                    <td class="text-end" id="sum_paid_money_search">0.00</td>
+                                    <td class="text-end" id="sum_other_search">0.00</td>
+                                    <td class="text-end" style="color:blue" id="sum_debtor_search">0.00</td>
+                                </tr>
                             </tfoot>
                         </table>
                         </div>
@@ -593,6 +600,14 @@ $(document).ready(function() {
 
     // 4. DataTable for search/confirm table
     var dtSearchInstance = null;
+    let tab1Loaded = false;
+    let tab2Loaded = false;
+
+    window.loadTab1 = function() {
+        if (tab1Loaded) return;
+        tab1Loaded = true;
+        // Tab 1 is currently static PHP, but we mark it loaded
+    };
 
     function formatNumber(num) {
         if (!num) return '0.00';
@@ -610,14 +625,16 @@ $(document).ready(function() {
     }
 
     window.loadTab2 = function() {
-        const tableId = '#debtor_search';
-        if (!$(tableId).hasClass('d-none')) return;
+        if (tab2Loaded) return;
         
         $('#empty-tab2').addClass('d-none');
         $('#loading-tab2').removeClass('d-none');
 
+        // Set flag early to prevent double requests
+        tab2Loaded = true;
+
         const body = $('#table2-body');
-        const foot = $('#table2-foot');
+        const tableId = '#debtor_search';
         
         $.get("{{ url('debtor/1102050102_108_search_ajax') }}", {
             start_date: start_date_val,
@@ -630,15 +647,16 @@ $(document).ready(function() {
                 dtSearchInstance.destroy();
             }
             body.empty();
-            foot.empty();
 
-            let sum_income = 0;
-            let sum_rcpt_money = 0;
-            let sum_other = 0;
-            let sum_debtor = 0;
+            let sum_income = 0, sum_rcpt_money = 0, sum_other = 0, sum_debtor = 0;
 
             if (data.length === 0) {
                 body.html('<tr><td colspan="10" class="text-center py-3">ไม่พบข้อมูล</td></tr>');
+                // Reset summary row on empty
+                $('#sum_income_search').text('0.00');
+                $('#sum_paid_money_search').text('0.00');
+                $('#sum_other_search').text('0.00');
+                $('#sum_debtor_search').text('0.00');
             } else {
                 data.forEach(function(row) {
                     sum_income += parseFloat(row.income) || 0;
@@ -656,19 +674,16 @@ $(document).ready(function() {
                         <td align="right">${formatNumber(row.income)}</td>
                         <td align="right">${formatNumber(row.rcpt_money)}</td>
                         <td align="right">${formatNumber(row.other)}</td>
-                        <td align="right">${formatNumber(row.debtor)}</td>
+                        <td align="right" class="text-primary">${formatNumber(row.debtor)}</td>
                     </tr>`;
                     body.append(tr);
                 });
                 
-                const tfootRow = `<tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                    <td colspan="6" class="text-end">รวม</td>
-                    <td class="text-end">${formatNumber(sum_income)}</td>
-                    <td class="text-end">${formatNumber(sum_rcpt_money)}</td>
-                    <td class="text-end">${formatNumber(sum_other)}</td>
-                    <td class="text-end" style="color:blue">${formatNumber(sum_debtor)}</td>
-                </tr>`;
-                foot.append(tfootRow);
+                // Update static tfoot IDs
+                $('#sum_income_search').text(formatNumber(sum_income));
+                $('#sum_paid_money_search').text(formatNumber(sum_rcpt_money));
+                $('#sum_other_search').text(formatNumber(sum_other));
+                $('#sum_debtor_search').text(formatNumber(sum_debtor));
             }
 
             if (data.length > 0) {
@@ -691,11 +706,29 @@ $(document).ready(function() {
                 });
             }
         }).fail(function() {
+            tab2Loaded = false;
             $('#loading-tab2').addClass('d-none');
             $('#empty-tab2').removeClass('d-none');
-            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูล HOSxP ได้', 'error');
+            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูล HOSxP ได้ หรือเกิดข้อผิดพลาดในการโหลดข้อมูล', 'error');
         });
     };
+
+    function loadCounts() {
+        const start_date = start_date_val;
+        const end_date = end_date_val;
+        
+        // Show markers
+        $('#badge-tab1').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+        $('#badge-tab2').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+
+        $.get("{{ url('debtor/1102050102_108_counts_ajax') }}", { start_date, end_date }, function(res) {
+            $('#badge-tab1').text(res.tab1 || '0');
+            $('#badge-tab2').text(res.tab2 || '0');
+        });
+    }
+
+    // Initialize counts
+    loadCounts();
 
     $('button[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
         if ($(e.target).attr("id") === 'confirm-tab') {

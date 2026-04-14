@@ -70,13 +70,13 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span class="badge bg-primary-soft text-primary ms-2">{{ count($debtor) }}</span>
+                        <span class="badge bg-primary-soft text-primary ms-2" id="badge-tab1"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
                     </button>
                 </li>       
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab">
                         <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้
-                        <span class="badge bg-warning-soft text-warning ms-2">{{ count($debtor_search) }}</span>
+                        <span class="badge bg-warning-soft text-warning ms-2" id="badge-tab2"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
                     </button>
                 </li>
             </ul>
@@ -259,7 +259,18 @@
                     </button>
                     <div></div>
                 </div>                
-                <div class="table-responsive"><table id="debtor_search" class="table table-bordered table-striped my-3" width="100%">
+                <div class="table-responsive">
+                    <div id="loading-tab2" class="text-center p-5 d-none">
+                        <div class="spinner-border text-warning" role="status"></div>
+                        <p class="mt-2 text-muted">กำลังดึงข้อมูลจาก HOSxP...</p>
+                        <p class="small text-danger">โปรดรอซักครู่</p>
+                    </div>
+                    <div id="empty-tab2" class="text-center p-5">
+                        <i class="bi bi-search fs-1 text-muted"></i>
+                        <p class="mt-2">คลิกที่ Tab หรือกดปุ่มค้นหาเพื่อโหลดข้อมูล</p>
+                        <button type="button" class="btn btn-warning btn-sm" onclick="loadTab2()">โหลดข้อมูล HOSxP</button>
+                    </div>
+                    <table id="debtor_search" class="table table-bordered table-striped my-3 d-none" width="100%">
                     <thead>
                     <tr class="table-secondary">
                         <th class="text-left text-primary" colspan = "13">1102050101.209-ลูกหนี้ค่ารักษา ด้านการสร้างเสริมสุขภาพและป้องกันโรค (P&P) รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                         
@@ -280,47 +291,10 @@
                         <th class="text-center" width = "10%">รายการ PPFS</th>                         
                     </tr>
                     </thead>
-                    <?php $count = 1 ; ?>
-                    <?php 
-                        $sum_income = 0;
-                        $sum_rcpt_money = 0;
-                        $sum_other = 0;
-                        $sum_ppfs = 0;
-                        $sum_debtor = 0;
-                    ?>
-                    @foreach($debtor_search as $row)
-                    @php $balance = -($row->debtor ?? 0); @endphp <tr>
-                        <td class="text-center"><input type="checkbox" name="checkbox[]" value="{{$row->vn}}"></td> 
-                        <td align="right">{{ DateThai($row->vstdate) }} {{ $row->vsttime }}</td>
-                        <td align="center">{{ $row->hn }}</td>
-                        <td align="left">{{ $row->ptname }}</td>
-                        <td align="left">{{ $row->pttype }} [{{ $row->hospmain }}]</td>
-                        <td align="right">{{ $row->pdx }}</td>                  
-                        <td align="right">{{ number_format($row->income,2) }}</td>
-                        <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
-                        <td align="right">{{ number_format($row->other,2) }}</td>
-                        <td align="right">{{ number_format($row->ppfs,2) }}</td>
-                        <td align="right">{{ number_format($row->debtor,2) }}</td>
-                        <td align="left" width = "10%">{{ $row->other_list }}</td>
-                        <td align="left" width = "10%">{{ $row->ppfs_list }}</td>
-                    <?php $count++; ?>
-                    <?php $sum_income += $row->income; ?>
-                    <?php $sum_rcpt_money += $row->rcpt_money; ?>
-                    <?php $sum_other += $row->other; ?>
-                    <?php $sum_ppfs += $row->ppfs; ?>
-                    <?php $sum_debtor += $row->debtor; ?>
-                    @endforeach 
-                    </tr>   
-                    <tfoot>
-                        <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                            <td colspan="6" class="text-end">รวม</td>
-                            <td class="text-end">{{ number_format($sum_income,2) }}</td>
-                            <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
-                            <td class="text-end">{{ number_format($sum_other,2) }}</td>
-                            <td class="text-end">{{ number_format($sum_ppfs,2) }}</td>
-                            <td class="text-end" style="color:blue">{{ number_format($sum_debtor,2) }}</td>
-                            <td colspan="2"></td>
-                        </tr>
+                    <tbody id="confirm-tbody">
+                        <tr><td colspan="13" class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>กำลังโหลดข้อมูล...</td></tr>
+                    </tbody>
+                    <tfoot id="confirm-tfoot">
                     </tfoot>
                 </table></div>
             </form>
@@ -631,16 +605,35 @@ $(document).ready(function() {
         });
     }
 
-    // 4. DataTable for search/confirm table
-    if ($('#debtor_search').length) {
-        $('#debtor_search').DataTable({
+    // 4. DataTable will be initialized via AJAX
+    var _tab2Loaded = false;
+    var _tab2DtInstance = null;
+
+    function formatNumber(num) {
+        if (!num) return '0.00';
+        return parseFloat(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function formThaiDate(dateStr) {
+        if(!dateStr) return '';
+        var p = dateStr.split('-');
+        if(p.length!==3) return dateStr;
+        var y = parseInt(p[0])+543;
+        var m = parseInt(p[1]);
+        var mStr = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'][m-1];
+        return parseInt(p[2]) + ' ' + mStr + ' ' + y;
+    }
+
+    function initTab2DataTable() {
+        if (_tab2DtInstance) { _tab2DtInstance.destroy(); }
+        _tab2DtInstance = $('#debtor_search').DataTable({
             dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
             buttons: [
                 {
                     extend: 'excelHtml5',
                     text: 'Excel',
                     className: 'btn btn-success btn-sm',
-                    title: '1102050101.209-ลูกหนี้ค่ารักษา ด้านการสร้างเสริมสุขภาพและป้องกันโรค (P&P) รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+                    title: '1102050101.209-ลูกหนี้ค่ารักษา ด้านการสร้างเสริมสุขภาพและป้องกันโรค (P&P) รอยืนยัน วันที่ ' + start_date_val + ' ถึง ' + end_date_val
                 }
             ],
             language: {
@@ -651,6 +644,111 @@ $(document).ready(function() {
             }
         });
     }
+
+    function loadTab2() {
+        if (_tab2Loaded) return;
+        _tab2Loaded = true;
+
+        $('#empty-tab2').addClass('d-none');
+        $('#loading-tab2').removeClass('d-none');
+
+        $.ajax({
+            url: "{{ url('debtor/1102050101_209_search_ajax') }}",
+            type: "GET",
+            data: { start_date: start_date_val, end_date: end_date_val },
+            success: function(res) {
+                var tbody = '';
+                var sum_income = 0, sum_rcpt_money = 0, sum_other = 0, sum_ppfs = 0, sum_debtor = 0;
+
+                res.forEach(function(row) {
+                    tbody += '<tr>';
+                    tbody += '<td class="text-center"><input type="checkbox" name="checkbox[]" value="'+row.vn+'"></td>';
+                    tbody += '<td align="right">'+formThaiDate(row.vstdate)+' '+row.vsttime+'</td>';
+                    tbody += '<td align="center">'+row.hn+'</td>';
+                    tbody += '<td align="left">'+row.ptname+'</td>';
+                    tbody += '<td align="left">'+row.pttype+' ['+row.hospmain+']</td>';
+                    tbody += '<td align="right">'+row.pdx+'</td>';
+                    tbody += '<td align="right">'+formatNumber(row.income)+'</td>';
+                    tbody += '<td align="right">'+formatNumber(row.rcpt_money)+'</td>';
+                    tbody += '<td align="right">'+formatNumber(row.other)+'</td>';
+                    tbody += '<td align="right">'+formatNumber(row.ppfs)+'</td>';
+                    tbody += '<td align="right">'+formatNumber(row.debtor)+'</td>';
+                    tbody += '<td align="left" width="10%">'+(row.other_list||'')+'</td>';
+                    tbody += '<td align="left" width="10%">'+(row.ppfs_list||'')+'</td>';
+                    tbody += '</tr>';
+
+                    sum_income += parseFloat(row.income||0);
+                    sum_rcpt_money += parseFloat(row.rcpt_money||0);
+                    sum_other += parseFloat(row.other||0);
+                    sum_ppfs += parseFloat(row.ppfs||0);
+                    sum_debtor += parseFloat(row.debtor||0);
+                });
+
+                if (res.length === 0) {
+                    tbody = '<tr><td colspan="13" class="text-center py-4 text-muted">ไม่พบรายการลูกหนี้</td></tr>';
+                }
+
+                var tfoot = '<tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">'+
+                            '<td colspan="6" class="text-end">รวม</td>'+
+                            '<td class="text-end">'+formatNumber(sum_income)+'</td>'+
+                            '<td class="text-end">'+formatNumber(sum_rcpt_money)+'</td>'+
+                            '<td class="text-end">'+formatNumber(sum_other)+'</td>'+
+                            '<td class="text-end">'+formatNumber(sum_ppfs)+'</td>'+
+                            '<td class="text-end" style="color:blue">'+formatNumber(sum_debtor)+'</td>'+
+                            '<td colspan="2"></td>'+
+                            '</tr>';
+
+                if (_tab2DtInstance) {
+                    _tab2DtInstance.destroy();
+                }
+                
+                $('#confirm-tbody').html(tbody);
+                $('#confirm-tfoot').html(tfoot);
+
+                $('#loading-tab2').addClass('d-none');
+                $('#debtor_search').removeClass('d-none');
+
+                if (res.length > 0) {
+                    initTab2DataTable();
+                }
+            },
+            error: function(err) {
+                console.error(err);
+                $('#loading-tab2').addClass('d-none');
+                $('#empty-tab2').removeClass('d-none');
+                $('#confirm-tbody').html('<tr><td colspan="13" class="text-center py-4 text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>');
+            }
+        });
+    }
+
+    $('button[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
+        var targetId = $(e.target).attr("id"); 
+        if (targetId === 'confirm-tab') {
+            loadTab2();
+        }
+    });
+
+    function loadCounts() {
+        var searchVal = $('#search').val();
+        $.ajax({
+            url: "{{ url('debtor/1102050101_209_counts_ajax') }}",
+            type: "GET",
+            data: { start_date: start_date_val, end_date: end_date_val, search: searchVal },
+            success: function(res) {
+                $('#badge-tab1').text(res.tab1);
+                $('#badge-tab2').text(res.tab2);
+            },
+            error: function(err) {
+                console.error(err);
+                $('#badge-tab1').text('0');
+                $('#badge-tab2').text('0');
+            }
+        });
+    }
+
+    // Call loadCounts periodically
+    loadCounts();
+    setInterval(loadCounts, 60000);
 
     // 5. DataTable for AE table
     if ($('#debtor_search_ae').length) {

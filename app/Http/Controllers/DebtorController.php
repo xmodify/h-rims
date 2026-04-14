@@ -4126,6 +4126,101 @@ class DebtorController extends Controller
                 return $item;
             });
 
+        $debtor_search = [];
+        $debtor_search_ip = [];
+
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
+        $request->session()->save();
+
+        return view('debtor.1102050101_307', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'debtor_search_ip'));
+    }
+
+    public function _1102050101_307_counts_ajax(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
+        $search = $request->search;
+        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value') ?: "''";
+
+        // Tab 1 count
+        if ($search) {
+            $tab1 = Debtor_1102050101_307::whereBetween(DB::raw('IFNULL(vstdate, dchdate)'), [$start_date, $end_date])
+                ->where(function($q) use ($search) {
+                    $q->where('ptname', 'LIKE', "%{$search}%")
+                      ->orWhere('hn', 'LIKE', "%{$search}%")
+                      ->orWhere('an', 'LIKE', "%{$search}%");
+                })->count();
+        } else {
+            $tab1 = Debtor_1102050101_307::whereBetween(DB::raw('IFNULL(vstdate, dchdate)'), [$start_date, $end_date])->count();
+        }
+
+        // Tab 2 count (OPD)
+        $tab2Query = DB::connection('hosxp')->select('
+            SELECT COUNT(DISTINCT o.vn) AS c
+            FROM ovst o    
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
+                FROM opitemrece op
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
+            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS other_price
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn) ch ON ch.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_307 WHERE vn IS NOT NULL)
+            AND p.pttype IN (' . $pttype_sss_fund . ')
+        ', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+        $tab2 = $tab2Query[0]->c ?? 0;
+
+        // Tab 3 count (IPD)
+        $tab3Query = DB::connection('hosxp')->select('
+            SELECT COUNT(DISTINCT i.an) AS c
+            FROM ipt i
+            LEFT JOIN ipt_pttype ip ON ip.an = i.an
+            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS income
+                FROM opitemrece o
+                INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
+                GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
+            LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL 
+                GROUP BY r.vn) rc ON rc.an = i.an
+            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price
+                FROM opitemrece o
+                INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
+                LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode WHERE li.kidney = "Y"
+                GROUP BY o.an, o.pttype) oth ON oth.an = i.an AND oth.pttype = ip.pttype
+            WHERE i.confirm_discharge = "Y"
+            AND i.dchdate BETWEEN ? AND ?            
+            AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_307 WHERE an IS NOT NULL)
+            AND ip.pttype IN (' . $pttype_sss_fund . ') 
+        ', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+        $tab3 = $tab3Query[0]->c ?? 0;
+
+        return response()->json(['tab1' => $tab1, 'tab2' => $tab2, 'tab3' => $tab3]);
+    }
+
+    public function _1102050101_307_search_op_ajax(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
+        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value') ?: "''";
+
         $debtor_search = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, o.vstdate, o.vsttime,
                 p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
@@ -4163,6 +4258,15 @@ class DebtorController extends Controller
             AND p.pttype IN (' . $pttype_sss_fund . ')
             GROUP BY o.vn, vp.pttype
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
+        return response()->json($debtor_search);
+    }
+
+    public function _1102050101_307_search_ip_ajax(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
+        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value') ?: "''";
 
         $debtor_search_ip = DB::connection('hosxp')->select(
             '
@@ -4204,13 +4308,7 @@ class DebtorController extends Controller
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
-        $request->session()->put('start_date', $start_date);
-        $request->session()->put('end_date', $end_date);
-        $request->session()->put('search', $search);
-        $request->session()->put('debtor', $debtor);
-        $request->session()->save();
-
-        return view('debtor.1102050101_307', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'debtor_search_ip'));
+        return response()->json($debtor_search_ip);
     }
     //_1102050101_307_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_307_confirm(Request $request)

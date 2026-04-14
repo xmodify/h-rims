@@ -363,6 +363,8 @@ Route::post('debtor/1102050101_501/unlock/{vn}', [DebtorController::class, '_110
 Route::post('debtor/1102050101_501/lock/{vn}', [DebtorController::class, '_1102050101_501_lock']);
 Route::get('debtor/1102050101_501_indiv_excel', [DebtorController::class, '_1102050101_501_indiv_excel']);
 Route::match(['get', 'post'], 'debtor/1102050101_503', [DebtorController::class, '_1102050101_503']);
+Route::get('debtor/1102050101_503_counts_ajax', [DebtorController::class, '_1102050101_503_counts_ajax']);
+Route::get('debtor/1102050101_503_search_ajax', [DebtorController::class, '_1102050101_503_search_ajax']);
 Route::post('debtor/1102050101_503_confirm', [DebtorController::class, '_1102050101_503_confirm']);
 Route::delete('debtor/1102050101_503_delete', [DebtorController::class, '_1102050101_503_delete']);
 Route::put('debtor/1102050101_503/update/{vn}', [DebtorController::class, '_1102050101_503_update']);
@@ -371,6 +373,8 @@ Route::post('debtor/1102050101_503/unlock/{vn}', [DebtorController::class, '_110
 Route::post('debtor/1102050101_503/lock/{vn}', [DebtorController::class, '_1102050101_503_lock']);
 Route::get('debtor/1102050101_503_indiv_excel', [DebtorController::class, '_1102050101_503_indiv_excel']);
 Route::match(['get', 'post'], 'debtor/1102050101_701', [DebtorController::class, '_1102050101_701']);
+Route::get('debtor/1102050101_701_counts_ajax', [DebtorController::class, '_1102050101_701_counts_ajax']);
+Route::get('debtor/1102050101_701_search_ajax', [DebtorController::class, '_1102050101_701_search_ajax']);
 Route::post('debtor/1102050101_701_confirm', [DebtorController::class, '_1102050101_701_confirm']);
 Route::delete('debtor/1102050101_701_delete', [DebtorController::class, '_1102050101_701_delete']);
 Route::get('debtor/1102050101_701_daily_pdf', [DebtorController::class, '_1102050101_701_daily_pdf']);
@@ -378,6 +382,8 @@ Route::post('debtor/1102050101_701/unlock/{vn}', [DebtorController::class, '_110
 Route::post('debtor/1102050101_701/lock/{vn}', [DebtorController::class, '_1102050101_701_lock']);
 Route::get('debtor/1102050101_701_indiv_excel', [DebtorController::class, '_1102050101_701_indiv_excel']);
 Route::match(['get', 'post'], 'debtor/1102050101_702', [DebtorController::class, '_1102050101_702']);
+Route::get('debtor/1102050101_702_counts_ajax', [DebtorController::class, '_1102050101_702_counts_ajax']);
+Route::get('debtor/1102050101_702_search_ajax', [DebtorController::class, '_1102050101_702_search_ajax']);
 Route::post('debtor/1102050101_702_confirm', [DebtorController::class, '_1102050101_702_confirm']);
 Route::delete('debtor/1102050101_702_delete', [DebtorController::class, '_1102050101_702_delete']);
 Route::get('debtor/1102050101_702_daily_pdf', [DebtorController::class, '_1102050101_702_daily_pdf']);

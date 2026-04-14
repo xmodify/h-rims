@@ -2038,6 +2038,67 @@ class DebtorController extends Controller
                 WHERE d.vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         }
 
+        $debtor_search = [];
+
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
+        $request->session()->save();
+
+        return view('debtor.1102050101_203', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
+    }
+
+    public function _1102050101_203_counts_ajax(Request $request)
+    {
+        $start_date = $request->start_date;
+        $end_date = $request->end_date;
+
+        $count_tab1 = \App\Models\Debtor_1102050101_203::whereBetween('vstdate', [$start_date, $end_date])->count();
+
+        $debtor_search = DB::connection('hosxp')->select('
+            SELECT COUNT(DISTINCT o.vn) as count
+            FROM ovst o  
+            LEFT JOIN vn_stat v ON v.vn = o.vn        
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN (
+                SELECT op.vn, 
+                       SUM(CASE WHEN op.pttype = os.pttype THEN op.sum_price ELSE 0 END) AS income,
+                       SUM(CASE WHEN (li.ppfs IS NULL OR li.ppfs = "") AND li.icode IS NOT NULL THEN op.sum_price ELSE 0 END) AS other_price
+                FROM opitemrece op 
+                INNER JOIN ovst os ON os.vn = op.vn
+                LEFT JOIN hrims.lookup_icode li ON op.icode = li.icode  
+                WHERE op.vstdate BETWEEN ? AND ? 
+                GROUP BY op.vn
+            ) inc ON inc.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
+            WHERE (o.an IS NULL OR o.an = "")
+            AND o.vstdate BETWEEN ? AND ?
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(inc.other_price,0)) > 0
+            AND p.hipdata_code IN ("UCS","WEL")
+            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs ="")) 
+            AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
+            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_203 WHERE vn IS NOT NULL)
+        ', [$start_date, $end_date, $start_date, $end_date]);
+
+        return response()->json([
+            'tab1' => $count_tab1,
+            'tab2' => $debtor_search[0]->count ?? 0
+        ]);
+    }
+
+    public function _1102050101_203_search_ajax(Request $request)
+    {
+        $start_date = $request->start_date;
+        $end_date = $request->end_date;
+
         $debtor_search = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,
                 o.vstdate,o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
@@ -2077,13 +2138,7 @@ class DebtorController extends Controller
             GROUP BY o.vn, vp.pttype 
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        $request->session()->put('start_date', $start_date);
-        $request->session()->put('end_date', $end_date);
-        $request->session()->put('search', $search);
-        $request->session()->put('debtor', $debtor);
-        $request->session()->save();
-
-        return view('debtor.1102050101_203', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
+        return response()->json($debtor_search);
     }
     //_1102050101_203_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_203_confirm(Request $request)

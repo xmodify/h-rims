@@ -90,21 +90,21 @@
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="kidney-tab" data-bs-toggle="pill" data-bs-target="#kidney-pane" type="button" role="tab">
+                    <button class="nav-link" id="kidney-tab" data-bs-toggle="pill" data-bs-target="#kidney-pane" type="button" role="tab" onclick="loadTab2()">
                         <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้ ฟอกไต
                         <span class="ms-2 fw-bold text-warning" id="badge-tab2"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="cr-tab" data-bs-toggle="pill" data-bs-target="#cr-pane" type="button" role="tab">
+                    <button class="nav-link" id="cr-tab" data-bs-toggle="pill" data-bs-target="#cr-pane" type="button" role="tab" onclick="loadTab3()">
                         <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้ บริการเฉพาะ
                         <span class="ms-2 fw-bold text-warning" id="badge-tab3"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="anywhere-tab" data-bs-toggle="pill" data-bs-target="#anywhere-pane" type="button" role="tab">
+                    <button class="nav-link" id="anywhere-tab" data-bs-toggle="pill" data-bs-target="#anywhere-pane" type="button" role="tab" onclick="loadTab4()">
                         <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้ Anywhere
-                        <span class="badge bg-warning-soft text-warning ms-2">{{ count($debtor_search_anywhere) }}</span>
+                        <span class="ms-2 fw-bold text-warning" id="badge-tab4"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
                     </button>
                 </li>
             </ul>
@@ -287,10 +287,20 @@
                          <button type="button" class="btn btn-outline-success btn-sm"  onclick="confirmSubmit_kidney()">ยืนยันลูกหนี้</button>
                          <div></div>
                     </div>
-                    <table id="debtor_search_kidney" class="table table-bordered table-striped my-3" width="100%">
+                    <div id="loading-tab2" class="text-center p-5 d-none">
+                        <div class="spinner-border text-warning" role="status"></div>
+                        <p class="mt-2 text-muted">กำลังดึงข้อมูลจาก HOSxP...</p>
+                        <p class="small text-danger">โปรดรอซักครู่</p>
+                    </div>
+                    <div id="empty-tab2" class="text-center p-5">
+                        <i class="bi bi-search fs-1 text-muted"></i>
+                        <p class="mt-2 text-muted">คลิกที่ Tab หรือกดปุ่มโหลดข้อมูลเพื่อแสดงรายการ</p>
+                        <button type="button" class="btn btn-warning btn-sm text-dark fw-bold" onclick="loadTab2()">โหลดข้อมูล HOSxP</button>
+                    </div>
+                    <table id="debtor_search_kidney" class="table table-bordered table-striped my-3 d-none" width="100%">
                         <thead>
                         <tr class="table-secondary">
-                            <th class="text-left text-primary" colspan = "12">ผู้มารับบริการ UC-OP บริการเฉพาะ (CR) ฟอกไต วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>
+                            <th class="text-left text-primary" colspan = "10">ผู้มารับบริการ UC-OP บริการเฉพาะ (CR) ฟอกไต วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>
                         </tr>
                         <tr class="table-secondary">
                             <th class="text-center"><input type="checkbox" onClick="toggle_kidney(this)"> All</th>  
@@ -305,39 +315,16 @@
                             <th class="text-center" width="25%">รายการเรียกเก็บ</th>
                         </tr>
                         </thead>
-                        <?php $count = 1 ; ?>
-                        <?php 
-                            $sum_income_kidney = 0;
-                            $sum_rcpt_money_kidney = 0;
-                            $sum_debtor_kidney = 0;
-                        ?>
-                        @foreach($debtor_search_kidney as $row)
-                        <tr>
-                            <td class="text-center"><input type="checkbox" name="checkbox_kidney[]" value="{{$row->vn}}"></td>                   
-                            <td align="center">{{ DateThai($row->vstdate) }} {{ $row->vsttime }}</td>                                
-                            <td align="center">{{ $row->hn }}</td>
-                            <td align="left" width="10%">{{ $row->ptname }}</td>
-                            <td align="right" width="10%">{{ $row->pttype }} [{{ $row->hospmain }}]</td>
-                            <td align="right">{{ $row->pdx }}</td>                  
-                            <td align="right">{{ number_format($row->income,2) }}</td>
-                            <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
-                            <td align="right">{{ number_format($row->debtor,2) }}</td>
-                            <td align="left">{{ $row->claim_list }}</td> 
-                        <?php $count++; ?>
-                        <?php $sum_income_kidney += $row->income; ?>
-                        <?php $sum_rcpt_money_kidney += $row->rcpt_money; ?>
-                        <?php $sum_debtor_kidney += $row->debtor; ?>
-                        @endforeach 
-                    </tr>
-                    <tfoot>
-                        <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                            <td colspan="6" class="text-end">รวม</td>
-                            <td class="text-end">{{ number_format($sum_income_kidney,2) }}</td>
-                            <td class="text-end">{{ number_format($sum_rcpt_money_kidney,2) }}</td>
-                            <td class="text-end" style="color:blue">{{ number_format($sum_debtor_kidney,2) }}</td>
-                            <td colspan="1"></td>
-                        </tr>
-                    </tfoot>
+                        <tbody id="kidney-table-body"></tbody>
+                        <tfoot>
+                            <tr class="table-success text-end fw-bold" style="font-size: 14px;">
+                                <td colspan="6" class="text-end">รวม</td>
+                                <td class="text-end" id="kidney-sum-income">0.00</td>
+                                <td class="text-end" id="kidney-sum-rcpt">0.00</td>
+                                <td class="text-end" id="kidney-sum-debtor" style="color:blue">0.00</td>
+                                <td colspan="1"></td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </form>
             </div>
@@ -350,10 +337,20 @@
                         <button type="button" class="btn btn-outline-success btn-sm"  onclick="confirmSubmit_cr()">ยืนยันลูกหนี้</button>
                         <div></div>
                     </div>
-                    <table id="debtor_search_cr" class="table table-bordered table-striped my-3" width="100%">
+                    <div id="loading-tab3" class="text-center p-5 d-none">
+                        <div class="spinner-border text-warning" role="status"></div>
+                        <p class="mt-2 text-muted">กำลังดึงข้อมูลจาก HOSxP...</p>
+                        <p class="small text-danger">โปรดรอซักครู่</p>
+                    </div>
+                    <div id="empty-tab3" class="text-center p-5">
+                        <i class="bi bi-search fs-1 text-muted"></i>
+                        <p class="mt-2 text-muted">คลิกที่ Tab หรือกดปุ่มโหลดข้อมูลเพื่อแสดงรายการ</p>
+                        <button type="button" class="btn btn-warning btn-sm text-dark fw-bold" onclick="loadTab3()">โหลดข้อมูล HOSxP</button>
+                    </div>
+                    <table id="debtor_search_cr" class="table table-bordered table-striped my-3 d-none" width="100%">
                         <thead>
                         <tr class="table-secondary">
-                            <th class="text-left text-primary" colspan = "12">ผู้มารับบริการ UC-OP บริการเฉพาะ (CR) วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                                                         
+                            <th class="text-left text-primary" colspan = "11">ผู้มารับบริการ UC-OP บริการเฉพาะ (CR) วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                                                         
                         </tr>
                         <tr class="table-secondary">
                             <th class="text-center"><input type="checkbox" onClick="toggle_cr(this)"> All</th>  
@@ -369,40 +366,16 @@
                             <th class="text-center">ส่ง Claim</th>
                         </tr>
                         </thead>
-                        <?php $count = 1 ; ?>
-                        <?php 
-                            $sum_income_cr = 0;
-                            $sum_rcpt_money_cr = 0;
-                            $sum_debtor_cr = 0;
-                        ?>
-                        @foreach($debtor_search_cr as $row)
-                        <tr>
-                            <td class="text-center"><input type="checkbox" name="checkbox_cr[]" value="{{$row->vn}}"></td>                   
-                            <td align="center">{{ DateThai($row->vstdate) }} {{ $row->vsttime }}</td>                                
-                            <td align="center">{{ $row->hn }}</td>
-                            <td align="left" width="10%">{{ $row->ptname }}</td>
-                            <td align="right" width="10%">{{ $row->pttype }} [{{ $row->hospmain }}]</td>
-                            <td align="right">{{ $row->pdx }}</td>                  
-                            <td align="right">{{ number_format($row->income,2) }}</td>
-                            <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
-                            <td align="right">{{ number_format($row->debtor,2) }}</td>
-                            <td align="left">{{ $row->claim_list }}</td>
-                            <td align="center" style="color:green">{{ $row->send_claim }}</td> 
-                        <?php $count++; ?>
-                        <?php $sum_income_cr += $row->income; ?>
-                        <?php $sum_rcpt_money_cr += $row->rcpt_money; ?>
-                        <?php $sum_debtor_cr += $row->debtor; ?>
-                        @endforeach 
-                        </tr> 
-                    <tfoot>
-                        <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                            <td colspan="6" class="text-end">รวม</td>
-                            <td class="text-end">{{ number_format($sum_income_cr,2) }}</td>
-                            <td class="text-end">{{ number_format($sum_rcpt_money_cr,2) }}</td>
-                            <td class="text-end" style="color:blue">{{ number_format($sum_debtor_cr,2) }}</td>
-                            <td colspan="2"></td>
-                        </tr>
-                    </tfoot>
+                        <tbody id="cr-table-body"></tbody>
+                        <tfoot>
+                            <tr class="table-success text-end fw-bold" style="font-size: 14px;">
+                                <td colspan="6" class="text-end">รวม</td>
+                                <td class="text-end" id="cr-sum-income">0.00</td>
+                                <td class="text-end" id="cr-sum-rcpt">0.00</td>
+                                <td class="text-end" id="cr-sum-debtor" style="color:blue">0.00</td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </form>
             </div>
@@ -415,7 +388,17 @@
                         <button type="button" class="btn btn-outline-success btn-sm"  onclick="confirmSubmit_anywhere()">ยืนยันลูกหนี้</button>
                         <div></div>
                     </div>
-                    <table id="debtor_search_anywhere" class="table table-bordered table-striped my-3" width="100%">
+                    <div id="loading-tab4" class="text-center p-5 d-none">
+                        <div class="spinner-border text-warning" role="status"></div>
+                        <p class="mt-2 text-muted">กำลังดึงข้อมูลจาก HOSxP...</p>
+                        <p class="small text-danger">โปรดรอซักครู่</p>
+                    </div>
+                    <div id="empty-tab4" class="text-center p-5">
+                        <i class="bi bi-search fs-1 text-muted"></i>
+                        <p class="mt-2 text-muted">คลิกที่ Tab หรือกดปุ่มโหลดข้อมูลเพื่อแสดงรายการ</p>
+                        <button type="button" class="btn btn-warning btn-sm text-dark fw-bold" onclick="loadTab4()">โหลดข้อมูล HOSxP</button>
+                    </div>
+                    <table id="debtor_search_anywhere" class="table table-bordered table-striped my-3 d-none" width="100%">
                         <thead>
                         <tr class="table-secondary">
                             <th class="text-left text-primary" colspan = "14">ผู้มารับบริการ UC-OP บริการเฉพาะ (CR) OP Anywhere วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                                                          
@@ -437,49 +420,18 @@
                             <th class="text-center">ส่ง Claim</th>
                         </tr>
                         </thead>
-                        <?php $count = 1 ; ?>
-                        <?php 
-                            $sum_income_anywhere = 0;
-                            $sum_rcpt_money_anywhere = 0;
-                            $sum_other_anywhere = 0;
-                            $sum_ppfs_anywhere = 0;
-                            $sum_debtor_anywhere = 0;
-                        ?>
-                        @foreach($debtor_search_anywhere as $row)
-                        <tr>
-                            <td class="text-center"><input type="checkbox" name="checkbox_anywhere[]" value="{{$row->vn}}"></td>                   
-                            <td align="center">{{ DateThai($row->vstdate) }} {{ $row->vsttime }}</td>                                
-                            <td align="center">{{ $row->hn }}</td>
-                            <td align="left" width="10%">{{ $row->ptname }}</td>
-                            <td align="right" width="10%">{{ $row->pttype }} [{{ $row->hospmain }}]</td>
-                            <td align="right">{{ $row->pdx }}</td>                  
-                            <td align="right">{{ number_format($row->income,2) }}</td>
-                            <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
-                            <td align="right">{{ number_format($row->other,2) }}</td>
-                            <td align="right">{{ number_format($row->ppfs,2) }}</td>
-                            <td align="right">{{ number_format($row->debtor,2) }}</td>
-                            <td align="left" width="10%">{{ $row->other_list }}</td>
-                            <td align="left" width="10%">{{ $row->ppfs_list }}</td>
-                            <td align="center" style="color:green">{{ $row->send_claim }}</td> 
-                        <?php $count++; ?>
-                        <?php $sum_income_anywhere += $row->income; ?>
-                        <?php $sum_rcpt_money_anywhere += $row->rcpt_money; ?>
-                        <?php $sum_other_anywhere += $row->other; ?>
-                        <?php $sum_ppfs_anywhere += $row->ppfs; ?>
-                        <?php $sum_debtor_anywhere += $row->debtor; ?>
-                        @endforeach 
-                    </tr> 
-                    <tfoot>
-                        <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                            <td colspan="6" class="text-end">รวม</td>
-                            <td class="text-end">{{ number_format($sum_income_anywhere,2) }}</td>
-                            <td class="text-end">{{ number_format($sum_rcpt_money_anywhere,2) }}</td>
-                            <td class="text-end">{{ number_format($sum_other_anywhere,2) }}</td>
-                            <td class="text-end">{{ number_format($sum_ppfs_anywhere,2) }}</td>
-                            <td class="text-end" style="color:blue">{{ number_format($sum_debtor_anywhere,2) }}</td>
-                            <td colspan="3"></td>
-                        </tr>
-                    </tfoot>
+                        <tbody id="anywhere-table-body"></tbody>
+                        <tfoot>
+                            <tr class="table-success text-end fw-bold" style="font-size: 14px;">
+                                <td colspan="6" class="text-end">รวม</td>
+                                <td class="text-end" id="anywhere-sum-income">0.00</td>
+                                <td class="text-end" id="anywhere-sum-rcpt">0.00</td>
+                                <td class="text-end" id="anywhere-sum-other">0.00</td>
+                                <td class="text-end" id="anywhere-sum-ppfs">0.00</td>
+                                <td class="text-end" id="anywhere-sum-debtor" style="color:blue">0.00</td>
+                                <td colspan="3"></td>
+                            </tr>
+                        </tfoot>
                     </table>
                 </form>
                 </div>
@@ -734,130 +686,234 @@
 
 <script>
 $(document).ready(function() {
-    // 1. Initialize Datepicker Thai for Filter with Today button
-    // language: 'th-th' and thaiyear: true work together for BE year display.
+    // 1. Initialize Datepicker Thai
     $('#start_date_picker, #end_date_picker').datepicker({
-        format: 'd M yyyy',
-        todayBtn: 'linked',
-        todayHighlight: true,
-        autoclose: true,
-        language: 'th-th',
-        thaiyear: true,
-        zIndexOffset: 1050
+        format: 'd M yyyy', todayBtn: 'linked', todayHighlight: true, autoclose: true, language: 'th-th', thaiyear: true, zIndexOffset: 1050
     }).on('changeDate', function(e) {
         if (e.date) {
-            var y = e.date.getFullYear();
-            var m = ('0'+(e.date.getMonth()+1)).slice(-2);
-            var d = ('0'+e.date.getDate()).slice(-2);
+            var y = e.date.getFullYear(), m = ('0'+(e.date.getMonth()+1)).slice(-2), d = ('0'+e.date.getDate()).slice(-2);
             var dateStr = y + '-' + m + '-' + d;
             if (this.id == 'start_date_picker') { $('#start_date').val(dateStr); }
             if (this.id == 'end_date_picker') { $('#end_date').val(dateStr); }
         }
     });
 
-    // Initialize other datepickers (if any)
     $('.datepicker_th').not('#start_date_picker, #end_date_picker, [id^="modal_"]').datepicker({
-        format: 'd M yyyy',
-        autoclose: true,
-        language: 'th-th',
-        thaiyear: true,
-        todayBtn: 'linked',
-        todayHighlight: true
+        format: 'd M yyyy', autoclose: true, language: 'th-th', thaiyear: true, todayBtn: 'linked', todayHighlight: true
     });
 
-    // 2. Set initial values
     var start_date_val = "{{ $start_date }}";
     var end_date_val = "{{ $end_date }}";
     
     function setInitialDate(pickerId, dateStr) {
         if(dateStr && dateStr !== '0000-00-00') {
-            var parts = dateStr.split('-');
-            if(parts.length === 3) {
-                var d = new Date(parts[0], parts[1]-1, parts[2]);
-                // Clear existing value to prevent 'แวบ ๆ' (briefly showing BE then AD)
+            var p = dateStr.split('-');
+            if(p.length === 3) {
                 $(pickerId).val(''); 
-                $(pickerId).datepicker('setDate', d);
+                $(pickerId).datepicker('setDate', new Date(p[0], p[1]-1, p[2]));
             }
         }
     }
     setInitialDate('#start_date_picker', start_date_val);
     setInitialDate('#end_date_picker', end_date_val);
 
-    // 3. DataTable for main table
+    // 2. Main Table DataTable
     if ($('#debtor').length) {
         $('#debtor').DataTable({
             dom: '<"row mb-3"<"col-md-6"l>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
             ordering: true,
-            language: {
-                lengthMenu: 'แสดง _MENU_ รายการ',
-                info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
-                paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
+            language: { lengthMenu: 'แสดง _MENU_ รายการ', info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ', paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' } }
+        });
+    }
+
+    // 3. AJAX Functions
+    function number_format(number, decimals) {
+        return new Intl.NumberFormat('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(number);
+    }
+    function DateThai(dateStr) {
+        if(!dateStr || dateStr === '0000-00-00') return '';
+        const months = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+        const p = dateStr.split('-');
+        return parseInt(p[2]) + ' ' + months[parseInt(p[1])-1] + ' ' + (parseInt(p[0]) + 543);
+    }
+
+    window.loadCounts = function() {
+        var start = $('#start_date').val(), end = $('#end_date').val();
+         $.ajax({
+            url: "{{ url('debtor/1102050101_216_counts_ajax') }}",
+            type: "GET",
+            data: { start_date: start, end_date: end },
+            success: function(res) {
+                $('#badge-tab1').text(res.tab1);
+                $('#badge-tab2').text(res.tab2);
+                $('#badge-tab3').text(res.tab3);
+                $('#badge-tab4').text(res.tab4);
+            },
+            error: function() {
+                $('#badge-tab1').text('0');
+                $('#badge-tab2').text('0');
+                $('#badge-tab3').text('0');
+                $('#badge-tab4').text('0');
+            }
+        });
+    }
+    loadCounts();
+    setInterval(loadCounts, 60000);
+
+    window.loadTab2 = function() {
+        if ($('#kidney-table-body tr').length > 0) return;
+        $('#empty-tab2').addClass('d-none');
+        $('#loading-tab2').removeClass('d-none');
+        $('#debtor_search_kidney').addClass('d-none');
+        $.ajax({
+            url: "{{ url('debtor/1102050101_216_search_kidney_ajax') }}",
+            type: "GET",
+            data: { start_date: '{{$start_date}}', end_date: '{{$end_date}}' },
+            success: function(res) {
+                $('#loading-tab2').addClass('d-none');
+                $('#debtor_search_kidney').removeClass('d-none');
+                let html = '';
+                let s1 = 0, s2 = 0, s3 = 0;
+                res.forEach(r => {
+                    html += `<tr>
+                        <td class="text-center"><input type="checkbox" name="checkbox_kidney[]" value="${r.vn}"></td>
+                        <td align="center">${DateThai(r.vstdate)} ${r.vsttime.substring(0,5)}</td>
+                        <td align="center">${r.hn}</td>
+                        <td align="left">${r.ptname}</td>
+                        <td align="right">${r.pttype} [${r.hospmain}]</td>
+                        <td align="right">${r.pdx || ''}</td>
+                        <td align="right">${number_format(r.income,2)}</td>
+                        <td align="right">${number_format(r.rcpt_money,2)}</td>
+                        <td align="right">${number_format(r.debtor,2)}</td>
+                        <td align="left">${r.claim_list || ''}</td>
+                    </tr>`;
+                    s1 += parseFloat(r.income); s2 += parseFloat(r.rcpt_money); s3 += parseFloat(r.debtor);
+                });
+                $('#kidney-table-body').html(html);
+                $('#kidney-sum-income').text(number_format(s1,2));
+                $('#kidney-sum-rcpt').text(number_format(s2,2));
+                $('#kidney-sum-debtor').text(number_format(s3,2));
+                $('#debtor_search_kidney').DataTable({
+                    destroy: true,
+                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                    buttons: [{ extend: 'excelHtml5', text: 'Excel', className: 'btn btn-success btn-sm', title: 'รอยืนยันลูกหนี้ ฟอกไต' }],
+                    language: { search: 'ค้นหา:', lengthMenu: 'แสดง _MENU_ รายการ', info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ', paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' } }
+                });
+            },
+            error: function() {
+                $('#loading-tab2').addClass('d-none');
+                $('#empty-tab2').removeClass('d-none');
             }
         });
     }
 
-    // 4. DataTable for Kidney table
-    if ($('#debtor_search_kidney').length) {
-        $('#debtor_search_kidney').DataTable({
-            dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-            buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: 'Excel',
-                    className: 'btn btn-success btn-sm',
-                    title: '1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR) รอยืนยัน ฟอกไต วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
-                }
-            ],
-            language: {
-                search: 'ค้นหา:',
-                lengthMenu: 'แสดง _MENU_ รายการ',
-                info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
-                paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
+    window.loadTab3 = function() {
+        if ($('#cr-table-body tr').length > 0) return;
+        $('#empty-tab3').addClass('d-none');
+        $('#loading-tab3').removeClass('d-none');
+        $('#debtor_search_cr').addClass('d-none');
+        $.ajax({
+            url: "{{ url('debtor/1102050101_216_search_cr_ajax') }}",
+            type: "GET",
+            data: { start_date: '{{$start_date}}', end_date: '{{$end_date}}' },
+            success: function(res) {
+                $('#loading-tab3').addClass('d-none');
+                $('#debtor_search_cr').removeClass('d-none');
+                let html = '';
+                let s1 = 0, s2 = 0, s3 = 0;
+                res.forEach(r => {
+                    html += `<tr>
+                        <td class="text-center"><input type="checkbox" name="checkbox_cr[]" value="${r.vn}"></td>
+                        <td align="center">${DateThai(r.vstdate)} ${r.vsttime.substring(0,5)}</td>
+                        <td align="center">${r.hn}</td>
+                        <td align="left">${r.ptname}</td>
+                        <td align="right">${r.pttype} [${r.hospmain}]</td>
+                        <td align="right">${r.pdx || ''}</td>
+                        <td align="right">${number_format(r.income,2)}</td>
+                        <td align="right">${number_format(r.rcpt_money,2)}</td>
+                        <td align="right">${number_format(r.debtor,2)}</td>
+                        <td align="left">${r.claim_list || ''}</td>
+                        <td align="center" style="color:green">${r.send_claim || ''}</td>
+                    </tr>`;
+                    s1 += parseFloat(r.income); s2 += parseFloat(r.rcpt_money); s3 += parseFloat(r.debtor);
+                });
+                $('#cr-table-body').html(html);
+                $('#cr-sum-income').text(number_format(s1,2));
+                $('#cr-sum-rcpt').text(number_format(s2,2));
+                $('#cr-sum-debtor').text(number_format(s3,2));
+                $('#debtor_search_cr').DataTable({
+                    destroy: true,
+                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                    buttons: [{ extend: 'excelHtml5', text: 'Excel', className: 'btn btn-success btn-sm', title: 'รอยืนยันลูกหนี้ บริการเฉพาะ' }],
+                    language: { search: 'ค้นหา:', lengthMenu: 'แสดง _MENU_ รายการ', info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ', paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' } }
+                });
+            },
+            error: function() {
+                $('#loading-tab3').addClass('d-none');
+                $('#empty-tab3').removeClass('d-none');
             }
         });
     }
 
-    // 5. DataTable for CR table
-    if ($('#debtor_search_cr').length) {
-        $('#debtor_search_cr').DataTable({
-            dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-            buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: 'Excel',
-                    className: 'btn btn-success btn-sm',
-                    title: '1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR) รอยืนยัน บริการเฉพาะ วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
-                }
-            ],
-            language: {
-                search: 'ค้นหา:',
-                lengthMenu: 'แสดง _MENU_ รายการ',
-                info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
-                paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
+    window.loadTab4 = function() {
+        if ($('#anywhere-table-body tr').length > 0) return;
+        $('#empty-tab4').addClass('d-none');
+        $('#loading-tab4').removeClass('d-none');
+        $('#debtor_search_anywhere').addClass('d-none');
+        $.ajax({
+            url: "{{ url('debtor/1102050101_216_search_anywhere_ajax') }}",
+            type: "GET",
+            data: { start_date: '{{$start_date}}', end_date: '{{$end_date}}' },
+            success: function(res) {
+                $('#loading-tab4').addClass('d-none');
+                $('#debtor_search_anywhere').removeClass('d-none');
+                let html = '';
+                let s1 = 0, s2 = 0, s3 = 0, s4 = 0, s5 = 0;
+                res.forEach(r => {
+                    html += `<tr>
+                        <td class="text-center"><input type="checkbox" name="checkbox_anywhere[]" value="${r.vn}"></td>
+                        <td align="center">${DateThai(r.vstdate)} ${r.vsttime.substring(0,5)}</td>
+                        <td align="center">${r.hn}</td>
+                        <td align="left">${r.ptname}</td>
+                        <td align="right">${r.pttype} [${r.hospmain}]</td>
+                        <td align="right">${r.pdx || ''}</td>
+                        <td align="right">${number_format(r.income,2)}</td>
+                        <td align="right">${number_format(r.rcpt_money,2)}</td>
+                        <td align="right">${number_format(r.other,2)}</td>
+                        <td align="right">${number_format(r.ppfs,2)}</td>
+                        <td align="right">${number_format(r.debtor,2)}</td>
+                        <td align="left">${r.other_list || ''}</td>
+                        <td align="left">${r.ppfs_list || ''}</td>
+                        <td align="center" style="color:green">${r.send_claim || ''}</td>
+                    </tr>`;
+                    s1 += parseFloat(r.income); s2 += parseFloat(r.rcpt_money); s3 += parseFloat(r.other); s4 += parseFloat(r.ppfs); s5 += parseFloat(r.debtor);
+                });
+                $('#anywhere-table-body').html(html);
+                $('#anywhere-sum-income').text(number_format(s1,2));
+                $('#anywhere-sum-rcpt').text(number_format(s2,2));
+                $('#anywhere-sum-other').text(number_format(s3,2));
+                $('#anywhere-sum-ppfs').text(number_format(s4,2));
+                $('#anywhere-sum-debtor').text(number_format(s5,2));
+                $('#debtor_search_anywhere').DataTable({
+                    destroy: true,
+                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                    buttons: [{ extend: 'excelHtml5', text: 'Excel', className: 'btn btn-success btn-sm', title: 'รอยืนยันลูกหนี้ Anywhere' }],
+                    language: { search: 'ค้นหา:', lengthMenu: 'แสดง _MENU_ รายการ', info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ', paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' } }
+                });
+            },
+            error: function() {
+                $('#loading-tab4').addClass('d-none');
+                $('#empty-tab4').removeClass('d-none');
             }
         });
     }
 
-    // 6. DataTable for Anywhere table
-    if ($('#debtor_search_anywhere').length) {
-        $('#debtor_search_anywhere').DataTable({
-            dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-            buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: 'Excel',
-                    className: 'btn btn-success btn-sm',
-                    title: '1102050101.216-ลูกหนี้ค่ารักษา UC-OP บริการเฉพาะ (CR) รอยืนยัน Anywhere วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
-                }
-            ],
-            language: {
-                search: 'ค้นหา:',
-                lengthMenu: 'แสดง _MENU_ รายการ',
-                info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
-                paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
-            }
-        });
-    }
+    $('button[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
+        var targetId = $(e.target).attr("id"); 
+        if (targetId === 'kidney-tab') { loadTab2(); }
+        else if (targetId === 'cr-tab') { loadTab3(); }
+        else if (targetId === 'anywhere-tab') { loadTab4(); }
+    });
 });
 </script>
 

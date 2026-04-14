@@ -290,6 +290,10 @@ Route::post('debtor/1102050101_209/unlock/{vn}', [DebtorController::class, '_110
 Route::post('debtor/1102050101_209/lock/{vn}', [DebtorController::class, '_1102050101_209_lock']);
 Route::get('debtor/1102050101_209_indiv_excel', [DebtorController::class, '_1102050101_209_indiv_excel']);
 Route::match(['get', 'post'], 'debtor/1102050101_216', [DebtorController::class, '_1102050101_216']);
+Route::get('debtor/1102050101_216_counts_ajax', [DebtorController::class, '_1102050101_216_counts_ajax']);
+Route::get('debtor/1102050101_216_search_kidney_ajax', [DebtorController::class, '_1102050101_216_search_kidney_ajax']);
+Route::get('debtor/1102050101_216_search_cr_ajax', [DebtorController::class, '_1102050101_216_search_cr_ajax']);
+Route::get('debtor/1102050101_216_search_anywhere_ajax', [DebtorController::class, '_1102050101_216_search_anywhere_ajax']);
 Route::post('debtor/1102050101_216_confirm_kidney', [DebtorController::class, '_1102050101_216_confirm_kidney']);
 Route::post('debtor/1102050101_216_confirm_cr', [DebtorController::class, '_1102050101_216_confirm_cr']);
 Route::post('debtor/1102050101_216_confirm_anywhere', [DebtorController::class, '_1102050101_216_confirm_anywhere']);

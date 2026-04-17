@@ -70,7 +70,7 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span class="ms-2 fw-bold text-success" id="badge-tab1"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
+                        <span class="ms-2 fw-bold text-success" id="badge-tab1">{{ number_format($count_tab1) }}</span>
                     </button>
                 </li>       
                 <li class="nav-item" role="presentation">
@@ -708,6 +708,8 @@ $(document).ready(function() {
                 $('#loading-tab2').addClass('d-none');
                 $('#debtor_search').removeClass('d-none');
 
+                $('#badge-tab2').text(res.length);
+
                 if (res.length > 0) {
                     initTab2DataTable();
                 }
@@ -721,34 +723,7 @@ $(document).ready(function() {
         });
     }
 
-    $('button[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
-        var targetId = $(e.target).attr("id"); 
-        if (targetId === 'confirm-tab') {
-            loadTab2();
-        }
-    });
-
-    function loadCounts() {
-        var searchVal = $('#search').val();
-        $.ajax({
-            url: "{{ url('debtor/1102050101_209_counts_ajax') }}",
-            type: "GET",
-            data: { start_date: start_date_val, end_date: end_date_val, search: searchVal },
-            success: function(res) {
-                $('#badge-tab1').text(res.tab1);
-                $('#badge-tab2').text(res.tab2);
-            },
-            error: function(err) {
-                console.error(err);
-                $('#badge-tab1').text('0');
-                $('#badge-tab2').text('0');
-            }
-        });
-    }
-
-    // Call loadCounts periodically
-    loadCounts();
-    setInterval(loadCounts, 60000);
+    loadTab2();
 
     // 5. DataTable for AE table
     if ($('#debtor_search_ae').length) {

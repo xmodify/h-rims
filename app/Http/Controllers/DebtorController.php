@@ -2423,69 +2423,17 @@ class DebtorController extends Controller
         }
 
         $debtor_search = [];
+        $count_tab1 = count($debtor);
 
         $request->session()->put('start_date', $start_date);
         $request->session()->put('end_date', $end_date);
         $request->session()->put('search', $search);
-        $request->session()->put('debtor', $debtor);
+        // REMOVED session('debtor') TO PREVENT BLOAT
         $request->session()->save();
 
-        return view('debtor.1102050101_209', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
+        return view('debtor.1102050101_209', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'count_tab1'));
     }
 
-    public function _1102050101_209_counts_ajax(Request $request)
-    {
-        $start_date = $request->start_date ?: date('Y-m-d');
-        $end_date = $request->end_date ?: date('Y-m-d');
-        $search = $request->search;
-        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value') ?: "''";
-        $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value') ?: "''";
-
-        // Tab 1 count
-        if ($search) {
-            $tab1 = DB::table('debtor_1102050101_209')
-                ->whereBetween('vstdate', [$start_date, $end_date])
-                ->where(function($q) use ($search) {
-                    $q->where('ptname', 'LIKE', "%{$search}%")
-                      ->orWhere('hn', 'LIKE', "%{$search}%");
-                })
-                ->count();
-        } else {
-            $tab1 = DB::table('debtor_1102050101_209')
-                ->whereBetween('vstdate', [$start_date, $end_date])
-                ->count();
-        }
-
-        // Tab 2 count
-        $tab2Query = DB::connection('hosxp')->select('
-            SELECT COUNT(DISTINCT o.vn) AS c
-            FROM ovst o
-            LEFT JOIN vn_stat v ON v.vn = o.vn        
-            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
-            LEFT JOIN pttype p ON p.pttype = vp.pttype
-            LEFT JOIN (SELECT op.vn, op.pttype,SUM(op.sum_price) AS income
-                FROM opitemrece op
-                WHERE op.vstdate BETWEEN ? AND ? 
-                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn) rc ON rc.vn = o.vn
-            WHERE (o.an IS NULL OR o.an = "")
-            AND o.vstdate BETWEEN ? AND ?
-            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)) > 0
-            AND p.hipdata_code IN ("UCS","WEL","SSS")            
-            AND v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
-            AND p.pttype NOT IN (' . $pttype_sss_fund . ')
-            AND p.pttype NOT IN (' . $pttype_sss_ae . ')
-            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_209 WHERE vn IS NOT NULL)
-        ', [$start_date, $end_date, $start_date, $end_date]);
-        
-        $tab2 = $tab2Query[0]->c ?? 0;
-
-        return response()->json(['tab1' => $tab1, 'tab2' => $tab2]);
-    }
 
     public function _1102050101_209_search_ajax(Request $request)
     {
@@ -2685,12 +2633,36 @@ class DebtorController extends Controller
             ->setPaper('A4', 'portrait');
         return @$pdf->stream();
     }
-    //1102050101_209_indiv_excel-------------------------------------------------------------------------------------------------------   
     public function _1102050101_209_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
-        $debtor = Session::get('debtor');
+        $search = Session::get('search');
+
+        if ($search) {
+            $debtor = DB::select('
+                SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.cid, d.ptname, d.hipdata_code, d.pttype, d.hospmain, d.pdx, d.income,  
+                    d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,d.receive AS receive_manual, d.repno AS repno_manual, s.receive_pp, d.receive, s.repno, s.repno AS repno_pp, d.status, d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno,
+                    CASE WHEN (IFNULL(d.receive,0)  + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
+                    ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
+                FROM debtor_1102050101_209 d   
+                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
+                    FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
+                    AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
+                WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%"))
+                AND d.vstdate BETWEEN ? AND ?', [$search, $search, $start_date, $end_date]);
+        } else {
+            $debtor = DB::select('
+                SELECT d.vn, d.vstdate, d.vsttime, d.hn, d.cid, d.ptname, d.hipdata_code, d.pttype, d.hospmain, d.pdx, d.income,
+                     d.rcpt_money, d.ppfs, d.pp, d.other, d.debtor,d.receive AS receive_manual, d.repno AS repno_manual, s.receive_pp, d.receive, s.repno, s.repno AS repno_pp, d.status, d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive, d.repno,
+                    CASE WHEN (IFNULL(d.receive,0)  + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
+                    ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
+                FROM debtor_1102050101_209 d   
+                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
+                    FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
+                    AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
+                WHERE d.vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
+        }
 
         return view('debtor.1102050101_209_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }

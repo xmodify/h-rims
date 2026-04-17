@@ -688,7 +688,21 @@
             modalSetPicker('#modal_adj_date_picker', '#modal_adj_date', d.adjDate);
             $('#modal_adj_note').val(d.adjNote || '');
             
-            new bootstrap.Modal($('#debtorModal')[0]).show();
+            var $modal = $('#debtorModal');
+            if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+                try {
+                    var myModal = bootstrap.Modal.getOrCreateInstance($modal[0]);
+                    myModal.show();
+                } catch(e) {
+                    console.error('Bootstrap Modal error:', e);
+                    if (typeof $modal.modal === 'function') { $modal.modal('show'); }
+                }
+            } else if (typeof $.fn.modal === 'function') {
+                $modal.modal('show');
+            } else {
+                console.error('Bootstrap and jQuery Modal are both undefined');
+                alert('ไม่สามารถเปิดหน้าต่างแก้ไขได้ กรุณาติดต่อผู้ดูแลระบบ');
+            }
         });
 
         // 🟢 LOAD DATA

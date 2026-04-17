@@ -86,23 +86,23 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span class="ms-2 fw-bold text-success" id="badge-tab1"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
+                        <span class="ms-2 fw-bold text-success" id="badge-tab1">{{ number_format($count_tab1) }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="kidney-tab" data-bs-toggle="pill" data-bs-target="#kidney-pane" type="button" role="tab" onclick="loadTab2()">
+                    <button class="nav-link" id="kidney-tab" data-bs-toggle="pill" data-bs-target="#kidney-pane" type="button" role="tab">
                         <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้ ฟอกไต
                         <span class="ms-2 fw-bold text-warning" id="badge-tab2"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="cr-tab" data-bs-toggle="pill" data-bs-target="#cr-pane" type="button" role="tab" onclick="loadTab3()">
+                    <button class="nav-link" id="cr-tab" data-bs-toggle="pill" data-bs-target="#cr-pane" type="button" role="tab">
                         <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้ บริการเฉพาะ
                         <span class="ms-2 fw-bold text-warning" id="badge-tab3"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="anywhere-tab" data-bs-toggle="pill" data-bs-target="#anywhere-pane" type="button" role="tab" onclick="loadTab4()">
+                    <button class="nav-link" id="anywhere-tab" data-bs-toggle="pill" data-bs-target="#anywhere-pane" type="button" role="tab">
                         <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้ Anywhere
                         <span class="ms-2 fw-bold text-warning" id="badge-tab4"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
                     </button>
@@ -174,6 +174,7 @@
                         $sum_debtor = 0; $sum_receive = 0;
                         $s_adj_inc = 0; $s_adj_dec = 0; $s_balance = 0;
                     @endphp
+                    <tbody>
                     @foreach($debtor as $row) 
                     @php 
                         $balance = $row->receive + ($row->adj_inc ?? 0) - ($row->adj_dec ?? 0) - $row->debtor;
@@ -255,7 +256,7 @@
                         $s_balance += $balance;
                     @endphp
                     @endforeach 
-                    </tr>   
+                    </tbody>
                     
                     <tfoot>
 
@@ -727,9 +728,6 @@ $(document).ready(function() {
     }
 
     // 3. AJAX Functions
-    function number_format(number, decimals) {
-        return new Intl.NumberFormat('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(number);
-    }
     function DateThai(dateStr) {
         if(!dateStr || dateStr === '0000-00-00') return '';
         const months = ["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
@@ -737,39 +735,26 @@ $(document).ready(function() {
         return parseInt(p[2]) + ' ' + months[parseInt(p[1])-1] + ' ' + (parseInt(p[0]) + 543);
     }
 
-    window.loadCounts = function() {
-        var start = $('#start_date').val(), end = $('#end_date').val();
-         $.ajax({
-            url: "{{ url('debtor/1102050101_216_counts_ajax') }}",
-            type: "GET",
-            data: { start_date: start, end_date: end },
-            success: function(res) {
-                $('#badge-tab1').text(res.tab1);
-                $('#badge-tab2').text(res.tab2);
-                $('#badge-tab3').text(res.tab3);
-                $('#badge-tab4').text(res.tab4);
-            },
-            error: function() {
-                $('#badge-tab1').text('0');
-                $('#badge-tab2').text('0');
-                $('#badge-tab3').text('0');
-                $('#badge-tab4').text('0');
-            }
-        });
+    function number_format(number, decimals) {
+        if (number === null || isNaN(number)) return '0.00';
+        return new Intl.NumberFormat('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(number);
     }
-    loadCounts();
-    setInterval(loadCounts, 60000);
+
+    var _tab2Loaded = false, _tab3Loaded = false, _tab4Loaded = false;
+
 
     window.loadTab2 = function() {
-        if ($('#kidney-table-body tr').length > 0) return;
+        if (_tab2Loaded) return;
+        _tab2Loaded = true;
         $('#empty-tab2').addClass('d-none');
         $('#loading-tab2').removeClass('d-none');
         $('#debtor_search_kidney').addClass('d-none');
         $.ajax({
             url: "{{ url('debtor/1102050101_216_search_kidney_ajax') }}",
             type: "GET",
-            data: { start_date: '{{$start_date}}', end_date: '{{$end_date}}' },
+            data: { start_date: start_date_val, end_date: end_date_val },
             success: function(res) {
+                $('#badge-tab2').text(number_format(res.length, 0));
                 $('#loading-tab2').addClass('d-none');
                 $('#debtor_search_kidney').removeClass('d-none');
                 let html = '';
@@ -808,15 +793,17 @@ $(document).ready(function() {
     }
 
     window.loadTab3 = function() {
-        if ($('#cr-table-body tr').length > 0) return;
+        if (_tab3Loaded) return;
+        _tab3Loaded = true;
         $('#empty-tab3').addClass('d-none');
         $('#loading-tab3').removeClass('d-none');
         $('#debtor_search_cr').addClass('d-none');
         $.ajax({
             url: "{{ url('debtor/1102050101_216_search_cr_ajax') }}",
             type: "GET",
-            data: { start_date: '{{$start_date}}', end_date: '{{$end_date}}' },
+            data: { start_date: start_date_val, end_date: end_date_val },
             success: function(res) {
+                $('#badge-tab3').text(number_format(res.length, 0));
                 $('#loading-tab3').addClass('d-none');
                 $('#debtor_search_cr').removeClass('d-none');
                 let html = '';
@@ -856,15 +843,17 @@ $(document).ready(function() {
     }
 
     window.loadTab4 = function() {
-        if ($('#anywhere-table-body tr').length > 0) return;
+        if (_tab4Loaded) return;
+        _tab4Loaded = true;
         $('#empty-tab4').addClass('d-none');
         $('#loading-tab4').removeClass('d-none');
         $('#debtor_search_anywhere').addClass('d-none');
         $.ajax({
             url: "{{ url('debtor/1102050101_216_search_anywhere_ajax') }}",
             type: "GET",
-            data: { start_date: '{{$start_date}}', end_date: '{{$end_date}}' },
+            data: { start_date: start_date_val, end_date: end_date_val },
             success: function(res) {
+                $('#badge-tab4').text(number_format(res.length, 0));
                 $('#loading-tab4').addClass('d-none');
                 $('#debtor_search_anywhere').removeClass('d-none');
                 let html = '';
@@ -908,11 +897,12 @@ $(document).ready(function() {
         });
     }
 
-    $('button[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
-        var targetId = $(e.target).attr("id"); 
-        if (targetId === 'kidney-tab') { loadTab2(); }
-        else if (targetId === 'cr-tab') { loadTab3(); }
-        else if (targetId === 'anywhere-tab') { loadTab4(); }
+    // Load background tabs sequentially to avoid hitting the DB too hard at once
+    loadTab2();
+    $(document).ajaxStop(function() {
+        if (!_tab2Loaded) return; // Wait for tab 2
+        if (!_tab3Loaded) loadTab3();
+        else if (!_tab4Loaded) loadTab4();
     });
 });
 </script>

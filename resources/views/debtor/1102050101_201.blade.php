@@ -70,7 +70,7 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span id="badge-tab1" class="text-success fw-bold ms-2"><span class="spinner-border spinner-border-sm" role="status"></span></span>
+                        <span id="badge-tab1" class="text-success fw-bold ms-2">{{ number_format($count_tab1) }}</span>
                     </button>
                 </li>       
                 <li class="nav-item" role="presentation">
@@ -150,9 +150,6 @@
                         $s_adj_inc = 0; $s_adj_dec = 0; $s_balance = 0;
                     @endphp
                     @foreach($debtor as $row) 
-                    @php 
-                        $balance = $row->receive + ($row->adj_inc ?? 0) - ($row->adj_dec ?? 0) - $row->debtor;
-                    @endphp
                     <tr>
                         <td class="text-center"><input type="checkbox" name="checkbox_d[]" value="{{$row->vn}}"></td>   
                         <td align="right">{{ DateThai($row->vstdate) }} {{ $row->vsttime }}</td>
@@ -175,7 +172,7 @@
                         </td>                        
                         <td align="right" style="color: #9c27b0;">{{ number_format($row->adj_inc ?? 0, 2) }}</td>
                         <td align="right" style="color: #673ab7;">{{ number_format($row->adj_dec ?? 0, 2) }}</td>
-                        <td align="right" style="color:@if($balance < -0.01) red @elseif($balance > 0.01) green @else black @endif">{{ number_format($balance, 2) }}</td>
+                        <td align="right" style="color:@if($row->balance < -0.01) red @elseif($row->balance > 0.01) green @else black @endif">{{ number_format($row->balance, 2) }}</td>
                         <td align="right">{{ $row->repno}} {{ $row->repno_pp }}</td>
                         <td align="center" @if($row->days < 90) style="background-color: #90EE90;"  
                             @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" 
@@ -186,8 +183,8 @@
                             <button type="button" class="btn btn-warning btn-sm px-2 shadow-sm text-dark btn-edit-debtor"
                                 data-vn="{{ $row->vn }}"
                                 data-ptname="{{ $row->ptname }}"
-                                data-balance="{{ number_format($balance,2) }}"
-                                data-balance-raw="{{ $balance }}"
+                                data-balance="{{ number_format($row->balance,2) }}"
+                                data-balance-raw="{{ $row->balance }}"
                                 data-charge-date="{{ $row->charge_date }}"
                                 data-charge-date-th="{{ !empty($row->charge_date) ? DateThai($row->charge_date) : '' }}"
                                 data-charge-no="{{ $row->charge_no }}"
@@ -196,8 +193,8 @@
                                 data-receive-date="{{ $row->receive_date }}"
                                 data-receive-date-th="{{ !empty($row->receive_date) ? DateThai($row->receive_date) : '' }}"
                                 data-receive-no="{{ $row->receive_no }}"
-                                data-receive="{{ $row->receive_manual ?? 0 }}"
-                                data-repno="{{ $row->repno_manual ?? '' }}"
+                                data-receive="{{ $row->receive_manual ?? $row->receive }}"
+                                data-repno="{{ $row->repno_manual ?? $row->repno }}"
                                 data-adj-inc="{{ $row->adj_inc ?? 0 }}"
                                 data-adj-dec="{{ $row->adj_dec ?? 0 }}"
                                 data-adj-date="{{ $row->adj_date ?? date('Y-m-d') }}"
@@ -228,12 +225,11 @@
                         $sum_receive_pp += $row->receive_pp;
                         $s_adj_inc += $row->adj_inc ?? 0;
                         $s_adj_dec += $row->adj_dec ?? 0;
-                        $s_balance += $balance;
+                        $s_balance += $row->balance;
                     @endphp
                     @endforeach 
                     
                     <tfoot>
-
                         <tr class="table-success text-end fw-bold" style="font-size: 14px;">
                             <td colspan="6" class="text-end">รวม</td>
                             <td class="text-end">{{ number_format($sum_income,2) }}</td>
@@ -248,6 +244,7 @@
                             <td class="text-end" style="color:@if($s_balance < -0.01) red @elseif($s_balance > 0.01) green @else black @endif">{{ number_format($s_balance, 2) }}</td>
                             <td colspan="4"></td>
                         </tr>
+                    </tfoot>
                     </tfoot>
                 </table></div>
             </form>
@@ -673,16 +670,7 @@ $(document).ready(function() {
     // 2. Global Data Variable for Tab 2
     let tab2Data = [];
 
-    // 3. Load Counts Function
-    function loadCounts() {
-        $.get("{{ url('debtor/1102050101_201_counts_ajax') }}", {
-            start_date: '{{ $start_date }}',
-            end_date: '{{ $end_date }}'
-        }, function(res) {
-            $('#badge-tab1').text(res.tab1).removeClass('badge bg-success text-white').addClass('text-success fw-bold');
-            $('#badge-tab2').text(res.tab2).removeClass('badge bg-warning text-white').addClass('text-warning fw-bold');
-        });
-    }
+
 
     // 4. Load Tab 2 Data Function
     function loadTab2() {
@@ -702,6 +690,7 @@ $(document).ready(function() {
             $(tableId).removeClass('d-none');
 
             tab2Data = data;
+            $('#badge-tab2').text(data.length);
             let htmlRows = '';
             let sInc = 0, sRcp = 0, sOth = 0, sPpf = 0, sDeb = 0;
             if (data && data.length > 0) {
@@ -831,11 +820,11 @@ $(document).ready(function() {
         });
     }
 
-    loadCounts();
-    setInterval(loadCounts, 60000); 
 
     // Load Tab 2 on Click
-    let tab2Loaded = false;
+    let tab2Loaded = true; // Set true early to avoid double load
+    loadTab2();
+
     $('[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
         const targetId = $(e.currentTarget).data('bs-target') || $(e.currentTarget).attr('href');
         if (targetId === '#confirm-pane') {

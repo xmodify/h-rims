@@ -240,7 +240,7 @@
             }
         ],
         lengthMenu: [ [10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"] ],
-        pageLength: 50,
+        pageLength: 10,
         stateSave: false,
         language: {
             search: "ค้นหา:",

@@ -1342,14 +1342,16 @@ class DebtorController extends Controller
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $search = $request->search ?: Session::get('search');
 
-        $debtor = Debtor_1102050101_109::select('*', DB::raw('receive AS receive_manual'), DB::raw('repno AS repno_manual'))->whereBetween('vstdate', [$start_date, $end_date])
+        $debtor = Debtor_1102050101_109::select('*', DB::raw('receive AS receive_manual'), DB::raw('repno AS receive_no_manual'))
+            ->whereBetween('vstdate', [$start_date, $end_date])
             ->where(function ($query) use ($search) {
                 $query->where('ptname', 'like', '%' . $search . '%');
                 $query->orwhere('hn', 'like', '%' . $search . '%');
             })
             ->orderBy('vstdate')->get()
             ->map(function ($item) {
-                if (($item->receive + ($item->adj_inc ?? 0) - ($item->adj_dec ?? 0) - $item->debtor) >= -0.01) {
+                $item->balance = ($item->receive + ($item->adj_inc ?? 0) - ($item->adj_dec ?? 0)) - $item->debtor;
+                if ($item->balance >= -0.01) {
                     $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
                 } else {
                     $item->days = Carbon::parse($item->vstdate)->diffInDays(Carbon::today());
@@ -1358,33 +1360,18 @@ class DebtorController extends Controller
             });
 
         $debtor_search = [];
+        $count_tab1 = count($debtor);
 
         $request->session()->put('start_date', $start_date);
         $request->session()->put('end_date', $end_date);
         $request->session()->put('search', $search);
-        $request->session()->put('debtor', $debtor);
+        // REMOVED session('debtor') TO PREVENT BLOAT
         $request->session()->save();
 
-        return view('debtor.1102050101_109', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
+        return view('debtor.1102050101_109', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'count_tab1'));
     }
 
-    //_1102050101_109_counts_ajax-------------------------------------------------------------------------------------------------------
-    public function _1102050101_109_counts_ajax(Request $request)
-    {
-        $start_date = $request->start_date;
-        $end_date = $request->end_date;
 
-        $data = DB::connection('hosxp')->select('
-            SELECT COUNT(DISTINCT o.vn) as count2
-            FROM ovst o  
-            INNER JOIN (SELECT op.vn FROM opitemrece op INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ems = "Y" WHERE op.vstdate BETWEEN ? AND ?) ems ON ems.vn = o.vn
-            WHERE o.vstdate BETWEEN ? AND ?
-            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_109 WHERE vn IS NOT NULL)', [$start_date, $end_date, $start_date, $end_date]);
-
-        return response()->json([
-            'tab2' => $data[0]->count2 ?? 0
-        ]);
-    }
 
     //_1102050101_109_search_ajax-------------------------------------------------------------------------------------------------------
     public function _1102050101_109_search_ajax(Request $request)
@@ -1591,7 +1578,24 @@ class DebtorController extends Controller
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
-        $debtor = Session::get('debtor');
+        $search = Session::get('search');
+
+        $debtor = Debtor_1102050101_109::select('*', DB::raw('receive AS receive_manual'), DB::raw('repno AS receive_no_manual'))
+            ->whereBetween('vstdate', [$start_date, $end_date])
+            ->where(function ($query) use ($search) {
+                $query->where('ptname', 'like', '%' . $search . '%');
+                $query->orwhere('hn', 'like', '%' . $search . '%');
+            })
+            ->orderBy('vstdate')->get()
+            ->map(function ($item) {
+                $item->balance = ($item->receive + ($item->adj_inc ?? 0) - ($item->adj_dec ?? 0)) - $item->debtor;
+                if ($item->balance >= -0.01) {
+                    $item->days = 0;
+                } else {
+                    $item->days = Carbon::parse($item->vstdate)->diffInDays(Carbon::today());
+                }
+                return $item;
+            });
 
         return view('debtor.1102050101_109_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }

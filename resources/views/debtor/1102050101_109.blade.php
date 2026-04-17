@@ -72,14 +72,14 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span id="badge-tab1" class="text-success fw-bold ms-2">{{ count($debtor) }}</span>
+                        <span id="badge-tab1" class="text-success fw-bold ms-2">{{ number_format($count_tab1) }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab" onclick="loadTab2()">
+                    <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab">
                         <i class="bi bi-check-circle me-1"></i> <span>รอยืนยันลูกหนี้</span>
                         <span id="badge-tab2" class="text-warning fw-bold ms-2">
-                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                             <span class="spinner-border spinner-border-sm" role="status"></span>
                         </span>
                     </button>
                 </li>
@@ -532,194 +532,10 @@
 @endsection
 
 @push('scripts')
-
 <script>
-$(document).ready(function() {
-    // 1. Initialize Datepicker Thai for Filter with Today button
-    // language: 'th-th' and thaiyear: true work together for BE year display.
-    $('#start_date_picker, #end_date_picker').datepicker({
-        format: 'd M yyyy',
-        todayBtn: 'linked',
-        todayHighlight: true,
-        autoclose: true,
-        language: 'th-th',
-        thaiyear: true,
-        zIndexOffset: 1050
-    }).on('changeDate', function(e) {
-        if (e.date) {
-            var y = e.date.getFullYear();
-            var m = ('0'+(e.date.getMonth()+1)).slice(-2);
-            var d = ('0'+e.date.getDate()).slice(-2);
-            var dateStr = y + '-' + m + '-' + d;
-            if (this.id == 'start_date_picker') { $('#start_date').val(dateStr); }
-            if (this.id == 'end_date_picker') { $('#end_date').val(dateStr); }
-        }
-    });
-
-    // Initialize other datepickers (if any)
-    $('.datepicker_th').not('#start_date_picker, #end_date_picker, [id^="modal_"]').datepicker({
-        format: 'd M yyyy',
-        autoclose: true,
-        language: 'th-th',
-        thaiyear: true,
-        todayBtn: 'linked',
-        todayHighlight: true
-    });
-
-    // 2. Set initial values
-    var start_date_val = "{{ $start_date }}";
-    var end_date_val = "{{ $end_date }}";
-    
-    function setInitialDate(pickerId, dateStr) {
-        if(dateStr && dateStr !== '0000-00-00') {
-            var parts = dateStr.split('-');
-            if(parts.length === 3) {
-                var d = new Date(parts[0], parts[1]-1, parts[2]);
-                // Clear existing value to prevent 'แวบ ๆ' (briefly showing BE then AD)
-                $(pickerId).val(''); 
-                $(pickerId).datepicker('setDate', d);
-            }
-        }
-    }
-    setInitialDate('#start_date_picker', start_date_val);
-    setInitialDate('#end_date_picker', end_date_val);
-
-    // 3. DataTable for main table
-    if ($('#debtor').length) {
-        $('#debtor').DataTable({
-            dom: '<"row mb-3"<"col-md-6"l>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-            ordering: true,
-            language: {
-                lengthMenu: 'แสดง _MENU_ รายการ',
-                info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
-                paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
-            }
-        });
-    }
-
-
-
-    // 5. DataTable for AE table
-    if ($('#debtor_search_ae').length) {
-        $('#debtor_search_ae').DataTable({
-            dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-            buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: 'Excel',
-                    className: 'btn btn-success btn-sm',
-                    title: '1102050101.109-ลูกหนี้-ระบบปฏิบัติการฉุกเฉิน รอยืนยัน AE/OP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
-                }
-            ],
-            language: {
-                search: 'ค้นหา:',
-                lengthMenu: 'แสดง _MENU_ รายการ',
-                info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
-                paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
-            }
-        });
-    }
-});
-</script>
-
-<script id="single-modal-js">
-$(document).ready(function () {
-    console.log('Debtor Single Modal System Initialized');
-    
-    function initModalDatepicker(pickerId, hiddenId) {
-        var $picker = $('#' + pickerId);
-        if ($picker.length) {
-            $picker.datepicker({
-                format: 'd M yyyy', 
-                autoclose: true, 
-                language: 'th-th', 
-                thaiyear: true, 
-                todayBtn: 'linked',
-                todayHighlight: true,
-                zIndexOffset: 1060
-            }).on('changeDate', function(e) {
-                if (e.date) {
-                    var d = e.date, y = d.getFullYear(), m = ('0'+(d.getMonth()+1)).slice(-2), day = ('0'+d.getDate()).slice(-2);
-                    $(hiddenId).val(y + '-' + m + '-' + day);
-                }
-            });
-        }
-    }
-    initModalDatepicker('modal_charge_date_picker', '#modal_charge_date');
-    initModalDatepicker('modal_receive_date_picker', '#modal_receive_date');
-    initModalDatepicker('modal_adj_date_picker', '#modal_adj_date');
-
-    $(document).on('click', '.btn-edit-debtor', function() {
-        var d = $(this).data();
-        var updateUrl = $(this).attr('data-update-url');
-        
-        $('#debtorModalForm').attr('action', updateUrl);
-        $('#modal_vn').text(d.vn);
-        $('#modal_ptname').text(d.ptname);
-        
-        var balEl = $('#modal_balance');
-        balEl.text(d.balance + ' บาท');
-        var raw = parseFloat(d.balanceRaw);
-        balEl.css('color', raw < -0.01 ? 'red' : (raw > 0.01 ? 'green' : 'black'));
-        
-        function setPickerDate(pickerId, hiddenId, dateStr) {
-            $(hiddenId).val(dateStr || '');
-            if(dateStr && dateStr !== '0000-00-00') {
-                var p = dateStr.split('-');
-                if(p.length === 3) {
-                    // Force refresh by clearing first
-                    $(pickerId).val('');
-                    $(pickerId).datepicker('setDate', new Date(p[0], p[1]-1, p[2]));
-                }
-            } else {
-                $(pickerId).val(''); 
-            }
-        }
-
-        setPickerDate('#modal_charge_date_picker', '#modal_charge_date', d.chargeDate);
-        $('#modal_charge_no').val(d.chargeNo || '');
-        $('#modal_charge').val(d.charge || '');
-        $('#modal_status').val(d.status || 'ยืนยันลูกหนี้');
-        
-        setPickerDate('#modal_receive_date_picker', '#modal_receive_date', d.receiveDate);
-        $('#modal_receive_no').val(d.receiveNo || '');
-        $('#modal_receive').val(d.receive || '');
-        $('#modal_repno').val(d.repno || '');
-        
-        $('#modal_adj_inc').val(d.adjInc || 0);
-        $('#modal_adj_dec').val(d.adjDec || 0);
-        setPickerDate('#modal_adj_date_picker', '#modal_adj_date', d.adjDate);
-        $('#modal_adj_note').val(d.adjNote || '');
-        
-        var $modal = $('#debtorModal');
-        if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
-            try {
-                var myModal = bootstrap.Modal.getOrCreateInstance($modal[0]);
-                myModal.show();
-            } catch(e) {
-                if (typeof $modal.modal === 'function') { $modal.modal('show'); }
-            }
-        } else if (typeof $.fn.modal === 'function') {
-            $modal.modal('show');
-        }
-    });
-    // Data storage for Tab 2
-    let tab2Loaded = false;
-    let tab2Data = [];
-
-    // Thai Month Mapping
+    // 🟢 1. Helper Functions
     const thaiMonths = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
     
-    function escapeHtml(text) {
-        if (!text) return '';
-        return String(text)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
-
     function thaiDate(dateStr) {
         if(!dateStr) return '';
         const d = new Date(dateStr);
@@ -730,44 +546,27 @@ $(document).ready(function () {
         return parseFloat(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    function loadCounts() {
-        $.get("{{ url('debtor/1102050101_109_counts_ajax') }}", {
-            start_date: '{{ $start_date }}',
-            end_date: '{{ $end_date }}'
-        }, function(res) {
-            $('#badge-tab1').text('{{ count($debtor) }}').addClass('text-success fw-bold');
-            $('#badge-tab2').text(res.tab2 || 0).addClass('text-warning fw-bold');
-            $('#count-pending').text(`(จำนวน: ${res.tab2 || 0} รายการ)`);
-        });
-    }
-
     function loadTab2() {
-        if (!$('#table_109_ajax').hasClass('d-none')) return;
-        
+        $('#badge-tab2').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
         $('#empty-tab2').addClass('d-none');
         $('#loading-tab2').removeClass('d-none');
 
-        const body = $('#table2-body');
-        const sumIncome = $('#sum-income-search');
-        const sumRcpt = $('#sum-rcpt-search');
-        const sumDebtor = $('#sum-debtor-search');
-
         $.get("{{ url('debtor/1102050101_109_search_ajax') }}", {
-            start_date: '{{ $start_date }}',
-            end_date: '{{ $end_date }}'
+            start_date: $('#start_date').val(),
+            end_date: $('#end_date').val()
         }, function(data) {
             $('#loading-tab2').addClass('d-none');
             $('#table_109_ajax').removeClass('d-none');
+            $('#badge-tab2').text(data.length).removeClass('badge bg-warning text-white').addClass('text-warning fw-bold');
 
-            tab2Data = data;
-            const body = $('#table2-body');
             let htmlRows = '';
             let sInc = 0, sRcp = 0, sDeb = 0;
             if (data && data.length > 0) {
                 data.forEach(row => {
+                    const dVal = parseFloat(row.debtor) || 0;
                     sInc += parseFloat(row.income || 0);
                     sRcp += parseFloat(row.rcpt_money || 0);
-                    sDeb += parseFloat(row.debtor || 0);
+                    sDeb += dVal;
                     
                     const timeStr = row.vsttime ? row.vsttime.substring(0, 5) : '';
                     const claimText = row.claim_list ? row.claim_list : '';
@@ -782,17 +581,16 @@ $(document).ready(function () {
                             <td align="right">${row.pdx || ''}</td>
                             <td align="right">${formatMoney(row.income)}</td>
                             <td align="right">${formatMoney(row.rcpt_money)}</td>
-                            <td align="right" class="fw-bold text-primary">${formatMoney(row.debtor)}</td>
+                            <td align="right" class="fw-bold text-primary">${formatMoney(dVal)}</td>
                             <td align="left"><small class="text-muted text-wrap">${claimText}</small></td>
                         </tr>
                     `;
                 });
             }
-            body.html(htmlRows);
-
-            sumIncome.text(formatMoney(sInc));
-            sumRcpt.text(formatMoney(sRcp));
-            sumDebtor.text(formatMoney(sDeb));
+            $('#table2-body').html(htmlRows);
+            $('#sum-income-search').text(formatMoney(sInc));
+            $('#sum-rcpt-search').text(formatMoney(sRcp));
+            $('#sum-debtor-search').text(formatMoney(sDeb));
 
             const tableId = '#table_109_ajax';
             if ($.fn.DataTable.isDataTable(tableId)) {
@@ -806,28 +604,96 @@ $(document).ready(function () {
                 }],
                 language: { search: 'ค้นหา:', lengthMenu: 'แสดง _MENU_ รายการ', info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ', paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' } }
             });
-
-            tab2Loaded = true;
         });
     }
 
+    // 🟢 2. Initialization
     $(document).ready(function() {
-        loadCounts();
+        console.log('Debtor 109 UI Consolidated Ready');
 
-        // Load Tab 2 on Click
-        let tab2Loaded = false;
-        $('[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
-            const targetId = $(e.currentTarget).data('bs-target') || $(e.currentTarget).attr('href');
-            if (targetId === '#confirm-pane') {
-                if (!tab2Loaded) {
-                    tab2Loaded = true;
-                    loadTab2();
-                }
+        // Main Datepickers
+        $('#start_date_picker, #end_date_picker').datepicker({
+            format: 'd M yyyy', todayBtn: 'linked', todayHighlight: true, autoclose: true, 
+            language: 'th-th', thaiyear: true, zIndexOffset: 1050
+        }).on('changeDate', function(e) {
+            if (e.date) {
+                var y = e.date.getFullYear(), m = ('0'+(e.date.getMonth()+1)).slice(-2), d = ('0'+e.date.getDate()).slice(-2);
+                if (this.id == 'start_date_picker') { $('#start_date').val(y + '-' + m + '-' + d); }
+                if (this.id == 'end_date_picker') { $('#end_date').val(y + '-' + m + '-' + d); }
             }
         });
 
-        window.refreshTab2 = function() { tab2Loaded = false; loadTab2(); };
+        // BE Display for Datepickers
+        function setBEPicker(pId, val) {
+            if(val && val !== '0000-00-00') {
+                var p = val.split('-');
+                $(pId).datepicker('setDate', new Date(p[0], p[1]-1, p[2]));
+            }
+        }
+        setBEPicker('#start_date_picker', "{{ $start_date }}");
+        setBEPicker('#end_date_picker', "{{ $end_date }}");
+
+        // Main Table
+        if ($('#debtor').length) {
+            $('#debtor').DataTable({
+                dom: '<"row mb-3"<"col-md-6"l>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                ordering: true,
+                language: { lengthMenu: 'แสดง _MENU_ รายการ', info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ', paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' } }
+            });
+        }
+
+        // Modal Datepickers
+        function initModalDatepicker(pickerId, hiddenId) {
+            $('#' + pickerId).datepicker({
+                format: 'd M yyyy', autoclose: true, language: 'th-th', thaiyear: true, 
+                todayBtn: 'linked', todayHighlight: true, zIndexOffset: 1060
+            }).on('changeDate', function(e) {
+                if (e.date) {
+                    var d = e.date, y = d.getFullYear(), m = ('0'+(d.getMonth()+1)).slice(-2), day = ('0'+d.getDate()).slice(-2);
+                    $(hiddenId).val(y + '-' + m + '-' + day);
+                }
+            });
+        }
+        initModalDatepicker('modal_charge_date_picker', '#modal_charge_date');
+        initModalDatepicker('modal_receive_date_picker', '#modal_receive_date');
+        initModalDatepicker('modal_adj_date_picker', '#modal_adj_date');
+
+        // Edit Handler
+        $(document).on('click', '.btn-edit-debtor', function() {
+            var d = $(this).data();
+            $('#debtorModalForm').attr('action', $(this).attr('data-update-url'));
+            $('#modal_vn').text(d.vn);
+            $('#modal_ptname').text(d.ptname);
+            
+            var balEl = $('#modal_balance'), raw = parseFloat(d.balanceRaw);
+            balEl.text(d.balance + ' บาท').css('color', raw < -0.01 ? 'red' : (raw > 0.01 ? 'green' : 'black'));
+            
+            function modalSetPicker(pId, hId, val) {
+                $(hId).val(val || '');
+                if(val && val !== '0000-00-00') {
+                    var p = val.split('-');
+                    $(pId).val('').datepicker('setDate', new Date(p[0], p[1]-1, p[2]));
+                } else { $(pId).val(''); }
+            }
+            modalSetPicker('#modal_charge_date_picker', '#modal_charge_date', d.chargeDate);
+            $('#modal_charge_no').val(d.chargeNo || '');
+            $('#modal_charge').val(d.charge || '');
+            $('#modal_status').val(d.status || 'ยืนยันลูกหนี้');
+            modalSetPicker('#modal_receive_date_picker', '#modal_receive_date', d.receiveDate);
+            $('#modal_receive_no').val(d.receiveNo || '');
+            $('#modal_receive').val(d.receive || '');
+            $('#modal_repno').val(d.repno || '');
+            $('#modal_adj_inc').val(d.adjInc || 0);
+            $('#modal_adj_dec').val(d.adjDec || 0);
+            modalSetPicker('#modal_adj_date_picker', '#modal_adj_date', d.adjDate);
+            $('#modal_adj_note').val(d.adjNote || '');
+            
+            new bootstrap.Modal($('#debtorModal')[0]).show();
+        });
+
+        // 🟢 LOAD DATA
+        loadTab2();
     });
-});
 </script>
 @endpush
+

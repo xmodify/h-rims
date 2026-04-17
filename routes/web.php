@@ -249,7 +249,6 @@ Route::get('debtor/dashboard_data', [DebtorController::class, 'get_dashboard_dat
 Route::get('debtor/get_budget_years', [DebtorController::class, 'get_budget_years']);
 Route::get('debtor/1102050101_103_indiv_excel', [DebtorController::class, '_1102050101_103_indiv_excel']);
 Route::match(['get', 'post'], 'debtor/1102050101_109', [DebtorController::class, '_1102050101_109']);
-Route::get('debtor/1102050101_109_counts_ajax', [DebtorController::class, '_1102050101_109_counts_ajax']);
 Route::get('debtor/1102050101_109_search_ajax', [DebtorController::class, '_1102050101_109_search_ajax']);
 Route::post('debtor/1102050101_109_confirm', [DebtorController::class, '_1102050101_109_confirm']);
 Route::delete('debtor/1102050101_109_delete', [DebtorController::class, '_1102050101_109_delete']);

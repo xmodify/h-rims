@@ -1726,36 +1726,42 @@ class DebtorController extends Controller
 
         $debtor = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,
-                o.vstdate,o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,IFNULL(inc.income,0) AS income,
-                IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(ch.other_price,0) AS other,IFNULL(ch.ppfs_price,0) AS ppfs,
-                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)- IFNULL(ch.ppfs_price,0) AS debtor,
-                ch.other_list,ch.ppfs_list,"ยืนยันลูกหนี้" AS status  
+                o.vstdate,o.vsttime,p.`name` AS pttype,vp.hospmain,p.hipdata_code,v.pdx,
+                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
+                IFNULL(inc.other_price,0) AS other, IFNULL(inc.ppfs_price,0) AS ppfs,
+                IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(inc.other_price,0)- IFNULL(inc.ppfs_price,0) AS debtor,
+                inc.other_list, inc.ppfs_list, "ยืนยันลูกหนี้" AS status  
             FROM ovst o  
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn        
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
             LEFT JOIN pttype p ON p.pttype = vp.pttype
-            LEFT JOIN (SELECT op.vn, op.pttype,SUM(op.sum_price) AS income
-                FROM opitemrece op
+            LEFT JOIN (
+                SELECT op.vn, 
+                       SUM(CASE WHEN op.pttype = os.pttype THEN op.sum_price ELSE 0 END) AS income,
+                       SUM(CASE WHEN (li.ppfs IS NULL OR li.ppfs = "") AND li.icode IS NOT NULL THEN op.sum_price ELSE 0 END) AS other_price,
+                       SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
+                       GROUP_CONCAT(DISTINCT CASE WHEN (li.ppfs IS NULL OR li.ppfs = "") AND li.icode IS NOT NULL THEN sd.`name` END) AS other_list,
+                       GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
+                FROM opitemrece op 
+                INNER JOIN ovst os ON os.vn = op.vn
+                LEFT JOIN hrims.lookup_icode li ON op.icode = li.icode  
+                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
                 WHERE op.vstdate BETWEEN ? AND ? 
-                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn,SUM( r.total_amount ) AS rcpt_money,
-                GROUP_CONCAT( r.rcpno ORDER BY r.rcpno ) AS rcpno 
+                GROUP BY op.vn
+            ) inc ON inc.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
+                GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
-                GROUP BY r.vn) rc ON rc.vn = o.vn
-            LEFT JOIN (SELECT op.vn,SUM(CASE WHEN li.ppfs IS NULL OR li.ppfs = "" THEN op.sum_price ELSE 0 END) AS other_price,
-                SUM( CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
-                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs IS NULL OR li.ppfs = "" THEN sd.`name` END) AS other_list,
-                GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
-                FROM opitemrece op 
-                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode  
-                LEFT JOIN s_drugitems sd ON sd.icode = op.icode
-                WHERE op.vstdate BETWEEN ? AND ? GROUP BY op.vn) ch ON ch.vn = o.vn
+                AND r.vstdate BETWEEN ? AND ?
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
             WHERE (o.an IS NULL OR o.an = "")
             AND o.vstdate BETWEEN ? AND ?
-            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(ch.other_price,0)) > 0
+            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(inc.other_price,0)) > 0
             AND p.hipdata_code IN ("UCS","WEL")
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
             AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")

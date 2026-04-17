@@ -59,13 +59,15 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span id="badge-tab1" class="text-success fw-bold ms-2">{{ count($debtor) }}</span>
+                        <span id="badge-tab1" class="text-success fw-bold ms-2">{{ number_format($count_tab1) }}</span>
                     </button>
                 </li>       
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab" onclick="loadTab2()">
+                    <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab">
                         <i class="bi bi-clock-history me-1"></i> <span>รอยืนยันลูกหนี้</span>
-                        <span id="badge-tab2" class="text-warning fw-bold ms-2">0</span>
+                        <span id="badge-tab2" class="text-warning fw-bold ms-2">
+                             <span class="spinner-border spinner-border-sm" role="status"></span>
+                        </span>
                     </button>
                 </li>
             </ul>
@@ -605,38 +607,12 @@ $(document).ready(function() {
         });
     }
 
-    // Auto-load background data
-    loadCounts(); 
-    setInterval(loadCounts, 60000); 
-
-    // Load Tab 2 on Click
-    let tab2Loaded = false;
-    $('[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
-        const targetId = $(e.currentTarget).data('bs-target') || $(e.currentTarget).attr('href');
-        if (targetId === '#confirm-pane') {
-            if (!tab2Loaded) {
-                tab2Loaded = true;
-                loadTab2();
-            }
-        }
-    });
-
-    window.refreshTab2 = function() { tab2Loaded = true; loadTab2(); };
+    // Auto-load background
+    loadTab2();
 });
 
-function loadCounts() {
-    $('#badge-tab2').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
-    $.ajax({
-        url: "{{ url('debtor/1102050101_103_counts_ajax') }}",
-        data: { start_date: $('#start_date').val(), end_date: $('#end_date').val() },
-        success: function(res) {
-            $('#badge-tab2').text(res.tab2).removeClass('badge bg-warning text-white').addClass('text-warning fw-bold');
-        }
-    });
-}
-
 function loadTab2() {
-    if (!$('#debtor_search_table').hasClass('d-none')) return;
+    $('#badge-tab2').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
     $('#empty-tab2').addClass('d-none');
     $('#loading-tab2').removeClass('d-none');
     
@@ -646,7 +622,7 @@ function loadTab2() {
         success: function(res) {
             $('#loading-tab2').addClass('d-none');
             $('#debtor_search_table').removeClass('d-none');
-            $('#badge-tab2').text(res.length);
+            $('#badge-tab2').text(res.length).removeClass('badge bg-warning text-white').addClass('text-warning fw-bold');
             
             let html = '';
             let s_inc = 0, s_rcpt = 0, s_debt = 0;

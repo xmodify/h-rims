@@ -1058,7 +1058,6 @@ class DebtorController extends Controller
         $search = $request->search ?: Session::get('search');
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
 
-
         $debtor = Debtor_1102050101_103::select('*', DB::raw('receive AS receive_manual'), DB::raw('repno AS repno_manual'))->whereBetween('vstdate', [$start_date, $end_date])
             ->where(function ($query) use ($search) {
                 $query->where('ptname', 'like', '%' . $search . '%');
@@ -1067,7 +1066,8 @@ class DebtorController extends Controller
             ->orderBy('vstdate')
             ->get()
             ->map(function ($item) {
-                if (($item->receive + ($item->adj_inc ?? 0) - ($item->adj_dec ?? 0) - $item->debtor) >= -0.01) {
+                $item->balance = $item->receive + ($item->adj_inc ?? 0) - ($item->adj_dec ?? 0) - $item->debtor;
+                if ($item->balance >= -0.01) {
                     $item->days = 0; // เช็คก่อนว่ารับแล้วหรือยัง
                 } else {
                     $item->days = Carbon::parse($item->vstdate)->diffInDays(Carbon::today());
@@ -1076,41 +1076,18 @@ class DebtorController extends Controller
             });
 
         $debtor_search = [];
+        $count_tab1 = count($debtor);
 
         $request->session()->put('start_date', $start_date);
         $request->session()->put('end_date', $end_date);
         $request->session()->put('search', $search);
-        $request->session()->put('debtor', $debtor);
+        // REMOVED session('debtor') TO PREVENT BLOAT
         $request->session()->save();
 
-        return view('debtor.1102050101_103', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
+        return view('debtor.1102050101_103', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'count_tab1'));
     }
 
-    //_1102050101_103_counts_ajax-------------------------------------------------------------------------------------------------------
-    public function _1102050101_103_counts_ajax(Request $request)
-    {
-        $start_date = $request->start_date;
-        $end_date = $request->end_date;
-        $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
 
-        $data = DB::connection('hosxp')->select('
-            SELECT COUNT(DISTINCT o.vn) as count2
-            FROM ovst o    
-            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
-            LEFT JOIN (SELECT op.vn,op.pttype,SUM(op.sum_price) AS income
-                FROM opitemrece op WHERE op.vstdate BETWEEN ? AND ?
-                GROUP BY op.vn, op.pttype) inc ON inc.vn = o.vn AND inc.pttype = vp.pttype
-            LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE a.rcpno IS NULL GROUP BY r.vn) rc ON rc.vn = o.vn
-            WHERE (o.an IS NULL OR o.an = "") 
-            AND o.vstdate BETWEEN ? AND ?
-            AND (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) > 0
-            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_103 WHERE vn IS NOT NULL)
-            AND vp.pttype IN (' . $pttype_checkup . ')', [$start_date, $end_date, $start_date, $end_date]);
-
-        return response()->json([
-            'tab2' => $data[0]->count2 ?? 0
-        ]);
-    }
 
     //_1102050101_103_search_ajax-------------------------------------------------------------------------------------------------------
     public function _1102050101_103_search_ajax(Request $request)
@@ -1306,7 +1283,24 @@ class DebtorController extends Controller
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
-        $debtor = Session::get('debtor');
+        $search = Session::get('search');
+
+        $debtor = Debtor_1102050101_103::select('*', DB::raw('receive AS receive_manual'), DB::raw('repno AS repno_manual'))->whereBetween('vstdate', [$start_date, $end_date])
+            ->where(function ($query) use ($search) {
+                $query->where('ptname', 'like', '%' . $search . '%');
+                $query->orwhere('hn', 'like', '%' . $search . '%');
+            })
+            ->orderBy('vstdate')
+            ->get()
+            ->map(function ($item) {
+                $item->balance = $item->receive + ($item->adj_inc ?? 0) - ($item->adj_dec ?? 0) - $item->debtor;
+                if ($item->balance >= -0.01) {
+                    $item->days = 0;
+                } else {
+                    $item->days = Carbon::parse($item->vstdate)->diffInDays(Carbon::today());
+                }
+                return $item;
+            });
 
         return view('debtor.1102050101_103_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
@@ -1756,7 +1750,6 @@ class DebtorController extends Controller
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
-                AND r.vstdate BETWEEN ? AND ?
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
             WHERE (o.an IS NULL OR o.an = "")
@@ -1768,7 +1761,7 @@ class DebtorController extends Controller
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_201 WHERE vn IS NOT NULL)
             AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype 
-            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date]);
 
         foreach ($debtor as $row) {
             Debtor_1102050101_201::insert([

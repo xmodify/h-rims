@@ -70,7 +70,7 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span class="ms-2 fw-bold text-success" id="badge-tab1"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
+                        <span class="ms-2 fw-bold text-success" id="badge-tab1">{{ number_format($count_tab1, 0) }}</span>
                     </button>
                 </li>       
                 <li class="nav-item" role="presentation">
@@ -141,6 +141,7 @@
                         <th class="text-center text-primary">Lock</th>                                       
                     </tr>
                     </thead>
+                    <tbody>
                     <?php $count = 1 ; ?>
                     <?php 
                         $sum_income = 0 ; $sum_rcpt_money = 0 ; $sum_other = 0 ; $sum_ppfs = 0 ; 
@@ -225,7 +226,7 @@
                     <?php $s_adj_dec += ($row->adj_dec ?? 0) ; ?>
                     <?php $s_balance += $balance ; ?>
                     @endforeach 
-                    </tr>   
+                    </tbody>
                     
                     <tfoot>
                         <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
@@ -723,9 +724,13 @@ $(document).ready(function() {
     var tab2Loaded = false;
     var dtSearchInstance = null;
 
+    function number_format(number, decimals) {
+        if (number === null || isNaN(number)) return '0.00';
+        return new Intl.NumberFormat('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(number);
+    }
+
     function formatNumber(num) {
-        if (!num) return '0.00';
-        return parseFloat(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return number_format(num, 2);
     }
 
     function formThaiDate(dateStr) {
@@ -751,73 +756,81 @@ $(document).ready(function() {
             start_date: start_date_val,
             end_date: end_date_val
         }, function(data) {
-            $('#loading-tab2').addClass('d-none');
-            $(tableId).removeClass('d-none');
+            try {
+                var count = (data && data.length) ? data.length : 0;
+                $('#badge-tab2').text(number_format(count, 0));
+                
+                if (dtSearchInstance) {
+                    dtSearchInstance.destroy();
+                }
+                body.empty();
 
-            if (dtSearchInstance) {
-                dtSearchInstance.destroy();
-            }
-            body.empty();
+                let sum_income = 0, sum_rcpt = 0, sum_other = 0, sum_ppfs = 0, sum_debtor = 0;
 
-            let sum_income = 0, sum_rcpt = 0, sum_other = 0, sum_ppfs = 0, sum_debtor = 0;
+                if (!data || data.length === 0) {
+                    body.html('<tr><td colspan="13" class="text-center py-3">ไม่พบข้อมูล</td></tr>');
+                } else {
+                    data.forEach(function(row) {
+                        sum_income += parseFloat(row.income || 0);
+                        sum_rcpt += parseFloat(row.rcpt_money || 0);
+                        sum_other += parseFloat(row.other || 0);
+                        sum_ppfs += parseFloat(row.ppfs || 0);
+                        sum_debtor += parseFloat(row.debtor || 0);
 
-            if (data.length === 0) {
-                body.html('<tr><td colspan="13" class="text-center py-3">ไม่พบข้อมูล</td></tr>');
-            } else {
-                data.forEach(function(row) {
-                    sum_income += parseFloat(row.income || 0);
-                    sum_rcpt += parseFloat(row.rcpt_money || 0);
-                    sum_other += parseFloat(row.other || 0);
-                    sum_ppfs += parseFloat(row.ppfs || 0);
-                    sum_debtor += parseFloat(row.debtor || 0);
+                        const tr = `<tr>
+                            <td class="text-center"><input type="checkbox" name="checkbox[]" value="${row.vn}"></td>
+                            <td align="right" class="text-nowrap">${formThaiDate(row.vstdate)} ${row.vsttime || ''}</td>
+                            <td align="center">${row.hn || ''}</td>
+                            <td align="left">${row.ptname || ''}</td>
+                            <td align="left">${row.pttype || ''} [${row.hospmain || ''}]</td>
+                            <td align="right">${row.pdx || ''}</td>
+                            <td align="right">${formatNumber(row.income)}</td>
+                            <td align="right">${formatNumber(row.rcpt_money)}</td>
+                            <td align="right">${formatNumber(row.other)}</td>
+                            <td align="right">${formatNumber(row.ppfs)}</td>
+                            <td align="right" class="text-primary fw-bold">${formatNumber(row.debtor)}</td>
+                            <td align="left" width="15%">${row.other_list || ''}</td>
+                            <td align="left" width="15%">${row.ppfs_list || ''}</td>
+                        </tr>`;
+                        body.append(tr);
+                    });
+                }
 
-                    const tr = `<tr>
-                        <td class="text-center"><input type="checkbox" name="checkbox[]" value="${row.vn}"></td>
-                        <td align="right" class="text-nowrap">${formThaiDate(row.vstdate)} ${row.vsttime || ''}</td>
-                        <td align="center">${row.hn || ''}</td>
-                        <td align="left">${row.ptname || ''}</td>
-                        <td align="left">${row.pttype || ''} [${row.hospmain || ''}]</td>
-                        <td align="right">${row.pdx || ''}</td>
-                        <td align="right">${formatNumber(row.income)}</td>
-                        <td align="right">${formatNumber(row.rcpt_money)}</td>
-                        <td align="right">${formatNumber(row.other)}</td>
-                        <td align="right">${formatNumber(row.ppfs)}</td>
-                        <td align="right" class="text-primary fw-bold">${formatNumber(row.debtor)}</td>
-                        <td align="left" width="15%">${row.other_list || ''}</td>
-                        <td align="left" width="15%">${row.ppfs_list || ''}</td>
-                    </tr>`;
-                    body.append(tr);
-                });
-            }
+                $('#sum-income-search').text(formatNumber(sum_income));
+                $('#sum-rcpt-search').text(formatNumber(sum_rcpt));
+                $('#sum-other-search').text(formatNumber(sum_other));
+                $('#sum-ppfs-search').text(formatNumber(sum_ppfs));
+                $('#sum-debtor-search').text(formatNumber(sum_debtor));
 
-            $('#sum-income-search').text(formatNumber(sum_income));
-            $('#sum-rcpt-search').text(formatNumber(sum_rcpt));
-            $('#sum-other-search').text(formatNumber(sum_other));
-            $('#sum-ppfs-search').text(formatNumber(sum_ppfs));
-            $('#sum-debtor-search').text(formatNumber(sum_debtor));
-
-            if (data.length > 0) {
-                dtSearchInstance = $(tableId).DataTable({
-                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-                    buttons: [
-                        {
-                            extend: 'excelHtml5',
-                            text: 'Excel',
-                            className: 'btn btn-success btn-sm',
-                            title: '1102050101.301-ลูกหนี้ค่ารักษา ประกันสังคม OP-เครือข่าย รอยืนยัน วันที่ ' + start_date_val + ' ถึง ' + end_date_val
+                if (data && data.length > 0) {
+                    dtSearchInstance = $(tableId).DataTable({
+                        dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                        buttons: [
+                            {
+                                extend: 'excelHtml5',
+                                text: 'Excel',
+                                className: 'btn btn-success btn-sm',
+                                title: '1102050101.301-ลูกหนี้ค่ารักษา ประกันสังคม OP-เครือข่าย รอยืนยัน วันที่ ' + start_date_val + ' ถึง ' + end_date_val
+                            }
+                        ],
+                        language: {
+                            search: 'ค้นหา:',
+                            lengthMenu: 'แสดง _MENU_ รายการ',
+                            info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
+                            paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
                         }
-                    ],
-                    language: {
-                        search: 'ค้นหา:',
-                        lengthMenu: 'แสดง _MENU_ รายการ',
-                        info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
-                        paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
-                    }
-                });
+                    });
+                }
+            } catch (e) {
+                console.error("Tab 2 Render Error:", e);
+            } finally {
+                $('#loading-tab2').addClass('d-none');
+                $(tableId).removeClass('d-none');
             }
         }).fail(function() {
             $('#loading-tab2').addClass('d-none');
             $('#empty-tab2').removeClass('d-none');
+            $('#badge-tab2').text('0');
             Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูล HOSxP ได้', 'error');
         });
     }
@@ -828,26 +841,9 @@ $(document).ready(function() {
         }
     });
 
-    window.refreshTab2 = function() { tab2Loaded = false; loadTab2(); };
+    window.refreshTab2 = function() { dtSearchInstance = null; loadTab2(); };
 
-    function loadCounts() {
-        var searchVal = $('#search').val();
-         $.ajax({
-            url: "{{ url('debtor/1102050101_301_counts_ajax') }}",
-            type: "GET",
-            data: { start_date: start_date_val, end_date: end_date_val, search: searchVal },
-            success: function(res) {
-                $('#badge-tab1').text(res.tab1);
-                $('#badge-tab2').text(res.tab2);
-            },
-            error: function() {
-                $('#badge-tab1').text('-');
-                $('#badge-tab2').text('-');
-            }
-        });
-    }
-    loadCounts();
-    setInterval(loadCounts, 60000);
+    loadTab2();
 
     // 5. DataTable for AE table
     if ($('#debtor_search_ae').length) {

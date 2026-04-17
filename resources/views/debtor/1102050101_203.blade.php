@@ -73,7 +73,7 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span id="badge-tab1" class="text-success fw-bold ms-2"><span class="spinner-border spinner-border-sm" role="status"></span></span>
+                        <span id="badge-tab1" class="text-success fw-bold ms-2">{{ number_format($count_tab1) }}</span>
                     </button>
                 </li>       
                 <li class="nav-item" role="presentation">
@@ -670,16 +670,6 @@ $(document).ready(function() {
     // 2. Global Data
     let tab2Data = [];
 
-    // 3. Load Counts
-    function loadCounts() {
-        $.get("{{ url('debtor/1102050101_203_counts_ajax') }}", {
-            start_date: '{{ $start_date }}',
-            end_date: '{{ $end_date }}'
-        }, function(res) {
-            $('#badge-tab1').text(res.tab1).removeClass('badge bg-success text-white').addClass('text-success fw-bold');
-            $('#badge-tab2').text(res.tab2).removeClass('badge bg-warning text-white').addClass('text-warning fw-bold');
-        });
-    }
 
     // 4. Load Tab 2 Data
     function loadTab2() {
@@ -697,6 +687,8 @@ $(document).ready(function() {
         }, function(data) {
             $('#loading-tab2').addClass('d-none');
             $(tableId).removeClass('d-none');
+
+            $('#badge-tab2').text(data.length);
 
             tab2Data = data;
             let htmlRows = '';
@@ -797,18 +789,12 @@ $(document).ready(function() {
         });
     }
 
-    loadCounts();
-    setInterval(loadCounts, 60000); 
+    loadTab2();
 
-    let tab2Loaded = false;
+    // Tab switching logic (already handled by automatic load on ready)
     $('[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
         const targetId = $(e.currentTarget).data('bs-target') || $(e.currentTarget).attr('href');
-        if (targetId === '#confirm-pane') {
-            if (!tab2Loaded) {
-                tab2Loaded = true;
-                loadTab2();
-            }
-        }
+        // If we needed to reload on tab switch, we'd do it here
     });
     window.refreshTab2 = function() { tab2Loaded = false; loadTab2(); };
     window.loadTab2 = loadTab2;

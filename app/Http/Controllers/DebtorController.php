@@ -2031,60 +2031,17 @@ class DebtorController extends Controller
         }
 
         $debtor_search = [];
+        $count_tab1 = count($debtor);
 
         $request->session()->put('start_date', $start_date);
         $request->session()->put('end_date', $end_date);
         $request->session()->put('search', $search);
-        $request->session()->put('debtor', $debtor);
+        // REMOVED session('debtor') TO PREVENT BLOAT
         $request->session()->save();
 
-        return view('debtor.1102050101_203', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
+        return view('debtor.1102050101_203', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'count_tab1'));
     }
 
-    public function _1102050101_203_counts_ajax(Request $request)
-    {
-        $start_date = $request->start_date;
-        $end_date = $request->end_date;
-
-        $count_tab1 = \App\Models\Debtor_1102050101_203::whereBetween('vstdate', [$start_date, $end_date])->count();
-
-        $debtor_search = DB::connection('hosxp')->select('
-            SELECT COUNT(DISTINCT o.vn) as count
-            FROM ovst o  
-            LEFT JOIN vn_stat v ON v.vn = o.vn        
-            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
-            LEFT JOIN pttype p ON p.pttype = vp.pttype
-            LEFT JOIN (
-                SELECT op.vn, 
-                       SUM(CASE WHEN op.pttype = os.pttype THEN op.sum_price ELSE 0 END) AS income,
-                       SUM(CASE WHEN (li.ppfs IS NULL OR li.ppfs = "") AND li.icode IS NOT NULL THEN op.sum_price ELSE 0 END) AS other_price
-                FROM opitemrece op 
-                INNER JOIN ovst os ON os.vn = op.vn
-                LEFT JOIN hrims.lookup_icode li ON op.icode = li.icode  
-                WHERE op.vstdate BETWEEN ? AND ? 
-                GROUP BY op.vn
-            ) inc ON inc.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
-            WHERE (o.an IS NULL OR o.an = "")
-            AND o.vstdate BETWEEN ? AND ?
-            AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(inc.other_price,0)) > 0
-            AND p.hipdata_code IN ("UCS","WEL")
-            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs ="")) 
-            AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
-            AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_203 WHERE vn IS NOT NULL)
-        ', [$start_date, $end_date, $start_date, $end_date]);
-
-        return response()->json([
-            'tab1' => $count_tab1,
-            'tab2' => $debtor_search[0]->count ?? 0
-        ]);
-    }
 
     public function _1102050101_203_search_ajax(Request $request)
     {
@@ -2304,7 +2261,34 @@ class DebtorController extends Controller
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
-        $debtor = Session::get('debtor');
+        $search = Session::get('search');
+
+        if ($search) {
+            $debtor = DB::select('
+                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge,d.charge_date,d.charge_no,d.receive,d.receive_date,
+					d.receive_no,d.repno,s.receive_pp,s.repno AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date,
+                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
+                    ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
+                FROM debtor_1102050101_203 d   
+                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
+                    FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
+                    AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
+                WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%"))
+                AND d.vstdate BETWEEN ? AND ?', [$search, $search, $start_date, $end_date]);
+        } else {
+            $debtor = DB::select('
+                SELECT d.vn,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
+                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge,d.charge_date,d.charge_no,d.receive,d.receive_date,
+					d.receive_no,d.repno,s.receive_pp,s.repno AS repno_pp,d.status,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date,
+                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 THEN 0 
+                    ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
+                FROM debtor_1102050101_203 d   
+                LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
+                    FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
+                    AND s.vstdate = d.vstdate AND s.vsttime5 = LEFT(d.vsttime,5)
+                WHERE d.vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
+        }
 
         return view('debtor.1102050101_203_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }

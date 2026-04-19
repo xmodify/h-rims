@@ -76,7 +76,7 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab" onclick="loadTab1()">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span class="ms-2 fw-bold text-success" id="badge-tab1"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
+                        <span class="ms-2 fw-bold text-success" id="badge-tab1">{{ number_format($count_tab1, 0) }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -746,6 +746,7 @@ $(document).ready(function() {
                 $('#sum_rcpt_money_search').text(formatNumber(sum_rcpt_money));
                 $('#sum_kidney_search').text(formatNumber(sum_kidney));
                 $('#sum_debtor_search').text(formatNumber(sum_debtor));
+                $('#badge-tab2').text(formatNumber_zero(data.length));
             }
 
             if (data.length > 0) {
@@ -834,6 +835,7 @@ $(document).ready(function() {
                 $('#sum_rcpt_money_search_ae').text(formatNumber(sum_rcpt_money));
                 $('#sum_other_search_ae').text(formatNumber(sum_other));
                 $('#sum_debtor_search_ae').text(formatNumber(sum_debtor));
+                $('#badge-tab3').text(formatNumber_zero(data.length));
             }
 
             if (data.length > 0) {
@@ -873,30 +875,20 @@ $(document).ready(function() {
         }
     });
 
-    function loadCounts() {
-        $('#badge-tab1').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
-        $('#badge-tab2').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
-        $('#badge-tab3').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+    function formatNumber_zero(num) {
+        return parseFloat(num).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
 
-        var searchVal = $('#search').val();
-         $.ajax({
-            url: "{{ url('debtor/1102050101_309_counts_ajax') }}",
-            type: "GET",
-            data: { start_date: start_date_val, end_date: end_date_val, search: searchVal },
-            success: function(res) {
-                $('#badge-tab1').text(res.tab1 || '0');
-                $('#badge-tab2').text(res.tab2 || '0');
-                $('#badge-tab3').text(res.tab3 || '0');
-            },
-            error: function() {
-                $('#badge-tab1').text('0');
-                $('#badge-tab2').text('0');
-                $('#badge-tab3').text('0');
-            }
+    // Load counts for background tabs on startup
+    function loadInitialCounts() {
+        $.get("{{ url('debtor/1102050101_309_search_ajax') }}", { start_date: start_date_val, end_date: end_date_val }, function(val) {
+            $('#badge-tab2').text(formatNumber_zero(val.length));
+        });
+        $.get("{{ url('debtor/1102050101_309_search_ae_ajax') }}", { start_date: start_date_val, end_date: end_date_val }, function(val) {
+            $('#badge-tab3').text(formatNumber_zero(val.length));
         });
     }
-    loadCounts();
-    setInterval(loadCounts, 60000);
+    loadInitialCounts();
 });
 </script>
 

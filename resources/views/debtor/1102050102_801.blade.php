@@ -68,7 +68,7 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab" onclick="loadTab1()">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span class="ms-2 fw-bold text-success" id="badge-tab1"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
+                        <span class="ms-2 fw-bold text-success" id="badge-tab1">{{ number_format($count_tab1) }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -736,6 +736,9 @@ $(document).ready(function() {
                 $('#sum_debtor_search').text(formatNumber(sum_debtor));
             }
 
+            // Update badge for Tab 2 (always update to clear spinner)
+            $('#badge-tab2').text(data.length);
+
             if (data.length > 0) {
                 dtSearchInstance = $(tableId).DataTable({
                     dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
@@ -769,68 +772,9 @@ $(document).ready(function() {
         }
     });
 
-    function loadCounts() {
-        const start_date = start_date_val;
-        const end_date = end_date_val;
-        
-        // Show markers
-        $('#badge-tab1').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
-        $('#badge-tab2').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+    // 5. Eager Background Load for Tab 2
+    loadTab2();
 
-        $.get("{{ url('debtor/1102050102_801_counts_ajax') }}", { start_date, end_date }, function(res) {
-            $('#badge-tab1').text(res.tab1 || '0');
-            $('#badge-tab2').text(res.tab2 || '0');
-        });
-    }
-
-    // Initialize counts
-    loadCounts();
-
-    $('button[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
-        if ($(e.target).attr("id") === 'confirm-tab') {
-            loadTab2();
-        }
-    });
-
-    function loadCounts() {
-        var searchVal = $('#search').val();
-         $.ajax({
-            url: "{{ url('debtor/1102050102_801_counts_ajax') }}",
-            type: "GET",
-            data: { start_date: start_date_val, end_date: end_date_val, search: searchVal },
-            success: function(res) {
-                $('#badge-tab1').text(res.tab1);
-                $('#badge-tab2').text(res.tab2);
-            },
-            error: function() {
-                $('#badge-tab1').text('-');
-                $('#badge-tab2').text('-');
-            }
-        });
-    }
-    loadCounts();
-    setInterval(loadCounts, 60000);
-
-    // 5. DataTable for AE table
-    if ($('#debtor_search_ae').length) {
-        $('#debtor_search_ae').DataTable({
-            dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-            buttons: [
-                {
-                    extend: 'excelHtml5',
-                    text: 'Excel',
-                    className: 'btn btn-success btn-sm',
-                    title: '1102050102.801-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.OP รอยืนยัน AE/OP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
-                }
-            ],
-            language: {
-                search: 'ค้นหา:',
-                lengthMenu: 'แสดง _MENU_ รายการ',
-                info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
-                paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
-            }
-        });
-    }
 });
 </script>
 

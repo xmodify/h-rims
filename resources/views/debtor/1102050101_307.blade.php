@@ -76,7 +76,7 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab" onclick="loadTab1()">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span class="ms-2 fw-bold text-success" id="badge-tab1"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
+                        <span class="ms-2 fw-bold text-success" id="badge-tab1">{{ number_format($count_tab1, 0) }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -736,6 +736,7 @@ $(document).ready(function() {
             start_date: start_date_val,
             end_date: end_date_val
         }, function(data) {
+            $('#badge-tab2').text(data.length ? data.length.toLocaleString() : '0');
             $('#loading-tab2').addClass('d-none');
             $(tableId).removeClass('d-none');
 
@@ -828,6 +829,7 @@ $(document).ready(function() {
             start_date: start_date_val,
             end_date: end_date_val
         }, function(data) {
+            $('#badge-tab3').text(data.length ? data.length.toLocaleString() : '0');
             $('#loading-tab3').addClass('d-none');
             $(tableId).removeClass('d-none');
 
@@ -916,30 +918,9 @@ $(document).ready(function() {
         }
     });
 
-    function loadCounts() {
-        $('#badge-tab1').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
-        $('#badge-tab2').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
-        $('#badge-tab3').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
-
-        var searchVal = $('#search').val();
-         $.ajax({
-            url: "{{ url('debtor/1102050101_307_counts_ajax') }}",
-            type: "GET",
-            data: { start_date: start_date_val, end_date: end_date_val, search: searchVal },
-            success: function(res) {
-                $('#badge-tab1').text(res.tab1 || '0');
-                $('#badge-tab2').text(res.tab2 || '0');
-                $('#badge-tab3').text(res.tab3 || '0');
-            },
-            error: function() {
-                $('#badge-tab1').text('0');
-                $('#badge-tab2').text('0');
-                $('#badge-tab3').text('0');
-            }
-        });
-    }
-    loadCounts();
-    setInterval(loadCounts, 60000);
+    // Load counts in background on page load
+    loadTab2();
+    loadTab3();
 });
 </script>
 

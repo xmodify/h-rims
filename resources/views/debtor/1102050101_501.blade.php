@@ -585,6 +585,7 @@ $(document).ready(function() {
     }
 
     // 4. DataTable for search/confirm table
+    var tab2Loaded = false;
     var dtSearchInstance = null;
 
     function formatNumber(num) {
@@ -603,10 +604,13 @@ $(document).ready(function() {
     }
 
     window.loadTab2 = function() {
+        if (tab2Loaded) return;
         const tableId = '#debtor_search';
-        // Removed class check to allow background load on startup
         
-        $('#badge-tab2').html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+        $('#empty-tab2').addClass('d-none');
+        $('#loading-tab2').removeClass('d-none');
+        
+        tab2Loaded = true;
 
         const body = $('#table2-body');
         const foot = $('#table2-foot');
@@ -616,8 +620,10 @@ $(document).ready(function() {
             end_date: end_date_val
         }, function(data) {
             $('#loading-tab2').addClass('d-none');
-            $('#empty-tab2').addClass('d-none');
             $(tableId).removeClass('d-none');
+            
+            // Update the badge count immediately
+            $('#badge-tab2').text(data.length.toLocaleString());
 
             if (dtSearchInstance) {
                 dtSearchInstance.destroy();
@@ -680,9 +686,11 @@ $(document).ready(function() {
                 });
             }
         }).fail(function() {
+            tab2Loaded = false;
             $('#loading-tab2').addClass('d-none');
             $('#empty-tab2').removeClass('d-none');
-            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูล HOSxP ได้', 'error');
+            $('#badge-tab2').html('<i class="bi bi-exclamation-circle text-danger"></i>');
+            Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูล HOSxP ได้ หรือเกิดข้อผิดพลาดในการโหลดข้อมูล', 'error');
         });
     };
 

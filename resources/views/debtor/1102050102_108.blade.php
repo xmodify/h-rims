@@ -680,11 +680,13 @@ $(document).ready(function() {
                     body.append(tr);
                 });
                 
-                // Update static tfoot IDs
-                $('#sum_income_search').text(formatNumber(sum_income));
-                $('#sum_paid_money_search').text(formatNumber(sum_rcpt_money));
-                $('#sum_other_search').text(formatNumber(sum_other));
                 $('#sum_debtor_search').text(formatNumber(sum_debtor));
+            }
+
+            // Update badge for Tab 2 (always update to clear spinner)
+            $badgeTab2 = $('#badge-tab2');
+            if ($badgeTab2.length) {
+                $badgeTab2.text(data.length);
             }
 
             if (data.length > 0) {

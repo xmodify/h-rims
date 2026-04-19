@@ -70,7 +70,7 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span id="badge-tab1" class="text-success fw-bold ms-2">{{ count($debtor) }}</span>
+                        <span id="badge-tab1" class="text-success fw-bold ms-2">{{ number_format($count_tab1) }}</span>
                     </button>
                 </li>       
                 <li class="nav-item" role="presentation">
@@ -811,18 +811,6 @@
         return parseFloat(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    function loadCounts() {
-        $.get("{{ url('debtor/1102050101_202_counts_ajax') }}", {
-            start_date: '{{ $start_date }}',
-            end_date: '{{ $end_date }}'
-        }, function(res) {
-            $('#badge-tab1').text(res.tab1 || 0).addClass('text-success fw-bold');
-            $('#badge-tab2').text(res.tab2 || 0).addClass('text-warning fw-bold');
-        }).fail(function() {
-            $('#badge-tab1').text('Error');
-            $('#badge-tab2').text('Error');
-        });
-    }
 
     function loadTab2() {
         if (tab2Loaded) return;
@@ -896,8 +884,10 @@
                 });
 
                 $('#table_202_ajax').removeClass('d-none');
+                $('#badge-tab2').text(res.length).addClass('text-warning fw-bold');
                 tab2Loaded = true;
             } else {
+                $('#badge-tab2').text('0').addClass('text-warning fw-bold');
                 $('#empty-tab2').removeClass('d-none').html('<i class="bi bi-info-circle fs-1 text-muted"></i><p class="mt-2 text-muted">ไม่พบข้อมูลรอยืนยันลูกหนี้ในช่วงวันที่นี้</p>');
             }
             $('#loading-tab2').addClass('d-none');
@@ -908,7 +898,7 @@
     }
 
     $(document).ready(function() {
-        loadCounts();
+        loadTab2();
     });
     </script>
 @endpush

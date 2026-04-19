@@ -394,7 +394,6 @@ Route::get('debtor/1102050102_106/tracking/{vn}', [DebtorController::class, '_11
 Route::post('debtor/1102050102_106/tracking_insert', [DebtorController::class, '_1102050102_106_tracking_insert']);
 Route::put('debtor/1102050102_106/tracking_update/{tracking_id}', [DebtorController::class, '_1102050102_106_tracking_update']);
 Route::match(['get', 'post'], 'debtor/1102050102_108', [DebtorController::class, '_1102050102_108']);
-Route::get('debtor/1102050102_108_counts_ajax', [DebtorController::class, '_1102050102_108_counts_ajax']);
 Route::get('debtor/1102050102_108_search_ajax', [DebtorController::class, '_1102050102_108_search_ajax']);
 Route::post('debtor/1102050102_108_confirm', [DebtorController::class, '_1102050102_108_confirm']);
 Route::delete('debtor/1102050102_108_delete', [DebtorController::class, '_1102050102_108_delete']);

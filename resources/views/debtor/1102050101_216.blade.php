@@ -897,13 +897,10 @@ $(document).ready(function() {
         });
     }
 
-    // Load background tabs sequentially to avoid hitting the DB too hard at once
+    // Trigger all background tabs in parallel immediately
     loadTab2();
-    $(document).ajaxStop(function() {
-        if (!_tab2Loaded) return; // Wait for tab 2
-        if (!_tab3Loaded) loadTab3();
-        else if (!_tab4Loaded) loadTab4();
-    });
+    loadTab3();
+    loadTab4();
 });
 </script>
 

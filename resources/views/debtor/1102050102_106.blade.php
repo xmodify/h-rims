@@ -76,7 +76,7 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span class="ms-2 fw-bold text-success">{{ count($debtor) }}</span>
+                        <span class="ms-2 fw-bold text-success" id="badge-tab1">{{ number_format($count_tab1) }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -683,31 +683,20 @@ $(document).ready(function() {
         });
     }
 
-    // Auto-load background data
-    loadCounts(); // Get numbers immediately
+    // Auto-load background data immediately (Eager Background Load)
+    loadTab2();
+    loadTab3();
     
-    // Performance: Lazy load secondary tabs when clicked
+    // Performance: Tab click still works but data will be already loaded
     $('button[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
         var targetId = $(e.target).attr("id");
-        if (targetId === 'pay-tab') { loadTab2(); }
-        else if (targetId === 'iclaim-tab') { loadTab3(); }
+        if (targetId === 'pay-tab') { if(!tab2Loaded) loadTab2(); }
+        else if (targetId === 'iclaim-tab') { if(!tab3Loaded) loadTab3(); }
     });
 });
 
-function loadCounts() {
-    // Show spinner in badges
-    $('#badge-tab2').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
-    $('#badge-tab3').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
-
-    $.ajax({
-        url: "{{ url('debtor/1102050102_106_counts_ajax') }}",
-        data: { start_date: $('#start_date').val(), end_date: $('#end_date').val() },
-        success: function(res) {
-            // Update labels with actual counts
-            $('#badge-tab2').text(res.tab2);
-            $('#badge-tab3').text(res.tab3);
-        }
-    });
+function loadInitialCounts() {
+    // OBSOLETE: Replaced by eager load of full data
 }
 </script>
 

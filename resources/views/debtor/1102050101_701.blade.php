@@ -651,6 +651,9 @@ $(document).ready(function() {
             $('#loading-tab2').addClass('d-none');
             $(tableId).removeClass('d-none');
 
+            // Update the badge count immediately
+            $('#badge-tab2').text(data.length.toLocaleString());
+
             if (dtSearchInstance) {
                 dtSearchInstance.destroy();
             }
@@ -726,20 +729,8 @@ $(document).ready(function() {
         });
     };
 
-    function loadInitialCounts() {
-        // Tab 1 is already loaded via PHP ($count_tab1)
-        
-        // Tab 2: HOSxP debtors (background)
-        $.get("{{ url('debtor/1102050101_701_search_ajax') }}", {
-            start_date: start_date_val,
-            end_date: end_date_val
-        }, function(data) {
-            $('#badge-tab2').text(data.length.toLocaleString());
-        }).fail(function() {
-            $('#badge-tab2').text('0');
-        });
-    }
-    loadInitialCounts();
+    // Trigger Tab 2 load immediately in background
+    loadTab2();
 });
 </script>
 

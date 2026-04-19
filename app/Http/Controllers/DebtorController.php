@@ -6412,13 +6412,15 @@ class DebtorController extends Controller
         $debtor_search = [];
         $debtor_search_iclaim = [];
 
+        $count_tab1 = count($debtor);
+
         $request->session()->put('start_date', $start_date);
         $request->session()->put('end_date', $end_date);
         $request->session()->put('search', $search);
-        $request->session()->put('debtor', $debtor);
+        // Removed session('debtor')
         $request->session()->save();
 
-        return view('debtor.1102050102_106', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'debtor_search_iclaim'));
+        return view('debtor.1102050102_106', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'debtor_search_iclaim', 'count_tab1'));
     }
 
     public function _1102050102_106_search_ajax(Request $request)
@@ -6489,42 +6491,6 @@ class DebtorController extends Controller
         return response()->json($data);
     }
 
-    public function _1102050102_106_counts_ajax(Request $request)
-    {
-        $start_date = $request->start_date;
-        $end_date = $request->end_date;
-        $pttype_iclaim = DB::table('main_setting')->where('name', 'pttype_iclaim')->value('value');
-
-        // Fast count for Tab 2
-        $count2 = DB::connection('hosxp')->table('ovst as o')
-            ->leftJoin('visit_pttype as vp', 'vp.vn', '=', 'o.vn')
-            ->leftJoin(DB::raw('(SELECT vn, SUM(CASE WHEN paidst IN ("00","01","03") THEN sum_price ELSE 0 END) as paid_money FROM opitemrece WHERE vstdate BETWEEN "'.$start_date.'" AND "'.$end_date.'" GROUP BY vn) inc'), 'inc.vn', '=', 'o.vn')
-            ->leftJoin(DB::raw('(SELECT r.vn, SUM(r.total_amount) as rcpt_money FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE a.rcpno IS NULL GROUP BY r.vn) rc'), 'rc.vn', '=', 'o.vn')
-            ->whereNull('o.an')
-            ->whereBetween('o.vstdate', [$start_date, $end_date])
-            ->where(DB::raw('IFNULL(inc.paid_money,0)'), '>', 0)
-            ->where(DB::raw('IFNULL(inc.paid_money,0) - IFNULL(rc.rcpt_money,0)'), '>', 0)
-            ->whereNotIn('o.vn', function($query) use ($start_date, $end_date) {
-                $query->select('vn')->from('hrims.debtor_1102050102_106')->whereBetween('vstdate', [$start_date, $end_date]);
-            })
-            ->count('o.vn');
-
-        // Fast count for Tab 3
-        $count3 = DB::connection('hosxp')->table('ovst as o')
-            ->leftJoin('visit_pttype as vp', 'vp.vn', '=', 'o.vn')
-            ->whereNull('o.an')
-            ->where('vp.pttype', $pttype_iclaim)
-            ->whereBetween('o.vstdate', [$start_date, $end_date])
-            ->whereNotIn('o.vn', function($query) use ($start_date, $end_date) {
-                $query->select('vn')->from('hrims.debtor_1102050102_106')->whereBetween('vstdate', [$start_date, $end_date]);
-            })
-            ->count('o.vn');
-
-        return response()->json([
-            'tab2' => $count2,
-            'tab3' => $count3
-        ]);
-    }
 
     //_1102050102_106_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050102_106_confirm(Request $request)
@@ -6758,7 +6724,28 @@ class DebtorController extends Controller
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
-        $debtor = Session::get('debtor');
+
+        $debtor = DB::connection('hosxp')->select("
+            SELECT d.vstdate,d.vsttime,d.hn,d.vn,d.cid,d.ptname,d.mobile_phone_number, d.pttype,d.hospmain,
+                d.pdx,d.income,d.paid_money,d.rcpt_money,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.debtor_lock, 
+                IF(r.total_amount IS NOT NULL, 'กระทบยอดแล้ว', d.status) AS status,
+                d.charge_date,d.charge_no,d.charge,d.receive_date, d.receive_no,  
+                IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.total_amount,0) - d.rcpt_money) AS receive,
+                d.adj_inc, d.adj_dec, d.adj_note, d.adj_date,
+                d.repno, r.rcpno, r.total_amount,IFNULL(t.visit,0) AS visit,
+                CASE WHEN (IF(d.receive IS NOT NULL AND d.receive > 0, d.receive, IFNULL(r.total_amount,0) - d.rcpt_money)
+                + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.05 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
+            FROM hrims.debtor_1102050102_106 d
+            LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS total_amount,
+                GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL   
+                GROUP BY r.vn) r ON r.vn = d.vn
+            LEFT JOIN (SELECT vn, COUNT(vn) AS visit  FROM hrims.debtor_1102050102_106_tracking
+                GROUP BY vn) t ON t.vn = d.vn
+            WHERE d.vstdate BETWEEN ? AND ?
+            ORDER BY d.vstdate", [$start_date, $end_date]);
 
         return view('debtor.1102050102_106_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
@@ -11654,6 +11641,20 @@ class DebtorController extends Controller
             ', [$start_date, $end_date]);
         }
 
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        // REMOVED session('debtor') TO PREVENT BLOAT
+        $request->session()->save();
+
+        return view('debtor.1102050102_109', compact('start_date', 'end_date', 'search', 'debtor'));
+    }
+
+    public function _1102050102_109_search_ajax(Request $request)
+    {
+        $start_date = $request->start_date ?: Session::get('start_date');
+        $end_date = $request->end_date ?: Session::get('end_date');
+
         $debtor_search = DB::connection('hosxp')->select(
             '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
@@ -11694,13 +11695,7 @@ class DebtorController extends Controller
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
-        $request->session()->put('start_date', $start_date);
-        $request->session()->put('end_date', $end_date);
-        $request->session()->put('search', $search);
-        $request->session()->put('debtor', $debtor);
-        $request->session()->save();
-
-        return view('debtor.1102050102_109', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
+        return response()->json($debtor_search);
     }
     //_1102050102_109_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050102_109_confirm(Request $request)

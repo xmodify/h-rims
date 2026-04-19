@@ -74,7 +74,7 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab">
                         <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้
-                        <span class="badge bg-warning-soft text-warning ms-2">{{ count($debtor_search) }}</span>
+                        <span class="badge bg-warning-soft text-warning ms-2" id="badge_tab2"><i class="fa fa-spinner fa-spin"></i></span>
                     </button>
                 </li>
             </ul>
@@ -276,30 +276,15 @@
                                 <th class="text-center">สถานะ</th> 
                             </tr>
                             </thead>
-                            <tbody>
-                            <?php $count = 1 ; ?>
-                            @foreach($debtor_search as $row)
-                            <tr>
-                                <td class="text-center"><input type="checkbox" name="checkbox[]" value="{{$row->an}}"></td> 
-                                <td align="left">{{$row->ward}}</td>
-                                <td align="center">{{ $row->hn }}</td>
-                                <td align="center">{{ $row->an }}</td>
-                                <td align="left">{{ $row->ptname }}</td>
-                                <td align="center">{{ $row->age_y }}</td>
-                                <td align="left" width ="8%">{{ $row->pttype }}</td>
-                                <td align="right" width ="6%">{{ DateThai($row->regdate) }}</td>
-                                <td align="right" width ="6%">{{ DateThai($row->dchdate) }}</td>
-                                <td align="right">{{ $row->pdx }}</td>      
-                                <td align="right">{{ $row->adjrw }}</td>                        
-                                <td align="right" width ="5%">{{ number_format($row->income,2) }}</td>
-                                <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
-                                <td align="right">{{ number_format($row->other,2) }}</td>
-                                <td align="right">{{ number_format($row->debtor,2) }}</td>
-                                <td align="left">{{ $row->other_list }}</td>
-                                <td align="left">{{ $row->ipt_coll_status_type_name }}</td>
-                            <?php $count++; ?>
-                            @endforeach 
-                            </tr> 
+                            <tbody id="debtor_search_body">
+                                <tr>
+                                    <td colspan="17" class="text-center py-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p class="mt-2 text-muted">กำลังโหลดข้อมูล...</p>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table></div>
                     </form>
@@ -636,24 +621,87 @@
                 }
             });
 
-            $('#debtor_search').DataTable({
-                dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-                buttons: [
-                    {
-                        extend: 'excelHtml5',
-                        text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
-                        className: 'btn btn-success btn-sm',
-                        title: '1102050102.109-ลูกหนี้ค่ารักษา เบิกต้นสังกัด IP รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+            loadTab2();
+        });
+
+        function loadTab2() {
+            var start_date = $('#start_date').val();
+            var end_date = $('#end_date').val();
+            
+            $.ajax({
+                url: "{{ url('debtor/1102050102_109_search_ajax') }}",
+                type: "GET",
+                data: { start_date: start_date, end_date: end_date },
+                success: function(data) {
+                    var html = '';
+                    var total_debtor = 0;
+                    
+                    if(data.length > 0) {
+                        data.forEach(function(row) {
+                            html += `
+                                <tr>
+                                    <td class="text-center"><input type="checkbox" name="checkbox[]" value="${row.an}"></td> 
+                                    <td align="left">${row.ward || ''}</td>
+                                    <td align="center">${row.hn}</td>
+                                    <td align="center">${row.an}</td>
+                                    <td align="left">${row.ptname}</td>
+                                    <td align="center">${row.age_y}</td>
+                                    <td align="left" width="8%">${row.pttype}</td>
+                                    <td align="right" width="6%">${DateThai(row.regdate)}</td>
+                                    <td align="right" width="6%">${DateThai(row.dchdate)}</td>
+                                    <td align="right">${row.pdx || ''}</td>      
+                                    <td align="right">${row.adjrw || '0.000'}</td>                        
+                                    <td align="right" width="5%">${parseFloat(row.income).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                    <td align="right">${parseFloat(row.rcpt_money).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                    <td align="right">${parseFloat(row.other).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                    <td align="right">${parseFloat(row.debtor).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                                    <td align="left">${row.other_list || ''}</td>
+                                    <td align="left">${row.ipt_coll_status_type_name || ''}</td>
+                                </tr>
+                            `;
+                        });
+                    } else {
+                        html = '<tr><td colspan="17" class="text-center">ไม่พบข้อมูล</td></tr>';
                     }
-                ],
-                language: {
-                    search: "ค้นหา:",
-                    lengthMenu: "แสดง _MENU_ รายการ",
-                    info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-                    paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                    
+                    $('#debtor_search_body').html(html);
+                    $('#badge_tab2').text(data.length);
+
+                    // Destroy old table if exists and re-initialize
+                    if ($.fn.DataTable.isDataTable('#debtor_search')) {
+                        $('#debtor_search').DataTable().destroy();
+                    }
+                    
+                    $('#debtor_search').DataTable({
+                        dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                        buttons: [
+                            {
+                                extend: 'excelHtml5',
+                                text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                                className: 'btn btn-success btn-sm',
+                                title: '1102050102.109-ลูกหนี้ค่ารักษา เบิกต้นสังกัด IP รอยืนยัน'
+                            }
+                        ],
+                        language: {
+                            search: "ค้นหา:",
+                            lengthMenu: "แสดง _MENU_ รายการ",
+                            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                            paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                        }
+                    });
                 }
             });
-        });
+        }
+
+        function DateThai(dateStr) {
+            if(!dateStr || dateStr === '0000-00-00') return '';
+            var d = new Date(dateStr);
+            var monthNames = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+            var date = d.getDate();
+            var month = monthNames[d.getMonth()];
+            var year = d.getFullYear() + 543;
+            return date + ' ' + month + ' ' + year;
+        }
     </script>
     <script id="single-modal-js">
     $(document).ready(function () {

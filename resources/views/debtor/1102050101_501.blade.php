@@ -604,10 +604,9 @@ $(document).ready(function() {
 
     window.loadTab2 = function() {
         const tableId = '#debtor_search';
-        if (!$(tableId).hasClass('d-none')) return;
+        // Removed class check to allow background load on startup
         
-        $('#empty-tab2').addClass('d-none');
-        $('#loading-tab2').removeClass('d-none');
+        $('#badge-tab2').html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
 
         const body = $('#table2-body');
         const foot = $('#table2-foot');
@@ -617,6 +616,7 @@ $(document).ready(function() {
             end_date: end_date_val
         }, function(data) {
             $('#loading-tab2').addClass('d-none');
+            $('#empty-tab2').addClass('d-none');
             $(tableId).removeClass('d-none');
 
             if (dtSearchInstance) {
@@ -686,26 +686,8 @@ $(document).ready(function() {
         });
     };
 
-    $('button[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
-        if ($(e.target).attr("id") === 'confirm-tab') {
-            loadTab2();
-        }
-    });
-
-    function loadInitialCounts() {
-        // Tab 1 is already loaded via PHP ($count_tab1)
-        
-        // Tab 2: NRH debtors (background)
-        $.get("{{ url('debtor/1102050101_501_search_ajax') }}", {
-            start_date: start_date_val,
-            end_date: end_date_val
-        }, function(data) {
-            $('#badge-tab2').text(data.length.toLocaleString());
-        }).fail(function() {
-            $('#badge-tab2').text('0');
-        });
-    }
-    loadInitialCounts();
+    // Background Loading
+    loadTab2();
 });
 </script>
 

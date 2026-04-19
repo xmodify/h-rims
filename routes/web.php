@@ -455,6 +455,7 @@ Route::post('debtor/1102050101_217/unlock/{an}', [DebtorController::class, '_110
 Route::post('debtor/1102050101_217/lock/{an}', [DebtorController::class, '_1102050101_217_lock']);
 Route::get('debtor/1102050101_217_indiv_excel', [DebtorController::class, '_1102050101_217_indiv_excel']);
 Route::match(['get', 'post'], 'debtor/1102050101_302', [DebtorController::class, '_1102050101_302']);
+Route::get('debtor/1102050101_302_search_ajax', [DebtorController::class, '_1102050101_302_search_ajax']);
 Route::post('debtor/1102050101_302_confirm', [DebtorController::class, '_1102050101_302_confirm']);
 Route::delete('debtor/1102050101_302_delete', [DebtorController::class, '_1102050101_302_delete']);
 Route::put('debtor/1102050101_302/update/{an}', [DebtorController::class, '_1102050101_302_update']);

@@ -66,13 +66,13 @@
         <div class="card-header bg-transparent border-0 pt-3 px-4 pb-0">
             <ul class="nav nav-tabs-modern" id="pills-tab" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
+                    <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab" onclick="loadTab1()">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span class="ms-2 fw-bold text-success" id="badge-tab1"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
+                        <span class="ms-2 fw-bold text-success" id="badge-tab1">{{ number_format($count_tab1) }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab">
+                    <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab" onclick="loadTab2()">
                         <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้
                         <span class="ms-2 fw-bold text-warning" id="badge-tab2"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
                     </button>
@@ -625,15 +625,25 @@ $(document).ready(function() {
         return parseInt(p[2]) + ' ' + mStr + ' ' + y;
     }
 
+    var tab1Loaded = false;
+    var tab2Loaded = false;
+
+    window.loadTab1 = function() {
+        if (tab1Loaded) return;
+        tab1Loaded = true;
+    };
+
     window.loadTab2 = function() {
-        const tableId = '#debtor_search';
-        if (!$(tableId).hasClass('d-none')) return;
+        if (tab2Loaded) return;
         
         $('#empty-tab2').addClass('d-none');
         $('#loading-tab2').removeClass('d-none');
 
+        tab2Loaded = true;
+
         const body = $('#table2-body');
         const foot = $('#table2-foot');
+        const tableId = '#debtor_search';
         
         $.get("{{ url('debtor/1102050101_702_search_ajax') }}", {
             start_date: start_date_val,
@@ -648,11 +658,7 @@ $(document).ready(function() {
             body.empty();
             foot.empty();
 
-            let sum_income = 0;
-            let sum_rcpt_money = 0;
-            let sum_other = 0;
-            let sum_ppfs = 0;
-            let sum_debtor = 0;
+            let sum_income = 0, sum_rcpt_money = 0, sum_other = 0, sum_ppfs = 0, sum_debtor = 0;
 
             if (data.length === 0) {
                 body.html('<tr><td colspan="13" class="text-center py-3">ไม่พบข้อมูล</td></tr>');
@@ -675,15 +681,15 @@ $(document).ready(function() {
                         <td align="right">${formatNumber(row.rcpt_money)}</td>
                         <td align="right">${formatNumber(row.other)}</td>
                         <td align="right">${formatNumber(row.ppfs)}</td>
-                        <td align="right">${formatNumber(row.debtor)}</td>
-                        <td align="left" width="15%">${row.other_list || ''}</td>
-                        <td align="left" width="15%">${row.ppfs_list || ''}</td>
+                        <td align="right" class="text-primary fw-bold">${formatNumber(row.debtor)}</td>
+                        <td align="left" width="10%">${row.other_list || ''}</td>
+                        <td align="left" width="10%">${row.ppfs_list || ''}</td>
                     </tr>`;
                     body.append(tr);
                 });
                 
-                const tfootRow = `<tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                    <td colspan="6" class="text-end">รวม</td>
+                const tfootRow = `<tr class="table-success text-end fw-bold" style="font-size: 14px;">
+                    <td colspan="6" class="text-end text-primary">รวม</td>
                     <td class="text-end">${formatNumber(sum_income)}</td>
                     <td class="text-end">${formatNumber(sum_rcpt_money)}</td>
                     <td class="text-end">${formatNumber(sum_other)}</td>
@@ -714,36 +720,27 @@ $(document).ready(function() {
                 });
             }
         }).fail(function() {
+            tab2Loaded = false;
             $('#loading-tab2').addClass('d-none');
             $('#empty-tab2').removeClass('d-none');
             Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูล HOSxP ได้', 'error');
         });
     };
 
-    $('button[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
-        if ($(e.target).attr("id") === 'confirm-tab') {
-            loadTab2();
-        }
-    });
-
-    function loadCounts() {
-        var searchVal = $('#search').val();
-         $.ajax({
-            url: "{{ url('debtor/1102050101_702_counts_ajax') }}",
-            type: "GET",
-            data: { start_date: start_date_val, end_date: end_date_val, search: searchVal },
-            success: function(res) {
-                $('#badge-tab1').text(res.tab1);
-                $('#badge-tab2').text(res.tab2);
-            },
-            error: function() {
-                $('#badge-tab1').text('-');
-                $('#badge-tab2').text('-');
-            }
+    function loadInitialCounts() {
+        // Tab 1 is already loaded via PHP ($count_tab1)
+        
+        // Tab 2: HOSxP debtors (background)
+        $.get("{{ url('debtor/1102050101_702_search_ajax') }}", {
+            start_date: start_date_val,
+            end_date: end_date_val
+        }, function(data) {
+            $('#badge-tab2').text(data.length.toLocaleString());
+        }).fail(function() {
+            $('#badge-tab2').text('0');
         });
     }
-    loadCounts();
-    setInterval(loadCounts, 60000);
+    loadInitialCounts();
 });
 </script>
 

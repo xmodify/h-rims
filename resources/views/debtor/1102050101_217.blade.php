@@ -68,12 +68,12 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span id="badge-tab1" class="text-success fw-bold ms-2">{{ count($debtor) }}</span>
+                        <span id="badge-tab1" class="text-success fw-bold ms-2">{{ $count_tab1 }}</span>
                     </button>
                 </li>       
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab" onclick="loadTab2()">
-                        <i class="bi bi-check-circle me-1"></i> <span class="fw-bold">รอยืนยันลูกหนี้</span>
+                        <i class="bi bi-check-circle me-1"></i> <span>รอยืนยันลูกหนี้</span>
                         <span id="badge-tab2" class="text-warning fw-bold ms-2">
                             <span class="spinner-border spinner-border-sm" role="status"></span>
                         </span>
@@ -637,19 +637,6 @@
         return parseFloat(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
-    function loadCounts() {
-        $.get("{{ url('debtor/1102050101_217_counts_ajax') }}", {
-            start_date: '{{ $start_date }}',
-            end_date: '{{ $end_date }}'
-        }, function(res) {
-            $('#badge-tab1').text(res.tab1 || 0).addClass('text-success fw-bold');
-            $('#badge-tab2').empty().append(`<span class="text-warning fw-bold ms-2">${res.tab2 || 0}</span>`);
-        }).fail(function() {
-            $('#badge-tab1').text('Error');
-            $('#badge-tab2').text('Error');
-        });
-    }
-
     function loadTab2() {
         if (tab2Loaded) return;
         
@@ -661,21 +648,30 @@
             start_date: '{{ $start_date }}',
             end_date: '{{ $end_date }}'
         }, function(res) {
+            $('#loading-tab2').addClass('d-none');
             const body = $('#table2-body');
             body.empty();
             let sum_income = 0, sum_rcpt = 0, sum_cr = 0, sum_debtor = 0;
 
+            // Update Badge Count
+            $('#badge-tab2').text(res.length).addClass('text-warning fw-bold');
+
             if (res.length > 0) {
                 res.forEach(row => {
-                    sum_income += parseFloat(row.income || 0);
-                    sum_rcpt += parseFloat(row.rcpt_money || 0);
-                    sum_cr += parseFloat(row.cr || 0);
-                    sum_debtor += parseFloat(row.debtor || 0);
+                    const income = parseFloat(row.income || 0);
+                    const rcpt = parseFloat(row.rcpt_money || 0);
+                    const cr = parseFloat(row.cr || 0);
+                    const debtor = parseFloat(row.debtor || 0);
+                    
+                    sum_income += income;
+                    sum_rcpt += rcpt;
+                    sum_cr += cr;
+                    sum_debtor += debtor;
 
                     body.append(`
-                        <tr>
+                        <tr class="align-middle">
                             <td class="text-center"><input type="checkbox" name="checkbox[]" value="${row.an}"></td>
-                            <td align="right">${escapeHtml(row.ward)}</td>
+                            <td align="left">${escapeHtml(row.ward)}</td>
                             <td align="center">${escapeHtml(row.hn)}</td>
                             <td align="center">${escapeHtml(row.an)}</td>
                             <td align="left">${escapeHtml(row.ptname)}</td>
@@ -684,14 +680,14 @@
                             <td align="right">${thaiDate(row.regdate)}</td>
                             <td align="right">${thaiDate(row.dchdate)}</td>
                             <td align="right">${escapeHtml(row.pdx)}</td>
-                            <td align="right" class="text-end">${row.adjrw || '0'}</td>
-                            <td align="right" class="text-end text-primary">${formatMoney(row.income)}</td>
-                            <td align="right" class="text-end">${formatMoney(row.rcpt_money)}</td>
-                            <td align="right" class="text-end">${formatMoney(row.cr)}</td>
-                            <td align="right" class="text-end fw-bold text-primary">${formatMoney(row.debtor)}</td>
+                            <td align="right">${row.adjrw || '0'}</td>
+                            <td align="right" class="text-primary">${formatMoney(income)}</td>
+                            <td align="right">${formatMoney(rcpt)}</td>
+                            <td align="right">${formatMoney(cr)}</td>
+                            <td align="right" class="fw-bold text-primary">${formatMoney(debtor)}</td>
                             <td align="left" class="small text-muted">${escapeHtml(row.cr_list)}</td>
                             <td align="left" class="small">${escapeHtml(row.ipt_coll_status_type_name)}</td>
-                            <td align="center" style="color: green">${escapeHtml(row.data_ok)}</td>
+                            <td align="center" class="text-success">${escapeHtml(row.data_ok)}</td>
                         </tr>
                     `);
                 });
@@ -726,7 +722,6 @@
             } else {
                 $('#empty-tab2').removeClass('d-none').html('<i class="bi bi-info-circle fs-1 text-muted"></i><p class="mt-2 text-muted">ไม่พบข้อมูลรอยืนยันลูกหนี้ในช่วงวันที่นี้</p>');
             }
-            $('#loading-tab2').addClass('d-none');
         }).fail(function() {
             $('#loading-tab2').addClass('d-none');
             $('#empty-tab2').removeClass('d-none').html('<i class="bi bi-exclamation-triangle fs-1 text-danger"></i><p class="mt-2 text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>');
@@ -734,7 +729,7 @@
     }
 
     $(document).ready(function() {
-        loadCounts();
+        loadTab2();
     });
 </script>
 <script id="single-modal-js">

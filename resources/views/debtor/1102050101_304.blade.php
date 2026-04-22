@@ -216,8 +216,7 @@
                     @endforeach 
                     
                     <tfoot>
-
-                        <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
+                        <tr class="table-primary text-end" style="font-weight:bold; font-size: 14px;">
                             <td colspan="9" class="text-end">รวม</td>
                             <td class="text-end">{{ number_format($sum_income,2) }}</td>
                             <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
@@ -250,7 +249,7 @@
                         </div>
 
                         <div id="table_304_ajax" class="d-none">
-                            <form action="{{ url('debtor/1102050101_304_confirm') }}" method="POST">
+                            <form id="form-confirm" action="{{ url('debtor/1102050101_304_confirm') }}" method="POST" enctype="multipart/form-data">
                                 @csrf
                                 <div class="mb-2 mt-3">
                                     <button type="button" class="btn btn-outline-success btn-sm" onclick="confirmSubmit()">
@@ -285,8 +284,8 @@
                                     </thead>
                                     <tbody id="table2-body"></tbody>
                                     <tfoot>
-                                        <tr class="table-secondary text-end" style="font-weight:bold; font-size: 14px;">
-                                            <td colspan="11" class="text-end">รวม</td>
+                                    <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
+                                        <td colspan="11" class="text-end">รวม</td>
                                             <td class="text-end" id="sum_income_tab2">0.00</td>
                                             <td class="text-end" id="sum_rcpt_money_tab2">0.00</td>
                                             <td class="text-end" id="sum_other_tab2">0.00</td>
@@ -572,26 +571,36 @@
             return parseFloat(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
+        function confirmSubmit() {
+            const selected = [...document.querySelectorAll('input[name="checkbox[]"]:checked')].map(e => e.value);    
+            if (selected.length === 0) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะยืนยัน', 'warning'); return; }
+            Swal.fire({
+                title: 'ยืนยัน?', text: "ต้องการยืนยันลูกหนี้รายการที่เลือกใช่หรือไม่?", icon: 'question',
+                showCancelButton: true, confirmButtonColor: '#28a745', cancelButtonColor: '#6c757d', confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก'
+            }).then((result) => { if (result.isConfirmed) { 
+                const f = document.getElementById('form-confirm') || document.querySelector('form[action*="confirm"]');
+                if(f) f.submit(); 
+            } });
+        }
+
         function loadTab2() {
-            if (tab2Loaded) return;
-            
+            $('#badge-tab2').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
             $('#empty-tab2').addClass('d-none');
             $('#loading-tab2').removeClass('d-none');
             $('#table_304_ajax').addClass('d-none');
 
             $.get("{{ url('debtor/1102050101_304_search_ajax') }}", {
-                start_date: '{{ $start_date }}',
-                end_date: '{{ $end_date }}'
+                start_date: $('#start_date').val(),
+                end_date: $('#end_date').val()
             }, function(res) {
                 $('#loading-tab2').addClass('d-none');
-                const body = $('#table2-body');
-                body.empty();
+                $('#table_304_ajax').removeClass('d-none');
+                $('#badge-tab2').text(res.length).removeClass('badge bg-warning text-white').addClass('text-warning fw-bold');
+                
+                let htmlRows = '';
                 let sum_income = 0, sum_rcpt = 0, sum_other = 0, sum_debtor = 0;
 
-                // Update Badge Count
-                $('#badge-tab2').text(res.length).addClass('text-warning fw-bold');
-
-                if (res.length > 0) {
+                if (res && res.length > 0) {
                     res.forEach(row => {
                         const income = parseFloat(row.income || 0);
                         const rcpt = parseFloat(row.rcpt_money || 0);
@@ -603,7 +612,7 @@
                         sum_other += other;
                         sum_debtor += debtor;
 
-                        body.append(`
+                        htmlRows += `
                             <tr class="align-middle">
                                 <td class="text-center"><input type="checkbox" name="checkbox[]" value="${row.an}"></td>
                                 <td align="left">${escapeHtml(row.ward)}</td>
@@ -623,39 +632,35 @@
                                 <td align="left" class="small text-muted">${escapeHtml(row.other_list)}</td>
                                 <td align="center" class="small">${escapeHtml(row.status)}</td>
                             </tr>
-                        `);
+                        `;
                     });
-
-                    $('#sum_income_tab2').text(formatMoney(sum_income));
-                    $('#sum_rcpt_money_tab2').text(formatMoney(sum_rcpt));
-                    $('#sum_other_tab2').text(formatMoney(sum_other));
-                    $('#sum_debtor_tab2').text(formatMoney(sum_debtor));
-
-                    if ( $.fn.DataTable.isDataTable('#debtor_search_ajax') ) {
-                        $('#debtor_search_ajax').DataTable().destroy();
-                    }
-
-                    $('#debtor_search_ajax').DataTable({
-                        dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-                        buttons: [{
-                            extend: 'excelHtml5',
-                            text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
-                            className: 'btn btn-success btn-sm px-3 shadow-sm',
-                            title: '1102050101.304-รอยืนยันลูกหนี้_{{ $start_date }}_{{ $end_date }}'
-                        }],
-                        language: {
-                            search: "ค้นหา:",
-                            lengthMenu: "แสดง _MENU_ รายการ",
-                            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-                            paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
-                        }
-                    });
-
-                    $('#table_304_ajax').removeClass('d-none');
-                    tab2Loaded = true;
-                } else {
-                    $('#empty-tab2').removeClass('d-none');
                 }
+
+                $('#table2-body').html(htmlRows);
+                $('#sum_income_tab2').text(formatMoney(sum_income));
+                $('#sum_rcpt_money_tab2').text(formatMoney(sum_rcpt));
+                $('#sum_other_tab2').text(formatMoney(sum_other));
+                $('#sum_debtor_tab2').text(formatMoney(sum_debtor));
+
+                if ( $.fn.DataTable.isDataTable('#debtor_search_ajax') ) {
+                    $('#debtor_search_ajax').DataTable().destroy();
+                }
+
+                $('#debtor_search_ajax').DataTable({
+                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                    buttons: [{
+                        extend: 'excelHtml5',
+                        text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                        className: 'btn btn-success btn-sm px-3 shadow-sm',
+                        title: '1102050101.304-รอยืนยันลูกหนี้_{{ $start_date }}_{{ $end_date }}'
+                    }],
+                    language: {
+                        search: "ค้นหา:",
+                        lengthMenu: "แสดง _MENU_ รายการ",
+                        info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                        paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                    }
+                });
             }).fail(function() {
                 $('#loading-tab2').addClass('d-none');
                 $('#empty-tab2').removeClass('d-none').html('<i class="bi bi-exclamation-triangle fs-1 text-danger"></i><p class="mt-2 text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>');

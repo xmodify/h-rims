@@ -10114,6 +10114,23 @@ class DebtorController extends Controller
             ', [$start_date, $end_date]);
         }
 
+        $count_tab1 = count($debtor);
+        $debtor_search = [];
+
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        $request->session()->put('debtor', $debtor);
+        $request->session()->save();
+
+        return view('debtor.1102050101_310', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'count_tab1'));
+    }
+
+    public function _1102050101_310_search_ajax(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
+
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
@@ -10149,14 +10166,10 @@ class DebtorController extends Controller
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_310 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype 
             ORDER BY i.ward, i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
-        $request->session()->put('start_date', $start_date);
-        $request->session()->put('end_date', $end_date);
-        $request->session()->put('search', $search);
-        $request->session()->put('debtor', $debtor);
-        $request->session()->save();
 
-        return view('debtor.1102050101_310', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
+        return response()->json($debtor_search);
     }
+
     //_1102050101_310_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050101_310_confirm(Request $request)
     {

@@ -289,7 +289,7 @@
                         </div>
 
                         <div id="table_202_ajax" class="d-none">
-                            <form action="{{ url('debtor/1102050101_202_confirm') }}" method="POST">
+                            <form id="form-confirm" action="{{ url('debtor/1102050101_202_confirm') }}" method="POST" enctype="multipart/form-data">
                                 @csrf
                                 <div class="mb-2 mt-3">
                                     <button type="button" class="btn btn-outline-success btn-sm" onclick="confirmSubmit()">
@@ -811,30 +811,44 @@
         return parseFloat(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
+    function confirmSubmit() {
+        const selected = [...document.querySelectorAll('input[name="checkbox[]"]:checked')].map(e => e.value);    
+        if (selected.length === 0) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะยืนยัน', 'warning'); return; }
+        Swal.fire({
+            title: 'ยืนยัน?', text: "ต้องการยืนยันลูกหนี้รายการที่เลือกใช่หรือไม่?", icon: 'question',
+            showCancelButton: true, confirmButtonColor: '#28a745', cancelButtonColor: '#6c757d', confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก'
+        }).then((result) => { if (result.isConfirmed) { 
+            const f = document.getElementById('form-confirm') || document.querySelector('form[action*="confirm"]');
+            if(f) f.submit(); 
+        } });
+    }
+
 
     function loadTab2() {
-        if (tab2Loaded) return;
-        
+        $('#badge-tab2').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
         $('#empty-tab2').addClass('d-none');
         $('#loading-tab2').removeClass('d-none');
         $('#table_202_ajax').addClass('d-none');
 
         $.get("{{ url('debtor/1102050101_202_search_ajax') }}", {
-            start_date: '{{ $start_date }}',
-            end_date: '{{ $end_date }}'
+            start_date: $('#start_date').val(),
+            end_date: $('#end_date').val()
         }, function(res) {
-            const body = $('#table2-body');
-            body.empty();
+            $('#loading-tab2').addClass('d-none');
+            $('#table_202_ajax').removeClass('d-none');
+            $('#badge-tab2').text(res.length).removeClass('badge bg-warning text-white').addClass('text-warning fw-bold');
+            
+            let htmlRows = '';
             let sum_income = 0, sum_rcpt = 0, sum_other = 0, sum_debtor = 0;
 
-            if (res.length > 0) {
+            if (res && res.length > 0) {
                 res.forEach(row => {
                     sum_income += parseFloat(row.income || 0);
                     sum_rcpt += parseFloat(row.rcpt_money || 0);
                     sum_other += parseFloat(row.other || 0);
                     sum_debtor += parseFloat(row.debtor || 0);
 
-                    body.append(`
+                    htmlRows += `
                         <tr>
                             <td class="text-center"><input type="checkbox" name="checkbox[]" value="${row.an}"></td>
                             <td align="right">${escapeHtml(row.ward)}</td>
@@ -855,42 +869,35 @@
                             <td align="left" class="small">${escapeHtml(row.ipt_coll_status_type_name)}</td>
                             <td align="center" style="color: green">${escapeHtml(row.data_ok)}</td>
                         </tr>
-                    `);
+                    `;
                 });
-
-                $('#sum_income_tab2').text(formatMoney(sum_income));
-                $('#sum_rcpt_money_tab2').text(formatMoney(sum_rcpt));
-                $('#sum_other_tab2').text(formatMoney(sum_other));
-                $('#sum_debtor_tab2').text(formatMoney(sum_debtor));
-
-                if ( $.fn.DataTable.isDataTable('#debtor_search_ajax') ) {
-                    $('#debtor_search_ajax').DataTable().destroy();
-                }
-
-                $('#debtor_search_ajax').DataTable({
-                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-                    buttons: [{
-                        extend: 'excelHtml5',
-                        text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
-                        className: 'btn btn-success btn-sm px-3 shadow-sm',
-                        title: '1102050101.202-รอยืนยันลูกหนี้_{{ $start_date }}_{{ $end_date }}'
-                    }],
-                    language: {
-                        search: "ค้นหา:",
-                        lengthMenu: "แสดง _MENU_ รายการ",
-                        info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-                        paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
-                    }
-                });
-
-                $('#table_202_ajax').removeClass('d-none');
-                $('#badge-tab2').text(res.length).addClass('text-warning fw-bold');
-                tab2Loaded = true;
-            } else {
-                $('#badge-tab2').text('0').addClass('text-warning fw-bold');
-                $('#empty-tab2').removeClass('d-none').html('<i class="bi bi-info-circle fs-1 text-muted"></i><p class="mt-2 text-muted">ไม่พบข้อมูลรอยืนยันลูกหนี้ในช่วงวันที่นี้</p>');
             }
-            $('#loading-tab2').addClass('d-none');
+
+            $('#table2-body').html(htmlRows);
+            $('#sum_income_tab2').text(formatMoney(sum_income));
+            $('#sum_rcpt_money_tab2').text(formatMoney(sum_rcpt));
+            $('#sum_other_tab2').text(formatMoney(sum_other));
+            $('#sum_debtor_tab2').text(formatMoney(sum_debtor));
+
+            if ( $.fn.DataTable.isDataTable('#debtor_search_ajax') ) {
+                $('#debtor_search_ajax').DataTable().destroy();
+            }
+
+            $('#debtor_search_ajax').DataTable({
+                dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                buttons: [{
+                    extend: 'excelHtml5',
+                    text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                    className: 'btn btn-success btn-sm px-3 shadow-sm',
+                    title: '1102050101.202-รอยืนยันลูกหนี้_{{ $start_date }}_{{ $end_date }}'
+                }],
+                language: {
+                    search: "ค้นหา:",
+                    lengthMenu: "แสดง _MENU_ รายการ",
+                    info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                    paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                }
+            });
         }).fail(function() {
             $('#loading-tab2').addClass('d-none');
             $('#empty-tab2').removeClass('d-none').html('<i class="bi bi-exclamation-triangle fs-1 text-danger"></i><p class="mt-2 text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>');

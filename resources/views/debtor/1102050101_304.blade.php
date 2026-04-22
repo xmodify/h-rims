@@ -236,65 +236,70 @@
                 
                 <!-- Tab 2: รอยืนยัน -->
                 <div class="tab-pane fade" id="confirm-pane" role="tabpanel"> 
+                    <div class="table-responsive">
+                        <div id="loading-tab2" class="text-center p-5 d-none">
+                            <div class="spinner-border text-warning" role="status"></div>
+                            <p class="mt-2 text-muted">กำลังดึงข้อมูลจาก HOSxP...</p>
+                            <p class="small text-danger">โปรดรอซักครู่</p>
+                        </div>
 
-            <form action="{{ url('debtor/1102050101_304_confirm') }}" method="POST" enctype="multipart/form-data">
-                @csrf
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <button type="button" class="btn btn-outline-success btn-sm"  onclick="confirmSubmit()">ยืนยันลูกหนี้</button>
-                    <div></div>
-                </div>                
+                        <div id="empty-tab2" class="text-center p-5 d-none">
+                            <i class="bi bi-search fs-1 text-muted"></i>
+                            <p class="mt-2">คลิกที่ Tab หรือกดปุ่มค้นหาเพื่อโหลดข้อมูล</p>
+                            <button type="button" class="btn btn-warning btn-sm" onclick="loadTab2()">โหลดข้อมูล HOSxP</button>
+                        </div>
 
-                <div id="loading-tab2" class="text-center py-5 d-none">
-                    <div class="spinner-border text-primary" role="status"></div>
-                    <p class="mt-2 text-muted">กำลังโหลดข้อมูลรอยืนยัน...</p>
+                        <div id="table_304_ajax" class="d-none">
+                            <form action="{{ url('debtor/1102050101_304_confirm') }}" method="POST">
+                                @csrf
+                                <div class="mb-2 mt-3">
+                                    <button type="button" class="btn btn-outline-success btn-sm" onclick="confirmSubmit()">
+                                        <i class="bi bi-check-circle me-1"></i> ยืนยันลูกหนี้
+                                    </button>
+                                </div>
+
+                                <table id="debtor_search_ajax" class="table table-bordered table-striped my-3" width="100%">
+                                    <thead>
+                                        <tr class="table-secondary">
+                                            <th class="text-left text-primary" colspan="17">1102050101.304-ลูกหนี้ค่ารักษา ประกันสังคม IP-นอกเครือข่าย สังกัด สป.สธ. รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                         
+                                        </tr>
+                                        <tr class="table-secondary">
+                                            <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th>  
+                                            <th class="text-center">ตึกผู้ป่วย</th>
+                                            <th class="text-center">HN</th>
+                                            <th class="text-center">AN</th>
+                                            <th class="text-center">ชื่อ-สกุล</th>              
+                                            <th class="text-center">อายุ</th>
+                                            <th class="text-center" width="8%">สิทธิ</th>
+                                            <th class="text-center" width="6%">Admit</th>
+                                            <th class="text-center" width="6%">Discharge</th>
+                                            <th class="text-center">ICD10</th>
+                                            <th class="text-center">AdjRW</th>
+                                            <th class="text-center" width="5%">ค่ารักษาทั้งหมด</th>  
+                                            <th class="text-center">ชำระเอง</th>
+                                            <th class="text-center">กองทุนอื่น</th>
+                                            <th class="text-center">ลูกหนี้</th>
+                                            <th class="text-center">รายการกองทุนอื่น</th> 
+                                            <th class="text-center text-primary">สถานะ</th> 
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table2-body"></tbody>
+                                    <tfoot>
+                                        <tr class="table-secondary text-end" style="font-weight:bold; font-size: 14px;">
+                                            <td colspan="11" class="text-end">รวม</td>
+                                            <td class="text-end" id="sum_income_tab2">0.00</td>
+                                            <td class="text-end" id="sum_rcpt_money_tab2">0.00</td>
+                                            <td class="text-end" id="sum_other_tab2">0.00</td>
+                                            <td class="text-end" id="sum_debtor_tab2" style="color:blue">0.00</td>
+                                            <td colspan="2"></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </form>
+                        </div>
+                    </div>
                 </div>
 
-                <div id="empty-tab2" class="text-center py-5 d-none">
-                    <i class="bi bi-info-circle fs-1 text-muted"></i>
-                    <p class="mt-2 text-muted">ไม่พบข้อมูลรอยืนยันลูกหนี้</p>
-                </div>
-
-                <div id="table_304_ajax" class="table-responsive d-none">
-                    <table id="debtor_search_ajax" class="table table-bordered table-striped my-3" width="100%">
-                        <thead>
-                            <tr class="table-secondary">
-                                <th class="text-left text-primary" colspan="17">1102050101.304-ลูกหนี้ค่ารักษา ประกันสังคม IP-นอกเครือข่าย สังกัด สป.สธ. รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                         
-                            </tr>
-                            <tr class="table-secondary">
-                                <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th>  
-                                <th class="text-center">ตึกผู้ป่วย</th>
-                                <th class="text-center">HN</th>
-                                <th class="text-center">AN</th>
-                                <th class="text-center">ชื่อ-สกุล</th>              
-                                <th class="text-center">อายุ</th>
-                                <th class="text-center" width="8%">สิทธิ</th>
-                                <th class="text-center" width="6%">Admit</th>
-                                <th class="text-center" width="6%">Discharge</th>
-                                <th class="text-center">ICD10</th>
-                                <th class="text-center">AdjRW</th>
-                                <th class="text-center" width="5%">ค่ารักษาทั้งหมด</th>  
-                                <th class="text-center">ชำระเอง</th>
-                                <th class="text-center">กองทุนอื่น</th>
-                                <th class="text-center">ลูกหนี้</th>
-                                <th class="text-center">รายการกองทุนอื่น</th> 
-                                <th class="text-center text-primary">สถานะ</th> 
-                            </tr>
-                        </thead>
-                        <tbody id="table2-body"></tbody>
-                        <tfoot>
-                            <tr class="table-secondary text-end" style="font-weight:bold; font-size: 14px;">
-                                <td colspan="11" class="text-end">รวม</td>
-                                <td class="text-end" id="sum_income_tab2">0.00</td>
-                                <td class="text-end" id="sum_rcpt_money_tab2">0.00</td>
-                                <td class="text-end" id="sum_other_tab2">0.00</td>
-                                <td class="text-end" id="sum_debtor_tab2" style="color:blue">0.00</td>
-                                <td colspan="2"></td>
-                            </tr>
-                        </tfoot>
-                    </table>
-                </div>
-            </form>
-            </div>
         </div>
     </div>
 </div>  

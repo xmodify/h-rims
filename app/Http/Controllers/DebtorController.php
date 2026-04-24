@@ -689,11 +689,10 @@ class DebtorController extends Controller
             WHERE vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050102_106 = DB::connection('hosxp')->select("
             SELECT COUNT(DISTINCT d.vn) AS anvn, SUM(d.debtor) AS debtor,
-                SUM(IFNULL(d.receive,0) + IFNULL(r.total_amount,0)) AS receive
+                SUM(IFNULL(d.receive,0) + IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0)) AS receive
             FROM hrims.debtor_1102050102_106 d
             LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS total_amount
                 FROM rcpt_print r
-                JOIN hrims.debtor_1102050102_106 d2 ON d2.vn = r.vn AND r.bill_date > d2.vstdate
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn) r ON r.vn = d.vn
@@ -812,11 +811,10 @@ class DebtorController extends Controller
             WHERE dchdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050102_107 = DB::connection('hosxp')->select("
             SELECT COUNT(DISTINCT d.an) AS anvn, SUM(d.debtor) AS debtor, 
-                SUM(IFNULL(d.receive,0) + IFNULL(r.total_amount,0)) AS receive
+                SUM(IFNULL(d.receive,0) + IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0)) AS receive
             FROM hrims.debtor_1102050102_107 d
             LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS total_amount
                 FROM rcpt_print r
-                JOIN hrims.debtor_1102050102_107 d2 ON d2.an = r.vn AND r.bill_date > d2.dchdate
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn) r ON r.vn = d.an
@@ -6380,7 +6378,6 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS total_amount,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                     FROM rcpt_print r
-                    JOIN hrims.debtor_1102050102_106 d2 ON d2.vn = r.vn AND r.bill_date > d2.vstdate
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                     WHERE a.rcpno IS NULL   
                     GROUP BY r.vn) r ON r.vn = d.vn
@@ -6394,17 +6391,16 @@ class DebtorController extends Controller
                     d.pdx,d.income,d.paid_money,d.rcpt_money,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.debtor_lock, 
                     IF(r.total_amount IS NOT NULL, 'กระทบยอดแล้ว', d.status) AS status,
                     d.charge_date,d.charge_no,d.charge,d.receive_date, d.receive_no,  
-                    IFNULL(d.receive,0) + IFNULL(r.total_amount,0) AS receive,
-                    IFNULL(r.total_amount,0) AS receive_system,
+                    IFNULL(d.receive,0) + IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0) AS receive,
+                    IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0) AS receive_system,
                     d.adj_inc, d.adj_dec, d.adj_note, d.adj_date,
                     d.repno, r.rcpno, r.total_amount,IFNULL(t.visit,0) AS visit,
-                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.total_amount,0)
+                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0)
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.05 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM hrims.debtor_1102050102_106 d
                 LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS total_amount,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                     FROM rcpt_print r
-                    JOIN hrims.debtor_1102050102_106 d2 ON d2.vn = r.vn AND r.bill_date > d2.vstdate
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                     WHERE a.rcpno IS NULL   
                     GROUP BY r.vn) r ON r.vn = d.vn
@@ -6714,7 +6710,6 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS total_amount,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
-                JOIN hrims.debtor_1102050102_106 d2 ON d2.vn = r.vn AND r.bill_date > d2.vstdate
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn) r ON r.vn = d.vn
@@ -6747,7 +6742,6 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS total_amount,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                     FROM rcpt_print r
-                    JOIN hrims.debtor_1102050102_106 d2 ON d2.vn = r.vn AND r.bill_date > d2.vstdate
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                     WHERE a.rcpno IS NULL   
                     GROUP BY r.vn) r ON r.vn = d.vn
@@ -6771,7 +6765,6 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS total_amount,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                     FROM rcpt_print r
-                    JOIN hrims.debtor_1102050102_106 d2 ON d2.vn = r.vn AND r.bill_date > d2.vstdate
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                     WHERE a.rcpno IS NULL   
                     GROUP BY r.vn) r ON r.vn = d.vn
@@ -11438,16 +11431,15 @@ class DebtorController extends Controller
             $debtor = DB::connection('hosxp')->select('
                 SELECT d.*, d.receive AS receive_manual, d.repno AS repno_manual, 
                     r.total_amount, r.rcpno, 
-                    IFNULL(d.receive,0) + IFNULL(r.total_amount,0) AS receive,
-                    IFNULL(r.total_amount,0) AS receive_system,
+                    IFNULL(d.receive,0) + IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0) AS receive,
+                    IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0) AS receive_system,
                     IFNULL(t.visit,0) AS visit,
-                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.total_amount,0)) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.05
+                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0)) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.05
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM hrims.debtor_1102050102_107 d
                 LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS total_amount,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                     FROM rcpt_print r
-                    JOIN hrims.debtor_1102050102_107 d2 ON d2.an = r.vn AND r.bill_date > d2.dchdate
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn) r ON r.vn = d.an
@@ -11458,16 +11450,15 @@ class DebtorController extends Controller
             $debtor = DB::connection('hosxp')->select('
                 SELECT d.*, d.receive AS receive_manual, d.repno AS repno_manual, 
                     r.total_amount, r.rcpno, 
-                    IFNULL(d.receive,0) + IFNULL(r.total_amount,0) AS receive,
-                    IFNULL(r.total_amount,0) AS receive_system,
+                    IFNULL(d.receive,0) + IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0) AS receive,
+                    IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0) AS receive_system,
                     IFNULL(t.visit,0) AS visit,
-                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.total_amount,0)) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.05
+                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0)) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.05
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM hrims.debtor_1102050102_107 d
                 LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS total_amount,
                     GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                     FROM rcpt_print r
-                    JOIN hrims.debtor_1102050102_107 d2 ON d2.an = r.vn AND r.bill_date > d2.dchdate
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn) r ON r.vn = d.an
@@ -11795,7 +11786,6 @@ class DebtorController extends Controller
             FROM hrims.debtor_1102050102_107 d
             LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS total_amount
                 FROM rcpt_print r
-                JOIN hrims.debtor_1102050102_107 d2 ON d2.an = r.vn AND r.bill_date > d2.dchdate
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn) r ON r.vn = d.an
@@ -13462,11 +13452,16 @@ class DebtorController extends Controller
                             SELECT {$month_case} AS month_name, SUM(debtor) AS claim_price, SUM(IFNULL(receive,0)) AS receive_total, YEAR(vstdate) AS y, MONTH(vstdate) AS m
                             FROM hrims.{$table_name} WHERE vstdate BETWEEN ? AND ? GROUP BY y, m
                             UNION ALL
-                            SELECT " . str_replace($filter_date_col, 'd.vstdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(r.total_amount,0)) AS receive_total, YEAR(d.vstdate) AS y, MONTH(d.vstdate) AS m
-                            FROM rcpt_print r 
-                            LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                            JOIN hrims.{$table_name} d ON r.vn = d.vn
-                            WHERE d.vstdate BETWEEN ? AND ? AND r.bill_date > d.vstdate AND a.rcpno IS NULL
+                            SELECT " . str_replace($filter_date_col, 'd.vstdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0)) AS receive_total, YEAR(d.vstdate) AS y, MONTH(d.vstdate) AS m
+                            FROM hrims.{$table_name} d
+                            LEFT JOIN (
+                                SELECT r.vn, SUM(r.total_amount) AS total_amount
+                                FROM rcpt_print r
+                                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
+                                WHERE a.rcpno IS NULL
+                                GROUP BY r.vn
+                            ) r ON r.vn = d.vn
+                            WHERE d.vstdate BETWEEN ? AND ?
                             GROUP BY y, m
                         ) AS a GROUP BY y, m ORDER BY y, m";
                 $params = [$start_date_b, $end_date_b, $start_date_b, $end_date_b];
@@ -13538,11 +13533,16 @@ class DebtorController extends Controller
                             SELECT {$month_case} AS month_name, SUM(debtor) AS claim_price, SUM(IFNULL(receive,0)) AS receive_total, YEAR(dchdate) AS y, MONTH(dchdate) AS m
                             FROM hrims.{$table_name} WHERE dchdate BETWEEN ? AND ? GROUP BY y, m
                             UNION ALL
-                            SELECT " . str_replace($filter_date_col, 'd.dchdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(r.total_amount,0)) AS receive_total, YEAR(d.dchdate) AS y, MONTH(d.dchdate) AS m
-                            FROM rcpt_print r 
-                            LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                            JOIN hrims.{$table_name} d ON r.vn = d.an
-                            WHERE d.dchdate BETWEEN ? AND ? AND r.bill_date > d.dchdate AND a.rcpno IS NULL
+                            SELECT " . str_replace($filter_date_col, 'd.dchdate', $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0)) AS receive_total, YEAR(d.dchdate) AS y, MONTH(d.dchdate) AS m
+                            FROM hrims.{$table_name} d
+                            LEFT JOIN (
+                                SELECT r.vn, SUM(r.total_amount) AS total_amount
+                                FROM rcpt_print r
+                                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
+                                WHERE a.rcpno IS NULL
+                                GROUP BY r.vn
+                            ) r ON r.vn = d.an
+                            WHERE d.dchdate BETWEEN ? AND ?
                             GROUP BY y, m
                         ) AS a GROUP BY y, m ORDER BY y, m";
                 $params = [$start_date_b, $end_date_b, $start_date_b, $end_date_b];
@@ -14618,12 +14618,11 @@ class DebtorController extends Controller
 
         foreach ($ids as $id) {
             $row = DB::connection('hosxp')->selectOne("
-                SELECT d.*, IFNULL(r.total_amount,0) AS total_bill
+                SELECT d.*, IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0) AS total_bill
                 FROM hrims.debtor_1102050102_106 d
                 LEFT JOIN (
                     SELECT r.vn, SUM(r.total_amount) AS total_amount
                     FROM rcpt_print r
-                    JOIN hrims.debtor_1102050102_106 d2 ON d2.vn = r.vn AND r.bill_date > d2.vstdate
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn
@@ -14661,12 +14660,11 @@ class DebtorController extends Controller
         $adjusted_count = 0;
         foreach ($ids as $id) {
             $row = DB::connection('hosxp')->selectOne("
-                SELECT d.*, IFNULL(r.total_amount,0) AS total_bill
+                SELECT d.*, IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0) AS total_bill
                 FROM hrims.debtor_1102050102_107 d
                 LEFT JOIN (
                     SELECT r.vn, SUM(r.total_amount) AS total_amount
                     FROM rcpt_print r
-                    JOIN hrims.debtor_1102050102_107 d2 ON d2.an = r.vn AND r.bill_date > d2.dchdate
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn

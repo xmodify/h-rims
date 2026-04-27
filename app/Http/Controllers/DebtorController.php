@@ -11941,8 +11941,8 @@ class DebtorController extends Controller
             '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
-                COALESCE(inc.income,0) AS income,a.income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
-                COALESCE(inc.income,0)-COALESCE(rc.rcpt_money,0)-COALESCE(oth.other_price,0) AS debtor,oth.other_list,
+                COALESCE(total.income,0) AS income,a.income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(total.other_price,0) AS other,
+                COALESCE(total.income,0)-COALESCE(rc.rcpt_money,0)-COALESCE(total.other_price,0) AS debtor,total.other_list,
                 ict.ipt_coll_status_type_name,i.data_ok,"ยืนยันลูกหนี้" AS status
             FROM ipt i
             LEFT JOIN patient pt ON pt.hn = i.hn
@@ -11952,29 +11952,33 @@ class DebtorController extends Controller
             LEFT JOIN an_stat a ON a.an = i.an     
             LEFT JOIN ipt_coll_stat ic ON ic.an = i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id = ic.ipt_coll_status_type_id
-            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS income
+            LEFT JOIN (
+                SELECT o.an, o.pttype,
+                    SUM(o.sum_price) AS income,
+                    SUM(CASE WHEN li.kidney = "Y" THEN o.sum_price ELSE 0 END) AS other_price,
+                    GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN s.name END) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
-                GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.total_amount) AS rcpt_money,
+                LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
+                LEFT JOIN s_drugitems s ON s.icode = o.icode
+                GROUP BY o.an, o.pttype
+            ) total ON total.an = i.an AND total.pttype = ip.pttype
+            LEFT JOIN (
+                SELECT r.vn AS an,SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
-                GROUP BY r.vn) rc ON rc.an = i.an
-            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
-                FROM opitemrece o
-                INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
-                LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
-                LEFT JOIN s_drugitems s ON s.icode = o.icode WHERE li.kidney = "Y"
-                GROUP BY o.an, o.pttype) oth ON oth.an = i.an AND oth.pttype = ip.pttype
+                GROUP BY r.vn
+            ) rc ON rc.an = i.an
             WHERE i.confirm_discharge = "Y"
-            AND p.hipdata_code = "GOF"
+            AND p.hipdata_code IN ("BFC","GOF","PVT","WVO")
             AND i.dchdate BETWEEN ? AND ?
+            AND (COALESCE(total.income,0)-COALESCE(rc.rcpt_money,0)-COALESCE(total.other_price,0)) > 0
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_109 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype',
-            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+            [$start_date, $end_date, $start_date, $end_date]
         );
 
         return response()->json($debtor_search);
@@ -11999,8 +12003,8 @@ class DebtorController extends Controller
             '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
-                COALESCE(inc.income,0) AS income,a.income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(oth.other_price,0) AS other,
-                COALESCE(inc.income,0)-COALESCE(rc.rcpt_money,0)-COALESCE(oth.other_price,0) AS debtor,oth.other_list,
+                COALESCE(total.income,0) AS income,a.income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(total.other_price,0) AS other,
+                COALESCE(total.income,0)-COALESCE(rc.rcpt_money,0)-COALESCE(total.other_price,0) AS debtor,total.other_list,
                 ict.ipt_coll_status_type_name,i.data_ok,"ยืนยันลูกหนี้" AS status
             FROM ipt i
             LEFT JOIN patient pt ON pt.hn = i.hn
@@ -12010,30 +12014,34 @@ class DebtorController extends Controller
             LEFT JOIN an_stat a ON a.an = i.an     
             LEFT JOIN ipt_coll_stat ic ON ic.an = i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id = ic.ipt_coll_status_type_id
-            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS income
+            LEFT JOIN (
+                SELECT o.an, o.pttype,
+                    SUM(o.sum_price) AS income,
+                    SUM(CASE WHEN li.kidney = "Y" THEN o.sum_price ELSE 0 END) AS other_price,
+                    GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN s.name END) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
-                GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (SELECT r.vn AS an,SUM(r.total_amount) AS rcpt_money,
+                LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
+                LEFT JOIN s_drugitems s ON s.icode = o.icode
+                GROUP BY o.an, o.pttype
+            ) total ON total.an = i.an AND total.pttype = ip.pttype
+            LEFT JOIN (
+                SELECT r.vn AS an,SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
-                GROUP BY r.vn) rc ON rc.an = i.an
-            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS other_price,GROUP_CONCAT(DISTINCT s.name ) AS other_list
-                FROM opitemrece o
-                INNER JOIN ipt i2 ON i2.an = o.an AND i2.dchdate BETWEEN ? AND ?
-                LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
-                LEFT JOIN s_drugitems s ON s.icode = o.icode WHERE li.kidney = "Y"
-                GROUP BY o.an, o.pttype) oth ON oth.an = i.an AND oth.pttype = ip.pttype
+                GROUP BY r.vn
+            ) rc ON rc.an = i.an
             WHERE i.confirm_discharge = "Y"
-            AND p.hipdata_code = "GOF"
+            AND p.hipdata_code IN ("BFC","GOF","PVT","WVO")
             AND i.dchdate BETWEEN ? AND ?
+            AND (COALESCE(total.income,0)-COALESCE(rc.rcpt_money,0)-COALESCE(total.other_price,0)) > 0
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_109 WHERE an IS NOT NULL)
             AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype',
-            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+            [$start_date, $end_date, $start_date, $end_date]
         );
 
         foreach ($debtor as $row) {
@@ -12153,7 +12161,28 @@ class DebtorController extends Controller
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
-        $debtor = Session::get('debtor');
+        $search = Session::get('search');
+
+        if ($search) {
+            $debtor = DB::select('
+                SELECT d.*, d.receive AS receive_manual, d.repno AS repno_manual,
+                       CASE WHEN (IFNULL(d.receive,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 
+                       THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+                FROM debtor_1102050102_109 d
+                WHERE d.dchdate BETWEEN ? AND ?
+                AND (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
+                ORDER BY d.dchdate
+            ', [$start_date, $end_date, $search, $search, $search]);
+        } else {
+            $debtor = DB::select('
+                SELECT d.*, d.receive AS receive_manual, d.repno AS repno_manual,
+                       CASE WHEN (IFNULL(d.receive,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 
+                       THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+                FROM debtor_1102050102_109 d
+                WHERE d.dchdate BETWEEN ? AND ?
+                ORDER BY d.dchdate
+            ', [$start_date, $end_date]);
+        }
 
         return view('debtor.1102050102_109_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }

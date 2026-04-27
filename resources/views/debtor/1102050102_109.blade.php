@@ -73,8 +73,10 @@
                 </li>       
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab">
-                        <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้
-                        <span class="badge bg-warning-soft text-warning ms-2" id="badge_tab2"><i class="fa fa-spinner fa-spin"></i></span>
+                        <i class="bi bi-check-circle me-1"></i> <span>รอยืนยันลูกหนี้</span>
+                        <span id="badge-tab2" class="text-warning fw-bold ms-2">
+                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                        </span>
                     </button>
                 </li>
             </ul>
@@ -157,7 +159,7 @@
                                 <td align="right">{{ DateThai($row->regdate) }}</td>
                                 <td align="right">{{ DateThai($row->dchdate) }}</td>
                                 <td align="right">{{ $row->pdx }}</td>  
-                                <td align="right">{{ $row->adjrw }}</td>                        
+                                <td align="right">{{ number_format($row->adjrw, 4) }}</td>                        
                                 <td align="right" width ="5%">{{ number_format($row->income,2) }}</td>
                                 <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
                                 <td align="right">{{ number_format($row->other,2) }}</td>
@@ -243,51 +245,57 @@
 
                 <!-- Tab 2: รอยืนยัน -->
                 <div class="tab-pane fade" id="confirm-pane" role="tabpanel"> 
-                    <form id="form-confirm" action="{{ url('debtor/1102050102_109_confirm') }}" method="POST" enctype="multipart/form-data">
-                        @csrf                
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <button type="button" class="btn btn-outline-success btn-sm"  onclick="confirmSubmit()">
-                                <i class="bi bi-check-circle me-1"></i> ยืนยันลูกหนี้
-                            </button>
-                            <div></div>
+                    <div class="table-responsive">
+                        <div id="loading-tab2" class="text-center p-5 d-none">
+                            <div class="spinner-border text-warning" role="status"></div>
+                            <p class="mt-2 text-muted">กำลังดึงข้อมูลจาก HOSxP...</p>
+                            <p class="small text-danger">โปรดรอซักครู่</p>
                         </div>
-                        <div class="table-responsive"><table id="debtor_search" class="table table-bordered table-striped my-3" width="100%">
-                            <thead>
-                            <tr class="table-secondary">
-                                <th class="text-left text-primary" colspan = "17">1102050102.109-ลูกหนี้ค่ารักษา เบิกต้นสังกัด IP รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                         
-                            </tr>
-                            <tr class="table-secondary">
-                                <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th>  
-                                <th class="text-center">ตึกผู้ป่วย</th>
-                                <th class="text-center">HN</th>
-                                <th class="text-center">AN</th>
-                                <th class="text-center">ชื่อ-สกุล</th>              
-                                <th class="text-center">อายุ</th>
-                                <th class="text-center" width ="8%">สิทธิ</th>
-                                <th class="text-center" width ="6%">Admit</th>
-                                <th class="text-center" width ="6%">Discharge</th>
-                                <th class="text-center">ICD10</th>
-                                <th class="text-center">AdjRW</th>
-                                <th class="text-center" width ="5%">ค่ารักษาทั้งหมด</th>  
-                                <th class="text-center">ชำระเอง</th>
-                                <th class="text-center">กองทุนอื่น</th>
-                                <th class="text-center">ลูกหนี้</th>
-                                <th class="text-center">รายการกองทุนอื่น</th> 
-                                <th class="text-center">สถานะ</th> 
-                            </tr>
-                            </thead>
-                            <tbody id="debtor_search_body">
-                                <tr>
-                                    <td colspan="17" class="text-center py-5">
-                                        <div class="spinner-border text-primary" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
-                                        <p class="mt-2 text-muted">กำลังโหลดข้อมูล...</p>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table></div>
-                    </form>
+
+                        <div id="empty-tab2" class="text-center p-5 d-none">
+                            <i class="bi bi-search fs-1 text-muted"></i>
+                            <p class="mt-2">คลิกที่ Tab หรือกดปุ่มค้นหาเพื่อโหลดข้อมูล</p>
+                            <button type="button" class="btn btn-warning btn-sm" onclick="loadTab2()">โหลดข้อมูล HOSxP</button>
+                        </div>
+
+                        <div id="table_109_ajax" class="d-none">
+                            <form id="form-confirm" action="{{ url('debtor/1102050102_109_confirm') }}" method="POST" enctype="multipart/form-data">
+                                @csrf                
+                                <div class="mb-2 mt-3">
+                                    <button type="button" class="btn btn-outline-success btn-sm" onclick="confirmSubmit()">
+                                        <i class="bi bi-check-circle me-1"></i> ยืนยันลูกหนี้
+                                    </button>
+                                </div>
+                                <table id="debtor_search" class="table table-bordered table-striped my-3" width="100%">
+                                    <thead>
+                                    <tr class="table-secondary">
+                                        <th class="text-left text-primary" colspan = "17">1102050102.109-ลูกหนี้ค่ารักษา เบิกต้นสังกัด IP รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                         
+                                    </tr>
+                                    <tr class="table-secondary">
+                                        <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th>  
+                                        <th class="text-center">ตึกผู้ป่วย</th>
+                                        <th class="text-center">HN</th>
+                                        <th class="text-center">AN</th>
+                                        <th class="text-center">ชื่อ-สกุล</th>              
+                                        <th class="text-center">อายุ</th>
+                                        <th class="text-center" width ="8%">สิทธิ</th>
+                                        <th class="text-center" width ="6%">Admit</th>
+                                        <th class="text-center" width ="6%">Discharge</th>
+                                        <th class="text-center">ICD10</th>
+                                        <th class="text-center">AdjRW</th>
+                                        <th class="text-center" width ="5%">ค่ารักษาทั้งหมด</th>  
+                                        <th class="text-center">ชำระเอง</th>
+                                        <th class="text-center">กองทุนอื่น</th>
+                                        <th class="text-center">ลูกหนี้</th>
+                                        <th class="text-center">รายการกองทุนอื่น</th> 
+                                        <th class="text-center">สถานะ</th> 
+                                    </tr>
+                                    </thead>
+                                    <tbody id="debtor_search_body"></tbody>
+                                </table>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -625,6 +633,11 @@
         });
 
         function loadTab2() {
+            $('#badge-tab2').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+            $('#empty-tab2').addClass('d-none');
+            $('#loading-tab2').removeClass('d-none');
+            $('#table_109_ajax').addClass('d-none');
+
             var start_date = $('#start_date').val();
             var end_date = $('#end_date').val();
             
@@ -633,6 +646,8 @@
                 type: "GET",
                 data: { start_date: start_date, end_date: end_date },
                 success: function(data) {
+                    $('#loading-tab2').addClass('d-none');
+                    $('#table_109_ajax').removeClass('d-none');
                     var html = '';
                     var total_debtor = 0;
                     
@@ -650,7 +665,7 @@
                                     <td align="right" width="6%">${DateThai(row.regdate)}</td>
                                     <td align="right" width="6%">${DateThai(row.dchdate)}</td>
                                     <td align="right">${row.pdx || ''}</td>      
-                                    <td align="right">${row.adjrw || '0.000'}</td>                        
+                                    <td align="right">${parseFloat(row.adjrw || 0).toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}</td>                        
                                     <td align="right" width="5%">${parseFloat(row.income).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                     <td align="right">${parseFloat(row.rcpt_money).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                     <td align="right">${parseFloat(row.other).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
@@ -665,7 +680,7 @@
                     }
                     
                     $('#debtor_search_body').html(html);
-                    $('#badge_tab2').text(data.length);
+                    $('#badge-tab2').text(data.length);
 
                     // Destroy old table if exists and re-initialize
                     if ($.fn.DataTable.isDataTable('#debtor_search')) {

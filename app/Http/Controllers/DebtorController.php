@@ -10121,7 +10121,8 @@ class DebtorController extends Controller
         $request->session()->put('start_date', $start_date);
         $request->session()->put('end_date', $end_date);
         $request->session()->put('search', $search);
-        $request->session()->put('debtor', $debtor);
+        // Removed session('debtor') for performance
+
         $request->session()->save();
 
         return view('debtor.1102050101_310', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'count_tab1'));
@@ -10135,8 +10136,8 @@ class DebtorController extends Controller
         $debtor_search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
-                IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(kid.kidney_price,0) AS kidney,
-                IFNULL(kid.kidney_price,0) AS debtor,kid.kidney_list,ict.ipt_coll_status_type_name,i.data_ok,"ยืนยันลูกหนี้" AS status  
+                IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(inc.kidney_price,0) AS kidney,
+                IFNULL(inc.kidney_price,0) AS debtor,inc.kidney_list,ict.ipt_coll_status_type_name,i.data_ok,"ยืนยันลูกหนี้" AS status  
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn = i.hn
             LEFT JOIN ipt_pttype ip ON ip.an = i.an
@@ -10145,28 +10146,29 @@ class DebtorController extends Controller
             LEFT JOIN an_stat a ON a.an = i.an 
             LEFT JOIN ipt_coll_stat ic ON ic.an = i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id = ic.ipt_coll_status_type_id
-            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS income   
+            LEFT JOIN (
+                SELECT o.an, o.pttype, SUM(o.sum_price) AS income,
+                       SUM(CASE WHEN li.kidney = "Y" THEN o.sum_price ELSE 0 END) AS kidney_price,
+                       GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN s.`name` ELSE NULL END) AS kidney_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
-                GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
+                LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
+                LEFT JOIN s_drugitems s ON s.icode = o.icode
+                GROUP BY o.an, o.pttype
+            ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn) rc ON rc.an = i.an
-            INNER JOIN (SELECT op.an,SUM(op.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.`name`) AS kidney_list
-                FROM opitemrece op
-                INNER JOIN ipt i4 ON i4.an = op.an AND i4.confirm_discharge = "Y" AND i4.dchdate BETWEEN ? AND ?
-                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.kidney = "Y"
-                LEFT JOIN s_drugitems s ON s.icode = op.icode
-                GROUP BY op.an) kid ON kid.an = i.an
             WHERE i.confirm_discharge = "Y"
             AND p.hipdata_code IN ("SSS","SSI")
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_310 WHERE an IS NOT NULL)
+            AND IFNULL(inc.kidney_price,0) > 0
             GROUP BY i.an, ip.pttype 
-            ORDER BY i.ward, i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            ORDER BY i.ward, i.dchdate', [$start_date, $end_date, $start_date, $end_date]);
 
         return response()->json($debtor_search);
     }
@@ -10190,8 +10192,8 @@ class DebtorController extends Controller
         $debtor = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
-                IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(kid.kidney_price,0) AS kidney,
-                IFNULL(kid.kidney_price,0) AS debtor,kid.kidney_list,ict.ipt_coll_status_type_name,i.data_ok,"ยืนยันลูกหนี้" AS status  
+                IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,IFNULL(inc.kidney_price,0) AS kidney,
+                IFNULL(inc.kidney_price,0) AS debtor,inc.kidney_list,ict.ipt_coll_status_type_name,i.data_ok,"ยืนยันลูกหนี้" AS status  
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn = i.hn
             LEFT JOIN ipt_pttype ip ON ip.an = i.an
@@ -10200,29 +10202,30 @@ class DebtorController extends Controller
             LEFT JOIN an_stat a ON a.an = i.an 
             LEFT JOIN ipt_coll_stat ic ON ic.an = i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id = ic.ipt_coll_status_type_id
-            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS income   
+            LEFT JOIN (
+                SELECT o.an, o.pttype, SUM(o.sum_price) AS income,
+                       SUM(CASE WHEN li.kidney = "Y" THEN o.sum_price ELSE 0 END) AS kidney_price,
+                       GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN s.`name` ELSE NULL END) AS kidney_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
-                GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
+                LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
+                LEFT JOIN s_drugitems s ON s.icode = o.icode
+                GROUP BY o.an, o.pttype
+            ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn) rc ON rc.an = i.an
-            INNER JOIN (SELECT op.an,SUM(op.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.`name`) AS kidney_list
-                FROM opitemrece op
-                INNER JOIN ipt i4 ON i4.an = op.an AND i4.confirm_discharge = "Y" AND i4.dchdate BETWEEN ? AND ?
-                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.kidney = "Y"
-                LEFT JOIN s_drugitems s ON s.icode = op.icode
-                GROUP BY op.an) kid ON kid.an = i.an
             WHERE i.confirm_discharge = "Y"
             AND p.hipdata_code IN ("SSS","SSI")
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_310 WHERE an IS NOT NULL)
             AND i.an IN (' . $checkbox_string . ')
+            AND IFNULL(inc.kidney_price,0) > 0
             GROUP BY i.an, ip.pttype 
-            ORDER BY i.ward, i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            ORDER BY i.ward, i.dchdate', [$start_date, $end_date, $start_date, $end_date]);
 
         foreach ($debtor as $row) {
             Debtor_1102050101_310::insert([
@@ -10351,7 +10354,50 @@ class DebtorController extends Controller
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
-        $debtor = Session::get('debtor');
+        $search = Session::get('search');
+
+        if ($search) {
+            $debtor = DB::select('
+                SELECT d.*, d.receive AS receive_manual, d.repno AS repno_manual,
+                       (IFNULL(d.receive,0) + IFNULL(stm.stm_receive,0)) AS receive,
+                       stm.stm_round_no, stm.stm_receipt_date, stm.stm_receive_no,
+                       CASE WHEN (IFNULL(d.receive,0) + IFNULL(stm.stm_receive,0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor,0)) >= -0.01 
+                       THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+                FROM debtor_1102050101_310 d
+                LEFT JOIN (
+                    SELECT d2.an, SUM(IFNULL(s.amount,0) + IFNULL(s.epopay,0) + IFNULL(s.epoadm,0)) AS stm_receive,
+                           GROUP_CONCAT(DISTINCT s.round_no) AS stm_round_no,
+                           GROUP_CONCAT(DISTINCT s.receipt_date) AS stm_receipt_date,
+                           GROUP_CONCAT(DISTINCT s.receive_no) AS stm_receive_no
+                    FROM debtor_1102050101_310 d2
+                    JOIN stm_sss_kidney s ON s.hn = d2.hn AND s.vstdate BETWEEN d2.regdate AND d2.dchdate
+                    GROUP BY d2.an
+                ) stm ON stm.an = d.an
+                WHERE d.dchdate BETWEEN ? AND ?
+                AND (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
+                ORDER BY d.dchdate
+            ', [$start_date, $end_date, $search, $search, $search]);
+        } else {
+            $debtor = DB::select('
+                SELECT d.*, d.receive AS receive_manual, d.repno AS repno_manual,
+                       (IFNULL(d.receive,0) + IFNULL(stm.stm_receive,0)) AS receive,
+                       stm.stm_round_no, stm.stm_receipt_date, stm.stm_receive_no,
+                       CASE WHEN (IFNULL(d.receive,0) + IFNULL(stm.stm_receive,0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor,0)) >= -0.01 
+                       THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+                FROM debtor_1102050101_310 d
+                LEFT JOIN (
+                    SELECT d2.an, SUM(IFNULL(s.amount,0) + IFNULL(s.epopay,0) + IFNULL(s.epoadm,0)) AS stm_receive,
+                           GROUP_CONCAT(DISTINCT s.round_no) AS stm_round_no,
+                           GROUP_CONCAT(DISTINCT s.receipt_date) AS stm_receipt_date,
+                           GROUP_CONCAT(DISTINCT s.receive_no) AS stm_receive_no
+                    FROM debtor_1102050101_310 d2
+                    JOIN stm_sss_kidney s ON s.hn = d2.hn AND s.vstdate BETWEEN d2.regdate AND d2.dchdate
+                    GROUP BY d2.an
+                ) stm ON stm.an = d.an
+                WHERE d.dchdate BETWEEN ? AND ?
+                ORDER BY d.dchdate
+            ', [$start_date, $end_date]);
+        }
 
         return view('debtor.1102050101_310_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }

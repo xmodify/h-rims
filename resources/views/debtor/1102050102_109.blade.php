@@ -209,6 +209,7 @@
                                         {{ $row->status }}
                                     @endif
                                 </td>                          
+                            </tr>   
                             <?php $count++; ?>
                             <?php $sum_income += $row->income ; ?>
                             <?php $sum_rcpt_money += $row->rcpt_money ; ?>    
@@ -221,7 +222,6 @@
                                 $s_balance += $balance;
                             ?>
                             @endforeach 
-                            </tr>   
                             </tbody>
                             <tfoot>
                                 <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
@@ -661,7 +661,7 @@
                             `;
                         });
                     } else {
-                        html = '<tr><td colspan="17" class="text-center">ไม่พบข้อมูล</td></tr>';
+                        html = '';
                     }
                     
                     $('#debtor_search_body').html(html);

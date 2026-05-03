@@ -670,6 +670,7 @@ $(document).ready(function() {
                 $('#sum_ppfs_search').text('0.00');
                 $('#sum_other_search').text('0.00');
                 $('#sum_debtor_search').text('0.00');
+                $('#badge-tab2').text('0');
             } else {
                 data.forEach(function(row) {
                     sum_income += parseFloat(row.income) || 0;

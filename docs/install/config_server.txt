@@ -1,0 +1,82 @@
+================================================================================
+📄 คู่มือการตั้งค่า Apache แบบมาตรฐาน (Virtual Host) สำหรับ Laravel
+================================================================================
+วิธีนี้ปลอดภัยที่สุดและไม่ต้องพึ่งพาไฟล์ index.php หรือ .htaccess ที่วางไว้ใน Root Folder
+
+--------------------------------------------------------------------------------
+🔵 1. สำหรับ XAMPP (Windows)
+--------------------------------------------------------------------------------
+
+ขั้นตอนที่ 1: แก้ไขไฟล์ Virtual Hosts
+1. เปิดไฟล์: C:\xampp\apache\conf\extra\httpd-vhosts.conf
+2. เพิ่ม Code ต่อไปนี้ไว้ที่ท้ายไฟล์:
+
+<VirtualHost *:80>
+    DocumentRoot "C:/xampp/htdocs/rims/public"
+    ServerName rims.local
+    <Directory "C:/xampp/htdocs/rims/public">
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+</VirtualHost>
+
+ขั้นตอนที่ 2: แก้ไขไฟล์ Hosts ของ Windows
+1. เปิดไฟล์: C:\Windows\System32\drivers\etc\hosts
+2. เพิ่มบรรทัดนี้ลงไปท้ายไฟล์:
+   127.0.0.1  rims.local
+
+ขั้นตอนที่ 3: Restart Apache ผ่าน XAMPP Control Panel
+
+--------------------------------------------------------------------------------
+🔴 2. สำหรับ AlmaLinux / CentOS (RHEL-based)
+--------------------------------------------------------------------------------
+
+ขั้นตอนที่ 1: สร้างไฟล์ Virtual Host
+1. สร้างไฟล์คอนฟิกใหม่:
+   sudo nano /etc/httpd/conf.d/rims.conf
+
+2. วาง Code นี้ลงไป:
+<VirtualHost *:80>
+    ServerName rims.com
+    DocumentRoot /var/www/html/rims/public
+
+    <Directory /var/www/html/rims/public>
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog /var/log/httpd/rims_error.log
+    CustomLog /var/log/httpd/rims_access.log combined
+</VirtualHost>
+
+ขั้นตอนที่ 2: ตั้งค่า Permissions และ SELinux (สำคัญมากสำหรับ AlmaLinux)
+1. กำหนดสิทธิ์เจ้าของไฟล์:
+   sudo chown -R apache:apache /var/www/html/rims
+2. กำหนดสิทธิ์โฟลเดอร์:
+   sudo chmod -R 775 /var/www/html/rims/storage
+   sudo chmod -R 775 /var/www/html/rims/bootstrap/cache
+3. ตั้งค่า SELinux (ถ้าเปิดใช้งาน):
+   sudo chcon -t httpd_sys_rw_content_t -R /var/www/html/rims/storage
+   sudo chcon -t httpd_sys_rw_content_t -R /var/www/html/rims/bootstrap/cache
+
+ขั้นตอนที่ 3: Restart Apache
+   sudo systemctl restart httpd
+
+--------------------------------------------------------------------------------
+⚙️ 3. การตั้งค่าในไฟล์ .env
+--------------------------------------------------------------------------------
+แก้ไขไฟล์ .env ในโฟลเดอร์หลักของโปรเจกต์:
+
+APP_URL=http://rims.local  (หรือ URL จริงของคุณ)
+ASSET_URL=
+VITE_ASSET_URL=
+
+(หมายเหตุ: เมื่อชี้ DocumentRoot ไปที่ public แล้ว ไม่ต้องระบุ ASSET_URL)
+
+--------------------------------------------------------------------------------
+✅ ข้อดีของวิธีนี้:
+--------------------------------------------------------------------------------
+1. ความปลอดภัย: ป้องกันการเข้าถึงไฟล์ .env และ Source code จากภายนอก
+2. ความเร็ว: Apache จัดการไฟล์ใน public โดยตรง ไม่ต้องผ่าน Rewrite หลายชั้น
+3. มาตรฐาน: รองรับการขยายตัวและระบบ SSL (HTTPS) ได้ง่ายกว่า

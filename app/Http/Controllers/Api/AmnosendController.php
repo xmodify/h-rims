@@ -422,54 +422,68 @@ class AmnosendController extends Controller
             ];
         }, $rowsIpd_bed);
 
-        // 4) ส่งข้อมูลไปยัง API ปลายทาง-----------------------------------------------------------------------------------------------
+        // 4) ส่งข้อมูลไปยัง API ปลายทาง (ส่งไป 2 Server)----------------------------------------------------------------------------
 
         $chunkSize = (int)($request->query('chunk', 200));
 
-        // ---- OPD ----
-        //$urlOpd = config('services.opoh.opd_url', 'http://127.0.0.1:8837/api/opd');
-        $urlOpd = config('services.opoh.opd_url', 'http://1.179.128.29:3394/api/opd');
-        $summaryOpd = $this->sendChunks($opdRecords, $urlOpd, $token, $hospcode, 'OPD', $chunkSize);
+        $destinations = [
+            [
+                'name'     => 'Server 1 (Primary)',
+                'opd'      => config('services.opoh.opd_url', 'http://1.179.128.29:3394/api/opd'),
+                'ipd'      => config('services.opoh.ipd_url', 'http://1.179.128.29:3394/api/ipd'),
+                'ipd_bed'  => config('services.opoh.ipd_bed_url', 'http://1.179.128.29:3394/api/ipd_bed_dep'),
+                'hospital' => config('services.opoh.hospital_url', 'http://1.179.128.29:3394/api/hospital_config'),
+            ],
+            [
+                'name'     => 'Server 2 (Huataphan)',
+                'opd'      => 'https://huataphanhospital.go.th/aopod/api/opd',
+                'ipd'      => 'https://huataphanhospital.go.th/aopod/api/ipd',
+                'ipd_bed'  => 'https://huataphanhospital.go.th/aopod/api/ipd_bed_dep',
+                'hospital' => 'https://huataphanhospital.go.th/aopod/api/hospital_config',
+            ]
+        ];
 
-        // ---- IPD ----
-        //$urlIpd = config('services.opoh.ipd_url', 'http://127.0.0.1:8837/api/ipd');
-        $urlIpd = config('services.opoh.ipd_url', 'http://1.179.128.29:3394/api/ipd');
-        $summaryIpd = $this->sendChunks($ipdRecords, $urlIpd, $token, $hospcode, 'IPD', $chunkSize);
+        $overallSuccess = true;
+        $results = [];
 
-        // ---- IPD BED ----
-        //$urlIpd_bed = config('services.opoh.ipd_bed_url', 'http://127.0.0.1:8837/api/ipd_bed_dep');
-        $urlIpd_bed = config('services.opoh.ipd_bed_url', 'http://1.179.128.29:3394/api/ipd_bed_dep');
-        $summaryIpd_bed = $this->sendChunks($ipdbedRecords, $urlIpd_bed, $token, $hospcode, 'IPD_BED', $chunkSize);
+        foreach ($destinations as $dest) {
+            $summaryOpd = $this->sendChunks($opdRecords, $dest['opd'], $token, $hospcode, 'OPD', $chunkSize);
+            $summaryIpd = $this->sendChunks($ipdRecords, $dest['ipd'], $token, $hospcode, 'IPD', $chunkSize);
+            $summaryIpd_bed = $this->sendChunks($ipdbedRecords, $dest['ipd_bed'], $token, $hospcode, 'IPD_BED', $chunkSize);
+            $summaryHospital = $this->sendChunks($hospitalRecords, $dest['hospital'], $token, $hospcode, 'HOSPITAL', $chunkSize);
 
-        // ---- HOSPITAL ----
-        //$urlhospital = config('services.opoh.hospital_url', 'http://127.0.0.1:8837/api/hospital_config');
-        $urlhospital = config('services.opoh.hospital_url', 'http://1.179.128.29:3394/api/hospital_config');
-        $summaryHospital = $this->sendChunks($hospitalRecords, $urlhospital, $token, $hospcode, 'HOSPITAL', $chunkSize);
+            $destSuccess = $summaryOpd['failed'] === 0
+                && $summaryIpd['failed'] === 0
+                && $summaryIpd_bed['failed'] === 0
+                && $summaryHospital['failed'] === 0;
 
-        // กัน error ถ้าไม่ส่ง IPD
-        // $summaryIpd = $summaryIpd ?? [
-        //     'batches' => 0,
-        //     'sent'    => 0,
-        //     'failed'  => 0,
-        //     'details' => [],
-        // ];
+            if (!$destSuccess) {
+                $overallSuccess = false;
+            }
+
+            $results[$dest['name']] = [
+                'ok'       => $destSuccess,
+                'opd'      => $summaryOpd,
+                'ipd'      => $summaryIpd,
+                'ipd_bed'  => $summaryIpd_bed,
+                'hospital' => $summaryHospital,
+            ];
+        }
 
         // 5) สรุปผลรวม
         // =====================================================
         return response()->json([
-            'ok'         => $summaryOpd['failed'] === 0
-                && $summaryIpd['failed'] === 0
-                && $summaryIpd_bed['failed'] === 0
-                && $summaryHospital['failed'] === 0,
+            'ok'         => $overallSuccess,
             'hospcode'   => $hospcode,
             'start_date' => $start,
             'end_date'   => $end,
             'received'   => [
-                'opd' => count($opdRecords),
-                'ipd' => count($ipdRecords),
-                'ipd_bed' => count($ipdbedRecords),
+                'opd'      => count($opdRecords),
+                'ipd'      => count($ipdRecords),
+                'ipd_bed'  => count($ipdbedRecords),
                 'hospital' => count($hospitalRecords),
             ],
+            'results'    => $results,
         ], 200);
     }
 
@@ -501,6 +515,7 @@ class AmnosendController extends Controller
                     ->acceptJson()
                     ->timeout(20)
                     ->retry(3, 300)
+                    ->withoutVerifying()
                     ->withHeaders([
                         'Idempotency-Key' => $idempotencyKey,
                     ])

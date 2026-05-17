@@ -1,0 +1,34 @@
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # 1. บล็อกการเข้าถึงไฟล์ .env และไฟล์ระบบอื่นๆ (Security First)
+    RewriteRule ^\.env - [F,L]
+    RewriteRule ^composer\.(json|lock) - [F,L]
+    RewriteRule ^package(-lock)?\.json - [F,L]
+    RewriteRule ^vite\.config - [F,L]
+    RewriteRule ^README\.md - [F,L]
+    RewriteRule ^\.git - [F,L]
+
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # 2. ถ้าไฟล์มีอยู่จริงใน root (และไม่ใช่ไฟล์ที่บล็อกไว้ด้านบน) ให้รันไฟล์นั้น
+    RewriteCond %{REQUEST_FILENAME} -d [OR]
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+
+    # 3. ถ้าเป็นไฟล์ที่มีอยู่ใน public ให้ดึงจาก public มาแสดง
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteCond %{DOCUMENT_ROOT}/rims/public/$1 -f [OR]
+    RewriteCond %{DOCUMENT_ROOT}/rims/public/$1 -d
+    RewriteRule ^(.*)$ public/$1 [L]
+
+    # 4. นอกนั้นให้ส่งไปที่ index.php
+    RewriteRule ^ index.php [L]
+</IfModule>
+

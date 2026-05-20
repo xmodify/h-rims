@@ -205,17 +205,17 @@ class AmnosendController extends Controller
                     MAX(CASE WHEN li.ppfs = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL) THEN "Y" ELSE "" END) as ppfs_claim,
                     SUM(CASE WHEN li.ppfs = "Y" THEN o.sum_price ELSE 0 END) as inc_ppfs,
                     SUM(CASE WHEN li.ppfs = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL) THEN o.sum_price ELSE 0 END) as inc_ppfs_claim,
-                    MAX(CASE WHEN li.ppfs = "Y" THEN COALESCE(stm.receive_total, 0) ELSE 0 END) as inc_ppfs_receive,
+                    MAX(CASE WHEN li.ppfs = "Y" THEN COALESCE(stm.receive_pp, 0) ELSE 0 END) as inc_ppfs_receive,
                     MAX(CASE WHEN li.uc_cr = "Y" THEN "Y" ELSE "" END) as uccr,
                     MAX(CASE WHEN li.uc_cr = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL) THEN "Y" ELSE "" END) as uccr_claim,
                     SUM(CASE WHEN li.uc_cr = "Y" THEN o.sum_price ELSE 0 END) as inc_uccr,
                     SUM(CASE WHEN li.uc_cr = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL) THEN o.sum_price ELSE 0 END) as inc_uccr_claim,
-                    MAX(CASE WHEN li.uc_cr = "Y" THEN COALESCE(stm.receive_total, 0) ELSE 0 END) as inc_uccr_receive,
+                    MAX(CASE WHEN li.uc_cr = "Y" THEN COALESCE(stm.receive_dmis_drug, 0) + COALESCE(stm.receive_hc_drug, 0) + COALESCE(stm.receive_inst, 0) ELSE 0 END) as inc_uccr_receive,
                     MAX(CASE WHEN li.herb32 = "Y" THEN "Y" ELSE "" END) as herb,
                     MAX(CASE WHEN li.herb32 = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL) THEN "Y" ELSE "" END) as herb_claim,
                     SUM(CASE WHEN li.herb32 = "Y" THEN o.sum_price ELSE 0 END) as inc_herb,
                     SUM(CASE WHEN li.herb32 = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL) THEN o.sum_price ELSE 0 END) as inc_herb_claim,
-                    MAX(CASE WHEN li.herb32 = "Y" THEN COALESCE(stm.receive_total, 0) ELSE 0 END) as inc_herb_receive
+                    MAX(CASE WHEN li.herb32 = "Y" THEN COALESCE(stm.receive_hc_hc, 0) ELSE 0 END) as inc_herb_receive
                 FROM opitemrece o
                 INNER JOIN hrims.lookup_icode li ON o.icode = li.icode
                 LEFT JOIN patient pt ON pt.hn = o.hn
@@ -227,7 +227,13 @@ class AmnosendController extends Controller
                     FROM hrims.eclaim_status
                 ) ec ON ec.hn = o.hn AND ec.vstdate = o.vstdate AND ec.vsttime5 = LEFT(o.vsttime, 5)
                 LEFT JOIN ( 
-                    SELECT cid, vstdate, LEFT(TIME(datetimeadm), 5) AS vsttime5, SUM(receive_total) AS receive_total,
+                    SELECT cid, vstdate, LEFT(TIME(datetimeadm), 5) AS vsttime5, 
+                        SUM(receive_total) AS receive_total,
+                        SUM(receive_pp) AS receive_pp,
+                        SUM(receive_hc_drug) AS receive_hc_drug,
+                        SUM(receive_hc_hc) AS receive_hc_hc,
+                        SUM(receive_dmis_drug) AS receive_dmis_drug,
+                        SUM(receive_inst) AS receive_inst,
                         GROUP_CONCAT(DISTINCT repno) AS repno 
                     FROM hrims.stm_ucs
                     WHERE vstdate BETWEEN ? AND ?

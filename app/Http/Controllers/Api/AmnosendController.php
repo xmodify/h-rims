@@ -130,43 +130,73 @@ class AmnosendController extends Controller
             FROM (
                 SELECT ov.vstdate, ov.vn, ov.hn, v.cid, v.income, v.inc03, v.inc12, p.hipdata_code, p.paidst,
                     IF(i.icd10 IS NULL, "OP", "PP") AS diagtype,
-                    IF(vp.hospmain IS NOT NULL, "Y", "") AS incup,
-                    IF(vp1.hospmain IS NOT NULL, "Y", "") AS inprov,
-                    IF(vp2.hospmain IS NOT NULL, "Y", "") AS outprov,
-                    IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"), "Y", NULL) AS endpoint,
+                    COALESCE(vp.is_incup, "") AS incup,
+                    COALESCE(vp.is_inprov, "") AS inprov,
+                    COALESCE(vp.is_outprov, "") AS outprov,
+                    IF((vp.is_ep = "Y" OR ep.claim_ep = "Y"), "Y", NULL) AS endpoint,
                     IF(dt.vn IS NOT NULL, "Y", "") AS dent,
                     IF(pl.vn IS NOT NULL, "Y", "") AS physic,
                     IF(hm.vn IS NOT NULL, "Y", "") AS healthmed,
                     IF(anc.vn IS NOT NULL, "Y", "") AS anc,
                     IF(oi.export_code = 5, "Y", "") AS telehealth,
                     IF(ma.cid IS NOT NULL, "Y", "") AS moph_oapp,
-                    IF(r.vn IS NOT NULL, "Y", "") AS referout_inprov, IF(r1.vn IS NOT NULL, "Y", "") AS referout_outprov,
-                    IF(re.vn IS NOT NULL, "Y", "") AS referout_inprov_ipd, IF(re1.vn IS NOT NULL, "Y", "") AS referout_outprov_ipd,
-                    IF(ri.vn IS NOT NULL AND ip.vn IS NULL, "Y", "") AS referin_inprov, IF(ri1.vn IS NOT NULL AND ip.vn IS NULL, "Y", "") AS referin_outprov,
-                    IF(rii.vn IS NOT NULL AND ip.vn IS NOT NULL, "Y", "") AS referin_inprov_ipd, IF(rii1.vn IS NOT NULL AND ip.vn IS NOT NULL, "Y", "") AS referin_outprov_ipd
+                    COALESCE(r_out.referout_inprov, "") AS referout_inprov,
+                    COALESCE(r_out.referout_outprov, "") AS referout_outprov,
+                    COALESCE(r_out_ipd.referout_inprov_ipd, "") AS referout_inprov_ipd,
+                    COALESCE(r_out_ipd.referout_outprov_ipd, "") AS referout_outprov_ipd,
+                    IF(r_in.inprov = "Y" AND ip.vn IS NULL, "Y", "") AS referin_inprov,
+                    IF(r_in.outprov = "Y" AND ip.vn IS NULL, "Y", "") AS referin_outprov,
+                    IF(r_in.inprov = "Y" AND ip.vn IS NOT NULL, "Y", "") AS referin_inprov_ipd,
+                    IF(r_in.outprov = "Y" AND ip.vn IS NOT NULL, "Y", "") AS referin_outprov_ipd
                 FROM ovst ov
                 LEFT JOIN vn_stat v ON v.vn = ov.vn
                 LEFT JOIN ipt ip ON ip.vn = ov.vn
                 LEFT JOIN pttype p ON p.pttype = ov.pttype
                 LEFT JOIN ovstist oi ON oi.ovstist = ov.ovstist
                 LEFT JOIN hrims.lookup_icd10 i ON i.icd10 = v.pdx AND i.pp = "Y"
-                LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = v.cid AND ep.vstdate = v.vstdate AND ep.claimCode LIKE "EP%"
-                LEFT JOIN visit_pttype vp ON vp.vn = ov.vn AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
-                LEFT JOIN visit_pttype vp1 ON vp1.vn = ov.vn AND vp1.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y" AND (hmain_ucs = "" OR hmain_ucs IS NULL))
-                LEFT JOIN visit_pttype vp2 ON vp2.vn = ov.vn AND vp2.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+                LEFT JOIN (
+                    SELECT DISTINCT cid, vstdate, "Y" AS claim_ep
+                    FROM hrims.nhso_endpoint
+                    WHERE claimCode LIKE "EP%"
+                ) ep ON ep.cid = v.cid AND ep.vstdate = v.vstdate
+                LEFT JOIN (
+                    SELECT vn,
+                        MAX(CASE WHEN hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y") THEN "Y" END) AS is_incup,
+                        MAX(CASE WHEN hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y" AND (hmain_ucs = "" OR hmain_ucs IS NULL)) THEN "Y" END) AS is_inprov,
+                        MAX(CASE WHEN hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y") THEN "Y" END) AS is_outprov,
+                        MAX(CASE WHEN auth_code LIKE "EP%" THEN "Y" END) AS is_ep
+                    FROM visit_pttype
+                    GROUP BY vn
+                ) vp ON vp.vn = ov.vn
                 LEFT JOIN (SELECT DISTINCT vn FROM dtmain) dt ON dt.vn = ov.vn
                 LEFT JOIN (SELECT DISTINCT vn FROM physic_list) pl ON pl.vn = ov.vn
                 LEFT JOIN (SELECT DISTINCT vn FROM health_med_service) hm ON hm.vn = ov.vn
                 LEFT JOIN (SELECT DISTINCT vn FROM person_anc_service) anc ON anc.vn = ov.vn
-                LEFT JOIN moph_appointment_list ma ON ma.cid = v.cid AND ma.appointment_date = ov.vstdate
-                LEFT JOIN referout r ON r.vn = ov.vn AND r.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-                LEFT JOIN referout r1 ON r1.vn = ov.vn AND r1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-                LEFT JOIN referout re ON re.vn = ip.an AND re.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-                LEFT JOIN referout re1 ON re1.vn = ip.an AND re1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-                LEFT JOIN referin ri ON ri.vn = ov.vn AND ri.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-                LEFT JOIN referin ri1 ON ri1.vn = ov.vn AND ri1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-                LEFT JOIN referin rii ON rii.vn = ip.vn AND rii.refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-                LEFT JOIN referin rii1 ON rii1.vn = ip.vn AND rii1.refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
+                LEFT JOIN (
+                    SELECT DISTINCT cid, appointment_date
+                    FROM moph_appointment_list
+                ) ma ON ma.cid = v.cid AND ma.appointment_date = ov.vstdate
+                LEFT JOIN (
+                    SELECT vn,
+                        MAX(CASE WHEN refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y") THEN "Y" END) AS referout_inprov,
+                        MAX(CASE WHEN refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y") THEN "Y" END) AS referout_outprov
+                    FROM referout
+                    GROUP BY vn
+                ) r_out ON r_out.vn = ov.vn
+                LEFT JOIN (
+                    SELECT vn,
+                        MAX(CASE WHEN refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y") THEN "Y" END) AS referout_inprov_ipd,
+                        MAX(CASE WHEN refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y") THEN "Y" END) AS referout_outprov_ipd
+                    FROM referout
+                    GROUP BY vn
+                ) r_out_ipd ON r_out_ipd.vn = ip.an
+                LEFT JOIN (
+                    SELECT vn,
+                        MAX(CASE WHEN refer_hospcode IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y") THEN "Y" END) AS inprov,
+                        MAX(CASE WHEN refer_hospcode NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y") THEN "Y" END) AS outprov
+                    FROM referin
+                    GROUP BY vn
+                ) r_in ON r_in.vn = ov.vn
                 WHERE ov.vstdate BETWEEN ? AND ?
             ) a
             LEFT JOIN (

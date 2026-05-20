@@ -219,11 +219,13 @@ class AmnosendController extends Controller
                 FROM opitemrece o
                 INNER JOIN hrims.lookup_icode li ON o.icode = li.icode
                 LEFT JOIN patient pt ON pt.hn = o.hn
-                LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
-                LEFT JOIN rep_eclaim_detail rep ON rep.vn = o.vn
-                LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
-                LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn 
-                    AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
+                LEFT JOIN (SELECT DISTINCT vn FROM ovst_eclaim) oe ON oe.vn = o.vn
+                LEFT JOIN (SELECT DISTINCT vn FROM rep_eclaim_detail) rep ON rep.vn = o.vn
+                LEFT JOIN (SELECT DISTINCT seq FROM hrims.fdh_claim_status) fdh ON fdh.seq = o.vn
+                LEFT JOIN (
+                    SELECT DISTINCT hn, vstdate, LEFT(vsttime, 5) AS vsttime5 
+                    FROM hrims.eclaim_status
+                ) ec ON ec.hn = o.hn AND ec.vstdate = o.vstdate AND ec.vsttime5 = LEFT(o.vsttime, 5)
                 LEFT JOIN ( 
                     SELECT cid, vstdate, LEFT(TIME(datetimeadm), 5) AS vsttime5, SUM(receive_total) AS receive_total,
                         GROUP_CONCAT(DISTINCT repno) AS repno 

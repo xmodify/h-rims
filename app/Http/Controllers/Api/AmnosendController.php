@@ -428,13 +428,6 @@ class AmnosendController extends Controller
 
         $destinations = [
             [
-                'name'     => 'Server 1 (Primary)',
-                'opd'      => config('services.opoh.opd_url', 'http://1.179.128.29:3394/api/opd'),
-                'ipd'      => config('services.opoh.ipd_url', 'http://1.179.128.29:3394/api/ipd'),
-                'ipd_bed'  => config('services.opoh.ipd_bed_url', 'http://1.179.128.29:3394/api/ipd_bed_dep'),
-                'hospital' => config('services.opoh.hospital_url', 'http://1.179.128.29:3394/api/hospital_config'),
-            ],
-            [
                 'name'     => 'Server 2 (Huataphan)',
                 'opd'      => 'https://huataphanhospital.go.th/aopod/api/opd',
                 'ipd'      => 'https://huataphanhospital.go.th/aopod/api/ipd',

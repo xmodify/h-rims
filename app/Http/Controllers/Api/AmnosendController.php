@@ -428,7 +428,7 @@ class AmnosendController extends Controller
 
         $destinations = [
             [
-                'name'     => 'Server 2 (Huataphan)',
+                'name'     => 'Server',
                 'opd'      => 'https://huataphanhospital.go.th/aopod/api/opd',
                 'ipd'      => 'https://huataphanhospital.go.th/aopod/api/ipd',
                 'ipd_bed'  => 'https://huataphanhospital.go.th/aopod/api/ipd_bed_dep',

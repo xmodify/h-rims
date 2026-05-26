@@ -23,7 +23,7 @@
         a{color:inherit;text-decoration:inherit}
     </style>
 
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
     
 </head>
 <div class="container my-5">

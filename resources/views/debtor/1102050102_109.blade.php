@@ -66,9 +66,9 @@
         <div class="card-header bg-transparent border-0 pt-3 px-4 pb-0">
             <ul class="nav nav-tabs-modern" id="pills-tab" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
+                    <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab" onclick="tab2Loaded = false;">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span class=" badge bg-primary-soft text-primary ms-2">{{ count($debtor) }}</span>
+                        <span class=" badge bg-primary-soft text-primary ms-2">{{ $count_tab1 }}</span>
                     </button>
                 </li>       
                 <li class="nav-item" role="presentation">
@@ -604,8 +604,8 @@
             });
 
             // 2. Set initial values
-            var start_date_val = "{{ $start_date }}";
-            var end_date_val = "{{ $end_date }}";
+            var start_date_val = "{{ $start_date ?? '' }}";
+            var end_date_val = "{{ $end_date ?? '' }}";
             
             function setInitialDate(pickerId, dateStr) {
                 if(dateStr && dateStr !== '0000-00-00') {
@@ -621,7 +621,7 @@
 
             // 3. DataTable
             $('#debtor').DataTable({
-                dom: '<"row mb-3"<"col-md-6"l>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',            
+                dom: '<"row mb-3"<"col-md-6"l>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',            
                 language: {
                     lengthMenu: "แสดง _MENU_ รายการ",
                     info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
@@ -632,7 +632,11 @@
             loadTab2();
         });
 
+        let tab2Loaded = false;
+
         function loadTab2() {
+            if (tab2Loaded) return;
+            tab2Loaded = true;
             $('#badge-tab2').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
             $('#empty-tab2').addClass('d-none');
             $('#loading-tab2').removeClass('d-none');
@@ -649,7 +653,6 @@
                     $('#loading-tab2').addClass('d-none');
                     $('#table_109_ajax').removeClass('d-none');
                     var html = '';
-                    var total_debtor = 0;
                     
                     if(data.length > 0) {
                         data.forEach(function(row) {
@@ -664,8 +667,8 @@
                                     <td align="left" width="8%">${row.pttype}</td>
                                     <td align="right" width="6%">${DateThai(row.regdate)}</td>
                                     <td align="right" width="6%">${DateThai(row.dchdate)}</td>
-                                    <td align="right">${row.pdx || ''}</td>      
-                                    <td align="right">${parseFloat(row.adjrw || 0).toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}</td>                        
+                                    <td align="right">${row.pdx || ''}</td>
+                                    <td align="right">${parseFloat(row.adjrw || 0).toLocaleString(undefined, {minimumFractionDigits: 4, maximumFractionDigits: 4})}</td>
                                     <td align="right" width="5%">${parseFloat(row.income).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                     <td align="right">${parseFloat(row.rcpt_money).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                                     <td align="right">${parseFloat(row.other).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
@@ -675,35 +678,26 @@
                                 </tr>
                             `;
                         });
-                    } else {
-                        html = '';
                     }
                     
                     $('#debtor_search_body').html(html);
                     $('#badge-tab2').text(data.length);
 
-                    // Destroy old table if exists and re-initialize
                     if ($.fn.DataTable.isDataTable('#debtor_search')) {
                         $('#debtor_search').DataTable().destroy();
                     }
-                    
                     $('#debtor_search').DataTable({
-                        dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-                        buttons: [
-                            {
-                                extend: 'excelHtml5',
-                                text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
-                                className: 'btn btn-success btn-sm',
-                                title: '1102050102.109-ลูกหนี้ค่ารักษา เบิกต้นสังกัด IP รอยืนยัน'
-                            }
-                        ],
-                        language: {
-                            search: "ค้นหา:",
-                            lengthMenu: "แสดง _MENU_ รายการ",
-                            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-                            paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
-                        }
+                        dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                        buttons: [{ extend: 'excelHtml5', text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel', className: 'btn btn-success btn-sm', title: '1102050102.109-ลูกหนี้ค่ารักษา เบิกต้นสังกัด IP รอยืนยัน' }],
+                        language: { search: "ค้นหา:", lengthMenu: "แสดง _MENU_ รายการ", info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ", paginate: { previous: "ก่อนหน้า", next: "ถัดไป" } }
                     });
+                },
+                error: function() {
+                    tab2Loaded = false;
+                    $('#loading-tab2').addClass('d-none');
+                    $('#badge-tab2').html('!').css('color', 'red');
+                    $('#empty-tab2').removeClass('d-none');
+                    $('#table_109_ajax').addClass('d-none');
                 }
             });
         }

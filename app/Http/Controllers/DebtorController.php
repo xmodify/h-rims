@@ -12096,13 +12096,16 @@ class DebtorController extends Controller
             ', [$start_date, $end_date]);
         }
 
+        $count_tab1 = count($debtor);
+        $debtor_search = [];
+
         $request->session()->put('start_date', $start_date);
         $request->session()->put('end_date', $end_date);
         $request->session()->put('search', $search);
         // REMOVED session('debtor') TO PREVENT BLOAT
         $request->session()->save();
 
-        return view('debtor.1102050102_109', compact('start_date', 'end_date', 'search', 'debtor'));
+        return view('debtor.1102050102_109', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'count_tab1'));
     }
 
     public function _1102050102_109_search_ajax(Request $request)

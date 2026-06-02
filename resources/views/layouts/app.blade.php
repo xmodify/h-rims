@@ -2,6 +2,12 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
 <head>
+    <script>
+        window.addEventListener('error', function(e) {
+            var stack = e.error && e.error.stack ? e.error.stack : 'No stack trace';
+            alert("JS Error: " + e.message + "\n\nStack Trace:\n" + stack);
+        });
+    </script>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="{{ asset('/images/favicon_darkgreen.ico') }}" type="image/x-icon">
@@ -19,17 +25,12 @@
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 
     <!-- DataTables + Buttons + Bootstrap 5 CSS -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css"
-        integrity="sha384-5oFfLntNy8kuC2TaebWZbaHTqdh3Q+7PwYbB490gupK0YtTAB7mBJGv4bQl9g9rK" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css"
-        integrity="sha384-l34aKHHfL8N01nw+NN/DZXZU2HYz2kg0VsvaO0W73Hq8H5jobPJ/phLV+h7bl27R" crossorigin="anonymous">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
-        integrity="sha384-tViUnnbYAV00FLIhhi3v/dWt3Jxw4gZQcNoSCxCIFNJVCx7/D55/wXsrNIRANwdD" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/datatables/dataTables.bootstrap5.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/datatables/buttons.bootstrap5.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/bootstrap-icons/bootstrap-icons.css') }}">
 
     <!-- Datepicker Thai -->
-    <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/css/bootstrap-datepicker.min.css"
-        integrity="sha384-5IbgsdqrjF6rAX1mxBZkKRyUOgEr0/xCGkteJIaRKpvW0Ag0tf6lru4oL2ZhcMvo" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/bootstrap-datepicker/bootstrap-datepicker.min.css') }}">
 
     <!-- SweetAlert2 CDN -->
     <script src="{{ asset('assets/vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
@@ -1129,7 +1130,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item d-flex align-items-center me-2">
                             <div class="nav-version-badge">
-                                V.69-05-26 16:30
+                                V.69-06-02 14:30
                             </div>
                         </li>
                         <!-- Authentication Links -->
@@ -1201,43 +1202,24 @@
     </div>
 
     <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"
-        integrity="sha384-NXgwF8Kv9SSAr+jemKKcbvQsz+teULH/a5UNJvZc6kP47hZgl62M1vGnw6gHQhb1"
-        crossorigin="anonymous"></script>
+    <script src="{{ asset('assets/vendor/jquery/jquery-3.7.0.min.js') }}"></script>
 
     <!-- DataTables core -->
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"
-        integrity="sha384-k5vbMeKHbxEZ0AEBTSdR7UjAgWCcUfrS8c0c5b2AfIh7olfhNkyCZYwOfzOQhauK"
-        crossorigin="anonymous"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"
-        integrity="sha384-PgPBH0hy6DTJwu7pTf6bkRqPlf/+pjUBExpr/eIfzszlGYFlF9Wi9VTAJODPhgCO"
-        crossorigin="anonymous"></script>
+    <script src="{{ asset('assets/vendor/datatables/jquery.dataTables.min.js') }}"></script>
+    <script src="{{ asset('assets/vendor/datatables/dataTables.bootstrap5.min.js') }}"></script>
 
     <!-- Buttons + Export -->
-    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"
-        integrity="sha384-BsCICKJ3PaoBhw3UZcWM2TVGBGWRXEUinsEWpM2z5ZReY3QjfTxR5xghRpJz7XFC"
-        crossorigin="anonymous"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"
-        integrity="sha384-8Fm9OFhJ1epvcmDiJTZ2SFHHZoCp/xJ8Ld7wG7/aUwGni32fG7LIhsNTFfEtUaSv"
-        crossorigin="anonymous"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"
-        integrity="sha384-On4D3nN2gGDU45v05twd+TTLH8PL+2gbsGVpnKEpSfv7pDd1pgEJxxc4k7iWeg9d"
-        crossorigin="anonymous"></script>
+    <script src="{{ asset('assets/vendor/datatables/dataTables.buttons.min.js') }}"></script>
+    <script src="{{ asset('assets/vendor/datatables/buttons.bootstrap5.min.js') }}"></script>
+    <script src="{{ asset('assets/vendor/datatables/buttons.html5.min.js') }}"></script>
 
     <!-- JSZip (required for Excel export) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"
-        integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG"
-        crossorigin="anonymous"></script>
+    <script src="{{ asset('assets/vendor/jszip/jszip.min.js') }}"></script>
 
     <!-- Datepicker Thai -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/js/bootstrap-datepicker.min.js"
-        integrity="sha384-duAtk5RV7s42V6Zuw+tRBFcqD8RjRKw6RFnxmxIj1lUGAQJyum/vtcUQX8lqKQjp"
-        crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker-thai@1.0.0/js/bootstrap-datepicker-thai.js"
-        crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/locales/bootstrap-datepicker.th.min.js"
-        integrity="sha384-mQP2eajtVXopJ4XaFO1Mz6UQXRhDSib/tAFxuuBl0+U9vNGWlC/QZQMo4A6Pdz8t"
-        crossorigin="anonymous"></script>
+    <script src="{{ asset('assets/vendor/bootstrap-datepicker/bootstrap-datepicker.min.js') }}"></script>
+    <script src="{{ asset('assets/vendor/bootstrap-datepicker/bootstrap-datepicker-thai.js') }}"></script>
+    <script src="{{ asset('assets/vendor/bootstrap-datepicker/bootstrap-datepicker.th.min.js') }}"></script>
 
     <!-- Stack for per-page script -->
     @stack('scripts')

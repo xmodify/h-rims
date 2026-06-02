@@ -21,9 +21,9 @@
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
 
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.2.0/css/bootstrap.min.css">
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.1/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" type="text/css" href="{{ asset('assets/vendor/datatables/dataTables.bootstrap5.min.css') }}">
     <!-- Datepicker Thai -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/css/bootstrap-datepicker.min.css">
+    <link rel="stylesheet" href="{{ asset('assets/vendor/bootstrap-datepicker/bootstrap-datepicker.min.css') }}">
 
 
     <style>
@@ -243,13 +243,13 @@
 </body>
 
 <!-- Modal -->
-<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="{{ asset('assets/vendor/jquery/jquery-3.7.0.min.js') }}"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <!-- Datepicker Thai -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/js/bootstrap-datepicker.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker-thai@1.0.0/js/bootstrap-datepicker-thai.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap-datepicker@1.9.0/dist/locales/bootstrap-datepicker.th.min.js"></script>
+<script src="{{ asset('assets/vendor/bootstrap-datepicker/bootstrap-datepicker.min.js') }}"></script>
+<script src="{{ asset('assets/vendor/bootstrap-datepicker/bootstrap-datepicker-thai.js') }}"></script>
+<script src="{{ asset('assets/vendor/bootstrap-datepicker/bootstrap-datepicker.th.min.js') }}"></script>
 
 <script>
     $(document).ready(function() {

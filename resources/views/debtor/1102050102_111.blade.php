@@ -72,9 +72,9 @@
                     </button>
                 </li>       
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab">
+                    <button class="nav-link" id="confirm-tab" data-bs-toggle="pill" data-bs-target="#confirm-pane" type="button" role="tab" onclick="loadTab2()">
                         <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้
-                        <span class="badge bg-warning-soft text-warning ms-2">{{ count($debtor_search) }}</span>
+                        <span id="badge-tab2" class="badge bg-warning-soft text-warning ms-2">{{ count($debtor_search) }}</span>
                     </button>
                 </li>
             </ul>
@@ -113,7 +113,7 @@
                     <thead>
                     <tr class="table-success">
                         <th class="text-left text-primary" colspan = "12">1102050102.111-ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น IP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</th> 
-                        <th class="text-center text-primary" colspan = "10">การชดเชย</th>                                                 
+                        <th class="text-center text-primary" colspan = "11">การชดเชย</th>                                                 
                     </tr>
                     <tr class="table-success">
                         <th class="text-center"><input type="checkbox" onClick="toggle_d(this)"> All</th>
@@ -130,6 +130,7 @@
                         <th class="text-center">ฟอกไต</th>
                         <th class="text-center text-primary">ลูกหนี้</th>
                         <th class="text-center text-primary">ชดเชย</th>
+                        <th class="text-center text-primary">ผลต่าง</th>
                         <th class="text-center" style="color: #9c27b0;">ปรับเพิ่ม</th>
                         <th class="text-center" style="color: #673ab7;">ปรับลด</th>
                         <th class="text-center text-primary">ยอดคงเหลือ</th>
@@ -147,7 +148,7 @@
                     ?>
                     @foreach($debtor as $row)
                     @php
-                        $total_received = ($row->receive ?? 0); // Controller already calculates total receive including stm
+                        $total_received = ($row->receive ?? 0) + ($row->receive_manual ?? 0);
                         $balance = ($total_received + ($row->adj_inc ?? 0) - ($row->adj_dec ?? 0)) - $row->debtor;
                     @endphp
                     <tr>
@@ -167,6 +168,10 @@
                         <td align="right" @if($total_received > 0) style="color:green" 
                             @elseif($total_received < 0) style="color:red" @endif>
                             {{ number_format($total_received,2) }}
+                        </td>
+                        <td align="right" @if(($total_received-$row->debtor) > 0) style="color:green" 
+                            @elseif(($total_received-$row->debtor) < 0) style="color:red" @endif>
+                            {{ number_format($total_received-$row->debtor,2) }}
                         </td>
                         <td align="right" style="color: #9c27b0;">{{ number_format($row->adj_inc ?? 0, 2) }}</td>
                         <td align="right" style="color: #673ab7;">{{ number_format($row->adj_dec ?? 0, 2) }}</td>
@@ -226,7 +231,8 @@
                         $sum_rcpt_money += $row->rcpt_money ; 
                         $sum_kidney += $row->kidney ; 
                         $sum_debtor += $row->debtor ; 
-                        $sum_receive += $total_received ; 
+                        $sum_receive += $row->receive ; 
+                        $sum_receive_manual += ($row->receive_manual ?? 0) ; 
                         $sum_adj_inc += ($row->adj_inc ?? 0) ; 
                         $sum_adj_dec += ($row->adj_dec ?? 0) ; 
                         $sum_balance += $balance ; 
@@ -240,7 +246,10 @@
                             <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
                             <td class="text-end">{{ number_format($sum_kidney,2) }}</td>
                             <td class="text-end" style="color:blue">{{ number_format($sum_debtor,2) }}</td>
-                            <td class="text-end" style="color:green">{{ number_format($sum_receive,2) }}</td>
+                            <td class="text-end" style="color:green">{{ number_format($sum_receive + $sum_receive_manual,2) }}</td>
+                            <td class="text-end" style="color:red">
+                                {{ number_format(($sum_receive + $sum_receive_manual) - $sum_debtor, 2) }}
+                            </td>
                             <td class="text-end" style="color: #9c27b0;">{{ number_format($sum_adj_inc,2) }}</td>
                             <td class="text-end" style="color: #673ab7;">{{ number_format($sum_adj_dec,2) }}</td>
                             <td class="text-end" @if($sum_balance > 0.01) style="color:green" 
@@ -256,87 +265,69 @@
                 
                 <!-- Tab 2: รอยืนยันลูกหนี้ -->
                 <div class="tab-pane fade" id="confirm-pane" role="tabpanel"> 
+                    <div class="table-responsive">
+                        <div id="loading-tab2" class="text-center p-5 d-none">
+                            <div class="spinner-border text-warning" role="status"></div>
+                            <p class="mt-2 text-muted">กำลังดึงข้อมูลจาก HOSxP...</p>
+                            <p class="small text-danger">โปรดรอซักครู่</p>
+                        </div>
 
-            <form action="{{ url('debtor/1102050102_111_confirm') }}" method="POST" enctype="multipart/form-data">
-                @csrf
-                <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
-                    <button type="button" class="btn btn-outline-success btn-sm"  onclick="confirmSubmit()">
-                        <i class="bi bi-check-circle me-1"></i> ยืนยันลูกหนี้
-                    </button>
-                    <div></div>
-                </div>                
-                <div class="table-responsive"><table id="debtor_search" class="table table-bordered table-striped my-3" width="100%">
-                    <thead>
-                    <tr class="table-secondary">
-                        <th class="text-left text-primary" colspan = "17">1102050102.111-ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น IP รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                         
-                    </tr>
-                    <tr class="table-secondary">
-                        <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th>  
-                        <th class="text-center">ตึกผู้ป่วย</th>
-                        <th class="text-center">HN</th>
-                        <th class="text-center">AN</th>
-                        <th class="text-center">ชื่อ-สกุล</th>              
-                        <th class="text-center">อายุ</th>
-                        <th class="text-center">สิทธิ</th>
-                        <th class="text-center">Admit</th>
-                        <th class="text-center">Discharge</th>
-                        <th class="text-center">ICD10</th>
-                        <th class="text-center">AdjRW</th>
-                        <th class="text-center">ค่ารักษาทั้งหมด</th>  
-                        <th class="text-center">ชำระเอง</th>
-                        <th class="text-center">ฟอกไต</th>
-                        <th class="text-center">ลูกหนี้</th>
-                        <th class="text-center">รายการฟอกไต</th> 
-                        <th class="text-center">สถานะ</th>  
-                    </tr>
-                    </thead>
-                    <?php $count = 1 ; ?>
-                    <?php 
-                        $sum_income_search = 0;
-                        $sum_rcpt_money_search = 0;
-                        $sum_kidney_search = 0;
-                        $sum_debtor_search = 0;
-                    ?>
-                    @foreach($debtor_search as $row)
-                    <tr>
-                        <td class="text-center"><input type="checkbox" name="checkbox[]" value="{{$row->an}}"></td> 
-                        <td align="right">{{$row->ward}}</td>
-                        <td align="center">{{ $row->hn }}</td>
-                        <td align="center">{{ $row->an }}</td>
-                        <td align="left">{{ $row->ptname }}</td>
-                        <td align="center">{{ $row->age_y }}</td>
-                        <td align="left">{{ $row->pttype }}</td>
-                        <td align="right">{{ DateThai($row->regdate) }}</td>
-                        <td align="right">{{ DateThai($row->dchdate) }}</td>
-                        <td align="right">{{ $row->pdx }}</td>      
-                        <td align="right">{{ $row->adjrw }}</td>                        
-                        <td align="right">{{ number_format($row->income,2) }}</td>
-                        <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
-                        <td align="right">{{ number_format($row->kidney,2) }}</td>
-                        <td align="right">{{ number_format($row->debtor,2) }}</td>
-                        <td align="left">{{ $row->kidney_list }}</td>
-                        <td align="left">{{ $row->ipt_coll_status_type_name }}</td>
-                    <?php $count++; ?>
-                    <?php 
-                        $sum_income_search += $row->income;
-                        $sum_rcpt_money_search += $row->rcpt_money;
-                        $sum_kidney_search += $row->kidney;
-                        $sum_debtor_search += $row->debtor;
-                    ?>
-                    @endforeach 
-                    </tr> 
-                    <tfoot>
-                        <tr class="table-secondary text-end" style="font-weight:bold; font-size: 14px;">
-                            <td colspan="11" class="text-end">รวม</td>
-                            <td class="text-end">{{ number_format($sum_income_search,2) }}</td>
-                            <td class="text-end">{{ number_format($sum_rcpt_money_search,2) }}</td>
-                            <td class="text-end">{{ number_format($sum_kidney_search,2) }}</td>
-                            <td class="text-end" style="color:blue">{{ number_format($sum_debtor_search,2) }}</td>
-                            <td colspan="2"></td>
-                        </tr>
-                    </tfoot>
-                </table></div>
-            </form>
+                        <div id="empty-tab2" class="text-center p-5 d-none">
+                            <i class="bi bi-search fs-1 text-muted"></i>
+                            <p class="mt-2">คลิกที่ Tab หรือกดปุ่มค้นหาเพื่อโหลดข้อมูล</p>
+                            <button type="button" class="btn btn-warning btn-sm" onclick="loadTab2()">โหลดข้อมูล HOSxP</button>
+                        </div>
+
+                        <div id="table_111_ajax" class="d-none">
+                            <form action="{{ url('debtor/1102050102_111_confirm') }}" method="POST" enctype="multipart/form-data">
+                                @csrf
+                                <div class="d-flex justify-content-between align-items-center mb-2 mt-3">
+                                    <button type="button" class="btn btn-outline-success btn-sm" onclick="confirmSubmit()">
+                                        <i class="bi bi-check-circle me-1"></i> ยืนยันลูกหนี้
+                                    </button>
+                                    <div></div>
+                                </div>                
+                                <table id="debtor_search" class="table table-bordered table-striped my-3" width="100%">
+                                    <thead>
+                                        <tr class="table-secondary">
+                                            <th class="text-left text-primary" colspan="17">1102050102.111-ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น IP รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                         
+                                        </tr>
+                                        <tr class="table-secondary">
+                                            <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th>  
+                                            <th class="text-center">ตึกผู้ป่วย</th>
+                                            <th class="text-center">HN</th>
+                                            <th class="text-center">AN</th>
+                                            <th class="text-center">ชื่อ-สกุล</th>              
+                                            <th class="text-center">อายุ</th>
+                                            <th class="text-center">สิทธิ</th>
+                                            <th class="text-center">Admit</th>
+                                            <th class="text-center">Discharge</th>
+                                            <th class="text-center">ICD10</th>
+                                            <th class="text-center">AdjRW</th>
+                                            <th class="text-center">ค่ารักษาทั้งหมด</th>  
+                                            <th class="text-center">ชำระเอง</th>
+                                            <th class="text-center">ฟอกไต</th>
+                                            <th class="text-center">ลูกหนี้</th>
+                                            <th class="text-center">รายการฟอกไต</th> 
+                                            <th class="text-center">สถานะ</th>  
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table2-body"></tbody>
+                                    <tfoot>
+                                        <tr class="table-secondary text-end" style="font-weight:bold; font-size: 14px;">
+                                            <td colspan="11" class="text-end">รวม</td>
+                                            <td class="text-end" id="sum_income_tab2">0.00</td>
+                                            <td class="text-end" id="sum_rcpt_money_tab2">0.00</td>
+                                            <td class="text-end" id="sum_kidney_tab2">0.00</td>
+                                            <td class="text-end" id="sum_debtor_tab2" style="color:blue">0.00</td>
+                                            <td colspan="2"></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -750,6 +741,104 @@
         });
     </script>
     <script>
+        let tab2Loaded = false;
+
+        function loadTab2() {
+            if (tab2Loaded) return;
+            $('#badge-tab2').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+            $('#empty-tab2').addClass('d-none');
+            $('#loading-tab2').removeClass('d-none');
+            $('#table_111_ajax').addClass('d-none');
+
+            $.get("{{ url('debtor/1102050102_111_search_ajax') }}", {
+                start_date: $('#start_date').val(),
+                end_date: $('#end_date').val()
+            }, function(data) {
+                $('#loading-tab2').addClass('d-none');
+                
+                if (!data || data.length === 0) {
+                    $('#empty-tab2').removeClass('d-none');
+                    $('#badge-tab2').text('0').removeClass('text-warning').addClass('text-secondary');
+                    return;
+                }
+
+                $('#table_111_ajax').removeClass('d-none');
+                $('#badge-tab2').text(data.length).removeClass('text-warning').addClass('text-warning fw-bold');
+                
+                let rows = '';
+                let sum_income = 0, sum_rcpt = 0, sum_kidney = 0, sum_debtor = 0;
+
+                data.forEach(row => {
+                    rows += `
+                        <tr>
+                            <td class="text-center"><input type="checkbox" name="checkbox[]" value="${row.an}"></td>
+                            <td>${row.ward || ''}</td>
+                            <td class="text-center">${row.hn}</td>
+                            <td class="text-center">${row.an}</td>
+                            <td>${row.ptname}</td>
+                            <td class="text-center">${row.age_y}</td>
+                            <td>${row.pttype} [${row.hospmain || ''}]</td>
+                            <td class="text-end">${thaiDate(row.regdate)}</td>
+                            <td class="text-end">${thaiDate(row.dchdate)}</td>
+                            <td class="text-center">${row.pdx || ''}</td>
+                            <td class="text-end">${row.adjrw || '0.00'}</td>
+                            <td class="text-end">${parseFloat(row.income).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                            <td class="text-end">${parseFloat(row.rcpt_money).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                            <td class="text-end">${parseFloat(row.kidney).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                            <td class="text-end">${parseFloat(row.debtor).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                            <td>${row.kidney_list || ''}</td>
+                            <td>${row.ipt_coll_status_type_name || ''}</td>
+                        </tr>
+                    `;
+                    sum_income += parseFloat(row.income || 0);
+                    sum_rcpt += parseFloat(row.rcpt_money || 0);
+                    sum_kidney += parseFloat(row.kidney || 0);
+                    sum_debtor += parseFloat(row.debtor || 0);
+                });
+                if ($.fn.DataTable.isDataTable('#debtor_search')) {
+                    $('#debtor_search').DataTable().destroy();
+                }
+
+                $('#table2-body').html(rows);
+                $('#sum_income_tab2').text(sum_income.toLocaleString(undefined, {minimumFractionDigits: 2}));
+                $('#sum_rcpt_money_tab2').text(sum_rcpt.toLocaleString(undefined, {minimumFractionDigits: 2}));
+                $('#sum_kidney_tab2').text(sum_kidney.toLocaleString(undefined, {minimumFractionDigits: 2}));
+                $('#sum_debtor_tab2').text(sum_debtor.toLocaleString(undefined, {minimumFractionDigits: 2}));
+
+                $('#debtor_search').DataTable({
+                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                    buttons: [{
+                        extend: 'excelHtml5',
+                        text: 'Excel',
+                        className: 'btn btn-success btn-sm',
+                        title: '1102050102.111-ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น IP รอยืนยัน'
+                    }],
+                    language: {
+                        search: "ค้นหา:",
+                        lengthMenu: "แสดง _MENU_ รายการ",
+                        info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                        paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                    }
+                });
+                
+                tab2Loaded = true;
+            }).fail(function() {
+                $('#loading-tab2').addClass('d-none');
+                $('#empty-tab2').removeClass('d-none').html('<i class="bi bi-exclamation-triangle fs-1 text-danger"></i><p class="mt-2 text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>');
+            });
+        }
+
+        function thaiDate(dateStr) {
+            if (!dateStr) return '';
+            const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+            const d = new Date(dateStr);
+            return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+        }
+        $(document).ready(function() {
+            loadTab2();
+        });
+    </script>
+    <script>
         $(document).ready(function () {
             $('#debtor').DataTable({
                 dom: '<"row mb-3"' +
@@ -770,37 +859,5 @@
                 }
             });
         });
-    </script>
-    <script>
-        $(document).ready(function () {
-        $('#debtor_search').DataTable({
-            dom: '<"row mb-3"' +
-                    '<"col-md-6"l>' + // Show รายการ
-                    '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
-                '>' +
-                'rt' +
-                '<"row mt-3"' +
-                    '<"col-md-6"i>' + // Info
-                    '<"col-md-6"p>' + // Pagination
-                '>',
-            buttons: [
-                {
-                extend: 'excelHtml5',
-                text: 'Excel',
-                className: 'btn btn-success btn-sm',
-                title: '1102050102.111-ลูกหนี้ค่ารักษา เบิกจ่ายตรงหน่วยงานอื่น IP รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
-                }
-            ],
-            language: {
-                search: "ค้นหา:",
-                lengthMenu: "แสดง _MENU_ รายการ",
-                info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-                paginate: {
-                previous: "ก่อนหน้า",
-                next: "ถัดไป"
-                }
-            }
-        });
-    });
     </script>
 @endpush

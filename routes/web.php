@@ -492,6 +492,7 @@ Route::post('debtor/1102050101_310/unlock/{an}', [DebtorController::class, '_110
 Route::post('debtor/1102050101_310/lock/{an}', [DebtorController::class, '_1102050101_310_lock']);
 Route::get('debtor/1102050101_310_indiv_excel', [DebtorController::class, '_1102050101_310_indiv_excel']);
 Route::match(['get', 'post'], 'debtor/1102050101_402', [DebtorController::class, '_1102050101_402']);
+Route::get('debtor/1102050101_402_search_ajax', [DebtorController::class, '_1102050101_402_search_ajax']);
 Route::post('debtor/1102050101_402_confirm', [DebtorController::class, '_1102050101_402_confirm']);
 Route::delete('debtor/1102050101_402_delete', [DebtorController::class, '_1102050101_402_delete']);
 Route::get('debtor/1102050101_402_daily_pdf', [DebtorController::class, '_1102050101_402_daily_pdf']);
@@ -499,6 +500,7 @@ Route::post('debtor/1102050101_402/unlock/{an}', [DebtorController::class, '_110
 Route::post('debtor/1102050101_402/lock/{an}', [DebtorController::class, '_1102050101_402_lock']);
 Route::get('debtor/1102050101_402_indiv_excel', [DebtorController::class, '_1102050101_402_indiv_excel']);
 Route::match(['get', 'post'], 'debtor/1102050101_502', [DebtorController::class, '_1102050101_502']);
+Route::get('debtor/1102050101_502_search_ajax', [DebtorController::class, '_1102050101_502_search_ajax']);
 Route::post('debtor/1102050101_502_confirm', [DebtorController::class, '_1102050101_502_confirm']);
 Route::delete('debtor/1102050101_502_delete', [DebtorController::class, '_1102050101_502_delete']);
 Route::put('debtor/1102050101_502/update/{an}', [DebtorController::class, '_1102050101_502_update']);
@@ -507,6 +509,7 @@ Route::post('debtor/1102050101_502/unlock/{an}', [DebtorController::class, '_110
 Route::post('debtor/1102050101_502/lock/{an}', [DebtorController::class, '_1102050101_502_lock']);
 Route::get('debtor/1102050101_502_indiv_excel', [DebtorController::class, '_1102050101_502_indiv_excel']);
 Route::match(['get', 'post'], 'debtor/1102050101_504', [DebtorController::class, '_1102050101_504']);
+Route::get('debtor/1102050101_504_search_ajax', [DebtorController::class, '_1102050101_504_search_ajax']);
 Route::post('debtor/1102050101_504_confirm', [DebtorController::class, '_1102050101_504_confirm']);
 Route::delete('debtor/1102050101_504_delete', [DebtorController::class, '_1102050101_504_delete']);
 Route::put('debtor/1102050101_504/update/{an}', [DebtorController::class, '_1102050101_504_update']);
@@ -515,6 +518,7 @@ Route::post('debtor/1102050101_504/unlock/{an}', [DebtorController::class, '_110
 Route::post('debtor/1102050101_504/lock/{an}', [DebtorController::class, '_1102050101_504_lock']);
 Route::get('debtor/1102050101_504_indiv_excel', [DebtorController::class, '_1102050101_504_indiv_excel']);
 Route::match(['get', 'post'], 'debtor/1102050101_704', [DebtorController::class, '_1102050101_704']);
+Route::get('debtor/1102050101_704_search_ajax', [DebtorController::class, '_1102050101_704_search_ajax']);
 Route::post('debtor/1102050101_704_confirm', [DebtorController::class, '_1102050101_704_confirm']);
 Route::delete('debtor/1102050101_704_delete', [DebtorController::class, '_1102050101_704_delete']);
 Route::put('debtor/1102050101_704/update/{an}', [DebtorController::class, '_1102050101_704_update']);
@@ -525,7 +529,6 @@ Route::get('debtor/1102050101_704_indiv_excel', [DebtorController::class, '_1102
 Route::match(['get', 'post'], 'debtor/1102050102_107', [DebtorController::class, '_1102050102_107']);
 Route::get('debtor/1102050102_107_search_ajax', [DebtorController::class, '_1102050102_107_search_ajax']);
 Route::get('debtor/1102050102_107_iclaim_ajax', [DebtorController::class, '_1102050102_107_iclaim_ajax']);
-Route::get('debtor/1102050102_107_counts_ajax', [DebtorController::class, '_1102050102_107_counts_ajax']);
 Route::post('debtor/1102050102_107_confirm', [DebtorController::class, '_1102050102_107_confirm']);
 Route::post('debtor/1102050102_107_confirm_iclaim', [DebtorController::class, '_1102050102_107_confirm_iclaim']);
 Route::delete('debtor/1102050102_107_delete', [DebtorController::class, '_1102050102_107_delete']);

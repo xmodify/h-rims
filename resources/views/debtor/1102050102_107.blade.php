@@ -74,9 +74,9 @@
         <div class="card-header bg-transparent border-0 pt-3 px-4 pb-0">
             <ul class="nav nav-tabs-modern" id="pills-tab" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab">
+                    <button class="nav-link active" id="debtor-tab" data-bs-toggle="pill" data-bs-target="#debtor-pane" type="button" role="tab" onclick="tab2Loaded = false; tab3Loaded = false;">
                         <i class="bi bi-person-lines-fill me-1 text-success"></i> <span class="text-success fw-bold">รายการลูกหนี้</span>
-                        <span class="ms-2 fw-bold text-success">{{ count($debtor) }}</span>
+                        <span class="ms-2 fw-bold text-success">{{ $count_tab1 }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -757,25 +757,13 @@
                 }
             });
         });
-    </script>
-    <script>
-        function loadCounts() {
-            const start_date = $('#start_date').val();
-            const end_date = $('#end_date').val();
-            
-            // Set spinners on badges
-            $('#badge-tab2').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
-            $('#badge-tab3').html('<span class="spinner-border spinner-border-sm" role="status"></span>');
-
-            $.get("{{ url('debtor/1102050102_107_counts_ajax') }}", { start_date, end_date }, function(res) {
-                $('#badge-tab2').text(res.tab2);
-                $('#badge-tab3').text(res.tab3);
-            });
-        }
 
         let tab2Loaded = false;
-        function loadTab2() {
-            if (tab2Loaded) return;
+        function loadTab2(callback) {
+            if (tab2Loaded) {
+                if (typeof callback === 'function') callback();
+                return;
+            }
             const start_date = $('#start_date').val();
             const end_date = $('#end_date').val();
             
@@ -846,16 +834,23 @@
                 });
                 
                 tab2Loaded = true;
+                $('#badge-tab2').text(data.length);
+                if (typeof callback === 'function') callback();
             }).fail(function() {
                 tab2Loaded = false;
                 $('#loading-tab2').addClass('d-none');
+                $('#badge-tab2').html('!').css('color','red');
                 $('#empty-tab2').removeClass('d-none');
+                if (typeof callback === 'function') callback();
             });
         }
 
         let tab3Loaded = false;
-        function loadTab3() {
-            if (tab3Loaded) return;
+        function loadTab3(callback) {
+            if (tab3Loaded) {
+                if (typeof callback === 'function') callback();
+                return;
+            }
             const start_date = $('#start_date').val();
             const end_date = $('#end_date').val();
             
@@ -913,6 +908,14 @@
                 });
                 
                 tab3Loaded = true;
+                $('#badge-tab3').text(data.length);
+                if (typeof callback === 'function') callback();
+            }).fail(function() {
+                tab3Loaded = false;
+                $('#loading-tab3').addClass('d-none');
+                $('#badge-tab3').html('!').css('color','red');
+                $('#empty-tab3').removeClass('d-none');
+                if (typeof callback === 'function') callback();
             });
         }
 
@@ -929,7 +932,6 @@
         }
 
         $(document).ready(function () {
-            loadCounts();
             
             // Performance: Lazy load secondary tabs when clicked
             $('button[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
@@ -941,6 +943,11 @@
             $('#debtor').DataTable({
                 dom: '<"row mb-3"<"col-md-6"l>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',            
                 language: { lengthMenu: "แสดง _MENU_ รายการ", info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ", paginate: { previous: "ก่อนหน้า", next: "ถัดไป" } }
+            });
+
+            // Auto load Tab 2 and Tab 3 sequentially on page load
+            loadTab2(function() {
+                loadTab3();
             });
         });
     </script>

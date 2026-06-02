@@ -160,7 +160,7 @@
                         <td align="right">{{ DateThai($row->regdate) }}</td>
                         <td align="right">{{ DateThai($row->dchdate) }}</td>
                         <td align="right">{{ $row->pdx }}</td>  
-                        <td align="right">{{ $row->adjrw }}</td>                        
+                        <td align="right">{{ number_format($row->adjrw, 4) }}</td>                        
                         <td align="right">{{ number_format($row->income,2) }}</td>
                         <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
                         <td align="right">{{ number_format($row->kidney,2) }}</td>
@@ -781,7 +781,7 @@
                             <td class="text-end">${thaiDate(row.regdate)}</td>
                             <td class="text-end">${thaiDate(row.dchdate)}</td>
                             <td class="text-center">${row.pdx || ''}</td>
-                            <td class="text-end">${row.adjrw || '0.00'}</td>
+                            <td class="text-end">${parseFloat(row.adjrw || 0).toFixed(4)}</td>
                             <td class="text-end">${parseFloat(row.income).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                             <td class="text-end">${parseFloat(row.rcpt_money).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                             <td class="text-end">${parseFloat(row.kidney).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>

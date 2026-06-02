@@ -864,7 +864,7 @@ $(document).ready(function() {
                         <td align="left" width="6%" class="text-nowrap">${formThaiDate(row.regdate)}</td>
                         <td align="left" width="6%" class="text-nowrap">${formThaiDate(row.dchdate)}</td>
                         <td align="right">${row.pdx || ''}</td>      
-                        <td align="right">${row.adjrw || ''}</td>                        
+                        <td align="right">${parseFloat(row.adjrw || 0).toFixed(4)}</td>                        
                         <td align="right" width="5%">${formatNumber(row.income)}</td>
                         <td align="right">${formatNumber(row.rcpt_money)}</td>
                         <td align="right">${formatNumber(row.other)}</td>

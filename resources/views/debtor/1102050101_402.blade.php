@@ -113,7 +113,7 @@
                     <thead>
                     <tr class="table-success">
                         <th class="text-left text-primary" colspan = "12">1102050101.402 ลูกหนี้ค่ารักษา-เบิกจ่ายตรง กรมบัญชีกลาง IP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</th> 
-                        <th class="text-center text-primary" colspan = "10">การชดเชย</th>                                                 
+                        <th class="text-center text-primary" colspan = "9">การชดเชย</th>                                                 
                     </tr>
                     <tr class="table-success">
                         <th class="text-center"><input type="checkbox" onClick="toggle_d(this)"> All</th>
@@ -130,7 +130,6 @@
                         <th class="text-center">ฟอกไต</th>
                         <th class="text-center text-primary">ลูกหนี้</th>
                         <th class="text-center text-primary">ชดเชย</th>
-                        <th class="text-center text-primary">ผลต่าง</th>
                         <th class="text-center" style="color: #9c27b0;">ปรับเพิ่ม</th>
                         <th class="text-center" style="color: #673ab7;">ปรับลด</th>
                         <th class="text-center text-primary">ยอดคงเหลือ</th>
@@ -160,7 +159,7 @@
                         <td align="right">{{ DateThai($row->regdate) }}</td>
                         <td align="right">{{ DateThai($row->dchdate) }}</td>
                         <td align="right">{{ $row->pdx }}</td>  
-                        <td align="right">{{ $row->adjrw }}</td>                        
+                        <td align="right">{{ number_format($row->adjrw, 4) }}</td>                        
                         <td align="right">{{ number_format($row->income,2) }}</td>
                         <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
                         <td align="right">{{ number_format($row->kidney,2) }}</td>
@@ -168,10 +167,6 @@
                         <td align="right" @if($total_received > 0) style="color:green" 
                             @elseif($total_received < 0) style="color:red" @endif>
                             {{ number_format($total_received,2) }}
-                        </td>
-                        <td align="right" @if(($total_received-$row->debtor) > 0) style="color:green" 
-                            @elseif(($total_received-$row->debtor) < 0) style="color:red" @endif>
-                            {{ number_format($total_received-$row->debtor,2) }}
                         </td>
                         <td align="right" style="color: #9c27b0;">{{ number_format($row->adj_inc ?? 0, 2) }}</td>
                         <td align="right" style="color: #673ab7;">{{ number_format($row->adj_dec ?? 0, 2) }}</td>
@@ -247,9 +242,6 @@
                             <td class="text-end">{{ number_format($sum_kidney,2) }}</td>
                             <td class="text-end" style="color:blue">{{ number_format($sum_debtor,2) }}</td>
                             <td class="text-end" style="color:green">{{ number_format($sum_receive + $sum_receive_manual,2) }}</td>
-                            <td class="text-end" style="color:red">
-                                {{ number_format(($sum_receive + $sum_receive_manual) - $sum_debtor, 2) }}
-                            </td>
                             <td class="text-end" style="color: #9c27b0;">{{ number_format($sum_adj_inc,2) }}</td>
                             <td class="text-end" style="color: #673ab7;">{{ number_format($sum_adj_dec,2) }}</td>
                             <td class="text-end" @if($sum_balance > 0.01) style="color:green" 
@@ -802,7 +794,7 @@
                             <td class="text-end">${thaiDate(row.regdate)}</td>
                             <td class="text-end">${thaiDate(row.dchdate)}</td>
                             <td class="text-center">${row.pdx || ''}</td>
-                            <td class="text-end">${row.adjrw || '0.00'}</td>
+                            <td class="text-end">${parseFloat(row.adjrw || 0).toFixed(4)}</td>
                             <td class="text-end">${parseFloat(row.income).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                             <td class="text-end">${parseFloat(row.rcpt_money).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                             <td class="text-end">${parseFloat(row.kidney).toLocaleString(undefined, {minimumFractionDigits: 2})}</td>

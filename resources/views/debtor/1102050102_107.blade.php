@@ -802,7 +802,7 @@
                         <td class="text-center">${thaiDate(row.regdate)}</td>
                         <td class="text-center">${thaiDate(row.dchdate)}</td>
                         <td class="text-center">${row.pdx || ''}</td>
-                        <td class="text-end">${parseFloat(row.adjrw || 0).toFixed(2)}</td>
+                        <td class="text-end">${parseFloat(row.adjrw || 0).toFixed(4)}</td>
                         <td class="text-end">${formatMoney(row.income)}</td>
                         <td class="text-end">${formatMoney(row.paid_money)}</td>
                         <td class="text-end">${formatMoney(row.rcpt_money)}</td>
@@ -882,7 +882,7 @@
                         <td class="text-center">${thaiDate(row.regdate)}</td>
                         <td class="text-center">${thaiDate(row.dchdate)}</td>
                         <td class="text-center">${row.pdx || ''}</td>
-                        <td class="text-end">${parseFloat(row.adjrw || 0).toFixed(2)}</td>
+                        <td class="text-end">${parseFloat(row.adjrw || 0).toFixed(4)}</td>
                         <td class="text-end">${formatMoney(row.income)}</td>
                         <td class="text-end">${formatMoney(row.rcpt_money)}</td>
                         <td class="text-end">${formatMoney(row.other)}</td>

@@ -162,7 +162,7 @@
                                 <td align="right" width = "5%">{{ DateThai($row->regdate) }}</td>
                                 <td align="right" width = "5%">{{ DateThai($row->dchdate) }}</td>
                                 <td align="right">{{ $row->pdx }}</td>  
-                                <td align="right">{{ $row->adjrw }}</td>                        
+                                <td align="right">{{ number_format($row->adjrw, 4) }}</td>                        
                                 <td align="right">{{ number_format($row->income,2) }}</td>
                                 <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
                                 <td align="right">{{ number_format($row->kidney,2) }}</td>
@@ -300,7 +300,7 @@
                                 <td align="right">{{ DateThai($row->regdate) }}</td>
                                 <td align="right">{{ DateThai($row->dchdate) }}</td>
                                 <td align="right">{{ $row->pdx }}</td>      
-                                <td align="right">{{ $row->adjrw }}</td>                        
+                                <td align="right">{{ number_format($row->adjrw, 4) }}</td>                        
                                 <td align="right">{{ number_format($row->income,2) }}</td>
                                 <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
                                 <td align="right">{{ number_format($row->kidney,2) }}</td>

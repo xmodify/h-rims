@@ -159,7 +159,7 @@
                         <td align="right">{{ DateThai($row->regdate) }}</td>
                         <td align="right">{{ DateThai($row->dchdate) }}</td>
                         <td align="right">{{ $row->pdx }}</td>  
-                        <td align="right">{{ $row->adjrw }}</td>                        
+                        <td align="right">{{ number_format($row->adjrw, 4) }}</td>                        
                         <td align="right">{{ number_format($row->income,2) }}</td>
                         <td align="right">{{ number_format($row->rcpt_money,2) }}</td>
                         <td align="right">{{ number_format($row->cr,2) }}</td>
@@ -690,7 +690,7 @@
                             <td align="right">${thaiDate(row.regdate)}</td>
                             <td align="right">${thaiDate(row.dchdate)}</td>
                             <td align="right">${escapeHtml(row.pdx)}</td>
-                            <td align="right">${row.adjrw || '0'}</td>
+                            <td align="right">${parseFloat(row.adjrw || 0).toFixed(4)}</td>
                             <td align="right" class="text-primary">${formatMoney(income)}</td>
                             <td align="right">${formatMoney(rcpt)}</td>
                             <td align="right">${formatMoney(cr)}</td>

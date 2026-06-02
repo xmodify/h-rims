@@ -238,7 +238,7 @@
                             </tbody>
                             <tfoot>
                                 <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                                    <td colspan="7" class="text-end">รวม</td>
+                                    <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td><td></td>
                                     <td class="text-end">{{ number_format($sum_income,2) }}</td>
                                     <td class="text-end">{{ number_format($sum_paid_money,2) }}</td>
                                     <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
@@ -249,7 +249,7 @@
                                     <td class="text-end" style="color:@if($sum_balance > 0.05) green @elseif($sum_balance < -0.05) red @else black @endif">
                                         {{ number_format($sum_balance, 2) }}
                                     </td>
-                                    <td colspan="4"></td>
+                                    <td></td><td></td><td></td><td></td>
                                 </tr>
                             </tfoot>
                         </table></div>
@@ -305,7 +305,7 @@
                                 </tbody>
                                 <tfoot>
                                     <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                                        <td colspan="7" class="text-end">รวม</td>
+                                        <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td><td></td>
                                         <td id="sum_income_search" class="text-end">0.00</td>
                                         <td id="sum_paid_money_search" class="text-end">0.00</td>
                                         <td id="sum_rcpt_money_search" class="text-end">0.00</td>
@@ -366,7 +366,7 @@
                                 </tbody>
                                 <tfoot>
                                     <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                                        <td colspan="7" class="text-end">รวม</td>
+                                        <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td><td></td>
                                         <td id="sum_income_iclaim" class="text-end">0.00</td>
                                         <td id="sum_rcpt_money_iclaim" class="text-end">0.00</td>
                                         <td id="sum_other_iclaim" class="text-end">0.00</td>
@@ -761,6 +761,7 @@ $(document).ready(function () {
 });
 
 let tab2Loaded = false;
+let tab3Loaded = false;
 function loadTab2() {
     if (tab2Loaded) return;
     $('#empty-tab2').addClass('d-none');
@@ -825,6 +826,7 @@ function loadTab2() {
             });
         },
         error: function() { 
+            tab2Loaded = false;
             $('#loading-tab2').addClass('d-none'); 
             $('#empty-tab2').removeClass('d-none');
             $('#badge-tab2').text('!').addClass('bg-danger text-white');
@@ -834,9 +836,10 @@ function loadTab2() {
 }
 
 function loadTab3() {
-    if (!$('#debtor_search_iclaim_table').hasClass('d-none')) return;
+    if (tab3Loaded) return;
     $('#empty-tab3').addClass('d-none');
     $('#loading-tab3').removeClass('d-none');
+    tab3Loaded = true;
 
     $.ajax({
         url: "{{ url('debtor/1102050102_106_iclaim_ajax') }}",
@@ -881,6 +884,7 @@ function loadTab3() {
             });
         },
         error: function() { 
+            tab3Loaded = false;
             $('#loading-tab3').addClass('d-none'); 
             $('#empty-tab3').removeClass('d-none');
             Swal.fire('Error', 'ไม่สามารถดึงข้อมูลได้ โปรดลองอีกครั้ง', 'error'); 

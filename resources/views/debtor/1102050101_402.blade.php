@@ -236,7 +236,7 @@
                     </tr>   
                     <tfoot>
                         <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                            <td colspan="9" class="text-end">รวม</td>
+                            <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                             <td class="text-end">{{ number_format($sum_income,2) }}</td>
                             <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
                             <td class="text-end">{{ number_format($sum_kidney,2) }}</td>
@@ -248,7 +248,7 @@
                             @elseif($sum_balance < -0.01) style="color:red" @endif>
                                 {{ number_format($sum_balance, 2) }}
                             </td>
-                            <td colspan="4"></td>
+                            <td></td><td></td><td></td><td></td>
                         </tr>
                     </tfoot>
                 </table></div>
@@ -306,13 +306,13 @@
                                     </thead>
                                     <tbody id="table2-body"></tbody>
                                     <tfoot>
-                                        <tr class="table-secondary text-end" style="font-weight:bold; font-size: 14px;">
-                                            <td colspan="11" class="text-end">รวม</td>
+                                        <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
+                                            <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                                             <td class="text-end" id="sum_income_tab2">0.00</td>
                                             <td class="text-end" id="sum_rcpt_money_tab2">0.00</td>
                                             <td class="text-end" id="sum_kidney_tab2">0.00</td>
                                             <td class="text-end" id="sum_debtor_tab2" style="color:blue">0.00</td>
-                                            <td colspan="2"></td>
+                                            <td></td><td></td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -769,14 +769,14 @@
             }, function(data) {
                 $('#loading-tab2').addClass('d-none');
                 
-                if (!data || data.length === 0) {
-                    $('#empty-tab2').removeClass('d-none');
-                    $('#badge-tab2').text('0').removeClass('text-warning').addClass('text-secondary');
-                    return;
-                }
-
                 $('#table_402_ajax').removeClass('d-none');
+            if (!data) data = [];
+            if (data.length === 0) {
+                $('#badge-tab2').text('0').removeClass('text-warning').addClass('text-secondary');
+            } else {
                 $('#badge-tab2').text(data.length).removeClass('text-warning').addClass('text-warning fw-bold');
+            }
+                
                 
                 let rows = '';
                 let sum_income = 0, sum_rcpt = 0, sum_kidney = 0, sum_debtor = 0;

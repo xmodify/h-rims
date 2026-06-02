@@ -237,7 +237,7 @@
                     </tr>   
                     <tfoot>
                         <tr class="table-success text-end fw-bold" style="font-size: 14px;">
-                            <td colspan="6" class="text-end">รวม</td>
+                            <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td>
                             <td class="text-end">{{ number_format($sum_income,2) }}</td>
                             <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
                             <td class="text-end">{{ number_format($sum_other,2) }}</td>
@@ -248,7 +248,7 @@
                             <td class="text-end" style="color: #9c27b0;">{{ number_format($s_adj_inc,2) }}</td>
                             <td class="text-end" style="color: #673ab7;">{{ number_format($s_adj_dec,2) }}</td>
                             <td class="text-end" style="color:@if($s_balance < -0.01) red @elseif($s_balance > 0.01) green @else black @endif">{{ number_format($s_balance, 2) }}</td>
-                            <td colspan="4"></td>
+                            <td></td><td></td><td></td><td></td>
                         </tr>
                     </tfoot>                    
                 </table></div>
@@ -279,6 +279,9 @@
                     </div>
                     <table id="debtor_search" class="table table-bordered table-striped my-3 d-none" width="100%">
                         <thead>
+                        <tr class="table-secondary align-middle">
+                            <th class="text-left text-primary" colspan="13">1102050101.203-ลูกหนี้ค่ารักษา UC-OP นอก CUP (ในจังหวัดสังกัด สธ.) วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>
+                        </tr>
                         <tr class="table-secondary align-middle">
                             <th class="text-center"><input type="checkbox" onClick="toggle(this)"> ALL</th> 
                             <th class="text-center">วันที่</th>

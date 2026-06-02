@@ -173,53 +173,65 @@
                                 <td align="right">{{ number_format($row->other,2) }}</td>
                                 <td align="right">{{ number_format($row->ppfs,2) }}</td>
                                 <td align="right" class="text-primary">{{ number_format($row->debtor,2) }}</td> 
-                                <td align="right" @if($row->receive > 0) style="color:green" 
-                                    @elseif($row->receive < 0) style="color:red" @endif>
+                                @php
+                                    $receive_color = $row->receive > 0 ? 'green' : ($row->receive < 0 ? 'red' : 'inherit');
+                                    $receive_pp_color = $row->receive_pp > 0 ? 'green' : ($row->receive_pp < 0 ? 'red' : 'inherit');
+                                    $balance_color = $balance < -0.01 ? 'red' : ($balance > 0.01 ? 'green' : 'black');
+                                    $days_bg = $row->days < 90 ? '#90EE90' : ($row->days >= 90 && $row->days <= 365 ? '#FFFF99' : '#FF7F7F');
+                                @endphp
+                                <td align="right" style="color:{{ $receive_color }};">
                                     {{ number_format($row->receive,2) }}
                                 </td> 
-                                <td align="right" @if($row->receive_pp > 0) style="color:green" 
-                                    @elseif($row->receive_pp < 0) style="color:red" @endif>
+                                <td align="right" style="color:{{ $receive_pp_color }};">
                                     {{ number_format($row->receive_pp,2) }}
                                 </td>                        
                                 <td align="right" style="color: #9c27b0;">{{ number_format($row->adj_inc ?? 0, 2) }}</td>
                                 <td align="right" style="color: #673ab7;">{{ number_format($row->adj_dec ?? 0, 2) }}</td>
-                                <td align="right" style="color:@if($balance < -0.01) red @elseif($balance > 0.01) green @else black @endif">{{ number_format($balance, 2) }}</td>
+                                <td align="right" style="color:{{ $balance_color }};">{{ number_format($balance, 2) }}</td>
                                 <td align="right">{{ $row->status }}</td>
                                 <td align="right">{{ $row->repno }} {{ $row->repno_pp }}</td> 
-                                <td align="center" @if($row->days < 90) style="background-color: #90EE90;"  
-                                    @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" 
-                                    @else style="background-color: #FF7F7F;" @endif >
+                                <td align="center" style="background-color: {{ $days_bg }};">
                                     {{ $row->days }} วัน
                                 </td>  
                                 <td align="center">         
+                                    @php
+                                        $charge_date_th = !empty($row->charge_date) ? DateThai($row->charge_date) : '';
+                                        $receive_date_th = !empty($row->receive_date) ? DateThai($row->receive_date) : '';
+                                        $adj_date_th = !empty($row->adj_date) ? DateThai($row->adj_date) : DateThai(date('Y-m-d'));
+                                    @endphp
                                     <button type="button" class="btn btn-warning btn-sm px-2 shadow-sm text-dark btn-edit-debtor"
-                                        data-vn="{{ $row->vn }}"
-                                        data-ptname="{{ $row->ptname }}"
-                                        data-balance="{{ number_format($balance,2) }}"
-                                        data-balance-raw="{{ $balance }}"
-                                        data-charge-date="{{ $row->charge_date }}"
-                                        data-charge-date-th="{{ !empty($row->charge_date) ? DateThai($row->charge_date) : '' }}"
-                                        data-charge-no="{{ $row->charge_no }}"
-                                        data-charge="{{ $row->charge }}"
-                                        data-status="{{ $row->status }}"
-                                        data-receive-date="{{ $row->receive_date }}"
-                                        data-receive-date-th="{{ !empty($row->receive_date) ? DateThai($row->receive_date) : '' }}"
-                                        data-receive-no="{{ $row->receive_no }}"
-                                        data-receive="{{ $row->receive_manual ?? 0 }}"
-                                        data-repno="{{ $row->repno_manual ?? '' }}"
-                                        data-adj-inc="{{ $row->adj_inc ?? 0 }}"
-                                        data-adj-dec="{{ $row->adj_dec ?? 0 }}"
-                                        data-adj-date="{{ $row->adj_date ?? date('Y-m-d') }}"
-                                        data-adj-date-th="{{ !empty($row->adj_date) ? DateThai($row->adj_date) : DateThai(date('Y-m-d')) }}"
-                                        data-adj-note="{{ $row->adj_note }}"
+                                        data-vn="@json($row->vn)"
+                                        data-ptname="@json($row->ptname)"
+                                        data-balance="@json(number_format($balance,2))"
+                                        data-balance-raw="@json($balance)"
+                                        data-charge-date="@json($row->charge_date)"
+                                        data-charge-date-th="@json($charge_date_th)"
+                                        data-charge-no="@json($row->charge_no)"
+                                        data-charge="@json($row->charge)"
+                                        data-status="@json($row->status)"
+                                        data-receive-date="@json($row->receive_date)"
+                                        data-receive-date-th="@json($receive_date_th)"
+                                        data-receive-no="@json($row->receive_no)"
+                                        data-receive="@json($row->receive_manual ?? 0)"
+                                        data-repno="@json($row->repno_manual ?? '')"
+                                        data-adj-inc="@json($row->adj_inc ?? 0)"
+                                        data-adj-dec="@json($row->adj_dec ?? 0)"
+                                        data-adj-date="@json($row->adj_date ?? date('Y-m-d'))"
+                                        data-adj-date-th="@json($adj_date_th)"
+                                        data-adj-note="@json($row->adj_note)"
                                         data-update-url="{{ url('debtor/1102050101_307/update', $row->vn) }}">
                                         <i class="bi bi-pencil-square"></i>
                                     </button>                            
                                 </td>  
                                 <td align="center">
                                     @if(Auth::user()->status == 'admin' || Auth::user()->allow_debtor_lock == 'Y')
-                                        <button type="button" class="btn btn-sm btn-outline-{{$row->debtor_lock == 'Y' ? 'danger' : 'primary'}}" onclick="{{$row->debtor_lock == 'Y' ? 'confirmUnlock' : 'confirmLock'}}('{{ $row->vn }}')">
-                                            <i class="bi bi-{{$row->debtor_lock == 'Y' ? 'unlock' : 'lock'}}"></i>
+                                        @php
+                                            $btn_class = $row->debtor_lock == 'Y' ? 'danger' : 'primary';
+                                            $action_val = $row->debtor_lock == 'Y' ? 'unlock' : 'lock';
+                                            $icon_type = $row->debtor_lock == 'Y' ? 'unlock' : 'lock';
+                                        @endphp
+                                        <button type="button" class="btn btn-sm btn-outline-{{ $btn_class }} btn-lock-debtor" data-action="@json($action_val)" data-vn="@json($row->vn)">
+                                            <i class="bi bi-{{ $icon_type }}"></i>
                                         </button>
                                     @else
                                         {{ $row->debtor_lock }}
@@ -235,7 +247,7 @@
                             @endforeach 
                             <tfoot>
                                 <tr class="table-success text-end fw-bold" style="font-size: 14px;">
-                                    <td colspan="7" class="text-end">รวม</td>
+                                    <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td><td></td>
                                     <td class="text-end text-dark">{{ number_format($sum_income,2) }}</td>
                                     <td class="text-end text-dark">{{ number_format($sum_rcpt_money,2) }}</td>
                                     <td class="text-end text-dark">{{ number_format($sum_other,2) }}</td>
@@ -245,8 +257,11 @@
                                     <td class="text-end" style="color:green">{{ number_format($sum_receive_pp,2) }}</td>
                                     <td class="text-end" style="color: #9c27b0;">{{ number_format($s_adj_inc,2) }}</td>
                                     <td class="text-end" style="color: #673ab7;">{{ number_format($s_adj_dec,2) }}</td>
-                                    <td class="text-end" style="color:@if($s_balance < -0.01) red @elseif($s_balance > 0.01) green @else black @endif">{{ number_format($s_balance, 2) }}</td>
-                                    <td colspan="5"></td>
+                                    @php
+                                        $s_balance_color = $s_balance < -0.01 ? 'red' : ($s_balance > 0.01 ? 'green' : 'black');
+                                    @endphp
+                                    <td class="text-end" style="color:{{ $s_balance_color }};">{{ number_format($s_balance, 2) }}</td>
+                                    <td></td><td></td><td></td><td></td><td></td>
                                 </tr>
                             </tfoot>
                         </table></div>
@@ -299,13 +314,13 @@
                             </tbody>
                             <tfoot>
                                 <tr class="table-success text-end fw-bold" style="font-size: 14px;">
-                                    <td colspan="6" class="text-end">รวม</td>
+                                    <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td>
                                     <td class="text-end" id="sum_income_search">0.00</td>
                                     <td class="text-end" id="sum_rcpt_money_search">0.00</td>
                                     <td class="text-end" id="sum_other_search">0.00</td>
                                     <td class="text-end" id="sum_ppfs_search">0.00</td>
                                     <td class="text-end" id="sum_debtor_search" style="color:blue">0.00</td>
-                                    <td colspan="2"></td>
+                                    <td></td><td></td>
                                 </tr>
                             </tfoot>
                         </table></div>
@@ -362,12 +377,12 @@
                             </tbody>
                             <tfoot>
                                 <tr class="table-success text-end fw-bold" style="font-size: 14px;">
-                                    <td colspan="11" class="text-end">รวม</td>
+                                    <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                                     <td class="text-end" id="sum_income_search_ip">0.00</td>
                                     <td class="text-end" id="sum_rcpt_money_search_ip">0.00</td>
                                     <td class="text-end" id="sum_other_search_ip">0.00</td>
                                     <td class="text-end" id="sum_debtor_search_ip" style="color:blue">0.00</td>
-                                    <td colspan="2"></td>
+                                    <td></td><td></td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -465,9 +480,16 @@
             showCancelButton: true, confirmButtonColor: '#0d6efd', cancelButtonColor: '#6c757d', confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก'
         }).then((result) => {
             if (result.isConfirmed) {
-                let f = document.createElement('form'); f.method = 'POST'; f.action = "{{ url('debtor/1102050101_307/lock') }}/" + id;
-                f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'_token', value:'{{ csrf_token() }}'}));
-                document.body.appendChild(f); f.submit();
+                let f = document.createElement('form'); 
+                f.method = 'POST'; 
+                f.action = "{{ url('debtor/1102050101_307/lock') }}/" + id;
+                let tokenInput = document.createElement('input');
+                tokenInput.type = 'hidden';
+                tokenInput.name = '_token';
+                tokenInput.value = "{{ csrf_token() }}";
+                f.appendChild(tokenInput);
+                document.body.appendChild(f); 
+                f.submit();
             }
         });
     }
@@ -478,9 +500,16 @@
             showCancelButton: true, confirmButtonColor: '#28a745', cancelButtonColor: '#6c757d', confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก'
         }).then((result) => {
             if (result.isConfirmed) {
-                let f = document.createElement('form'); f.method = 'POST'; f.action = "{{ url('debtor/1102050101_307/unlock') }}/" + id;
-                f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'_token', value:'{{ csrf_token() }}'}));
-                document.body.appendChild(f); f.submit();
+                let f = document.createElement('form'); 
+                f.method = 'POST'; 
+                f.action = "{{ url('debtor/1102050101_307/unlock') }}/" + id;
+                let tokenInput = document.createElement('input');
+                tokenInput.type = 'hidden';
+                tokenInput.name = '_token';
+                tokenInput.value = "{{ csrf_token() }}";
+                f.appendChild(tokenInput);
+                document.body.appendChild(f); 
+                f.submit();
             }
         });
     }
@@ -488,28 +517,92 @@
     function bulkAdjust() {
         const sel = [...document.querySelectorAll('input[name="checkbox_d[]"]:checked')].map(e=>e.value);
         if(!sel.length) { Swal.fire('แจ้งเตือน','กรุณาเลือกรายการ','warning'); return; }
+        
+        var today = new Date();
+        var y = today.getFullYear();
+        var m = ('0'+(today.getMonth()+1)).slice(-2);
+        var d = ('0'+today.getDate()).slice(-2);
+        var todayDate = y + '-' + m + '-' + d;
+        
         Swal.fire({
             title: 'ปรับปรุงยอดเป็น 0',
             html: `
                 <div class="text-start">
                     <div class="mb-3"><label class="form-label small fw-bold">หมายเหตุการปรับปรุง</label><input type="text" id="blk_note" class="form-control rounded-pill" value="ปรับปรุงยอดเป็น 0"></div>
-                    <div class="mb-3"><label class="form-label small fw-bold">วันที่ปรับปรุง</label><input type="text" id="blk_date_th" class="form-control rounded-pill datepicker_th" value="{{DateThai(date('Y-m-d'))}}" readonly><input type="hidden" id="blk_date" value="{{date('Y-m-d')}}"></div>
+                    <div class="mb-3"><label class="form-label small fw-bold">วันที่ปรับปรุง</label><input type="text" id="blk_date_th" class="form-control rounded-pill datepicker_th" readonly><input type="hidden" id="blk_date" value="${todayDate}"></div>
                 </div>
             `,
-            icon: 'info', showCancelButton: true, confirmButtonColor: '#ffc107', confirmButtonText: 'ยืนยัน',
-            didOpen: () => { $('#blk_date_th').datepicker({ format: 'd M yyyy', autoclose: true, language: 'th-th', thaiyear: true, todayBtn: 'linked', todayHighlight: true }).on('changeDate', (e) => { if (e.date) { const y = e.date.getFullYear(), m=('0'+(e.date.getMonth()+1)).slice(-2), d=('0'+e.date.getDate()).slice(-2); $('#blk_date').val(y+'-'+m+'-'+d); } }); },
-            preConfirm: () => { return { note: $('#blk_note').val(), date: $('#blk_date').val() } }
+            icon: 'info', 
+            showCancelButton: true, 
+            confirmButtonColor: '#ffc107', 
+            confirmButtonText: 'ยืนยัน',
+            didOpen: function() {
+                var displayDate = "{{ DateThai(date('Y-m-d')) }}";
+                $('#blk_date_th').val(displayDate).datepicker({ 
+                    format: 'd M yyyy', 
+                    autoclose: true, 
+                    language: 'th-th', 
+                    thaiyear: true, 
+                    todayBtn: 'linked', 
+                    todayHighlight: true 
+                }).on('changeDate', function(e) { 
+                    if (e.date) { 
+                        var y = e.date.getFullYear();
+                        var m = ('0'+(e.date.getMonth()+1)).slice(-2);
+                        var d = ('0'+e.date.getDate()).slice(-2); 
+                        $('#blk_date').val(y+'-'+m+'-'+d); 
+                    } 
+                }); 
+            },
+            preConfirm: function() { 
+                return { 
+                    note: $('#blk_note').val(), 
+                    date: $('#blk_date').val() 
+                }; 
+            }
         }).then((r) => {
             if (r.isConfirmed) {
-                showLoading(); let f=document.createElement('form'); f.method='POST'; f.action="{{ url('debtor/1102050101_307_bulk_adj') }}";
-                f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'_token', value:'{{csrf_token()}}'}));
-                f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'bulk_adj_note', value:r.value.note}));
-                f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'bulk_adj_date', value:r.value.date}));
-                sel.forEach(id=>f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'checkbox_d[]', value:id})));
-                document.body.appendChild(f); f.submit();
+                showLoading(); 
+                let f = document.createElement('form'); 
+                f.method = 'POST'; 
+                f.action = "{{ url('debtor/1102050101_307_bulk_adj') }}";
+                
+                let tokenInput = document.createElement('input');
+                tokenInput.type = 'hidden';
+                tokenInput.name = '_token';
+                tokenInput.value = "{{ csrf_token() }}";
+                f.appendChild(tokenInput);
+                
+                let noteInput = document.createElement('input');
+                noteInput.type = 'hidden';
+                noteInput.name = 'bulk_adj_note';
+                noteInput.value = r.value.note;
+                f.appendChild(noteInput);
+                
+                let dateInput = document.createElement('input');
+                dateInput.type = 'hidden';
+                dateInput.name = 'bulk_adj_date';
+                dateInput.value = r.value.date;
+                f.appendChild(dateInput);
+                
+                sel.forEach(id => {
+                    let checkInput = document.createElement('input');
+                    checkInput.type = 'hidden';
+                    checkInput.name = 'checkbox_d[]';
+                    checkInput.value = id;
+                    f.appendChild(checkInput);
+                });
+                
+                document.body.appendChild(f); 
+                f.submit();
             }
         });
     }
+
+    // Function stubs - will be properly initialized in $(document).ready())
+    window.loadTab1 = function() {};
+    window.loadTab2 = function() {};
+    window.loadTab3 = function() {};
 </script>
     
 <!-- Single Debtor Modal -->
@@ -746,15 +839,6 @@ $(document).ready(function() {
             body.empty();
 
             let sum_income = 0, sum_rcpt_money = 0, sum_other = 0, sum_ppfs = 0, sum_debtor = 0;
-
-            if (data.length === 0) {
-                body.html('<tr><td colspan="13" class="text-center py-3">ไม่พบข้อมูล</td></tr>');
-                $('#sum_income_search').text('0.00');
-                $('#sum_rcpt_money_search').text('0.00');
-                $('#sum_other_search').text('0.00');
-                $('#sum_ppfs_search').text('0.00');
-                $('#sum_debtor_search').text('0.00');
-            } else {
                 data.forEach(function(row) {
                     sum_income += parseFloat(row.income) || 0;
                     sum_rcpt_money += parseFloat(row.rcpt_money) || 0;
@@ -785,10 +869,8 @@ $(document).ready(function() {
                 $('#sum_other_search').text(formatNumber(sum_other));
                 $('#sum_ppfs_search').text(formatNumber(sum_ppfs));
                 $('#sum_debtor_search').text(formatNumber(sum_debtor));
-            }
 
-            if (data.length > 0) {
-                dtSearchInstance = $(tableId).DataTable({
+            dtSearchInstance = $(tableId).DataTable({
                     dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                     buttons: [
                         {
@@ -805,7 +887,6 @@ $(document).ready(function() {
                         paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
                     }
                 });
-            }
         }).fail(function() {
             tab2Loaded = false;
             $('#loading-tab2').addClass('d-none');
@@ -839,14 +920,6 @@ $(document).ready(function() {
             body.empty();
 
             let sum_income = 0, sum_rcpt_money = 0, sum_other = 0, sum_debtor = 0;
-
-            if (data.length === 0) {
-                body.html('<tr><td colspan="17" class="text-center py-3">ไม่พบข้อมูล</td></tr>');
-                $('#sum_income_search_ip').text('0.00');
-                $('#sum_rcpt_money_search_ip').text('0.00');
-                $('#sum_other_search_ip').text('0.00');
-                $('#sum_debtor_search_ip').text('0.00');
-            } else {
                 data.forEach(function(row) {
                     sum_income += parseFloat(row.income) || 0;
                     sum_rcpt_money += parseFloat(row.rcpt_money) || 0;
@@ -879,27 +952,24 @@ $(document).ready(function() {
                 $('#sum_rcpt_money_search_ip').text(formatNumber(sum_rcpt_money));
                 $('#sum_other_search_ip').text(formatNumber(sum_other));
                 $('#sum_debtor_search_ip').text(formatNumber(sum_debtor));
-            }
 
-            if (data.length > 0) {
-                dtSearchIpInstance = $(tableId).DataTable({
-                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-                    buttons: [
-                        {
-                            extend: 'excelHtml5',
-                            text: 'Excel',
-                            className: 'btn btn-success btn-sm',
-                            title: 'ผู้มารับบริการประกันสังคม-กองทุนทดแทน IPD วันที่ ' + start_date_val + ' ถึง ' + end_date_val + ' รอยืนยันลูกหนี้'
-                        }
-                    ],
-                    language: {
-                        search: 'ค้นหา:',
-                        lengthMenu: 'แสดง _MENU_ รายการ',
-                        info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
-                        paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
+            dtSearchIpInstance = $(tableId).DataTable({
+                dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                buttons: [
+                    {
+                        extend: 'excelHtml5',
+                        text: 'Excel',
+                        className: 'btn btn-success btn-sm',
+                        title: 'ผู้มารับบริการประกันสังคม-กองทุนทดแทน IPD วันที่ ' + start_date_val + ' ถึง ' + end_date_val + ' รอยืนยันลูกหนี้'
                     }
-                });
-            }
+                ],
+                language: {
+                    search: 'ค้นหา:',
+                    lengthMenu: 'แสดง _MENU_ รายการ',
+                    info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
+                    paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
+                }
+            });
         }).fail(function() {
             tab3Loaded = false;
             $('#loading-tab3').addClass('d-none');
@@ -907,6 +977,17 @@ $(document).ready(function() {
             Swal.fire('ข้อผิดพลาด', 'ไม่สามารถเชื่อมต่อฐานข้อมูล HOSxP ได้ หรือเกิดข้อผิดพลาดในการโหลดข้อมูล', 'error');
         });
     }
+
+    // Handle lock/unlock button clicks
+    $(document).on('click', '.btn-lock-debtor', function() {
+        var action = $(this).data('action');
+        var vn = $(this).data('vn');
+        if (action === 'lock') {
+            confirmLock(vn);
+        } else if (action === 'unlock') {
+            confirmUnlock(vn);
+        }
+    });
 
     $('button[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
         if ($(e.target).attr("id") === 'op-tab') {

@@ -235,7 +235,7 @@
                     </tr>   
                     <tfoot>
                         <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                            <td colspan="9" class="text-end">รวม</td>
+                            <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                             <td class="text-end">{{ number_format($sum_income,2) }}</td>
                             <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
                             <td class="text-end">{{ number_format($sum_kidney,2) }}</td>
@@ -247,7 +247,7 @@
                             @elseif($sum_balance < -0.01) style="color:red" @endif>
                                 {{ number_format($sum_balance, 2) }}
                             </td>
-                            <td colspan="4"></td>
+                            <td></td><td></td><td></td><td></td>
                         </tr>
                     </tfoot>
                 </table></div>
@@ -326,13 +326,13 @@
                     @endforeach 
                     </tr> 
                     <tfoot>
-                        <tr class="table-secondary text-end" style="font-weight:bold; font-size: 14px;">
-                            <td colspan="11" class="text-end">รวม</td>
+                        <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
+                            <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                             <td class="text-end">{{ number_format($sum_income_search,2) }}</td>
                             <td class="text-end">{{ number_format($sum_rcpt_money_search,2) }}</td>
                             <td class="text-end">{{ number_format($sum_kidney_search,2) }}</td>
                             <td class="text-end" style="color:blue">{{ number_format($sum_debtor_search,2) }}</td>
-                            <td colspan="2"></td>
+                            <td></td><td></td>
                         </tr>
                     </tfoot>
                 </table></div>

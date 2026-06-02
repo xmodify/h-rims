@@ -278,11 +278,6 @@
         function renderTable(monthNo, data) {
             let tbody = $('#tbody-' + monthNo);
             let html = '';
-            
-            if(data.length === 0) {
-                tbody.html('<tr><td colspan="12" class="text-center py-5 text-muted">ยังไม่มีข้อมูลสำหรับเดือนนี้ <br> กรุณากดปุ่มประมวลผลข้อมูล</td></tr>');
-                return;
-            }
 
             // จัดการยอดรวมท้ายตาราง
             let sums = {

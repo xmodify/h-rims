@@ -222,7 +222,7 @@
                             </tbody>
                             <tfoot>
                                 <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                                    <td colspan="6" class="text-end">รวม</td>
+                                    <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td>
                                     <td class="text-end">{{ number_format($sum_income,2) }}</td>
                                     <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
                                     <td class="text-end">{{ number_format($sum_ofc,2) }}</td>
@@ -235,7 +235,7 @@
                                     <td class="text-end" style="color: #9c27b0;">{{ number_format($s_adj_inc,2) }}</td>
                                     <td class="text-end" style="color: #673ab7;">{{ number_format($s_adj_dec,2) }}</td>
                                     <td class="text-end" style="color:@if($s_balance < -0.01) red @elseif($s_balance > 0.01) green @else black @endif">{{ number_format($s_balance, 2) }}</td>
-                                    <td colspan="4"></td>
+                                    <td></td><td></td><td></td><td></td>
                                 </tr>
                             </tfoot>
                         </table></div>
@@ -294,7 +294,7 @@
                             </tbody>
                             <tfoot>
                                 <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                                    <td colspan="6" class="text-end">รวม</td>
+                                    <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td>
                                     <td class="text-end" id="sum_income_search">0.00</td>
                                     <td class="text-end" id="sum_paid_money_search">0.00</td>
                                     <td class="text-end" id="sum_ofc_search">0.00</td>
@@ -302,7 +302,7 @@
                                     <td class="text-end" id="sum_ppfs_search">0.00</td>
                                     <td class="text-end" id="sum_other_search">0.00</td>
                                     <td class="text-end" style="color:blue" id="sum_debtor_search">0.00</td>
-                                    <td colspan="4"></td>
+                                    <td></td><td></td><td></td><td></td>
                                 </tr>
                             </tfoot>
                         </table></div>
@@ -665,18 +665,6 @@ $(document).ready(function() {
             body.empty();
 
             let sum_income = 0, sum_rcpt_money = 0, sum_ofc = 0, sum_kidney = 0, sum_ppfs = 0, sum_other = 0, sum_debtor = 0;
-
-            if (data.length === 0) {
-                body.html('<tr><td colspan="17" class="text-center py-3">ไม่พบข้อมูล</td></tr>');
-                // Reset summary row on empty
-                $('#sum_income_search').text('0.00');
-                $('#sum_paid_money_search').text('0.00');
-                $('#sum_ofc_search').text('0.00');
-                $('#sum_kidney_search').text('0.00');
-                $('#sum_ppfs_search').text('0.00');
-                $('#sum_other_search').text('0.00');
-                $('#sum_debtor_search').text('0.00');
-            } else {
                 data.forEach(function(row) {
                     sum_income += parseFloat(row.income) || 0;
                     sum_rcpt_money += parseFloat(row.rcpt_money) || 0;
@@ -714,13 +702,11 @@ $(document).ready(function() {
                 $('#sum_ofc_search').text(formatNumber(sum_ofc));
                 $('#sum_kidney_search').text(formatNumber(sum_kidney));
                 $('#sum_debtor_search').text(formatNumber(sum_debtor));
-            }
             
             // Update badge for Tab 2 (always update to clear spinner)
             $('#badge-tab2').text(data.length);
 
-            if (data.length > 0) {
-                dtSearchInstance = $(tableId).DataTable({
+            dtSearchInstance = $(tableId).DataTable({
                     dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                     buttons: [
                         {
@@ -737,7 +723,6 @@ $(document).ready(function() {
                         paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
                     }
                 });
-            }
         }).fail(function() {
             tab2Loaded = false;
             $('#loading-tab2').addClass('d-none');

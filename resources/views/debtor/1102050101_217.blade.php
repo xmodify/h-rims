@@ -234,8 +234,8 @@
                     
                     <tfoot>
 
-                        <tr class="table-primary text-end" style="font-weight:bold; font-size: 14px;">
-                            <td colspan="9" class="text-end">รวม</td>
+                        <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
+                            <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                             <td class="text-end" id="sum_income_tab1">{{ number_format($sum_income,2) }}</td>
                             <td class="text-end" id="sum_rcpt_money_tab1">{{ number_format($sum_rcpt_money,2) }}</td>
                             <td class="text-end" id="sum_cr_tab1">{{ number_format($sum_cr,2) }}</td>
@@ -244,7 +244,7 @@
                             <td class="text-end" id="sum_adj_inc_tab1" style="color: #9c27b0;">{{ number_format($sum_adj_inc,2) }}</td>
                             <td class="text-end" id="sum_adj_dec_tab1" style="color: #673ab7;">{{ number_format($sum_adj_dec,2) }}</td>
                             <td class="text-end" id="sum_balance_tab1" style="color:@if($sum_balance < -0.01) red @elseif($sum_balance > 0.01) green @else black @endif">{{ number_format($sum_balance, 2) }}</td>
-                            <td colspan="4"></td>
+                            <td></td><td></td><td></td><td></td>
                         </tr>
                     </tfoot>
                 </table></div>
@@ -277,6 +277,9 @@
 
                                 <table id="debtor_search_ajax" class="table table-bordered table-striped my-3" width="100%">
                                     <thead>
+                                        <tr class="table-secondary align-middle">
+                                            <th class="text-left text-primary" colspan="18">1102050101.217-ลูกหนี้ค่ารักษา UC-IP บริการเฉพาะ (CR) วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>
+                                        </tr>
                                         <tr class="table-secondary">
                                             <th class="text-center"><input type="checkbox" onClick="toggle(this)"> ALL</th>  
                                             <th class="text-center">ตึกผู้ป่วย</th>
@@ -301,12 +304,12 @@
                                     <tbody id="table2-body"></tbody>
                                     <tfoot>
                                         <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                                            <td colspan="11" class="text-end">รวม</td>
+                                            <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                                             <td class="text-end" id="sum_income_tab2">0.00</td>
                                             <td class="text-end" id="sum_rcpt_money_tab2">0.00</td>
                                             <td class="text-end" id="sum_cr_tab2">0.00</td>
                                             <td class="text-end" id="sum_debtor_tab2" style="color:blue">0.00</td>
-                                            <td colspan="3"></td>
+                                            <td></td><td></td><td></td>
                                         </tr>
                                     </tfoot>
                                 </table>

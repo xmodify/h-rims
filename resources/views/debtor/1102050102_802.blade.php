@@ -234,7 +234,7 @@
                             </tbody>   
                             <tfoot>
                                 <tr class="table-success text-end fw-bold" style="font-size: 14px;">
-                                    <td colspan="9" class="text-end">รวม</td>
+                                    <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                                     <td class="text-end">{{ number_format($sum_income,2) }}</td>
                                     <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
                                     <td class="text-end">{{ number_format($sum_kidney,2) }}</td>
@@ -244,7 +244,7 @@
                                     <td class="text-end" style="color: #9c27b0;">{{ number_format($sum_adj_inc,2) }}</td>
                                     <td class="text-end" style="color: #673ab7;">{{ number_format($sum_adj_dec,2) }}</td>
                                     <td class="text-end" style="color:@if($sum_balance < -0.01) red @elseif($sum_balance > 0.01) green @else black @endif">{{ number_format($sum_balance, 2) }}</td>
-                                    <td colspan="4"></td>
+                                    <td></td><td></td><td></td><td></td>
                                 </tr>
                             </tfoot>
                         </table></div>

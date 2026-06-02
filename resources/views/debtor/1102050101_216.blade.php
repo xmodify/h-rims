@@ -261,7 +261,7 @@
                     <tfoot>
 
                         <tr class="table-success text-end fw-bold" style="font-size: 14px;">
-                            <td colspan="6" class="text-end">รวม</td>
+                            <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td>
                             <td class="text-end">{{ number_format($sum_income,2) }}</td>
                             <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
                             <td class="text-end">{{ number_format($sum_kidney,2) }}</td>
@@ -273,7 +273,7 @@
                             <td class="text-end" style="color: #9c27b0;">{{ number_format($s_adj_inc,2) }}</td>
                             <td class="text-end" style="color: #673ab7;">{{ number_format($s_adj_dec,2) }}</td>
                             <td class="text-end" style="color:@if($s_balance < -0.01) red @elseif($s_balance > 0.01) green @else black @endif">{{ number_format($s_balance, 2) }}</td>
-                            <td colspan="4"></td>
+                            <td></td><td></td><td></td><td></td>
                         </tr>
                     </tfoot>
                 </table></div>
@@ -319,7 +319,7 @@
                         <tbody id="kidney-table-body"></tbody>
                         <tfoot>
                             <tr class="table-success text-end fw-bold" style="font-size: 14px;">
-                                <td colspan="6" class="text-end">รวม</td>
+                                <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td>
                                 <td class="text-end" id="kidney-sum-income">0.00</td>
                                 <td class="text-end" id="kidney-sum-rcpt">0.00</td>
                                 <td class="text-end" id="kidney-sum-debtor" style="color:blue">0.00</td>
@@ -370,11 +370,11 @@
                         <tbody id="cr-table-body"></tbody>
                         <tfoot>
                             <tr class="table-success text-end fw-bold" style="font-size: 14px;">
-                                <td colspan="6" class="text-end">รวม</td>
+                                <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td>
                                 <td class="text-end" id="cr-sum-income">0.00</td>
                                 <td class="text-end" id="cr-sum-rcpt">0.00</td>
                                 <td class="text-end" id="cr-sum-debtor" style="color:blue">0.00</td>
-                                <td colspan="2"></td>
+                                <td></td><td></td>
                             </tr>
                         </tfoot>
                     </table>
@@ -424,13 +424,13 @@
                         <tbody id="anywhere-table-body"></tbody>
                         <tfoot>
                             <tr class="table-success text-end fw-bold" style="font-size: 14px;">
-                                <td colspan="6" class="text-end">รวม</td>
+                                <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td>
                                 <td class="text-end" id="anywhere-sum-income">0.00</td>
                                 <td class="text-end" id="anywhere-sum-rcpt">0.00</td>
                                 <td class="text-end" id="anywhere-sum-other">0.00</td>
                                 <td class="text-end" id="anywhere-sum-ppfs">0.00</td>
                                 <td class="text-end" id="anywhere-sum-debtor" style="color:blue">0.00</td>
-                                <td colspan="3"></td>
+                                <td></td><td></td><td></td>
                             </tr>
                         </tfoot>
                     </table>

@@ -230,7 +230,7 @@
                     
                     <tfoot>
                         <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                            <td colspan="6" class="text-end">รวม</td>
+                            <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td>
                             <td class="text-end">{{ number_format($sum_income,2) }}</td>
                             <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
                             <td class="text-end">{{ number_format($sum_other,2) }}</td>
@@ -241,7 +241,7 @@
                             <td class="text-end" style="color: #9c27b0;">{{ number_format($s_adj_inc,2) }}</td>
                             <td class="text-end" style="color: #673ab7;">{{ number_format($s_adj_dec,2) }}</td>
                             <td class="text-end" style="color:@if($s_balance < -0.01) red @elseif($s_balance > 0.01) green @else black @endif">{{ number_format($s_balance, 2) }}</td>
-                            <td colspan="4"></td>
+                            <td></td><td></td><td></td><td></td>
                         </tr>
                     </tfoot>
                 </table></div>
@@ -767,9 +767,9 @@ $(document).ready(function() {
 
                 let sum_income = 0, sum_rcpt = 0, sum_other = 0, sum_ppfs = 0, sum_debtor = 0;
 
-                if (!data || data.length === 0) {
-                    body.html('<tr><td colspan="13" class="text-center py-3">ไม่พบข้อมูล</td></tr>');
-                } else {
+                if (!data) data = [];
+            body.empty();
+            if (data.length > 0) {
                     data.forEach(function(row) {
                         sum_income += parseFloat(row.income || 0);
                         sum_rcpt += parseFloat(row.rcpt_money || 0);
@@ -802,8 +802,7 @@ $(document).ready(function() {
                 $('#sum-ppfs-search').text(formatNumber(sum_ppfs));
                 $('#sum-debtor-search').text(formatNumber(sum_debtor));
 
-                if (data && data.length > 0) {
-                    dtSearchInstance = $(tableId).DataTable({
+                dtSearchInstance = $(tableId).DataTable({
                         dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                         buttons: [
                             {
@@ -820,7 +819,6 @@ $(document).ready(function() {
                             paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
                         }
                     });
-                }
             } catch (e) {
                 console.error("Tab 2 Render Error:", e);
             } finally {

@@ -229,7 +229,7 @@
                                     <?php $sum_adj_inc += $r->adj_inc; $sum_adj_dec += $r->adj_dec; $sum_balance += $r->balance; ?>
                                 @endforeach
                                 <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                                    <td colspan="6" class="text-end text-primary">รวม</td>
+                                    <td class="text-end text-primary">รวม</td><td></td><td></td><td></td><td></td><td></td>
                                     <td class="text-end">{{ number_format($sum_income,2) }}</td>
                                     <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
                                     <td class="text-end">{{ number_format($sum_other,2) }}</td>
@@ -242,7 +242,7 @@
                                     <td class="text-end" style="color:@if($sum_balance < -0.1) red @elseif($sum_balance > 0.1) green @else black @endif">
                                         {{ number_format($sum_balance, 2) }}
                                     </td>
-                                    <td colspan="4"></td>
+                                    <td></td><td></td><td></td><td></td>
                                 </tr>
                             </tfoot>
                         </table></div>
@@ -662,9 +662,9 @@ $(document).ready(function() {
 
             let sum_income = 0, sum_rcpt_money = 0, sum_other = 0, sum_ppfs = 0, sum_debtor = 0;
 
-            if (data.length === 0) {
-                body.html('<tr><td colspan="13" class="text-center py-3">ไม่พบข้อมูล</td></tr>');
-            } else {
+            if (!data) data = [];
+            body.empty();
+            if (data.length > 0) {
                 data.forEach(function(row) {
                     sum_income += parseFloat(row.income) || 0;
                     sum_rcpt_money += parseFloat(row.rcpt_money) || 0;
@@ -690,7 +690,8 @@ $(document).ready(function() {
                     body.append(tr);
                 });
                 
-                const tfootRow = `<tr class="table-success text-end fw-bold" style="font-size: 14px;">
+                }
+            const tfootRow = `<tr class="table-success text-end fw-bold" style="font-size: 14px;">
                     <td colspan="6" class="text-end">รวม</td>
                     <td class="text-end">${formatNumber(sum_income)}</td>
                     <td class="text-end">${formatNumber(sum_rcpt_money)}</td>
@@ -700,10 +701,9 @@ $(document).ready(function() {
                     <td colspan="2"></td>
                 </tr>`;
                 foot.append(tfootRow);
-            }
+            
 
-            if (data.length > 0) {
-                dtSearchInstance = $(tableId).DataTable({
+            dtSearchInstance = $(tableId).DataTable({
                     dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                     buttons: [
                         {
@@ -720,7 +720,6 @@ $(document).ready(function() {
                         paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
                     }
                 });
-            }
         }).fail(function() {
             tab2Loaded = false;
             $('#loading-tab2').addClass('d-none');

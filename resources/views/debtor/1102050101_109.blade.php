@@ -225,7 +225,7 @@
                     </tr>   
                     <tfoot>
                         <tr class="table-success text-end fw-bold" style="font-size: 14px;">
-                            <td colspan="6" class="text-end">รวม</td>
+                            <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td>
                             <td>{{ number_format($sum_inc,2) }}</td>
                             <td>{{ number_format($sum_rcp,2) }}</td>
                             <td style="color:blue">{{ number_format($sum_debtor,2) }}</td>
@@ -233,7 +233,7 @@
                             <td style="color: #9c27b0;">{{ number_format($sum_adj_inc,2) }}</td>
                             <td style="color: #673ab7;">{{ number_format($sum_adj_dec,2) }}</td>
                             <td style="color:@if($sum_balance < -0.01) red @elseif($sum_balance > 0.01) green @else black @endif">{{ number_format($sum_balance, 2) }}</td>
-                            <td colspan="4"></td>
+                            <td></td><td></td><td></td><td></td>
                         </tr>
                     </tfoot>
                 </table></div>
@@ -262,6 +262,9 @@
                     </div>
                     <table id="table_109_ajax" class="table table-bordered table-striped my-3 d-none" width="100%">
                         <thead>
+                        <tr class="table-secondary align-middle">
+                            <th class="text-left text-primary" colspan="10">1102050101.109-ลูกหนี้-ระบบปฏิบัติการฉุกเฉิน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>
+                        </tr>
                         <tr class="table-secondary">
                             <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th> 
                             <th class="text-center">วันที่</th>

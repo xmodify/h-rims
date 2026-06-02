@@ -192,7 +192,7 @@
                             @endforeach 
                             <tfoot>                        
                                 <tr class="table-success text-end fw-bold" style="font-size: 14px;">
-                                    <td colspan="6" class="text-end">รวม</td>
+                                    <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td>
                                     <td>{{ number_format($s_inc,2) }}</td>
                                     <td>{{ number_format($s_rcp,2) }}</td>
                                     <td style="color:blue">{{ number_format($s_deb,2) }}</td>
@@ -200,7 +200,7 @@
                                     <td style="color: #9c27b0;">{{ number_format($s_adj_inc,2) }}</td>
                                     <td style="color: #673ab7;">{{ number_format($s_adj_dec,2) }}</td>
                                     <td style="color:@if($s_balance < -0.01) red @elseif($s_balance > 0.01) green @else black @endif">{{ number_format($s_balance, 2) }}</td>
-                                    <td colspan="4"></td>
+                                    <td></td><td></td><td></td><td></td>
                                 </tr>
                             </tfoot>
                         </table></div>
@@ -249,7 +249,7 @@
                                 </tbody>
                                 <tfoot>
                                     <tr class="table-success text-end fw-bold" style="font-size: 14px;">
-                                        <td colspan="6" class="text-end">รวม</td>
+                                        <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td>
                                         <td id="sum_income_search">0.00</td>
                                         <td id="sum_rcpt_money_search">0.00</td>
                                         <td id="sum_debtor_search" style="color:blue">0.00</td>

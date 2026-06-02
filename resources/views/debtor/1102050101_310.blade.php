@@ -222,8 +222,8 @@
                     @endforeach 
                     </tbody>
                     <tfoot>
-                        <tr class="table-primary text-end" style="font-weight:bold; font-size: 14px;">
-                            <td colspan="9" class="text-end">รวม</td>
+                        <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
+                            <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                             <td class="text-end">{{ number_format($sum_income,2) }}</td>
                             <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
                             <td class="text-end">{{ number_format($sum_kidney,2) }}</td>
@@ -235,7 +235,7 @@
                             @elseif($sum_balance < -0.01) style="color:red" @endif>
                                 {{ number_format($sum_balance, 2) }}
                             </td>
-                            <td colspan="4"></td>
+                            <td></td><td></td><td></td><td></td>
                         </tr>
                     </tfoot>
                 </table></div>
@@ -267,6 +267,9 @@
 
                             <table id="debtor_search_ajax" class="table table-bordered table-striped my-3" width="100%">
                                 <thead>
+                                    <tr class="table-secondary align-middle">
+                                        <th class="text-left text-primary" colspan="17">1102050101.310-ลูกหนี้ค่ารักษา ประกันสังคม ค่าใช้จ่ายสูง IP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยัน</th>
+                                    </tr>
                                     <tr class="table-secondary">
                                         <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th>
                                         <th class="text-center">Ward</th>
@@ -290,12 +293,12 @@
                                 <tbody id="table2-body"></tbody>
                                 <tfoot>
                                     <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                                        <td colspan="11" class="text-end">รวม</td>
+                                        <td class="text-end">รวม</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
                                         <td id="sum_income_tab2" class="text-end">0.00</td>
                                         <td id="sum_rcpt_money_tab2" class="text-end">0.00</td>
                                         <td id="sum_kidney_tab2" class="text-end">0.00</td>
                                         <td id="sum_debtor_tab2" class="text-end text-primary">0.00</td>
-                                        <td colspan="2"></td>
+                                        <td></td><td></td>
                                     </tr>
                                 </tfoot>
                             </table>

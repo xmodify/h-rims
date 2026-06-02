@@ -212,8 +212,8 @@
                                 @foreach($debtor as $r)
                                     <?php $sum_adj_inc += $r->adj_inc; $sum_adj_dec += $r->adj_dec; $sum_balance += $r->balance; ?>
                                 @endforeach
-                                <tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                                    <td colspan="6" class="text-end text-primary">รวม</td>
+                                <tr class="table-success text-end fw-bold" style="font-size: 14px;">
+                                    <td class="text-end text-primary">รวม</td><td></td><td></td><td></td><td></td><td></td>
                                     <td class="text-end">{{ number_format($sum_income,2) }}</td>
                                     <td class="text-end">{{ number_format($sum_rcpt_money,2) }}</td>
                                     <td class="text-end text-primary">{{ number_format($sum_debtor,2) }}</td>
@@ -223,7 +223,7 @@
                                     <td class="text-end" style="color:red">
                                         {{ number_format($sum_balance, 2) }}
                                     </td>
-                                    <td colspan="4"></td>
+                                    <td></td><td></td><td></td><td></td>
                                 </tr>
                             </tfoot>
                         </table></div>
@@ -635,9 +635,9 @@ $(document).ready(function() {
             let sum_rcpt_money = 0;
             let sum_debtor = 0;
 
-            if (data.length === 0) {
-                body.html('<tr><td colspan="9" class="text-center py-3">ไม่พบข้อมูล</td></tr>');
-            } else {
+            if (!data) data = [];
+            body.empty();
+            if (data.length > 0) {
                 data.forEach(function(row) {
                     sum_income += parseFloat(row.income) || 0;
                     sum_rcpt_money += parseFloat(row.rcpt_money) || 0;
@@ -656,35 +656,33 @@ $(document).ready(function() {
                     </tr>`;
                     body.append(tr);
                 });
+            }
                 
-                const tfootRow = `<tr class="table-success text-end" style="font-weight:bold; font-size: 14px;">
-                    <td colspan="6" class="text-end">รวม</td>
-                    <td class="text-end">${formatNumber(sum_income)}</td>
-                    <td class="text-end">${formatNumber(sum_rcpt_money)}</td>
-                    <td class="text-end" style="color:blue">${formatNumber(sum_debtor)}</td>
-                </tr>`;
-                foot.append(tfootRow);
-            }
+            const tfootRow = `<tr class="table-success text-end fw-bold" style="font-size: 14px;">
+                <td colspan="6" class="text-end">รวม</td>
+                <td class="text-end">${formatNumber(sum_income)}</td>
+                <td class="text-end">${formatNumber(sum_rcpt_money)}</td>
+                <td class="text-end" style="color:blue">${formatNumber(sum_debtor)}</td>
+            </tr>`;
+            foot.append(tfootRow);
 
-            if (data.length > 0) {
-                dtSearchInstance = $(tableId).DataTable({
-                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
-                    buttons: [
-                        {
-                            extend: 'excelHtml5',
-                            text: 'Excel',
-                            className: 'btn btn-success btn-sm',
-                            title: '1102050101.501-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP รอยืนยัน วันที่ ' + start_date_val + ' ถึง ' + end_date_val
-                        }
-                    ],
-                    language: {
-                        search: 'ค้นหา:',
-                        lengthMenu: 'แสดง _MENU_ รายการ',
-                        info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
-                        paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
+            dtSearchInstance = $(tableId).DataTable({
+                dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                buttons: [
+                    {
+                        extend: 'excelHtml5',
+                        text: 'Excel',
+                        className: 'btn btn-success btn-sm',
+                        title: '1102050101.501-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว OP รอยืนยัน วันที่ ' + start_date_val + ' ถึง ' + end_date_val
                     }
-                });
-            }
+                ],
+                language: {
+                    search: 'ค้นหา:',
+                    lengthMenu: 'แสดง _MENU_ รายการ',
+                    info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
+                    paginate: { previous: 'ก่อนหน้า', next: 'ถัดไป' }
+                }
+            });
         }).fail(function() {
             tab2Loaded = false;
             $('#loading-tab2').addClass('d-none');

@@ -13052,12 +13052,32 @@ class DebtorController extends Controller
             ', [$start_date, $end_date]);
         }
 
+        $count_tab1 = count($debtor);
+        $debtor_search = [];
+
+        $request->session()->put('start_date', $start_date);
+        $request->session()->put('end_date', $end_date);
+        $request->session()->put('search', $search);
+        // Removed session('debtor') for performance
+        $request->session()->save();
+
+        return view('debtor.1102050102_802', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search', 'count_tab1'));
+    }
+
+    public function _1102050102_802_search_ajax(Request $request)
+    {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
+
         $debtor_search = DB::connection('hosxp')->select(
             '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
-                COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(kidney.kidney_price,0) AS kidney,
-                COALESCE(inc.income,0) - COALESCE(rc.rcpt_money,0) AS debtor,kidney.kidney_list,ict.ipt_coll_status_type_name,
+                COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(inc.kidney_price,0) AS kidney,
+                COALESCE(inc.income,0) - COALESCE(rc.rcpt_money,0) AS debtor,inc.kidney_list,ict.ipt_coll_status_type_name,
                 i.data_ok,"ยืนยันลูกหนี้" AS status
             FROM ipt i
             LEFT JOIN patient pt ON pt.hn = i.hn
@@ -13067,9 +13087,13 @@ class DebtorController extends Controller
             LEFT JOIN an_stat a ON a.an = i.an         
             LEFT JOIN ipt_coll_stat ic ON ic.an = i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id = ic.ipt_coll_status_type_id
-            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS income
+            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS income,
+                       SUM(CASE WHEN li.kidney = "Y" THEN o.sum_price ELSE 0 END) AS kidney_price,
+                       GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN s.name ELSE NULL END) AS kidney_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
+                LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
+                LEFT JOIN s_drugitems s ON s.icode = o.icode
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (SELECT r.vn AS an,SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
@@ -13077,29 +13101,16 @@ class DebtorController extends Controller
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn) rc ON rc.an = i.an
-            LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.name) AS kidney_list
-                FROM opitemrece o
-                INNER JOIN ipt i4 ON i4.an = o.an AND i4.dchdate BETWEEN ? AND ?
-                LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
-                LEFT JOIN s_drugitems s ON s.icode = o.icode
-                WHERE li.kidney = "Y"
-                GROUP BY o.an) kidney ON kidney.an = i.an
             WHERE i.confirm_discharge = "Y"
             AND p.hipdata_code = "LGO"
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_802 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate',
-            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+            [$start_date, $end_date, $start_date, $end_date]
         );
 
-        $request->session()->put('start_date', $start_date);
-        $request->session()->put('end_date', $end_date);
-        $request->session()->put('search', $search);
-        $request->session()->put('debtor', $debtor);
-        $request->session()->save();
-
-        return view('debtor.1102050102_802', compact('start_date', 'end_date', 'search', 'debtor', 'debtor_search'));
+        return response()->json($debtor_search);
     }
     //_1102050102_802_confirm-------------------------------------------------------------------------------------------------------
     public function _1102050102_802_confirm(Request $request)
@@ -13121,8 +13132,8 @@ class DebtorController extends Controller
             '
             SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw,
-                COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(kidney.kidney_price,0) AS kidney,
-                COALESCE(inc.income,0) - COALESCE(rc.rcpt_money,0) AS debtor,kidney.kidney_list,ict.ipt_coll_status_type_name,
+                COALESCE(inc.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(inc.kidney_price,0) AS kidney,
+                COALESCE(inc.income,0) - COALESCE(rc.rcpt_money,0) AS debtor,inc.kidney_list,ict.ipt_coll_status_type_name,
                 i.data_ok,"ยืนยันลูกหนี้" AS status
             FROM ipt i
             LEFT JOIN patient pt ON pt.hn = i.hn
@@ -13132,9 +13143,13 @@ class DebtorController extends Controller
             LEFT JOIN an_stat a ON a.an = i.an         
             LEFT JOIN ipt_coll_stat ic ON ic.an = i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id = ic.ipt_coll_status_type_id
-            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS income
+            LEFT JOIN (SELECT o.an,o.pttype,SUM(o.sum_price) AS income,
+                       SUM(CASE WHEN li.kidney = "Y" THEN o.sum_price ELSE 0 END) AS kidney_price,
+                       GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN s.name ELSE NULL END) AS kidney_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
+                LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
+                LEFT JOIN s_drugitems s ON s.icode = o.icode
                 GROUP BY o.an, o.pttype) inc ON inc.an = i.an AND inc.pttype = ip.pttype
             LEFT JOIN (SELECT r.vn AS an,SUM(r.total_amount) AS rcpt_money,
                 GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
@@ -13142,13 +13157,6 @@ class DebtorController extends Controller
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn) rc ON rc.an = i.an
-            LEFT JOIN (SELECT o.an,SUM(o.sum_price) AS kidney_price,GROUP_CONCAT(DISTINCT s.name) AS kidney_list
-                FROM opitemrece o
-                INNER JOIN ipt i4 ON i4.an = o.an AND i4.dchdate BETWEEN ? AND ?
-                LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
-                LEFT JOIN s_drugitems s ON s.icode = o.icode
-                WHERE li.kidney = "Y"
-                GROUP BY o.an) kidney ON kidney.an = i.an
             WHERE i.confirm_discharge = "Y"
             AND p.hipdata_code = "LGO"
             AND i.dchdate BETWEEN ? AND ?
@@ -13156,7 +13164,7 @@ class DebtorController extends Controller
             AND i.an IN (' . $checkbox_string . ') 
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate',
-            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+            [$start_date, $end_date, $start_date, $end_date]
         );
 
         foreach ($debtor as $row) {
@@ -13263,7 +13271,52 @@ class DebtorController extends Controller
     {
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
-        $debtor = Session::get('debtor');
+        $search = Session::get('search');
+
+        if ($search) {
+            $debtor = DB::select('
+                SELECT d.*, d.receive AS receive_manual, d.repno AS repno_manual,
+                       IFNULL(sk.amount,0) AS kidney, st.repno AS stm_repno, st.round_no AS stm_round_no, 
+                       st.receipt_date AS stm_receipt_date, st.receive_no AS stm_receive_no,
+                       IFNULL(st.total,0) AS receive_lgo,
+                       IFNULL(sk.amount,0) AS receive_kidney,
+                       (IFNULL(d.receive,0) + IFNULL(st.total,0) + IFNULL(sk.amount,0)) AS receive,
+                       CASE WHEN (IFNULL(d.receive,0) + IFNULL(st.total,0) + IFNULL(sk.amount,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 
+                       THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+                FROM debtor_1102050102_802 d
+                LEFT JOIN (SELECT d2.an, SUM(k.compensate_kidney) AS amount 
+                           FROM debtor_1102050102_802 d2 
+                           JOIN stm_lgo_kidney k ON k.cid = d2.cid AND k.datetimeadm BETWEEN d2.regdate AND d2.dchdate
+                           GROUP BY d2.an) sk ON sk.an = d.an
+                LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(compensate_treatment) AS total, 
+                            GROUP_CONCAT(round_no) AS round_no, GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
+                           FROM stm_lgo GROUP BY an) st ON st.an = d.an
+                WHERE d.dchdate BETWEEN ? AND ?
+                AND (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
+                ORDER BY d.dchdate
+            ', [$start_date, $end_date, $search, $search, $search]);
+        } else {
+            $debtor = DB::select('
+                SELECT d.*, d.receive AS receive_manual, d.repno AS repno_manual,
+                       IFNULL(sk.amount,0) AS kidney, st.repno AS stm_repno, st.round_no AS stm_round_no, 
+                       st.receipt_date AS stm_receipt_date, st.receive_no AS stm_receive_no,
+                       IFNULL(st.total,0) AS receive_lgo,
+                       IFNULL(sk.amount,0) AS receive_kidney,
+                       (IFNULL(d.receive,0) + IFNULL(st.total,0) + IFNULL(sk.amount,0)) AS receive,
+                       CASE WHEN (IFNULL(d.receive,0) + IFNULL(st.total,0) + IFNULL(sk.amount,0) + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 
+                       THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
+                FROM debtor_1102050102_802 d
+                LEFT JOIN (SELECT d2.an, SUM(k.compensate_kidney) AS amount 
+                           FROM debtor_1102050102_802 d2 
+                           JOIN stm_lgo_kidney k ON k.cid = d2.cid AND k.datetimeadm BETWEEN d2.regdate AND d2.dchdate
+                           GROUP BY d2.an) sk ON sk.an = d.an
+                LEFT JOIN (SELECT an, MAX(repno) AS repno, SUM(compensate_treatment) AS total, 
+                                  GROUP_CONCAT(round_no) AS round_no, GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
+                           FROM stm_lgo GROUP BY an) st ON st.an = d.an
+                WHERE d.dchdate BETWEEN ? AND ?
+                ORDER BY d.dchdate
+            ', [$start_date, $end_date]);
+        }
 
         return view('debtor.1102050102_802_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }

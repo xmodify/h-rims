@@ -1598,6 +1598,32 @@ class DebtorController extends Controller
 
         return view('debtor.1102050101_109_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
+
+    public function _1102050101_109_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adjusted_count = 0;
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_109::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $receive = (float)$row->receive;
+
+                $diff = (float)$row->debtor - (float)$receive;
+                if ($diff > 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+                $row->adj_note = $request->bulk_adj_note ?: 'Bulk Adjustment to Balance 0';
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
     ##############################################################################################################################################################
     //_1102050101_201--------------------------------------------------------------------------------------------------------------
     public function _1102050101_201(Request $request)
@@ -1991,6 +2017,58 @@ class DebtorController extends Controller
             "
         ]);
     }
+
+    public function _1102050101_201_update(Request $request, $vn)
+    {
+        $item = Debtor_1102050101_201::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
+    }
+
+    public function _1102050101_201_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_201::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $stm = \DB::table('stm_ucs')->where('cid', $row->cid)->where('vstdate', $row->vstdate)
+                    ->where(\DB::raw('LEFT(vsttime, 5)'), '=', substr($row->vsttime, 0, 5))
+                    ->sum('receive_pp');
+
+                $total_received = (float)$row->receive + (float)$stm;
+                $diff = (float)$row->debtor - $total_received;
+                if ($diff >= 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
     ##############################################################################################################################################################
     //_1102050101_203--------------------------------------------------------------------------------------------------------------
     public function _1102050101_203(Request $request)
@@ -2383,6 +2461,38 @@ class DebtorController extends Controller
             "
         ]);
     }
+
+    public function _1102050101_203_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_203::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $stm = \DB::table('stm_ucs')->where('cid', $row->cid)->where('vstdate', $row->vstdate)
+                    ->where(\DB::raw('LEFT(vsttime, 5)'), '=', substr($row->vsttime, 0, 5))
+                    ->sum('receive_pp');
+
+                $total_received = (float)$row->receive + (float)$stm;
+                $diff = (float)$row->debtor - $total_received;
+                if ($diff >= 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
     ##############################################################################################################################################################
     //_1102050101_209--------------------------------------------------------------------------------------------------------------
     public function _1102050101_209(Request $request)
@@ -2438,8 +2548,6 @@ class DebtorController extends Controller
     {
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
-        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value') ?: "''";
-        $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value') ?: "''";
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,
@@ -2473,10 +2581,8 @@ class DebtorController extends Controller
             WHERE (o.an IS NULL OR o.an = "")
             AND o.vstdate BETWEEN ? AND ?
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)) > 0
-            AND p.hipdata_code IN ("UCS","WEL","SSS")            
+            AND p.hipdata_code IN ("UCS","WEL")            
             AND v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
-            AND p.pttype NOT IN (' . $pttype_sss_fund . ')
-            AND p.pttype NOT IN (' . $pttype_sss_ae . ')
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_209 WHERE vn IS NOT NULL)
             GROUP BY o.vn, vp.pttype 
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
@@ -2491,8 +2597,6 @@ class DebtorController extends Controller
 
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
-        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value') ?: "''";
-        $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value') ?: "''";
         $request->validate([
             'checkbox' => 'required|array',
         ], [
@@ -2533,10 +2637,8 @@ class DebtorController extends Controller
             WHERE (o.an IS NULL OR o.an = "")
             AND o.vstdate BETWEEN ? AND ?
             AND (IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0)) > 0
-            AND p.hipdata_code IN ("UCS","WEL","SSS")            
+            AND p.hipdata_code IN ("UCS","WEL")            
             AND v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
-            AND p.pttype NOT IN (' . $pttype_sss_fund . ')
-            AND p.pttype NOT IN (' . $pttype_sss_ae . ')
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_209 WHERE vn IS NOT NULL)
             AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype 
@@ -2664,6 +2766,60 @@ class DebtorController extends Controller
         }
 
         return view('debtor.1102050101_209_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    public function _1102050101_209_update(Request $request, $vn)
+    {
+        $item = Debtor_1102050101_209::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
+    }
+
+    public function _1102050101_209_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_209::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $receive = (float)$row->receive;
+
+                $diff = (float)$row->debtor - (float)$receive;
+                if ($diff > 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+
+        if ($adjusted_count == 0) {
+            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
     ##############################################################################################################################################################
     //_1102050101_216--------------------------------------------------------------------------------------------------------------
@@ -3277,6 +3433,78 @@ class DebtorController extends Controller
 
         return view('debtor.1102050101_216_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
+
+    public function _1102050101_216_update(Request $request, $vn)
+    {
+        $item = Debtor_1102050101_216::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
+    }
+
+    public function _1102050101_216_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_216::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                // Fetch dynamic STM totals for this patient
+                $stm = DB::selectOne('
+                    SELECT 
+                        (SELECT IFNULL(SUM(receive_total), 0) - IFNULL(SUM(receive_pp), 0) 
+                         FROM stm_ucs 
+                         WHERE cid = ? AND vstdate = ? AND LEFT(vsttime, 5) = LEFT(?, 5)) as ucs_receive,
+                        (SELECT IFNULL(SUM(receive_total), 0) 
+                         FROM stm_ucs_kidney 
+                         WHERE cid = ? AND datetimeadm = ?) as kidney_receive
+                ', [$row->cid, $row->vstdate, $row->vsttime, $row->cid, $row->vstdate]);
+                
+                $receive = (float)($stm->ucs_receive ?? 0);
+                if ($row->kidney > 0) {
+                    $receive += (float)($stm->kidney_receive ?? 0);
+                }
+
+                // Balance = (receive + adj_inc - adj_dec) - debtor
+                // To make Balance = 0, we need: adj_inc - adj_dec = debtor - receive
+                $diff = (float)$row->debtor - $receive;
+
+                if ($diff >= 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+
+        if ($adjusted_count == 0) {
+            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
     ##############################################################################################################################################################
     //_1102050101_301--------------------------------------------------------------------------------------------------------------
     public function _1102050101_301(Request $request)
@@ -3325,6 +3553,7 @@ class DebtorController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value') ?: "''";
+        $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value') ?: "''";
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
@@ -3357,9 +3586,9 @@ class DebtorController extends Controller
             AND (IFNULL(combined.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(combined.other_price,0)) > 0
             AND p.hipdata_code = "SSS"            
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
-            AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_301 WHERE vn IS NOT NULL)
             AND p.pttype NOT IN (' . $pttype_sss_fund . ')
+            AND p.pttype NOT IN (' . $pttype_sss_ae . ')
             GROUP BY o.vn, vp.pttype
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date]);
 
@@ -3374,6 +3603,7 @@ class DebtorController extends Controller
         $start_date = Session::get('start_date');
         $end_date = Session::get('end_date');
         $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
+        $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value');
         $request->validate([
             'checkbox' => 'required|array',
         ], [
@@ -3413,9 +3643,9 @@ class DebtorController extends Controller
             AND (IFNULL(combined.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(combined.other_price,0)) > 0
             AND p.hipdata_code = "SSS"            
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
-            AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_301 WHERE vn IS NOT NULL)
             AND p.pttype NOT IN (' . $pttype_sss_fund . ')
+            AND p.pttype NOT IN (' . $pttype_sss_ae . ')
             AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date]);
@@ -3634,94 +3864,54 @@ class DebtorController extends Controller
             "
         ]);
     }
+
+    public function _1102050101_301_update(Request $request, $vn)
+    {
+        $item = Debtor_1102050101_301::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
+    }
+
+    public function _1102050101_301_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_301::where('vn', $id)->first();
+            if ($row && $row->debtor_lock == 'Y') {
+                $adj_val = (float)$row->debtor - (float)$row->receive;
+
+                if ($adj_val >= 0) {
+                    $row->adj_inc = $adj_val;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($adj_val);
+                }
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
+                $row->save();
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว');
+    }
     ##############################################################################################################################################################
     //_1102050101_303--------------------------------------------------------------------------------------------------------------
-    public function _1102050101_302_average_receive(Request $request)
-    {
-        $request->validate([
-            'date_start' => 'required|date',
-            'date_end' => 'required|date',
-            'repno' => 'required|string',
-            'total_receive' => 'required|numeric|min:0.01',
-            'receive_date' => 'required|date',
-        ]);
-
-        $dateStart = $request->date_start;
-        $dateEnd = $request->date_end;
-        $repno = $request->repno;
-        $total = (float) $request->total_receive;
-        $receive_date = $request->receive_date;
-
-        // ดึงข้อมูล
-        $rows = DB::table('debtor_1102050101_302')
-            ->whereBetween('dchdate', [$dateStart, $dateEnd])
-            ->get();
-
-        $count = $rows->count();
-        if ($count === 0) {
-            return response()->json([
-                'status' => 'error',
-                'message' => "ไม่พบข้อมูล"
-            ]);
-        }
-
-        // ===== 1) คำนวณน้ำหนักตาม debtor =====
-        $sumDebtor = $rows->sum('debtor');
-        if($sumDebtor <= 0) {
-            return response()->json(['status' => 'error', 'message' => "ยอดรวมลูกหนี้เป็น 0"]);
-        }
-
-        $items = [];
-        foreach ($rows as $row) {
-            $weight = $row->debtor / $sumDebtor;
-            $assign = round($total * $weight, 2);
-            $items[] = [
-                'an' => $row->an,
-                'assign' => $assign,
-            ];
-        }
-
-        // ===== 2) ปรับ diff ให้ผลรวมตรง total_receive =====
-        $sumAssigned = array_sum(array_column($items, 'assign'));
-        $diff = round($total - $sumAssigned, 2);
-        $i = 0;
-        while (abs($diff) >= 0.01) {
-            if ($diff > 0) {
-                $items[$i]['assign'] = round($items[$i]['assign'] + 0.01, 2);
-                $diff = round($diff - 0.01, 2);
-            } else {
-                if ($items[$i]['assign'] > 0.01) {
-                    $items[$i]['assign'] = round($items[$i]['assign'] - 0.01, 2);
-                    $diff = round($diff + 0.01, 2);
-                }
-            }
-            $i = ($i + 1) % $count;
-        }
-
-        // ===== 3) บันทึกจริงลงฐานข้อมูล =====
-        foreach ($items as $it) {
-            DB::table('debtor_1102050101_302')
-                ->where('an', $it['an'])
-                ->update([
-                    'receive' => $it['assign'],
-                    'repno' => $repno,
-                    'receive_date' => $receive_date,
-                    'status' => 'กระทบยอดแล้ว',
-                ]);
-        }
-        
-        $finalSum = array_sum(array_column($items, 'assign'));
-
-        return response()->json([
-            'status' => 'success',
-            'message' => "
-                วันที่ : <b>{$dateStart}</b> ถึง <b>{$dateEnd}</b><br>
-                จำนวน AN : <b>{$count}</b><br>
-                ยอดชดเชย : <b>" . number_format($total, 2) . "</b><br>
-                ยอดที่จัดสรรได้จริง : <b>" . number_format($finalSum, 2) . "</b> ✔ ตรง 100%
-            "
-        ]);
-    }
 
     public function _1102050101_303(Request $request)
     {
@@ -3733,29 +3923,10 @@ class DebtorController extends Controller
         $search = $request->search ?: Session::get('search');
 
         if ($search) {
-            $count_tab1 = DB::table('debtor_1102050101_303')
-                ->whereBetween('vstdate', [$start_date, $end_date])
-                ->where(function($q) use ($search) {
-                    $q->where('ptname', 'LIKE', "%{$search}%")
-                      ->orWhere('hn', 'LIKE', "%{$search}%");
-                })
-                ->count();
-        } else {
-            $count_tab1 = DB::table('debtor_1102050101_303')
-                ->whereBetween('vstdate', [$start_date, $end_date])
-                ->count();
-        }
-        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value');
-        $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value');
-
-        if ($search) {
             $debtor = DB::select('
-                SELECT d.vn,d.an,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no, 
-                    d.receive ,d.repno,s.receive_pp,IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
-                    d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
-                    CASE WHEN (IFNULL(d.receive, 0)  + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
-                    THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
+                SELECT d.*, CASE WHEN (IFNULL(d.receive, 0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
+                    THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days,
+                    s.receive_pp, IF(s.receive_pp <>"", s.repno, "") AS repno_pp
                 FROM debtor_1102050101_303 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
@@ -3764,12 +3935,9 @@ class DebtorController extends Controller
                 AND d.vstdate BETWEEN ? AND ?', [$search, $search, $start_date, $end_date]);
         } else {
             $debtor = DB::select('
-                SELECT d.vn,d.an,d.vstdate,d.vsttime, d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,  
-                    d.rcpt_money,d.other,d.ppfs,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,d.receive_no, 
-                    d.receive ,d.repno,s.receive_pp,IF(s.receive_pp <>"",s.repno,"") AS repno_pp,d.status,d.debtor_lock,
-                    d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
-                    CASE WHEN (IFNULL(d.receive, 0)  + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
-                    THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
+                SELECT d.*, CASE WHEN (IFNULL(d.receive, 0) + IFNULL(d.adj_inc, 0) - IFNULL(d.adj_dec, 0) - IFNULL(d.debtor, 0)) >= -0.01 
+                    THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days,
+                    s.receive_pp, IF(s.receive_pp <>"", s.repno, "") AS repno_pp
                 FROM debtor_1102050101_303 d   
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(receive_pp) AS receive_pp,MAX(repno) AS repno
                     FROM stm_ucs GROUP BY cid, vstdate, LEFT(vsttime,5)) s ON s.cid = d.cid 
@@ -3777,6 +3945,7 @@ class DebtorController extends Controller
                 WHERE d.vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         }
 
+        $count_tab1 = count($debtor);
         $debtor_search = [];
 
         $request->session()->put('start_date', $start_date);
@@ -3827,7 +3996,6 @@ class DebtorController extends Controller
             AND (IFNULL(combined.income,0)-IFNULL(v.paid_money,0)-IFNULL(rc.rcpt_money,0)-IFNULL(combined.other_price,0)) > 0
             AND p.hipdata_code = "SSS"            
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
-            AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_303 WHERE vn IS NOT NULL)
             AND p.pttype NOT IN (' . $pttype_sss_fund . ')
             AND p.pttype NOT IN (' . $pttype_sss_ae . ')
@@ -3885,7 +4053,6 @@ class DebtorController extends Controller
             AND (IFNULL(combined.income,0)-IFNULL(v.paid_money,0)-IFNULL(rc.rcpt_money,0)-IFNULL(combined.other_price,0)) > 0
             AND p.hipdata_code = "SSS"            
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
-            AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_303 WHERE vn IS NOT NULL)
             AND p.pttype NOT IN (' . $pttype_sss_fund . ')
             AND p.pttype NOT IN (' . $pttype_sss_ae . ')
@@ -4034,6 +4201,31 @@ class DebtorController extends Controller
         }
 
         return view('debtor.1102050101_303_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    public function _1102050101_303_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_303::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $balance = (float)$row->receive - (float)$row->debtor;
+                $adj_val = 0 - $balance;
+                if ($adj_val > 0) {
+                    $row->adj_inc = $adj_val;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($adj_val);
+                }
+                $row->adj_date = $date;
+                $row->adj_note = $note;
+                $row->save();
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
     }
     ##############################################################################################################################################################
     //_1102050101_307--------------------------------------------------------------------------------------------------------------
@@ -4471,6 +4663,31 @@ class DebtorController extends Controller
 
         return view('debtor.1102050101_307_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
+
+    public function _1102050101_307_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_307::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $balance = (float)$row->receive - (float)$row->debtor;
+                $adj_val = 0 - $balance;
+                if ($adj_val > 0) {
+                    $row->adj_inc = $adj_val;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($adj_val);
+                }
+                $row->adj_date = $date;
+                $row->adj_note = $note;
+                $row->save();
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
+    }
     ##############################################################################################################################################################
     //_1102050101_309--------------------------------------------------------------------------------------------------------------
     public function _1102050101_309(Request $request)
@@ -4900,6 +5117,32 @@ class DebtorController extends Controller
 
         return view('debtor.1102050101_309_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
+
+    public function _1102050101_309_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_309::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $stm = DB::table('stm_sss_kidney')->where('cid', $row->cid)->where('vstdate', $row->vstdate)->sum(DB::raw('IFNULL(amount,0)+ IFNULL(epopay,0)+ IFNULL(epoadm,0)'));
+                $balance = ((float)$row->receive + (float)$stm) - (float)$row->debtor;
+                $adj_val = 0 - $balance;
+                if ($adj_val > 0) {
+                    $row->adj_inc = $adj_val;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($adj_val);
+                }
+                $row->adj_date = $date;
+                $row->adj_note = $note;
+                $row->save();
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
+    }
     ##############################################################################################################################################################
     //_1102050101_401--------------------------------------------------------------------------------------------------------------
     public function _1102050101_401(Request $request)
@@ -5282,6 +5525,38 @@ class DebtorController extends Controller
 
         return view('debtor.1102050101_401_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
+
+    public function _1102050101_401_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_401::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $stm1 = DB::table('stm_ofc')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where(DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))->sum('receive_total');
+                $stm2 = DB::table('stm_ofc_csop')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where(DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))->where('sys', '<>', 'HD')->sum('amount');
+                $stm3 = 0;
+                if ($row->kidney > 0) {
+                    $stm3 = DB::table('stm_ofc_csop')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where('sys', 'HD')->sum('amount');
+                }
+                
+                $balance = ((float)$row->receive + (float)$stm1 + (float)$stm2 + (float)$stm3) - (float)$row->debtor;
+                $adj_val = 0 - $balance;
+                if ($adj_val > 0) {
+                    $row->adj_inc = $adj_val;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($adj_val);
+                }
+                $row->adj_date = $date;
+                $row->adj_note = $note;
+                $row->save();
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
+    }
     ##############################################################################################################################################################
     //_1102050101_501--------------------------------------------------------------------------------------------------------------
     public function _1102050101_501(Request $request)
@@ -5547,6 +5822,33 @@ class DebtorController extends Controller
             });
 
         return view('debtor.1102050101_501_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    public function _1102050101_501_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adjusted_count = 0;
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_501::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $receive = (float)$row->receive;
+                $diff = (float)$row->debtor - $receive;
+                if ($diff >= 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = $date;
+                $row->adj_note = $note;
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
     ##############################################################################################################################################################
     //_1102050101_503--------------------------------------------------------------------------------------------------------------
@@ -5817,6 +6119,33 @@ class DebtorController extends Controller
 
         return view('debtor.1102050101_503_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
+
+    public function _1102050101_503_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adjusted_count = 0;
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_503::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $receive = (float)$row->receive;
+                $diff = (float)$row->debtor - $receive;
+                if ($diff >= 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = $date;
+                $row->adj_note = $note;
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
     ##############################################################################################################################################################
     //_1102050101_701--------------------------------------------------------------------------------------------------------------
     public function _1102050101_701(Request $request)
@@ -6082,6 +6411,53 @@ class DebtorController extends Controller
             });
 
         return view('debtor.1102050101_701_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    public function _1102050101_701_update(Request $request, $vn)
+    {
+        $item = Debtor_1102050101_701::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
+    }
+
+    public function _1102050101_701_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adjusted_count = 0;
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_701::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $balance = (float)$row->receive - (float)$row->debtor;
+                $adj_val = 0 - $balance;
+                if ($adj_val > 0) {
+                    $row->adj_inc = $adj_val;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($adj_val);
+                }
+                $row->adj_date = $date;
+                $row->adj_note = $note;
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
     ##############################################################################################################################################################
     //_1102050101_702--------------------------------------------------------------------------------------------------------------
@@ -6349,6 +6725,53 @@ class DebtorController extends Controller
             });
 
         return view('debtor.1102050101_702_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    public function _1102050101_702_update(Request $request, $vn)
+    {
+        $item = Debtor_1102050101_702::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
+    }
+
+    public function _1102050101_702_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adjusted_count = 0;
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_702::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $balance = (float)$row->receive - (float)$row->debtor;
+                $adj_val = 0 - $balance;
+                if ($adj_val > 0) {
+                    $row->adj_inc = $adj_val;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($adj_val);
+                }
+                $row->adj_date = $date;
+                $row->adj_note = $note;
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
     ##############################################################################################################################################################
     //_1102050102_106--------------------------------------------------------------------------------------------------------------
@@ -6815,6 +7238,51 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
+
+    public function _1102050102_106_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
+        foreach ($ids as $id) {
+            $row = DB::connection('hosxp')->selectOne("
+                SELECT d.*, IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0) AS total_bill
+                FROM hrims.debtor_1102050102_106 d
+                LEFT JOIN (
+                    SELECT r.vn, SUM(r.total_amount) AS total_amount
+                    FROM rcpt_print r
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
+                    WHERE a.rcpno IS NULL
+                    GROUP BY r.vn
+                ) r ON r.vn = d.vn
+                WHERE d.vn = ?
+            ", [$id]);
+
+            if ($row && $row->debtor_lock == 'Y') {
+                $receive = (float)$row->receive + (float)$row->total_bill;
+
+                $diff = (float)$row->debtor - (float)$receive;
+                $update_data = [
+                    'adj_date' => $adj_date,
+                    'adj_note' => $adj_note
+                ];
+
+                if ($diff > 0) {
+                    $update_data['adj_inc'] = $diff;
+                    $update_data['adj_dec'] = 0;
+                } else {
+                    $update_data['adj_inc'] = 0;
+                    $update_data['adj_dec'] = abs($diff);
+                }
+
+                \App\Models\Debtor_1102050102_106::where('vn', $id)->update($update_data);
+                $adjusted_count++;
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
     ##############################################################################################################################################################
     //_1102050102_108--------------------------------------------------------------------------------------------------------------
     public function _1102050102_108(Request $request)
@@ -7099,6 +7567,35 @@ class DebtorController extends Controller
             });
 
         return view('debtor.1102050102_108_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    public function _1102050102_108_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050102_108::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $receive = (float)$row->receive;
+
+                $diff = (float)$row->debtor - (float)$receive;
+                if ($diff > 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
     ##############################################################################################################################################################
     //_1102050102_110--------------------------------------------------------------------------------------------------------------
@@ -7515,6 +8012,52 @@ class DebtorController extends Controller
 
         return view('debtor.1102050102_110_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
+
+    public function _1102050102_110_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050102_110::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $stm1 = DB::table('stm_ofc')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where(DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))->sum('receive_total');
+                $stm2 = DB::table('stm_ofc_csop')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where(DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))->where('sys', '<>', 'HD')->sum('amount');
+                $stm3 = 0;
+                if ($row->kidney > 0) {
+                    $stm3 = DB::table('stm_ofc_csop')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where('sys', 'HD')->sum('amount');
+                }
+                
+                $receive = (float)$row->receive + (float)$stm1 + (float)$stm2 + (float)$stm3;
+
+                // Check current balance
+                $current_balance = ($receive + (float)($row->adj_inc ?? 0) - (float)($row->adj_dec ?? 0)) - (float)$row->debtor;
+                if (abs($current_balance) < 0.01) {
+                    continue;
+                }
+
+                $diff = (float)$row->debtor - (float)$receive;
+                if ($diff > 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        
+        if ($adjusted_count == 0) {
+            return back()->with('warning', 'ไม่มีรายการที่ต้องปรับปรุง (ยอดคงเหลือเป็น 0 หรือ ยังไม่ได้ Lock)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
     ##############################################################################################################################################################
     //_1102050102_602--------------------------------------------------------------------------------------------------------------
     public function _1102050102_602(Request $request)
@@ -7801,6 +8344,46 @@ class DebtorController extends Controller
             });
 
         return view('debtor.1102050102_602_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    public function _1102050102_602_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050102_602::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                // Detect receive field (ไม่เอา ppfs มาคำนวณตามที่แจ้ง)
+                $receive = (float)$row->receive;
+
+                // Check current balance
+                $current_balance = ($receive + (float)($row->adj_inc ?? 0) - (float)($row->adj_dec ?? 0)) - (float)$row->debtor;
+                if (abs($current_balance) < 0.01) {
+                    continue;
+                }
+
+                $diff = (float)$row->debtor - (float)$receive;
+                if ($diff > 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        
+        if ($adjusted_count == 0) {
+            return back()->with('warning', 'ไม่มีรายการที่ต้องปรับปรุง (ยอดคงเหลือเป็น 0 หรือ ยังไม่ได้ Lock)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
     ##############################################################################################################################################################
     //_1102050102_801--------------------------------------------------------------------------------------------------------------
@@ -8193,6 +8776,48 @@ class DebtorController extends Controller
         }
 
         return view('debtor.1102050102_801_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    public function _1102050102_801_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050102_801::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $stm_lgo = \DB::table('stm_lgo')->where('cid', $row->cid)->where('vstdate', $row->vstdate)
+                    ->where(\DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))
+                    ->sum('compensate_treatment');
+                $stm_kidney = 0;
+                if ($row->kidney > 0) {
+                     $stm_kidney = \DB::table('stm_lgo_kidney')->where('cid', $row->cid)
+                        ->where('datetimeadm', $row->vstdate)
+                        ->sum('receive_total');
+                }
+                $receive = (float)$row->receive + (float)$stm_lgo + (float)$stm_kidney;
+
+                $diff = (float)$row->debtor - (float)$receive;
+                if ($diff > 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        
+        if ($adjusted_count == 0) {
+            return back()->with('warning', 'ไม่มีรายการที่ต้องปรับปรุง (ยอดคงเหลือเป็น 0 หรือ ยังไม่ได้ Lock)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
     ##############################################################################################################################################################
     //_1102050102_803--------------------------------------------------------------------------------------------------------------
@@ -8599,6 +9224,52 @@ class DebtorController extends Controller
 
         return view('debtor.1102050102_803_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
+
+    public function _1102050102_803_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050102_803::where('vn', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $stm1 = DB::table('stm_ofc')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where(DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))->sum('receive_total');
+                $stm2 = DB::table('stm_ofc_csop')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where(DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))->where('sys', '<>', 'HD')->sum('amount');
+                $stm3 = 0;
+                if ($row->kidney > 0) {
+                    $stm3 = DB::table('stm_ofc_csop')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where('sys', 'HD')->sum('amount');
+                }
+                
+                $receive = (float)$row->receive + (float)$stm1 + (float)$stm2 + (float)$stm3;
+                
+                // Check current balance
+                $current_balance = ($receive + (float)($row->adj_inc ?? 0) - (float)($row->adj_dec ?? 0)) - (float)$row->debtor;
+                if (abs($current_balance) < 0.01) {
+                    continue;
+                }
+
+                $diff = (float)$row->debtor - (float)$receive;
+                if ($diff > 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        
+        if ($adjusted_count == 0) {
+            return back()->with('warning', 'ไม่มีรายการที่ต้องปรับปรุง (ยอดคงเหลือเป็น 0 หรือ ยังไม่ได้ Lock)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
     ##############################################################################################################################################################
     //_1102050101_202--------------------------------------------------------------------------------------------------------------
     public function _1102050101_202(Request $request)
@@ -8875,6 +9546,68 @@ class DebtorController extends Controller
         }
 
         return view('debtor.1102050101_202_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    public function _1102050101_202_update(Request $request, $vn)
+    {
+        $item = Debtor_1102050101_202::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
+    }
+
+    public function _1102050101_202_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
+        foreach ($ids as $id) {
+            $row = DB::table('debtor_1102050101_202 as d')
+                ->leftJoin(DB::raw('(SELECT an, SUM(receive_total) as receive_total FROM stm_ucs GROUP BY an) stm'), 'stm.an', '=', 'd.an')
+                ->where('d.an', $id)
+                ->where('d.debtor_lock', 'Y')
+                ->select('d.*', 'stm.receive_total')
+                ->first();
+
+            if ($row) {
+                $total_received = (float)($row->receive_total ?? 0) + (float)($row->receive ?? 0);
+                $diff = (float)$row->debtor - $total_received;
+                
+                if ($diff > 0) {
+                    $adj_inc = $diff;
+                    $adj_dec = 0;
+                } else {
+                    $adj_inc = 0;
+                    $adj_dec = abs($diff);
+                }
+
+                \App\Models\Debtor_1102050101_202::where('an', $id)->update([
+                    'adj_inc' => $adj_inc,
+                    'adj_dec' => $adj_dec,
+                    'adj_date' => $adj_date,
+                    'adj_note' => $adj_note,
+                ]);
+                $adjusted_count++;
+            }
+        }
+        if ($adjusted_count == 0) {
+            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
     ##############################################################################################################################################################
     //_1102050101_217--------------------------------------------------------------------------------------------------------------
@@ -9165,6 +9898,69 @@ class DebtorController extends Controller
         }
 
         return view('debtor.1102050101_217_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    public function _1102050101_217_update(Request $request, $vn)
+    {
+        $item = Debtor_1102050101_217::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
+    }
+
+    public function _1102050101_217_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adjusted_count = 0;
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+
+        foreach ($ids as $id) {
+            $row = DB::table('debtor_1102050101_217 as d')
+                ->leftJoin(DB::raw('(SELECT an, SUM(receive_total) - SUM(receive_ip_compensate_pay) as stm_total FROM stm_ucs GROUP BY an) stm'), 'stm.an', '=', 'd.an')
+                ->leftJoin(DB::raw('(SELECT d2.an, SUM(sk.receive_total) as kidney_total FROM debtor_1102050101_217 d2 JOIN stm_ucs_kidney sk ON sk.cid = d2.cid AND sk.datetimeadm BETWEEN d2.regdate AND d2.dchdate GROUP BY d2.an) k'), 'k.an', '=', 'd.an')
+                ->where('d.an', $id)
+                ->where('d.debtor_lock', 'Y')
+                ->select('d.*', DB::raw('IFNULL(stm.stm_total,0) + IFNULL(k.kidney_total,0) as stm_receive'))
+                ->first();
+
+            if ($row) {
+                $total_received = (float)($row->stm_receive ?? 0) + (float)($row->receive ?? 0);
+                $diff = (float)$row->debtor - $total_received;
+                
+                if ($diff > 0) {
+                    $adj_inc = $diff;
+                    $adj_dec = 0;
+                } else {
+                    $adj_inc = 0;
+                    $adj_dec = abs($diff);
+                }
+
+                \App\Models\Debtor_1102050101_217::where('an', $id)->update([
+                    'adj_inc' => $adj_inc,
+                    'adj_dec' => $adj_dec,
+                    'adj_date' => $adj_date,
+                    'adj_note' => $adj_note,
+                ]);
+                $adjusted_count++;
+            }
+        }
+        if ($adjusted_count == 0) {
+            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
     ##############################################################################################################################################################
     //_1102050101_302--------------------------------------------------------------------------------------------------------------
@@ -9462,6 +10258,122 @@ class DebtorController extends Controller
         }
 
         return view('debtor.1102050101_302_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    public function _1102050101_302_average_receive(Request $request)
+    {
+        $request->validate([
+            'date_start' => 'required|date',
+            'date_end' => 'required|date',
+            'repno' => 'required|string',
+            'total_receive' => 'required|numeric|min:0.01',
+            'receive_date' => 'required|date',
+        ]);
+
+        $dateStart = $request->date_start;
+        $dateEnd = $request->date_end;
+        $repno = $request->repno;
+        $total = (float) $request->total_receive;
+        $receive_date = $request->receive_date;
+
+        // ดึงข้อมูล
+        $rows = DB::table('debtor_1102050101_302')
+            ->whereBetween('dchdate', [$dateStart, $dateEnd])
+            ->get();
+
+        $count = $rows->count();
+        if ($count === 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "ไม่พบข้อมูล"
+            ]);
+        }
+
+        // ===== 1) คำนวณน้ำหนักตาม debtor =====
+        $sumDebtor = $rows->sum('debtor');
+        if($sumDebtor <= 0) {
+            return response()->json(['status' => 'error', 'message' => "ยอดรวมลูกหนี้เป็น 0"]);
+        }
+
+        $items = [];
+        foreach ($rows as $row) {
+            $weight = $row->debtor / $sumDebtor;
+            $assign = round($total * $weight, 2);
+            $items[] = [
+                'an' => $row->an,
+                'assign' => $assign,
+            ];
+        }
+
+        // ===== 2) ปรับ diff ให้ผลรวมตรง total_receive =====
+        $sumAssigned = array_sum(array_column($items, 'assign'));
+        $diff = round($total - $sumAssigned, 2);
+        $i = 0;
+        while (abs($diff) >= 0.01) {
+            if ($diff > 0) {
+                $items[$i]['assign'] = round($items[$i]['assign'] + 0.01, 2);
+                $diff = round($diff - 0.01, 2);
+            } else {
+                if ($items[$i]['assign'] > 0.01) {
+                    $items[$i]['assign'] = round($items[$i]['assign'] - 0.01, 2);
+                    $diff = round($diff + 0.01, 2);
+                }
+            }
+            $i = ($i + 1) % $count;
+        }
+
+        // ===== 3) บันทึกจริงลงฐานข้อมูล =====
+        foreach ($items as $it) {
+            DB::table('debtor_1102050101_302')
+                ->where('an', $it['an'])
+                ->update([
+                    'receive' => $it['assign'],
+                    'repno' => $repno,
+                    'receive_date' => $receive_date,
+                    'status' => 'กระทบยอดแล้ว',
+                ]);
+        }
+        
+        $finalSum = array_sum(array_column($items, 'assign'));
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "
+                วันที่ : <b>{$dateStart}</b> ถึง <b>{$dateEnd}</b><br>
+                จำนวน AN : <b>{$count}</b><br>
+                ยอดชดเชย : <b>" . number_format($total, 2) . "</b><br>
+                ยอดที่จัดสรรได้จริง : <b>" . number_format($finalSum, 2) . "</b> ✔ ตรง 100%
+            "
+        ]);
+    }
+
+    public function _1102050101_302_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adjusted_count = 0;
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_302::where('an', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $receive = (float)$row->receive;
+
+                $diff = (float)$row->debtor - (float)$receive;
+                if ($diff > 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = date('Y-m-d');
+                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        if ($adjusted_count == 0) {
+            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
     ##############################################################################################################################################################
     //_1102050101_304--------------------------------------------------------------------------------------------------------------
@@ -9769,6 +10681,35 @@ class DebtorController extends Controller
 
         return view('debtor.1102050101_304_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
+
+    public function _1102050101_304_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adjusted_count = 0;
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_304::where('an', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $receive = (float)$row->receive;
+
+                $diff = (float)$row->debtor - (float)$receive;
+                if ($diff > 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+                $row->adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        if ($adjusted_count == 0) {
+            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
     ##############################################################################################################################################################
     //_1102050101_308--------------------------------------------------------------------------------------------------------------
     public function _1102050101_308(Request $request)
@@ -10060,6 +11001,31 @@ class DebtorController extends Controller
         }
 
         return view('debtor.1102050101_308_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    public function _1102050101_308_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_308::where('an', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $receive = (float)$row->receive;
+                $diff = (float)$row->debtor - (float)$receive;
+                if ($diff > 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = $date;
+                $row->adj_note = $note;
+                $row->save();
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
     }
     ##############################################################################################################################################################
     //_1102050101_310--------------------------------------------------------------------------------------------------------------
@@ -10400,6 +11366,39 @@ class DebtorController extends Controller
         }
 
         return view('debtor.1102050101_310_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    public function _1102050101_310_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_310::where('an', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                // ดึงยอด STM ล่าสุดมาคำนวณด้วยเพื่อให้ยอดคงเหลือเป็น 0 จริงๆ
+                $stm = DB::selectOne('
+                    SELECT SUM(IFNULL(s.amount,0) + IFNULL(s.epopay,0) + IFNULL(s.epoadm,0)) AS stm_receive
+                    FROM stm_sss_kidney s 
+                    WHERE s.hn = ? AND s.vstdate BETWEEN ? AND ?
+                ', [$row->hn, $row->regdate, $row->dchdate]);
+                
+                $total_receive = (float)$row->receive + (float)($stm->stm_receive ?? 0);
+                $diff = (float)$row->debtor - $total_receive;
+
+                if ($diff > 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = $date;
+                $row->adj_note = $note;
+                $row->save();
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
     }
     ##############################################################################################################################################################
     //_1102050101_402--------------------------------------------------------------------------------------------------------------
@@ -10749,6 +11748,75 @@ class DebtorController extends Controller
 
         return view('debtor.1102050101_402_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
+
+    public function _1102050101_402_update(Request $request, $an)
+    {
+        $item = Debtor_1102050101_402::where('an', $an)->firstOrFail();
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
+    }
+
+    public function _1102050101_402_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_402::where('an', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $stm = \DB::table('stm_ofc')->where('an', $id)->sum('receive_total');
+                $cipn = \DB::table('stm_ofc_cipn')->where('an', $id)->sum('gtotal');
+                $csop = \DB::table('stm_ofc_csop')->join('debtor_1102050101_402', 'debtor_1102050101_402.hn', '=', 'stm_ofc_csop.hn')
+                    ->where('debtor_1102050101_402.an', $id)
+                    ->whereBetween('stm_ofc_csop.vstdate', [\DB::raw('debtor_1102050101_402.regdate'), \DB::raw('debtor_1102050101_402.dchdate')])
+                    ->sum('stm_ofc_csop.amount');
+                
+                $total_received = (float)($row->receive ?? 0) 
+                    + (float)$stm 
+                    + (float)$cipn 
+                    + (float)($row->kidney > 0 ? $csop : 0)
+                    + (float)($row->receive_manual ?? 0);
+                $diff = (float)$row->debtor - $total_received;
+                
+                if ($diff >= 0) {
+                    $adj_inc = $diff;
+                    $adj_dec = 0;
+                } else {
+                    $adj_inc = 0;
+                    $adj_dec = abs($diff);
+                }
+
+                \App\Models\Debtor_1102050101_402::where('an', $id)->update([
+                    'adj_inc' => $adj_inc,
+                    'adj_dec' => $adj_dec,
+                    'adj_date' => $adj_date,
+                    'adj_note' => $adj_note,
+                ]);
+                $adjusted_count++;
+            }
+        }
+        
+        if ($adjusted_count > 0) {
+             return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+        } else {
+             return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+    }
     ##############################################################################################################################################################
     //_1102050101_502--------------------------------------------------------------------------------------------------------------
     public function _1102050101_502(Request $request)
@@ -11035,6 +12103,34 @@ class DebtorController extends Controller
         }
 
         return view('debtor.1102050101_502_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    public function _1102050101_502_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adjusted_count = 0;
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_502::where('an', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $receive = (float)$row->receive;
+
+                $diff = (float)$row->debtor - $receive;
+                if ($diff >= 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = $date;
+                $row->adj_note = $note;
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
     ##############################################################################################################################################################
     //_1102050101_504--------------------------------------------------------------------------------------------------------------
@@ -11331,6 +12427,34 @@ class DebtorController extends Controller
 
         return view('debtor.1102050101_504_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
+
+    public function _1102050101_504_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adjusted_count = 0;
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_504::where('an', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $receive = (float)$row->receive;
+
+                $diff = (float)$row->debtor - $receive;
+                if ($diff >= 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = $date;
+                $row->adj_note = $note;
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
     ##############################################################################################################################################################
    
     //_1102050101_704--------------------------------------------------------------------------------------------------------------
@@ -11626,6 +12750,34 @@ class DebtorController extends Controller
         }
 
         return view('debtor.1102050101_704_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    public function _1102050101_704_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adjusted_count = 0;
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050101_704::where('an', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $receive = (float)$row->receive;
+
+                $diff = (float)$row->debtor - $receive;
+                if ($diff >= 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = $date;
+                $row->adj_note = $note;
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
     ##############################################################################################################################################################
     //_1102050102_107--------------------------------------------------------------------------------------------------------------
@@ -12064,6 +13216,51 @@ class DebtorController extends Controller
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
+
+    public function _1102050102_107_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adjusted_count = 0;
+        foreach ($ids as $id) {
+            $row = DB::connection('hosxp')->selectOne("
+                SELECT d.*, IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0) AS total_bill
+                FROM hrims.debtor_1102050102_107 d
+                LEFT JOIN (
+                    SELECT r.vn, SUM(r.total_amount) AS total_amount
+                    FROM rcpt_print r
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
+                    WHERE a.rcpno IS NULL
+                    GROUP BY r.vn
+                ) r ON r.vn = d.an
+                WHERE d.an = ?
+            ", [$id]);
+
+            if ($row && $row->debtor_lock == 'Y') {
+                $receive = (float)$row->receive + (float)$row->total_bill;
+
+                $diff = (float)$row->debtor - (float)$receive;
+                $update_data = [
+                    'adj_date' => date('Y-m-d'),
+                    'adj_note' => 'Bulk Adjustment to Balance 0'
+                ];
+
+                if ($diff > 0) {
+                    $update_data['adj_inc'] = $diff;
+                    $update_data['adj_dec'] = 0;
+                } else {
+                    $update_data['adj_inc'] = 0;
+                    $update_data['adj_dec'] = abs($diff);
+                }
+
+                \App\Models\Debtor_1102050102_107::where('an', $id)->update($update_data);
+                $adjusted_count++;
+            }
+        }
+        if ($adjusted_count == 0) {
+            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
     ##############################################################################################################################################################
     //_1102050102_109--------------------------------------------------------------------------------------------------------------
     public function _1102050102_109(Request $request)
@@ -12361,6 +13558,38 @@ class DebtorController extends Controller
         }
 
         return view('debtor.1102050102_109_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    public function _1102050102_109_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050102_109::where('an', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $receive = (float)$row->receive;
+
+                $diff = (float)$row->debtor - (float)$receive;
+                if ($diff > 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = $adj_date;
+                $row->adj_note = $adj_note;
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        if ($adjusted_count == 0) {
+            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อย ' . $adjusted_count . ' รายการ');
     }
     ##############################################################################################################################################################
     //_1102050102_111--------------------------------------------------------------------------------------------------------------
@@ -12713,6 +13942,64 @@ class DebtorController extends Controller
         return view('debtor.1102050102_111_indiv_excel', compact('start_date', 'end_date', 'debtor'));
     }
 
+    public function _1102050102_111_update(Request $request, $vn)
+    {
+        $item = Debtor_1102050102_111::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
+    }
+
+    public function _1102050102_111_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adjusted_count = 0;
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050102_111::where('an', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $stm_total = \DB::table('stm_ofc')->where('an', $id)->sum('receive_total');
+                $stm_cipn = \DB::table('stm_ofc_cipn')->where('an', $id)->sum('gtotal');
+                $stm_csop = 0;
+                if ($row->kidney > 0) {
+                    $stm_csop = \DB::table('stm_ofc_csop')
+                        ->where('hn', $row->hn)
+                        ->whereBetween('vstdate', [$row->regdate, $row->dchdate])
+                        ->sum('amount');
+                }
+                $receive = (float)$row->receive + (float)$stm_total + (float)$stm_cipn + (float)$stm_csop;
+
+                $diff = (float)$row->debtor - (float)$receive;
+                if ($diff > 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = date('Y-m-d');
+                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        if ($adjusted_count == 0) {
+            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
+
     ##############################################################################################################################################################
     //_1102050102_603--------------------------------------------------------------------------------------------------------------
     public function _1102050102_603(Request $request)
@@ -12995,6 +14282,35 @@ class DebtorController extends Controller
         }
 
         return view('debtor.1102050102_603_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    public function _1102050102_603_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adjusted_count = 0;
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050102_603::where('an', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $receive = (float)$row->receive;
+
+                $diff = (float)$row->debtor - (float)$receive;
+                if ($diff > 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = date('Y-m-d');
+                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        if ($adjusted_count == 0) {
+            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
     ##############################################################################################################################################################
     //_1102050102_802--------------------------------------------------------------------------------------------------------------
@@ -13319,6 +14635,59 @@ class DebtorController extends Controller
         }
 
         return view('debtor.1102050102_802_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    public function _1102050102_802_update(Request $request, $vn)
+    {
+        $item = Debtor_1102050102_802::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
+    }
+
+    public function _1102050102_802_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adjusted_count = 0;
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050102_802::where('an', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $stm_lgo = \DB::table('stm_lgo')->where('an', $id)->sum('pay');
+                $stm_kidney = \DB::table('stm_lgo_kidney')->where('cid', $row->cid)
+                    ->whereBetween('datetimeadm', [$row->regdate, $row->dchdate])
+                    ->sum('compensate_kidney');
+                $receive = (float)$row->receive + (float)$stm_lgo + (float)$stm_kidney;
+
+                $diff = (float)$row->debtor - (float)$receive;
+                if ($diff > 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = date('Y-m-d');
+                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        if ($adjusted_count == 0) {
+            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
     ##############################################################################################################################################################
     public function _1102050102_804(Request $request)
@@ -13671,6 +15040,64 @@ class DebtorController extends Controller
         }
 
         return view('debtor.1102050102_804_indiv_excel', compact('start_date', 'end_date', 'debtor'));
+    }
+
+    public function _1102050102_804_update(Request $request, $vn)
+    {
+        $item = Debtor_1102050102_804::findOrFail($vn);
+        $item->update([
+            'charge_date' => $request->input('charge_date'),
+            'charge_no' => $request->input('charge_no'),
+            'charge' => $request->input('charge'),
+            'receive_date' => $request->input('receive_date'),
+            'receive_no' => $request->input('receive_no'),
+            'receive' => $request->input('receive'),
+            'repno' => $request->input('repno'),
+            'status' => $request->input('status'),
+            'adj_inc' => $request->input('adj_inc'),
+            'adj_dec' => $request->input('adj_dec'),
+            'adj_date' => $request->input('adj_date'),
+            'adj_note' => $request->input('adj_note'),
+        ]);
+        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
+    }
+
+    public function _1102050102_804_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        $adjusted_count = 0;
+        foreach ($ids as $id) {
+            $row = \App\Models\Debtor_1102050102_804::where('an', $id)->where('debtor_lock', 'Y')->first();
+            if ($row) {
+                $stm_total = \DB::table('stm_ofc')->where('an', $id)->sum('receive_total');
+                $stm_cipn = \DB::table('stm_ofc_cipn')->where('an', $id)->sum('gtotal');
+                $stm_csop = 0;
+                if ($row->kidney > 0) {
+                    $stm_csop = \DB::table('stm_ofc_csop')
+                        ->where('hn', $row->hn)
+                        ->whereBetween('vstdate', [$row->regdate, $row->dchdate])
+                        ->sum('amount');
+                }
+                $receive = (float)$row->receive + (float)$stm_total + (float)$stm_cipn + (float)$stm_csop;
+
+                $diff = (float)$row->debtor - (float)$receive;
+                if ($diff > 0) {
+                    $row->adj_inc = $diff;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($diff);
+                }
+                $row->adj_date = date('Y-m-d');
+                $row->adj_note = 'Bulk Adjustment to Balance 0';
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+        if ($adjusted_count == 0) {
+            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
 
     //#####################################################################################################################
@@ -14045,1460 +15472,4 @@ class DebtorController extends Controller
         ]);
     }
 
-    public function _1102050101_201_update(Request $request, $vn)
-    {
-        $item = Debtor_1102050101_201::findOrFail($vn);
-        $item->update([
-            'charge_date' => $request->input('charge_date'),
-            'charge_no' => $request->input('charge_no'),
-            'charge' => $request->input('charge'),
-            'receive_date' => $request->input('receive_date'),
-            'receive_no' => $request->input('receive_no'),
-            'receive' => $request->input('receive'),
-            'repno' => $request->input('repno'),
-            'status' => $request->input('status'),
-            'adj_inc' => $request->input('adj_inc'),
-            'adj_dec' => $request->input('adj_dec'),
-            'adj_date' => $request->input('adj_date'),
-            'adj_note' => $request->input('adj_note'),
-        ]);
-        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-    }
-
-    public function _1102050101_202_update(Request $request, $vn)
-    {
-        $item = Debtor_1102050101_202::findOrFail($vn);
-        $item->update([
-            'charge_date' => $request->input('charge_date'),
-            'charge_no' => $request->input('charge_no'),
-            'charge' => $request->input('charge'),
-            'receive_date' => $request->input('receive_date'),
-            'receive_no' => $request->input('receive_no'),
-            'receive' => $request->input('receive'),
-            'repno' => $request->input('repno'),
-            'status' => $request->input('status'),
-            'adj_inc' => $request->input('adj_inc'),
-            'adj_dec' => $request->input('adj_dec'),
-            'adj_date' => $request->input('adj_date'),
-            'adj_note' => $request->input('adj_note'),
-        ]);
-        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-    }
-
-    public function _1102050101_209_update(Request $request, $vn)
-    {
-        $item = Debtor_1102050101_209::findOrFail($vn);
-        $item->update([
-            'charge_date' => $request->input('charge_date'),
-            'charge_no' => $request->input('charge_no'),
-            'charge' => $request->input('charge'),
-            'receive_date' => $request->input('receive_date'),
-            'receive_no' => $request->input('receive_no'),
-            'receive' => $request->input('receive'),
-            'repno' => $request->input('repno'),
-            'status' => $request->input('status'),
-            'adj_inc' => $request->input('adj_inc'),
-            'adj_dec' => $request->input('adj_dec'),
-            'adj_date' => $request->input('adj_date'),
-            'adj_note' => $request->input('adj_note'),
-        ]);
-        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-    }
-
-    public function _1102050101_216_update(Request $request, $vn)
-    {
-        $item = Debtor_1102050101_216::findOrFail($vn);
-        $item->update([
-            'charge_date' => $request->input('charge_date'),
-            'charge_no' => $request->input('charge_no'),
-            'charge' => $request->input('charge'),
-            'receive_date' => $request->input('receive_date'),
-            'receive_no' => $request->input('receive_no'),
-            'receive' => $request->input('receive'),
-            'repno' => $request->input('repno'),
-            'status' => $request->input('status'),
-            'adj_inc' => $request->input('adj_inc'),
-            'adj_dec' => $request->input('adj_dec'),
-            'adj_date' => $request->input('adj_date'),
-            'adj_note' => $request->input('adj_note'),
-        ]);
-        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-    }
-
-    public function _1102050101_217_update(Request $request, $vn)
-    {
-        $item = Debtor_1102050101_217::findOrFail($vn);
-        $item->update([
-            'charge_date' => $request->input('charge_date'),
-            'charge_no' => $request->input('charge_no'),
-            'charge' => $request->input('charge'),
-            'receive_date' => $request->input('receive_date'),
-            'receive_no' => $request->input('receive_no'),
-            'receive' => $request->input('receive'),
-            'repno' => $request->input('repno'),
-            'status' => $request->input('status'),
-            'adj_inc' => $request->input('adj_inc'),
-            'adj_dec' => $request->input('adj_dec'),
-            'adj_date' => $request->input('adj_date'),
-            'adj_note' => $request->input('adj_note'),
-        ]);
-        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-    }
-
-    public function _1102050101_301_update(Request $request, $vn)
-    {
-        $item = Debtor_1102050101_301::findOrFail($vn);
-        $item->update([
-            'charge_date' => $request->input('charge_date'),
-            'charge_no' => $request->input('charge_no'),
-            'charge' => $request->input('charge'),
-            'receive_date' => $request->input('receive_date'),
-            'receive_no' => $request->input('receive_no'),
-            'receive' => $request->input('receive'),
-            'repno' => $request->input('repno'),
-            'status' => $request->input('status'),
-            'adj_inc' => $request->input('adj_inc'),
-            'adj_dec' => $request->input('adj_dec'),
-            'adj_date' => $request->input('adj_date'),
-            'adj_note' => $request->input('adj_note'),
-        ]);
-        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-    }
-
-    public function _1102050101_402_update(Request $request, $an)
-    {
-        $item = Debtor_1102050101_402::where('an', $an)->firstOrFail();
-        $item->update([
-            'charge_date' => $request->input('charge_date'),
-            'charge_no' => $request->input('charge_no'),
-            'charge' => $request->input('charge'),
-            'receive_date' => $request->input('receive_date'),
-            'receive_no' => $request->input('receive_no'),
-            'receive' => $request->input('receive'),
-            'repno' => $request->input('repno'),
-            'status' => $request->input('status'),
-            'adj_inc' => $request->input('adj_inc'),
-            'adj_dec' => $request->input('adj_dec'),
-            'adj_date' => $request->input('adj_date'),
-            'adj_note' => $request->input('adj_note'),
-        ]);
-        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-    }
-
-    public function _1102050101_701_update(Request $request, $vn)
-    {
-        $item = Debtor_1102050101_701::findOrFail($vn);
-        $item->update([
-            'charge_date' => $request->input('charge_date'),
-            'charge_no' => $request->input('charge_no'),
-            'charge' => $request->input('charge'),
-            'receive_date' => $request->input('receive_date'),
-            'receive_no' => $request->input('receive_no'),
-            'receive' => $request->input('receive'),
-            'repno' => $request->input('repno'),
-            'status' => $request->input('status'),
-            'adj_inc' => $request->input('adj_inc'),
-            'adj_dec' => $request->input('adj_dec'),
-            'adj_date' => $request->input('adj_date'),
-            'adj_note' => $request->input('adj_note'),
-        ]);
-        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-    }
-
-    public function _1102050101_702_update(Request $request, $vn)
-    {
-        $item = Debtor_1102050101_702::findOrFail($vn);
-        $item->update([
-            'charge_date' => $request->input('charge_date'),
-            'charge_no' => $request->input('charge_no'),
-            'charge' => $request->input('charge'),
-            'receive_date' => $request->input('receive_date'),
-            'receive_no' => $request->input('receive_no'),
-            'receive' => $request->input('receive'),
-            'repno' => $request->input('repno'),
-            'status' => $request->input('status'),
-            'adj_inc' => $request->input('adj_inc'),
-            'adj_dec' => $request->input('adj_dec'),
-            'adj_date' => $request->input('adj_date'),
-            'adj_note' => $request->input('adj_note'),
-        ]);
-        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-    }
-
-    public function _1102050102_111_update(Request $request, $vn)
-    {
-        $item = Debtor_1102050102_111::findOrFail($vn);
-        $item->update([
-            'charge_date' => $request->input('charge_date'),
-            'charge_no' => $request->input('charge_no'),
-            'charge' => $request->input('charge'),
-            'receive_date' => $request->input('receive_date'),
-            'receive_no' => $request->input('receive_no'),
-            'receive' => $request->input('receive'),
-            'repno' => $request->input('repno'),
-            'status' => $request->input('status'),
-            'adj_inc' => $request->input('adj_inc'),
-            'adj_dec' => $request->input('adj_dec'),
-            'adj_date' => $request->input('adj_date'),
-            'adj_note' => $request->input('adj_note'),
-        ]);
-        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-    }
-
-    public function _1102050102_802_update(Request $request, $vn)
-    {
-        $item = Debtor_1102050102_802::findOrFail($vn);
-        $item->update([
-            'charge_date' => $request->input('charge_date'),
-            'charge_no' => $request->input('charge_no'),
-            'charge' => $request->input('charge'),
-            'receive_date' => $request->input('receive_date'),
-            'receive_no' => $request->input('receive_no'),
-            'receive' => $request->input('receive'),
-            'repno' => $request->input('repno'),
-            'status' => $request->input('status'),
-            'adj_inc' => $request->input('adj_inc'),
-            'adj_dec' => $request->input('adj_dec'),
-            'adj_date' => $request->input('adj_date'),
-            'adj_note' => $request->input('adj_note'),
-        ]);
-        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-    }
-
-    public function _1102050102_804_update(Request $request, $vn)
-    {
-        $item = Debtor_1102050102_804::findOrFail($vn);
-        $item->update([
-            'charge_date' => $request->input('charge_date'),
-            'charge_no' => $request->input('charge_no'),
-            'charge' => $request->input('charge'),
-            'receive_date' => $request->input('receive_date'),
-            'receive_no' => $request->input('receive_no'),
-            'receive' => $request->input('receive'),
-            'repno' => $request->input('repno'),
-            'status' => $request->input('status'),
-            'adj_inc' => $request->input('adj_inc'),
-            'adj_dec' => $request->input('adj_dec'),
-            'adj_date' => $request->input('adj_date'),
-            'adj_note' => $request->input('adj_note'),
-        ]);
-        return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
-    }
-
-    public function _1102050101_109_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adjusted_count = 0;
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_109::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $receive = (float)$row->receive;
-
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-                $row->adj_note = $request->bulk_adj_note ?: 'Bulk Adjustment to Balance 0';
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050101_201_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $adjusted_count = 0;
-
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_201::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $stm = \DB::table('stm_ucs')->where('cid', $row->cid)->where('vstdate', $row->vstdate)
-                    ->where(\DB::raw('LEFT(vsttime, 5)'), '=', substr($row->vsttime, 0, 5))
-                    ->sum('receive_pp');
-
-                $total_received = (float)$row->receive + (float)$stm;
-                $diff = (float)$row->debtor - $total_received;
-                if ($diff >= 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = $adj_date;
-                $row->adj_note = $adj_note;
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050101_202_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $adjusted_count = 0;
-
-        foreach ($ids as $id) {
-            $row = DB::table('debtor_1102050101_202 as d')
-                ->leftJoin(DB::raw('(SELECT an, SUM(receive_total) as receive_total FROM stm_ucs GROUP BY an) stm'), 'stm.an', '=', 'd.an')
-                ->where('d.an', $id)
-                ->where('d.debtor_lock', 'Y')
-                ->select('d.*', 'stm.receive_total')
-                ->first();
-
-            if ($row) {
-                $total_received = (float)($row->receive_total ?? 0) + (float)($row->receive ?? 0);
-                $diff = (float)$row->debtor - $total_received;
-                
-                if ($diff > 0) {
-                    $adj_inc = $diff;
-                    $adj_dec = 0;
-                } else {
-                    $adj_inc = 0;
-                    $adj_dec = abs($diff);
-                }
-
-                \App\Models\Debtor_1102050101_202::where('an', $id)->update([
-                    'adj_inc' => $adj_inc,
-                    'adj_dec' => $adj_dec,
-                    'adj_date' => $adj_date,
-                    'adj_note' => $adj_note,
-                ]);
-                $adjusted_count++;
-            }
-        }
-        if ($adjusted_count == 0) {
-            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050101_203_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $adjusted_count = 0;
-
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_203::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $stm = \DB::table('stm_ucs')->where('cid', $row->cid)->where('vstdate', $row->vstdate)
-                    ->where(\DB::raw('LEFT(vsttime, 5)'), '=', substr($row->vsttime, 0, 5))
-                    ->sum('receive_pp');
-
-                $total_received = (float)$row->receive + (float)$stm;
-                $diff = (float)$row->debtor - $total_received;
-                if ($diff >= 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = $adj_date;
-                $row->adj_note = $adj_note;
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-
-    public function _1102050101_209_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $adjusted_count = 0;
-
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_209::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $receive = (float)$row->receive;
-
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = $adj_date;
-                $row->adj_note = $adj_note;
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-
-        if ($adjusted_count == 0) {
-            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
-        }
-
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050101_216_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $adjusted_count = 0;
-
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_216::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                // Fetch dynamic STM totals for this patient
-                $stm = DB::selectOne('
-                    SELECT 
-                        (SELECT IFNULL(SUM(receive_total), 0) - IFNULL(SUM(receive_pp), 0) 
-                         FROM stm_ucs 
-                         WHERE cid = ? AND vstdate = ? AND LEFT(vsttime, 5) = LEFT(?, 5)) as ucs_receive,
-                        (SELECT IFNULL(SUM(receive_total), 0) 
-                         FROM stm_ucs_kidney 
-                         WHERE cid = ? AND datetimeadm = ?) as kidney_receive
-                ', [$row->cid, $row->vstdate, $row->vsttime, $row->cid, $row->vstdate]);
-                
-                $receive = (float)($stm->ucs_receive ?? 0);
-                if ($row->kidney > 0) {
-                    $receive += (float)($stm->kidney_receive ?? 0);
-                }
-
-                // Balance = (receive + adj_inc - adj_dec) - debtor
-                // To make Balance = 0, we need: adj_inc - adj_dec = debtor - receive
-                $diff = (float)$row->debtor - $receive;
-
-                if ($diff >= 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-
-                $row->adj_date = $adj_date;
-                $row->adj_note = $adj_note;
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-
-        if ($adjusted_count == 0) {
-            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
-        }
-
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050102_109_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $adjusted_count = 0;
-
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_109::where('an', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $receive = (float)$row->receive;
-
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = $adj_date;
-                $row->adj_note = $adj_note;
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        if ($adjusted_count == 0) {
-            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อย ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050101_217_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adjusted_count = 0;
-        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-
-        foreach ($ids as $id) {
-            $row = DB::table('debtor_1102050101_217 as d')
-                ->leftJoin(DB::raw('(SELECT an, SUM(receive_total) - SUM(receive_ip_compensate_pay) as stm_total FROM stm_ucs GROUP BY an) stm'), 'stm.an', '=', 'd.an')
-                ->leftJoin(DB::raw('(SELECT d2.an, SUM(sk.receive_total) as kidney_total FROM debtor_1102050101_217 d2 JOIN stm_ucs_kidney sk ON sk.cid = d2.cid AND sk.datetimeadm BETWEEN d2.regdate AND d2.dchdate GROUP BY d2.an) k'), 'k.an', '=', 'd.an')
-                ->where('d.an', $id)
-                ->where('d.debtor_lock', 'Y')
-                ->select('d.*', DB::raw('IFNULL(stm.stm_total,0) + IFNULL(k.kidney_total,0) as stm_receive'))
-                ->first();
-
-            if ($row) {
-                $total_received = (float)($row->stm_receive ?? 0) + (float)($row->receive ?? 0);
-                $diff = (float)$row->debtor - $total_received;
-                
-                if ($diff > 0) {
-                    $adj_inc = $diff;
-                    $adj_dec = 0;
-                } else {
-                    $adj_inc = 0;
-                    $adj_dec = abs($diff);
-                }
-
-                \App\Models\Debtor_1102050101_217::where('an', $id)->update([
-                    'adj_inc' => $adj_inc,
-                    'adj_dec' => $adj_dec,
-                    'adj_date' => $adj_date,
-                    'adj_note' => $adj_note,
-                ]);
-                $adjusted_count++;
-            }
-        }
-        if ($adjusted_count == 0) {
-            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050101_301_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_301::where('vn', $id)->first();
-            if ($row && $row->debtor_lock == 'Y') {
-                $adj_val = (float)$row->debtor - (float)$row->receive;
-
-                if ($adj_val >= 0) {
-                    $row->adj_inc = $adj_val;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($adj_val);
-                }
-                $row->adj_date = $adj_date;
-                $row->adj_note = $adj_note;
-                $row->save();
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว');
-    }
-
-    public function _1102050101_302_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adjusted_count = 0;
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_302::where('an', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $receive = (float)$row->receive;
-
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        if ($adjusted_count == 0) {
-            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050101_303_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $date = $request->bulk_adj_date ?: date('Y-m-d');
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_303::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $balance = (float)$row->receive - (float)$row->debtor;
-                $adj_val = 0 - $balance;
-                if ($adj_val > 0) {
-                    $row->adj_inc = $adj_val;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($adj_val);
-                }
-                $row->adj_date = $date;
-                $row->adj_note = $note;
-                $row->save();
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
-    }
-
-    public function _1102050101_304_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adjusted_count = 0;
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_304::where('an', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $receive = (float)$row->receive;
-
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-                $row->adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        if ($adjusted_count == 0) {
-            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050101_307_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $date = $request->bulk_adj_date ?: date('Y-m-d');
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_307::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $balance = (float)$row->receive - (float)$row->debtor;
-                $adj_val = 0 - $balance;
-                if ($adj_val > 0) {
-                    $row->adj_inc = $adj_val;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($adj_val);
-                }
-                $row->adj_date = $date;
-                $row->adj_note = $note;
-                $row->save();
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
-    }
-
-    public function _1102050101_308_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $date = $request->bulk_adj_date ?: date('Y-m-d');
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_308::where('an', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $receive = (float)$row->receive;
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = $date;
-                $row->adj_note = $note;
-                $row->save();
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
-    }
-
-    public function _1102050101_309_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $date = $request->bulk_adj_date ?: date('Y-m-d');
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_309::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $stm = DB::table('stm_sss_kidney')->where('cid', $row->cid)->where('vstdate', $row->vstdate)->sum(DB::raw('IFNULL(amount,0)+ IFNULL(epopay,0)+ IFNULL(epoadm,0)'));
-                $balance = ((float)$row->receive + (float)$stm) - (float)$row->debtor;
-                $adj_val = 0 - $balance;
-                if ($adj_val > 0) {
-                    $row->adj_inc = $adj_val;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($adj_val);
-                }
-                $row->adj_date = $date;
-                $row->adj_note = $note;
-                $row->save();
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
-    }
-
-    public function _1102050101_310_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $date = $request->bulk_adj_date ?: date('Y-m-d');
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_310::where('an', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                // ดึงยอด STM ล่าสุดมาคำนวณด้วยเพื่อให้ยอดคงเหลือเป็น 0 จริงๆ
-                $stm = DB::selectOne('
-                    SELECT SUM(IFNULL(s.amount,0) + IFNULL(s.epopay,0) + IFNULL(s.epoadm,0)) AS stm_receive
-                    FROM stm_sss_kidney s 
-                    WHERE s.hn = ? AND s.vstdate BETWEEN ? AND ?
-                ', [$row->hn, $row->regdate, $row->dchdate]);
-                
-                $total_receive = (float)$row->receive + (float)($stm->stm_receive ?? 0);
-                $diff = (float)$row->debtor - $total_receive;
-
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = $date;
-                $row->adj_note = $note;
-                $row->save();
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
-    }
-
-    public function _1102050101_401_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $date = $request->bulk_adj_date ?: date('Y-m-d');
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_401::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $stm1 = DB::table('stm_ofc')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where(DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))->sum('receive_total');
-                $stm2 = DB::table('stm_ofc_csop')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where(DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))->where('sys', '<>', 'HD')->sum('amount');
-                $stm3 = 0;
-                if ($row->kidney > 0) {
-                    $stm3 = DB::table('stm_ofc_csop')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where('sys', 'HD')->sum('amount');
-                }
-                
-                $balance = ((float)$row->receive + (float)$stm1 + (float)$stm2 + (float)$stm3) - (float)$row->debtor;
-                $adj_val = 0 - $balance;
-                if ($adj_val > 0) {
-                    $row->adj_inc = $adj_val;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($adj_val);
-                }
-                $row->adj_date = $date;
-                $row->adj_note = $note;
-                $row->save();
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . count($ids) . ' รายการ');
-    }
-
-    public function _1102050101_402_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $adjusted_count = 0;
-
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_402::where('an', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $stm = \DB::table('stm_ofc')->where('an', $id)->sum('receive_total');
-                $cipn = \DB::table('stm_ofc_cipn')->where('an', $id)->sum('gtotal');
-                $csop = \DB::table('stm_ofc_csop')->join('debtor_1102050101_402', 'debtor_1102050101_402.hn', '=', 'stm_ofc_csop.hn')
-                    ->where('debtor_1102050101_402.an', $id)
-                    ->whereBetween('stm_ofc_csop.vstdate', [\DB::raw('debtor_1102050101_402.regdate'), \DB::raw('debtor_1102050101_402.dchdate')])
-                    ->sum('stm_ofc_csop.amount');
-                
-                $total_received = (float)($row->receive ?? 0) 
-                    + (float)$stm 
-                    + (float)$cipn 
-                    + (float)($row->kidney > 0 ? $csop : 0)
-                    + (float)($row->receive_manual ?? 0);
-                $diff = (float)$row->debtor - $total_received;
-                
-                if ($diff >= 0) {
-                    $adj_inc = $diff;
-                    $adj_dec = 0;
-                } else {
-                    $adj_inc = 0;
-                    $adj_dec = abs($diff);
-                }
-
-                \App\Models\Debtor_1102050101_402::where('an', $id)->update([
-                    'adj_inc' => $adj_inc,
-                    'adj_dec' => $adj_dec,
-                    'adj_date' => $adj_date,
-                    'adj_note' => $adj_note,
-                ]);
-                $adjusted_count++;
-            }
-        }
-        
-        if ($adjusted_count > 0) {
-             return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-        } else {
-             return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
-        }
-    }
-
-    public function _1102050101_501_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adjusted_count = 0;
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_501::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $receive = (float)$row->receive;
-                $diff = (float)$row->debtor - $receive;
-                if ($diff >= 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = $date;
-                $row->adj_note = $note;
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050101_502_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adjusted_count = 0;
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_502::where('an', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $receive = (float)$row->receive;
-
-                $diff = (float)$row->debtor - $receive;
-                if ($diff >= 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = $date;
-                $row->adj_note = $note;
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050101_503_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adjusted_count = 0;
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_503::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $receive = (float)$row->receive;
-                $diff = (float)$row->debtor - $receive;
-                if ($diff >= 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = $date;
-                $row->adj_note = $note;
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050101_504_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adjusted_count = 0;
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_504::where('an', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $receive = (float)$row->receive;
-
-                $diff = (float)$row->debtor - $receive;
-                if ($diff >= 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = $date;
-                $row->adj_note = $note;
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050101_701_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adjusted_count = 0;
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_701::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $balance = (float)$row->receive - (float)$row->debtor;
-                $adj_val = 0 - $balance;
-                if ($adj_val > 0) {
-                    $row->adj_inc = $adj_val;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($adj_val);
-                }
-                $row->adj_date = $date;
-                $row->adj_note = $note;
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050101_702_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adjusted_count = 0;
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_702::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $balance = (float)$row->receive - (float)$row->debtor;
-                $adj_val = 0 - $balance;
-                if ($adj_val > 0) {
-                    $row->adj_inc = $adj_val;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($adj_val);
-                }
-                $row->adj_date = $date;
-                $row->adj_note = $note;
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050101_704_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adjusted_count = 0;
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_704::where('an', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $receive = (float)$row->receive;
-
-                $diff = (float)$row->debtor - $receive;
-                if ($diff >= 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = $date;
-                $row->adj_note = $note;
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050102_106_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $adjusted_count = 0;
-
-        foreach ($ids as $id) {
-            $row = DB::connection('hosxp')->selectOne("
-                SELECT d.*, IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0) AS total_bill
-                FROM hrims.debtor_1102050102_106 d
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS total_amount
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL
-                    GROUP BY r.vn
-                ) r ON r.vn = d.vn
-                WHERE d.vn = ?
-            ", [$id]);
-
-            if ($row && $row->debtor_lock == 'Y') {
-                $receive = (float)$row->receive + (float)$row->total_bill;
-
-                $diff = (float)$row->debtor - (float)$receive;
-                $update_data = [
-                    'adj_date' => $adj_date,
-                    'adj_note' => $adj_note
-                ];
-
-                if ($diff > 0) {
-                    $update_data['adj_inc'] = $diff;
-                    $update_data['adj_dec'] = 0;
-                } else {
-                    $update_data['adj_inc'] = 0;
-                    $update_data['adj_dec'] = abs($diff);
-                }
-
-                \App\Models\Debtor_1102050102_106::where('vn', $id)->update($update_data);
-                $adjusted_count++;
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050102_107_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adjusted_count = 0;
-        foreach ($ids as $id) {
-            $row = DB::connection('hosxp')->selectOne("
-                SELECT d.*, IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0) AS total_bill
-                FROM hrims.debtor_1102050102_107 d
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS total_amount
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL
-                    GROUP BY r.vn
-                ) r ON r.vn = d.an
-                WHERE d.an = ?
-            ", [$id]);
-
-            if ($row && $row->debtor_lock == 'Y') {
-                $receive = (float)$row->receive + (float)$row->total_bill;
-
-                $diff = (float)$row->debtor - (float)$receive;
-                $update_data = [
-                    'adj_date' => date('Y-m-d'),
-                    'adj_note' => 'Bulk Adjustment to Balance 0'
-                ];
-
-                if ($diff > 0) {
-                    $update_data['adj_inc'] = $diff;
-                    $update_data['adj_dec'] = 0;
-                } else {
-                    $update_data['adj_inc'] = 0;
-                    $update_data['adj_dec'] = abs($diff);
-                }
-
-                \App\Models\Debtor_1102050102_107::where('an', $id)->update($update_data);
-                $adjusted_count++;
-            }
-        }
-        if ($adjusted_count == 0) {
-            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050102_108_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $adjusted_count = 0;
-
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_108::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $receive = (float)$row->receive;
-
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = $adj_date;
-                $row->adj_note = $adj_note;
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-
-    public function _1102050102_110_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $adjusted_count = 0;
-
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_110::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $stm1 = DB::table('stm_ofc')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where(DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))->sum('receive_total');
-                $stm2 = DB::table('stm_ofc_csop')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where(DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))->where('sys', '<>', 'HD')->sum('amount');
-                $stm3 = 0;
-                if ($row->kidney > 0) {
-                    $stm3 = DB::table('stm_ofc_csop')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where('sys', 'HD')->sum('amount');
-                }
-                
-                $receive = (float)$row->receive + (float)$stm1 + (float)$stm2 + (float)$stm3;
-
-                // Check current balance
-                $current_balance = ($receive + (float)($row->adj_inc ?? 0) - (float)($row->adj_dec ?? 0)) - (float)$row->debtor;
-                if (abs($current_balance) < 0.01) {
-                    continue;
-                }
-
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = $adj_date;
-                $row->adj_note = $adj_note;
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        
-        if ($adjusted_count == 0) {
-            return back()->with('warning', 'ไม่มีรายการที่ต้องปรับปรุง (ยอดคงเหลือเป็น 0 หรือ ยังไม่ได้ Lock)');
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050102_111_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adjusted_count = 0;
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_111::where('an', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $stm_total = \DB::table('stm_ofc')->where('an', $id)->sum('receive_total');
-                $stm_cipn = \DB::table('stm_ofc_cipn')->where('an', $id)->sum('gtotal');
-                $stm_csop = 0;
-                if ($row->kidney > 0) {
-                    $stm_csop = \DB::table('stm_ofc_csop')
-                        ->where('hn', $row->hn)
-                        ->whereBetween('vstdate', [$row->regdate, $row->dchdate])
-                        ->sum('amount');
-                }
-                $receive = (float)$row->receive + (float)$stm_total + (float)$stm_cipn + (float)$stm_csop;
-
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        if ($adjusted_count == 0) {
-            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050102_602_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $adjusted_count = 0;
-
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_602::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                // Detect receive field (ไม่เอา ppfs มาคำนวณตามที่แจ้ง)
-                $receive = (float)$row->receive;
-
-                // Check current balance
-                $current_balance = ($receive + (float)($row->adj_inc ?? 0) - (float)($row->adj_dec ?? 0)) - (float)$row->debtor;
-                if (abs($current_balance) < 0.01) {
-                    continue;
-                }
-
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = $adj_date;
-                $row->adj_note = $adj_note;
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        
-        if ($adjusted_count == 0) {
-            return back()->with('warning', 'ไม่มีรายการที่ต้องปรับปรุง (ยอดคงเหลือเป็น 0 หรือ ยังไม่ได้ Lock)');
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050102_603_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adjusted_count = 0;
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_603::where('an', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $receive = (float)$row->receive;
-
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        if ($adjusted_count == 0) {
-            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050102_801_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $adjusted_count = 0;
-
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_801::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $stm_lgo = \DB::table('stm_lgo')->where('cid', $row->cid)->where('vstdate', $row->vstdate)
-                    ->where(\DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))
-                    ->sum('compensate_treatment');
-                $stm_kidney = 0;
-                if ($row->kidney > 0) {
-                     $stm_kidney = \DB::table('stm_lgo_kidney')->where('cid', $row->cid)
-                        ->where('datetimeadm', $row->vstdate)
-                        ->sum('receive_total');
-                }
-                $receive = (float)$row->receive + (float)$stm_lgo + (float)$stm_kidney;
-
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = $adj_date;
-                $row->adj_note = $adj_note;
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        
-        if ($adjusted_count == 0) {
-            return back()->with('warning', 'ไม่มีรายการที่ต้องปรับปรุง (ยอดคงเหลือเป็น 0 หรือ ยังไม่ได้ Lock)');
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050102_802_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adjusted_count = 0;
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_802::where('an', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $stm_lgo = \DB::table('stm_lgo')->where('an', $id)->sum('pay');
-                $stm_kidney = \DB::table('stm_lgo_kidney')->where('cid', $row->cid)
-                    ->whereBetween('datetimeadm', [$row->regdate, $row->dchdate])
-                    ->sum('compensate_kidney');
-                $receive = (float)$row->receive + (float)$stm_lgo + (float)$stm_kidney;
-
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        if ($adjusted_count == 0) {
-            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050102_803_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $adjusted_count = 0;
-
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_803::where('vn', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $stm1 = DB::table('stm_ofc')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where(DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))->sum('receive_total');
-                $stm2 = DB::table('stm_ofc_csop')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where(DB::raw('LEFT(vsttime,5)'), substr($row->vsttime, 0, 5))->where('sys', '<>', 'HD')->sum('amount');
-                $stm3 = 0;
-                if ($row->kidney > 0) {
-                    $stm3 = DB::table('stm_ofc_csop')->where('hn', $row->hn)->where('vstdate', $row->vstdate)->where('sys', 'HD')->sum('amount');
-                }
-                
-                $receive = (float)$row->receive + (float)$stm1 + (float)$stm2 + (float)$stm3;
-                
-                // Check current balance
-                $current_balance = ($receive + (float)($row->adj_inc ?? 0) - (float)($row->adj_dec ?? 0)) - (float)$row->debtor;
-                if (abs($current_balance) < 0.01) {
-                    continue;
-                }
-
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = $adj_date;
-                $row->adj_note = $adj_note;
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        
-        if ($adjusted_count == 0) {
-            return back()->with('warning', 'ไม่มีรายการที่ต้องปรับปรุง (ยอดคงเหลือเป็น 0 หรือ ยังไม่ได้ Lock)');
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
-
-    public function _1102050102_804_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        $adjusted_count = 0;
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050102_804::where('an', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $stm_total = \DB::table('stm_ofc')->where('an', $id)->sum('receive_total');
-                $stm_cipn = \DB::table('stm_ofc_cipn')->where('an', $id)->sum('gtotal');
-                $stm_csop = 0;
-                if ($row->kidney > 0) {
-                    $stm_csop = \DB::table('stm_ofc_csop')
-                        ->where('hn', $row->hn)
-                        ->whereBetween('vstdate', [$row->regdate, $row->dchdate])
-                        ->sum('amount');
-                }
-                $receive = (float)$row->receive + (float)$stm_total + (float)$stm_cipn + (float)$stm_csop;
-
-                $diff = (float)$row->debtor - (float)$receive;
-                if ($diff > 0) {
-                    $row->adj_inc = $diff;
-                    $row->adj_dec = 0;
-                } else {
-                    $row->adj_inc = 0;
-                    $row->adj_dec = abs($diff);
-                }
-                $row->adj_date = date('Y-m-d');
-                $row->adj_note = 'Bulk Adjustment to Balance 0';
-                $row->save();
-                $adjusted_count++;
-            }
-        }
-        if ($adjusted_count == 0) {
-            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
 }

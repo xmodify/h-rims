@@ -2832,7 +2832,7 @@ class ClaimOpController extends Controller
                 SELECT op.vn, SUM(op.sum_price) AS claim_price
                 FROM opitemrece op
                 INNER JOIN nondrugitems n ON op.icode = n.icode 
-                INNER JOIN hrims.lookup_adp_sss a ON a.`code`=n.nhso_adp_code AND a.dateexp > DATE(NOW())
+                INNER JOIN hrims.sss_equipdev_aipn a ON a.`code`=n.nhso_adp_code AND a.dateexp >= DATE(NOW())
                 WHERE op.vstdate BETWEEN ? AND ?
                 AND op.vn IS NOT NULL 
                 GROUP BY op.vn
@@ -2872,7 +2872,7 @@ class ClaimOpController extends Controller
                     SUM(op.sum_price) AS claim_price
                 FROM opitemrece op
                 INNER JOIN nondrugitems n ON op.icode = n.icode 
-                INNER JOIN hrims.lookup_adp_sss a ON a.`code`=n.nhso_adp_code AND a.dateexp > DATE(NOW())
+                INNER JOIN hrims.sss_equipdev_aipn a ON a.`code`=n.nhso_adp_code AND a.dateexp >= DATE(NOW())
                 LEFT JOIN s_drugitems sd ON sd.icode = op.icode
                 WHERE op.vstdate BETWEEN ? AND ? 
                 AND op.vn IS NOT NULL 

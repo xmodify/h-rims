@@ -17,8 +17,9 @@ class LookupIcodeController extends Controller
         $herb32 = $all->where('herb32', 'Y');
         $kidney = $all->where('kidney', 'Y');
         $ems = $all->where('ems', 'Y');
+        $sss_hc = $all->where('sss_hc', 'Y');
 
-        return view('admin.lookup_icode.index', compact('all', 'uc_cr', 'ppfs', 'herb32', 'kidney', 'ems'));
+        return view('admin.lookup_icode.index', compact('all', 'uc_cr', 'ppfs', 'herb32', 'kidney', 'ems', 'sss_hc'));
     }
 
     public function create()
@@ -66,6 +67,7 @@ class LookupIcodeController extends Controller
             'herb32' => $request->has('herb32') ? 'Y' : '',
             'kidney' => $request->has('kidney') ? 'Y' : '',
             'ems' => $request->has('ems') ? 'Y' : '',
+            'sss_hc' => $request->has('sss_hc') ? 'Y' : '',
         ];
 
         $item->update($data);

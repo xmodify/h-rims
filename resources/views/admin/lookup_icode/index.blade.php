@@ -75,6 +75,11 @@
                          EMS ({{ number_format($ems->count()) }})
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill fw-bold" id="ssshc-tab" data-bs-toggle="tab" data-bs-target="#ssshc-pane" type="button" role="tab" style="color: #6366f1;">
+                         SSS-HC ({{ number_format($sss_hc->count()) }})
+                    </button>
+                </li>
             </ul>
         </div>
         <div class="card-body p-0 pt-2">
@@ -87,6 +92,7 @@
                         ['id' => 'herb', 'data' => $herb32],
                         ['id' => 'kidney', 'data' => $kidney],
                         ['id' => 'ems', 'data' => $ems],
+                        ['id' => 'ssshc', 'data' => $sss_hc],
                     ];
                 @endphp
 
@@ -122,6 +128,7 @@
                                                     @if($item->herb32 === 'Y') <span class="badge rounded-pill bg-warning text-dark" title="Herb32">สมุนไพร</span> @endif
                                                     @if($item->kidney === 'Y') <span class="badge rounded-pill bg-info text-white" title="Kidney">ฟอกไต HD</span> @endif
                                                     @if($item->ems === 'Y') <span class="badge rounded-pill bg-danger" title="EMS">EMS</span> @endif
+                                                    @if($item->sss_hc === 'Y') <span class="badge rounded-pill text-white" style="background-color: #6366f1;" title="SSS_HC">SSS-HC</span> @endif
                                                 </div>
                                             </td>
                                             <td class="text-center pe-4">
@@ -135,6 +142,7 @@
                                                         data-herb32="{{ $item->herb32 }}" 
                                                         data-kidney="{{ $item->kidney }}"
                                                         data-ems="{{ $item->ems }}"                              
+                                                        data-sss_hc="{{ $item->sss_hc }}"                              
                                                         data-bs-toggle="modal"
                                                         data-bs-target="#editModal"
                                                         title="แก้ไข">
@@ -217,6 +225,12 @@
                                 <label class="form-check-label" for="ems_c">EMS</label>
                             </div>
                         </div>
+                        <div class="col-6">
+                            <div class="form-check form-switch p-2 border rounded bg-light-subtle">
+                                <input class="form-check-input ms-0 me-2" type="checkbox" name="sss_hc" value="Y" id="sss_hc_c">
+                                <label class="form-check-label" for="sss_hc_c">SSS-HC</label>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light border-0">
@@ -284,6 +298,12 @@
                                 <label class="form-check-label" for="editems">EMS</label>
                             </div>
                         </div>
+                        <div class="col-6">
+                            <div class="form-check form-switch p-2 border rounded bg-light-subtle">
+                                <input class="form-check-input ms-0 me-2" type="checkbox" name="sss_hc" id="editsss_hc" value="Y">
+                                <label class="form-check-label" for="editsss_hc">SSS-HC</label>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light border-0">
@@ -326,6 +346,7 @@
     .modern-tabs #herb-tab.active { border-color: #f59e0b; color: #f59e0b !important; }
     .modern-tabs #kidney-tab.active { border-color: #06b6d4; color: #06b6d4 !important; }
     .modern-tabs #ems-tab.active { border-color: #ef4444; color: #ef4444 !important; }
+    .modern-tabs #ssshc-tab.active { border-color: #6366f1; color: #6366f1 !important; }
 
     /* Select2 Bootstrap 5 Fixes */
     .select2-container--bootstrap-5 .select2-selection {
@@ -411,6 +432,7 @@
             $('#editherb32').prop('checked', data.herb32 === 'Y');
             $('#editkidney').prop('checked', data.kidney === 'Y');
             $('#editems').prop('checked', data.ems === 'Y');
+            $('#editsss_hc').prop('checked', data.sss_hc === 'Y');
             $('#editForm').attr('action', "{{ url('admin/lookup_icode') }}/" + data.icode);
         });
 

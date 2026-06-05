@@ -111,7 +111,7 @@ class IpdController extends Controller
             $chart_non_icd10[] = $icd10_by_doctor[$doctor] ?? 0;
         }
 
-        // Prepare chart data array
+        // Prepare chart data array 
         $chart_data = [
             'doctors' => $chart_doctors,
             'non_diagtext' => $chart_non_diagtext,

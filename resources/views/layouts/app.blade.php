@@ -676,6 +676,12 @@
                                                 </ul>
                                             </li>
                                         @endif
+                                        <li>
+                                            <a class="dropdown-item dropdown-item-modern"
+                                                href="{{ url('/import/sss_equipdev_aipn') }}">
+                                                SSS_EquipdevAIPN
+                                            </a>
+                                        </li>
                                     </ul>
                                 </li>
                             @endif

@@ -22,6 +22,7 @@ class LookupIcode extends Model
         'herb32',
         'kidney',
         'ems',
+        'sss_hc',
     ];
     
 }

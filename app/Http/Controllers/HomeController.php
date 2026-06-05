@@ -97,10 +97,10 @@ class HomeController extends Controller
         FROM (
             SELECT o.vn, pt.cid, vp.auth_code, p.hipdata_code, vp.hospmain, os.edc_approve_list_text,
                 lh.in_province,
-                MAX(CASE WHEN li.ppfs = "Y" THEN "Y" ELSE "N" END) as ppfs_flag,
-                MAX(CASE WHEN li.uc_cr = "Y" THEN "Y" ELSE "N" END) as uc_cr_flag,
-                MAX(CASE WHEN li.herb32 = "Y" THEN "Y" ELSE "N" END) as herb_flag,
-                MAX(CASE WHEN li.kidney = "Y" THEN "Y" ELSE "N" END) as kidney_flag,
+                IFNULL(li.ppfs_flag, "N") as ppfs_flag,
+                IFNULL(li.uc_cr_flag, "N") as uc_cr_flag,
+                IFNULL(li.herb_flag, "N") as herb_flag,
+                IFNULL(li.kidney_flag, "N") as kidney_flag,
                 IF(hms.vn IS NOT NULL, "Y", "N") as healthmed_flag,
                 IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""), "Y", "N") as auth_code_flag,
                 MAX(CASE WHEN vp.Claim_Code IS NOT NULL AND vp.Claim_Code <> "" THEN "Y" ELSE "N" END) as claim_code_flag,
@@ -110,12 +110,22 @@ class HomeController extends Controller
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1
             LEFT JOIN pttype p ON p.pttype = vp.pttype
             LEFT JOIN ovst_seq os ON os.vn = o.vn
-            LEFT JOIN opitemrece ori ON ori.vn = o.vn AND ori.vstdate = DATE(NOW())
-            LEFT JOIN hrims.lookup_icode li ON li.icode = ori.icode
+            LEFT JOIN (
+                SELECT ori.vn,
+                    MAX(CASE WHEN li.ppfs = "Y" THEN "Y" ELSE "N" END) as ppfs_flag,
+                    MAX(CASE WHEN li.uc_cr = "Y" THEN "Y" ELSE "N" END) as uc_cr_flag,
+                    MAX(CASE WHEN li.herb32 = "Y" THEN "Y" ELSE "N" END) as herb_flag,
+                    MAX(CASE WHEN li.kidney = "Y" THEN "Y" ELSE "N" END) as kidney_flag
+                FROM opitemrece ori
+                INNER JOIN hrims.lookup_icode li ON li.icode = ori.icode
+                WHERE ori.vstdate = DATE(NOW())
+                GROUP BY ori.vn
+            ) li ON li.vn = o.vn
             LEFT JOIN hrims.lookup_hospcode lh ON lh.hospcode = vp.hospmain
             LEFT JOIN (
                 SELECT h.vn FROM health_med_service h 
                 INNER JOIN health_med_service_operation hso ON hso.health_med_service_id = h.health_med_service_id
+                WHERE h.service_date = DATE(NOW())
                 GROUP BY h.vn
             ) hms ON hms.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
@@ -193,8 +203,9 @@ class HomeController extends Controller
             FROM ipt i
             LEFT JOIN an_stat a ON a.an = i.an
             LEFT JOIN iptdiag id ON id.an = i.an AND id.diagtype = 1
+            LEFT JOIN hrims.lookup_ward lw ON lw.ward = i.ward
             WHERE ((i.dchdate BETWEEN ? AND ?) OR i.confirm_discharge = "N")
-            AND i.ward NOT IN (SELECT ward FROM hrims.lookup_ward WHERE ward_homeward = "Y")
+            AND (lw.ward_homeward IS NULL OR lw.ward_homeward <> "Y")
         ) AS a', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date])[0];
         });
 
@@ -228,23 +239,30 @@ class HomeController extends Controller
             SUM(a.admdate) AS admdate,
             SUM(i.adjrw) AS adjrw,
             SUM(a.income - a.rcpt_money) AS income_after_rcpt,
+            SUM(a.inc12) AS drug_price,
+            SUM(a.inc03) AS lab_price,
             
             -- Normal Stats
-            COUNT(DISTINCT CASE WHEN (ia.roomno IN (SELECT roomno FROM roomno WHERE roomtype IN (1,2)) OR lw.ward_homeward <> "Y") THEN a.an END) as norm_an,
-            SUM(CASE WHEN (ia.roomno IN (SELECT roomno FROM roomno WHERE roomtype IN (1,2)) OR lw.ward_homeward <> "Y") THEN a.admdate ELSE 0 END) as norm_admdate,
-            SUM(CASE WHEN (ia.roomno IN (SELECT roomno FROM roomno WHERE roomtype IN (1,2)) OR lw.ward_homeward <> "Y") THEN i.adjrw ELSE 0 END) as norm_adjrw,
-            SUM(CASE WHEN (ia.roomno IN (SELECT roomno FROM roomno WHERE roomtype IN (1,2)) OR lw.ward_homeward <> "Y") THEN (a.income - a.rcpt_money) ELSE 0 END) as norm_income,
+            COUNT(DISTINCT CASE WHEN (r.roomtype IN (1,2) OR lw.ward_homeward <> "Y" OR lw.ward_homeward IS NULL) THEN a.an END) as norm_an,
+            SUM(CASE WHEN (r.roomtype IN (1,2) OR lw.ward_homeward <> "Y" OR lw.ward_homeward IS NULL) THEN a.admdate ELSE 0 END) as norm_admdate,
+            SUM(CASE WHEN (r.roomtype IN (1,2) OR lw.ward_homeward <> "Y" OR lw.ward_homeward IS NULL) THEN i.adjrw ELSE 0 END) as norm_adjrw,
+            SUM(CASE WHEN (r.roomtype IN (1,2) OR lw.ward_homeward <> "Y" OR lw.ward_homeward IS NULL) THEN (a.income - a.rcpt_money) ELSE 0 END) as norm_income,
+            SUM(CASE WHEN (r.roomtype IN (1,2) OR lw.ward_homeward <> "Y" OR lw.ward_homeward IS NULL) THEN a.inc12 ELSE 0 END) as norm_drug_price,
+            SUM(CASE WHEN (r.roomtype IN (1,2) OR lw.ward_homeward <> "Y" OR lw.ward_homeward IS NULL) THEN a.inc03 ELSE 0 END) as norm_lab_price,
             
             -- Homeward Stats
-            COUNT(DISTINCT CASE WHEN (ia.roomno IN (SELECT roomno FROM roomno WHERE roomtype IN (3)) OR lw.ward_homeward = "Y") THEN a.an END) as home_an,
-            SUM(CASE WHEN (ia.roomno IN (SELECT roomno FROM roomno WHERE roomtype IN (3)) OR lw.ward_homeward = "Y") THEN a.admdate ELSE 0 END) as home_admdate,
-            SUM(CASE WHEN (ia.roomno IN (SELECT roomno FROM roomno WHERE roomtype IN (3)) OR lw.ward_homeward = "Y") THEN i.adjrw ELSE 0 END) as home_adjrw,
-            SUM(CASE WHEN (ia.roomno IN (SELECT roomno FROM roomno WHERE roomtype IN (3)) OR lw.ward_homeward = "Y") THEN (a.income - a.rcpt_money) ELSE 0 END) as home_income,
+            COUNT(DISTINCT CASE WHEN (r.roomtype IN (3) OR lw.ward_homeward = "Y") THEN a.an END) as home_an,
+            SUM(CASE WHEN (r.roomtype IN (3) OR lw.ward_homeward = "Y") THEN a.admdate ELSE 0 END) as home_admdate,
+            SUM(CASE WHEN (r.roomtype IN (3) OR lw.ward_homeward = "Y") THEN i.adjrw ELSE 0 END) as home_adjrw,
+            SUM(CASE WHEN (r.roomtype IN (3) OR lw.ward_homeward = "Y") THEN (a.income - a.rcpt_money) ELSE 0 END) as home_income,
+            SUM(CASE WHEN (r.roomtype IN (3) OR lw.ward_homeward = "Y") THEN a.inc12 ELSE 0 END) as home_drug_price,
+            SUM(CASE WHEN (r.roomtype IN (3) OR lw.ward_homeward = "Y") THEN a.inc03 ELSE 0 END) as home_lab_price,
             
             DAY(LAST_DAY(a.dchdate)) as days_in_month
         FROM ipt i
         LEFT JOIN an_stat a ON a.an = i.an
         LEFT JOIN iptadm ia ON ia.an = a.an
+        LEFT JOIN roomno r ON r.roomno = ia.roomno
         LEFT JOIN hrims.lookup_ward lw ON lw.ward = a.ward
         WHERE a.dchdate BETWEEN ? AND ?
         AND a.pdx NOT IN ("Z290","Z208")
@@ -263,38 +281,60 @@ class HomeController extends Controller
                 'month' => $stat->month,
                 'an' => $stat->an,
                 'admdate' => $stat->admdate,
+                'avg_admdate' => $stat->an > 0 ? round($stat->admdate / $stat->an, 2) : 0,
                 'bed_occupancy' => $stat->an > 0 ? round(($stat->admdate * 100) / ($bed_qty * $days), 2) : 0,
                 'active_bed' => $stat->an > 0 ? round((($stat->admdate * 100) / ($bed_qty * $days) * $bed_qty) / 100, 2) : 0,
                 'cmi' => $stat->an > 0 ? round($stat->adjrw / $stat->an, 2) : 0,
                 'adjrw' => round($stat->adjrw, 2),
-                'income_rw' => $stat->adjrw > 0 ? round($stat->income_after_rcpt / $stat->adjrw, 2) : 0
+                'income_rw' => $stat->adjrw > 0 ? round($stat->income_after_rcpt / $stat->adjrw, 2) : 0,
+                'drug_price' => round($stat->drug_price, 2),
+                'lab_price' => round($stat->lab_price, 2),
+                'days_in_month' => $days
             ];
 
             $ip_normal[] = (object) [
                 'month' => $stat->month,
                 'an' => $stat->norm_an,
                 'admdate' => $stat->norm_admdate,
+                'avg_admdate' => $stat->norm_an > 0 ? round($stat->norm_admdate / $stat->norm_an, 2) : 0,
                 'bed_occupancy' => $stat->norm_an > 0 ? round(($stat->norm_admdate * 100) / ($bed_qty * $days), 2) : 0,
                 'active_bed' => $stat->norm_an > 0 ? round((($stat->norm_admdate * 100) / ($bed_qty * $days) * $bed_qty) / 100, 2) : 0,
                 'cmi' => $stat->norm_an > 0 ? round($stat->norm_adjrw / $stat->norm_an, 2) : 0,
                 'adjrw' => round($stat->norm_adjrw, 2),
-                'income_rw' => $stat->norm_adjrw > 0 ? round($stat->norm_income / $stat->norm_adjrw, 2) : 0
+                'income_rw' => $stat->norm_adjrw > 0 ? round($stat->norm_income / $stat->norm_adjrw, 2) : 0,
+                'drug_price' => round($stat->norm_drug_price, 2),
+                'lab_price' => round($stat->norm_lab_price, 2),
+                'days_in_month' => $days
             ];
 
             $ip_homeward[] = (object) [
                 'month' => $stat->month,
                 'an' => $stat->home_an,
                 'admdate' => $stat->home_admdate,
+                'avg_admdate' => $stat->home_an > 0 ? round($stat->home_admdate / $stat->home_an, 2) : 0,
                 'bed_occupancy' => $stat->home_an > 0 ? round(($stat->home_admdate * 100) / ($bed_qty * $days), 2) : 0,
                 'active_bed' => $stat->home_an > 0 ? round((($stat->home_admdate * 100) / ($bed_qty * $days) * $bed_qty) / 100, 2) : 0,
                 'cmi' => $stat->home_an > 0 ? round($stat->home_adjrw / $stat->home_an, 2) : 0,
                 'adjrw' => round($stat->home_adjrw, 2),
-                'income_rw' => $stat->home_adjrw > 0 ? round($stat->home_income / $stat->home_adjrw, 2) : 0
+                'income_rw' => $stat->home_adjrw > 0 ? round($stat->home_income / $stat->home_adjrw, 2) : 0,
+                'drug_price' => round($stat->home_drug_price, 2),
+                'lab_price' => round($stat->home_lab_price, 2),
+                'days_in_month' => $days
             ];
         }
 
         $month = array_column($ip_all, 'month');
         $bed_occupancy = array_column($ip_all, 'bed_occupancy');
+
+        $latest_vsttime = DB::connection('hosxp')
+            ->table('ovst')
+            ->where('vstdate', date('Y-m-d'))
+            ->max('vsttime') ?: date('H:i:s');
+
+        $latest_regtime = DB::connection('hosxp')
+            ->table('ipt')
+            ->where('regdate', date('Y-m-d'))
+            ->max('regtime') ?: date('H:i:s');
 
         return view('home', compact(
             'budget_year_select',
@@ -330,7 +370,9 @@ class HomeController extends Controller
             'ip_homeward',
             'month',
             'bed_occupancy',
-            'admit_now'
+            'admit_now',
+            'latest_vsttime',
+            'latest_regtime'
         ));
     }
     ###################################################################################################

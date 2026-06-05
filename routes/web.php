@@ -139,6 +139,9 @@ Route::post('import/stm_sss_kidney_save', [ImportController::class, 'stm_sss_kid
 Route::post('import/stm_sss_kidney_updateReceipt', [ImportController::class, 'stm_sss_kidney_updateReceipt']);
 Route::match(['get', 'post'], 'import/stm_sss_kidneydetail', [ImportController::class, 'stm_sss_kidneydetail'])->name('stm_sss_kidneydetail');
 
+Route::match(['get', 'post'], 'import/sss_equipdev_aipn', [ImportController::class, 'sss_equipdev_aipn'])->name('import.sss_equipdev_aipn');
+Route::post('import/sss_equipdev_aipn_save', [ImportController::class, 'sss_equipdev_aipn_save'])->name('import.sss_equipdev_aipn_save');
+
 //Check------------------------------------------------------------------------------------------------------------------------------
 Route::match(['get', 'post'], 'check/nhso_endpoint', [CheckController::class, 'nhso_endpoint']);
 Route::match(['get', 'post'], 'check/fdh_claim_status', [CheckController::class, 'fdh_claim_status']);

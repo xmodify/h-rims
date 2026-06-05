@@ -287,7 +287,66 @@ class MainSettingController extends Controller
                 }
             }
 
+            // 6. Upgrade lookup_icode table with sss_hc column
+            try {
+                if (Schema::hasTable('lookup_icode')) {
+                    Schema::table('lookup_icode', function (Blueprint $tableObj) {
+                        if (!Schema::hasColumn('lookup_icode', 'sss_hc')) {
+                            $tableObj->string('sss_hc', 1)->nullable()->after('ems');
+                        }
+                    });
+                    
+                    try {
+                        Schema::table('lookup_icode', function (Blueprint $tableObj) {
+                            $tableObj->index('sss_hc');
+                        });
+                    } catch (\Exception $e) {
+                        // Index might already exist, ignore
+                    }
+                    
+                    $migrate_result .= " and updated lookup_icode (added sss_hc).";
+                }
+            } catch (\Exception $e) {
+                Log::warning("Could not upgrade lookup_icode: " . $e->getMessage());
+            }
+
+            // 7. Create sss_equipdev_aipn table if not exists
+            try {
+                if (!Schema::hasTable('sss_equipdev_aipn')) {
+                    Schema::create('sss_equipdev_aipn', function (Blueprint $tableObj) {
+                        $tableObj->id();
+                        $tableObj->string('billgroup', 50)->nullable()->index();
+                        $tableObj->string('code', 50)->nullable()->index();
+                        $tableObj->string('unit', 50)->nullable();
+                        $tableObj->decimal('rate', 15, 2)->nullable();
+                        $tableObj->decimal('rate2', 15, 2)->nullable();
+                        $tableObj->text('desc')->nullable();
+                        $tableObj->date('daterev')->nullable();
+                        $tableObj->date('dateeff')->nullable();
+                        $tableObj->date('dateexp')->nullable();
+                        $tableObj->string('lastupd', 50)->nullable();
+                        $tableObj->string('dtcond', 100)->nullable();
+                        $tableObj->text('note')->nullable();
+                        $tableObj->timestamps();
+                    });
+                    $migrate_result .= " and created sss_equipdev_aipn table.";
+                }
+            } catch (\Exception $e) {
+                Log::warning("Could not create sss_equipdev_aipn table: " . $e->getMessage());
+            }
+
+            // 8. Drop legacy lookup_adp_sss table (replaced by sss_equipdev_aipn)
+            try {
+                if (Schema::hasTable('lookup_adp_sss')) {
+                    Schema::drop('lookup_adp_sss');
+                    $migrate_result .= " and dropped legacy lookup_adp_sss table.";
+                }
+            } catch (\Exception $e) {
+                Log::warning("Could not drop lookup_adp_sss table: " . $e->getMessage());
+            }
+
             $migrate_result .= " and updated nhso_endpoint.";
+
 
             return redirect()->route('admin.main_setting')
                 ->with('success', 'อัปเกรดโครงสร้างฐานข้อมูลเสร็จสิ้น')

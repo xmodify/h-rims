@@ -30,8 +30,14 @@
                 </form>
                 <form method="POST" action="{{ route('admin.insert_lookup_herb32') }}" class="d-inline">
                     @csrf
-                    <button type="submit" class="btn btn-outline-primary px-3 rounded-end-pill border-start-0">
+                    <button type="submit" class="btn btn-outline-primary px-3 border-start-0 border-end-0">
                          นำเข้า Herb32
+                    </button>
+                </form>
+                <form method="POST" action="{{ route('admin.insert_lookup_sss_hc') }}" class="d-inline">
+                    @csrf
+                    <button type="submit" class="btn btn-outline-primary px-3 rounded-end-pill border-start-0">
+                        <i class="bi bi-cloud-download me-1"></i> นำเข้า SSS-HC
                     </button>
                 </form>
             </div>

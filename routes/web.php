@@ -46,6 +46,7 @@ Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(
     Route::post('insert_lookup_uc_cr', [LookupIcodeController::class, 'insert_lookup_uc_cr'])->name('insert_lookup_uc_cr');
     Route::post('insert_lookup_ppfs', [LookupIcodeController::class, 'insert_lookup_ppfs'])->name('insert_lookup_ppfs');
     Route::post('insert_lookup_herb32', [LookupIcodeController::class, 'insert_lookup_herb32'])->name('insert_lookup_herb32');
+    Route::post('insert_lookup_sss_hc', [LookupIcodeController::class, 'insert_lookup_sss_hc'])->name('insert_lookup_sss_hc');
     Route::get('lookup_ward/search_wards', [LookupWardController::class, 'search_wards'])->name('lookup_ward.search_wards');
     Route::resource('lookup_ward', LookupWardController::class)->parameters(['lookup_ward' => 'ward']);
     Route::post('insert_lookup_ward', [LookupWardController::class, 'insert_lookup_ward'])->name('insert_lookup_ward');

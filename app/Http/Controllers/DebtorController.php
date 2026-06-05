@@ -3572,9 +3572,9 @@ class DebtorController extends Controller
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn) rc ON rc.vn = o.vn
             INNER JOIN (SELECT op.vn, SUM(op.sum_price) AS income,
-                        SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                        SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" OR li.sss_hc = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
                         SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
-                        GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN sd.`name` END) AS other_list,
+                        GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" OR li.kidney = "Y" OR li.sss_hc = "Y" THEN sd.`name` END) AS other_list,
                         GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
                 FROM opitemrece op 
                 LEFT JOIN hrims.lookup_icode li ON op.icode = li.icode
@@ -3629,9 +3629,9 @@ class DebtorController extends Controller
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn) rc ON rc.vn = o.vn
             INNER JOIN (SELECT op.vn, SUM(op.sum_price) AS income,
-                        SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                        SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" OR li.sss_hc = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
                         SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
-                        GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN sd.`name` END) AS other_list,
+                        GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" OR li.kidney = "Y" OR li.sss_hc = "Y" THEN sd.`name` END) AS other_list,
                         GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
                 FROM opitemrece op 
                 LEFT JOIN hrims.lookup_icode li ON op.icode = li.icode
@@ -3982,9 +3982,9 @@ class DebtorController extends Controller
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn) rc ON rc.vn = o.vn
             INNER JOIN (SELECT op.vn, SUM(op.sum_price) AS income,
-                        SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                        SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" OR li.sss_hc = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
                         SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
-                        GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN sd.`name` END) AS other_list,
+                        GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" OR li.kidney = "Y" OR li.sss_hc = "Y" THEN sd.`name` END) AS other_list,
                         GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
                 FROM opitemrece op 
                 LEFT JOIN hrims.lookup_icode li ON op.icode = li.icode
@@ -4039,9 +4039,9 @@ class DebtorController extends Controller
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn) rc ON rc.vn = o.vn
             INNER JOIN (SELECT op.vn, SUM(op.sum_price) AS income,
-                        SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
+                        SUM(CASE WHEN li.ems = "Y" OR li.kidney = "Y" OR li.sss_hc = "Y" THEN op.sum_price ELSE 0 END) AS other_price,
                         SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
-                        GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" OR li.kidney = "Y" THEN sd.`name` END) AS other_list,
+                        GROUP_CONCAT(DISTINCT CASE WHEN li.ems = "Y" OR li.kidney = "Y" OR li.sss_hc = "Y" THEN sd.`name` END) AS other_list,
                         GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN sd.`name` END) AS ppfs_list
                 FROM opitemrece op 
                 LEFT JOIN hrims.lookup_icode li ON op.icode = li.icode
@@ -4767,8 +4767,8 @@ class DebtorController extends Controller
                 SELECT 
                     op.vn, op.pttype,
                     SUM(op.sum_price) AS income,
-                    SUM(CASE WHEN li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS kidney_price,
-                    GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN sd.`name` END) AS kidney_list
+                    SUM(CASE WHEN li.kidney = "Y" OR li.sss_hc = "Y" THEN op.sum_price ELSE 0 END) AS kidney_price,
+                    GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" OR li.sss_hc = "Y" THEN sd.`name` END) AS kidney_list
                 FROM opitemrece op
                 LEFT JOIN hrims.lookup_icode li ON op.icode = li.icode
                 LEFT JOIN s_drugitems sd ON sd.icode = op.icode
@@ -4869,8 +4869,8 @@ class DebtorController extends Controller
                 SELECT 
                     op.vn, op.pttype,
                     SUM(op.sum_price) AS income,
-                    SUM(CASE WHEN li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS kidney_price,
-                    GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN sd.`name` END) AS kidney_list
+                    SUM(CASE WHEN li.kidney = "Y" OR li.sss_hc = "Y" THEN op.sum_price ELSE 0 END) AS kidney_price,
+                    GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" OR li.sss_hc = "Y" THEN sd.`name` END) AS kidney_list
                 FROM opitemrece op
                 LEFT JOIN hrims.lookup_icode li ON op.icode = li.icode
                 LEFT JOIN s_drugitems sd ON sd.icode = op.icode
@@ -10038,8 +10038,8 @@ class DebtorController extends Controller
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn) rc ON rc.an = i.an
             INNER JOIN (SELECT o.an, o.pttype, SUM(o.sum_price) AS income,
-                SUM(CASE WHEN li.kidney = "Y" THEN o.sum_price ELSE 0 END) AS other_price,
-                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN s.name END) AS other_list
+                SUM(CASE WHEN li.kidney = "Y" OR li.sss_hc = "Y" THEN o.sum_price ELSE 0 END) AS other_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" OR li.sss_hc = "Y" THEN s.name END) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
@@ -10097,8 +10097,8 @@ class DebtorController extends Controller
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn) rc ON rc.an = i.an
             INNER JOIN (SELECT o.an, o.pttype, SUM(o.sum_price) AS income,
-                SUM(CASE WHEN li.kidney = "Y" THEN o.sum_price ELSE 0 END) AS other_price,
-                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN s.name END) AS other_list
+                SUM(CASE WHEN li.kidney = "Y" OR li.sss_hc = "Y" THEN o.sum_price ELSE 0 END) AS other_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" OR li.sss_hc = "Y" THEN s.name END) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
@@ -10455,8 +10455,8 @@ class DebtorController extends Controller
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn) rc ON rc.an = i.an
             INNER JOIN (SELECT o.an, o.pttype, SUM(o.sum_price) AS income,
-                SUM(CASE WHEN li.kidney = "Y" THEN o.sum_price ELSE 0 END) AS other_price,
-                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN s.name END) AS other_list
+                SUM(CASE WHEN li.kidney = "Y" OR li.sss_hc = "Y" THEN o.sum_price ELSE 0 END) AS other_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" OR li.sss_hc = "Y" THEN s.name END) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
@@ -10515,8 +10515,8 @@ class DebtorController extends Controller
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn) rc ON rc.an = i.an
             INNER JOIN (SELECT o.an, o.pttype, SUM(o.sum_price) AS income,
-                SUM(CASE WHEN li.kidney = "Y" THEN o.sum_price ELSE 0 END) AS other_price,
-                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN s.name END) AS other_list
+                SUM(CASE WHEN li.kidney = "Y" OR li.sss_hc = "Y" THEN o.sum_price ELSE 0 END) AS other_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" OR li.sss_hc = "Y" THEN s.name END) AS other_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
@@ -11114,8 +11114,8 @@ class DebtorController extends Controller
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id = ic.ipt_coll_status_type_id
             LEFT JOIN (
                 SELECT o.an, o.pttype, SUM(o.sum_price) AS income,
-                       SUM(CASE WHEN li.kidney = "Y" THEN o.sum_price ELSE 0 END) AS kidney_price,
-                       GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN s.`name` ELSE NULL END) AS kidney_list
+                       SUM(CASE WHEN li.kidney = "Y" OR li.sss_hc = "Y" THEN o.sum_price ELSE 0 END) AS kidney_price,
+                       GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" OR li.sss_hc = "Y" THEN s.`name` ELSE NULL END) AS kidney_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
@@ -11170,8 +11170,8 @@ class DebtorController extends Controller
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id = ic.ipt_coll_status_type_id
             LEFT JOIN (
                 SELECT o.an, o.pttype, SUM(o.sum_price) AS income,
-                       SUM(CASE WHEN li.kidney = "Y" THEN o.sum_price ELSE 0 END) AS kidney_price,
-                       GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN s.`name` ELSE NULL END) AS kidney_list
+                       SUM(CASE WHEN li.kidney = "Y" OR li.sss_hc = "Y" THEN o.sum_price ELSE 0 END) AS kidney_price,
+                       GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" OR li.sss_hc = "Y" THEN s.`name` ELSE NULL END) AS kidney_list
                 FROM opitemrece o
                 INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
                 LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode

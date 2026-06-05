@@ -197,6 +197,40 @@ class LookupIcodeController extends Controller
         return redirect()->route('admin.lookup_icode.index')->with('success', 'นำเข้าข้อมูลสำเร็จ');
     }
 
+    public function insert_lookup_sss_hc(Request $request)
+    {
+        $hosxp_data = DB::connection('hosxp')->select('
+            SELECT n.icode, n.`name`, n.nhso_adp_code, "Y" AS sss_hc 
+            FROM nondrugitems n
+            INNER JOIN hrims.sss_equipdev_aipn a ON a.`code` = n.nhso_adp_code AND a.dateexp >= DATE(NOW())
+            WHERE n.istatus = "Y"');
+
+        foreach ($hosxp_data as $row) {
+            $check = LookupIcode::where('icode', $row->icode)->count();
+            if ($check > 0) {
+                DB::table('lookup_icode')
+                    ->where('icode', $row->icode)
+                    ->update([
+                        'name'          => $row->name,
+                        'nhso_adp_code' => $row->nhso_adp_code,
+                        'sss_hc'        => 'Y',
+                        'updated_at'    => now(),
+                    ]);
+            } else {
+                DB::table('lookup_icode')
+                    ->insert([
+                        'icode'         => $row->icode,
+                        'name'          => $row->name,
+                        'nhso_adp_code' => $row->nhso_adp_code,
+                        'sss_hc'        => 'Y',
+                        'created_at'    => now(),
+                        'updated_at'    => now(),
+                    ]);
+            }
+        }
+        return redirect()->route('admin.lookup_icode.index')->with('success', 'นำเข้า SSS-HC สำเร็จ');
+    }
+
     public function search_items(Request $request)
     {
         $search = $request->q;

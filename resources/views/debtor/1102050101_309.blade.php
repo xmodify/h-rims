@@ -81,7 +81,7 @@
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="kidney-tab" data-bs-toggle="pill" data-bs-target="#kidney-pane" type="button" role="tab" onclick="loadTab2()">
-                        <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้ ฟอกไต
+                        <i class="bi bi-check-circle me-1"></i> รอยืนยันลูกหนี้ ค่าใช้จ่ายสูง
                         <span class="ms-2 fw-bold text-warning" id="badge-tab2"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span></span>
                     </button>
                 </li>
@@ -264,7 +264,7 @@
                             <table id="debtor_search" class="table table-bordered table-striped my-3 d-none" width="100%">
                             <thead>
                             <tr class="table-secondary align-middle">
-                                <th class="text-left text-primary" colspan = "11">1102050101.309-ลูกหนี้ค่ารักษา ประกันสังคม-ค่าใช้จ่ายสูง/อุบัติเหตุ/ฉุกเฉิน OP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้ ฟอกไต</th>                         
+                                <th class="text-left text-primary" colspan = "11">1102050101.309-ลูกหนี้ค่ารักษา ประกันสังคม-ค่าใช้จ่ายสูง/อุบัติเหตุ/ฉุกเฉิน OP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้ ค่าใช้จ่ายสูง</th>                         
                             </tr>
                             <tr class="table-secondary align-middle text-center">
                                 <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th> 
@@ -275,9 +275,9 @@
                                 <th class="text-center">ICD10</th>
                                 <th class="text-center">ค่ารักษาทั้งหมด</th>  
                                 <th class="text-center">ชำระเอง</th>    
-                                <th class="text-center">ฟอกไต</th>                                   
+                                <th class="text-center">ค่าใช้จ่ายสูง</th>                                   
                                 <th class="text-center text-primary">ลูกหนี้</th>
-                                <th class="text-center" width = "15%">รายการฟอกไต</th> 
+                                <th class="text-center" width = "15%">รายการค่าใช้จ่ายสูง</th> 
                             </tr>
                             </thead>
                             <tbody id="table2-body">

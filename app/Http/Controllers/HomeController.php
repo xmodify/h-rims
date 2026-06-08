@@ -287,8 +287,10 @@ class HomeController extends Controller
                 'cmi' => $stat->an > 0 ? round($stat->adjrw / $stat->an, 2) : 0,
                 'adjrw' => round($stat->adjrw, 2),
                 'income_rw' => $stat->adjrw > 0 ? round($stat->income_after_rcpt / $stat->adjrw, 2) : 0,
-                'drug_price' => round($stat->drug_price, 2),
-                'lab_price' => round($stat->lab_price, 2),
+                //'drug_price' => round($stat->drug_price, 2),
+                //'lab_price' => round($stat->lab_price, 2),
+                'drug_price' => round($stat->drug_price ?? 0, 2),
+                'lab_price' => round($stat->lab_price ?? 0, 2),
                 'days_in_month' => $days
             ];
 
@@ -302,8 +304,10 @@ class HomeController extends Controller
                 'cmi' => $stat->norm_an > 0 ? round($stat->norm_adjrw / $stat->norm_an, 2) : 0,
                 'adjrw' => round($stat->norm_adjrw, 2),
                 'income_rw' => $stat->norm_adjrw > 0 ? round($stat->norm_income / $stat->norm_adjrw, 2) : 0,
-                'drug_price' => round($stat->norm_drug_price, 2),
-                'lab_price' => round($stat->norm_lab_price, 2),
+                //'drug_price' => round($stat->norm_drug_price, 2),
+                //'lab_price' => round($stat->norm_lab_price, 2),
+                'drug_price' => round($stat->norm_drug_price ?? 0, 2),
+                'lab_price' => round($stat->norm_lab_price ?? 0, 2),
                 'days_in_month' => $days
             ];
 
@@ -317,8 +321,10 @@ class HomeController extends Controller
                 'cmi' => $stat->home_an > 0 ? round($stat->home_adjrw / $stat->home_an, 2) : 0,
                 'adjrw' => round($stat->home_adjrw, 2),
                 'income_rw' => $stat->home_adjrw > 0 ? round($stat->home_income / $stat->home_adjrw, 2) : 0,
-                'drug_price' => round($stat->home_drug_price, 2),
-                'lab_price' => round($stat->home_lab_price, 2),
+                //'drug_price' => round($stat->home_drug_price, 2),
+                //'lab_price' => round($stat->home_lab_price, 2),
+                'drug_price' => round($stat->home_drug_price ?? 0, 2),
+                'lab_price' => round($stat->home_lab_price ?? 0, 2),
                 'days_in_month' => $days
             ];
         }

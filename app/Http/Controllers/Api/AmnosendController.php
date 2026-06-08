@@ -61,8 +61,8 @@ class AmnosendController extends Controller
                 COUNT(DISTINCT CASE WHEN inc.ppfs_claim = "Y" THEN a.vn END) AS visit_ppfs_claim,
                 COUNT(DISTINCT CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND inc.uccr = "Y" THEN a.vn END) AS visit_ucs_cr,
                 COUNT(DISTINCT CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND inc.uccr_claim = "Y" THEN a.vn END) AS visit_ucs_cr_claim,
-                COUNT(DISTINCT CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND inc.herb = "Y" THEN a.vn END) AS visit_ucs_herb,
-                COUNT(DISTINCT CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND inc.herb_claim = "Y" THEN a.vn END) AS visit_ucs_herb_claim,
+                COUNT(DISTINCT CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND (a.incup = "Y" OR a.inprov = "Y") AND inc.herb = "Y" THEN a.vn END) AS visit_ucs_herb,
+                COUNT(DISTINCT CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND (a.incup = "Y" OR a.inprov = "Y") AND inc.herb_claim = "Y" THEN a.vn END) AS visit_ucs_herb_claim,
                 COUNT(DISTINCT CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.healthmed = "Y" THEN a.vn END) AS visit_ucs_healthmed,
                 COUNT(DISTINCT CASE WHEN a.healthmed = "Y" THEN a.vn END) AS visit_healthmed,
                 COUNT(DISTINCT CASE WHEN a.dent = "Y" THEN a.vn END) AS visit_dent,
@@ -124,9 +124,9 @@ class AmnosendController extends Controller
                 SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") THEN COALESCE(inc.inc_uccr, 0) ELSE 0 END) AS inc_uccr,
                 SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") THEN COALESCE(inc.inc_uccr_claim, 0) ELSE 0 END) AS inc_uccr_claim,
                 SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") THEN COALESCE(inc.inc_uccr_receive, 0) ELSE 0 END) AS inc_uccr_receive,
-                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") THEN COALESCE(inc.inc_herb, 0) ELSE 0 END) AS inc_herb,
-                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") THEN COALESCE(inc.inc_herb_claim, 0) ELSE 0 END) AS inc_herb_claim,
-                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND a.paidst NOT IN ("01","03") THEN COALESCE(inc.inc_herb_receive, 0) ELSE 0 END) AS inc_herb_receive
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND (a.incup = "Y" OR a.inprov = "Y") AND a.paidst NOT IN ("01","03") THEN COALESCE(inc.inc_herb, 0) ELSE 0 END) AS inc_herb,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND (a.incup = "Y" OR a.inprov = "Y") AND a.paidst NOT IN ("01","03") THEN COALESCE(inc.inc_herb_claim, 0) ELSE 0 END) AS inc_herb_claim,
+                SUM(CASE WHEN a.hipdata_code IN ("UCS","WEL","DIS") AND (a.incup = "Y" OR a.inprov = "Y") AND a.paidst NOT IN ("01","03") THEN COALESCE(inc.inc_herb_receive, 0) ELSE 0 END) AS inc_herb_receive
             FROM (
                 SELECT ov.vstdate, ov.vn, ov.hn, v.cid, v.income, v.inc03, v.inc12, p.hipdata_code, p.paidst,
                     IF(i.icd10 IS NULL, "OP", "PP") AS diagtype,
@@ -215,7 +215,7 @@ class AmnosendController extends Controller
                     MAX(CASE WHEN li.herb32 = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL) THEN "Y" ELSE "" END) as herb_claim,
                     SUM(CASE WHEN li.herb32 = "Y" THEN o.sum_price ELSE 0 END) as inc_herb,
                     SUM(CASE WHEN li.herb32 = "Y" AND (oe.vn IS NOT NULL OR rep.vn IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL) THEN o.sum_price ELSE 0 END) as inc_herb_claim,
-                    MAX(CASE WHEN li.herb32 = "Y" THEN COALESCE(stm.receive_hc_hc, 0) ELSE 0 END) as inc_herb_receive
+                    LEAST(IF(COALESCE(stm.receive_hc_drug, 0) = 0, COALESCE(stm.receive_hc_hc, 0), stm.receive_hc_drug), SUM(CASE WHEN li.herb32 = "Y" THEN o.sum_price ELSE 0 END)) as inc_herb_receive
                 FROM opitemrece o
                 INNER JOIN hrims.lookup_icode li ON o.icode = li.icode
                 LEFT JOIN patient pt ON pt.hn = o.hn

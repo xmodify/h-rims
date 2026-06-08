@@ -327,7 +327,7 @@ class MishosController extends Controller
                     AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)
 			    AND p.hipdata_code IN ("UCS","WEL") 	
-			    AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")            
+			    AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")            
 			    AND o.vstdate BETWEEN ? AND ?
                 GROUP BY o.vn ORDER BY o.vstdate,o.vsttime ) AS a
                 GROUP BY YEAR(vstdate), MONTH(vstdate)
@@ -372,7 +372,7 @@ class MishosController extends Controller
                 AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL)
             AND p.hipdata_code IN ("UCS","WEL") 	
-            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")            
+            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")            
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 

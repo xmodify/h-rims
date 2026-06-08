@@ -19,7 +19,77 @@ class LookupIcodeController extends Controller
         $ems = $all->where('ems', 'Y');
         $sss_hc = $all->where('sss_hc', 'Y');
 
-        return view('admin.lookup_icode.index', compact('all', 'uc_cr', 'ppfs', 'herb32', 'kidney', 'ems', 'sss_hc'));
+        $ppfs_rules = require config_path('claims/ppfs_rules.php');
+        $valid_ppfs_adps = array_keys($ppfs_rules);
+
+        // ตรวจสอบข้อมูลรหัส PPFS ที่ไม่มีใน HOSxP
+        $existing_nondrug = DB::connection('hosxp')
+            ->table('nondrugitems')
+            ->whereIn('nhso_adp_code', $valid_ppfs_adps)
+            ->pluck('nhso_adp_code')
+            ->toArray();
+
+        $existing_drugs = DB::connection('hosxp')
+            ->table('drugitems')
+            ->whereIn('nhso_adp_code', $valid_ppfs_adps)
+            ->pluck('nhso_adp_code')
+            ->toArray();
+
+        $existing_adps_in_hosxp = array_unique(array_merge($existing_nondrug, $existing_drugs));
+        $missing_adp_codes = array_diff($valid_ppfs_adps, $existing_adps_in_hosxp);
+
+        $missing_ppfs_details = [];
+        foreach ($missing_adp_codes as $code) {
+            $rule = $ppfs_rules[$code];
+            if (isset($rule['amount']) && $rule['amount'] > 0) {
+                $rule['source'] = 'PPFS';
+                $missing_ppfs_details[$code] = $rule;
+            }
+        }
+
+        // ตรวจสอบข้อมูลรหัส Instrument ที่ไม่มีใน HOSxP
+        $ins_rules = require config_path('claims/ins_ucs_rules.php');
+        $valid_ins_adps = array_keys($ins_rules);
+
+        $existing_ins_nondrug = DB::connection('hosxp')
+            ->table('nondrugitems')
+            ->whereIn('nhso_adp_code', $valid_ins_adps)
+            ->pluck('nhso_adp_code')
+            ->toArray();
+
+        $existing_ins_drugs = DB::connection('hosxp')
+            ->table('drugitems')
+            ->whereIn('nhso_adp_code', $valid_ins_adps)
+            ->pluck('nhso_adp_code')
+            ->toArray();
+
+        $existing_ins_adps_in_hosxp = array_unique(array_merge($existing_ins_nondrug, $existing_ins_drugs));
+        $missing_ins_adp_codes = array_diff($valid_ins_adps, $existing_ins_adps_in_hosxp);
+
+        $missing_ins_details = [];
+        foreach ($missing_ins_adp_codes as $code) {
+            $rule = $ins_rules[$code];
+            if (isset($rule['amount']) && $rule['amount'] > 0) {
+                $rule['source'] = 'INSTRUMENT';
+                $missing_ins_details[$code] = $rule;
+            }
+        }
+
+        $total_missing_count = count($missing_ppfs_details) + count($missing_ins_details);
+
+        // แยก UC-CR เป็น Instrument และ Other
+        $uc_cr_instrument = $uc_cr->filter(function($item) use ($valid_ins_adps) {
+            return in_array($item->nhso_adp_code, $valid_ins_adps);
+        });
+        $uc_cr_other = $uc_cr->reject(function($item) use ($valid_ins_adps) {
+            return in_array($item->nhso_adp_code, $valid_ins_adps);
+        });
+
+        return view('admin.lookup_icode.index', compact(
+            'all', 'uc_cr', 'ppfs', 'herb32', 'kidney', 'ems', 'sss_hc', 
+            'valid_ppfs_adps', 'missing_ppfs_details', 'missing_ins_details', 'total_missing_count',
+            'uc_cr_instrument', 'uc_cr_other', 'valid_ins_adps', 'ins_rules'
+        ));
     }
 
     public function create()
@@ -84,18 +154,37 @@ class LookupIcodeController extends Controller
 
     public function insert_lookup_uc_cr(Request $request)
     {
-        $hosxp_data = DB::connection('hosxp')->select('
-            SELECT n.icode,n.`name`,n.nhso_adp_code,"Y" AS uc_cr 
+        $ins_rules = require config_path('claims/ins_ucs_rules.php');
+        $ins_adps = array_keys($ins_rules);
+
+        if (empty($ins_adps)) {
+            $ins_adps = ['INVALID_CODE_HOLDER'];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ins_adps), '?'));
+
+        $query = '
+            SELECT n.icode, n.`name`, n.nhso_adp_code, "Y" AS uc_cr 
             FROM nondrugitems n
-            WHERE n.icode NOT IN (SELECT icode FROM hrims.lookup_icode)
-            AND n.nhso_adp_type_id = "02" AND n.istatus = "Y"
-            OR n.nhso_adp_code IN ("TELMED","DRUGP","Cons01","Eva001","30001","80001","80002","80003",
-            "80004","80005","80006","80007","80008","80015","80024","80025","80026","80027","80028")
+            WHERE n.icode NOT IN (SELECT icode FROM hrims.lookup_icode WHERE uc_cr = "Y" AND COALESCE(nhso_adp_code, "") = COALESCE(n.nhso_adp_code, ""))
+            AND n.nhso_adp_code IS NOT NULL AND n.nhso_adp_code <> ""
+            AND (
+                (n.nhso_adp_type_id = "02" AND n.istatus = "Y")
+                OR n.nhso_adp_code IN ("TELMED","DRUGP","Cons01","Eva001","30001","80001","80002","80003",
+                "80004","80005","80006","80007","80008","80015","80024","80025","80026","80027","80028")
+                OR n.nhso_adp_code IN (' . $placeholders . ')
+            )
             UNION
-            SELECT d.icode,d.`name`,d.nhso_adp_code,"Y" AS uc_cr
+            SELECT d.icode, d.`name`, d.nhso_adp_code, "Y" AS uc_cr
             FROM drugitems d
-            WHERE d.icode NOT IN (SELECT icode FROM hrims.lookup_icode)
-            AND d.nhso_adp_code IN ("STEMI1")');
+            WHERE d.icode NOT IN (SELECT icode FROM hrims.lookup_icode WHERE uc_cr = "Y" AND COALESCE(nhso_adp_code, "") = COALESCE(d.nhso_adp_code, ""))
+            AND (
+                d.nhso_adp_code IN ("STEMI1")
+                OR d.nhso_adp_code IN (' . $placeholders . ')
+            )';
+
+        $params = array_merge($ins_adps, $ins_adps);
+        $hosxp_data = DB::connection('hosxp')->select($query, $params);
 
         foreach ($hosxp_data as $row) {
             $check = LookupIcode::where('icode', $row->icode)->count();
@@ -125,18 +214,30 @@ class LookupIcodeController extends Controller
 
     public function insert_lookup_ppfs(Request $request)
     {
-        $hosxp_data = DB::connection('hosxp')->select('
-            SELECT n.icode,n.`name`,n.nhso_adp_code,"Y" AS ppfs 
+        $rules = require config_path('claims/ppfs_rules.php');
+        $adp_codes = array_keys($rules);
+
+        if (empty($adp_codes)) {
+            return redirect()->route('admin.lookup_icode.index')->with('error', 'ไม่พบรหัส ADP ในไฟล์เงื่อนไข claims/ppfs_rules.php');
+        }
+
+        $placeholders = implode(',', array_fill(0, count($adp_codes), '?'));
+
+        $query = '
+            SELECT n.icode, n.`name`, n.nhso_adp_code, "Y" AS ppfs 
             FROM nondrugitems n
-            WHERE n.icode NOT IN (SELECT icode FROM hrims.lookup_icode)
-                AND n.istatus = "Y" AND n.nhso_adp_code IN ("12003","12004","13001","14001","15001",
-                "30008","30009","30010","30011","30012","30013","30014","30015","30016","90005",
-                "FP001","FP002","FP002_1","FP002_2","FP003_1","FP003_2","FP003_3","FP003_4")
+            WHERE n.icode NOT IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs = "Y" AND COALESCE(nhso_adp_code, "") = COALESCE(n.nhso_adp_code, ""))
+                AND n.istatus = "Y" 
+                AND n.nhso_adp_code IS NOT NULL AND n.nhso_adp_code <> ""
+                AND n.nhso_adp_code IN (' . $placeholders . ')
             UNION
-            SELECT d.icode,d.`name`,d.nhso_adp_code,"Y" AS ppfs
+            SELECT d.icode, d.`name`, d.nhso_adp_code, "Y" AS ppfs
             FROM drugitems d
-                WHERE d.icode NOT IN (SELECT icode FROM hrims.lookup_icode)
-                AND d.nhso_adp_code IN ("FP001","FP002","FP002_1","FP002_2","FP003_1","FP003_2","FP003_3","FP003_4")');
+                WHERE d.icode NOT IN (SELECT icode FROM hrims.lookup_icode WHERE ppfs = "Y" AND COALESCE(nhso_adp_code, "") = COALESCE(d.nhso_adp_code, ""))
+                AND d.nhso_adp_code IN (' . $placeholders . ')';
+
+        $params = array_merge($adp_codes, $adp_codes);
+        $hosxp_data = DB::connection('hosxp')->select($query, $params);
 
         foreach ($hosxp_data as $row) {
             $check = LookupIcode::where('icode', $row->icode)->count();
@@ -168,7 +269,7 @@ class LookupIcodeController extends Controller
         $hosxp_data = DB::connection('hosxp')->select('
             SELECT icode,CONCAT(`name`,strength) AS name,nhso_adp_code,"Y" AS herb32 
             FROM drugitems 
-            WHERE icode NOT IN (SELECT icode FROM hrims.lookup_icode)
+            WHERE icode NOT IN (SELECT icode FROM hrims.lookup_icode WHERE herb32 = "Y" AND COALESCE(nhso_adp_code, "") = COALESCE(drugitems.nhso_adp_code, ""))
             AND (ttmt_code <>"" OR ttmt_code IS NOT NULL) ');
 
         foreach ($hosxp_data as $row) {

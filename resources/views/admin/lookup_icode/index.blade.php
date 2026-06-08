@@ -47,7 +47,8 @@
         </div>
     </div>
 
-    <!-- Category Tabs -->
+
+
     <div class="dash-card border-0 shadow-sm overflow-visible">
         <div class="card-header bg-white border-bottom-0 pt-3 px-4">
             <ul class="nav nav-pills nav-fill gap-2 modern-tabs" id="icodeTabs" role="tablist">
@@ -86,6 +87,11 @@
                          SSS-HC ({{ number_format($sss_hc->count()) }})
                     </button>
                 </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill fw-bold text-danger" id="missing-tab" data-bs-toggle="tab" data-bs-target="#missing-pane" type="button" role="tab">
+                         ⚠️ ไม่พบที่ HOSxP ({{ $total_missing_count }})
+                    </button>
+                </li>
             </ul>
         </div>
         <div class="card-body p-0 pt-2">
@@ -104,71 +110,372 @@
 
                 @foreach($panes as $index => $pane)
                     <div class="tab-pane fade {{ $index === 0 ? 'show active' : '' }}" id="{{ $pane['id'] }}-pane" role="tabpanel" tabindex="0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0 datatable-icode" id="table-{{ $pane['id'] }}">
-                                <thead class="bg-light text-primary border-bottom">
-                                    <tr>
-                                        <th class="ps-4">iCode</th>
-                                        <th>ชื่อรายการ</th>
-                                        <th class="text-center">ADP Code</th>
-                                        <th class="text-center">Flags</th>
-                                        <th class="text-center pe-4">จัดการ</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($pane['data'] as $item)
+                        @if($pane['id'] === 'uc')
+                            <div class="p-3">
+                                <!-- Sub Tabs for UC-CR -->
+                                <ul class="nav nav-tabs mb-3 border-bottom" id="ucSubTabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active fw-bold px-4 py-2 border-0 border-bottom border-3 text-primary" id="uc-ins-subtab" data-bs-toggle="tab" data-bs-target="#uc-ins-subpane" type="button" role="tab" style="border-bottom-color: #3b82f6 !important; border-radius: 0;">
+                                             Instrument ({{ number_format($uc_cr_instrument->count()) }})
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link fw-bold px-4 py-2 border-0 border-bottom border-3 text-secondary" id="uc-other-subtab" data-bs-toggle="tab" data-bs-target="#uc-other-subpane" type="button" role="tab" style="border-bottom-color: #64748b !important; border-radius: 0;">
+                                             Other ({{ number_format($uc_cr_other->count()) }})
+                                        </button>
+                                    </li>
+                                </ul>
+
+                                <div class="tab-content" id="ucSubTabContent">
+                                    <!-- Instrument Sub-pane -->
+                                    <div class="tab-pane fade show active" id="uc-ins-subpane" role="tabpanel" tabindex="0">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover align-middle mb-0 datatable-icode" id="table-uc-ins" style="width: 100%;">
+                                                <thead class="bg-light text-primary border-bottom">
+                                                    <tr>
+                                                        <th class="ps-4">iCode</th>
+                                                        <th>ชื่อรายการ</th>
+                                                        <th>หมวดหมู่</th>
+                                                        <th class="text-center">ADP Code</th>
+                                                        <th class="text-center">Flags</th>
+                                                        <th class="text-center pe-4">จัดการ</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach ($uc_cr_instrument as $item)
+                                                        <tr>
+                                                            <td class="ps-4 fw-bold text-dark">{{ $item->icode }}</td>
+                                                            <td>
+                                                                <div class="text-truncate" style="max-width: 300px;" title="{{ $item->name }}">
+                                                                    {{ $item->name }}
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <span class="text-muted small">
+                                                                    {{ $ins_rules[$item->nhso_adp_code]['category'] ?? '-' }}
+                                                                </span>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <span class="badge bg-light text-dark border">{{ $item->nhso_adp_code ?? '-' }}</span>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="d-flex justify-content-center gap-1">
+                                                                    @if($item->uc_cr === 'Y') <span class="badge rounded-pill bg-primary" title="UC_CR">UC-CR</span> @endif
+                                                                    @if($item->ppfs === 'Y') 
+                                                                        @if(in_array($item->nhso_adp_code, $valid_ppfs_adps))
+                                                                            <span class="badge rounded-pill bg-success" title="PPFS">PPFS</span>
+                                                                        @else
+                                                                            <span class="d-inline-flex align-items-center">
+                                                                                <i class="bi bi-x-circle-fill text-danger me-1" title="ไม่มีรหัส ADP นี้ใน claims/ppfs_rules.php"></i>
+                                                                                <span class="badge rounded-pill bg-success" title="PPFS">PPFS</span>
+                                                                            </span>
+                                                                        @endif
+                                                                    @endif
+                                                                    @if($item->herb32 === 'Y') <span class="badge rounded-pill bg-warning text-dark" title="Herb32">สมุนไพร</span> @endif
+                                                                    @if($item->kidney === 'Y') <span class="badge rounded-pill bg-info text-white" title="Kidney">ฟอกไต HD</span> @endif
+                                                                    @if($item->ems === 'Y') <span class="badge rounded-pill bg-danger" title="EMS">EMS</span> @endif
+                                                                    @if($item->sss_hc === 'Y') <span class="badge rounded-pill text-white" style="background-color: #6366f1;" title="SSS_HC">SSS-HC</span> @endif
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center pe-4">
+                                                                <div class="btn-group shadow-sm rounded-pill overflow-hidden">
+                                                                    <button class="btn btn-white btn-sm px-3 btn-edit border-end" 
+                                                                        data-icode="{{ $item->icode }}"    
+                                                                        data-name="{{ $item->name }}"
+                                                                        data-nhso_adp_code="{{ $item->nhso_adp_code }}"
+                                                                        data-uc_cr="{{ $item->uc_cr }}"
+                                                                        data-ppfs="{{ $item->ppfs }}"
+                                                                        data-herb32="{{ $item->herb32 }}" 
+                                                                        data-kidney="{{ $item->kidney }}"
+                                                                        data-ems="{{ $item->ems }}"                              
+                                                                        data-sss_hc="{{ $item->sss_hc }}"                              
+                                                                        data-bs-toggle="modal"
+                                                                        data-bs-target="#editModal"
+                                                                        title="แก้ไข">
+                                                                        <i class="bi bi-pencil-square text-warning"></i>
+                                                                    </button>
+                                                                    <form class="d-inline delete-form" method="POST" action="{{ route('admin.lookup_icode.destroy', $item) }}">
+                                                                        @csrf @method('DELETE')
+                                                                        <button type="button" class="btn btn-white btn-sm px-3 btn-delete" title="ลบ">
+                                                                            <i class="bi bi-trash3 text-danger"></i>
+                                                                        </button>
+                                                                    </form>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- Other Sub-pane -->
+                                    <div class="tab-pane fade" id="uc-other-subpane" role="tabpanel" tabindex="0">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover align-middle mb-0 datatable-icode" id="table-uc-other" style="width: 100%;">
+                                                <thead class="bg-light text-primary border-bottom">
+                                                    <tr>
+                                                        <th class="ps-4">iCode</th>
+                                                        <th>ชื่อรายการ</th>
+                                                        <th class="text-center">ADP Code</th>
+                                                        <th class="text-center">Flags</th>
+                                                        <th class="text-center pe-4">จัดการ</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach ($uc_cr_other as $item)
+                                                        <tr>
+                                                            <td class="ps-4 fw-bold text-dark">{{ $item->icode }}</td>
+                                                            <td>
+                                                                <div class="text-truncate" style="max-width: 300px;" title="{{ $item->name }}">
+                                                                    {{ $item->name }}
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <span class="badge bg-light text-dark border">{{ $item->nhso_adp_code ?? '-' }}</span>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <div class="d-flex justify-content-center gap-1">
+                                                                    @if($item->uc_cr === 'Y') <span class="badge rounded-pill bg-primary" title="UC_CR">UC-CR</span> @endif
+                                                                    @if($item->ppfs === 'Y') 
+                                                                        @if(in_array($item->nhso_adp_code, $valid_ppfs_adps))
+                                                                            <span class="badge rounded-pill bg-success" title="PPFS">PPFS</span>
+                                                                        @else
+                                                                            <span class="d-inline-flex align-items-center">
+                                                                                <i class="bi bi-x-circle-fill text-danger me-1" title="ไม่มีรหัส ADP นี้ใน claims/ppfs_rules.php"></i>
+                                                                                <span class="badge rounded-pill bg-success" title="PPFS">PPFS</span>
+                                                                            </span>
+                                                                        @endif
+                                                                    @endif
+                                                                    @if($item->herb32 === 'Y') <span class="badge rounded-pill bg-warning text-dark" title="Herb32">สมุนไพร</span> @endif
+                                                                    @if($item->kidney === 'Y') <span class="badge rounded-pill bg-info text-white" title="Kidney">ฟอกไต HD</span> @endif
+                                                                    @if($item->ems === 'Y') <span class="badge rounded-pill bg-danger" title="EMS">EMS</span> @endif
+                                                                    @if($item->sss_hc === 'Y') <span class="badge rounded-pill text-white" style="background-color: #6366f1;" title="SSS_HC">SSS-HC</span> @endif
+                                                                </div>
+                                                            </td>
+                                                            <td class="text-center pe-4">
+                                                                <div class="btn-group shadow-sm rounded-pill overflow-hidden">
+                                                                    <button class="btn btn-white btn-sm px-3 btn-edit border-end" 
+                                                                        data-icode="{{ $item->icode }}"    
+                                                                        data-name="{{ $item->name }}"
+                                                                        data-nhso_adp_code="{{ $item->nhso_adp_code }}"
+                                                                        data-uc_cr="{{ $item->uc_cr }}"
+                                                                        data-ppfs="{{ $item->ppfs }}"
+                                                                        data-herb32="{{ $item->herb32 }}" 
+                                                                        data-kidney="{{ $item->kidney }}"
+                                                                        data-ems="{{ $item->ems }}"                              
+                                                                        data-sss_hc="{{ $item->sss_hc }}"                              
+                                                                        data-bs-toggle="modal"
+                                                                        data-bs-target="#editModal"
+                                                                        title="แก้ไข">
+                                                                        <i class="bi bi-pencil-square text-warning"></i>
+                                                                    </button>
+                                                                    <form class="d-inline delete-form" method="POST" action="{{ route('admin.lookup_icode.destroy', $item) }}">
+                                                                        @csrf @method('DELETE')
+                                                                        <button type="button" class="btn btn-white btn-sm px-3 btn-delete" title="ลบ">
+                                                                            <i class="bi bi-trash3 text-danger"></i>
+                                                                        </button>
+                                                                    </form>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @else
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0 datatable-icode" id="table-{{ $pane['id'] }}">
+                                    <thead class="bg-light text-primary border-bottom">
                                         <tr>
-                                            <td class="ps-4 fw-bold text-dark">{{ $item->icode }}</td>
-                                            <td>
-                                                <div class="text-truncate" style="max-width: 300px;" title="{{ $item->name }}">
-                                                    {{ $item->name }}
-                                                </div>
-                                            </td>
-                                            <td class="text-center">
-                                                <span class="badge bg-light text-dark border">{{ $item->nhso_adp_code ?? '-' }}</span>
-                                            </td>
-                                            <td class="text-center">
-                                                <div class="d-flex justify-content-center gap-1">
-                                                    @if($item->uc_cr === 'Y') <span class="badge rounded-pill bg-primary" title="UC_CR">UC-CR</span> @endif
-                                                    @if($item->ppfs === 'Y') <span class="badge rounded-pill bg-success" title="PPFS">PPFS</span> @endif
-                                                    @if($item->herb32 === 'Y') <span class="badge rounded-pill bg-warning text-dark" title="Herb32">สมุนไพร</span> @endif
-                                                    @if($item->kidney === 'Y') <span class="badge rounded-pill bg-info text-white" title="Kidney">ฟอกไต HD</span> @endif
-                                                    @if($item->ems === 'Y') <span class="badge rounded-pill bg-danger" title="EMS">EMS</span> @endif
-                                                    @if($item->sss_hc === 'Y') <span class="badge rounded-pill text-white" style="background-color: #6366f1;" title="SSS_HC">SSS-HC</span> @endif
-                                                </div>
-                                            </td>
-                                            <td class="text-center pe-4">
-                                                <div class="btn-group shadow-sm rounded-pill overflow-hidden">
-                                                    <button class="btn btn-white btn-sm px-3 btn-edit border-end" 
-                                                        data-icode="{{ $item->icode }}"    
-                                                        data-name="{{ $item->name }}"
-                                                        data-nhso_adp_code="{{ $item->nhso_adp_code }}"
-                                                        data-uc_cr="{{ $item->uc_cr }}"
-                                                        data-ppfs="{{ $item->ppfs }}"
-                                                        data-herb32="{{ $item->herb32 }}" 
-                                                        data-kidney="{{ $item->kidney }}"
-                                                        data-ems="{{ $item->ems }}"                              
-                                                        data-sss_hc="{{ $item->sss_hc }}"                              
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#editModal"
-                                                        title="แก้ไข">
-                                                        <i class="bi bi-pencil-square text-warning"></i>
-                                                    </button>
-                                                    <form class="d-inline delete-form" method="POST" action="{{ route('admin.lookup_icode.destroy', $item) }}">
-                                                        @csrf @method('DELETE')
-                                                        <button type="button" class="btn btn-white btn-sm px-3 btn-delete" title="ลบ">
-                                                            <i class="bi bi-trash3 text-danger"></i>
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                            </td>
+                                            <th class="ps-4">iCode</th>
+                                            <th>ชื่อรายการ</th>
+                                            <th class="text-center">ADP Code</th>
+                                            <th class="text-center">Flags</th>
+                                            <th class="text-center pe-4">จัดการ</th>
                                         </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($pane['data'] as $item)
+                                            <tr>
+                                                <td class="ps-4 fw-bold text-dark">{{ $item->icode }}</td>
+                                                <td>
+                                                    <div class="text-truncate" style="max-width: 300px;" title="{{ $item->name }}">
+                                                        {{ $item->name }}
+                                                    </div>
+                                                </td>
+                                                <td class="text-center">
+                                                    <span class="badge bg-light text-dark border">{{ $item->nhso_adp_code ?? '-' }}</span>
+                                                </td>
+                                                <td class="text-center">
+                                                    <div class="d-flex justify-content-center gap-1">
+                                                        @if($item->uc_cr === 'Y') <span class="badge rounded-pill bg-primary" title="UC_CR">UC-CR</span> @endif
+                                                        @if($item->ppfs === 'Y') 
+                                                            @if(in_array($item->nhso_adp_code, $valid_ppfs_adps))
+                                                                <span class="badge rounded-pill bg-success" title="PPFS">PPFS</span>
+                                                            @else
+                                                                <span class="d-inline-flex align-items-center">
+                                                                    <i class="bi bi-x-circle-fill text-danger me-1" title="ไม่มีรหัส ADP นี้ใน claims/ppfs_rules.php"></i>
+                                                                    <span class="badge rounded-pill bg-success" title="PPFS">PPFS</span>
+                                                                </span>
+                                                            @endif
+                                                        @endif
+                                                        @if($item->herb32 === 'Y') <span class="badge rounded-pill bg-warning text-dark" title="Herb32">สมุนไพร</span> @endif
+                                                        @if($item->kidney === 'Y') <span class="badge rounded-pill bg-info text-white" title="Kidney">ฟอกไต HD</span> @endif
+                                                        @if($item->ems === 'Y') <span class="badge rounded-pill bg-danger" title="EMS">EMS</span> @endif
+                                                        @if($item->sss_hc === 'Y') <span class="badge rounded-pill text-white" style="background-color: #6366f1;" title="SSS_HC">SSS-HC</span> @endif
+                                                    </div>
+                                                </td>
+                                                <td class="text-center pe-4">
+                                                    <div class="btn-group shadow-sm rounded-pill overflow-hidden">
+                                                        <button class="btn btn-white btn-sm px-3 btn-edit border-end" 
+                                                            data-icode="{{ $item->icode }}"    
+                                                            data-name="{{ $item->name }}"
+                                                            data-nhso_adp_code="{{ $item->nhso_adp_code }}"
+                                                            data-uc_cr="{{ $item->uc_cr }}"
+                                                            data-ppfs="{{ $item->ppfs }}"
+                                                            data-herb32="{{ $item->herb32 }}" 
+                                                            data-kidney="{{ $item->kidney }}"
+                                                            data-ems="{{ $item->ems }}"                              
+                                                            data-sss_hc="{{ $item->sss_hc }}"                              
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#editModal"
+                                                            title="แก้ไข">
+                                                            <i class="bi bi-pencil-square text-warning"></i>
+                                                        </button>
+                                                        <form class="d-inline delete-form" method="POST" action="{{ route('admin.lookup_icode.destroy', $item) }}">
+                                                            @csrf @method('DELETE')
+                                                            <button type="button" class="btn btn-white btn-sm px-3 btn-delete" title="ลบ">
+                                                                <i class="bi bi-trash3 text-danger"></i>
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
                     </div>
                 @endforeach
+
+                <div class="tab-pane fade" id="missing-pane" role="tabpanel" tabindex="0">
+                    <div class="p-4">
+                        <div class="alert alert-info border-0 rounded-3 mb-4 small p-3">
+                            <i class="bi bi-info-circle-fill me-2"></i> <strong>คำแนะนำ:</strong> รายการด้านล่างนี้มีอยู่ในคู่มือการเบิกจ่าย (PPFS หรือ อุปกรณ์เทียม Instrument) แต่อิมพอร์ตไม่ได้เนื่องจากไม่มีรายการรหัสเบิกจ่าย (ADP Code) นี้ในระบบฐานข้อมูล HOSxP (ตาราง nondrugitems หรือ drugitems) กรุณาเข้าไปเพิ่มข้อมูลในโปรแกรม HOSxP ก่อนแล้วกดนำเข้าข้อมูลใหม่อีกครั้ง
+                        </div>
+
+                        <!-- Sub Tabs for Missing items -->
+                        <ul class="nav nav-tabs mb-3 border-bottom" id="missingSubTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active fw-bold px-4 py-2 border-0 border-bottom border-3 text-success" id="missing-ppfs-subtab" data-bs-toggle="tab" data-bs-target="#missing-ppfs-subpane" type="button" role="tab" style="border-bottom-color: #10b981 !important; border-radius: 0;">
+                                     PPFS ({{ count($missing_ppfs_details) }})
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link fw-bold px-4 py-2 border-0 border-bottom border-3 text-primary" id="missing-ins-subtab" data-bs-toggle="tab" data-bs-target="#missing-ins-subpane" type="button" role="tab" style="border-bottom-color: #3b82f6 !important; border-radius: 0;">
+                                     Instrument ({{ count($missing_ins_details) }})
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content p-2" id="missingSubTabContent">
+                            <!-- PPFS Sub-pane -->
+                            <div class="tab-pane fade show active" id="missing-ppfs-subpane" role="tabpanel" tabindex="0">
+                                @if(count($missing_ppfs_details) > 0)
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle mb-0 datatable-icode" id="table-missing-ppfs" style="width: 100%;">
+                                            <thead class="bg-light text-danger border-bottom">
+                                                <tr>
+                                                    <th class="ps-4">ADP Code</th>
+                                                    <th>ชื่อกิจกรรมบริการ (ตามคู่มือ)</th>
+                                                    <th class="text-center">อัตราจ่ายชดเชย</th>
+                                                    <th class="text-center pe-4">คู่มืออ้างอิง</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach ($missing_ppfs_details as $code => $detail)
+                                                    <tr>
+                                                        <td class="ps-4 fw-bold text-danger">{{ $code }}</td>
+                                                        <td>
+                                                            <div class="fw-bold text-dark mb-1">{{ $detail['name'] }}</div>
+                                                            @if(isset($detail['sex']) || isset($detail['age']))
+                                                                <div class="small text-muted">เพศ: {{ ($detail['sex'] ?? null) === 'F' ? 'หญิง' : (($detail['sex'] ?? null) === 'M' ? 'ชาย' : 'ไม่จำกัด') }} | อายุ: {{ $detail['age']['min'] ?? '0' }} - {{ $detail['age']['max'] ?? 'ไม่จำกัด' }} ปี</div>
+                                                            @else
+                                                                <div class="small text-muted">หมวดหมู่: {{ $detail['category'] ?? 'บริการสร้างเสริมสุขภาพและป้องกันโรค' }}</div>
+                                                            @endif
+                                                        </td>
+                                                        <td class="text-center fw-bold text-success">
+                                                            {{ $detail['amount'] !== null ? number_format($detail['amount'], 2) . ' บาท' : 'เหมาจ่าย' }}
+                                                        </td>
+                                                        <td class="text-center pe-4 small text-muted">
+                                                            รหัสเบิก PP NHSO ปี 2569
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @else
+                                    <div class="text-center py-5">
+                                        <div class="mb-3">
+                                            <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                                        </div>
+                                        <h5 class="fw-bold text-dark mb-1">ไม่พบรหัสตกหล่นใน HOSxP</h5>
+                                        <p class="text-muted small mb-0">ยินดีด้วย! รหัสเบิกจ่ายตามคู่มือ PPFS ทั้งหมด ได้รับการตั้งค่ารหัส ADP Code ในฐานข้อมูล HOSxP ครบถ้วนแล้ว</p>
+                                    </div>
+                                @endif
+                            </div>
+
+                            <!-- Instrument Sub-pane -->
+                            <div class="tab-pane fade" id="missing-ins-subpane" role="tabpanel" tabindex="0">
+                                @if(count($missing_ins_details) > 0)
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle mb-0 datatable-icode" id="table-missing-ins" style="width: 100%;">
+                                            <thead class="bg-light text-danger border-bottom">
+                                                <tr>
+                                                    <th class="ps-4">ADP Code</th>
+                                                    <th>ชื่อกิจกรรมบริการ (ตามคู่มือ)</th>
+                                                    <th class="text-center">อัตราจ่ายชดเชย</th>
+                                                    <th class="text-center pe-4">คู่มืออ้างอิง</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach ($missing_ins_details as $code => $detail)
+                                                    <tr>
+                                                        <td class="ps-4 fw-bold text-danger">{{ $code }}</td>
+                                                        <td>
+                                                            <div class="fw-bold text-dark mb-1">{{ $detail['name'] }}</div>
+                                                            <div class="small text-muted">หมวดหมู่: {{ $detail['category'] ?? 'อุปกรณ์และอวัยวะเทียม' }}</div>
+                                                        </td>
+                                                        <td class="text-center fw-bold text-success">
+                                                            {{ $detail['amount'] !== null ? number_format($detail['amount'], 2) . ' บาท' : 'เหมาจ่าย' }}
+                                                        </td>
+                                                        <td class="text-center pe-4 small text-muted">
+                                                            อวัยวะและอุปกรณ์ สปสช. ปี 2566
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @else
+                                    <div class="text-center py-5">
+                                        <div class="mb-3">
+                                            <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                                        </div>
+                                        <h5 class="fw-bold text-dark mb-1">ไม่พบรหัสตกหล่นใน HOSxP</h5>
+                                        <p class="text-muted small mb-0">ยินดีด้วย! รหัสเบิกจ่ายตามคู่มืออวัยวะและอุปกรณ์เทียม (Instrument) ทั้งหมด ได้รับการตั้งค่ารหัส ADP Code ในฐานข้อมูล HOSxP ครบถ้วนแล้ว</p>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -353,6 +660,7 @@
     .modern-tabs #kidney-tab.active { border-color: #06b6d4; color: #06b6d4 !important; }
     .modern-tabs #ems-tab.active { border-color: #ef4444; color: #ef4444 !important; }
     .modern-tabs #ssshc-tab.active { border-color: #6366f1; color: #6366f1 !important; }
+    .modern-tabs #missing-tab.active { border-color: #ef4444; color: #ef4444 !important; }
 
     /* Select2 Bootstrap 5 Fixes */
     .select2-container--bootstrap-5 .select2-selection {

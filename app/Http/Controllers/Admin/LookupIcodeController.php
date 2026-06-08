@@ -168,9 +168,9 @@ class LookupIcodeController extends Controller
             FROM nondrugitems n
             WHERE n.icode NOT IN (SELECT icode FROM hrims.lookup_icode WHERE uc_cr = "Y" AND COALESCE(nhso_adp_code, "") = COALESCE(n.nhso_adp_code, ""))
             AND n.nhso_adp_code IS NOT NULL AND n.nhso_adp_code <> ""
+            AND n.istatus = "Y"
             AND (
-                (n.nhso_adp_type_id = "02" AND n.istatus = "Y")
-                OR n.nhso_adp_code IN ("TELMED","DRUGP","Cons01","Eva001","30001","80001","80002","80003",
+                n.nhso_adp_code IN ("TELMED","DRUGP","Cons01","Eva001","30001","80001","80002","80003",
                 "80004","80005","80006","80007","80008","80015","80024","80025","80026","80027","80028")
                 OR n.nhso_adp_code IN (' . $placeholders . ')
             )

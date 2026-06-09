@@ -22,62 +22,68 @@ class LookupIcodeController extends Controller
         $ppfs_rules = require config_path('claims/ppfs_rules.php');
         $valid_ppfs_adps = array_keys($ppfs_rules);
 
-        // ตรวจสอบข้อมูลรหัส PPFS ที่ไม่มีใน HOSxP
-        $existing_nondrug = DB::connection('hosxp')
+        // ดึงข้อมูล ADP จาก HOSxP สำหรับ PPFS (เฉพาะ nondrugitems ที่มีสถานะใช้งาน)
+        $hosxp_ppfs_all = DB::connection('hosxp')
             ->table('nondrugitems')
             ->whereIn('nhso_adp_code', $valid_ppfs_adps)
-            ->pluck('nhso_adp_code')
-            ->toArray();
+            ->where('istatus', 'Y')
+            ->select('nhso_adp_code', 'icode', 'price')
+            ->get()
+            ->groupBy('nhso_adp_code');
 
-        $existing_drugs = DB::connection('hosxp')
-            ->table('drugitems')
-            ->whereIn('nhso_adp_code', $valid_ppfs_adps)
-            ->pluck('nhso_adp_code')
-            ->toArray();
-
-        $existing_adps_in_hosxp = array_unique(array_merge($existing_nondrug, $existing_drugs));
-        $missing_adp_codes = array_diff($valid_ppfs_adps, $existing_adps_in_hosxp);
-
-        $missing_ppfs_details = [];
-        foreach ($missing_adp_codes as $code) {
+        $ppfs_details = [];
+        foreach ($valid_ppfs_adps as $code) {
             $rule = $ppfs_rules[$code];
-            if (isset($rule['amount']) && $rule['amount'] > 0) {
-                $rule['source'] = 'PPFS';
-                $missing_ppfs_details[$code] = $rule;
+            $hosxp_items = $hosxp_ppfs_all->get($code);
+            $found_codes = [];
+            $found_prices = [];
+            if ($hosxp_items) {
+                foreach ($hosxp_items as $h_item) {
+                    $found_codes[] = $h_item->icode;
+                    $found_prices[] = number_format($h_item->price, 2);
+                }
             }
+            $rule['source'] = 'PPFS';
+            $rule['hosxp_icode'] = !empty($found_codes) ? implode(', ', $found_codes) : 'ไม่พบ';
+            $rule['hosxp_price'] = !empty($found_prices) ? implode(', ', $found_prices) : '-';
+            $ppfs_details[$code] = $rule;
         }
 
-        // ตรวจสอบข้อมูลรหัส Instrument ที่ไม่มีใน HOSxP
-        $ins_rules = require config_path('claims/ins_ucs_rules.php');
-        $valid_ins_adps = array_keys($ins_rules);
+        // ตรวจสอบข้อมูลรหัส Instrument ทั้งหมดที่มีในคู่มือ (รวมราคา UCS = 0 ด้วย)
+        $ins_rules = require config_path('claims/ins_rules.php');
+        $all_ins_adps = array_keys($ins_rules);
+        $valid_ins_adps = array_keys(array_filter($ins_rules, fn($r) => ($r['prices']['UCS'] ?? 0) > 0)); // ใช้กรองหน้า UC-CR
 
-        $existing_ins_nondrug = DB::connection('hosxp')
+        // ดึงข้อมูล ADP จาก HOSxP สำหรับ Instrument ทั้งหมด (เฉพาะ nondrugitems ที่มีสถานะใช้งาน)
+        $hosxp_ins_all = DB::connection('hosxp')
             ->table('nondrugitems')
-            ->whereIn('nhso_adp_code', $valid_ins_adps)
-            ->pluck('nhso_adp_code')
-            ->toArray();
+            ->whereIn('nhso_adp_code', $all_ins_adps)
+            ->where('istatus', 'Y')
+            ->select('nhso_adp_code', 'icode', 'price')
+            ->get()
+            ->groupBy('nhso_adp_code');
 
-        $existing_ins_drugs = DB::connection('hosxp')
-            ->table('drugitems')
-            ->whereIn('nhso_adp_code', $valid_ins_adps)
-            ->pluck('nhso_adp_code')
-            ->toArray();
-
-        $existing_ins_adps_in_hosxp = array_unique(array_merge($existing_ins_nondrug, $existing_ins_drugs));
-        $missing_ins_adp_codes = array_diff($valid_ins_adps, $existing_ins_adps_in_hosxp);
-
-        $missing_ins_details = [];
-        foreach ($missing_ins_adp_codes as $code) {
+        $ins_details = [];
+        foreach ($all_ins_adps as $code) {
             $rule = $ins_rules[$code];
-            if (isset($rule['amount']) && $rule['amount'] > 0) {
-                $rule['source'] = 'INSTRUMENT';
-                $missing_ins_details[$code] = $rule;
+            $hosxp_items = $hosxp_ins_all->get($code);
+            $found_codes = [];
+            $found_prices = [];
+            if ($hosxp_items) {
+                foreach ($hosxp_items as $h_item) {
+                    $found_codes[] = $h_item->icode;
+                    $found_prices[] = number_format($h_item->price, 2);
+                }
             }
+            $rule['source'] = 'INSTRUMENT';
+            $rule['hosxp_icode'] = !empty($found_codes) ? implode(', ', $found_codes) : 'ไม่พบ';
+            $rule['hosxp_price'] = !empty($found_prices) ? implode(', ', $found_prices) : '-';
+            $ins_details[$code] = $rule;
         }
 
-        $total_missing_count = count($missing_ppfs_details) + count($missing_ins_details);
+        $total_rules_count = count($ppfs_details) + count($ins_details);
 
-        // แยก UC-CR เป็น Instrument และ Other
+        // แยก UC-CR เป็น Instrument และ Other (เฉพาะที่ UCS > 0)
         $uc_cr_instrument = $uc_cr->filter(function($item) use ($valid_ins_adps) {
             return in_array($item->nhso_adp_code, $valid_ins_adps);
         });
@@ -87,7 +93,7 @@ class LookupIcodeController extends Controller
 
         return view('admin.lookup_icode.index', compact(
             'all', 'uc_cr', 'ppfs', 'herb32', 'kidney', 'ems', 'sss_hc', 
-            'valid_ppfs_adps', 'missing_ppfs_details', 'missing_ins_details', 'total_missing_count',
+            'valid_ppfs_adps', 'ppfs_details', 'ins_details', 'total_rules_count',
             'uc_cr_instrument', 'uc_cr_other', 'valid_ins_adps', 'ins_rules'
         ));
     }
@@ -154,7 +160,7 @@ class LookupIcodeController extends Controller
 
     public function insert_lookup_uc_cr(Request $request)
     {
-        $ins_rules = require config_path('claims/ins_ucs_rules.php');
+        $ins_rules = require config_path('claims/ins_rules.php');
         $ins_adps = array_keys($ins_rules);
 
         if (empty($ins_adps)) {

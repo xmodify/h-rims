@@ -102,12 +102,14 @@ class ClaimOpController extends Controller
 
         $search = DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
-            IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
+            IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint,
+            ep.claim_status, pt.cid,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,claim_items.claim_list,
             v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(claim_items.claim_price, 0) AS claim_price,GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
-            fdh.status_message_th AS fdh_status,ec.status AS ec_status
+            fdh.status_message_th AS fdh_status,ec.status AS ec_status,
+            pt.sex, v.age_y
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -140,7 +142,7 @@ class ClaimOpController extends Controller
             LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode 
                 IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
@@ -161,12 +163,16 @@ class ClaimOpController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
+            SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint,
+            ep.claim_status, pt.cid,
+            o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
             o.vn AS seq,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             claim_items.claim_list,
             COALESCE(claim_items.uc_cr, 0) AS uc_cr,COALESCE(claim_items.ppfs, 0) AS ppfs,COALESCE(claim_items.herb, 0) AS herb,
             GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
-            stm.receive_total,stm.repno,fdh.status_message_th AS fdh_status,ec.status AS ec_status
+            stm.receive_total,stm.repno,fdh.status_message_th AS fdh_status,ec.status AS ec_status,
+            pt.sex, v.age_y
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -200,7 +206,7 @@ class ClaimOpController extends Controller
             LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode 
                 IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
@@ -217,7 +223,120 @@ class ClaimOpController extends Controller
             AND (oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL )
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
+        // ── Batch load claim items for all VNs ──────────────────────────────
+        $allVns = array_merge(array_column($search, 'seq'), array_column($claim, 'seq'));
+        $itemsByVn = [];
+        if (!empty($allVns)) {
+            $rawItems = DB::connection('hosxp')
+                ->select('
+                    SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
+                           li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
+                           IFNULL(n.name, d.name) AS name
+                    FROM opitemrece op
+                    INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                    LEFT JOIN nondrugitems n ON n.icode = op.icode
+                    LEFT JOIN drugitems d ON d.icode = op.icode
+                    WHERE op.vn IN (' . implode(',', array_fill(0, count($allVns), '?')) . ')
+                    AND (li.uc_cr = "Y" OR li.ppfs = "Y" OR li.herb32 = "Y")',
+                $allVns);
+            foreach ($rawItems as $item) {
+                $itemsByVn[$item->vn][] = $item;
+            }
+        }
+
+        // ── Run ClaimValidator on each row ──────────────────────────────────
+        $validator = new \App\Services\ClaimValidator();
+        foreach ($search as $row) {
+            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
+            $row->is_valid           = $result['is_valid'];
+            $row->endpoint_valid     = $result['endpoint_valid'];
+            $row->validation_errors  = $result['errors'];
+        }
+        foreach ($claim as $row) {
+            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
+            $row->is_valid           = $result['is_valid'];
+            $row->endpoint_valid     = $result['endpoint_valid'];
+            $row->validation_errors  = $result['errors'];
+        }
+
         return view('claim_op.ucs_incup', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
+    }
+    //----------------------------------------------------------------------------------------------------------------------------------------
+    // API: ดึงรายละเอียดการรับบริการสำหรับ Modal (Details + Validation)
+    public function get_ucs_incup_visit_details(Request $request)
+    {
+        $vn = $request->input('vn');
+        if (empty($vn)) {
+            return response()->json(['error' => 'กรุณาระบุ VN'], 400);
+        }
+
+        // ดึงข้อมูลหลักของ Visit
+        $visit = DB::connection('hosxp')->selectOne('
+            SELECT o.vn, o.vstdate, o.vsttime, o.oqueue,
+                   pt.hn, pt.sex, v.age_y, pt.cid,
+                   CONCAT(pt.pname,pt.fname," ",pt.lname) AS ptname,
+                   p.name AS pttype, vp.hospmain, os.cc, v.pdx,
+                   v.income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
+                   IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
+                   IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint,
+                   ep.claim_status,
+                   fdh.status_message_th AS fdh_status,
+                   vp.confirm_and_locked
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN opdscreen os ON os.vn = o.vn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno=r.rcpno WHERE a.rcpno IS NULL GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
+            WHERE o.vn = ?', [$vn]);
+
+        if (!$visit) {
+            return response()->json(['error' => 'ไม่พบข้อมูลการรับบริการ'], 404);
+        }
+
+        // รหัสโรครอง
+        $secDiags = DB::connection('hosxp')
+            ->table('ovstdiag')
+            ->where('vn', $vn)
+            ->where('diagtype', '2')
+            ->pluck('icd10')
+            ->toArray();
+        $visit->icd9 = implode(',', $secDiags);
+
+        // รหัสหัตถการ (ICD-9/Procedure)
+        $procedures = DB::connection('hosxp')
+            ->table('ovstdiag')
+            ->where('vn', $vn)
+            ->where('diagtype', '3')
+            ->pluck('icd10')
+            ->toArray();
+
+        // รายการเวชภัณฑ์/ค่าใช้จ่ายที่เรียกเก็บ
+        $items = DB::connection('hosxp')->select('
+            SELECT op.icode, IFNULL(n.name, d.name) AS name,
+                   op.qty, op.unitprice, op.sum_price,
+                   li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code
+            FROM opitemrece op
+            INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+            LEFT JOIN nondrugitems n ON n.icode = op.icode
+            LEFT JOIN drugitems d ON d.icode = op.icode
+            WHERE op.vn = ?
+            AND (li.uc_cr = "Y" OR li.ppfs = "Y" OR li.herb32 = "Y")', [$vn]);
+
+        // Validate
+        $validator = new \App\Services\ClaimValidator();
+        $validation = $validator->validate($visit, $items);
+
+        return response()->json([
+            'visit'      => $visit,
+            'sec_diags'  => $secDiags,
+            'procedures' => $procedures,
+            'items'      => $items,
+            'validation' => $validation,
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_inprovince(Request $request)

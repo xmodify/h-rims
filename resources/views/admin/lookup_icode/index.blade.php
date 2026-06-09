@@ -89,7 +89,7 @@
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link rounded-pill fw-bold text-danger" id="missing-tab" data-bs-toggle="tab" data-bs-target="#missing-pane" type="button" role="tab">
-                         ⚠️ ไม่พบที่ HOSxP ({{ $total_missing_count }})
+                         📋 ตรวจสอบรหัสคู่มือ ({{ number_format($total_rules_count) }})
                     </button>
                 </li>
             </ul>
@@ -137,12 +137,17 @@
                                                         <th>ชื่อรายการ</th>
                                                         <th>หมวดหมู่</th>
                                                         <th class="text-center">ADP Code</th>
+                                                        <th class="text-end">ราคา UCS</th>
                                                         <th class="text-center">Flags</th>
                                                         <th class="text-center pe-4">จัดการ</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     @foreach ($uc_cr_instrument as $item)
+                                                        @php
+                                                            $insRule = $ins_rules[$item->nhso_adp_code] ?? null;
+                                                            $ucsPrice = $insRule['prices']['UCS'] ?? 0;
+                                                        @endphp
                                                         <tr>
                                                             <td class="ps-4 fw-bold text-dark">{{ $item->icode }}</td>
                                                             <td>
@@ -152,11 +157,19 @@
                                                             </td>
                                                             <td>
                                                                 <span class="text-muted small">
-                                                                    {{ $ins_rules[$item->nhso_adp_code]['category'] ?? '-' }}
+                                                                    {{ $insRule['category'] ?? '-' }}
                                                                 </span>
                                                             </td>
                                                             <td class="text-center">
                                                                 <span class="badge bg-light text-dark border">{{ $item->nhso_adp_code ?? '-' }}</span>
+                                                            </td>
+                                                            <td class="text-end">
+                                                                @if($ucsPrice > 0)
+                                                                    <span class="fw-bold text-success">{{ number_format($ucsPrice, 2) }}</span>
+                                                                    <span class="text-muted small"> บาท</span>
+                                                                @else
+                                                                    <span class="text-muted small">-</span>
+                                                                @endif
                                                             </td>
                                                             <td class="text-center">
                                                                 <div class="d-flex justify-content-center gap-1">
@@ -217,6 +230,7 @@
                                                     <tr>
                                                         <th class="ps-4">iCode</th>
                                                         <th>ชื่อรายการ</th>
+                                                        <th>หมวดหมู่</th>
                                                         <th class="text-center">ADP Code</th>
                                                         <th class="text-center">Flags</th>
                                                         <th class="text-center pe-4">จัดการ</th>
@@ -224,12 +238,21 @@
                                                 </thead>
                                                 <tbody>
                                                     @foreach ($uc_cr_other as $item)
+                                                        @php
+                                                            $insRuleOther = $ins_rules[$item->nhso_adp_code] ?? null;
+                                                            $ucsPriceOther = $insRuleOther['prices']['UCS'] ?? 0;
+                                                        @endphp
                                                         <tr>
                                                             <td class="ps-4 fw-bold text-dark">{{ $item->icode }}</td>
                                                             <td>
-                                                                <div class="text-truncate" style="max-width: 300px;" title="{{ $item->name }}">
+                                                                <div class="text-truncate" style="max-width: 280px;" title="{{ $item->name }}">
                                                                     {{ $item->name }}
                                                                 </div>
+                                                            </td>
+                                                            <td>
+                                                                <span class="text-muted small">
+                                                                    {{ $insRuleOther['category'] ?? '-' }}
+                                                                </span>
                                                             </td>
                                                             <td class="text-center">
                                                                 <span class="badge bg-light text-dark border">{{ $item->nhso_adp_code ?? '-' }}</span>
@@ -366,19 +389,19 @@
                 <div class="tab-pane fade" id="missing-pane" role="tabpanel" tabindex="0">
                     <div class="p-4">
                         <div class="alert alert-info border-0 rounded-3 mb-4 small p-3">
-                            <i class="bi bi-info-circle-fill me-2"></i> <strong>คำแนะนำ:</strong> รายการด้านล่างนี้มีอยู่ในคู่มือการเบิกจ่าย (PPFS หรือ อุปกรณ์เทียม Instrument) แต่อิมพอร์ตไม่ได้เนื่องจากไม่มีรายการรหัสเบิกจ่าย (ADP Code) นี้ในระบบฐานข้อมูล HOSxP (ตาราง nondrugitems หรือ drugitems) กรุณาเข้าไปเพิ่มข้อมูลในโปรแกรม HOSxP ก่อนแล้วกดนำเข้าข้อมูลใหม่อีกครั้ง
+                            <i class="bi bi-info-circle-fill me-2"></i> <strong>คำแนะนำ:</strong> ตารางด้านล่างนี้แสดงรายการทั้งหมดที่มีอยู่ในคู่มือการเบิกจ่าย (PPFS หรือ อุปกรณ์เทียม Instrument) เปรียบเทียบกับรายการใน HOSxP ว่ามีรหัสเบิกจ่าย (ADP Code) จับคู่อยู่หรือไม่ และมีราคาตั้งใน HOSxP เท่าใด
                         </div>
 
                         <!-- Sub Tabs for Missing items -->
                         <ul class="nav nav-tabs mb-3 border-bottom" id="missingSubTabs" role="tablist">
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link active fw-bold px-4 py-2 border-0 border-bottom border-3 text-success" id="missing-ppfs-subtab" data-bs-toggle="tab" data-bs-target="#missing-ppfs-subpane" type="button" role="tab" style="border-bottom-color: #10b981 !important; border-radius: 0;">
-                                     PPFS ({{ count($missing_ppfs_details) }})
+                                     PPFS ({{ count($ppfs_details) }})
                                 </button>
                             </li>
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link fw-bold px-4 py-2 border-0 border-bottom border-3 text-primary" id="missing-ins-subtab" data-bs-toggle="tab" data-bs-target="#missing-ins-subpane" type="button" role="tab" style="border-bottom-color: #3b82f6 !important; border-radius: 0;">
-                                     Instrument ({{ count($missing_ins_details) }})
+                                     Instrument ({{ count($ins_details) }})
                                 </button>
                             </li>
                         </ul>
@@ -386,92 +409,104 @@
                         <div class="tab-content p-2" id="missingSubTabContent">
                             <!-- PPFS Sub-pane -->
                             <div class="tab-pane fade show active" id="missing-ppfs-subpane" role="tabpanel" tabindex="0">
-                                @if(count($missing_ppfs_details) > 0)
-                                    <div class="table-responsive">
-                                        <table class="table table-hover align-middle mb-0 datatable-icode" id="table-missing-ppfs" style="width: 100%;">
-                                            <thead class="bg-light text-danger border-bottom">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0 datatable-icode" id="table-missing-ppfs" style="width: 100%;">
+                                        <thead class="bg-light text-success border-bottom">
+                                            <tr>
+                                                <th class="ps-4">ADP Code</th>
+                                                <th>ชื่อกิจกรรมบริการ (ตามคู่มือ)</th>
+                                                <th class="text-center">อัตราจ่ายชดเชย</th>
+                                                <th class="text-center">พบใน HOSxP (icode)</th>
+                                                <th class="text-end pe-4">ราคาใน HOSxP</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($ppfs_details as $code => $detail)
                                                 <tr>
-                                                    <th class="ps-4">ADP Code</th>
-                                                    <th>ชื่อกิจกรรมบริการ (ตามคู่มือ)</th>
-                                                    <th class="text-center">อัตราจ่ายชดเชย</th>
-                                                    <th class="text-center pe-4">คู่มืออ้างอิง</th>
+                                                    <td class="ps-4 fw-bold text-success">{{ $code }}</td>
+                                                    <td>
+                                                        <div class="fw-bold text-dark mb-1">{{ $detail['name'] }}</div>
+                                                        @if(isset($detail['sex']) || isset($detail['age']))
+                                                            <div class="small text-muted">เพศ: {{ ($detail['sex'] ?? null) === 'F' ? 'หญิง' : (($detail['sex'] ?? null) === 'M' ? 'ชาย' : 'ไม่จำกัด') }} | อายุ: {{ $detail['age']['min'] ?? '0' }} - {{ $detail['age']['max'] ?? 'ไม่จำกัด' }} ปี</div>
+                                                        @else
+                                                            <div class="small text-muted">หมวดหมู่: {{ $detail['category'] ?? 'บริการสร้างเสริมสุขภาพและป้องกันโรค' }}</div>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-center fw-bold text-success">
+                                                        {{ isset($detail['amount']) ? number_format($detail['amount'], 2) . ' บาท' : 'เหมาจ่าย' }}
+                                                    </td>
+                                                    <td class="text-center">
+                                                        @if($detail['hosxp_icode'] !== 'ไม่พบ')
+                                                            <span class="badge bg-success-subtle text-success border border-success">{{ $detail['hosxp_icode'] }}</span>
+                                                        @else
+                                                            <span class="badge bg-danger-subtle text-danger border border-danger">ไม่พบ</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-end pe-4 fw-bold text-primary">
+                                                        {{ $detail['hosxp_price'] }}
+                                                    </td>
                                                 </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach ($missing_ppfs_details as $code => $detail)
-                                                    <tr>
-                                                        <td class="ps-4 fw-bold text-danger">{{ $code }}</td>
-                                                        <td>
-                                                            <div class="fw-bold text-dark mb-1">{{ $detail['name'] }}</div>
-                                                            @if(isset($detail['sex']) || isset($detail['age']))
-                                                                <div class="small text-muted">เพศ: {{ ($detail['sex'] ?? null) === 'F' ? 'หญิง' : (($detail['sex'] ?? null) === 'M' ? 'ชาย' : 'ไม่จำกัด') }} | อายุ: {{ $detail['age']['min'] ?? '0' }} - {{ $detail['age']['max'] ?? 'ไม่จำกัด' }} ปี</div>
-                                                            @else
-                                                                <div class="small text-muted">หมวดหมู่: {{ $detail['category'] ?? 'บริการสร้างเสริมสุขภาพและป้องกันโรค' }}</div>
-                                                            @endif
-                                                        </td>
-                                                        <td class="text-center fw-bold text-success">
-                                                            {{ $detail['amount'] !== null ? number_format($detail['amount'], 2) . ' บาท' : 'เหมาจ่าย' }}
-                                                        </td>
-                                                        <td class="text-center pe-4 small text-muted">
-                                                            รหัสเบิก PP NHSO ปี 2569
-                                                        </td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                @else
-                                    <div class="text-center py-5">
-                                        <div class="mb-3">
-                                            <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
-                                        </div>
-                                        <h5 class="fw-bold text-dark mb-1">ไม่พบรหัสตกหล่นใน HOSxP</h5>
-                                        <p class="text-muted small mb-0">ยินดีด้วย! รหัสเบิกจ่ายตามคู่มือ PPFS ทั้งหมด ได้รับการตั้งค่ารหัส ADP Code ในฐานข้อมูล HOSxP ครบถ้วนแล้ว</p>
-                                    </div>
-                                @endif
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
 
                             <!-- Instrument Sub-pane -->
                             <div class="tab-pane fade" id="missing-ins-subpane" role="tabpanel" tabindex="0">
-                                @if(count($missing_ins_details) > 0)
-                                    <div class="table-responsive">
-                                        <table class="table table-hover align-middle mb-0 datatable-icode" id="table-missing-ins" style="width: 100%;">
-                                            <thead class="bg-light text-danger border-bottom">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0 datatable-icode" id="table-missing-ins" style="width: 100%;">
+                                        <thead class="bg-light text-primary border-bottom">
+                                            <tr>
+                                                <th class="ps-4">ADP Code</th>
+                                                <th>ชื่อกิจกรรมบริการ (ตามคู่มือ)</th>
+                                                <th class="text-end">UCS</th>
+                                                <th class="text-end">OFC</th>
+                                                <th class="text-end">SSS</th>
+                                                <th class="text-end">LGO</th>
+                                                <th class="text-end">FS</th>
+                                                <th class="text-end">UCEP</th>
+                                                <th class="text-center">พบใน HOSxP (icode)</th>
+                                                <th class="text-end pe-4">ราคาใน HOSxP</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($ins_details as $code => $detail)
+                                                @php
+                                                    $ucsP = $detail['prices']['UCS'] ?? 0;
+                                                    $ofcP = $detail['prices']['OFC'] ?? 0;
+                                                    $sssP = $detail['prices']['SSS'] ?? 0;
+                                                    $lgoP = $detail['prices']['LGO'] ?? 0;
+                                                    $fsP = $detail['prices']['FS'] ?? 0;
+                                                    $ucepP = $detail['prices']['UCEP'] ?? 0;
+                                                @endphp
                                                 <tr>
-                                                    <th class="ps-4">ADP Code</th>
-                                                    <th>ชื่อกิจกรรมบริการ (ตามคู่มือ)</th>
-                                                    <th class="text-center">อัตราจ่ายชดเชย</th>
-                                                    <th class="text-center pe-4">คู่มืออ้างอิง</th>
+                                                    <td class="ps-4 fw-bold text-primary">{{ $code }}</td>
+                                                    <td>
+                                                        <div class="fw-bold text-dark mb-1">{{ $detail['name'] }}</div>
+                                                        <div class="small text-muted">หมวดหมู่: {{ $detail['category'] ?? 'อุปกรณ์และอวัยวะเทียม' }}</div>
+                                                    </td>
+                                                    <td class="text-end fw-bold text-success">{{ $ucsP > 0 ? number_format($ucsP, 2) : '-' }}</td>
+                                                    <td class="text-end text-dark">{{ $ofcP > 0 ? number_format($ofcP, 2) : '-' }}</td>
+                                                    <td class="text-end text-dark">{{ $sssP > 0 ? number_format($sssP, 2) : '-' }}</td>
+                                                    <td class="text-end text-dark">{{ $lgoP > 0 ? number_format($lgoP, 2) : '-' }}</td>
+                                                    <td class="text-end text-dark">{{ $fsP > 0 ? number_format($fsP, 2) : '-' }}</td>
+                                                    <td class="text-end text-dark">{{ $ucepP > 0 ? number_format($ucepP, 2) : '-' }}</td>
+                                                    <td class="text-center">
+                                                        @if($detail['hosxp_icode'] !== 'ไม่พบ')
+                                                            <span class="badge bg-success-subtle text-success border border-success">{{ $detail['hosxp_icode'] }}</span>
+                                                        @else
+                                                            <span class="badge bg-danger-subtle text-danger border border-danger">ไม่พบ</span>
+                                                        @endif
+                                                    </td>
+                                                    <td class="text-end pe-4 fw-bold text-primary">
+                                                        {{ $detail['hosxp_price'] }}
+                                                    </td>
                                                 </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach ($missing_ins_details as $code => $detail)
-                                                    <tr>
-                                                        <td class="ps-4 fw-bold text-danger">{{ $code }}</td>
-                                                        <td>
-                                                            <div class="fw-bold text-dark mb-1">{{ $detail['name'] }}</div>
-                                                            <div class="small text-muted">หมวดหมู่: {{ $detail['category'] ?? 'อุปกรณ์และอวัยวะเทียม' }}</div>
-                                                        </td>
-                                                        <td class="text-center fw-bold text-success">
-                                                            {{ $detail['amount'] !== null ? number_format($detail['amount'], 2) . ' บาท' : 'เหมาจ่าย' }}
-                                                        </td>
-                                                        <td class="text-center pe-4 small text-muted">
-                                                            อวัยวะและอุปกรณ์ สปสช. ปี 2566
-                                                        </td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                @else
-                                    <div class="text-center py-5">
-                                        <div class="mb-3">
-                                            <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
-                                        </div>
-                                        <h5 class="fw-bold text-dark mb-1">ไม่พบรหัสตกหล่นใน HOSxP</h5>
-                                        <p class="text-muted small mb-0">ยินดีด้วย! รหัสเบิกจ่ายตามคู่มืออวัยวะและอุปกรณ์เทียม (Instrument) ทั้งหมด ได้รับการตั้งค่ารหัส ADP Code ในฐานข้อมูล HOSxP ครบถ้วนแล้ว</p>
-                                    </div>
-                                @endif
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>

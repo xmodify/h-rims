@@ -176,6 +176,7 @@ Route::match(['get', 'post'], 'ipd/dchsummary_audit', [IpdController::class, 'dc
 Route::match(['get', 'post'], 'claim_op/ucs_incup', [ClaimOpController::class, 'ucs_incup']);
 Route::get('claim_op/ucs_incup/visit_details', [ClaimOpController::class, 'get_ucs_incup_visit_details']);
 Route::match(['get', 'post'], 'claim_op/ucs_inprovince', [ClaimOpController::class, 'ucs_inprovince']);
+Route::get('claim_op/ucs_inprovince/visit_details', [ClaimOpController::class, 'get_ucs_incup_visit_details']);
 Route::match(['get', 'post'], 'claim_op/ucs_inprovince_va', [ClaimOpController::class, 'ucs_inprovince_va']);
 Route::match(['get', 'post'], 'claim_op/ucs_outprovince', [ClaimOpController::class, 'ucs_outprovince']);
 Route::match(['get', 'post'], 'claim_op/ucs_kidney', [ClaimOpController::class, 'ucs_kidney']);

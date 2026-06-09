@@ -419,12 +419,14 @@ class ClaimOpController extends Controller
 
         $search = DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
-            IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
+            IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint,
+            ep.claim_status, pt.cid,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,claim_items.claim_list,
             v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(claim_items.claim_price, 0) AS claim_price,GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
-            fdh.status_message_th AS fdh_status,ec.status AS ec_status
+            fdh.status_message_th AS fdh_status,ec.status AS ec_status,
+            pt.sex, v.age_y
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -457,7 +459,7 @@ class ClaimOpController extends Controller
             LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode 
                 IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
@@ -483,7 +485,10 @@ class ClaimOpController extends Controller
             claim_items.claim_list,
             COALESCE(claim_items.uc_cr, 0) AS uc_cr,COALESCE(claim_items.ppfs, 0) AS ppfs,COALESCE(claim_items.herb, 0) AS herb,
             GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
-            stm.receive_total,stm.repno,fdh.status_message_th AS fdh_status,ec.status AS ec_status
+            stm.receive_total,stm.repno,fdh.status_message_th AS fdh_status,ec.status AS ec_status,
+            IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint,
+            ep.claim_status, pt.cid,
+            pt.sex, v.age_y
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -517,7 +522,7 @@ class ClaimOpController extends Controller
             LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode 
                 IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
             LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
@@ -533,6 +538,42 @@ class ClaimOpController extends Controller
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y" AND (hmain_ucs IS NULL OR hmain_ucs =""))
             AND (oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL )
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
+        // ── Batch load claim items for all VNs ──────────────────────────────
+        $allVns = array_merge(array_column($search, 'seq'), array_column($claim, 'seq'));
+        $itemsByVn = [];
+        if (!empty($allVns)) {
+            $rawItems = DB::connection('hosxp')
+                ->select('
+                    SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
+                           li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
+                           IFNULL(n.name, d.name) AS name
+                    FROM opitemrece op
+                    INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                    LEFT JOIN nondrugitems n ON n.icode = op.icode
+                    LEFT JOIN drugitems d ON d.icode = op.icode
+                    WHERE op.vn IN (' . implode(',', array_fill(0, count($allVns), '?')) . ')
+                    AND (li.uc_cr = "Y" OR li.ppfs = "Y" OR li.herb32 = "Y")',
+                $allVns);
+            foreach ($rawItems as $item) {
+                $itemsByVn[$item->vn][] = $item;
+            }
+        }
+
+        // ── Run ClaimValidator on each row ──────────────────────────────────
+        $validator = new \App\Services\ClaimValidator();
+        foreach ($search as $row) {
+            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
+            $row->is_valid           = $result['is_valid'];
+            $row->endpoint_valid     = $result['endpoint_valid'];
+            $row->validation_errors  = $result['errors'];
+        }
+        foreach ($claim as $row) {
+            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
+            $row->is_valid           = $result['is_valid'];
+            $row->endpoint_valid     = $result['endpoint_valid'];
+            $row->validation_errors  = $result['errors'];
+        }
 
         return view('claim_op.ucs_inprovince', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
     }

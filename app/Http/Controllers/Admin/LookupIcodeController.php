@@ -83,12 +83,12 @@ class LookupIcodeController extends Controller
 
         $total_rules_count = count($ppfs_details) + count($ins_details);
 
-        // แยก UC-CR เป็น Instrument และ Other (เฉพาะที่ UCS > 0)
+        // แยก UC-CR เป็น Instrument (เฉพาะที่ UCS > 0) และ Other (ที่ไม่ใช่รหัสใน Instrument)
         $uc_cr_instrument = $uc_cr->filter(function($item) use ($valid_ins_adps) {
             return in_array($item->nhso_adp_code, $valid_ins_adps);
         });
-        $uc_cr_other = $uc_cr->reject(function($item) use ($valid_ins_adps) {
-            return in_array($item->nhso_adp_code, $valid_ins_adps);
+        $uc_cr_other = $uc_cr->reject(function($item) use ($all_ins_adps) {
+            return in_array($item->nhso_adp_code, $all_ins_adps);
         });
 
         return view('admin.lookup_icode.index', compact(
@@ -161,7 +161,7 @@ class LookupIcodeController extends Controller
     public function insert_lookup_uc_cr(Request $request)
     {
         $ins_rules = require config_path('claims/ins_rules.php');
-        $ins_adps = array_keys($ins_rules);
+        $ins_adps = array_keys(array_filter($ins_rules, fn($r) => ($r['prices']['UCS'] ?? 0) > 0));
 
         if (empty($ins_adps)) {
             $ins_adps = ['INVALID_CODE_HOLDER'];

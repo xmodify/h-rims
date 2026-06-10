@@ -166,6 +166,7 @@ class ClaimOpController extends Controller
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint,
             ep.claim_status, pt.cid,
+            vp.confirm_and_locked,vp.request_funds,
             o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
             o.vn AS seq,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             claim_items.claim_list,
@@ -281,7 +282,8 @@ class ClaimOpController extends Controller
                    IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint,
                    ep.claim_status,
                    fdh.status_message_th AS fdh_status,
-                   vp.confirm_and_locked
+                   vp.confirm_and_locked,
+                   vp.request_funds
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
@@ -301,7 +303,7 @@ class ClaimOpController extends Controller
         $secDiags = DB::connection('hosxp')
             ->table('ovstdiag')
             ->where('vn', $vn)
-            ->where('diagtype', '2')
+            ->whereNotIn('diagtype', ['1', '2'])
             ->pluck('icd10')
             ->toArray();
         $visit->icd9 = implode(',', $secDiags);
@@ -310,7 +312,7 @@ class ClaimOpController extends Controller
         $procedures = DB::connection('hosxp')
             ->table('ovstdiag')
             ->where('vn', $vn)
-            ->where('diagtype', '3')
+            ->where('diagtype', '2')
             ->pluck('icd10')
             ->toArray();
 
@@ -480,7 +482,8 @@ class ClaimOpController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
+            SELECT vp.confirm_and_locked,vp.request_funds,
+            o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
             o.vn AS seq,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             claim_items.claim_list,
             COALESCE(claim_items.uc_cr, 0) AS uc_cr,COALESCE(claim_items.ppfs, 0) AS ppfs,COALESCE(claim_items.herb, 0) AS herb,

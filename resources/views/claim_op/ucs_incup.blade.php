@@ -113,6 +113,7 @@
                                 <tr>
                                     <th class="text-center">#</th> 
                                     <th class="text-center">สถานะ</th>
+                                    <th class="text-center">เบิก/ส่ง</th>
                                     <th class="text-center">วัน-เวลา | Q</th>     
                                     <th class="text-center">HN</th>    
                                     <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
@@ -150,6 +151,26 @@
                                             </button>
                                         @endif
                                     </td>
+                                    <td class="text-start ps-3" data-order="{{ $row->confirm_and_locked == 'Y' ? '2' : '1' }}">
+                                        <div class="d-flex flex-column align-items-start gap-1">
+                                            <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
+                                                <span class="text-muted">ประสงค์เบิก:</span>
+                                                @if($row->request_funds == 'Y')
+                                                    <i class="bi bi-check-circle-fill text-success" title="ประสงค์เบิก Y"></i>
+                                                @else
+                                                    <i class="bi bi-x-circle-fill text-danger" title="ไม่ประสงค์เบิก N"></i>
+                                                @endif
+                                            </div>
+                                            <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
+                                                <span class="text-muted">พร้อมส่ง:</span>
+                                                @if($row->confirm_and_locked == 'Y')
+                                                    <i class="bi bi-check-circle-fill text-success" title="พร้อมส่ง Y"></i>
+                                                @else
+                                                    <i class="bi bi-x-circle-fill text-danger" title="ยังไม่พร้อมส่ง N"></i>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </td>
                                     <td class="text-start">
                                         <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
                                         <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
@@ -163,7 +184,7 @@
                                     <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
                                     <td class="text-end fw-bold text-primary">{{ number_format($row->claim_price,2) }}</td> 
                                     <td class="text-start small text-muted" style="font-size:0.7rem; max-width:180px;">{{ $row->claim_list }}</td>
-                                </tr>
+                                  </tr>
                                 @php 
                                     $count++; 
                                     $sum_income += $row->income; 
@@ -174,7 +195,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="5" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                    <th colspan="6" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary">{{ number_format($sum_claim_price,2) }}</th>
@@ -192,6 +213,7 @@
                                 <tr>
                                     <th class="text-center" rowspan="2">#</th>  
                                     <th class="text-center" rowspan="2">สถานะ</th>
+                                    <th class="text-center" rowspan="2">เบิก/ส่ง</th>
                                     <th class="text-center" rowspan="2" width="10%">วัน-เวลา | Q</th>     
                                     <th class="text-center" rowspan="2">HN</th> 
                                     <th class="text-center" rowspan="2">ชื่อ-สกุล | สิทธิ</th>
@@ -241,6 +263,26 @@
                                             </button>
                                         @endif
                                     </td>
+                                    <td class="text-start ps-3" data-order="{{ $row->confirm_and_locked == 'Y' ? '2' : '1' }}">
+                                        <div class="d-flex flex-column align-items-start gap-1">
+                                            <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
+                                                <span class="text-muted">ประสงค์เบิก:</span>
+                                                @if($row->request_funds == 'Y')
+                                                    <i class="bi bi-check-circle-fill text-success" title="ประสงค์เบิก Y"></i>
+                                                @else
+                                                    <i class="bi bi-x-circle-fill text-danger" title="ไม่ประสงค์เบิก N"></i>
+                                                @endif
+                                            </div>
+                                            <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
+                                                <span class="text-muted">พร้อมส่ง:</span>
+                                                @if($row->confirm_and_locked == 'Y')
+                                                    <i class="bi bi-check-circle-fill text-success" title="พร้อมส่ง Y"></i>
+                                                @else
+                                                    <i class="bi bi-x-circle-fill text-danger" title="ยังไม่พร้อมส่ง N"></i>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </td>
                                     <td class="text-start">
                                         <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
                                         <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}}</div>
@@ -279,7 +321,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="5" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
+                                    <th colspan="6" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_uc_cr,2) }}</th>
@@ -829,6 +871,8 @@ function showDetails(vn) {
                       <tr><th class="text-muted">ชื่อ-สกุล</th><td>${visit.ptname}</td></tr>
                       <tr><th class="text-muted">สิทธิ์</th><td>${visit.pttype ?? '-'}</td></tr>
                       <tr><th class="text-muted">เพศ/อายุ</th><td>${visit.sex == '1' ? 'ชาย' : (visit.sex == '2' ? 'หญิง' : visit.sex)} / ${visit.age_y ?? '-'} ปี</td></tr>
+                      <tr><th class="text-muted">ประสงค์เบิก</th><td>${visit.request_funds === 'Y' ? '<span class="badge bg-success py-0 px-2 fw-bold text-white"><i class="bi bi-check-circle-fill me-1"></i>Y</span>' : '<span class="badge bg-danger py-0 px-2 fw-bold text-white"><i class="bi bi-x-circle-fill me-1"></i>N</span>'}</td></tr>
+                      <tr><th class="text-muted">พร้อมส่ง</th><td>${visit.confirm_and_locked === 'Y' ? '<span class="badge bg-success py-0 px-2 fw-bold text-white"><i class="bi bi-check-circle-fill me-1"></i>Y</span>' : '<span class="badge bg-danger py-0 px-2 fw-bold text-white"><i class="bi bi-x-circle-fill me-1"></i>N</span>'}</td></tr>
                       <tr><th class="text-muted">สถานะปิดสิทธิ</th><td>${endpointBtn}</td></tr>
                       <tr><th class="text-muted">สถานะ FDH</th><td>${fdhBtn}</td></tr>
                     </table>

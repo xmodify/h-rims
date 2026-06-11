@@ -127,7 +127,7 @@
                     <tbody>
                         @foreach($drug as $row)          
                         <tr>          
-                            <td class="text-center">
+                            <td class="text-center" data-order="{{ $row->chk_nhso_drugcat == 'Y' ? 1 : 0 }}">
                                 @if($row->chk_nhso_drugcat == 'Y')
                                     <i class="bi bi-check-circle-fill text-success"></i>
                                 @else
@@ -245,7 +245,9 @@
                 previous: "ก่อนหน้า",
                 next: "ถัดไป"
             }
-        }
+        },
+        orderCellsTop: true,
+        order: [[2, 'asc']] // sort by name (column index 2 now)
       });
     });
   </script>

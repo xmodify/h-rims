@@ -152,15 +152,15 @@
                             <td class="text-center" style="vertical-align: middle;">
                                 <input type="checkbox" name="selected_drugs[]" value="{{ $row->icode }}" class="form-check-input drug-checkbox">
                             </td>
-                            <td class="text-center" style="vertical-align: middle;">
-                                @php
-                                    $has_error = empty($row->icode) || empty($row->code_tmt_hos) || empty($row->code_24_hos) || (strlen($row->code_24_hos) != 24) || empty($row->price_hos) || ($row->price_hos <= 0) || empty($row->GenericName) || empty($row->TradeName) || empty($row->DosageForm) || empty($row->units);
-                                @endphp
+                            @php
+                                $has_error = empty($row->icode) || empty($row->code_tmt_hos) || empty($row->code_24_hos) || (strlen($row->code_24_hos) != 24) || empty($row->price_hos) || ($row->price_hos <= 0) || empty($row->GenericName) || empty($row->TradeName) || empty($row->DosageForm) || empty($row->units);
+                            @endphp
+                            <td class="text-center" style="vertical-align: middle;" data-order="{{ $has_error ? 0 : 1 }}">
                                 <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" onclick="showCompletenessModal('{{ $row->icode }}', '{{ addslashes($row->dname) }}', '{{ $row->code_tmt_hos }}', '{{ $row->code_24_hos }}', '{{ $row->price_hos }}', '{{ $row->ised_hos }}', '{{ addslashes($row->GenericName) }}', '{{ addslashes($row->TradeName) }}', '{{ addslashes($row->DosageForm) }}', '{{ addslashes($row->units) }}')">
                                     <i class="bi bi-eye-fill {{ $has_error ? 'text-danger' : 'text-success' }}" style="font-size: 1.15rem;"></i>
                                 </button>
                             </td>
-                            <td class="text-center">
+                            <td class="text-center" data-order="{{ $row->chk_nhso_drugcat == 'Y' ? 1 : 0 }}">
                                 @if($row->chk_nhso_drugcat == 'Y')
                                     <i class="bi bi-check-circle-fill text-success"></i>
                                 @else
@@ -412,8 +412,9 @@
             }
         },
         columnDefs: [
-            { orderable: false, targets: [0, 1, 2] } // disable sorting on checkbox, check, and status columns
+            { orderable: false, targets: [0] } // disable sorting on checkbox column only
         ],
+        orderCellsTop: true,
         order: [[4, 'asc']] // sort by name (column index 4 now)
       });
 

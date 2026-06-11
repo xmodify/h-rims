@@ -987,25 +987,249 @@ class CheckController extends Controller
     //สิทธิการักษา nhso_subinscl---------------------------------------------------------------------------------------------------------------------------
     public function nondrugitems()
     {
-        $nondrugitems =  DB::connection('hosxp')->select('
-            SELECT CONCAT(i.income, " ", i.`name`) AS income,n.icode,n.`name`,n.price,n.billcode,
-                nc.nhso_adp_code,nc.nhso_adp_code_name,nt.nhso_adp_type_name
+        // Mapping: nhso_adp_type_id => rules config file name (without .php)
+        $typeToRulesFile = [
+            2  => 'ins_rules',
+            3  => 'other_service_rules',
+            4  => 'pp_special_rules',
+            5  => 'project_code_rules',
+            8  => 'op_refer_rules',
+            9  => 'special_diag_rules',
+            10 => 'room_board_rules',
+            11 => 'medical_supply_rules',
+            12 => 'dental_rules',
+            13 => 'acupuncture_rules',
+            14 => 'blood_rules',
+            15 => 'lab_rules',
+            16 => 'xray_rules',
+            17 => 'nursing_rules',
+            18 => 'medical_device_rules',
+            19 => 'procedure_rules',
+            20 => 'physical_therapy_rules',
+        ];
+
+        // Cache for loaded rules files
+        $rulesCache = [];
+        $loadRules = function(int $typeId) use ($typeToRulesFile, &$rulesCache): ?array {
+            if (array_key_exists($typeId, $rulesCache)) return $rulesCache[$typeId];
+            $fileName = $typeToRulesFile[$typeId] ?? null;
+            if (!$fileName) { $rulesCache[$typeId] = null; return null; }
+            $filePath = config_path("claims/{$fileName}.php");
+            $rulesCache[$typeId] = file_exists($filePath) ? require $filePath : null;
+            return $rulesCache[$typeId];
+        };
+
+        $defaultPrices = ['UCS' => 0.0, 'OFC' => 0.0, 'SSS' => 0.0, 'LGO' => 0.0, 'FS' => 0.0, 'UCEP' => 0.0];
+
+        // Check if HOSxP v4 pttype_items_price table exists
+        $hasPttypeItemsPrice = false;
+        try {
+            $checkTable = DB::connection('hosxp')->select("SHOW TABLES LIKE 'pttype_items_price'");
+            if (!empty($checkTable)) {
+                $hasPttypeItemsPrice = true;
+            }
+        } catch (\Exception $e) {
+            $hasPttypeItemsPrice = false;
+        }
+
+        $attachPriceInfo = function(array $rows) use ($typeToRulesFile, $loadRules, $defaultPrices, $hasPttypeItemsPrice): array {
+            $icodes = array_column($rows, 'icode');
+            if (empty($icodes)) return $rows;
+
+            $placeholders = implode(',', array_fill(0, count($icodes), '?'));
+            $typeMap = DB::connection('hosxp')->select(
+                "SELECT icode, nhso_adp_type_id, nhso_adp_code FROM nondrugitems WHERE icode IN ({$placeholders})",
+                $icodes
+            );
+            $typeById = [];
+            foreach ($typeMap as $t) {
+                $typeById[$t->icode] = ['type_id' => $t->nhso_adp_type_id, 'adp_code' => $t->nhso_adp_code];
+            }
+
+            // If HOSxP v4 table exists, fetch overrides for these icodes
+            $overrides = [];
+            if ($hasPttypeItemsPrice) {
+                // Convert icodes to integers to bind to items_table_code_int
+                $icodesInt = array_map('intval', $icodes);
+                $bindings = array_merge($icodes, $icodesInt);
+                
+                $v4Prices = DB::connection('hosxp')->select(
+                    "SELECT items_table_code, items_table_code_int, pttype_price_group_id, price 
+                     FROM pttype_items_price 
+                     WHERE (items_table_code IN ({$placeholders}) OR items_table_code_int IN ({$placeholders}))",
+                    $bindings
+                );
+                foreach ($v4Prices as $vp) {
+                    // Normalize lookup key to match either string code or integer code
+                    $key = !empty($vp->items_table_code) ? $vp->items_table_code : strval($vp->items_table_code_int);
+                    $overrides[$key][$vp->pttype_price_group_id] = floatval($vp->price);
+                }
+            }
+
+            return array_map(function($row) use ($loadRules, $typeById, $defaultPrices, $overrides, $hasPttypeItemsPrice) {
+                $row = (array) $row;
+                $icode = $row['icode'];
+                $meta  = $typeById[$icode] ?? null;
+                $typeId  = $meta['type_id']  ?? null;
+                $adpCode = $meta['adp_code'] ?? $row['nhso_adp_code'] ?? null;
+
+                // Override prices from HOSxP v4 pttype_items_price if exists
+                // Under HOSxP v4, if the table pttype_items_price exists, then:
+                // UCS (group 2), OFC (group 3), OOP/FS (group 1), SSS (group 4), LGO (group 5)
+                // all default to $row['price'] (the main price) unless there is an override in pttype_items_price.
+                // We ignore the legacy columns price2 and price3 from nondrugitems in v4 mode.
+                $row['v4_override'] = [];
+                if ($hasPttypeItemsPrice) {
+                    $basePrice = floatval($row['price']);
+                    
+                    // Set all OPD prices to base price initially
+                    $row['price_ucs'] = $basePrice; // UCS
+                    $row['price2'] = $basePrice; // OFC
+                    $row['price3'] = $basePrice; // OOP/FS
+                    $row['price_sss'] = $basePrice; // SSS
+                    $row['price_lgo'] = $basePrice; // LGO
+
+                    $lookupKey = isset($overrides[$icode]) ? $icode : strval(intval($icode));
+                    if (isset($overrides[$lookupKey])) {
+                        $itemOverrides = $overrides[$lookupKey];
+                        // Group 2: UCS -> price_ucs
+                        if (isset($itemOverrides[2])) {
+                            $row['price_ucs'] = $itemOverrides[2];
+                            $row['v4_override'][] = 'UCS';
+                        }
+                        // Group 3: OFC -> price2
+                        if (isset($itemOverrides[3])) {
+                            $row['price2'] = $itemOverrides[3];
+                            $row['v4_override'][] = 'OFC';
+                        }
+                        // Group 1: OOP -> price3
+                        if (isset($itemOverrides[1])) {
+                            $row['price3'] = $itemOverrides[1];
+                            $row['v4_override'][] = 'OOP';
+                        }
+                        // Group 4: SSS -> price_sss
+                        if (isset($itemOverrides[4])) {
+                            $row['price_sss'] = $itemOverrides[4];
+                            $row['v4_override'][] = 'SSS';
+                        }
+                        // Group 5: LGO -> price_lgo
+                        if (isset($itemOverrides[5])) {
+                            $row['price_lgo'] = $itemOverrides[5];
+                            $row['v4_override'][] = 'LGO';
+                        }
+                    }
+                }
+
+                if (!$typeId) {
+                    $row['priceStatus'] = 'notype';
+                    $row['rulePrices']  = $defaultPrices;
+                    return (object) $row;
+                }
+
+                $rules = $loadRules((int)$typeId);
+                if ($rules === null || !isset($rules[$adpCode])) {
+                    $row['priceStatus'] = 'notfound';
+                    $row['rulePrices']  = $defaultPrices;
+                    return (object) $row;
+                }
+
+                $rulePrices = array_merge($defaultPrices, $rules[$adpCode]['prices'] ?? []);
+                
+                // Compare logic:
+                // If the database has HOSxP V4 table, we ALWAYS compare specifically:
+                // - UCS -> price
+                // - OFC -> price2 (defaults to price if not overridden)
+                // - OOP -> price3 (defaults to price if not overridden)
+                // - SSS -> price_sss (defaults to price if not overridden)
+                // - LGO -> price_lgo (defaults to price if not overridden)
+                // - FS -> price3
+                // If it is V3, we check if the non-zero rule prices match ANY of the HOSxP columns (price, price2, price3)
+                $hasMismatch = false;
+                $hasMatch = false;
+                $nonZeroRule = false;
+
+                foreach ($rulePrices as $right => $rPrice) {
+                    if ($rPrice <= 0.5) continue;
+                    $nonZeroRule = true;
+
+                    if ($hasPttypeItemsPrice) {
+                        // Compare specific fields (already mapped to default $row['price'] if no override exists)
+                        $hPrice = floatval($row['price']);
+                        if ($right === 'UCS') {
+                            $hPrice = floatval($row['price_ucs'] ?? $row['price']);
+                        } elseif ($right === 'OFC') {
+                            $hPrice = floatval($row['price2'] ?? 0);
+                        } elseif ($right === 'FS') {
+                            $hPrice = floatval($row['price3'] ?? 0);
+                        } elseif ($right === 'SSS' && isset($row['price_sss'])) {
+                            $hPrice = $row['price_sss'];
+                        } elseif ($right === 'LGO' && isset($row['price_lgo'])) {
+                            $hPrice = $row['price_lgo'];
+                        }
+
+                        if (abs($hPrice - $rPrice) < 0.1 || intval($hPrice) === intval($rPrice)) {
+                            $hasMatch = true;
+                        } else {
+                            $hasMismatch = true;
+                        }
+                    } else {
+                        // V3 Mode: Check if rule price matches ANY of the three HOSxP columns (price, price2, price3)
+                        $p1 = floatval($row['price']);
+                        $p2 = floatval($row['price2'] ?? 0);
+                        $p3 = floatval($row['price3'] ?? 0);
+
+                        if (abs($p1 - $rPrice) < 0.1 || abs($p2 - $rPrice) < 0.1 || abs($p3 - $rPrice) < 0.1 ||
+                            intval($p1) === intval($rPrice) || intval($p2) === intval($rPrice) || intval($p3) === intval($rPrice)) {
+                            $hasMatch = true;
+                        } else {
+                            $hasMismatch = true;
+                        }
+                    }
+                }
+
+                if (!$nonZeroRule) {
+                    $row['priceStatus'] = 'notfound';
+                } elseif ($hasMismatch) {
+                    $row['priceStatus'] = 'mismatch';
+                } else {
+                    $row['priceStatus'] = 'match';
+                }
+
+                $row['rulePrices'] = $rulePrices;
+                $row['ruleName']   = $rules[$adpCode]['name'] ?? '';
+                return (object) $row;
+            }, $rows);
+        };
+
+        $nondrugitemsRaw = DB::connection('hosxp')->select('
+            SELECT CONCAT(i.income, " ", i.`name`) AS income,n.icode,n.`name`,
+                n.price, n.price2, n.price3, n.ipd_price, n.ipd_price2, n.ipd_price3, n.billcode,
+                nc.nhso_adp_code,nc.nhso_adp_code_name,nt.nhso_adp_type_name,
+                n.paidst, ps.name AS paidst_name
             FROM nondrugitems n
             LEFT JOIN income i ON i.income = n.income
             LEFT JOIN nhso_adp_code nc ON nc.nhso_adp_code = n.nhso_adp_code
             LEFT JOIN nhso_adp_type nt ON nt.nhso_adp_type_id=n.nhso_adp_type_id
+            LEFT JOIN paidst ps ON ps.paidst = n.paidst
             WHERE n.istatus = "Y"
             ORDER BY n.income');
 
-        $nondrugitems_non =  DB::connection('hosxp')->select('
-            SELECT CONCAT(i.income, " ", i.`name`) AS income,n.icode,n.`name`,n.price,n.billcode,
-                nc.nhso_adp_code,nc.nhso_adp_code_name,nt.nhso_adp_type_name
+        $nondrugitems = $attachPriceInfo(array_map(fn($r) => (array)$r, $nondrugitemsRaw));
+
+        $nondrugitems_non_raw = DB::connection('hosxp')->select('
+            SELECT CONCAT(i.income, " ", i.`name`) AS income,n.icode,n.`name`,
+                n.price, n.price2, n.price3, n.ipd_price, n.ipd_price2, n.ipd_price3, n.billcode,
+                nc.nhso_adp_code,nc.nhso_adp_code_name,nt.nhso_adp_type_name,
+                n.paidst, ps.name AS paidst_name
             FROM nondrugitems n
             LEFT JOIN income i ON i.income = n.income
             LEFT JOIN nhso_adp_code nc ON nc.nhso_adp_code = n.nhso_adp_code
             LEFT JOIN nhso_adp_type nt ON nt.nhso_adp_type_id=n.nhso_adp_type_id
+            LEFT JOIN paidst ps ON ps.paidst = n.paidst
             WHERE n.istatus <> "Y"
             ORDER BY n.income');
+
+        $nondrugitems_non = $attachPriceInfo(array_map(fn($r) => (array)$r, $nondrugitems_non_raw));
 
         // Fetch unique categories (incomes) for filtering, concatenated with code
         $categories = DB::connection('hosxp')->table('nondrugitems')
@@ -1016,7 +1240,7 @@ class CheckController extends Controller
             ->pluck('combined_name');
 
 
-        return view('check.nondrugitems', compact('nondrugitems', 'nondrugitems_non', 'categories'));
+        return view('check.nondrugitems', compact('nondrugitems', 'nondrugitems_non', 'categories', 'hasPttypeItemsPrice'));
     }
 
     // sss_equipdev_aipn -----------------------------------------------------------------------------------------

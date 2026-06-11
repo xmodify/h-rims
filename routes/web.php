@@ -168,6 +168,9 @@ Route::get('check/drugcat_chi_herb', [CheckController::class, 'drugcat_chi_herb'
 Route::get('check/drugcat_chi_ised_notmatch_hosxp', [CheckController::class, 'drugcat_chi_ised_notmatch_hosxp']);
 Route::get('check/drugcat_chi_code24_missing_hosxp', [CheckController::class, 'drugcat_chi_code24_missing_hosxp']);
 Route::get('check/drugcat_chi_tmt_missing_hosxp', [CheckController::class, 'drugcat_chi_tmt_missing_hosxp']);
+Route::match(['get', 'post'], 'check/drugcat_chi_export_new/{seq?}', [CheckController::class, 'drugcat_chi_export_new'])->name('check.drugcat_chi_export_new');
+Route::match(['get', 'post'], 'check/drugcat_chi_export_edit/{seq?}', [CheckController::class, 'drugcat_chi_export_edit'])->name('check.drugcat_chi_export_edit');
+Route::match(['get', 'post'], 'check/drugcat_chi_export_update/{seq?}', [CheckController::class, 'drugcat_chi_export_update'])->name('check.drugcat_chi_export_update');
 Route::get('check/pttype', [CheckController::class, 'pttype']);
 Route::get('check/nhso_subinscl', [CheckController::class, 'nhso_subinscl']);
 Route::get('check/nondrugitems', [CheckController::class, 'nondrugitems']);

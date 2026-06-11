@@ -43,16 +43,36 @@
         <div class="col-lg-5">
             <div class="card dash-card h-100">
                 <div class="card-body">
-                    <h6 class="fw-bold text-dark mb-3"><i class="bi bi-file-earmark-excel me-2 text-success"></i> นำเข้าไฟล์ Drug Catalog สกส.</h6>
                     <form id="importForm" action="{{ url('check/drugcat_chi_save') }}" method="POST" enctype="multipart/form-data" class="m-0">
                         @csrf  
-                        <div class="input-group">
+                        <div class="input-group mb-3">
                             <input class="form-control" id="formFile" name="file" type="file" required style="border-radius: 10px 0 0 10px;">
                             <button type="button" onclick="handleImportSubmit(event)" class="btn btn-success px-4" style="border-radius: 0 10px 10px 0;">
                                 <i class="bi bi-cloud-upload me-1"></i> นำเข้า
                             </button>
                         </div>
                     </form>
+                    
+                    <hr class="my-3 text-muted opacity-25">
+                    
+                    <h6 class="fw-bold text-dark mb-2"><i class="bi bi-file-earmark-arrow-down me-2 text-primary"></i> ส่งออกไฟล์ Drug Catalog สกส.</h6>
+                    <div class="row g-2 align-items-end">
+                        <div class="col-sm-4">
+                            <label for="seq_no" class="form-label small text-muted mb-1">งวดที่ส่ง (Sequence)</label>
+                            <input type="text" id="seq_no" class="form-control text-center fw-bold" value="001" placeholder="001" maxlength="3" style="border-radius: 8px; height: 38px;">
+                        </div>
+                        <div class="col-sm-8 d-flex flex-column gap-2">
+                            <button type="button" onclick="exportData('new')" class="btn btn-primary btn-sm rounded-pill w-100" style="height: 38px; display: inline-flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-plus-circle me-1"></i> ส่งออกรายการใหม่ (A)
+                            </button>
+                            <button type="button" onclick="exportData('edit')" class="btn btn-warning btn-sm rounded-pill w-100" style="height: 38px; display: inline-flex; align-items: center; justify-content: center;">
+                                <i class="bi bi-pencil-square me-1"></i> ส่งออกรายการแก้ไขข้อมูลยา (E)
+                            </button>
+                            <button type="button" onclick="exportData('update')" class="btn btn-info btn-sm rounded-pill w-100 text-white" style="height: 38px; display: inline-flex; align-items: center; justify-content: center; background-color: #0dcaf0; border-color: #0dcaf0;">
+                                <i class="bi bi-currency-dollar me-1"></i> ส่งออกรายการแก้ไขราคา (U)
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -101,6 +121,8 @@
                 <table id="drug" class="table table-modern w-100">
                     <thead>
                         <tr>
+                            <th class="text-center" rowspan="2" style="width: 40px; vertical-align: middle;"><input type="checkbox" id="checkAll" class="form-check-input"></th>
+                            <th class="text-center" rowspan="2" style="width: 80px; vertical-align: middle;">ตรวจสอบ</th>
                             <th class="text-center" rowspan="2">สกส.</th>   
                             <th class="text-center" rowspan="2">รหัส HOSxP</th>             
                             <th class="text-center" rowspan="2" width="22%">ชื่อยา</th>                   
@@ -127,6 +149,17 @@
                     <tbody>
                         @foreach($drug as $row)          
                         <tr>          
+                            <td class="text-center" style="vertical-align: middle;">
+                                <input type="checkbox" name="selected_drugs[]" value="{{ $row->icode }}" class="form-check-input drug-checkbox">
+                            </td>
+                            <td class="text-center" style="vertical-align: middle;">
+                                @php
+                                    $has_error = empty($row->icode) || empty($row->code_tmt_hos) || empty($row->code_24_hos) || (strlen($row->code_24_hos) != 24) || empty($row->price_hos) || ($row->price_hos <= 0) || empty($row->GenericName) || empty($row->TradeName) || empty($row->DosageForm) || empty($row->units);
+                                @endphp
+                                <button type="button" class="btn btn-sm p-0 border-0 bg-transparent" onclick="showCompletenessModal('{{ $row->icode }}', '{{ addslashes($row->dname) }}', '{{ $row->code_tmt_hos }}', '{{ $row->code_24_hos }}', '{{ $row->price_hos }}', '{{ $row->ised_hos }}', '{{ addslashes($row->GenericName) }}', '{{ addslashes($row->TradeName) }}', '{{ addslashes($row->DosageForm) }}', '{{ addslashes($row->units) }}')">
+                                    <i class="bi bi-eye-fill {{ $has_error ? 'text-danger' : 'text-success' }}" style="font-size: 1.15rem;"></i>
+                                </button>
+                            </td>
                             <td class="text-center">
                                 @if($row->chk_nhso_drugcat == 'Y')
                                     <i class="bi bi-check-circle-fill text-success"></i>
@@ -170,10 +203,139 @@
 </div>
 <br>
 
+<!-- Modal for checking completeness -->
+<div class="modal fade" id="completenessModal" tabindex="-1" aria-labelledby="completenessModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+            <div class="modal-header bg-light border-bottom-0" style="border-radius: 15px 15px 0 0;">
+                <h6 class="modal-title fw-bold text-dark" id="completenessModalLabel">
+                    <i class="bi bi-shield-check text-primary me-2"></i> ตรวจสอบความสมบูรณ์ของข้อมูลยา
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3 p-3 bg-light rounded-3">
+                    <div class="fw-bold text-dark small" id="modalDrugName">ชื่อยา: -</div>
+                    <div class="text-muted small mt-1" id="modalDrugCode">รหัส HOSxP: -</div>
+                </div>
+                
+                <div class="list-group list-group-flush" id="checkListContainer">
+                    <!-- Check items will be dynamically generated here -->
+                </div>
+            </div>
+            <div class="modal-footer border-top-0">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">ปิด</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')  
   <script>
+    function showCompletenessModal(icode, name, tmt, ndc24, price, ised, generic, trade, dosage, units) {
+        document.getElementById('modalDrugName').innerText = 'ชื่อยา: ' + name;
+        document.getElementById('modalDrugCode').innerText = 'รหัส HOSxP: ' + icode;
+        
+        const container = document.getElementById('checkListContainer');
+        container.innerHTML = '';
+        
+        const fields = [
+            { label: 'รหัสยาโรงพยาบาล (icode)', value: icode, check: !!icode },
+            { label: 'รหัส TMT ID', value: tmt, check: !!tmt },
+            { label: 'รหัส 24 หลัก (NDC24)', value: ndc24, check: !!ndc24 && ndc24.length === 24, err: ndc24 && ndc24.length !== 24 ? 'ต้องยาว 24 หลัก' : 'ห้ามว่าง' },
+            { label: 'ราคายา (UnitPrice)', value: price ? parseFloat(price).toFixed(2) + ' บาท' : '-', check: !!price && parseFloat(price) > 0 },
+            { label: 'ชื่อสามัญ (Generic Name)', value: generic, check: !!generic },
+            { label: 'ชื่อการค้า (Trade Name)', value: trade, check: !!trade },
+            { label: 'รูปแบบยา (Dosage Form)', value: dosage, check: !!dosage },
+            { label: 'หน่วยนับ (Content)', value: units, check: !!units }
+        ];
+        
+        fields.forEach(f => {
+            const item = document.createElement('div');
+            item.className = 'list-group-item d-flex justify-content-between align-items-center border-0 px-0 py-2';
+            
+            const leftDiv = document.createElement('div');
+            leftDiv.className = 'd-flex flex-column';
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'small fw-semibold text-dark';
+            labelSpan.innerText = f.label;
+            const valSpan = document.createElement('span');
+            valSpan.className = 'small text-muted';
+            valSpan.innerText = f.value || '(ว่าง)';
+            
+            leftDiv.appendChild(labelSpan);
+            leftDiv.appendChild(valSpan);
+            
+            const badge = document.createElement('span');
+            if (f.check) {
+                badge.innerHTML = '<i class="bi bi-check-circle-fill text-success fs-5"></i>';
+            } else {
+                const errMsg = f.err || 'ห้ามว่าง';
+                badge.innerHTML = `<span class="badge bg-danger-soft text-danger me-2" style="background-color: rgba(220, 53, 69, 0.1); color: #dc3545; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">${errMsg}</span><i class="bi bi-x-circle-fill text-danger fs-5"></i>`;
+            }
+            
+            item.appendChild(leftDiv);
+            item.appendChild(badge);
+            container.appendChild(item);
+        });
+        
+        $('#completenessModal').modal('show');
+    }
+
+    function exportData(type) {
+        let seq = document.getElementById('seq_no').value.trim() || '001';
+        seq = seq.padStart(3, '0');
+        
+        // Find checked checkboxes using DataTable API to catch checkboxes across all pages
+        const table = $('#drug').DataTable();
+        const checkedBoxes = [];
+        table.$('.drug-checkbox:checked').each(function() {
+            checkedBoxes.push(this.value);
+        });
+
+        if (checkedBoxes.length === 0) {
+            Swal.fire({
+                title: 'แจ้งเตือน',
+                text: 'กรุณาเลือกรายการยาที่ต้องการส่งออกอย่างน้อย 1 รายการ หรือเลือกทั้งหมด',
+                icon: 'warning',
+                confirmButtonText: 'ตกลง'
+            });
+            return;
+        }
+
+        let baseUrl = '{{ url("check/drugcat_chi_export_new") }}';
+        if (type === 'edit') {
+            baseUrl = '{{ url("check/drugcat_chi_export_edit") }}';
+        } else if (type === 'update') {
+            baseUrl = '{{ url("check/drugcat_chi_export_update") }}';
+        }
+        
+        // Create a temporary form to submit via POST
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = baseUrl + '/' + seq;
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = '{{ csrf_token() }}';
+        form.appendChild(csrfInput);
+
+        checkedBoxes.forEach(code => {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'icodes[]';
+            input.value = code;
+            form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+    }
+
     function showLoadingAlert() {
         Swal.fire({
             title: 'กำลังนำเข้าข้อมูล...',
@@ -219,7 +381,7 @@
         });
       @endif
 
-      $('#drug').DataTable({
+      const table = $('#drug').DataTable({
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + // Show รายการ
                 '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
@@ -234,7 +396,10 @@
               extend: 'excelHtml5',
               text: 'Excel',
               className: 'btn btn-success',
-              title: 'ตรวจสอบ Drug Catalog สกส.'
+              title: 'ตรวจสอบ Drug Catalog สกส.',
+              exportOptions: {
+                  columns: ':gt(1)'
+              }
             }
         ],
         language: {
@@ -245,7 +410,27 @@
                 previous: "ก่อนหน้า",
                 next: "ถัดไป"
             }
-        }
+        },
+        columnDefs: [
+            { orderable: false, targets: [0, 1, 2] } // disable sorting on checkbox, check, and status columns
+        ],
+        order: [[4, 'asc']] // sort by name (column index 4 now)
+      });
+
+      // Handle "Check All" checkbox click
+      $('#checkAll').on('click', function() {
+         const rows = table.rows({ 'search': 'applied' }).nodes();
+         $('input[name="selected_drugs[]"]', rows).prop('checked', this.checked);
+      });
+
+      // Update "Check All" when individual checkboxes are checked/unchecked
+      $('#drug tbody').on('change', 'input[name="selected_drugs[]"]', function() {
+         if(!this.checked) {
+            const el = $('#checkAll').get(0);
+            if(el && el.checked && ('indeterminate' in el)) {
+               el.checked = false;
+            }
+         }
       });
     });
   </script>

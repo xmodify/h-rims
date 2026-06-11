@@ -753,6 +753,199 @@ class CheckController extends Controller
         return view('check.drugcat_chi', compact('drug'));
     }
 
+    //ส่งออกรายการใหม่ สกส (กรณีไม่พบที่ สกส) - UpdateFlag = A-------------------------------------------------------------------------------------------------
+    public function drugcat_chi_export_new(Request $request, $seq = '001')
+    {
+        $hosp_code = \App\Models\MainSetting::where('name', 'hospital_code')->value('value') ?: '10989';
+        $seq = str_pad($seq, 3, '0', STR_PAD_LEFT);
+        
+        $icodes = $request->input('icodes', []);
+        if (empty($icodes) || !is_array($icodes)) {
+            return $this->exportToExcel([], $hosp_code . 'DrugN' . $seq . '.xlsx');
+        }
+
+        $quoted = array_map(function($val) {
+            return DB::connection('hosxp')->getPdo()->quote($val);
+        }, $icodes);
+        $where_icode = " AND d.icode IN (" . implode(',', $quoted) . ") ";
+        
+        $drugs = DB::connection('hosxp')->select("
+            SELECT  
+                d.icode AS HospDrugCode,
+                '1' AS ProductCat,
+                d3.ref_code AS TMTID,
+                '' AS SpecPrep,
+                IFNULL(d.generic_name, d.`name`) AS GenericName,
+                d.trade_name AS TradeName,
+                '' AS DFSCode,
+                d.dosageform AS DosageForm,
+                d.strength AS Strength,
+                d.units AS Content,
+                d.unitprice AS UnitPrice,
+                '' AS Distributor,
+                '' AS Manufacturer,
+                CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ISED,
+                d2.ref_code AS NDC24,
+                '' AS PackSize,
+                '' AS PackPrice,
+                'A' AS UpdateFlag,
+                '' AS DateChange,
+                '' AS DateUpdate,
+                DATE_FORMAT(NOW(), '%Y-%m-%d') AS DateEffective,
+                '' AS RP
+            FROM drugitems d
+            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%'
+              {$where_icode}
+            ORDER BY d.NAME, d.strength, d.units
+        ");
+
+        return $this->exportToExcel($drugs, $hosp_code . 'DrugN' . $seq . '.xlsx');
+    }
+
+    //ส่งออกรายการแก้ไข สกส (กรณีต้องการแก้ไขข้อมูลผลิตภัณฑ์) - UpdateFlag = E--------------------------------------------------------------------------------------
+    public function drugcat_chi_export_edit(Request $request, $seq = '001')
+    {
+        $hosp_code = \App\Models\MainSetting::where('name', 'hospital_code')->value('value') ?: '10989';
+        $seq = str_pad($seq, 3, '0', STR_PAD_LEFT);
+        
+        $icodes = $request->input('icodes', []);
+        if (empty($icodes) || !is_array($icodes)) {
+            return $this->exportToExcel([], $hosp_code . 'DrugN' . $seq . '.xlsx');
+        }
+
+        $quoted = array_map(function($val) {
+            return DB::connection('hosxp')->getPdo()->quote($val);
+        }, $icodes);
+        $where_icode = " AND d.icode IN (" . implode(',', $quoted) . ") ";
+
+        $drugs = DB::connection('hosxp')->select("
+            SELECT  
+                d.icode AS HospDrugCode,
+                '1' AS ProductCat,
+                d3.ref_code AS TMTID,
+                '' AS SpecPrep,
+                IFNULL(d.generic_name, d.`name`) AS GenericName,
+                d.trade_name AS TradeName,
+                '' AS DFSCode,
+                d.dosageform AS DosageForm,
+                d.strength AS Strength,
+                d.units AS Content,
+                d.unitprice AS UnitPrice,
+                '' AS Distributor,
+                '' AS Manufacturer,
+                CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ISED,
+                d2.ref_code AS NDC24,
+                '' AS PackSize,
+                '' AS PackPrice,
+                'E' AS UpdateFlag,
+                DATE_FORMAT(NOW(), '%Y-%m-%d') AS DateChange,
+                '' AS DateUpdate,
+                DATE_FORMAT(NOW(), '%Y-%m-%d') AS DateEffective,
+                '' AS RP
+            FROM drugitems d
+            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%'
+              {$where_icode}
+            ORDER BY d.NAME, d.strength, d.units
+        ");
+
+        return $this->exportToExcel($drugs, $hosp_code . 'DrugN' . $seq . '.xlsx');
+    }
+
+    //ส่งออกรายการแก้ไข สกส (กรณีต้องการแก้ไขราคาส่งขาย) - UpdateFlag = U--------------------------------------------------------------------------------------
+    public function drugcat_chi_export_update(Request $request, $seq = '001')
+    {
+        $hosp_code = \App\Models\MainSetting::where('name', 'hospital_code')->value('value') ?: '10989';
+        $seq = str_pad($seq, 3, '0', STR_PAD_LEFT);
+        
+        $icodes = $request->input('icodes', []);
+        if (empty($icodes) || !is_array($icodes)) {
+            return $this->exportToExcel([], $hosp_code . 'DrugN' . $seq . '.xlsx');
+        }
+
+        $quoted = array_map(function($val) {
+            return DB::connection('hosxp')->getPdo()->quote($val);
+        }, $icodes);
+        $where_icode = " AND d.icode IN (" . implode(',', $quoted) . ") ";
+
+        $drugs = DB::connection('hosxp')->select("
+            SELECT  
+                d.icode AS HospDrugCode,
+                '1' AS ProductCat,
+                d3.ref_code AS TMTID,
+                '' AS SpecPrep,
+                IFNULL(d.generic_name, d.`name`) AS GenericName,
+                d.trade_name AS TradeName,
+                '' AS DFSCode,
+                d.dosageform AS DosageForm,
+                d.strength AS Strength,
+                d.units AS Content,
+                d.unitprice AS UnitPrice,
+                '' AS Distributor,
+                '' AS Manufacturer,
+                CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ISED,
+                d2.ref_code AS NDC24,
+                '' AS PackSize,
+                '' AS PackPrice,
+                'U' AS UpdateFlag,
+                '' AS DateChange,
+                DATE_FORMAT(NOW(), '%Y-%m-%d') AS DateUpdate,
+                DATE_FORMAT(NOW(), '%Y-%m-%d') AS DateEffective,
+                '' AS RP
+            FROM drugitems d
+            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%'
+              {$where_icode}
+            ORDER BY d.NAME, d.strength, d.units
+        ");
+
+        return $this->exportToExcel($drugs, $hosp_code . 'DrugN' . $seq . '.xlsx');
+    }
+
+    //ฟังก์ชันหลักในการแปลงข้อมูล SQL เป็น Excel ตาม format สกส (CSMBS)---------------------------------------------------------------------------------
+    private function exportToExcel($data, $filename)
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        
+        $headers = [
+            'HospDrugCode', 'ProductCat', 'TMTID', 'SpecPrep', 'GenericName', 'TradeName', 
+            'DFSCode', 'Dosage Form', 'Strength', 'Content', 'UnitPrice', 'Distributor', 
+            'Manufacturer', 'ISED', 'NDC24', 'PackSize', 'PackPrice', 'UpdateFlag', 
+            'Date change', 'Date Update', 'Date Effective', 'RP'
+        ];
+        
+        // Write headers
+        foreach ($headers as $colIndex => $header) {
+            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex + 1);
+            $sheet->setCellValue($colLetter . '1', $header);
+        }
+        
+        // Write data
+        $rowNum = 2;
+        foreach ($data as $row) {
+            $colIndex = 1;
+            foreach ((array)$row as $key => $val) {
+                $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIndex);
+                $sheet->setCellValue($colLetter . $rowNum, $val);
+                $colIndex++;
+            }
+            $rowNum++;
+        }
+        
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+        
+        $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
+        $writer->save('php://output');
+        exit;
+    }
+
     ###################################################################################################################################################
     //สิทธิการักษา HOSxP---------------------------------------------------------------------------------------------------------------------------
     public function pttype()

@@ -117,10 +117,11 @@
                                     <th class="text-center">วัน-เวลา | Q</th>     
                                     <th class="text-center">HN</th>    
                                     <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
+                                    <th class="text-center">Project</th>  
+                                    <th class="text-center">รายการต้องเรียกเก็บ</th>  
                                     <th class="text-center">ค่ารักษา</th> 
                                     <th class="text-center">ชำระเอง</th>
                                     <th class="text-center text-primary">เรียกเก็บ</th> 
-                                    <th class="text-center">รายการต้องเรียกเก็บ</th>  
                                 </tr>
                             </thead> 
                             <tbody> 
@@ -180,10 +181,11 @@
                                         <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
                                         <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
                                     </td> 
+                                    <td class="text-center small text-muted">{{ $row->project }}</td>
+                                    <td class="text-start small text-muted" style="font-size:0.7rem; max-width:180px;">{{ $row->claim_list }}</td>
                                     <td class="text-end small">{{ number_format($row->income,2) }}</td>              
                                     <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
                                     <td class="text-end fw-bold text-primary">{{ number_format($row->claim_price,2) }}</td> 
-                                    <td class="text-start small text-muted" style="font-size:0.7rem; max-width:180px;">{{ $row->claim_list }}</td>
                                   </tr>
                                 @php 
                                     $count++; 
@@ -195,11 +197,10 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="6" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                    <th colspan="8" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary">{{ number_format($sum_claim_price,2) }}</th>
-                                    <th></th>
                                 </tr>
                             </tfoot>
                         </table>
@@ -217,9 +218,10 @@
                                     <th class="text-center" rowspan="2" width="10%">วัน-เวลา | Q</th>     
                                     <th class="text-center" rowspan="2">HN</th> 
                                     <th class="text-center" rowspan="2">ชื่อ-สกุล | สิทธิ</th>
+                                    <th class="text-center" rowspan="2">Project</th>
+                                    <th class="text-center" rowspan="2">รายการต้องเรียกเก็บ</th>
                                     <th class="text-center" colspan="5">ค่ารักษา</th>                                     
                                     <th class="text-center bg-primary-soft" colspan="3">ข้อมูลการชดเชย</th>
-                                    <th class="text-center" rowspan="2">รายการต้องเรียกเก็บ</th>
                                 </tr>
                                 <tr>                                    
                                     <th class="text-center small">รวม</th>
@@ -293,6 +295,8 @@
                                         <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
                                         <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
                                     </td> 
+                                    <td class="text-center small text-muted">{{ $row->project }}</td>
+                                    <td class="text-start small text-muted" style="font-size:0.7rem; max-width:180px;">{{ $row->claim_list }}</td>
                                     <td class="text-end small">{{ number_format($row->income,2) }}</td>              
                                     <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>                                      
                                     <td class="text-end small">{{ number_format($row->uc_cr,2) }}</td> 
@@ -306,7 +310,6 @@
                                         {{ number_format($diff, 2) }}
                                     </td>
                                     <td class="text-center small text-muted">{{ $row->repno }}</td>
-                                    <td class="text-start small text-muted" style="font-size:0.7rem; max-width:180px;">{{ $row->claim_list }}</td>
                                 </tr>
                                 @php 
                                     $count++; 
@@ -321,7 +324,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="6" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
+                                    <th colspan="8" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_uc_cr,2) }}</th>
@@ -330,7 +333,6 @@
                                     <th class="text-end small fw-bold {{ $sum_receive_total > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($sum_receive_total,2) }}</th>
                                     @php $total_diff = $sum_receive_total - $sum_uc_cr - $sum_ppfs - $sum_herb; @endphp
                                     <th class="text-end small fw-bold {{ $total_diff > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($total_diff, 2) }}</th>
-                                    <th></th>
                                     <th></th>
                                 </tr>
                             </tfoot>

@@ -117,13 +117,11 @@
                                     <th class="text-center">วัน-เวลา | Q</th>     
                                     <th class="text-center">HN</th>    
                                     <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
-                                    <th class="text-center" width="15%">อาการสำคัญ</th>
-                                    <th class="text-center">PDX | ICD9</th>
+                                    <th class="text-center">Project</th>
+                                    <th class="text-center">รายการต้องเรียกเก็บ</th>  
                                     <th class="text-center">ค่ารักษา</th> 
                                     <th class="text-center">ชำระเอง</th>
                                     <th class="text-center text-primary">เรียกเก็บ</th> 
-                                    <th class="text-center">Project</th>  
-                                    <th class="text-center" width="15%">รายการเรียกเก็บ</th>  
                                 </tr>
                             </thead> 
                             <tbody> 
@@ -180,17 +178,12 @@
                                         <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
                                         <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
                                     </td> 
-                                    <td class="text-start small text-muted text-wrap">{{ $row->cc }}</td>
-                                    <td class="text-center small">
-                                        <div class="fw-bold text-dark">{{ $row->pdx }}</div>
-                                        <div class="text-muted" style="font-size: 0.65rem;">{{$row->icd9}}</div>
-                                    </td>
+                                    <td class="text-center small text-muted">{{ $row->project }}</td>
+                                    <td class="text-start small text-muted" style="font-size:0.7rem; max-width:180px;">{{ $row->claim_list }}</td>
                                     <td class="text-end small">{{ number_format($row->income,2) }}</td>              
                                     <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
                                     <td class="text-end fw-bold text-primary">{{ number_format($row->claim_price,2) }}</td> 
-                                    <td class="text-center small text-muted">{{ $row->project }}</td>                   
-                                    <td class="text-start small text-muted text-wrap">{{ $row->claim_list }}</td>   
-                                </tr>
+                                  </tr>
                                 @php 
                                     $count++; 
                                     $sum_income += $row->income; 
@@ -205,8 +198,6 @@
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary">{{ number_format($sum_claim_price,2) }}</th>
-                                    <th></th>
-                                    <th></th>
                                 </tr>
                             </tfoot>
                         </table>
@@ -224,9 +215,8 @@
                                     <th class="text-center" rowspan="2" width="10%">วัน-เวลา | Q</th>     
                                     <th class="text-center" rowspan="2">HN</th> 
                                     <th class="text-center" rowspan="2">ชื่อ-สกุล | สิทธิ</th>
-                                    <th class="text-center" rowspan="2" width="10%">อาการสำคัญ</th>
-                                    <th class="text-center" rowspan="2">PDX | ICD9</th>
-                                    <th class="text-center" rowspan="2">รายการเรียกเก็บ</th>
+                                    <th class="text-center" rowspan="2">Project</th>
+                                    <th class="text-center" rowspan="2">รายการต้องเรียกเก็บ</th>
                                     <th class="text-center" colspan="5">ค่ารักษา</th>                                     
                                     <th class="text-center bg-primary-soft" colspan="3">ข้อมูลการชดเชย</th>
                                 </tr>
@@ -299,12 +289,8 @@
                                         <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
                                         <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
                                     </td> 
-                                    <td class="text-start small text-muted text-wrap">{{ $row->cc }}</td>
-                                    <td class="text-center small">
-                                        <div class="fw-bold text-dark">{{ $row->pdx }}</div>
-                                        <div class="text-muted" style="font-size: 0.65rem;">{{$row->icd9}}</div>
-                                    </td>
-                                    <td class="text-start small text-muted text-wrap">{{ $row->claim_list }}</td>
+                                    <td class="text-center small text-muted">{{ $row->project }}</td>
+                                    <td class="text-start small text-muted" style="font-size:0.7rem; max-width:180px;">{{ $row->claim_list }}</td>
                                     <td class="text-end small">{{ number_format($row->income,2) }}</td>              
                                     <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>                                      
                                     <td class="text-end small">{{ number_format($row->uc_cr,2) }}</td> 
@@ -332,7 +318,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="9" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
+                                    <th colspan="8" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_uc_cr,2) }}</th>

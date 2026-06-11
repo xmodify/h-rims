@@ -716,7 +716,9 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,stm.receive_total
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,
+                  IFNULL(v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(op_data.other_price,0),0) AS claim_price,
+                  stm.receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -729,7 +731,15 @@ class ClaimOpController extends Controller
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
-
+            LEFT JOIN (
+                SELECT op.vn, 
+                    SUM(CASE WHEN (li.ems = "Y" OR li.kidney = "Y") THEN op.sum_price ELSE 0 END) AS other_price
+                FROM opitemrece op
+                LEFT JOIN nondrugitems n ON n.icode=op.icode 
+                LEFT JOIN hrims.lookup_icode li ON li.icode=op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn
+            ) op_data ON op_data.vn = o.vn
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
                 GROUP_CONCAT(DISTINCT repno) AS repno FROM hrims.stm_ucs
@@ -740,10 +750,9 @@ class ClaimOpController extends Controller
             WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code IN ("UCS","WEL") 
             AND o.vstdate BETWEEN ? AND ?
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-            AND NOT EXISTS (SELECT 1 FROM opitemrece kidney INNER JOIN hrims.lookup_icode li ON li.icode=kidney.icode WHERE kidney.vn=o.vn AND li.kidney = "Y")
             GROUP BY o.vn ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
-            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
         $receive_total = array_column($sum_month, 'receive_total');
@@ -753,7 +762,9 @@ class ClaimOpController extends Controller
             IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.refer, 0) AS refer,
+            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+            COALESCE(op_data.other_price, 0) AS other_price,
+            v.income - IFNULL(rc.rcpt_money, 0) - COALESCE(op_data.other_price, 0) AS claim_price,
             op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
             fdh.status_message_th AS fdh_status,ec.status AS ec_status
             FROM ovst o
@@ -775,7 +786,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN (
                 SELECT op.vn, 
-                    SUM(CASE WHEN n.nhso_adp_code IN ("S1801","S1802") THEN op.sum_price ELSE 0 END) AS refer,
+                    SUM(CASE WHEN (li.ems = "Y" OR li.kidney = "Y") THEN op.sum_price ELSE 0 END) AS other_price,
                     GROUP_CONCAT(DISTINCT CASE WHEN n.nhso_adp_code IN ("WALKIN","UCEP24") THEN n.nhso_adp_code END) AS project,
                     MAX(CASE WHEN li.kidney = "Y" THEN 1 ELSE 0 END) AS is_kidney
                 FROM opitemrece op
@@ -799,7 +810,6 @@ class ClaimOpController extends Controller
             AND p.hipdata_code IN ("UCS","WEL") 
             AND o.vstdate BETWEEN ? AND ?
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-            AND NOT EXISTS (SELECT 1 FROM opitemrece kidney INNER JOIN hrims.lookup_icode li ON li.icode=kidney.icode WHERE kidney.vn=o.vn AND li.kidney = "Y")
             AND oe.moph_finance_upload_status IS NULL 
             AND fdh.seq IS NULL 
             AND ec.hn IS NULL
@@ -811,7 +821,9 @@ class ClaimOpController extends Controller
             IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.refer, 0) AS refer,
+            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+            COALESCE(op_data.other_price, 0) AS other_price,
+            v.income - IFNULL(rc.rcpt_money, 0) - COALESCE(op_data.other_price, 0) AS claim_price,
             op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
             stm.receive_total,stm.repno,
             fdh.status_message_th AS fdh_status,ec.status AS ec_status
@@ -834,7 +846,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn            
             LEFT JOIN (
                 SELECT op.vn, 
-                    SUM(CASE WHEN n.nhso_adp_code IN ("S1801","S1802") THEN op.sum_price ELSE 0 END) AS refer,
+                    SUM(CASE WHEN (li.ems = "Y" OR li.kidney = "Y") THEN op.sum_price ELSE 0 END) AS other_price,
                     GROUP_CONCAT(DISTINCT CASE WHEN n.nhso_adp_code IN ("WALKIN","UCEP24") THEN n.nhso_adp_code END) AS project,
                     MAX(CASE WHEN li.kidney = "Y" THEN 1 ELSE 0 END) AS is_kidney
                 FROM opitemrece op
@@ -858,11 +870,87 @@ class ClaimOpController extends Controller
             AND p.hipdata_code IN ("UCS","WEL") 
             AND o.vstdate BETWEEN ? AND ?
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
-            AND NOT EXISTS (SELECT 1 FROM opitemrece kidney INNER JOIN hrims.lookup_icode li ON li.icode=kidney.icode WHERE kidney.vn=o.vn AND li.kidney = "Y")
             AND (oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL )
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         return view('claim_op.ucs_outprovince', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
+    }
+    //----------------------------------------------------------------------------------------------------------------------------------------
+    public function get_ucs_outprovince_visit_details(Request $request)
+    {
+        $vn = $request->input('vn');
+        if (empty($vn)) {
+            return response()->json(['error' => 'กรุณาระบุ VN'], 400);
+        }
+
+        // ดึงข้อมูลหลักของ Visit
+        $visit = DB::connection('hosxp')->selectOne('
+            SELECT o.vn, o.vstdate, o.vsttime, o.oqueue,
+                   pt.hn, pt.sex, v.age_y, pt.cid,
+                   CONCAT(pt.pname,pt.fname," ",pt.lname) AS ptname,
+                   p.name AS pttype, vp.hospmain, os.cc, v.pdx,
+                   v.income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
+                   IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
+                   IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint,
+                   ep.claim_status,
+                   fdh.status_message_th AS fdh_status,
+                   vp.confirm_and_locked
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN opdscreen os ON os.vn = o.vn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno=r.rcpno WHERE a.rcpno IS NULL GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
+            WHERE o.vn = ?', [$vn]);
+
+        if (!$visit) {
+            return response()->json(['error' => 'ไม่พบข้อมูลการรับบริการ'], 404);
+        }
+
+        // รหัสโรครอง
+        $secDiags = DB::connection('hosxp')
+            ->table('ovstdiag')
+            ->where('vn', $vn)
+            ->whereNotIn('diagtype', ['1', '2'])
+            ->pluck('icd10')
+            ->toArray();
+        $visit->icd9 = implode(',', $secDiags);
+
+        // รหัสหัตถการ (ICD-9/Procedure)
+        $procedures = DB::connection('hosxp')
+            ->table('ovstdiag')
+            ->where('vn', $vn)
+            ->where('diagtype', '2')
+            ->pluck('icd10')
+            ->toArray();
+
+        // รายการเวชภัณฑ์/ค่าใช้จ่ายทุกรายการ (ดึงทั้งหมดไม่กรอง)
+        $items = DB::connection('hosxp')->select('
+            SELECT op.icode, IFNULL(n.name, d.name) AS name,
+                   op.qty, op.unitprice, op.sum_price,
+                   li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code, li.kidney, li.ems
+            FROM opitemrece op
+            LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
+            LEFT JOIN nondrugitems n ON n.icode = op.icode
+            LEFT JOIN drugitems d ON d.icode = op.icode
+            WHERE op.vn = ?', [$vn]);
+
+        // Validate (bypass: is_valid always true)
+        $validator = new \App\Services\ClaimValidator();
+        $validation = $validator->validate($visit, $items);
+        $validation['is_valid'] = true;
+        $validation['errors']   = [];
+
+        return response()->json([
+            'visit'      => $visit,
+            'sec_diags'  => $secDiags,
+            'procedures' => $procedures,
+            'items'      => $items,
+            'validation' => $validation,
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_kidney(Request $request)

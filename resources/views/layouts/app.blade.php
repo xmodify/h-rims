@@ -676,12 +676,6 @@
                                                 </ul>
                                             </li>
                                         @endif
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern"
-                                                href="{{ url('/import/sss_equipdev_aipn') }}">
-                                                SSS_EquipdevAIPN
-                                            </a>
-                                        </li>
                                     </ul>
                                 </li>
                             @endif
@@ -708,8 +702,15 @@
                                                 href="{{ url('check/eclaim_status') }}">
                                                 E-Claim Status
                                             </a>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('check/drug_cat') }}">
+                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('check/drugcat_nhso') }}">
                                                 Drug Catalog สปสช.
+                                            </a>
+                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('check/drugcat_chi') }}">
+                                                Drug Catalog สกส.
+                                            </a>
+                                            <a class="dropdown-item dropdown-item-modern"
+                                                href="{{ url('check/sss_equipdev_aipn') }}">
+                                                SSS Equipdev AIPN
                                             </a>
                                             <a class="dropdown-item dropdown-item-modern"
                                                 href="{{ url('check/nondrugitems') }}">

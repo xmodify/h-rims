@@ -16,25 +16,25 @@
         </div>
         <div class="d-flex flex-wrap gap-2">
             <div class="btn-group shadow-sm">
-                <form method="POST" action="{{ route('admin.insert_lookup_uc_cr') }}" class="d-inline">
+                <form method="POST" action="{{ route('admin.insert_lookup_uc_cr') }}" class="d-inline import-form">
                     @csrf
                     <button type="submit" class="btn btn-outline-primary px-3 rounded-start-pill border-end-0">
                         <i class="bi bi-cloud-download me-1"></i> นำเข้า UC_CR
                     </button>
                 </form>
-                <form method="POST" action="{{ route('admin.insert_lookup_ppfs') }}" class="d-inline">
+                <form method="POST" action="{{ route('admin.insert_lookup_ppfs') }}" class="d-inline import-form">
                     @csrf
                     <button type="submit" class="btn btn-outline-primary px-3 border-start-0 border-end-0">
                          นำเข้า PPFS
                     </button>
                 </form>
-                <form method="POST" action="{{ route('admin.insert_lookup_herb32') }}" class="d-inline">
+                <form method="POST" action="{{ route('admin.insert_lookup_herb32') }}" class="d-inline import-form">
                     @csrf
                     <button type="submit" class="btn btn-outline-primary px-3 border-start-0 border-end-0">
                          นำเข้า Herb32
                     </button>
                 </form>
-                <form method="POST" action="{{ route('admin.insert_lookup_sss_hc') }}" class="d-inline">
+                <form method="POST" action="{{ route('admin.insert_lookup_sss_hc') }}" class="d-inline import-form">
                     @csrf
                     <button type="submit" class="btn btn-outline-primary px-3 rounded-end-pill border-start-0">
                         <i class="bi bi-cloud-download me-1"></i> นำเข้า SSS-HC
@@ -783,6 +783,94 @@
             $('#editems').prop('checked', data.ems === 'Y');
             $('#editsss_hc').prop('checked', data.sss_hc === 'Y');
             $('#editForm').attr('action', "{{ url('admin/lookup_icode') }}/" + data.icode);
+        });
+
+        // SweetAlert ยืนยันนำเข้าข้อมูลพร้อมแสดง Progress Bar %
+        $('.import-form').on('submit', function (e) {
+            e.preventDefault();
+            const form = this;
+            const actionUrl = $(form).attr('action');
+            const token = $(form).find('input[name="_token"]').val();
+            const importName = $(form).find('button[type="submit"]').text().trim();
+
+            Swal.fire({
+                title: 'ยืนยันการนำเข้าข้อมูล?',
+                text: `คุณต้องการนำเข้าข้อมูล ${importName} ใช่หรือไม่?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'ตกลง',
+                cancelButtonText: 'ยกเลิก',
+                reverseButtons: true,
+                borderRadius: '15px'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    let timerInterval;
+                    Swal.fire({
+                        title: `กำลังนำเข้าข้อมูล ${importName}...`,
+                        html: `
+                            <div class="progress" style="height: 25px;">
+                                <div id="import-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                            </div>
+                        `,
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        borderRadius: '15px',
+                        didOpen: () => {
+                            Swal.showLoading();
+                            let width = 0;
+                            const progressBar = $('#import-progress-bar');
+                            timerInterval = setInterval(() => {
+                                if (width < 95) {
+                                    width += Math.floor(Math.random() * 10) + 1;
+                                    if (width > 95) width = 95;
+                                    progressBar.css('width', width + '%');
+                                    progressBar.attr('aria-valuenow', width);
+                                    progressBar.text(width + '%');
+                                }
+                            }, 150);
+                        }
+                    });
+
+                    // AJAX Request
+                    $.ajax({
+                        url: actionUrl,
+                        type: 'POST',
+                        data: {
+                            _token: token
+                        },
+                        success: function (response) {
+                            clearInterval(timerInterval);
+                            const progressBar = $('#import-progress-bar');
+                            progressBar.css('width', '100%');
+                            progressBar.attr('aria-valuenow', 100);
+                            progressBar.text('100%');
+
+                            setTimeout(() => {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'สำเร็จ!',
+                                    text: response.message || 'นำเข้าข้อมูลเรียบร้อยแล้ว',
+                                    borderRadius: '15px',
+                                    confirmButtonColor: '#0a4d2c'
+                                }).then(() => {
+                                    window.location.reload();
+                                });
+                            }, 500);
+                        },
+                        error: function (xhr) {
+                            clearInterval(timerInterval);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'เกิดข้อผิดพลาด!',
+                                text: xhr.responseJSON?.message || 'ไม่สามารถนำเข้าข้อมูลได้',
+                                borderRadius: '15px'
+                            });
+                        }
+                    });
+                }
+            });
         });
 
         // SweetAlert ยืนยันลบ

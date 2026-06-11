@@ -310,10 +310,15 @@ class MainSettingController extends Controller
                 Log::warning("Could not upgrade lookup_icode: " . $e->getMessage());
             }
 
-            // 7. Create sss_equipdev_aipn table if not exists
+            // 7. Create/Rename lookup_sss_equipdev_aipn table if not exists
             try {
-                if (!Schema::hasTable('sss_equipdev_aipn')) {
-                    Schema::create('sss_equipdev_aipn', function (Blueprint $tableObj) {
+                if (Schema::hasTable('sss_equipdev_aipn') && !Schema::hasTable('lookup_sss_equipdev_aipn')) {
+                    Schema::rename('sss_equipdev_aipn', 'lookup_sss_equipdev_aipn');
+                    $migrate_result .= " and renamed sss_equipdev_aipn to lookup_sss_equipdev_aipn.";
+                }
+
+                if (!Schema::hasTable('lookup_sss_equipdev_aipn')) {
+                    Schema::create('lookup_sss_equipdev_aipn', function (Blueprint $tableObj) {
                         $tableObj->id();
                         $tableObj->string('billgroup', 50)->nullable()->index();
                         $tableObj->string('code', 50)->nullable()->index();
@@ -329,10 +334,10 @@ class MainSettingController extends Controller
                         $tableObj->text('note')->nullable();
                         $tableObj->timestamps();
                     });
-                    $migrate_result .= " and created sss_equipdev_aipn table.";
+                    $migrate_result .= " and created lookup_sss_equipdev_aipn table.";
                 }
             } catch (\Exception $e) {
-                Log::warning("Could not create sss_equipdev_aipn table: " . $e->getMessage());
+                Log::warning("Could not create/rename lookup_sss_equipdev_aipn table: " . $e->getMessage());
             }
 
             // 8. Drop legacy lookup_adp_sss table (replaced by sss_equipdev_aipn)
@@ -344,6 +349,156 @@ class MainSettingController extends Controller
             } catch (\Exception $e) {
                 Log::warning("Could not drop lookup_adp_sss table: " . $e->getMessage());
             }
+
+            // Drop legacy drugcat_aipn table and create drugcat_chi table
+            try {
+                if (Schema::hasTable('drugcat_aipn')) {
+                    Schema::drop('drugcat_aipn');
+                    $migrate_result .= " and dropped legacy drugcat_aipn table.";
+                }
+            } catch (\Exception $e) {
+                Log::warning("Could not drop drugcat_aipn table: " . $e->getMessage());
+            }
+
+            try {
+                if (!Schema::hasTable('drugcat_chi')) {
+                    Schema::create('drugcat_chi', function (Blueprint $table) {
+                        $table->string('hospdrugcode', 255)->nullable();
+                        $table->string('productcat', 255)->nullable();
+                        $table->string('tmtid', 255)->nullable();
+                        $table->string('specprep', 255)->nullable();
+                        $table->string('genericname', 255)->nullable();
+                        $table->string('tradename', 255)->nullable();
+                        $table->string('dfscode', 255)->nullable();
+                        $table->string('dosageform', 255)->nullable();
+                        $table->string('strength', 255)->nullable();
+                        $table->string('content', 255)->nullable();
+                        $table->double('unitprice')->nullable();
+                        $table->string('distributor', 255)->nullable();
+                        $table->string('manufacturer', 255)->nullable();
+                        $table->string('ised', 255)->nullable();
+                        $table->string('ndc24', 255)->nullable();
+                        $table->string('packsize', 255)->nullable();
+                        $table->string('packprice', 255)->nullable();
+                        $table->string('updateflag', 255)->nullable();
+                        $table->date('datechange')->nullable();
+                        $table->date('dateupdate')->nullable();
+                        $table->date('dateeffective')->nullable();
+                        $table->string('ised_approved', 255)->nullable();
+                        $table->string('ndc24_approved', 255)->nullable();
+                        $table->date('date_approved')->nullable();
+                        $table->string('ised_status', 255)->nullable();
+                        $table->string('stm_filename', 255)->nullable();
+                    });
+                    $migrate_result .= " and created drugcat_chi table.";
+                }
+            } catch (\Exception $e) {
+                Log::warning("Could not create drugcat_chi table: " . $e->getMessage());
+            }
+
+            // 8.1 Import/Upsert lookup_sss_equipdev_aipn data from docs/lookup/EquipdevAIPN.xlsx
+            try {
+                $filePath = base_path('docs/lookup/EquipdevAIPN.xlsx');
+                if (file_exists($filePath)) {
+                    $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+                    $sheet = $spreadsheet->setActiveSheetIndex(0);
+                    $row_limit = $sheet->getHighestDataRow();
+
+                    $parseDate = function ($value) {
+                        if (empty($value) || $value === '-' || trim($value) === '') {
+                            return null;
+                        }
+                        
+                        $value = trim($value);
+                        if (is_numeric($value)) {
+                            try {
+                                return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value)->format('Y-m-d');
+                            } catch (\Exception $e) {
+                                // ignore
+                            }
+                        }
+                        
+                        foreach (['d/m/Y', 'Y-m-d', 'd-m-Y', 'd/m/y', 'd-m-y'] as $format) {
+                            try {
+                                return \Carbon\Carbon::createFromFormat($format, $value)->format('Y-m-d');
+                            } catch (\Exception $e) {
+                                // continue
+                            }
+                        }
+                        
+                        try {
+                            return \Carbon\Carbon::parse($value)->format('Y-m-d');
+                        } catch (\Exception $e) {
+                            return null;
+                        }
+                    };
+
+                    $cleanRate = function ($val) {
+                        if ($val === null || $val === '-' || trim($val) === '') {
+                            return null;
+                        }
+                        $val = str_replace(',', '', $val);
+                        return is_numeric($val) ? (float) $val : null;
+                    };
+
+                    $updatedCount = 0;
+                    $insertedCount = 0;
+
+                    for ($row = 2; $row <= $row_limit; $row++) {
+                        $billgroup = $sheet->getCell('A' . $row)->getValue();
+                        $code = $sheet->getCell('B' . $row)->getValue();
+
+                        if (empty($billgroup) && empty($code)) {
+                            continue;
+                        }
+
+                        $rate = $cleanRate($sheet->getCell('D' . $row)->getValue());
+                        $rate2 = $cleanRate($sheet->getCell('E' . $row)->getValue());
+
+                        $daterev = $parseDate($sheet->getCell('G' . $row)->getValue());
+                        $dateeff = $parseDate($sheet->getCell('H' . $row)->getValue());
+                        $dateexp = $parseDate($sheet->getCell('I' . $row)->getValue());
+
+                        $recordData = [
+                            'billgroup' => $billgroup,
+                            'unit' => $sheet->getCell('C' . $row)->getValue(),
+                            'rate' => $rate,
+                            'rate2' => $rate2,
+                            'desc' => $sheet->getCell('F' . $row)->getValue(),
+                            'daterev' => $daterev,
+                            'dateeff' => $dateeff,
+                            'dateexp' => $dateexp,
+                            'lastupd' => $sheet->getCell('J' . $row)->getValue(),
+                            'dtcond' => $sheet->getCell('K' . $row)->getValue(),
+                            'note' => $sheet->getCell('L' . $row)->getValue(),
+                            'updated_at' => now(),
+                        ];
+
+                        $exists = DB::table('lookup_sss_equipdev_aipn')->where('code', $code)->exists();
+                        if ($exists) {
+                            $updatedCount++;
+                        } else {
+                            $recordData['created_at'] = now();
+                            $recordData['code'] = $code;
+                            $insertedCount++;
+                        }
+
+                        DB::table('lookup_sss_equipdev_aipn')->updateOrInsert(
+                            ['code' => $code],
+                            $recordData
+                        );
+                    }
+
+                    $migrate_result .= " and updated lookup_sss_equipdev_aipn data (Inserted: $insertedCount, Updated: $updatedCount).";
+                } else {
+                    $migrate_result .= " and lookup_sss_equipdev_aipn Excel file not found at docs/lookup/EquipdevAIPN.xlsx.";
+                }
+            } catch (\Exception $e) {
+                Log::warning("Could not import lookup_sss_equipdev_aipn Excel data: " . $e->getMessage());
+                $migrate_result .= " and error importing lookup_sss_equipdev_aipn Excel: " . $e->getMessage();
+            }
+
+
 
             $migrate_result .= " and updated nhso_endpoint.";
 

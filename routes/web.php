@@ -140,21 +140,34 @@ Route::post('import/stm_sss_kidney_save', [ImportController::class, 'stm_sss_kid
 Route::post('import/stm_sss_kidney_updateReceipt', [ImportController::class, 'stm_sss_kidney_updateReceipt']);
 Route::match(['get', 'post'], 'import/stm_sss_kidneydetail', [ImportController::class, 'stm_sss_kidneydetail'])->name('stm_sss_kidneydetail');
 
-Route::match(['get', 'post'], 'import/sss_equipdev_aipn', [ImportController::class, 'sss_equipdev_aipn'])->name('import.sss_equipdev_aipn');
-Route::post('import/sss_equipdev_aipn_save', [ImportController::class, 'sss_equipdev_aipn_save'])->name('import.sss_equipdev_aipn_save');
+Route::match(['get', 'post'], 'check/sss_equipdev_aipn', [CheckController::class, 'sss_equipdev_aipn'])->name('check.sss_equipdev_aipn');
+Route::post('check/sss_equipdev_aipn_save', [CheckController::class, 'sss_equipdev_aipn_save'])->name('check.sss_equipdev_aipn_save');
 
 //Check------------------------------------------------------------------------------------------------------------------------------
 Route::match(['get', 'post'], 'check/nhso_endpoint', [CheckController::class, 'nhso_endpoint']);
 Route::match(['get', 'post'], 'check/fdh_claim_status', [CheckController::class, 'fdh_claim_status']);
-Route::post('check/drug_cat_nhso_save', [CheckController::class, 'drug_cat_nhso_save']);
-Route::get('check/drug_cat', [CheckController::class, 'drug_cat'])->name('drug_cat');
+Route::post('check/drugcat_nhso_save', [CheckController::class, 'drugcat_nhso_save']);
+Route::get('check/drugcat_nhso', [CheckController::class, 'drugcat_nhso'])->name('check.drugcat_nhso');
 Route::match(['get', 'post'], 'check/eclaim_status', [\App\Http\Controllers\CheckEclaimController::class, 'eclaim_status']);
 Route::post('check/eclaim_status/import', [\App\Http\Controllers\CheckEclaimController::class, 'import_eclaim_excel']);
-Route::get('check/drug_cat_non_nhso', [CheckController::class, 'drug_cat_non_nhso']);
-Route::get('check/drug_cat_nhso_price_notmatch_hosxp', [CheckController::class, 'drug_cat_nhso_price_notmatch_hosxp']);
-Route::get('check/drug_cat_nhso_tmt_notmatch_hosxp', [CheckController::class, 'drug_cat_nhso_tmt_notmatch_hosxp']);
-Route::get('check/drug_cat_nhso_code24_notmatch_hosxp', [CheckController::class, 'drug_cat_nhso_code24_notmatch_hosxp']);
-Route::get('check/drug_cat_herb', [CheckController::class, 'drug_cat_herb']);
+Route::get('check/drugcat_nhso_non_nhso', [CheckController::class, 'drugcat_nhso_non_nhso']);
+Route::get('check/drugcat_nhso_price_notmatch_hosxp', [CheckController::class, 'drugcat_nhso_price_notmatch_hosxp']);
+Route::get('check/drugcat_nhso_tmt_notmatch_hosxp', [CheckController::class, 'drugcat_nhso_tmt_notmatch_hosxp']);
+Route::get('check/drugcat_nhso_code24_notmatch_hosxp', [CheckController::class, 'drugcat_nhso_code24_notmatch_hosxp']);
+Route::get('check/drugcat_nhso_herb', [CheckController::class, 'drugcat_nhso_herb']);
+Route::get('check/drugcat_nhso_ised_notmatch_hosxp', [CheckController::class, 'drugcat_nhso_ised_notmatch_hosxp']);
+Route::get('check/drugcat_nhso_code24_missing_hosxp', [CheckController::class, 'drugcat_nhso_code24_missing_hosxp']);
+Route::get('check/drugcat_nhso_tmt_missing_hosxp', [CheckController::class, 'drugcat_nhso_tmt_missing_hosxp']);
+Route::post('check/drugcat_chi_save', [CheckController::class, 'drugcat_chi_save']);
+Route::get('check/drugcat_chi', [CheckController::class, 'drugcat_chi'])->name('check.drugcat_chi');
+Route::get('check/drugcat_chi_non_nhso', [CheckController::class, 'drugcat_chi_non_nhso']);
+Route::get('check/drugcat_chi_price_notmatch_hosxp', [CheckController::class, 'drugcat_chi_price_notmatch_hosxp']);
+Route::get('check/drugcat_chi_tmt_notmatch_hosxp', [CheckController::class, 'drugcat_chi_tmt_notmatch_hosxp']);
+Route::get('check/drugcat_chi_code24_notmatch_hosxp', [CheckController::class, 'drugcat_chi_code24_notmatch_hosxp']);
+Route::get('check/drugcat_chi_herb', [CheckController::class, 'drugcat_chi_herb']);
+Route::get('check/drugcat_chi_ised_notmatch_hosxp', [CheckController::class, 'drugcat_chi_ised_notmatch_hosxp']);
+Route::get('check/drugcat_chi_code24_missing_hosxp', [CheckController::class, 'drugcat_chi_code24_missing_hosxp']);
+Route::get('check/drugcat_chi_tmt_missing_hosxp', [CheckController::class, 'drugcat_chi_tmt_missing_hosxp']);
 Route::get('check/pttype', [CheckController::class, 'pttype']);
 Route::get('check/nhso_subinscl', [CheckController::class, 'nhso_subinscl']);
 Route::get('check/nondrugitems', [CheckController::class, 'nondrugitems']);

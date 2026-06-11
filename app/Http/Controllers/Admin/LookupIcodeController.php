@@ -215,6 +215,9 @@ class LookupIcodeController extends Controller
                     ]);
             }
         }
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'นำเข้าข้อมูล UC_CR สำเร็จ']);
+        }
         return redirect()->route('admin.lookup_icode.index')->with('success', 'นำเข้าข้อมูลสำเร็จ');
     }
 
@@ -268,6 +271,9 @@ class LookupIcodeController extends Controller
                     ]);
             }
         }
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'นำเข้าข้อมูล PPFS สำเร็จ']);
+        }
         return redirect()->route('admin.lookup_icode.index')->with('success', 'นำเข้าข้อมูลสำเร็จ');
     }
     public function insert_lookup_herb32(Request $request)
@@ -301,6 +307,9 @@ class LookupIcodeController extends Controller
                     ]);
             }
         }
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'นำเข้าข้อมูล Herb32 สำเร็จ']);
+        }
         return redirect()->route('admin.lookup_icode.index')->with('success', 'นำเข้าข้อมูลสำเร็จ');
     }
 
@@ -309,7 +318,7 @@ class LookupIcodeController extends Controller
         $hosxp_data = DB::connection('hosxp')->select('
             SELECT n.icode, n.`name`, n.nhso_adp_code, "Y" AS sss_hc 
             FROM nondrugitems n
-            INNER JOIN hrims.sss_equipdev_aipn a ON a.`code` = n.nhso_adp_code AND a.dateexp >= DATE(NOW())
+            INNER JOIN hrims.lookup_sss_equipdev_aipn a ON a.`code` = n.nhso_adp_code AND a.dateexp >= DATE(NOW())
             WHERE n.istatus = "Y"');
 
         foreach ($hosxp_data as $row) {
@@ -334,6 +343,9 @@ class LookupIcodeController extends Controller
                         'updated_at'    => now(),
                     ]);
             }
+        }
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'นำเข้า SSS-HC สำเร็จ']);
         }
         return redirect()->route('admin.lookup_icode.index')->with('success', 'นำเข้า SSS-HC สำเร็จ');
     }

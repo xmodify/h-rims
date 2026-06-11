@@ -10,6 +10,7 @@ use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Reader\Exception;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use App\Models\Drugcat_nhso;
+use App\Models\Drugcat_chi;
 
 class CheckController extends Controller
 {
@@ -111,7 +112,7 @@ class CheckController extends Controller
     ####################################################################################################################################
     //นำเข้า Drug Catalog-----------------------------------------------------------------------------------------------------------------
 
-    public function drug_cat_nhso_save(Request $request)
+    public function drugcat_nhso_save(Request $request)
     {
         // Set the execution time to 300 seconds (5 minutes)
         set_time_limit(300);
@@ -119,10 +120,13 @@ class CheckController extends Controller
         Drugcat_nhso::truncate();
 
         $this->validate($request, [
-            'file' => 'required|file|mimes:xls,xlsx'
+            'file' => 'required|file'
         ]);
         $the_file = $request->file('file');
-        $file_name = $request->file('file')->getClientOriginalName(); //ชื่อไฟล์
+        if (!in_array(strtolower($the_file->getClientOriginalExtension()), ['xls', 'xlsx'])) {
+            return back()->withErrors('กรุณาเลือกเฉพาะไฟล์นามสกุล .xls หรือ .xlsx เท่านั้น');
+        }
+        $file_name = $the_file->getClientOriginalName(); //ชื่อไฟล์
 
         try {
             $spreadsheet = IOFactory::load($the_file->getRealPath());
@@ -197,144 +201,556 @@ class CheckController extends Controller
             foreach ($for_insert as $key => $data_) {
                 Drugcat_nhso::insert($data_);
             }
-        } catch (QueryException $e) {
-            $error_code = $e->errorInfo[1];
-            return back()->withErrors('There was a problem uploading the data!');
+        } catch (\Exception $e) {
+            return back()->withErrors('เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' . $e->getMessage());
         }
 
-        return redirect()->route('drug_cat')->with('success', $file_name);
+        return redirect()->route('check.drugcat_nhso')->with('success', $file_name);
     }
     //Drug ทั้งหมดใน HOSxP-----------------------------------------------------------------------------------------------------------------------------------------
-    public function drug_cat()
+    public function drugcat_nhso()
     {
-        $drug =  DB::connection('hosxp')->select('
+        $local_db = config('database.connections.mysql.database');
+        $drug =  DB::connection('hosxp')->select("
             SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
-			IF(d2.ref_code LIKE "4%","Y","") AS herb,IF(nd.hospdrugcode IS NULL,"N","Y") AS chk_nhso_drugcat,
+			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
             d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
-            CASE WHEN (d.drugaccount = "-" OR d.drugaccount = "") THEN"N" WHEN drugaccount <> "" THEN "E" END AS ISED,d.drugaccount,
+            CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
             FROM drugitems d
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
             LEFT JOIN income i ON i.income = d.income
             LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3           
-            LEFT JOIN (SELECT dc.* FROM hrims.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
-                FROM hrims.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ("A","U","E"))) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = "Y" AND d.`name` NOT LIKE "*%" AND d.`name` NOT LIKE "(ยาผู้ป่วย)%"
-            ORDER BY d.NAME,d.strength,d.units');
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%'
+            ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drug_cat', compact('drug'));
+        return view('check.drugcat_nhso', compact('drug'));
     }
     //Drug ไม่พบที่ NHSO----------------------------------------------------------------------------------------------------------------------------------------------
-    public function drug_cat_non_nhso()
+    public function drugcat_nhso_non_nhso()
     {
-        $drug =  DB::connection('hosxp')->select('
+        $local_db = config('database.connections.mysql.database');
+        $drug =  DB::connection('hosxp')->select("
             SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
-			IF(d2.ref_code LIKE "4%","Y","") AS herb,IF(nd.hospdrugcode IS NULL,"N","Y") AS chk_nhso_drugcat,
+			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
             d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
-            CASE WHEN (d.drugaccount = "-" OR d.drugaccount = "") THEN"N" WHEN drugaccount <> "" THEN "E" END AS ISED,d.drugaccount,
+            CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm
             FROM drugitems d
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
             LEFT JOIN income i ON i.income = d.income
             LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
-            LEFT JOIN (SELECT dc.* FROM hrims.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
-                FROM hrims.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ("A","U","E"))) nd ON nd.hospdrugcode=d.icode             
-            WHERE d.istatus = "Y" AND d.`name` NOT LIKE "*%" AND d.`name` NOT LIKE "(ยาผู้ป่วย)%" AND nd.hospdrugcode IS NULL  
-            ORDER BY d.NAME,d.strength,d.units');
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode             
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND nd.hospdrugcode IS NULL  
+            ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drug_cat', compact('drug'));
+        return view('check.drugcat_nhso', compact('drug'));
     }
     //Drug Catalog ราคาไม่ตรงกับ HOSxP-------------------------------------------------------------------------------------------------------------------------------
-    public function drug_cat_nhso_price_notmatch_hosxp()
+    public function drugcat_nhso_price_notmatch_hosxp()
     {
-        $drug =  DB::connection('hosxp')->select('
+        $local_db = config('database.connections.mysql.database');
+        $drug =  DB::connection('hosxp')->select("
             SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
-			IF(d2.ref_code LIKE "4%","Y","") AS herb,IF(nd.hospdrugcode IS NULL,"N","Y") AS chk_nhso_drugcat,
+			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
             d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
-            CASE WHEN (d.drugaccount = "-" OR d.drugaccount = "") THEN"N" WHEN drugaccount <> "" THEN "E" END AS ISED,d.drugaccount,
+            CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm    
             FROM drugitems d
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
             LEFT JOIN income i ON i.income = d.income
             LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3           
-            LEFT JOIN (SELECT dc.* FROM hrims.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
-                FROM hrims.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ("A","U","E"))) nd ON nd.hospdrugcode=d.icode             
-            WHERE d.istatus = "Y" AND d.`name` NOT LIKE "*%" AND d.`name` NOT LIKE "(ยาผู้ป่วย)%" AND nd.unitprice <> d.unitprice
-            ORDER BY d.NAME,d.strength,d.units');
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode             
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND nd.unitprice <> d.unitprice
+            ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drug_cat', compact('drug'));
+        return view('check.drugcat_nhso', compact('drug'));
     }
     //Drug Catalog รหัส TMT ไม่ตรงกับ HOSxP
-    public function drug_cat_nhso_tmt_notmatch_hosxp()
+    public function drugcat_nhso_tmt_notmatch_hosxp()
     {
-        $drug =  DB::connection('hosxp')->select('
+        $local_db = config('database.connections.mysql.database');
+        $drug =  DB::connection('hosxp')->select("
             SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
-			IF(d2.ref_code LIKE "4%","Y","") AS herb,IF(nd.hospdrugcode IS NULL,"N","Y") AS chk_nhso_drugcat,
+			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
             d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
-            CASE WHEN (d.drugaccount = "-" OR d.drugaccount = "") THEN"N" WHEN drugaccount <> "" THEN "E" END AS ISED,d.drugaccount,
+            CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm   
             FROM drugitems d
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
             LEFT JOIN income i ON i.income = d.income
             LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
-            LEFT JOIN (SELECT dc.* FROM hrims.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
-                FROM hrims.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ("A","U","E"))) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = "Y" AND d.`name` NOT LIKE "*%" AND d.`name` NOT LIKE "(ยาผู้ป่วย)%" AND nd.tmtid <> d3.ref_code
-            ORDER BY d.NAME,d.strength,d.units');
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND nd.tmtid <> d3.ref_code
+            ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drug_cat', compact('drug'));
+        return view('check.drugcat_nhso', compact('drug'));
     }
     //Drug Catalog รหัส 24 หลักไม่ตรงกับ HOSxP---------------------------------------------------------------------------------------------------------------------------
-    public function drug_cat_nhso_code24_notmatch_hosxp()
+    public function drugcat_nhso_code24_notmatch_hosxp()
     {
-        $drug =  DB::connection('hosxp')->select('
+        $local_db = config('database.connections.mysql.database');
+        $drug =  DB::connection('hosxp')->select("
             SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
-			IF(d2.ref_code LIKE "4%","Y","") AS herb,IF(nd.hospdrugcode IS NULL,"N","Y") AS chk_nhso_drugcat,
+			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
             d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
-            CASE WHEN (d.drugaccount = "-" OR d.drugaccount = "") THEN"N" WHEN drugaccount <> "" THEN "E" END AS ISED,d.drugaccount,
+            CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm 
             FROM drugitems d
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
             LEFT JOIN income i ON i.income = d.income
             LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
-            LEFT JOIN (SELECT dc.* FROM hrims.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
-                FROM hrims.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ("A","U","E"))) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = "Y" AND d.`name` NOT LIKE "*%" AND d.`name` NOT LIKE "(ยาผู้ป่วย)%" AND nd.ndc24 <> d2.ref_code
-            ORDER BY d.NAME,d.strength,d.units');
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND nd.ndc24 <> d2.ref_code
+            ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drug_cat', compact('drug'));
+        return view('check.drugcat_nhso', compact('drug'));
     }
     //Drug Catalog ยาสมุนไพร---------------------------------------------------------------------------------------------------------------------------
-    public function drug_cat_herb()
+    public function drugcat_nhso_herb()
     {
-        $drug =  DB::connection('hosxp')->select('
+        $local_db = config('database.connections.mysql.database');
+        $drug =  DB::connection('hosxp')->select("
             SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
-			IF(d2.ref_code LIKE "4%","Y","") AS herb,IF(nd.hospdrugcode IS NULL,"N","Y") AS chk_nhso_drugcat,
+			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
             d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
             d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
-            CASE WHEN (d.drugaccount = "-" OR d.drugaccount = "") THEN"N" WHEN drugaccount <> "" THEN "E" END AS ISED,d.drugaccount,
+            CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
             IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
             FROM drugitems d
             LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
             LEFT JOIN income i ON i.income = d.income
             LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
             LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
-            LEFT JOIN (SELECT dc.* FROM hrims.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
-                FROM hrims.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ("A","U","E"))) nd ON nd.hospdrugcode=d.icode 
-            WHERE d.istatus = "Y" AND d.`name` NOT LIKE "*%" AND d.`name` NOT LIKE "(ยาผู้ป่วย)%" AND d2.ref_code LIKE "4%"
-            ORDER BY d.NAME,d.strength,d.units');
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d2.ref_code LIKE '4%'
+            ORDER BY d.NAME,d.strength,d.units");
 
-        return view('check.drug_cat', compact('drug'));
+        return view('check.drugcat_nhso', compact('drug'));
+    }
+    //Drug Catalog บัญชียาหลักไม่ตรงกัน (ED/NED Mismatch)-----------------------------------------------------------------------------------------------------------------
+    public function drugcat_nhso_ised_notmatch_hosxp()
+    {
+        $local_db = config('database.connections.mysql.database');
+        $drug =  DB::connection('hosxp')->select("
+            SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
+			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
+            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
+            FROM drugitems d
+            LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
+            LEFT JOIN income i ON i.income = d.income
+            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' 
+              AND nd.hospdrugcode IS NOT NULL 
+              AND CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END <> CASE WHEN (nd.ised LIKE 'E%') THEN 'E' ELSE 'N' END
+            ORDER BY d.NAME,d.strength,d.units");
+
+        return view('check.drugcat_nhso', compact('drug'));
+    }
+    //Drug Catalog ลืมผูกรหัส 24 หลักใน HOSxP-----------------------------------------------------------------------------------------------------------------------------
+    public function drugcat_nhso_code24_missing_hosxp()
+    {
+        $local_db = config('database.connections.mysql.database');
+        $drug =  DB::connection('hosxp')->select("
+            SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
+			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
+            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
+            FROM drugitems d
+            LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
+            LEFT JOIN income i ON i.income = d.income
+            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' 
+              AND (d2.ref_code IS NULL OR d2.ref_code = '') 
+              AND nd.ndc24 IS NOT NULL
+            ORDER BY d.NAME,d.strength,d.units");
+
+        return view('check.drugcat_nhso', compact('drug'));
+    }
+    //Drug Catalog ลืมผูกรหัส TMT ใน HOSxP-----------------------------------------------------------------------------------------------------------------------------
+    public function drugcat_nhso_tmt_missing_hosxp()
+    {
+        $local_db = config('database.connections.mysql.database');
+        $drug =  DB::connection('hosxp')->select("
+            SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
+			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
+            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
+            FROM drugitems d
+            LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
+            LEFT JOIN income i ON i.income = d.income
+            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_nhso dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_nhso dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' 
+              AND (d3.ref_code IS NULL OR d3.ref_code = '') 
+              AND nd.tmtid IS NOT NULL
+            ORDER BY d.NAME,d.strength,d.units");
+
+        return view('check.drugcat_nhso', compact('drug'));
+    }
+
+    //นำเข้า Drug Catalog สกส.-----------------------------------------------------------------------------------------------------------------
+    public function drugcat_chi_save(Request $request)
+    {
+        // Set the execution time to 300 seconds (5 minutes)
+        set_time_limit(300);
+
+        Drugcat_chi::truncate();
+
+        $this->validate($request, [
+            'file' => 'required|file'
+        ]);
+        $the_file = $request->file('file');
+        if (!in_array(strtolower($the_file->getClientOriginalExtension()), ['xls', 'xlsx'])) {
+            return back()->withErrors('กรุณาเลือกเฉพาะไฟล์นามสกุล .xls หรือ .xlsx เท่านั้น');
+        }
+        $file_name = $the_file->getClientOriginalName(); //ชื่อไฟล์
+
+        try {
+            $spreadsheet = IOFactory::load($the_file->getRealPath());
+            $sheet        = $spreadsheet->setActiveSheetIndex(0);
+            $row_limit    = $sheet->getHighestDataRow();
+            $row_range    = range('5', $row_limit);
+
+            $parseExcelDate = function ($value) {
+                if (empty($value) || $value === '-' || trim($value) === '') {
+                    return null;
+                }
+                $value = trim($value);
+                if (is_numeric($value)) {
+                    try {
+                        return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value)->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        // ignore
+                    }
+                }
+                foreach (['d/m/Y', 'Y-m-d', 'd-m-Y', 'd/m/y', 'd-m-y'] as $format) {
+                    try {
+                        return \Carbon\Carbon::createFromFormat($format, $value)->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        // continue
+                    }
+                }
+                try {
+                    return \Carbon\Carbon::parse($value)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    return null;
+                }
+            };
+
+            $cleanExcelRate = function ($val) {
+                if ($val === null || $val === '-' || trim($val) === '') {
+                    return null;
+                }
+                $val = str_replace(',', '', $val);
+                return is_numeric($val) ? (float) $val : null;
+            };
+
+            $data = array();
+            foreach ($row_range as $row) {
+                $hospdrugcode = $sheet->getCell('B' . $row)->getValue();
+                if (empty($hospdrugcode)) {
+                    continue;
+                }
+
+                $unitprice = $cleanExcelRate($sheet->getCell('L' . $row)->getValue());
+                
+                $datechange = $parseExcelDate($sheet->getCell('T' . $row)->getValue());
+                $dateupdate = $parseExcelDate($sheet->getCell('U' . $row)->getValue());
+                $dateeffective = $parseExcelDate($sheet->getCell('V' . $row)->getValue());
+                $date_approved = $parseExcelDate($sheet->getCell('W' . $row)->getValue());
+
+                $data[] = [
+                    'hospdrugcode'      => $hospdrugcode,
+                    'productcat'        => $sheet->getCell('C' . $row)->getValue(),
+                    'tmtid'             => $sheet->getCell('D' . $row)->getValue(),
+                    'specprep'          => $sheet->getCell('E' . $row)->getValue(),
+                    'genericname'       => $sheet->getCell('F' . $row)->getValue(),
+                    'tradename'         => $sheet->getCell('G' . $row)->getValue(),
+                    'dfscode'           => $sheet->getCell('H' . $row)->getValue(),
+                    'dosageform'        => $sheet->getCell('I' . $row)->getValue(),
+                    'strength'          => $sheet->getCell('J' . $row)->getValue(),
+                    'content'           => $sheet->getCell('K' . $row)->getValue(),
+                    'unitprice'         => $unitprice,
+                    'distributor'       => $sheet->getCell('M' . $row)->getValue(),
+                    'manufacturer'      => $sheet->getCell('N' . $row)->getValue(),
+                    'ised'              => $sheet->getCell('O' . $row)->getValue(),
+                    'ndc24'             => $sheet->getCell('P' . $row)->getValue(),
+                    'packsize'          => $sheet->getCell('Q' . $row)->getValue(),
+                    'packprice'         => $sheet->getCell('R' . $row)->getValue(),
+                    'updateflag'        => $sheet->getCell('S' . $row)->getValue(),
+                    'datechange'        => $datechange,
+                    'dateupdate'        => $dateupdate,
+                    'dateeffective'     => $dateeffective,
+                    'date_approved'     => $date_approved,
+                    'ised_status'       => $sheet->getCell('X' . $row)->getValue(),
+                    'stm_filename'      => $file_name,
+                ];
+            }
+
+            $for_insert = array_chunk($data, 1000);
+            foreach ($for_insert as $key => $data_) {
+                Drugcat_chi::insert($data_);
+            }
+        } catch (\Exception $e) {
+            return back()->withErrors('เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' . $e->getMessage());
+        }
+
+        return redirect()->route('check.drugcat_chi')->with('success', $file_name);
+    }
+
+    //Drug ทั้งหมดใน HOSxP (CSMBS)-----------------------------------------------------------------------------------------------------------------------------------------
+    public function drugcat_chi()
+    {
+        $local_db = config('database.connections.mysql.database');
+        $drug =  DB::connection('hosxp')->select("
+            SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
+			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,
+            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
+            FROM drugitems d
+            LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
+            LEFT JOIN income i ON i.income = d.income
+            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3           
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%'
+            ORDER BY d.NAME,d.strength,d.units");
+
+        return view('check.drugcat_chi', compact('drug'));
+    }
+
+    //Drug ไม่พบที่ สกส.----------------------------------------------------------------------------------------------------------------------------------------------
+    public function drugcat_chi_non_nhso()
+    {
+        $local_db = config('database.connections.mysql.database');
+        $drug =  DB::connection('hosxp')->select("
+            SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
+			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
+            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm
+            FROM drugitems d
+            LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
+            LEFT JOIN income i ON i.income = d.income
+            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode             
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND nd.hospdrugcode IS NULL  
+            ORDER BY d.NAME,d.strength,d.units");
+
+        return view('check.drugcat_chi', compact('drug'));
+    }
+
+    //Drug Catalog ราคาไม่ตรงกับ HOSxP (CSMBS)-------------------------------------------------------------------------------------------------------------------------------
+    public function drugcat_chi_price_notmatch_hosxp()
+    {
+        $local_db = config('database.connections.mysql.database');
+        $drug =  DB::connection('hosxp')->select("
+            SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
+			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
+            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm    
+            FROM drugitems d
+            LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
+            LEFT JOIN income i ON i.income = d.income
+            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3           
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode             
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND nd.unitprice <> d.unitprice
+            ORDER BY d.NAME,d.strength,d.units");
+
+        return view('check.drugcat_chi', compact('drug'));
+    }
+
+    //Drug Catalog รหัส TMT ไม่ตรงกับ HOSxP (CSMBS)
+    public function drugcat_chi_tmt_notmatch_hosxp()
+    {
+        $local_db = config('database.connections.mysql.database');
+        $drug =  DB::connection('hosxp')->select("
+            SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
+			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,
+            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm   
+            FROM drugitems d
+            LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
+            LEFT JOIN income i ON i.income = d.income
+            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND nd.tmtid <> d3.ref_code
+            ORDER BY d.NAME,d.strength,d.units");
+
+        return view('check.drugcat_chi', compact('drug'));
+    }
+
+    //Drug Catalog รหัส 24 หลักไม่ตรงกับ HOSxP (CSMBS)---------------------------------------------------------------------------------------------------------------------------
+    public function drugcat_chi_code24_notmatch_hosxp()
+    {
+        $local_db = config('database.connections.mysql.database');
+        $drug =  DB::connection('hosxp')->select("
+            SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
+			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
+            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm 
+            FROM drugitems d
+            LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
+            LEFT JOIN income i ON i.income = d.income
+            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND nd.ndc24 <> d2.ref_code
+            ORDER BY d.NAME,d.strength,d.units");
+
+        return view('check.drugcat_chi', compact('drug'));
+    }
+
+    //Drug Catalog ยาสมุนไพร (CSMBS)---------------------------------------------------------------------------------------------------------------------------
+    public function drugcat_chi_herb()
+    {
+        $local_db = config('database.connections.mysql.database');
+        $drug =  DB::connection('hosxp')->select("
+            SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
+			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
+            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
+            FROM drugitems d
+            LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
+            LEFT JOIN income i ON i.income = d.income
+            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' AND d2.ref_code LIKE '4%'
+            ORDER BY d.NAME,d.strength,d.units");
+
+        return view('check.drugcat_chi', compact('drug'));
+    }
+
+    //Drug Catalog บัญชียาหลักไม่ตรงกัน (ED/NED Mismatch - CSMBS)-----------------------------------------------------------------------------------------------------------------
+    public function drugcat_chi_ised_notmatch_hosxp()
+    {
+        $local_db = config('database.connections.mysql.database');
+        $drug =  DB::connection('hosxp')->select("
+            SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
+			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
+            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
+            FROM drugitems d
+            LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
+            LEFT JOIN income i ON i.income = d.income
+            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' 
+              AND nd.hospdrugcode IS NOT NULL 
+              AND CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END <> CASE WHEN (nd.ised LIKE 'E%') THEN 'E' ELSE 'N' END
+            ORDER BY d.NAME,d.strength,d.units");
+
+        return view('check.drugcat_chi', compact('drug'));
+    }
+
+    //Drug Catalog ลืมผูกรหัส 24 หลักใน HOSxP (CSMBS)-----------------------------------------------------------------------------------------------------------------------------
+    public function drugcat_chi_code24_missing_hosxp()
+    {
+        $local_db = config('database.connections.mysql.database');
+        $drug =  DB::connection('hosxp')->select("
+            SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
+			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
+            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
+            FROM drugitems d
+            LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
+            LEFT JOIN income i ON i.income = d.income
+            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' 
+              AND (d2.ref_code IS NULL OR d2.ref_code = '') 
+              AND nd.ndc24 IS NOT NULL
+            ORDER BY d.NAME,d.strength,d.units");
+
+        return view('check.drugcat_chi', compact('drug'));
+    }
+
+    //Drug Catalog ลืมผูกรหัส TMT ใน HOSxP (CSMBS)-----------------------------------------------------------------------------------------------------------------------------
+    public function drugcat_chi_tmt_missing_hosxp()
+    {
+        $local_db = config('database.connections.mysql.database');
+        $drug =  DB::connection('hosxp')->select("
+            SELECT  d.icode,CONCAT(d.`name`,SPACE(1),d.strength) AS dname,d.units,d.ttmt_code,
+			IF(d2.ref_code LIKE '4%','Y','') AS herb,IF(nd.hospdrugcode IS NULL,'N','Y') AS chk_nhso_drugcat,
+            d.unitprice AS price_hos,nd.unitprice AS price_nhso,d3.ref_code AS code_tmt_hos,nd.tmtid AS code_tmt_nhso,            
+            d2.ref_code AS code_24_hos,nd.ndc24 AS code_24_nhso,i.NAME AS income_name,  
+            CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ised_hos, nd.ised AS ised_nhso, d.drugaccount,
+            IFNULL(d.generic_name,d.`name`) AS GenericName,d.trade_name AS TradeName,d.dosageform AS DosageForm     
+            FROM drugitems d
+            LEFT JOIN ttmt_code t ON t.ttmt_code=d.ttmt_code
+            LEFT JOIN income i ON i.income = d.income
+            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE  dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode 
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%' 
+              AND (d3.ref_code IS NULL OR d3.ref_code = '') 
+              AND nd.tmtid IS NOT NULL
+            ORDER BY d.NAME,d.strength,d.units");
+
+        return view('check.drugcat_chi', compact('drug'));
     }
 
     ###################################################################################################################################################
@@ -408,5 +824,187 @@ class CheckController extends Controller
 
 
         return view('check.nondrugitems', compact('nondrugitems', 'nondrugitems_non', 'categories'));
+    }
+
+    // sss_equipdev_aipn -----------------------------------------------------------------------------------------
+    public function sss_equipdev_aipn(Request $request)
+    {
+        if ($request->ajax()) {
+            $query = DB::table('lookup_sss_equipdev_aipn');
+
+            // Tab filter: active = dateexp >= today, expired = dateexp < today
+            $tab = $request->input('tab', 'all');
+            $today = now()->format('Y-m-d');
+            if ($tab === 'active') {
+                $query->where('dateexp', '>=', $today);
+            } elseif ($tab === 'expired') {
+                $query->where('dateexp', '<', $today);
+            }
+
+            // Searching
+            if ($request->has('search') && !empty($request->search['value'])) {
+                $search = $request->search['value'];
+                $query->where(function ($q) use ($search) {
+                    $q->where('code', 'like', "%$search%")
+                      ->orWhere('desc', 'like', "%$search%")
+                      ->orWhere('billgroup', 'like', "%$search%")
+                      ->orWhere('dtcond', 'like', "%$search%");
+                });
+            }
+
+            $recordsTotal = DB::table('lookup_sss_equipdev_aipn')->count();
+            $recordsFiltered = $query->count();
+
+            // Pagination
+            $start = $request->start ?? 0;
+            $length = $request->length ?? 50;
+            
+            // Order
+            if ($request->has('order')) {
+                $columns = [
+                    0 => 'billgroup',
+                    1 => 'code',
+                    2 => 'unit',
+                    3 => 'rate',
+                    4 => 'rate2',
+                    5 => 'desc',
+                    6 => 'daterev',
+                    7 => 'dateeff',
+                    8 => 'dateexp',
+                    9 => 'lastupd',
+                    10 => 'dtcond',
+                    11 => 'note'
+                ];
+                foreach ($request->order as $order) {
+                    if (isset($columns[$order['column']])) {
+                        $query->orderBy($columns[$order['column']], $order['dir']);
+                    }
+                }
+            } else {
+                $query->orderBy('id', 'asc');
+            }
+
+            $data = $query->offset($start)->limit($length)->get();
+
+            return response()->json([
+                "draw" => intval($request->draw),
+                "recordsTotal" => $recordsTotal,
+                "recordsFiltered" => $recordsFiltered,
+                "data" => $data
+            ]);
+        }
+
+        $total_records = DB::table('lookup_sss_equipdev_aipn')->count();
+        $active_records = DB::table('lookup_sss_equipdev_aipn')->where('dateexp', '>=', now()->format('Y-m-d'))->count();
+        $expired_records = DB::table('lookup_sss_equipdev_aipn')->where('dateexp', '<', now()->format('Y-m-d'))->count();
+        return view('check.sss_equipdev_aipn', compact('total_records', 'active_records', 'expired_records'));
+    }
+
+    // sss_equipdev_aipn_save ------------------------------------------------------------------------------------
+    public function sss_equipdev_aipn_save(Request $request)
+    {
+        set_time_limit(300);
+        ini_set('memory_limit', '1024M');
+
+        $this->validate($request, [
+            'file' => 'required|file|mimes:xls,xlsx'
+        ]);
+
+        $the_file = $request->file('file');
+        $file_name = $the_file->getClientOriginalName();
+
+        try {
+            $spreadsheet = IOFactory::load($the_file->getRealPath());
+            $sheet = $spreadsheet->setActiveSheetIndex(0);
+            $row_limit = $sheet->getHighestDataRow();
+
+            $data = [];
+
+            // Helper function to format Excel date safely
+            $parseDate = function ($value) {
+                if (empty($value) || $value === '-' || trim($value) === '') {
+                    return null;
+                }
+                
+                $value = trim($value);
+                if (is_numeric($value)) {
+                    try {
+                        return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value)->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        // ignore
+                    }
+                }
+                
+                foreach (['d/m/Y', 'Y-m-d', 'd-m-Y', 'd/m/y', 'd-m-y'] as $format) {
+                    try {
+                        return \Carbon\Carbon::createFromFormat($format, $value)->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        // continue
+                    }
+                }
+                
+                try {
+                    return \Carbon\Carbon::parse($value)->format('Y-m-d');
+                } catch (\Exception $e) {
+                    return null;
+                }
+            };
+
+            $cleanRate = function ($val) {
+                if ($val === null || $val === '-' || trim($val) === '') {
+                    return null;
+                }
+                $val = str_replace(',', '', $val);
+                return is_numeric($val) ? (float) $val : null;
+            };
+
+            for ($row = 2; $row <= $row_limit; $row++) {
+                $billgroup = $sheet->getCell('A' . $row)->getValue();
+                $code = $sheet->getCell('B' . $row)->getValue();
+
+                if (empty($billgroup) && empty($code)) {
+                    continue;
+                }
+
+                $rate = $cleanRate($sheet->getCell('D' . $row)->getValue());
+                $rate2 = $cleanRate($sheet->getCell('E' . $row)->getValue());
+
+                $daterev = $parseDate($sheet->getCell('G' . $row)->getValue());
+                $dateeff = $parseDate($sheet->getCell('H' . $row)->getValue());
+                $dateexp = $parseDate($sheet->getCell('I' . $row)->getValue());
+
+                $data[] = [
+                    'billgroup' => $sheet->getCell('A' . $row)->getValue(),
+                    'code' => $sheet->getCell('B' . $row)->getValue(),
+                    'unit' => $sheet->getCell('C' . $row)->getValue(),
+                    'rate' => $rate,
+                    'rate2' => $rate2,
+                    'desc' => $sheet->getCell('F' . $row)->getValue(),
+                    'daterev' => $daterev,
+                    'dateeff' => $dateeff,
+                    'dateexp' => $dateexp,
+                    'lastupd' => $sheet->getCell('J' . $row)->getValue(),
+                    'dtcond' => $sheet->getCell('K' . $row)->getValue(),
+                    'note' => $sheet->getCell('L' . $row)->getValue(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+
+            if (!empty($data)) {
+                \App\Models\LookupSssEquipdevAipn::truncate();
+                DB::transaction(function () use ($data) {
+                    $chunks = array_chunk($data, 1000);
+                    foreach ($chunks as $chunk) {
+                        \App\Models\LookupSssEquipdevAipn::insert($chunk);
+                    }
+                });
+            }
+
+            return redirect()->route('check.sss_equipdev_aipn')->with('success', 'นำเข้าข้อมูล ' . $file_name . ' สำเร็จ จำนวน ' . count($data) . ' รายการ');
+
+        } catch (\Exception $e) {
+            return redirect()->route('check.sss_equipdev_aipn')->with('error', 'เกิดข้อผิดพลาดในการนำเข้า: ' . $e->getMessage());
+        }
     }
 }

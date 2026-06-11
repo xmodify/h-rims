@@ -1,0 +1,148 @@
+<?php
+
+return [
+    '00' => [
+        'name'     => '(9-Lymphoma&Leukemia)-- (กรณีที่ไม่มี Protocol)',
+        'category' => 'การตรวจวินิจฉัยด้วยวิธีพิเศษอื่น',
+        'prices'   => [
+            'UCS'  => 0.00,
+            'OFC'  => 0.00,
+            'SSS'  => 0.00,
+            'LGO'  => 0.00,
+            'FS'  => 0.00,
+            'UCEP'  => 0.00,
+        ],
+    ],
+    'A-ALL-01' => [
+        'name'     => '(9-Lymphoma&Leukemia)-Acute Leukemia ผู้ใหญ่',
+        'category' => 'การตรวจวินิจฉัยด้วยวิธีพิเศษอื่น',
+        'prices'   => [
+            'UCS'  => 0.00,
+            'OFC'  => 0.00,
+            'SSS'  => 0.00,
+            'LGO'  => 0.00,
+            'FS'  => 0.00,
+            'UCEP'  => 0.00,
+        ],
+    ],
+    'A-AML-01' => [
+        'name'     => '(9-Lymphoma&Leukemia)-Acute Leukemia ผู้ใหญ่',
+        'category' => 'การตรวจวินิจฉัยด้วยวิธีพิเศษอื่น',
+        'prices'   => [
+            'UCS'  => 0.00,
+            'OFC'  => 0.00,
+            'SSS'  => 0.00,
+            'LGO'  => 0.00,
+            'FS'  => 0.00,
+            'UCEP'  => 0.00,
+        ],
+    ],
+    'A-APL-01' => [
+        'name'     => '(9-Lymphoma&Leukemia)-Acute Leukemia ผู้ใหญ่',
+        'category' => 'การตรวจวินิจฉัยด้วยวิธีพิเศษอื่น',
+        'prices'   => [
+            'UCS'  => 0.00,
+            'OFC'  => 0.00,
+            'SSS'  => 0.00,
+            'LGO'  => 0.00,
+            'FS'  => 0.00,
+            'UCEP'  => 0.00,
+        ],
+    ],
+    'C-ALL-01-05' => [
+        'name'     => '(9-Lymphoma&Leukemia)-Acute Leukemia เด็ก',
+        'category' => 'การตรวจวินิจฉัยด้วยวิธีพิเศษอื่น',
+        'prices'   => [
+            'UCS'  => 0.00,
+            'OFC'  => 0.00,
+            'SSS'  => 0.00,
+            'LGO'  => 0.00,
+            'FS'  => 0.00,
+            'UCEP'  => 0.00,
+        ],
+    ],
+    'C-ALL-02-05' => [
+        'name'     => '(9-Lymphoma&Leukemia)-Acute Leukemia เด็ก',
+        'category' => 'การตรวจวินิจฉัยด้วยวิธีพิเศษอื่น',
+        'prices'   => [
+            'UCS'  => 0.00,
+            'OFC'  => 0.00,
+            'SSS'  => 0.00,
+            'LGO'  => 0.00,
+            'FS'  => 0.00,
+            'UCEP'  => 0.00,
+        ],
+    ],
+    'C-AML-01-08' => [
+        'name'     => '(9-Lymphoma&Leukemia)-Acute Leukemia เด็ก',
+        'category' => 'การตรวจวินิจฉัยด้วยวิธีพิเศษอื่น',
+        'prices'   => [
+            'UCS'  => 0.00,
+            'OFC'  => 0.00,
+            'SSS'  => 0.00,
+            'LGO'  => 0.00,
+            'FS'  => 0.00,
+            'UCEP'  => 0.00,
+        ],
+    ],
+    'C-AML-02-08' => [
+        'name'     => '(9-Lymphoma&Leukemia)-Acute Leukemia เด็ก',
+        'category' => 'การตรวจวินิจฉัยด้วยวิธีพิเศษอื่น',
+        'prices'   => [
+            'UCS'  => 0.00,
+            'OFC'  => 0.00,
+            'SSS'  => 0.00,
+            'LGO'  => 0.00,
+            'FS'  => 0.00,
+            'UCEP'  => 0.00,
+        ],
+    ],
+    'C-AML-03-08' => [
+        'name'     => '(9-Lymphoma&Leukemia)-Acute Leukemia เด็ก',
+        'category' => 'การตรวจวินิจฉัยด้วยวิธีพิเศษอื่น',
+        'prices'   => [
+            'UCS'  => 0.00,
+            'OFC'  => 0.00,
+            'SSS'  => 0.00,
+            'LGO'  => 0.00,
+            'FS'  => 0.00,
+            'UCEP'  => 0.00,
+        ],
+    ],
+    'C-APL-01-06' => [
+        'name'     => '(9-Lymphoma&Leukemia)-Acute Leukemia เด็ก',
+        'category' => 'การตรวจวินิจฉัยด้วยวิธีพิเศษอื่น',
+        'prices'   => [
+            'UCS'  => 0.00,
+            'OFC'  => 0.00,
+            'SSS'  => 0.00,
+            'LGO'  => 0.00,
+            'FS'  => 0.00,
+            'UCEP'  => 0.00,
+        ],
+    ],
+    'CALYM11' => [
+        'name'     => '(9-Lymphoma&Leukemia)-Lymphoma ผู้ใหญ่',
+        'category' => 'การตรวจวินิจฉัยด้วยวิธีพิเศษอื่น',
+        'prices'   => [
+            'UCS'  => 0.00,
+            'OFC'  => 0.00,
+            'SSS'  => 0.00,
+            'LGO'  => 0.00,
+            'FS'  => 0.00,
+            'UCEP'  => 0.00,
+        ],
+    ],
+    'CALYM21' => [
+        'name'     => '(9-Lymphoma&Leukemia)-Lymphoma ผู้ใหญ่',
+        'category' => 'การตรวจวินิจฉัยด้วยวิธีพิเศษอื่น',
+        'prices'   => [
+            'UCS'  => 0.00,
+            'OFC'  => 0.00,
+            'SSS'  => 0.00,
+            'LGO'  => 0.00,
+            'FS'  => 0.00,
+            'UCEP'  => 0.00,
+        ],
+    ],
+];

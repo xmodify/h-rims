@@ -428,4 +428,146 @@ class FdhClaimStatusController extends Controller
             'saved'  => $saved,
         ], 200);
     }
+
+    /**
+     * ดึงรายชื่อ HN, SEQ, AN ทั้งหมดของสิทธิ์ UCS เพื่อส่งเช็คสถานะ FDH (สำหรับ chunk ประมวลผลบน client)
+     */
+    public function getCheckList(Request $request)
+    {
+        $dateStart = $request->input('date_start') ?? date('Y-m-d');
+        $dateEnd = $request->input('date_end') ?? date('Y-m-d');
+
+        // ดึงข้อมูล UCS จาก HOSxP
+        $items = DB::connection('hosxp')->select("
+            SELECT o.hn, o.vn AS seq, '' AS an
+            FROM ovst o
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn			
+            LEFT JOIN pttype p ON p.pttype = vp.pttype	
+            WHERE o.vstdate BETWEEN ? AND ?
+			AND o.an IS NULL
+            AND p.hipdata_code = 'UCS' 
+			GROUP BY o.vn
+			UNION
+			SELECT i.hn, '' AS seq, i.an
+            FROM ipt i
+            LEFT JOIN ipt_pttype ip ON ip.an = i.an			
+            LEFT JOIN pttype p ON p.pttype = ip.pttype	
+            WHERE i.dchdate BETWEEN ? AND ?
+            AND p.hipdata_code = 'UCS' 
+			GROUP BY i.an ", [$dateStart, $dateEnd, $dateStart, $dateEnd]);
+
+        return response()->json([
+            'items' => $items,
+            'date_start' => $dateStart,
+            'date_end' => $dateEnd
+        ]);
+    }
+
+    /**
+     * ตรวจสอบสถานะ FDH ทีละ Chunk (ประมวลผลผ่าน AJAX sequential)
+     */
+    public function checkChunk(Request $request)
+    {
+        $items = $request->input('items') ?? [];
+
+        if (empty($items)) {
+            return response()->json([
+                'success' => true,
+                'total' => 0,
+                'updated_count' => 0,
+                'errors_count' => 0
+            ]);
+        }
+
+        $settings = DB::table('main_setting')->pluck('value', 'name')->toArray();
+        $hcode = $settings['hospital_code'] ?? null;
+
+        if (!$hcode) {
+            return response()->json(['error' => 'hospital_code_not_found'], 400);
+        }
+
+        $token = $this->getToken();
+        if (!$token) {
+            return response()->json(['error' => 'token_unavailable'], 500);
+        }
+
+        $apiUrl = 'https://fdh.moph.go.th/api/v1/ucs/track_trans';
+        $results = [];
+        $totalUpdated = 0;
+        $totalErrors = 0;
+
+        // ยิง HTTP พร้อมๆ กันแบบ Asynchronous สำหรับ chunk นี้
+        $responses = Http::pool(function (\Illuminate\Http\Client\Pool $pool) use ($items, $hcode, $apiUrl, $token) {
+            $reqs = [];
+            foreach ($items as $index => $item) {
+                $payload = [
+                    'hcode' => $hcode,
+                    'hn'    => $item['hn'],
+                ];
+                if (!empty($item['an'])) {
+                    $payload['an'] = $item['an'];
+                } else {
+                    $payload['seq'] = $item['seq'];
+                }
+
+                $reqs[] = $pool->as((string)$index)
+                    ->withOptions(['verify' => false])
+                    ->withToken($token)
+                    ->timeout(120)
+                    ->post($apiUrl, $payload);
+            }
+            return $reqs;
+        });
+
+        $upsertData = [];
+
+        foreach ($responses as $index => $response) {
+            $itemObj = (object)$items[$index];
+
+            if ($response instanceof \Exception) {
+                $status = 500;
+                $totalErrors++;
+            } else {
+                $status = $response->status();
+                $body   = $response->json();
+
+                if ($status == 200 && isset($body['data'][0])) {
+                    $d = $body['data'][0];
+                    $now = now();
+                    $upsertData[] = [
+                        'hn'                => $d['hn']  ?? $itemObj->hn,
+                        'seq'               => $d['seq'] ?? $itemObj->seq,
+                        'an'                => $d['an']  ?? $itemObj->an,
+                        'hcode'             => $d['hcode'] ?? $hcode,
+                        'status'            => $d['status'] ?? null,
+                        'process_status'    => $d['process_status'] ?? null,
+                        'status_message_th' => $d['status_message_th'] ?? null,
+                        'stm_period'        => $d['stm_period'] ?? null,
+                        'updated_at'        => $now,
+                        'created_at'        => $now,
+                    ];
+                } else {
+                    if ($status != 200 && $status != 404) {
+                        $totalErrors++;
+                    }
+                }
+            }
+        }
+
+        if (!empty($upsertData)) {
+            DB::table('fdh_claim_status')->upsert(
+                $upsertData,
+                ['hn', 'seq', 'an'],
+                ['hcode', 'status', 'process_status', 'status_message_th', 'stm_period', 'updated_at']
+            );
+            $totalUpdated += count($upsertData);
+        }
+
+        return response()->json([
+            'success' => true,
+            'total' => count($items),
+            'updated_count' => $totalUpdated,
+            'errors_count' => $totalErrors
+        ]);
+    }
 }

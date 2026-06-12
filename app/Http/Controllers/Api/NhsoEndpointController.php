@@ -597,4 +597,158 @@ class NhsoEndpointController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * ดึงรายชื่อ CID ทั้งหมดที่ต้องดึงข้อมูล สปสช. สำหรับนำไป chunk ประมวลผลบน client
+     */
+    public function getPullList(Request $request)
+    {
+        $vstdate = $request->input('vstdate') ?? now()->format('Y-m-d');
+        $hosxp = DB::connection('hosxp')->select('
+            SELECT DISTINCT pt.cid 
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN vn_stat vs ON vs.vn = o.vn
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate 
+                 AND (ep.claim_status = "success" OR ep.claimCode LIKE "EP%" OR ep.claimType = "PG0140001")
+            WHERE o.vstdate = ?
+            AND (o.an = "" OR o.an IS NULL)
+            AND vs.uc_money > 0
+            AND (ep.cid IS NULL OR (vp.auth_code LIKE "PP%" AND (ep.claimCode NOT LIKE "EP%" OR ep.claimCode IS NULL)))
+            AND (vp.auth_code NOT LIKE "EP%" OR vp.auth_code IS NULL)
+            AND pt.cid IS NOT NULL', [$vstdate]);
+
+        $cids = array_column($hosxp, 'cid');
+
+        return response()->json([
+            'cids' => $cids,
+            'vstdate' => $vstdate
+        ]);
+    }
+
+    /**
+     * ดึงข้อมูล สปสช. ทีละ Chunk (ประมวลผลผ่าน sequential AJAX)
+     */
+    public function pullChunk(Request $request)
+    {
+        $vstdate = $request->input('vstdate') ?? now()->format('Y-m-d');
+        $cids = $request->input('cids') ?? [];
+
+        if (empty($cids)) {
+            return response()->json([
+                'success' => true,
+                'pulled' => 0,
+                'inserted' => 0,
+                'updated' => 0
+            ]);
+        }
+
+        $token = DB::connection('hosxp')
+            ->table('sys_var')
+            ->where('sys_name', 'NHSO-13FILE-FEE-SCHEDULE-API-TOKEN')
+            ->value('sys_value');
+
+        if (!$token) {
+            return response()->json(['status' => 'error', 'message' => 'ไม่พบ Token NHSO ในระบบ'], 500);
+        }
+
+        $existing_claims = Nhso_Endpoint::whereIn('cid', $cids)
+            ->where('vstdate', $vstdate)
+            ->pluck('claimType', 'claimCode')
+            ->toArray();
+
+        $upsertData = [];
+        $pulled = 0;
+        $inserted = 0;
+        $updated = 0;
+
+        foreach ($cids as $cid) {
+            try {
+                $response = Http::timeout(5)
+                    ->withToken($token)
+                    ->acceptJson()
+                    ->get('https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status', [
+                        'personalId' => $cid,
+                        'serviceDate' => $vstdate,
+                    ]);
+
+                if ($response->failed()) {
+                    continue;
+                }
+
+                $result = $response->json();
+                if (!is_array($result) || !isset($result['firstName']) || empty($result['serviceHistories'])) {
+                    continue;
+                }
+
+                foreach ($result['serviceHistories'] as $row) {
+                    if (!is_array($row)) continue;
+
+                    $claimCode = $row['claimCode'] ?? null;
+                    $claimType = $row['service']['code'] ?? null;
+                    $sourceChannel = $row['sourceChannel'] ?? '';
+                    $serviceDateTime = $row['serviceDateTime'] ?? null;
+
+                    if (!$claimCode) continue;
+
+                    // กรองตามเงื่อนไข: ทั่วไป/ฟอกไต เอาเฉพาะ EP, Homeward เอาเฉพาะ PP
+                    $shouldPull = false;
+                    if (in_array($claimType, ['PG0060001', 'PG0130001'])) {
+                        if (strpos($claimCode, 'EP') === 0) $shouldPull = true;
+                    } elseif ($claimType === 'PG0140001') {
+                        if (strpos($claimCode, 'PP') === 0) $shouldPull = true;
+                    } elseif ($sourceChannel === 'ENDPOINT') {
+                        $shouldPull = true;
+                    }
+
+                    if (!$shouldPull) {
+                        continue;
+                    }
+
+                    $pulled++;
+
+                    if (isset($existing_claims[$claimCode])) {
+                        if ($existing_claims[$claimCode] !== $claimType) {
+                            Nhso_Endpoint::where('claimCode', $claimCode)->update(['claimType' => $claimType]);
+                            $updated++;
+                        }
+                    } else {
+                        $claimStatus = (strpos($claimCode, 'EP') === 0) ? 'success' : 'pulled';
+                        $upsertData[] = [
+                            'cid'             => $cid,
+                            'firstName'       => $result['firstName'] ?? null,
+                            'lastName'        => $result['lastName'] ?? null,
+                            'mainInscl'       => $result['mainInscl']['id'] ?? null,
+                            'mainInsclName'   => $result['mainInscl']['name'] ?? null,
+                            'subInscl'        => $result['subInscl']['id'] ?? null,
+                            'subInsclName'    => $result['subInscl']['name'] ?? null,
+                            'serviceDateTime' => $serviceDateTime,
+                            'vstdate'         => $serviceDateTime ? date('Y-m-d', strtotime($serviceDateTime)) : $vstdate,
+                            'sourceChannel'   => $sourceChannel,
+                            'claimCode'       => $claimCode,
+                            'claimType'       => $claimType,
+                            'claim_status'    => $claimStatus,
+                            'saved_at'        => now(),
+                        ];
+                        $inserted++;
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::error("NHSO Pull logic error for CID: {$cid}", ['msg' => $e->getMessage()]);
+            }
+        }
+
+        if (!empty($upsertData)) {
+            Nhso_Endpoint::insert($upsertData);
+        }
+
+        return response()->json([
+            'success' => true,
+            'pulled' => $pulled,
+            'inserted' => $inserted,
+            'updated' => $updated
+        ]);
+    }
 }

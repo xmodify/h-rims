@@ -23,11 +23,13 @@ Route::post('fdh/check-chunk', [FdhClaimStatusController::class, 'checkChunk'])-
 Route::post('fdh/check-claim', [FdhClaimStatusController::class, 'check'])->name('api.fdh.check_claim');
 Route::post('fdh/check-claim-indiv', [FdhClaimStatusController::class, 'check_indiv'])->name('api.fdh.check_claim_indiv');
 Route::post('fdh/check-claim-lastdays', [FdhClaimStatusController::class, 'checkLastDays'])->name('api.fdh.check_claim_lastdays');
+Route::post('fdh/log-manual-check', [FdhClaimStatusController::class, 'logManualCheck'])->name('api.fdh.log_manual_check');
 
 // API NHSO -----------------------------------------------------------------------------------
 Route::get('nhso/testconnection', [NhsoEndpointController::class, 'testConnection'])->name('api.nhso.testconnection');
 Route::get('nhso/get-pull-list', [NhsoEndpointController::class, 'getPullList'])->name('api.nhso.get_pull_list');
 Route::post('nhso/pull-chunk', [NhsoEndpointController::class, 'pullChunk'])->name('api.nhso.pull_chunk');
+Route::post('nhso/log-manual-pull', [NhsoEndpointController::class, 'logManualPull'])->name('api.nhso.log_manual_pull');
 Route::post('nhso_endpoint_pull_yesterday', [NhsoEndpointController::class, 'pullYesterday'])->name('nhso_endpoint_pull_yesterday');
 
 // API AOPOD -----------------------------------------------------------------------------------

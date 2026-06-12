@@ -375,3 +375,23 @@ function json_encode_u($variable)
 {
     return json_encode($variable , JSON_UNESCAPED_UNICODE);
 }
+
+if (!function_exists('appendAndLimitLog')) {
+    function appendAndLimitLog($filename, $logMessage, $limit = 30) {
+        $filePath = storage_path('logs/' . $filename);
+        
+        // เขียนต่อท้ายไฟล์
+        \Illuminate\Support\Facades\File::append($filePath, $logMessage);
+        
+        // ตรวจสอบและตัดให้เหลือเฉพาะจำนวนที่กำหนด
+        if (\Illuminate\Support\Facades\File::exists($filePath)) {
+            $content = \Illuminate\Support\Facades\File::get($filePath);
+            $lines = array_filter(explode("\n", trim($content)));
+            
+            if (count($lines) > $limit) {
+                $latestLines = array_slice($lines, -$limit);
+                \Illuminate\Support\Facades\File::put($filePath, implode("\n", $latestLines) . "\n");
+            }
+        }
+    }
+}

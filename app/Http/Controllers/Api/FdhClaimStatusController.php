@@ -570,4 +570,29 @@ class FdhClaimStatusController extends Controller
             'errors_count' => $totalErrors
         ]);
     }
+
+    /**
+     * บันทึก Log สำหรับการตรวจเช็คสถานะ FDH แบบกำหนดเอง (Manual Check)
+     */
+    public function logManualCheck(Request $request)
+    {
+        $checkedDays = $request->input('checked_days') ?? 0;
+        $updatedClaims = $request->input('updated_claims') ?? 0;
+        $errors = $request->input('errors') ?? 0;
+        $ok = $request->input('ok') ?? true;
+        $message = $request->input('message') ?? 'ตรวจสอบสถานะสำเร็จ';
+
+        $data = [
+            'ok' => $ok,
+            'message' => $message,
+            'checked_days' => $checkedDays,
+            'updated_claims' => $updatedClaims,
+            'errors' => $errors
+        ];
+
+        $logMessage = "[" . now()->toDateTimeString() . "] FDH Claim Status output: " . json_encode($data, JSON_UNESCAPED_UNICODE) . "\n";
+        appendAndLimitLog('fdh_claim_status_schedule.log', $logMessage, 30);
+
+        return response()->json(['status' => 'success']);
+    }
 }

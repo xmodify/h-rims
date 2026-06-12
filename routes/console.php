@@ -25,20 +25,22 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 // ฟังก์ชันช่วยเขียน Log และจำกัดจำนวนแถวเพื่อไม่ให้ไฟล์โตเกินไป
-function appendAndLimitLog($filename, $logMessage, $limit = 30) {
-    $filePath = storage_path('logs/' . $filename);
-    
-    // เขียนต่อท้ายไฟล์
-    \Illuminate\Support\Facades\File::append($filePath, $logMessage);
-    
-    // ตรวจสอบและตัดให้เหลือเฉพาะจำนวนที่กำหนด
-    if (\Illuminate\Support\Facades\File::exists($filePath)) {
-        $content = \Illuminate\Support\Facades\File::get($filePath);
-        $lines = array_filter(explode("\n", trim($content)));
+if (!function_exists('appendAndLimitLog')) {
+    function appendAndLimitLog($filename, $logMessage, $limit = 30) {
+        $filePath = storage_path('logs/' . $filename);
         
-        if (count($lines) > $limit) {
-            $latestLines = array_slice($lines, -$limit);
-            \Illuminate\Support\Facades\File::put($filePath, implode("\n", $latestLines) . "\n");
+        // เขียนต่อท้ายไฟล์
+        \Illuminate\Support\Facades\File::append($filePath, $logMessage);
+        
+        // ตรวจสอบและตัดให้เหลือเฉพาะจำนวนที่กำหนด
+        if (\Illuminate\Support\Facades\File::exists($filePath)) {
+            $content = \Illuminate\Support\Facades\File::get($filePath);
+            $lines = array_filter(explode("\n", trim($content)));
+            
+            if (count($lines) > $limit) {
+                $latestLines = array_slice($lines, -$limit);
+                \Illuminate\Support\Facades\File::put($filePath, implode("\n", $latestLines) . "\n");
+            }
         }
     }
 }

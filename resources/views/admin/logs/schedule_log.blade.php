@@ -359,7 +359,25 @@
             .then(data => {
                 const cids = data.cids || [];
                 if (cids.length === 0) {
-                    Swal.fire('ดึงข้อมูลเสร็จสิ้น', `ไม่พบผู้ป่วยที่ต้องดึงข้อมูลปิดสิทธิ์เพิ่มเติมในวันที่ ${pullDate}`, 'info');
+                    fetch('{{ url("api/nhso/log-manual-pull") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            pulled_records: 0,
+                            inserted: 0,
+                            updated: 0,
+                            ok: true,
+                            message: `ดึงข้อมูลด้วยตนเองสำเร็จ (ไม่พบผู้ป่วยที่ต้องดึงข้อมูลปิดสิทธิ์เพิ่มเติมในวันที่ ${pullDate})`
+                        })
+                    }).finally(() => {
+                        Swal.fire('ดึงข้อมูลเสร็จสิ้น', `ไม่พบผู้ป่วยที่ต้องดึงข้อมูลปิดสิทธิ์เพิ่มเติมในวันที่ ${pullDate}`, 'info')
+                        .then(() => {
+                            location.reload();
+                        });
+                    });
                     return;
                 }
 
@@ -389,17 +407,32 @@
 
                         function runChunk(index) {
                             if (index >= chunks.length) {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'ดึงข้อมูลสำเร็จ',
-                                    html: `ดึงข้อมูลปิดสิทธิ์จาก สปสช. เรียบร้อยแล้ว!<br>
-                                           ตรวจสอบผู้ป่วย: <strong>${cids.length} คน</strong><br>
-                                           ดึงรายการปิดสิทธิ์ได้: <strong>${totalPulled} รายการ</strong><br>
-                                           เพิ่มใหม่: <strong class="text-success">${totalInserted} รายการ</strong><br>
-                                           อัปเดตสิทธิ์: <strong class="text-info">${totalUpdated} รายการ</strong>`,
-                                    confirmButtonText: 'ตกลง'
-                                }).then(() => {
-                                    location.reload();
+                                fetch('{{ url("api/nhso/log-manual-pull") }}', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                    },
+                                    body: JSON.stringify({
+                                        pulled_records: totalPulled,
+                                        inserted: totalInserted,
+                                        updated: totalUpdated,
+                                        ok: true,
+                                        message: 'ดึงข้อมูลด้วยตนเอง (Manual Pull) สำเร็จ'
+                                    })
+                                }).finally(() => {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'ดึงข้อมูลสำเร็จ',
+                                        html: `ดึงข้อมูลปิดสิทธิ์จาก สปสช. เรียบร้อยแล้ว!<br>
+                                               ตรวจสอบผู้ป่วย: <strong>${cids.length} คน</strong><br>
+                                               ดึงรายการปิดสิทธิ์ได้: <strong>${totalPulled} รายการ</strong><br>
+                                               เพิ่มใหม่: <strong class="text-success">${totalInserted} รายการ</strong><br>
+                                               อัปเดตสิทธิ์: <strong class="text-info">${totalUpdated} รายการ</strong>`,
+                                        confirmButtonText: 'ตกลง'
+                                    }).then(() => {
+                                        location.reload();
+                                    });
                                 });
                                 return;
                             }
@@ -471,7 +504,25 @@
         function fetchNextDate() {
             if (dateIndex >= dates.length) {
                 if (allItems.length === 0) {
-                    Swal.fire('ตรวจสอบเสร็จสิ้น', 'ไม่พบสิทธิ์บัตรทอง UCS ที่ต้องเช็คย้อนหลังในช่วง 15 วันนี้', 'info');
+                    fetch('{{ url("api/fdh/log-manual-check") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            checked_days: 15,
+                            updated_claims: 0,
+                            errors: 0,
+                            ok: true,
+                            message: 'ตรวจสอบสถานะด้วยตนเองสำเร็จ (ไม่พบสิทธิ์บัตรทอง UCS ที่ต้องเช็คย้อนหลัง)'
+                        })
+                    }).finally(() => {
+                        Swal.fire('ตรวจสอบเสร็จสิ้น', 'ไม่พบสิทธิ์บัตรทอง UCS ที่ต้องเช็คย้อนหลังในช่วง 15 วันนี้', 'info')
+                        .then(() => {
+                            location.reload();
+                        });
+                    });
                     return;
                 }
                 processFdhChunks(allItems);
@@ -522,16 +573,31 @@
 
                 function runChunk(index) {
                     if (index >= chunks.length) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'ตรวจสอบเสร็จสมบูรณ์',
-                            html: `เช็คสถานะการส่งเคลม FDH ย้อนหลัง 15 วันเสร็จสิ้น!<br>
-                                   สแกนทั้งสิ้น: <strong>${items.length} รายการ</strong><br>
-                                   อัปเดตสถานะใหม่: <strong class="text-success">${totalUpdated} รายการ</strong><br>
-                                   พบการตอบกลับผิดพลาด: <strong class="text-danger">${totalErrors} รายการ</strong>`,
-                            confirmButtonText: 'ตกลง'
-                        }).then(() => {
-                            location.reload();
+                        fetch('{{ url("api/fdh/log-manual-check") }}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({
+                                checked_days: 15,
+                                updated_claims: totalUpdated,
+                                errors: totalErrors,
+                                ok: true,
+                                message: 'ตรวจสอบสถานะด้วยตนเอง (Manual Check) สำเร็จ'
+                            })
+                        }).finally(() => {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'ตรวจสอบเสร็จสมบูรณ์',
+                                html: `เช็คสถานะการส่งเคลม FDH ย้อนหลัง 15 วันเสร็จสิ้น!<br>
+                                       สแกนทั้งสิ้น: <strong>${items.length} รายการ</strong><br>
+                                       อัปเดตสถานะใหม่: <strong class="text-success">${totalUpdated} รายการ</strong><br>
+                                       พบการตอบกลับผิดพลาด: <strong class="text-danger">${totalErrors} รายการ</strong>`,
+                                confirmButtonText: 'ตกลง'
+                            }).then(() => {
+                                location.reload();
+                            });
                         });
                         return;
                     }

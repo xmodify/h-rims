@@ -751,4 +751,29 @@ class NhsoEndpointController extends Controller
             'updated' => $updated
         ]);
     }
+
+    /**
+     * บันทึก Log สำหรับการดึงข้อมูล NHSO แบบกำหนดเอง (Manual Pull)
+     */
+    public function logManualPull(Request $request)
+    {
+        $pulled = $request->input('pulled_records') ?? 0;
+        $inserted = $request->input('inserted') ?? 0;
+        $updated = $request->input('updated') ?? 0;
+        $ok = $request->input('ok') ?? true;
+        $message = $request->input('message') ?? 'ดึงข้อมูลสำเร็จ';
+
+        $data = [
+            'ok' => $ok,
+            'message' => $message,
+            'pulled_records' => $pulled,
+            'inserted' => $inserted,
+            'updated' => $updated
+        ];
+
+        $logMessage = "[" . now()->toDateTimeString() . "] NHSO Endpoint output: " . json_encode($data, JSON_UNESCAPED_UNICODE) . "\n";
+        appendAndLimitLog('nhso_endpoint_schedule.log', $logMessage, 30);
+
+        return response()->json(['status' => 'success']);
+    }
 }

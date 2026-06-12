@@ -272,7 +272,7 @@ class FdhClaimStatusController extends Controller
                             'created_at'        => $now,
                         ];
                     } else {
-                        if ($status != 200) {
+                        if ($status != 200 && $status != 404) {
                             $totalErrors++;
                         }
                     }

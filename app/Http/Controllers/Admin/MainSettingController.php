@@ -727,28 +727,71 @@ class MainSettingController extends Controller
     {
         $hospcode = DB::table('lookup_hospcode')->value('hospcode');
 
-        $aopodLog = '';
-        $nhsoLog = '';
-        $fdhLog = '';
+        $aopodLogRaw = '';
+        $nhsoLogRaw = '';
+        $fdhLogRaw = '';
 
         if (\Illuminate\Support\Facades\File::exists(storage_path('logs/aopod_schedule.log'))) {
-            $aopodLog = \Illuminate\Support\Facades\File::get(storage_path('logs/aopod_schedule.log'));
-        } else {
-            $aopodLog = 'ยังไม่มีประวัติการทำงานในขณะนี้ (No logs found)';
+            $aopodLogRaw = \Illuminate\Support\Facades\File::get(storage_path('logs/aopod_schedule.log'));
         }
 
         if (\Illuminate\Support\Facades\File::exists(storage_path('logs/nhso_endpoint_schedule.log'))) {
-            $nhsoLog = \Illuminate\Support\Facades\File::get(storage_path('logs/nhso_endpoint_schedule.log'));
-        } else {
-            $nhsoLog = 'ยังไม่มีประวัติการทำงานในขณะนี้ (No logs found)';
+            $nhsoLogRaw = \Illuminate\Support\Facades\File::get(storage_path('logs/nhso_endpoint_schedule.log'));
         }
 
         if (\Illuminate\Support\Facades\File::exists(storage_path('logs/fdh_claim_status_schedule.log'))) {
-            $fdhLog = \Illuminate\Support\Facades\File::get(storage_path('logs/fdh_claim_status_schedule.log'));
-        } else {
-            $fdhLog = 'ยังไม่มีประวัติการทำงานในขณะนี้ (No logs found)';
+            $fdhLogRaw = \Illuminate\Support\Facades\File::get(storage_path('logs/fdh_claim_status_schedule.log'));
         }
 
-        return view('admin.logs.schedule_log', compact('aopodLog', 'nhsoLog', 'fdhLog', 'hospcode'));
+        $aopodLogs = $this->parseLogs($aopodLogRaw);
+        $nhsoLogs = $this->parseLogs($nhsoLogRaw);
+        $fdhLogs = $this->parseLogs($fdhLogRaw);
+
+        return view('admin.logs.schedule_log', compact('aopodLogs', 'nhsoLogs', 'fdhLogs', 'hospcode'));
+    }
+
+    private function parseLogs($logContent)
+    {
+        if (empty($logContent)) {
+            return [];
+        }
+
+        $lines = explode("\n", trim($logContent));
+        $parsed = [];
+
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) {
+                continue;
+            }
+
+            // Pattern: [timestamp] Name output: json
+            if (preg_match('/^\[(.*?)\]\s+(.*?)\s+output:\s+(.*)$/u', $line, $matches)) {
+                $timestamp = $matches[1];
+                $type = $matches[2];
+                $jsonData = json_decode($matches[3], true);
+
+                $parsed[] = [
+                    'timestamp' => $timestamp,
+                    'type' => $type,
+                    'data' => $jsonData,
+                    'raw' => $line
+                ];
+            } else {
+                $parsed[] = [
+                    'timestamp' => '',
+                    'type' => 'Raw',
+                    'data' => null,
+                    'raw' => $line
+                ];
+            }
+        }
+
+        // Sort by timestamp descending
+        usort($parsed, function($a, $b) {
+            return strcmp($b['timestamp'], $a['timestamp']);
+        });
+
+        return $parsed;
     }
 }

@@ -42,28 +42,120 @@
     <div class="tab-content" id="pills-tabContent">
         <!-- NHSO Log -->
         <div class="tab-pane fade show active" id="pills-nhso" role="tabpanel" aria-labelledby="pills-nhso-tab" tabindex="0">
-            <div class="card dash-card border-0 shadow-sm">
+            <div class="card dash-card border-0 shadow-sm rounded-4">
                 <div class="card-header bg-dark text-white border-0 py-3 rounded-top-4">
                     <h6 class="mb-0 fw-bold text-primary">
-                        <i class="bi bi-terminal-fill me-2"></i> NHSO Endpoint Scheduler Log
+                        <i class="bi bi-clock-history me-2"></i> NHSO Endpoint Scheduler Log
                     </h6>
                 </div>
-                <div class="card-body p-0">
-                    <pre class="log-console" style="background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 0 0 16px 16px; max-height: 600px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 0.9rem; margin-bottom: 0; white-space: pre-wrap; word-wrap: break-word;">{{ $nhsoLog }}</pre>
+                <div class="card-body p-3">
+                    @if(count($nhsoLogs) > 0)
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 200px;">เวลา</th>
+                                        <th style="width: 120px;">สถานะ</th>
+                                        <th>รายละเอียดการทำงาน</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($nhsoLogs as $log)
+                                        <tr>
+                                            <td class="fw-bold text-secondary">{{ $log['timestamp'] ?: 'N/A' }}</td>
+                                            <td>
+                                                @if(isset($log['data']['ok']) && $log['data']['ok'] === true)
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">สำเร็จ</span>
+                                                @else
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill">ล้มเหลว</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($log['data'])
+                                                    <div class="d-flex flex-column">
+                                                        <span class="fw-semibold text-dark">{{ $log['data']['message'] ?? 'ดึงข้อมูลสำเร็จ' }}</span>
+                                                        <small class="text-muted mt-1">
+                                                            ดึงทั้งหมด: <strong class="text-primary">{{ $log['data']['pulled_records'] ?? 0 }} รายการ</strong> | 
+                                                            เพิ่มใหม่: <strong class="text-success">{{ $log['data']['inserted'] ?? 0 }} รายการ</strong> | 
+                                                            อัปเดต: <strong class="text-info">{{ $log['data']['updated'] ?? 0 }} รายการ</strong>
+                                                        </small>
+                                                    </div>
+                                                @else
+                                                    <span class="text-muted">{{ $log['raw'] }}</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-info-circle fs-1 d-block mb-2 text-secondary"></i>
+                            ยังไม่มีประวัติการทำงานในขณะนี้ (No logs found)
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
 
         <!-- FDH Log -->
         <div class="tab-pane fade" id="pills-fdh" role="tabpanel" aria-labelledby="pills-fdh-tab" tabindex="0">
-            <div class="card dash-card border-0 shadow-sm">
+            <div class="card dash-card border-0 shadow-sm rounded-4">
                 <div class="card-header bg-dark text-white border-0 py-3 rounded-top-4">
                     <h6 class="mb-0 fw-bold text-info">
-                        <i class="bi bi-terminal-fill me-2"></i> FDH Claim Status Scheduler Log
+                        <i class="bi bi-clock-history me-2"></i> FDH Claim Status Scheduler Log
                     </h6>
                 </div>
-                <div class="card-body p-0">
-                    <pre class="log-console" style="background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 0 0 16px 16px; max-height: 600px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 0.9rem; margin-bottom: 0; white-space: pre-wrap; word-wrap: break-word;">{{ $fdhLog }}</pre>
+                <div class="card-body p-3">
+                    @if(count($fdhLogs) > 0)
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 200px;">เวลา</th>
+                                        <th style="width: 120px;">สถานะ</th>
+                                        <th>รายละเอียดการทำงาน</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($fdhLogs as $log)
+                                        <tr>
+                                            <td class="fw-bold text-secondary">{{ $log['timestamp'] ?: 'N/A' }}</td>
+                                            <td>
+                                                @if(isset($log['data']['ok']) && $log['data']['ok'] === true)
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">สำเร็จ</span>
+                                                @else
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill">ล้มเหลว</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($log['data'])
+                                                    <div class="d-flex flex-column">
+                                                        <span class="fw-semibold text-dark">{{ $log['data']['message'] ?? 'ตรวจสอบสถานะสำเร็จ' }}</span>
+                                                        <small class="text-muted mt-1">
+                                                            จำนวนวันที่ตรวจย้อนหลัง: <strong class="text-primary">{{ $log['data']['checked_days'] ?? 0 }} วัน</strong> | 
+                                                            อัปเดตสถานะเคลม: <strong class="text-success">{{ $log['data']['updated_claims'] ?? 0 }} รายการ</strong>
+                                                            @if(isset($log['data']['errors']) && $log['data']['errors'] > 0)
+                                                                | พบข้อผิดพลาด: <strong class="text-danger">{{ $log['data']['errors'] }} รายการ</strong>
+                                                            @endif
+                                                        </small>
+                                                    </div>
+                                                @else
+                                                    <span class="text-muted">{{ $log['raw'] }}</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-info-circle fs-1 d-block mb-2 text-secondary"></i>
+                            ยังไม่มีประวัติการทำงานในขณะนี้ (No logs found)
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -71,14 +163,63 @@
         <!-- AOPOD Log -->
         @if(($hospcode ?? '') === '00025' || ($hospital_code ?? '') === '00025')
             <div class="tab-pane fade" id="pills-aopod" role="tabpanel" aria-labelledby="pills-aopod-tab" tabindex="0">
-                <div class="card dash-card border-0 shadow-sm">
+                <div class="card dash-card border-0 shadow-sm rounded-4">
                     <div class="card-header bg-dark text-white border-0 py-3 rounded-top-4">
                         <h6 class="mb-0 fw-bold text-success">
-                            <i class="bi bi-terminal-fill me-2"></i> AOPOD Send Scheduler Log
+                            <i class="bi bi-clock-history me-2"></i> AOPOD Send Scheduler Log
                         </h6>
                     </div>
-                    <div class="card-body p-0">
-                        <pre class="log-console" style="background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 0 0 16px 16px; max-height: 600px; overflow-y: auto; font-family: 'Courier New', Courier, monospace; font-size: 0.9rem; margin-bottom: 0; white-space: pre-wrap; word-wrap: break-word;">{{ $aopodLog }}</pre>
+                    <div class="card-body p-3">
+                        @if(count($aopodLogs) > 0)
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 200px;">เวลา</th>
+                                            <th style="width: 120px;">สถานะ</th>
+                                            <th>รายละเอียดการทำงาน</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($aopodLogs as $log)
+                                            <tr>
+                                                <td class="fw-bold text-secondary">{{ $log['timestamp'] ?: 'N/A' }}</td>
+                                                <td>
+                                                    @if(isset($log['data']['ok']) && $log['data']['ok'] === true)
+                                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">สำเร็จ</span>
+                                                    @else
+                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill">ล้มเหลว</span>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    @if($log['data'])
+                                                        <div class="d-flex flex-column">
+                                                            <span class="fw-semibold text-dark">
+                                                                ส่งข้อมูลระหว่างวันที่ {{ $log['data']['start_date'] ?? '-' }} ถึง {{ $log['data']['end_date'] ?? '-' }} (รหัสรพ. {{ $log['data']['hospcode'] ?? '-' }})
+                                                            </span>
+                                                            <small class="text-muted mt-1">
+                                                                ข้อมูลที่ได้รับ - 
+                                                                OPD: <strong class="text-primary">{{ $log['data']['received']['opd'] ?? 0 }} รายการ</strong> | 
+                                                                IPD: <strong class="text-info">{{ $log['data']['received']['ipd'] ?? 0 }} รายการ</strong> | 
+                                                                IPD Bed: <strong class="text-success">{{ $log['data']['received']['ipd_bed'] ?? 0 }} รายการ</strong> | 
+                                                                Hospital: <strong class="text-warning">{{ $log['data']['received']['hospital'] ?? 0 }} รายการ</strong>
+                                                            </small>
+                                                        </div>
+                                                    @else
+                                                        <span class="text-muted">{{ $log['raw'] }}</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <div class="text-center py-5 text-muted">
+                                <i class="bi bi-info-circle fs-1 d-block mb-2 text-secondary"></i>
+                                ยังไม่มีประวัติการทำงานในขณะนี้ (No logs found)
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>

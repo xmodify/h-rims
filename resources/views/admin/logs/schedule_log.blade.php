@@ -48,12 +48,8 @@
                         <i class="bi bi-clock-history me-2"></i> NHSO Endpoint Scheduler Log
                     </h6>
                     <div class="d-flex align-items-center gap-2">
-                        <div class="input-group input-group-sm" style="width: 280px;">
-                            <span class="input-group-text bg-secondary border-secondary text-white small">วันที่บริการ</span>
-                            <input type="date" id="nhso_pull_date" class="form-control" value="{{ date('Y-m-d', strtotime('-1 day')) }}">
-                        </div>
                         <button class="btn btn-primary btn-sm px-3 rounded-pill shadow-sm" onclick="startNhsoManualPull()">
-                            <i class="bi bi-cloud-arrow-down-fill me-1"></i> ดึงข้อมูล สปสช.
+                            <i class="bi bi-cloud-arrow-down-fill me-1"></i> ดึงข้อมูล สปสช. (เมื่อวาน)
                         </button>
                         <button class="btn btn-outline-primary btn-sm px-3 rounded-pill shadow-sm" onclick="testNhsoConnection()">
                             <i class="bi bi-patch-check-fill me-1"></i> ทดสอบการเชื่อมต่อ
@@ -119,12 +115,8 @@
                         <i class="bi bi-clock-history me-2"></i> FDH Claim Status Scheduler Log
                     </h6>
                     <div class="d-flex align-items-center gap-2">
-                        <div class="input-group input-group-sm" style="width: 280px;">
-                            <span class="input-group-text bg-secondary border-secondary text-white small">วันที่จำหน่าย/บริการ</span>
-                            <input type="date" id="fdh_check_date" class="form-control" value="{{ date('Y-m-d', strtotime('-1 day')) }}">
-                        </div>
                         <button class="btn btn-info btn-sm px-3 text-dark rounded-pill shadow-sm" onclick="startFdhManualCheck()">
-                            <i class="bi bi-cloud-arrow-down-fill me-1"></i> เช็คสถานะ FDH
+                            <i class="bi bi-cloud-arrow-down-fill me-1"></i> เช็คสถานะ FDH (ย้อนหลัง 15 วัน)
                         </button>
                         <button class="btn btn-outline-info btn-sm px-3 rounded-pill shadow-sm" onclick="testFdhConnection()">
                             <i class="bi bi-patch-check-fill me-1"></i> ทดสอบการเชื่อมต่อ
@@ -350,15 +342,11 @@
     }
 
     function startNhsoManualPull() {
-        const pullDate = document.getElementById('nhso_pull_date').value;
-        if (!pullDate) {
-            Swal.fire('แจ้งเตือน', 'กรุณาเลือกวันที่ต้องการดึงข้อมูล', 'warning');
-            return;
-        }
+        const pullDate = "{{ date('Y-m-d', strtotime('-1 day')) }}";
 
         Swal.fire({
             title: 'กำลังตรวจสอบคิวงาน สปสช...',
-            html: `ค้นหารายชื่อผู้ป่วยที่เข้ารับบริการในวันที่ ${pullDate} จาก HOSxP`,
+            html: `ค้นหารายชื่อผู้ป่วยที่เข้ารับบริการในวันที่ ${pullDate} (เมื่อวาน) จาก HOSxP`,
             allowOutsideClick: false,
             didOpen: () => {
                 Swal.showLoading();
@@ -448,7 +436,6 @@
                             })
                             .catch(err => {
                                 console.error('Chunk error:', err);
-                                // รันต่อเผื่อมีบางช่วงหลุดชั่วคราว
                                 runChunk(index + 1);
                             });
                         }
@@ -463,112 +450,130 @@
     }
 
     function startFdhManualCheck() {
-        const checkDate = document.getElementById('fdh_check_date').value;
-        if (!checkDate) {
-            Swal.fire('แจ้งเตือน', 'กรุณาเลือกวันที่ต้องการตรวจสอบ', 'warning');
-            return;
-        }
+        const dates = [
+            @for ($i = 15; $i >= 1; $i--)
+                "{{ date('Y-m-d', strtotime("-$i days")) }}",
+            @endfor
+        ];
 
         Swal.fire({
             title: 'กำลังตรวจสอบคิวงาน FDH...',
-            html: `ค้นหารายชื่อผู้ป่วยที่เข้ารับบริการในวันที่ ${checkDate} จาก HOSxP`,
+            html: 'กรุณารอสักครู่ ระบบกำลังรวบรวมข้อมูลผู้ป่วยนอกสิทธิ์ UCS ย้อนหลัง 15 วัน',
             allowOutsideClick: false,
             didOpen: () => {
                 Swal.showLoading();
             }
         });
 
-        // 1. ดึงรายชื่อเคสที่ต้องเช็ค
-        fetch(`{{ url("api/fdh/get-check-list") }}?date_start=${checkDate}&date_end=${checkDate}`)
-            .then(res => res.json())
-            .then(data => {
-                const items = data.items || [];
-                if (items.length === 0) {
-                    Swal.fire('ตรวจสอบเสร็จสิ้น', `ไม่พบเคสสิทธิ์บัตรทอง UCS ในวันที่ ${checkDate}`, 'info');
+        let allItems = [];
+        let dateIndex = 0;
+
+        function fetchNextDate() {
+            if (dateIndex >= dates.length) {
+                if (allItems.length === 0) {
+                    Swal.fire('ตรวจสอบเสร็จสิ้น', 'ไม่พบสิทธิ์บัตรทอง UCS ที่ต้องเช็คย้อนหลังในช่วง 15 วันนี้', 'info');
                     return;
                 }
+                processFdhChunks(allItems);
+                return;
+            }
 
-                // 2. แบ่งข้อมูลเป็น Chunk ละ 20 รายการส่งคิวเช็คแบบ Concurrent
-                const chunkSize = 20;
-                const chunks = [];
-                for (let i = 0; i < items.length; i += chunkSize) {
-                    chunks.push(items.slice(i, i + chunkSize));
+            const targetDate = dates[dateIndex];
+            fetch(`{{ url("api/fdh/get-check-list") }}?date_start=${targetDate}&date_end=${targetDate}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.items && data.items.length > 0) {
+                        allItems = allItems.concat(data.items);
+                    }
+                    dateIndex++;
+                    fetchNextDate();
+                })
+                .catch(err => {
+                    console.error('Fetch check list error for date ' + targetDate, err);
+                    dateIndex++;
+                    fetchNextDate();
+                });
+        }
+
+        fetchNextDate();
+    }
+
+    function processFdhChunks(items) {
+        const chunkSize = 20;
+        const chunks = [];
+        for (let i = 0; i < items.length; i += chunkSize) {
+            chunks.push(items.slice(i, i + chunkSize));
+        }
+
+        Swal.fire({
+            title: 'กำลังตรวจสอบสถานะการส่งเคลม FDH ย้อนหลัง 15 วัน',
+            html: `
+                <div class="progress mb-2 mt-2" style="height: 20px;">
+                    <div id="swal-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-info text-dark" role="progressbar" style="width: 0%;">0%</div>
+                </div>
+                <div id="swal-progress-text" class="small text-muted text-start">กำลังเริ่มตรวจสอบรายการ...</div>
+            `,
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                let totalChecked = 0;
+                let totalUpdated = 0;
+                let totalErrors = 0;
+
+                function runChunk(index) {
+                    if (index >= chunks.length) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'ตรวจสอบเสร็จสมบูรณ์',
+                            html: `เช็คสถานะการส่งเคลม FDH ย้อนหลัง 15 วันเสร็จสิ้น!<br>
+                                   สแกนทั้งสิ้น: <strong>${items.length} รายการ</strong><br>
+                                   อัปเดตสถานะใหม่: <strong class="text-success">${totalUpdated} รายการ</strong><br>
+                                   พบการตอบกลับผิดพลาด: <strong class="text-danger">${totalErrors} รายการ</strong>`,
+                            confirmButtonText: 'ตกลง'
+                        }).then(() => {
+                            location.reload();
+                        });
+                        return;
+                    }
+
+                    const progressBar = document.getElementById('swal-progress-bar');
+                    const progressText = document.getElementById('swal-progress-text');
+                    const pct = Math.round((index / chunks.length) * 100);
+
+                    if (progressBar) {
+                        progressBar.style.width = pct + '%';
+                        progressBar.innerText = pct + '%';
+                    }
+                    if (progressText) {
+                        progressText.innerText = `กำลังเชื่อมต่อกลุ่มที่ ${index + 1}/${chunks.length} (เคส ${index * chunkSize} - ${Math.min((index + 1) * chunkSize, items.length)} จากทั้งหมด ${items.length} รายการ)...`;
+                    }
+
+                    fetch('{{ url("api/fdh/check-chunk") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            items: chunks[index]
+                        })
+                    })
+                    .then(r => r.json())
+                    .then(res => {
+                        totalChecked += res.total || 0;
+                        totalUpdated += res.updated_count || 0;
+                        totalErrors += res.errors_count || 0;
+                        runChunk(index + 1);
+                    })
+                    .catch(err => {
+                        console.error('FDH Chunk error:', err);
+                        runChunk(index + 1);
+                    });
                 }
 
-                // แสดง Swal พร้อม Progress Bar
-                Swal.fire({
-                    title: 'กำลังตรวจสอบสถานะการส่งเคลม FDH',
-                    html: `
-                        <div class="progress mb-2 mt-2" style="height: 20px;">
-                            <div id="swal-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-info text-dark" role="progressbar" style="width: 0%;">0%</div>
-                        </div>
-                        <div id="swal-progress-text" class="small text-muted text-start">กำลังดึงข้อมูลคิวแรก...</div>
-                    `,
-                    allowOutsideClick: false,
-                    showConfirmButton: false,
-                    didOpen: () => {
-                        let totalChecked = 0;
-                        let totalUpdated = 0;
-                        let totalErrors = 0;
-
-                        function runChunk(index) {
-                            if (index >= chunks.length) {
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'ตรวจสอบเสร็จสมบูรณ์',
-                                    html: `ตรวจสอบสถานะ FDH เรียบร้อยแล้ว!<br>
-                                           สแกนทั้งสิ้น: <strong>${items.length} รายการ</strong><br>
-                                           อัปเดตสถานะใหม่: <strong class="text-success">${totalUpdated} รายการ</strong><br>
-                                           พบการตอบกลับผิดพลาด: <strong class="text-danger">${totalErrors} รายการ</strong>`,
-                                    confirmButtonText: 'ตกลง'
-                                }).then(() => {
-                                    location.reload();
-                                });
-                                return;
-                            }
-
-                            const progressBar = document.getElementById('swal-progress-bar');
-                            const progressText = document.getElementById('swal-progress-text');
-                            const pct = Math.round((index / chunks.length) * 100);
-
-                            if (progressBar) {
-                                progressBar.style.width = pct + '%';
-                                progressBar.innerText = pct + '%';
-                            }
-                            if (progressText) {
-                                progressText.innerText = `กำลังเชื่อมต่อกลุ่มที่ ${index + 1}/${chunks.length} (เคส ${index * chunkSize} - ${Math.min((index + 1) * chunkSize, items.length)} จากทั้งหมด ${items.length} รายการ)...`;
-                            }
-
-                            fetch('{{ url("api/fdh/check-chunk") }}', {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                                },
-                                body: JSON.stringify({
-                                    items: chunks[index]
-                                })
-                            })
-                            .then(r => r.json())
-                            .then(res => {
-                                totalChecked += res.total || 0;
-                                totalUpdated += res.updated_count || 0;
-                                totalErrors += res.errors_count || 0;
-                                runChunk(index + 1);
-                            })
-                            .catch(err => {
-                                console.error('FDH Chunk error:', err);
-                                runChunk(index + 1);
-                            });
-                        }
-
-                        runChunk(0);
-                    }
-                });
-            })
-            .catch(err => {
-                Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
-            });
+                runChunk(0);
+            }
+        });
     }
 </script>
 

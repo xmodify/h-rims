@@ -20,7 +20,7 @@
     <div class="row g-4">
         <!-- 1. UCS General [OP-IP] -->
         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-            <div class="card h-100 border-0 shadow-sm stm-card">
+            <div class="card h-100 border-0 shadow-sm stm-card card-ucs">
                 <div class="card-body p-4 d-flex flex-column">
                     <div class="d-flex align-items-center mb-3">
                         <div class="icon-box bg-success-soft text-success me-3">
@@ -45,7 +45,7 @@
 
         <!-- 2. OFC General [OP-IP] -->
         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-            <div class="card h-100 border-0 shadow-sm stm-card">
+            <div class="card h-100 border-0 shadow-sm stm-card card-ofc">
                 <div class="card-body p-4 d-flex flex-column">
                     <div class="d-flex align-items-center mb-3">
                         <div class="icon-box bg-warning-soft text-warning me-3">
@@ -70,7 +70,7 @@
 
         <!-- 3. OFC CSOP -->
         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-            <div class="card h-100 border-0 shadow-sm stm-card">
+            <div class="card h-100 border-0 shadow-sm stm-card card-csop">
                 <div class="card-body p-4 d-flex flex-column">
                     <div class="d-flex align-items-center mb-3">
                         <div class="icon-box bg-danger-soft text-danger me-3">
@@ -95,7 +95,7 @@
 
         <!-- 4. OFC CIPN -->
         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-            <div class="card h-100 border-0 shadow-sm stm-card">
+            <div class="card h-100 border-0 shadow-sm stm-card card-cipn">
                 <div class="card-body p-4 d-flex flex-column">
                     <div class="d-flex align-items-center mb-3">
                         <div class="icon-box bg-purple-soft text-purple me-3">
@@ -120,7 +120,7 @@
 
         <!-- 5. LGO General [OP-IP] -->
         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-            <div class="card h-100 border-0 shadow-sm stm-card">
+            <div class="card h-100 border-0 shadow-sm stm-card card-lgo">
                 <div class="card-body p-4 d-flex flex-column">
                     <div class="d-flex align-items-center mb-3">
                         <div class="icon-box bg-info-soft text-info me-3">
@@ -146,7 +146,7 @@
         <!-- 1. UCS Kidney -->
         @if ($hasLookupIcode_kidney)
         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-            <div class="card h-100 border-0 shadow-sm stm-card">
+            <div class="card h-100 border-0 shadow-sm stm-card card-ucs-kidney">
                 <div class="card-body p-4 d-flex flex-column">
                     <div class="d-flex align-items-center mb-3">
                         <div class="icon-box bg-teal-soft text-teal me-3">
@@ -173,7 +173,7 @@
         <!-- 2. OFC Kidney -->
         @if ($hasLookupIcode_kidney)
         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-            <div class="card h-100 border-0 shadow-sm stm-card">
+            <div class="card h-100 border-0 shadow-sm stm-card card-ofc-kidney">
                 <div class="card-body p-4 d-flex flex-column">
                     <div class="d-flex align-items-center mb-3">
                         <div class="icon-box bg-danger-soft text-danger me-3">
@@ -200,7 +200,7 @@
         <!-- 3. LGO Kidney -->
         @if ($hasLookupIcode_kidney)
         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-            <div class="card h-100 border-0 shadow-sm stm-card">
+            <div class="card h-100 border-0 shadow-sm stm-card card-lgo-kidney">
                 <div class="card-body p-4 d-flex flex-column">
                     <div class="d-flex align-items-center mb-3">
                         <div class="icon-box bg-cyan-soft text-cyan me-3">
@@ -227,7 +227,7 @@
         <!-- 4. SSS Kidney -->
         @if ($hasLookupIcode_kidney)
         <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-            <div class="card h-100 border-0 shadow-sm stm-card">
+            <div class="card h-100 border-0 shadow-sm stm-card card-sss-kidney">
                 <div class="card-body p-4 d-flex flex-column">
                     <div class="d-flex align-items-center mb-3">
                         <div class="icon-box bg-indigo-soft text-indigo me-3">
@@ -261,11 +261,29 @@
             border: 1px solid rgba(225, 230, 235, 0.5) !important;
             border-radius: 14px !important;
         }
-        .stm-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.07) !important;
-            border-color: var(--bs-primary) !important;
-        }
+        
+        /* Distinct Border Top Colors */
+        .card-ucs { border-top: 4px solid #28a745 !important; }
+        .card-ofc { border-top: 4px solid #ffc107 !important; }
+        .card-csop { border-top: 4px solid #dc3545 !important; }
+        .card-cipn { border-top: 4px solid #6f42c1 !important; }
+        .card-lgo { border-top: 4px solid #0dcaf0 !important; }
+        .card-ucs-kidney { border-top: 4px solid #20c997 !important; }
+        .card-ofc-kidney { border-top: 4px solid #e83e8c !important; }
+        .card-lgo-kidney { border-top: 4px solid #0891b2 !important; }
+        .card-sss-kidney { border-top: 4px solid #6610f2 !important; }
+
+        /* Custom colored glow effects on hover */
+        .card-ucs:hover { border-color: #28a745 !important; box-shadow: 0 12px 24px rgba(40, 167, 69, 0.15) !important; transform: translateY(-5px); }
+        .card-ofc:hover { border-color: #ffc107 !important; box-shadow: 0 12px 24px rgba(255, 193, 7, 0.15) !important; transform: translateY(-5px); }
+        .card-csop:hover { border-color: #dc3545 !important; box-shadow: 0 12px 24px rgba(220, 53, 69, 0.15) !important; transform: translateY(-5px); }
+        .card-cipn:hover { border-color: #6f42c1 !important; box-shadow: 0 12px 24px rgba(111, 66, 193, 0.15) !important; transform: translateY(-5px); }
+        .card-lgo:hover { border-color: #0dcaf0 !important; box-shadow: 0 12px 24px rgba(13, 202, 240, 0.15) !important; transform: translateY(-5px); }
+        .card-ucs-kidney:hover { border-color: #20c997 !important; box-shadow: 0 12px 24px rgba(32, 201, 151, 0.15) !important; transform: translateY(-5px); }
+        .card-ofc-kidney:hover { border-color: #e83e8c !important; box-shadow: 0 12px 24px rgba(232, 62, 140, 0.15) !important; transform: translateY(-5px); }
+        .card-lgo-kidney:hover { border-color: #0891b2 !important; box-shadow: 0 12px 24px rgba(8, 145, 178, 0.15) !important; transform: translateY(-5px); }
+        .card-sss-kidney:hover { border-color: #6610f2 !important; box-shadow: 0 12px 24px rgba(102, 16, 242, 0.15) !important; transform: translateY(-5px); }
+
         .icon-box {
             display: flex;
             align-items: center;
@@ -282,12 +300,13 @@
         .bg-danger-soft { background-color: rgba(220, 53, 69, 0.1) !important; }
         .bg-purple-soft { background-color: rgba(111, 66, 193, 0.1) !important; }
         .bg-info-soft { background-color: rgba(23, 162, 184, 0.1) !important; }
-        .bg-cyan-soft { background-color: rgba(23, 162, 184, 0.08) !important; }
+        .bg-cyan-soft { background-color: rgba(8, 145, 178, 0.1) !important; }
         .bg-indigo-soft { background-color: rgba(102, 16, 242, 0.1) !important; }
 
         .text-teal { color: #20c997 !important; }
         .text-indigo { color: #6610f2 !important; }
         .text-purple { color: #6f42c1 !important; }
+        .text-cyan { color: #0891b2 !important; }
 
         .btn-outline-teal {
             color: #20c997;
@@ -317,13 +336,13 @@
             border-color: #6f42c1;
         }
         .btn-outline-cyan {
-            color: #17a2b8;
-            border-color: #17a2b8;
+            color: #0891b2;
+            border-color: #0891b2;
         }
         .btn-outline-cyan:hover {
             color: #fff;
-            background-color: #17a2b8;
-            border-color: #17a2b8;
+            background-color: #0891b2;
+            border-color: #0891b2;
         }
     </style>
 

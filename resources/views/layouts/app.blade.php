@@ -558,10 +558,19 @@
                         @guest
                         @else
                             @if(Auth::user()->status == 'admin' || Auth::user()->allow_import == 'Y')
-                                <li class="nav-item">
-                                    <a class="nav-link nav-link-modern" href="{{ route('import.statement') }}">
-                                        <i class="bi bi-file-earmark-arrow-up-fill me-1"></i> Statement
+                                <li class="nav-item dropdown">
+                                    <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
+                                        role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
+                                        v-pre>
+                                        <i class="bi bi-cloud-arrow-down-fill me-1"></i> นำเข้าข้อมูล
                                     </a>
+                                    <ul class="dropdown-menu dropdown-menu-modern">
+                                        <li>
+                                            <a class="dropdown-item dropdown-item-modern" href="{{ route('import.statement') }}">
+                                                <i class="bi bi-file-earmark-arrow-up-fill me-1 text-primary"></i> Statement
+                                            </a>
+                                        </li>
+                                    </ul>
                                 </li>
                             @endif
 

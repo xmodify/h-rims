@@ -48,6 +48,10 @@ class NhsoEndpointController extends Controller
             return response()->json(['status' => 'error', 'message' => 'ไม่พบ Token NHSO ในระบบ'], 500);
         }
 
+        $pulled = 0;
+        $inserted = 0;
+        $updated = 0;
+
         foreach (array_chunk($cids, 50) as $chunk) {
             $existing_claims = Nhso_Endpoint::whereIn('cid', $chunk)
                 ->where('vstdate', $vstdate)
@@ -99,9 +103,12 @@ class NhsoEndpointController extends Controller
                             continue;
                         }
 
+                        $pulled++;
+
                         if (isset($existing_claims[$claimCode])) {
                             if ($existing_claims[$claimCode] !== $claimType) {
                                 Nhso_Endpoint::where('claimCode', $claimCode)->update(['claimType' => $claimType]);
+                                $updated++;
                             }
                         } else {
                             $claimStatus = (strpos($claimCode, 'EP') === 0) ? 'success' : 'pulled';
@@ -121,6 +128,7 @@ class NhsoEndpointController extends Controller
                                 'claim_status'    => $claimStatus,
                                 'saved_at'        => now(),
                             ];
+                            $inserted++;
                         }
                     }
                 } catch (\Throwable $e) {
@@ -135,7 +143,14 @@ class NhsoEndpointController extends Controller
             usleep(200000); // 0.2s delay between chunks
         }
 
-        return response()->json(['status' => 'success', 'message' => 'ดึงข้อมูลจาก สปสช สำเร็จ']);
+        return response()->json([
+            'ok' => true,
+            'status' => 'success',
+            'message' => 'ดึงข้อมูลจาก สปสช สำเร็จ',
+            'pulled_records' => $pulled,
+            'inserted' => $inserted,
+            'updated' => $updated
+        ]);
     }
 
     /**
@@ -275,6 +290,10 @@ class NhsoEndpointController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Token not found'], 500);
         }
 
+        $pulled = 0;
+        $inserted = 0;
+        $updated = 0;
+
         foreach (array_chunk($cids, 50) as $chunk) {
             $existing_claims = Nhso_Endpoint::whereIn('cid', $chunk)
                 ->where('vstdate', $vstdate)
@@ -313,25 +332,28 @@ class NhsoEndpointController extends Controller
                         if (!$claimCode)
                             continue;
 
+                        // กรองตามเงื่อนไข: ทั่วไป/ฟอกไต เอาเฉพาะ EP, Homeward เอาเฉพาะ PP
+                        $shouldPull = false;
+                        if (in_array($claimType, ['PG0060001', 'PG0130001'])) {
+                            if (strpos($claimCode, 'EP') === 0) $shouldPull = true;
+                        } elseif ($claimType === 'PG0140001') {
+                            if (strpos($claimCode, 'PP') === 0) $shouldPull = true;
+                        } elseif ($sourceChannel === 'ENDPOINT') {
+                            $shouldPull = true;
+                        }
+
+                        if (!$shouldPull) {
+                            continue;
+                        }
+
+                        $pulled++;
+
                         if (isset($existing_claims[$claimCode])) {
                             if ($existing_claims[$claimCode] !== $claimType) {
                                 Nhso_Endpoint::where('claimCode', $claimCode)->update(['claimType' => $claimType]);
+                                $updated++;
                             }
                         } else {
-                            // กรองตามเงื่อนไข: ทั่วไป/ฟอกไต เอาเฉพาะ EP, Homeward เอาเฉพาะ PP
-                            $shouldPull = false;
-                            if (in_array($claimType, ['PG0060001', 'PG0130001'])) {
-                                if (strpos($claimCode, 'EP') === 0) $shouldPull = true;
-                            } elseif ($claimType === 'PG0140001') {
-                                if (strpos($claimCode, 'PP') === 0) $shouldPull = true;
-                            } elseif ($sourceChannel === 'ENDPOINT') {
-                                $shouldPull = true;
-                            }
-
-                            if (!$shouldPull) {
-                                continue;
-                            }
-
                             $claimStatus = (strpos($claimCode, 'EP') === 0) ? 'success' : 'pulled';
                             $upsertData[] = [
                                 'cid'             => $cid,
@@ -349,6 +371,7 @@ class NhsoEndpointController extends Controller
                                 'claim_status'    => $claimStatus,
                                 'saved_at'        => now(),
                             ];
+                            $inserted++;
                         }
                     }
                 } catch (\Throwable $e) {
@@ -363,7 +386,14 @@ class NhsoEndpointController extends Controller
             usleep(200000);
         }
 
-        return response()->json(['status' => 'success', 'message' => 'ดึงข้อมูลจาก สปสช สำเร็จ']);
+        return response()->json([
+            'ok' => true,
+            'status' => 'success',
+            'message' => 'ดึงข้อมูลจาก สปสช สำเร็จ',
+            'pulled_records' => $pulled,
+            'inserted' => $inserted,
+            'updated' => $updated
+        ]);
     }
     public function pushIndiv(Request $request)
     {

@@ -25,15 +25,13 @@ class FdhClaimStatusController extends Controller
 
         // ❗ กันข้อมูลหาย
         if (!$user || !$password || !$secretKey || !$hcode) {
-            return response()->json([
-                'error' => 'FDH config missing',
-                'detail' => [
-                    'fdh_user' => $user,
-                    'fdh_pass' => $password ? 'OK' : null,
-                    'fdh_secretKey' => $secretKey ? 'OK' : null,
-                    'hospital_code' => $hcode,
-                ]
-            ], 400);
+            \Illuminate\Support\Facades\Log::warning('FDH config missing when getting token', [
+                'fdh_user' => $user,
+                'fdh_pass' => $password ? 'OK' : null,
+                'fdh_secretKey' => $secretKey ? 'OK' : null,
+                'hospital_code' => $hcode,
+            ]);
+            return null;
         }
 
         // 🔐 Hash ตามคู่มือ HMAC SHA-256
@@ -42,36 +40,44 @@ class FdhClaimStatusController extends Controller
 
         $apiUrl = 'https://fdh.moph.go.th/token?Action=get_moph_access_token';
 
-        // 🔗 เรียก API
-        $response = Http::withOptions([
-            'verify' => false   // ใช้สำหรับ local เท่านั้น
-        ])->withHeaders([
-            "Accept" => "application/json",
-            "Content-Type" => "application/json"
-        ])->post($apiUrl, [
-            'user'          => $user,
-            'password_hash' => $passwordHash,
-            'hospital_code' => $hcode
-        ]);
+        try {
+            // 🔗 เรียก API
+            $response = Http::withOptions([
+                'verify' => false   // ใช้สำหรับ local เท่านั้น
+            ])->withHeaders([
+                "Accept" => "application/json",
+                "Content-Type" => "application/json"
+            ])->post($apiUrl, [
+                'user'          => $user,
+                'password_hash' => $passwordHash,
+                'hospital_code' => $hcode
+            ]);
 
-        // 🟢 สำเร็จ → FDH ส่ง token มาเป็น string
-        if ($response->successful()) {
-            return $response->body();  // ใช้ body ตรง ๆ
+            // 🟢 สำเร็จ → FDH ส่ง token มาเป็น string
+            if ($response->successful()) {
+                return trim($response->body());  // ใช้ body ตรง ๆ
+            }
+
+            // 🔴 ถ้าล้มเหลว
+            \Illuminate\Support\Facades\Log::error("FDH Token retrieval failed", [
+                "status" => $response->status(),
+                "body"   => $response->body()
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error("FDH Token retrieval exception: " . $e->getMessage());
         }
 
-        // 🔴 ถ้าล้มเหลว
-        return response()->json([
-            "status" => $response->status(),
-            "body"   => $response->body()
-        ], 400);
+        return null;
     }
 
     // ✔ ทดสอบ token ##################################################################################################
 
     public function testToken()
     {
+        $token = $this->getToken();
         return response()->json([
-            "token" => $this->getToken()
+            "token" => $token,
+            "status" => $token ? 'success' : 'failed'
         ]);
     }
 
@@ -91,19 +97,38 @@ class FdhClaimStatusController extends Controller
     }
 
     /**
-     * ดึงข้อมูลตรวจสอบ FDH ย้อนหลัง 10 วัน (Auto)
+     * ดึงข้อมูลตรวจสอบ FDH ย้อนหลัง 15 วัน (Auto)
      */
     public function checkLastDays()
     {
         // ย้อนหลัง 15 วัน โดยดึงและประมวลผลทีละวันเพื่อป้องกันข้อมูลโหลดเยอะเกินไป
+        $totalPulled = 0;
+        $totalUpdated = 0;
+        $totalErrors = 0;
+        $checkedDays = 0;
+
         for ($i = 15; $i >= 1; $i--) {
             $targetDate = date('Y-m-d', strtotime("-{$i} days"));
-            $this->processCheckInternal($targetDate, $targetDate);
+            $res = $this->processCheckInternal($targetDate, $targetDate);
+            if ($res instanceof \Illuminate\Http\JsonResponse) {
+                $data = $res->getData(true);
+                if (isset($data['success']) && $data['success'] === true) {
+                    $checkedDays++;
+                    $totalPulled += $data['total'] ?? 0;
+                    $totalUpdated += $data['updated_count'] ?? 0;
+                    $totalErrors += $data['errors_count'] ?? 0;
+                }
+            }
         }
 
         return response()->json([
+            'ok' => true,
             'success' => true,
-            'message' => 'FDH Check 15 Days Completed Day-by-Day'
+            'message' => 'FDH Check 15 Days Completed Day-by-Day',
+            'checked_days' => $checkedDays,
+            'updated_claims' => $totalUpdated,
+            'errors' => $totalErrors,
+            'total' => $totalPulled
         ]);
     }
 
@@ -123,7 +148,13 @@ class FdhClaimStatusController extends Controller
         $hcode = $settings['hospital_code'] ?? null;
 
         if (!$hcode) {
-            return response()->json(['error' => 'hospital_code_not_found'], 400);
+            return response()->json([
+                'success' => false,
+                'error' => 'hospital_code_not_found',
+                'total' => 0,
+                'updated_count' => 0,
+                'errors_count' => 0
+            ], 400);
         }
 
         // 3) ดึงข้อมูล UCS จาก HOSxP
@@ -149,17 +180,28 @@ class FdhClaimStatusController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'no_data_found',
-                'date_range' => [$dateStart, $dateEnd]
+                'date_range' => [$dateStart, $dateEnd],
+                'total' => 0,
+                'updated_count' => 0,
+                'errors_count' => 0
             ]);
         }
 
         // 4) ขอ Token FDH
         $token = $this->getToken();
         if (!$token) {
-            return response()->json(['error' => 'token_unavailable'], 500);
+            return response()->json([
+                'success' => false,
+                'error' => 'token_unavailable',
+                'total' => 0,
+                'updated_count' => 0,
+                'errors_count' => count($items)
+            ], 500);
         }
         $apiUrl = 'https://fdh.moph.go.th/api/v1/ucs/track_trans';
         $results = [];
+        $totalUpdated = 0;
+        $totalErrors = 0;
 
         // 5) Chunk = 50 วิเคราะห์แบบหลายๆ คิวพร้อมกัน (Concurrent Requests)
         $chunks = array_chunk($items, 50);
@@ -205,6 +247,7 @@ class FdhClaimStatusController extends Controller
 
                 if ($response instanceof \Exception) {
                     $status = 500;
+                    $totalErrors++;
                     $body = [
                         'error' => 'request_failed',
                         'message' => $response->getMessage()
@@ -228,6 +271,10 @@ class FdhClaimStatusController extends Controller
                             'updated_at'        => $now,
                             'created_at'        => $now,
                         ];
+                    } else {
+                        if ($status != 200) {
+                            $totalErrors++;
+                        }
                     }
                 }
 
@@ -247,6 +294,7 @@ class FdhClaimStatusController extends Controller
                     ['hn', 'seq', 'an'],
                     ['hcode', 'status', 'process_status', 'status_message_th', 'stm_period', 'updated_at']
                 );
+                $totalUpdated += count($upsertData);
             }
 
             // หน่วงป้องกัน spam 0.1s
@@ -258,6 +306,8 @@ class FdhClaimStatusController extends Controller
             'date_start' => $dateStart,
             'date_end'   => $dateEnd,
             'total'      => count($results),
+            'updated_count' => $totalUpdated,
+            'errors_count' => $totalErrors,
             'message'    => 'FDH Check Completed'
         ]);
     }

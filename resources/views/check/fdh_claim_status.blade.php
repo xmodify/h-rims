@@ -81,32 +81,41 @@
 </div>     
 
 <!-- Modal -->
-<div class="modal fade" id="FdhModal" tabindex="-1">
+<div class="modal fade" id="FdhModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header bg-success text-white">
         <h5 class="modal-title">ดึงข้อมูลจาก FDH</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" id="modalCloseHeaderBtn"></button>
       </div>
       
       <!-- 🔥 FORM เริ่มตรงนี้ -->
       <form id="fdhForm">
         <div class="modal-body">
-            <div class="mb-3">
-                <label for="dateStart" class="form-label">วันที่เริ่มต้น</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-calendar"></i></span>
-                    <input type="hidden" name="date_start" id="dateStart" value="{{ $start_date }}">
-                    <input type="text" id="dateStart_picker" class="form-control datepicker_th text-center" readonly style="cursor: pointer;">
+            <div id="inputsContainer">
+                <div class="mb-3">
+                    <label for="dateStart" class="form-label">วันที่เริ่มต้น</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+                        <input type="hidden" name="date_start" id="dateStart" value="{{ $start_date }}">
+                        <input type="text" id="dateStart_picker" class="form-control datepicker_th text-center" readonly style="cursor: pointer;">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="dateEnd" class="form-label">วันที่สิ้นสุด</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+                        <input type="hidden" name="date_end" id="dateEnd" value="{{ $end_date }}">
+                        <input type="text" id="dateEnd_picker" class="form-control datepicker_th text-center" readonly style="cursor: pointer;">
+                    </div>
                 </div>
             </div>
-            <div class="mb-3">
-                <label for="dateEnd" class="form-label">วันที่สิ้นสุด</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-calendar"></i></span>
-                    <input type="hidden" name="date_end" id="dateEnd" value="{{ $end_date }}">
-                    <input type="text" id="dateEnd_picker" class="form-control datepicker_th text-center" readonly style="cursor: pointer;">
+
+            <div id="progressContainer" class="mt-3 d-none">
+                <div class="progress mb-2" style="height: 20px;">
+                    <div id="fdhProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%">0%</div>
                 </div>
+                <small id="progressText" class="text-muted d-block text-center fw-bold">กำลังเริ่มดึงข้อมูล...</small>
             </div>
 
             <div id="resultMessage" class="mt-2 d-none"></div>
@@ -114,9 +123,10 @@
                 <div class="spinner-border text-success"></div>
             </div>
         </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ยกเลิก</button>
+        <div class="modal-footer" id="modalFooter">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="modalCancelBtn">ยกเลิก</button>
             <button type="submit" class="btn btn-success" id="FdhBtn">ดึงข้อมูล</button>
+            <button type="button" class="btn btn-success d-none" data-bs-dismiss="modal" id="modalOkBtn">ตกลง</button>
         </div>
       </form>
       <!-- 🔥 FORM จบตรงนี้ -->
@@ -131,51 +141,152 @@
       const form = document.getElementById("fdhForm");
       const spinner = document.getElementById("loadingSpinner");
       const resultMessage = document.getElementById("resultMessage");
+      const inputsContainer = document.getElementById("inputsContainer");
+      const progressContainer = document.getElementById("progressContainer");
+      const progressBar = document.getElementById("fdhProgressBar");
+      const progressText = document.getElementById("progressText");
+      const modalCloseHeaderBtn = document.getElementById("modalCloseHeaderBtn");
+      const modalCancelBtn = document.getElementById("modalCancelBtn");
+      const FdhBtn = document.getElementById("FdhBtn");
+      const modalOkBtn = document.getElementById("modalOkBtn");
 
-      // ✔ กดปุ่ม "ส่งข้อมูล" → submit form
-      form.addEventListener("submit", function (e) {
-          e.preventDefault();
+      let isProcessing = false;
 
-          spinner.classList.remove("d-none");
+      // Prevent closing modal when processing
+      const modalEl = document.getElementById('FdhModal');
+      modalEl.addEventListener('hide.bs.modal', function (e) {
+          if (isProcessing) {
+              e.preventDefault();
+          }
+      });
+
+      // Reset modal state when shown
+      modalEl.addEventListener('show.bs.modal', function () {
+          isProcessing = false;
+          inputsContainer.classList.remove("d-none");
+          progressContainer.classList.add("d-none");
+          progressBar.style.width = "0%";
+          progressBar.textContent = "0%";
+          progressText.innerHTML = "กำลังเริ่มดึงข้อมูล...";
           resultMessage.classList.add("d-none");
-
-          const formData = new FormData(form);
-
-          fetch("{{ route('api.fdh.check_claim') }}", {
-              method: "POST",
-              headers: {
-                  "X-CSRF-TOKEN": "{{ csrf_token() }}"
-              },
-              body: formData
-          })
-          .then(response => {
-              spinner.classList.add("d-none");
-              if (!response.ok) throw new Error("โหลดล้มเหลว");
-              return response.json();
-          })
-          .then(data => {
-              const start_date_val = "{{ $start_date }}";
-              const end_date_val = "{{ $end_date }}";
-              document.getElementById("dateStart").value = start_date_val;
-              document.getElementById("dateEnd").value = end_date_val;
-              
-              resultMessage.classList.remove("d-none");
-              resultMessage.classList.add("text-success");
-              resultMessage.innerHTML = "✅ " + (data.message || "ดึงข้อมูลสำเร็จ");
-          })
-          .catch(err => {
-              resultMessage.classList.remove("d-none");
-              resultMessage.classList.add("text-danger");
-              resultMessage.innerHTML = "❌ ดึงข้อมูลล้มเหลว";
-          });
+          resultMessage.className = "mt-2 d-none";
+          resultMessage.innerHTML = "";
+          modalCloseHeaderBtn.classList.remove("d-none");
+          modalCancelBtn.classList.remove("d-none");
+          FdhBtn.classList.remove("d-none");
+          modalOkBtn.classList.add("d-none");
       });
 
       // ✔ ปิด Modal → Redirect
-      const modalEl = document.getElementById('FdhModal');
       modalEl.addEventListener('hidden.bs.modal', function () {
           window.location.href = "{{ url('check/fdh_claim_status') }}";
       });
 
+      function getDatesInRange(startDateStr, endDateStr) {
+          const dates = [];
+          let currentDate = new Date(startDateStr);
+          const endDate = new Date(endDateStr);
+          
+          currentDate.setHours(0,0,0,0);
+          endDate.setHours(0,0,0,0);
+          
+          while (currentDate <= endDate) {
+              const year = currentDate.getFullYear();
+              const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+              const day = String(currentDate.getDate()).padStart(2, '0');
+              dates.push(`${year}-${month}-${day}`);
+              currentDate.setDate(currentDate.getDate() + 1);
+          }
+          return dates;
+      }
+
+      form.addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const dateStartVal = document.getElementById("dateStart").value;
+          const dateEndVal = document.getElementById("dateEnd").value;
+
+          if (!dateStartVal || !dateEndVal) {
+              alert("กรุณาเลือกวันที่เริ่มต้นและสิ้นสุด");
+              return;
+          }
+
+          const dates = getDatesInRange(dateStartVal, dateEndVal);
+          if (dates.length === 0) {
+              alert("ไม่พบช่วงวันที่ถูกต้อง");
+              return;
+          }
+
+          // Start processing
+          isProcessing = true;
+          inputsContainer.classList.add("d-none");
+          progressContainer.classList.remove("d-none");
+          modalCloseHeaderBtn.classList.add("d-none");
+          modalCancelBtn.classList.add("d-none");
+          FdhBtn.classList.add("d-none");
+          resultMessage.classList.add("d-none");
+
+          let successCount = 0;
+          let failCount = 0;
+          const totalDays = dates.length;
+
+          for (let i = 0; i < totalDays; i++) {
+              const currentDate = dates[i];
+              
+              // format date for display in Thai Buddhist Era if possible
+              const parts = currentDate.split('-');
+              const thaiDisplayYear = parseInt(parts[0]) + 543;
+              const displayDateStr = `${parts[2]}/${parts[1]}/${thaiDisplayYear}`;
+
+              // Update progress bar
+              const percent = Math.round((i / totalDays) * 100);
+              progressBar.style.width = percent + "%";
+              progressBar.textContent = percent + "%";
+              progressText.innerHTML = `กำลังดึงข้อมูลวันที่ ${displayDateStr} (${i + 1}/${totalDays} วัน)...`;
+
+              // Send AJAX request for the current single day
+              try {
+                  const formData = new FormData();
+                  formData.append("date_start", currentDate);
+                  formData.append("date_end", currentDate);
+
+                  const response = await fetch("{{ route('api.fdh.check_claim') }}", {
+                      method: "POST",
+                      headers: {
+                          "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                      },
+                      body: formData
+                  });
+
+                  if (!response.ok) {
+                      throw new Error("HTTP error " + response.status);
+                  }
+
+                  const data = await response.json();
+                  if (data.success) {
+                      successCount++;
+                  } else {
+                      failCount++;
+                  }
+              } catch (err) {
+                  console.error(err);
+                  failCount++;
+              }
+          }
+
+          // Completed
+          isProcessing = false;
+          progressBar.style.width = "100%";
+          progressBar.textContent = "100%";
+          progressText.innerHTML = "ดึงข้อมูลเสร็จสิ้น";
+
+          modalCloseHeaderBtn.classList.remove("d-none");
+          modalOkBtn.classList.remove("d-none");
+
+          resultMessage.classList.remove("d-none");
+          resultMessage.className = "mt-3 alert alert-success text-center";
+          resultMessage.innerHTML = `<strong>ดึงข้อมูลสำเร็จ:</strong> ${successCount} วัน | <strong>ล้มเหลว:</strong> ${failCount} วัน`;
+      });
   });
 </script>
 

@@ -203,35 +203,49 @@
 </div>     
 
 <!-- Modal -->
-<div class="modal fade" id="nhsoModal" tabindex="-1" aria-labelledby="nhsoModalLabel" aria-hidden="true">
+<div class="modal fade" id="nhsoModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-labelledby="nhsoModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content text-center">
+    <div class="modal-content">
       <div class="modal-header">
-        <h5>เลือกวันที่เข้ารับบริการ</h5>
+        <h5>เลือกช่วงวันที่เข้ารับบริการ</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
 
       <form id="nhsoForm">
-        <div class="modal-body">         
-          <div class="input-group input-group-sm">
-            <span class="input-group-text bg-white"><i class="bi bi-calendar-event"></i></span>
-            <input type="hidden" id="vstdate" name="vstdate" value="{{ date('Y-m-d') }}">
-            <input type="text" id="vstdate_picker" class="form-control datepicker_th text-center" readonly style="cursor: pointer;">
+        <div class="modal-body text-start">         
+          <div id="inputsContainer">
+              <div class="mb-3">
+                  <label for="nhsoDateStart" class="form-label fw-bold">วันที่เริ่มต้น</label>
+                  <div class="input-group">
+                      <span class="input-group-text bg-white"><i class="bi bi-calendar-event"></i></span>
+                      <input type="hidden" id="nhsoDateStart" name="date_start" value="{{ $start_date }}">
+                      <input type="text" id="nhsoDateStart_picker" class="form-control datepicker_th text-center" readonly style="cursor: pointer;">
+                  </div>
+              </div>
+              <div class="mb-3">
+                  <label for="nhsoDateEnd" class="form-label fw-bold">วันที่สิ้นสุด</label>
+                  <div class="input-group">
+                      <span class="input-group-text bg-white"><i class="bi bi-calendar-event"></i></span>
+                      <input type="hidden" id="nhsoDateEnd" name="date_end" value="{{ $end_date }}">
+                      <input type="text" id="nhsoDateEnd_picker" class="form-control datepicker_th text-center" readonly style="cursor: pointer;">
+                  </div>
+              </div>
           </div>
 
-          <div id="loadingSpinner" class="mt-4 d-none">
-            <div class="spinner-border text-primary" role="status">
-              <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-2">กำลังดึงข้อมูลจาก สปสช....</p>
+          <div id="progressContainer" class="mt-3 d-none text-center">
+              <div class="progress mb-2" style="height: 20px;">
+                  <div id="nhsoProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-danger" role="progressbar" style="width: 0%">0%</div>
+              </div>
+              <small id="progressText" class="text-muted d-block text-center fw-bold">กำลังเริ่มดึงข้อมูล...</small>
           </div>
 
           <div id="resultMessage" class="mt-3 d-none"></div>
         </div>
 
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">ดึงข้อมูล</button>
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">ปิด</button>
+        <div class="modal-footer" id="modalFooter">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="modalCancelBtn">ยกเลิก</button>
+          <button type="submit" class="btn btn-danger" id="nhsoBtn">ดึงข้อมูล</button>
+          <button type="button" class="btn btn-danger d-none" data-bs-dismiss="modal" id="modalOkBtn">ตกลง</button>
         </div>
       </form>
     </div>
@@ -243,46 +257,152 @@
 <script>
   document.addEventListener("DOMContentLoaded", function () {
       const form = document.getElementById("nhsoForm");
-      const spinner = document.getElementById("loadingSpinner");
       const resultMessage = document.getElementById("resultMessage");
       const nhsoModal = document.getElementById('nhsoModal');
+      const inputsContainer = document.getElementById("inputsContainer");
+      const progressContainer = document.getElementById("progressContainer");
+      const progressBar = document.getElementById("nhsoProgressBar");
+      const progressText = document.getElementById("progressText");
+      const modalCloseHeaderBtn = nhsoModal.querySelector(".btn-close");
+      const modalCancelBtn = document.getElementById("modalCancelBtn");
+      const nhsoBtn = document.getElementById("nhsoBtn");
+      const modalOkBtn = document.getElementById("modalOkBtn");
 
-      form.addEventListener("submit", function (e) {
-          e.preventDefault();
-          spinner.classList.remove("d-none");
-          resultMessage.classList.add("d-none");
-          resultMessage.innerHTML = "";
+      let isProcessing = false;
 
-          const formData = new FormData(form);
-
-          fetch("{{ url('api/nhso_endpoint_pull') }}", {
-              method: "POST",
-              headers: {
-                  "X-CSRF-TOKEN": "{{ csrf_token() }}",
-                  "Accept": "application/json"
-              },
-              body: formData
-          })
-          .then(response => {
-              spinner.classList.add("d-none");
-              if (!response.ok) throw new Error("โหลดล้มเหลว");
-              return response.json();
-          })
-          .then(data => {
-              resultMessage.classList.remove("d-none");
-              resultMessage.classList.add("text-success");
-              resultMessage.innerHTML = "✅ " + (data.message || "ดึงข้อมูลสำเร็จ");
-          })
-          .catch(err => {
-              resultMessage.classList.remove("d-none");
-              resultMessage.classList.add("text-danger");
-              resultMessage.innerHTML = "❌ ดึงข้อมูลล้มเหลว";
-          });
+      // Prevent closing modal when processing
+      nhsoModal.addEventListener('hide.bs.modal', function (e) {
+          if (isProcessing) {
+              e.preventDefault();
+          }
       });
 
-      nhsoModal.addEventListener('hide.bs.modal', function () {
-          // ✅ Redirect ไปหน้า /home เมื่อปิด Modal
+      // Reset modal state when shown
+      nhsoModal.addEventListener('show.bs.modal', function () {
+          isProcessing = false;
+          inputsContainer.classList.remove("d-none");
+          progressContainer.classList.add("d-none");
+          progressBar.style.width = "0%";
+          progressBar.textContent = "0%";
+          progressText.innerHTML = "กำลังเริ่มดึงข้อมูล...";
+          resultMessage.classList.add("d-none");
+          resultMessage.className = "mt-3 d-none";
+          resultMessage.innerHTML = "";
+          modalCloseHeaderBtn.classList.remove("d-none");
+          modalCancelBtn.classList.remove("d-none");
+          nhsoBtn.classList.remove("d-none");
+          modalOkBtn.classList.add("d-none");
+      });
+
+      // ✔ ปิด Modal → Redirect
+      nhsoModal.addEventListener('hidden.bs.modal', function () {
           window.location.href = "{{ url('check/nhso_endpoint') }}";
+      });
+
+      function getDatesInRange(startDateStr, endDateStr) {
+          const dates = [];
+          let currentDate = new Date(startDateStr);
+          const endDate = new Date(endDateStr);
+          
+          currentDate.setHours(0,0,0,0);
+          endDate.setHours(0,0,0,0);
+          
+          while (currentDate <= endDate) {
+              const year = currentDate.getFullYear();
+              const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+              const day = String(currentDate.getDate()).padStart(2, '0');
+              dates.push(`${year}-${month}-${day}`);
+              currentDate.setDate(currentDate.getDate() + 1);
+          }
+          return dates;
+      }
+
+      form.addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const dateStartVal = document.getElementById("nhsoDateStart").value;
+          const dateEndVal = document.getElementById("nhsoDateEnd").value;
+
+          if (!dateStartVal || !dateEndVal) {
+              alert("กรุณาเลือกวันที่เริ่มต้นและสิ้นสุด");
+              return;
+          }
+
+          const dates = getDatesInRange(dateStartVal, dateEndVal);
+          if (dates.length === 0) {
+              alert("ไม่พบช่วงวันที่ถูกต้อง");
+              return;
+          }
+
+          // Start processing
+          isProcessing = true;
+          inputsContainer.classList.add("d-none");
+          progressContainer.classList.remove("d-none");
+          modalCloseHeaderBtn.classList.add("d-none");
+          modalCancelBtn.classList.add("d-none");
+          nhsoBtn.classList.add("d-none");
+          resultMessage.classList.add("d-none");
+
+          let successCount = 0;
+          let failCount = 0;
+          const totalDays = dates.length;
+
+          for (let i = 0; i < totalDays; i++) {
+              const currentDate = dates[i];
+              
+              // format date for display in Thai Buddhist Era
+              const parts = currentDate.split('-');
+              const thaiDisplayYear = parseInt(parts[0]) + 543;
+              const displayDateStr = `${parts[2]}/${parts[1]}/${thaiDisplayYear}`;
+
+              // Update progress bar
+              const percent = Math.round((i / totalDays) * 100);
+              progressBar.style.width = percent + "%";
+              progressBar.textContent = percent + "%";
+              progressText.innerHTML = `กำลังดึงข้อมูลวันที่ ${displayDateStr} (${i + 1}/${totalDays} วัน)...`;
+
+              // Send AJAX request for the current single day
+              try {
+                  const formData = new FormData();
+                  formData.append("vstdate", currentDate);
+
+                  const response = await fetch("{{ url('api/nhso_endpoint_pull') }}", {
+                      method: "POST",
+                      headers: {
+                          "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                          "Accept": "application/json"
+                      },
+                      body: formData
+                  });
+
+                  if (!response.ok) {
+                      throw new Error("HTTP error " + response.status);
+                  }
+
+                  const data = await response.json();
+                  if (data.status === 'success') {
+                      successCount++;
+                  } else {
+                      failCount++;
+                  }
+              } catch (err) {
+                  console.error(err);
+                  failCount++;
+              }
+          }
+
+          // Completed
+          isProcessing = false;
+          progressBar.style.width = "100%";
+          progressBar.textContent = "100%";
+          progressText.innerHTML = "ดึงข้อมูลเสร็จสิ้น";
+
+          modalCloseHeaderBtn.classList.remove("d-none");
+          modalOkBtn.classList.remove("d-none");
+
+          resultMessage.classList.remove("d-none");
+          resultMessage.className = "mt-3 alert alert-success text-center";
+          resultMessage.innerHTML = `<strong>ดึงข้อมูลสำเร็จ:</strong> ${successCount} วัน | <strong>ล้มเหลว:</strong> ${failCount} วัน`;
       });
   });
 </script>
@@ -304,16 +424,14 @@
       // Set initial values
       var start_date_val = "{{ $start_date }}";
       var end_date_val = "{{ $end_date }}";
-      var vstdate_val = "{{ date('Y-m-d') }}";
       
       if(start_date_val) {
           $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
+          $('#nhsoDateStart_picker').datepicker('setDate', new Date(start_date_val));
       }
       if(end_date_val) {
           $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
-      }
-      if(vstdate_val) {
-          $('#vstdate_picker').datepicker('setDate', new Date(vstdate_val));
+          $('#nhsoDateEnd_picker').datepicker('setDate', new Date(end_date_val));
       }
 
       // Sync Changes to Hidden Inputs

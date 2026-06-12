@@ -94,6 +94,7 @@ Route::match(['get', 'post'], 'ipd_finance_chk_opd_wait_transfer', [HomeControll
 Route::match(['get', 'post'], 'ipd_finance_chk_wait_rcpt_money', [HomeController::class, 'ipd_finance_chk_wait_rcpt_money']);
 
 //Import---------------------------------------------------------------------------------------------------------------------------
+Route::get('import/statement', [ImportController::class, 'statement_index'])->name('import.statement');
 Route::match(['get', 'post'], 'import/stm_ucs', [ImportController::class, 'stm_ucs'])->name('stm_ucs');
 Route::post('import/stm_ucs_save', [ImportController::class, 'stm_ucs_save']);
 Route::post('import/stm_ucs_updateReceipt', [ImportController::class, 'stm_ucs_updateReceipt']);

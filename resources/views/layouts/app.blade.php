@@ -558,125 +558,10 @@
                         @guest
                         @else
                             @if(Auth::user()->status == 'admin' || Auth::user()->allow_import == 'Y')
-                                <li class="nav-item dropdown">
-                                    <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
-                                        role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
-                                        v-pre>
-                                        <i class="bi bi-cloud-arrow-down-fill me-1"></i> นำเข้าข้อมูล
+                                <li class="nav-item">
+                                    <a class="nav-link nav-link-modern" href="{{ route('import.statement') }}">
+                                        <i class="bi bi-file-earmark-arrow-up-fill me-1"></i> Statement
                                     </a>
-                                    <ul class="dropdown-menu dropdown-menu-modern">
-                                        <!-- ชี้ขวา -->
-                                        <li class="dropend position-relative">
-                                            <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
-                                                data-bs-toggle="dropdown">
-                                                STM-UCS [OP-IP]
-                                            </a>
-                                            <ul class="dropdown-menu dropdown-menu-modern">
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('/import/stm_ucs') }}">นำเข้าข้อมูล</a></li>
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('/import/stm_ucs_detail_opd') }}">รายละเอียด OPD</a></li>
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('/import/stm_ucs_detail_ipd') }}">รายละเอียด IPD</a></li>
-                                            </ul>
-                                        </li>
-                                        @if ($hasLookupIcode_kidney)
-                                            <li class="dropend position-relative">
-                                                <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
-                                                    data-bs-toggle="dropdown">
-                                                    STM-UCS [ฟอกไต]
-                                                </a>
-                                                <ul class="dropdown-menu dropdown-menu-modern">
-                                                    <li><a class="dropdown-item dropdown-item-modern"
-                                                            href="{{ url('/import/stm_ucs_kidney') }}">นำเข้าข้อมูล</a></li>
-                                                    <li><a class="dropdown-item dropdown-item-modern"
-                                                            href="{{ url('/import/stm_ucs_kidneydetail') }}">รายละเอียด</a></li>
-                                                </ul>
-                                            </li>
-                                        @endif
-                                        <li class="dropend position-relative">
-                                            <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
-                                                data-bs-toggle="dropdown">
-                                                STM-OFC:BKK:BMT [OP-IP]
-                                            </a>
-                                            <ul class="dropdown-menu dropdown-menu-modern">
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('/import/stm_ofc') }}">นำเข้าข้อมูล</a></li>
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('/import/stm_ofc_detail_opd') }}">รายละเอียด OPD</a></li>
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('/import/stm_ofc_detail_ipd') }}">รายละเอียด IPD</a></li>
-                                            </ul>
-                                        </li>
-                                        <li class="dropend position-relative">
-                                            <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
-                                                data-bs-toggle="dropdown">
-                                                STM-OFC [CSOP-ฟอกไต]
-                                            </a>
-                                            <ul class="dropdown-menu dropdown-menu-modern">
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('/import/stm_ofc_csop') }}">นำเข้าข้อมูล</a></li>
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('/import/stm_ofc_csopdetail') }}">รายละเอียด</a></li>
-                                            </ul>
-                                        </li>
-                                        <li class="dropend position-relative">
-                                            <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
-                                                data-bs-toggle="dropdown">
-                                                STM-OFC [CIPN]
-                                            </a>
-                                            <ul class="dropdown-menu dropdown-menu-modern">
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('/import/stm_ofc_cipn') }}">นำเข้าข้อมูล</a></li>
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('/import/stm_ofc_cipndetail') }}">รายละเอียด</a></li>
-                                            </ul>
-                                        </li>
-                                        <li class="dropend position-relative">
-                                            <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
-                                                data-bs-toggle="dropdown">
-                                                STM-LGO [OP-IP]
-                                            </a>
-                                            <ul class="dropdown-menu dropdown-menu-modern">
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('/import/stm_lgo') }}">นำเข้าข้อมูล</a></li>
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('/import/stm_lgo_detail_opd') }}">รายละเอียด OPD</a></li>
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('/import/stm_lgo_detail_ipd') }}">รายละเอียด IPD</a></li>
-                                            </ul>
-                                        </li>
-                                        @if ($hasLookupIcode_kidney)
-                                            <li class="dropend position-relative">
-                                                <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
-                                                    data-bs-toggle="dropdown">
-                                                    STM-LGO [ฟอกไต]
-                                                </a>
-                                                <ul class="dropdown-menu dropdown-menu-modern">
-                                                    <li><a class="dropdown-item dropdown-item-modern"
-                                                            href="{{ url('/import/stm_lgo_kidney') }}">นำเข้าข้อมูล</a></li>
-                                                    <li><a class="dropdown-item dropdown-item-modern"
-                                                            href="{{ url('/import/stm_lgo_kidneydetail') }}">รายละเอียด</a>
-                                                    </li>
-                                                </ul>
-                                            </li>
-                                        @endif
-                                        @if ($hasLookupIcode_kidney)
-                                            <li class="dropend position-relative">
-                                                <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
-                                                    data-bs-toggle="dropdown">
-                                                    STM-SSS [ฟอกไต]
-                                                </a>
-                                                <ul class="dropdown-menu dropdown-menu-modern">
-                                                    <li><a class="dropdown-item dropdown-item-modern"
-                                                            href="{{ url('/import/stm_sss_kidney') }}">นำเข้าข้อมูล</a></li>
-                                                    <li><a class="dropdown-item dropdown-item-modern"
-                                                            href="{{ url('/import/stm_sss_kidneydetail') }}">รายละเอียด</a>
-                                                    </li>
-                                                </ul>
-                                            </li>
-                                        @endif
-                                    </ul>
                                 </li>
                             @endif
 
@@ -1220,6 +1105,13 @@
         </nav>
 
         <main class="py-4">
+            @if (request()->routeIs('stm_*') || request()->is('import/stm_*') || request()->is('import/stm_*/*'))
+                <div class="container-fluid px-lg-4 mb-3">
+                    <a href="{{ route('import.statement') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm">
+                        <i class="bi bi-arrow-left me-1"></i> ย้อนกลับไปยัง Statement Portal
+                    </a>
+                </div>
+            @endif
             @yield('content')
         </main>
     </div>
@@ -1317,6 +1209,261 @@
         </script>
     @endauth
 
+    <script>
+        // Override showLoadingAlert and simulateProcess for sequential AJAX multi-upload
+        $(document).ready(function() {
+            // Replace any 5-file limits text in descriptions
+            $('p, span, div, label, h6').each(function() {
+                let html = $(this).html();
+                if (html && html.includes('ไม่เกิน 5 ไฟล์')) {
+                    html = html.replace(/ไม่เกิน 5 ไฟล์/g, 'ไม่จำกัดจำนวนไฟล์');
+                    $(this).html(html);
+                }
+            });
+
+            window.showLoadingAlert = function() {
+                Swal.fire({
+                    title: 'กำลังนำเข้าข้อมูล...',
+                    text: 'กรุณารอสักครู่',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading()
+                    }
+                });
+            };
+
+            window.simulateProcess = function(event) {
+                event.preventDefault();
+                const form = event.target || document.getElementById('importForm');
+                const fileInput = form.querySelector('input[type="file"]');
+                if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+                    Swal.fire({
+                        title: 'แจ้งเตือน',
+                        text: 'กรุณาเลือกไฟล์ก่อนนำเข้า',
+                        icon: 'warning',
+                        confirmButtonText: 'ปิด',
+                        confirmButtonColor: '#673ab7',
+                        customClass: {
+                            confirmButton: 'btn btn-primary btn-sm px-4'
+                        }
+                    });
+                    return;
+                }
+
+                const files = Array.from(fileInput.files);
+                const totalFiles = files.length;
+                let currentIndex = 0;
+                let successCount = 0;
+                let succeededFiles = [];
+                let failedFiles = [];
+                let currentXhr = null;
+                let isCancelled = false;
+
+                // Show progress bar container via SweetAlert2
+                Swal.fire({
+                    title: 'กำลังนำเข้าข้อมูล...',
+                    html: `
+                        <div id="swal-upload-container" class="text-start mt-2">
+                            <div class="d-flex justify-content-between mb-1 small">
+                                <span id="swal-file-name" class="text-truncate fw-bold text-dark d-inline-block" style="max-width: 70%">กำลังเตรียมไฟล์...</span>
+                                <span id="swal-file-index" class="text-muted fw-bold">0 / ${totalFiles} ไฟล์</span>
+                            </div>
+                            <div class="progress mb-2" style="height: 22px; border-radius: 10px; overflow: hidden; background-color: #f1f3f5;">
+                                <div id="swal-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success fw-bold" role="progressbar" style="width: 0%">0%</div>
+                            </div>
+                            <div id="swal-status-text" class="text-muted small">ระบบกำลังเริ่มต้นการประมวลผล...</div>
+                        </div>
+                    `,
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    showCancelButton: false,
+                    didOpen: () => {
+                        uploadNextFile();
+                    }
+                });
+
+                function uploadNextFile() {
+                    if (isCancelled) return;
+
+                    if (currentIndex >= totalFiles) {
+                        let resultHtml = `<div class="text-start small" style="max-height: 250px; overflow-y: auto;">`;
+                        if (successCount > 0) {
+                            resultHtml += `<p class="text-success fw-bold mb-1"><i class="bi bi-check-circle-fill me-1"></i> นำเข้าสำเร็จทั้งหมด ${successCount} ไฟล์:</p>`;
+                            resultHtml += `<ul class="ps-3 mb-2 text-muted">`;
+                            succeededFiles.forEach(f => {
+                                resultHtml += `<li>${f}</li>`;
+                            });
+                            resultHtml += `</ul>`;
+                        }
+                        if (failedFiles.length > 0) {
+                            resultHtml += `<p class="text-danger fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-1"></i> ไฟล์ที่ล้มเหลว (${failedFiles.length} ไฟล์):</p>`;
+                            resultHtml += `<ul class="ps-3 mb-0 text-muted">`;
+                            failedFiles.forEach(f => {
+                                resultHtml += `<li>${f}</li>`;
+                            });
+                            resultHtml += `</ul>`;
+                        }
+                        resultHtml += `</div>`;
+
+                        Swal.fire({
+                            title: 'เสร็จสิ้นการนำเข้า',
+                            html: resultHtml,
+                            icon: failedFiles.length > 0 ? 'warning' : 'success',
+                            confirmButtonText: 'ตกลง',
+                            allowOutsideClick: false
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                        return;
+                    }
+
+                    const currentFile = files[currentIndex];
+                    const nameEl = document.getElementById('swal-file-name');
+                    const indexEl = document.getElementById('swal-file-index');
+                    const barEl = document.getElementById('swal-progress-bar');
+                    const statusEl = document.getElementById('swal-status-text');
+
+                    if (nameEl) nameEl.innerText = currentFile.name;
+                    if (indexEl) indexEl.innerText = `${currentIndex + 1} / ${totalFiles} ไฟล์`;
+                    if (barEl) {
+                        barEl.style.width = '0%';
+                        barEl.innerText = '0%';
+                        barEl.className = 'progress-bar progress-bar-striped progress-bar-animated bg-success fw-bold';
+                    }
+                    if (statusEl) statusEl.innerText = 'กำลังอัปโหลด...';
+
+                    const formData = new FormData();
+                    Array.from(form.elements).forEach(el => {
+                        if (el.name && el.name !== 'files[]' && el.type !== 'file') {
+                            formData.append(el.name, el.value);
+                        }
+                    });
+                    formData.append('files[]', currentFile);
+
+                    const xhr = new XMLHttpRequest();
+                    currentXhr = xhr;
+
+                    xhr.upload.addEventListener('progress', function(e) {
+                        if (e.lengthComputable) {
+                            const percent = Math.round((e.loaded / e.total) * 100);
+                            if (barEl) {
+                                barEl.style.width = percent + '%';
+                                barEl.innerText = percent + '%';
+                            }
+                            if (statusEl) {
+                                if (percent === 100) {
+                                    statusEl.innerText = 'อัปโหลดเสร็จสิ้น กำลังประมวลผลบนเซิร์ฟเวอร์ (กรุณารอสักครู่)...';
+                                    barEl.className = 'progress-bar progress-bar-striped progress-bar-animated bg-info fw-bold';
+                                } else {
+                                    statusEl.innerText = `กำลังอัปโหลด... (${percent}%)`;
+                                }
+                            }
+                        }
+                    });
+
+                    xhr.addEventListener('readystatechange', function() {
+                        if (xhr.readyState === 4) {
+                            currentXhr = null;
+                            if (xhr.status >= 200 && xhr.status < 300) {
+                                const responseText = xhr.responseText;
+                                
+                                // Parse HTML to check for session success elements robustly
+                                const parser = new DOMParser();
+                                const doc = parser.parseFromString(responseText, 'text/html');
+                                const hasSuccessAlert = doc.querySelector('.alert-success') !== null;
+                                const hasSuccessScript = responseText.includes('นำเข้าสำเร็จ!');
+                                const isSuccess = hasSuccessAlert || hasSuccessScript;
+
+                                if (!isSuccess) {
+                                    // Try to extract exact error message from Swal.fire script or session alert
+                                    let errorMsg = 'เซิร์ฟเวอร์ประมวลผลล้มเหลว หรือเกิดข้อผิดพลาดในไฟล์';
+                                    const textMatch = responseText.match(/icon:\s*['"]error['"],[\s\S]*?text:\s*(['"])(.*?)\1/);
+                                    if (textMatch && textMatch[2]) {
+                                        errorMsg = textMatch[2];
+                                    } else {
+                                        const dangerAlert = doc.querySelector('.alert-danger');
+                                        if (dangerAlert) {
+                                            errorMsg = dangerAlert.textContent.trim();
+                                        }
+                                    }
+                                    handleFailure(currentFile.name, errorMsg);
+                                } else {
+                                    successCount++;
+                                    succeededFiles.push(currentFile.name);
+                                    currentIndex++;
+                                    uploadNextFile();
+                                }
+                            } else {
+                                handleFailure(currentFile.name, `HTTP Error ${xhr.status}`);
+                            }
+                        }
+                    });
+
+                    xhr.open('POST', form.action, true);
+                    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                    xhr.send(formData);
+                }
+
+                function handleFailure(fileName, errorMsg) {
+                    failedFiles.push(fileName);
+                    Swal.fire({
+                        title: 'เกิดข้อผิดพลาด',
+                        html: `ไม่สามารถนำเข้าไฟล์ <strong>${fileName}</strong> ได้<br><span class="text-danger small">${errorMsg}</span>`,
+                        icon: 'error',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#dc3545',
+                        confirmButtonText: 'ข้ามไฟล์นี้ไป',
+                        cancelButtonText: 'ยกเลิกที่เหลือทั้งหมด',
+                        allowOutsideClick: false,
+                        customClass: {
+                            confirmButton: 'btn btn-primary btn-sm px-3 me-2',
+                            cancelButton: 'btn btn-danger btn-sm px-3'
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            currentIndex++;
+                            reopenProgressSwal();
+                        } else {
+                            isCancelled = true;
+                            Swal.fire({
+                                title: 'ยกเลิกการนำเข้า',
+                                text: 'หยุดการนำเข้าไฟล์ที่เหลืออยู่เรียบร้อยแล้ว',
+                                icon: 'info',
+                                confirmButtonText: 'ตกลง'
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        }
+                    });
+                }
+
+                function reopenProgressSwal() {
+                    Swal.fire({
+                        title: 'กำลังนำเข้าข้อมูล...',
+                        html: `
+                            <div id="swal-upload-container" class="text-start mt-2">
+                                <div class="d-flex justify-content-between mb-1 small">
+                                    <span id="swal-file-name" class="text-truncate fw-bold text-dark d-inline-block" style="max-width: 70%">กำลังเตรียมไฟล์...</span>
+                                    <span id="swal-file-index" class="text-muted fw-bold">${currentIndex} / ${totalFiles} ไฟล์</span>
+                                </div>
+                                <div class="progress mb-2" style="height: 22px; border-radius: 10px; overflow: hidden; background-color: #f1f3f5;">
+                                    <div id="swal-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success fw-bold" role="progressbar" style="width: 0%">0%</div>
+                                </div>
+                                <div id="swal-status-text" class="text-muted small">กำลังเริ่มต้น...</div>
+                            </div>
+                        `,
+                        allowOutsideClick: false,
+                        showConfirmButton: false,
+                        showCancelButton: false,
+                        didOpen: () => {
+                            uploadNextFile();
+                        }
+                    });
+                }
+            };
+        });
+    </script>
 </body>
 
 </html>

@@ -43,6 +43,12 @@ class ImportController extends Controller
         ]);
     }
 
+    //statement_index---------------------------------------------------------------------------------------------
+    public function statement_index(Request $request)
+    {
+        return view('import.statement_index');
+    }
+
     //stm_ucs-----------------------------------------------------------------------------------------------------
     public function stm_ucs(Request $request)
     {

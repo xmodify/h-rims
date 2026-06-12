@@ -71,8 +71,7 @@ class ClaimOpController extends Controller
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype           
-            LEFT JOIN vn_stat v ON v.vn = o.vn            
-
+            LEFT JOIN vn_stat v ON v.vn = o.vn  
             INNER JOIN (
                 SELECT op.vn, 
                     SUM(op.sum_price) AS total_price
@@ -106,16 +105,18 @@ class ClaimOpController extends Controller
             ep.claim_status, pt.cid,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
-            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,claim_items.claim_list,
-            v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(claim_items.claim_price, 0) AS claim_price,GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
-            fdh.status_message_th AS fdh_status,ec.status AS ec_status,
+            MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,claim_items.claim_list,
+            v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(claim_items.claim_price, 0) AS claim_price,
+            claim_items.project,
+            fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,
             pt.sex, v.age_y
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
-            LEFT JOIN opdscreen os ON os.vn=o.vn
-            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
+            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
                 SELECT r.vn, SUM(r.total_amount) AS rcpt_money
@@ -124,24 +125,20 @@ class ClaimOpController extends Controller
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
-
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             INNER JOIN (
                 SELECT op.vn, 
                     GROUP_CONCAT(DISTINCT IFNULL(n.`name`,d.`name`)) AS claim_list,
-                    SUM(CASE WHEN (li.kidney = "" OR li.kidney IS NULL) THEN op.sum_price ELSE 0 END) AS claim_price
+                    SUM(op.sum_price) AS claim_price,
+                    GROUP_CONCAT(DISTINCT CASE WHEN n.nhso_adp_code IN ("WALKIN","UCEP24") THEN n.nhso_adp_code END) AS project
                 FROM opitemrece op
                 INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
                 LEFT JOIN nondrugitems n ON n.icode=op.icode
                 LEFT JOIN drugitems d ON d.icode=op.icode
                 WHERE op.vstdate BETWEEN ? AND ? 
+                AND (li.uc_cr = "Y" OR li.ppfs="Y" OR li.herb32 = "Y")
                 GROUP BY op.vn
-                HAVING SUM(CASE WHEN (li.uc_cr = "Y" OR li.ppfs="Y" OR li.herb32 = "Y")
-                  THEN 1 ELSE 0 END) > 0
-            ) claim_items ON claim_items.vn = o.vn           
-            LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode 
-                IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
-            LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
+            ) claim_items ON claim_items.vn = o.vn 
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
@@ -167,19 +164,21 @@ class ClaimOpController extends Controller
             IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint,
             ep.claim_status, pt.cid,
             vp.confirm_and_locked,vp.request_funds,
-            o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            o.vn AS seq,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+            o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
+            o.vn AS seq,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+            MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
             claim_items.claim_list,
             COALESCE(claim_items.uc_cr, 0) AS uc_cr,COALESCE(claim_items.ppfs, 0) AS ppfs,COALESCE(claim_items.herb, 0) AS herb,
-            GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
-            stm.receive_total,stm.repno,fdh.status_message_th AS fdh_status,ec.status AS ec_status,
+            claim_items.project,
+            stm.receive_total,stm.repno,fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,
             pt.sex, v.age_y
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
-            LEFT JOIN opdscreen os ON os.vn=o.vn
-            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
+            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
                 SELECT r.vn, SUM(r.total_amount) AS rcpt_money
@@ -188,14 +187,14 @@ class ClaimOpController extends Controller
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
-
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn        
             INNER JOIN (
                 SELECT op.vn, 
                     GROUP_CONCAT(DISTINCT IFNULL(n.`name`,d.`name`)) AS claim_list,
                     SUM(CASE WHEN li.uc_cr = "Y" THEN op.sum_price ELSE 0 END) AS uc_cr,
                     SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs,
-                    SUM(CASE WHEN li.herb32 = "Y" THEN op.sum_price ELSE 0 END) AS herb
+                    SUM(CASE WHEN li.herb32 = "Y" THEN op.sum_price ELSE 0 END) AS herb,
+                    GROUP_CONCAT(DISTINCT CASE WHEN n.nhso_adp_code IN ("WALKIN","UCEP24") THEN n.nhso_adp_code END) AS project
                 FROM opitemrece op
                 INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
                 LEFT JOIN nondrugitems n ON n.icode=op.icode
@@ -204,9 +203,6 @@ class ClaimOpController extends Controller
                 AND (li.uc_cr = "Y" OR li.ppfs="Y" OR li.herb32 = "Y")                
                 GROUP BY op.vn
             ) claim_items ON claim_items.vn = o.vn
-            LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode 
-                IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
-            LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
@@ -276,7 +272,7 @@ class ClaimOpController extends Controller
             SELECT o.vn, o.vstdate, o.vsttime, o.oqueue,
                    pt.hn, pt.sex, v.age_y, pt.cid,
                    CONCAT(pt.pname,pt.fname," ",pt.lname) AS ptname,
-                   p.name AS pttype, vp.hospmain, os.cc, v.pdx,
+                   p.name AS pttype, vp.hospmain, os.cc, (SELECT icd10 FROM ovstdiag WHERE vn = o.vn AND diagtype = "1" LIMIT 1) AS pdx,
                    v.income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                    IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
                    IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint,
@@ -306,7 +302,7 @@ class ClaimOpController extends Controller
             ->whereNotIn('diagtype', ['1', '2'])
             ->pluck('icd10')
             ->toArray();
-        $visit->icd9 = implode(',', $secDiags);
+        $visit->sdx = implode(',', $secDiags);
 
         // รหัสหัตถการ (ICD-9/Procedure)
         $procedures = DB::connection('hosxp')
@@ -315,6 +311,7 @@ class ClaimOpController extends Controller
             ->where('diagtype', '2')
             ->pluck('icd10')
             ->toArray();
+        $visit->icd9 = implode(',', $procedures);
 
         // รายการเวชภัณฑ์/ค่าใช้จ่ายที่เรียกเก็บ
         $items = DB::connection('hosxp')->select('
@@ -390,8 +387,7 @@ class ClaimOpController extends Controller
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype           
-            LEFT JOIN vn_stat v ON v.vn = o.vn            
-
+            LEFT JOIN vn_stat v ON v.vn = o.vn 
             INNER JOIN (
                 SELECT op.vn, 
                     SUM(op.sum_price) AS total_price
@@ -425,16 +421,19 @@ class ClaimOpController extends Controller
             ep.claim_status, pt.cid,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
-            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,claim_items.claim_list,
-            v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(claim_items.claim_price, 0) AS claim_price,GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
-            fdh.status_message_th AS fdh_status,ec.status AS ec_status,
+            MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,claim_items.claim_list,
+            v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(claim_items.claim_price, 0) AS claim_price,
+            claim_items.project,
+            fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,
             pt.sex, v.age_y
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
-            LEFT JOIN opdscreen os ON os.vn=o.vn
-            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
+
+            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
                 SELECT r.vn, SUM(r.total_amount) AS rcpt_money
@@ -448,19 +447,17 @@ class ClaimOpController extends Controller
             INNER JOIN (
                 SELECT op.vn, 
                     GROUP_CONCAT(DISTINCT IFNULL(n.`name`,d.`name`)) AS claim_list,
-                    SUM(CASE WHEN (li.kidney = "" OR li.kidney IS NULL) THEN op.sum_price ELSE 0 END) AS claim_price
+                    SUM(op.sum_price) AS claim_price,
+                    GROUP_CONCAT(DISTINCT CASE WHEN n.nhso_adp_code IN ("WALKIN","UCEP24") THEN n.nhso_adp_code END) AS project
                 FROM opitemrece op
                 INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
                 LEFT JOIN nondrugitems n ON n.icode=op.icode
                 LEFT JOIN drugitems d ON d.icode=op.icode
                 WHERE op.vstdate BETWEEN ? AND ? 
+                AND (li.uc_cr = "Y" OR li.ppfs="Y" OR li.herb32 = "Y")
                 GROUP BY op.vn
-                HAVING SUM(CASE WHEN (li.uc_cr = "Y" OR li.ppfs="Y" OR li.herb32 = "Y")
-                  THEN 1 ELSE 0 END) > 0
             ) claim_items ON claim_items.vn = o.vn           
-            LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode 
-                IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
-            LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
+
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
@@ -483,12 +480,15 @@ class ClaimOpController extends Controller
 
         $claim = DB::connection('hosxp')->select('
             SELECT vp.confirm_and_locked,vp.request_funds,
-            o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            o.vn AS seq,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+            o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
+            o.vn AS seq,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+            MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
             claim_items.claim_list,
             COALESCE(claim_items.uc_cr, 0) AS uc_cr,COALESCE(claim_items.ppfs, 0) AS ppfs,COALESCE(claim_items.herb, 0) AS herb,
-            GROUP_CONCAT(DISTINCT n_proj.nhso_adp_code) AS project,
-            stm.receive_total,stm.repno,fdh.status_message_th AS fdh_status,ec.status AS ec_status,
+            claim_items.project,
+            stm.receive_total,stm.repno,fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,
             IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint,
             ep.claim_status, pt.cid,
             pt.sex, v.age_y
@@ -496,8 +496,8 @@ class ClaimOpController extends Controller
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
-            LEFT JOIN opdscreen os ON os.vn=o.vn
-            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
+
+            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
                 SELECT r.vn, SUM(r.total_amount) AS rcpt_money
@@ -513,7 +513,8 @@ class ClaimOpController extends Controller
                     GROUP_CONCAT(DISTINCT IFNULL(n.`name`,d.`name`)) AS claim_list,
                     SUM(CASE WHEN li.uc_cr = "Y" THEN op.sum_price ELSE 0 END) AS uc_cr,
                     SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs,
-                    SUM(CASE WHEN li.herb32 = "Y" THEN op.sum_price ELSE 0 END) AS herb
+                    SUM(CASE WHEN li.herb32 = "Y" THEN op.sum_price ELSE 0 END) AS herb,
+                    GROUP_CONCAT(DISTINCT CASE WHEN n.nhso_adp_code IN ("WALKIN","UCEP24") THEN n.nhso_adp_code END) AS project
                 FROM opitemrece op
                 INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
                 LEFT JOIN nondrugitems n ON n.icode=op.icode
@@ -522,9 +523,7 @@ class ClaimOpController extends Controller
                 AND (li.uc_cr = "Y" OR li.ppfs="Y" OR li.herb32 = "Y")                
                 GROUP BY op.vn
             ) claim_items ON claim_items.vn = o.vn
-            LEFT JOIN opitemrece proj ON proj.vn=o.vn AND proj.icode 
-                IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("WALKIN","UCEP24"))
-            LEFT JOIN nondrugitems n_proj ON n_proj.icode=proj.icode
+
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
@@ -888,7 +887,7 @@ class ClaimOpController extends Controller
             SELECT o.vn, o.vstdate, o.vsttime, o.oqueue,
                    pt.hn, pt.sex, v.age_y, pt.cid,
                    CONCAT(pt.pname,pt.fname," ",pt.lname) AS ptname,
-                   p.name AS pttype, vp.hospmain, os.cc, v.pdx,
+                   p.name AS pttype, vp.hospmain, os.cc, (SELECT icd10 FROM ovstdiag WHERE vn = o.vn AND diagtype = "1" LIMIT 1) AS pdx,
                    v.income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                    IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
                    IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint,
@@ -917,7 +916,9 @@ class ClaimOpController extends Controller
             ->whereNotIn('diagtype', ['1', '2'])
             ->pluck('icd10')
             ->toArray();
-        $visit->icd9 = implode(',', $secDiags);
+        $visit->sdx = implode(',', $secDiags);
+
+
 
         // รหัสหัตถการ (ICD-9/Procedure)
         $procedures = DB::connection('hosxp')
@@ -926,6 +927,7 @@ class ClaimOpController extends Controller
             ->where('diagtype', '2')
             ->pluck('icd10')
             ->toArray();
+        $visit->icd9 = implode(',', $procedures);
 
         // รายการเวชภัณฑ์/ค่าใช้จ่ายทุกรายการ (ดึงทั้งหมดไม่กรอง)
         $items = DB::connection('hosxp')->select('

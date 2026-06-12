@@ -95,10 +95,16 @@ class FdhClaimStatusController extends Controller
      */
     public function checkLastDays()
     {
-        $dateStart = date('Y-m-d', strtotime('-10 days'));
-        $dateEnd   = date('Y-m-d', strtotime('-1 day'));
+        // ย้อนหลัง 15 วัน โดยดึงและประมวลผลทีละวันเพื่อป้องกันข้อมูลโหลดเยอะเกินไป
+        for ($i = 15; $i >= 1; $i--) {
+            $targetDate = date('Y-m-d', strtotime("-{$i} days"));
+            $this->processCheckInternal($targetDate, $targetDate);
+        }
 
-        return $this->processCheckInternal($dateStart, $dateEnd);
+        return response()->json([
+            'success' => true,
+            'message' => 'FDH Check 15 Days Completed Day-by-Day'
+        ]);
     }
 
     /**

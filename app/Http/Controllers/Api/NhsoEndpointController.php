@@ -499,6 +499,7 @@ class NhsoEndpointController extends Controller
             if ($success) {
                 // ดึงข้อมูลกลับมาทันทีเพื่อให้สถานะในระบบตรงกับ สปสช. 100%
                 $this->pullIndiv($request);
+                
                 return response()->json(['status' => 'success', 'message' => 'ส่งข้อมูลปิดสิทธิสำเร็จและอัปเดตสถานะแล้ว', 'data' => $resultArr]);
             }
 

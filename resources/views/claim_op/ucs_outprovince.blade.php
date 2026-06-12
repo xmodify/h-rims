@@ -544,6 +544,132 @@ function showDetails(vn) {
       });
   }
 
+  async function checkFdhBulk(event) {
+      if (event) event.preventDefault();
+
+      const startDate = document.getElementById('start_date').value;
+      const endDate   = document.getElementById('end_date').value;
+      const startDateText = document.getElementById('start_date_picker').value || startDate;
+      const endDateText   = document.getElementById('end_date_picker').value || endDate;
+
+      if (!startDate || !endDate) {
+          Swal.fire({ icon: 'warning', title: 'กรุณาเลือกช่วงวันก่อน', confirmButtonColor: '#0dcaf0' });
+          return;
+      }
+
+      const confirm = await Swal.fire({
+          title: 'ยืนยันการดึง FDH?',
+          html: `ดึงสถานะ FDH ในช่วง <b>${startDateText}</b> ถึง <b>${endDateText}</b><br><small class="text-muted">ระบบจะส่งทีละ 1 วัน</small>`,
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: 'ดึงข้อมูล',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#0dcaf0'
+      });
+      if (!confirm.isConfirmed) return;
+
+      function getDayList(startStr, endStr) {
+          const days = [];
+          let cur = new Date(startStr);
+          const last = new Date(endStr);
+          while (cur <= last) {
+              days.push(cur.toISOString().split('T')[0]);
+              cur.setDate(cur.getDate() + 1);
+          }
+          return days;
+      }
+
+      function formatThaiDateShort(dateStr) {
+          if (!dateStr) return '';
+          const parts = dateStr.split('-');
+          if (parts.length !== 3) return dateStr;
+          const year = parseInt(parts[0]) + 543;
+          const monthIndex = parseInt(parts[1]) - 1;
+          const day = parseInt(parts[2]);
+          const shortMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+          return `${day} ${shortMonths[monthIndex]} ${year}`;
+      }
+
+      const days = getDayList(startDate, endDate);
+      const total = days.length;
+      let totalFound = 0;
+      let failedDays = [];
+      let overallSuccess = true;
+
+      Swal.fire({
+          title: 'กำลังดึงสถานะ FDH...',
+          html: `
+              <div id="fdh-progress-text" class="mb-2">กำลังเตรียมข้อมูล...</div>
+              <div class="progress" style="height: 22px;">
+                  <div id="fdh-progress-bar"
+                       class="progress-bar progress-bar-striped progress-bar-animated bg-info"
+                       role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+              </div>
+              <div id="fdh-progress-sub" class="mt-2 text-muted small"></div>
+          `,
+          allowOutsideClick: false,
+          showConfirmButton: false
+      });
+
+      for (let i = 0; i < total; i++) {
+          const day = days[i];
+          const percent = Math.round((i / total) * 100);
+
+          const pText = document.getElementById('fdh-progress-text');
+          const pBar  = document.getElementById('fdh-progress-bar');
+          const pSub  = document.getElementById('fdh-progress-sub');
+          if (pText) pText.innerHTML = `กำลังดึงวันที่ <b>${i + 1}/${total}</b> : <code>${formatThaiDateShort(day)}</code>`;
+          if (pBar)  { pBar.style.width = `${percent}%`; pBar.innerHTML = `${percent}%`; pBar.setAttribute('aria-valuenow', percent); }
+          if (pSub)  pSub.textContent = failedDays.length > 0 ? `⚠️ มี ${failedDays.length} วันที่เกิดข้อผิดพลาด` : '';
+
+          try {
+              const res = await fetch("{{ url('/api/fdh/check-claim') }}", {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      'X-CSRF-TOKEN': "{{ csrf_token() }}"
+                  },
+                  body: JSON.stringify({ date_start: day, date_end: day })
+              });
+              const data = await res.json();
+              if (data.total !== undefined) {
+                  totalFound += parseInt(data.total) || 0;
+              } else if (!res.ok) {
+                  overallSuccess = false;
+                  failedDays.push(`${formatThaiDateShort(day)} (${data.message || data.error || 'ข้อผิดพลาด'})`);
+              }
+          } catch (err) {
+              overallSuccess = false;
+              failedDays.push(`${formatThaiDateShort(day)} (${err.message || 'Network error'})`);
+          }
+      }
+
+      const pBarFinal = document.getElementById('fdh-progress-bar');
+      if (pBarFinal) { pBarFinal.style.width = '100%'; pBarFinal.innerHTML = '100%'; pBarFinal.setAttribute('aria-valuenow', 100); }
+
+      const summaryHtml = `
+          <div class="text-start p-2">
+              <b>สถานะ:</b> ${overallSuccess ? '✅ สำเร็จทั้งหมด' : '⚠️ เสร็จสิ้น แต่มีข้อผิดพลาดบางส่วน'}<br>
+              <b>ช่วงวันที่:</b> ${startDateText} ถึง ${endDateText}<br>
+              <b>จำนวนวันที่ดึง:</b> ${total} วัน<br>
+              <b>พบข้อมูลรวม:</b> <span class="badge bg-info text-white">${totalFound}</span> รายการ
+              ${failedDays.length > 0 ? `<hr><b class="text-danger">วันที่เกิดข้อผิดพลาด:</b><ul class="text-danger mb-0">${failedDays.map(d => `<li>${d}</li>`).join('')}</ul>` : ''}
+          </div>
+      `;
+
+      await Swal.fire({
+          icon: overallSuccess ? 'success' : 'warning',
+          title: 'ดึงสถานะ FDH เสร็จสิ้น',
+          html: summaryHtml,
+          confirmButtonText: 'โหลดข้อมูล',
+          confirmButtonColor: '#0dcaf0'
+      });
+
+      localStorage.setItem('active_tab', '#search');
+      fetchData();
+      $('#form_indiv').submit();
+  }
+
   function pullNhsoData(vstdate, cid, vn) {
       Swal.fire({
           title: 'กำลังดึงข้อมูล...',

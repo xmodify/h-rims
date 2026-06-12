@@ -611,8 +611,8 @@ class MainSettingController extends Controller
                     }
                     $migrate_result .= " and imported $insertedCount records from Excel into lookup_nhso_adp_code.";
 
-                    // Sync UCS instrument prices from docs/lookup/ucs_prices.json (corrects the diacritics/ligature extraction issues)
-                    $ucsJsonPath = base_path('docs/lookup/ucs_prices.json');
+                    // Sync UCS instrument prices from docs/lookup/ins_ucs_prices.json (corrects the diacritics/ligature extraction issues)
+                    $ucsJsonPath = base_path('docs/lookup/ins_ucs_prices.json');
                     if (file_exists($ucsJsonPath)) {
                         $ucsPrices = json_decode(file_get_contents($ucsJsonPath), true);
                         $ucsUpdated = 0;

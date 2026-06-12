@@ -722,4 +722,33 @@ class MainSettingController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    public function showScheduleLogs()
+    {
+        $hospcode = DB::table('lookup_hospcode')->value('hospcode');
+
+        $aopodLog = '';
+        $nhsoLog = '';
+        $fdhLog = '';
+
+        if (\Illuminate\Support\Facades\File::exists(storage_path('logs/aopod_schedule.log'))) {
+            $aopodLog = \Illuminate\Support\Facades\File::get(storage_path('logs/aopod_schedule.log'));
+        } else {
+            $aopodLog = 'ยังไม่มีประวัติการทำงานในขณะนี้ (No logs found)';
+        }
+
+        if (\Illuminate\Support\Facades\File::exists(storage_path('logs/nhso_endpoint_schedule.log'))) {
+            $nhsoLog = \Illuminate\Support\Facades\File::get(storage_path('logs/nhso_endpoint_schedule.log'));
+        } else {
+            $nhsoLog = 'ยังไม่มีประวัติการทำงานในขณะนี้ (No logs found)';
+        }
+
+        if (\Illuminate\Support\Facades\File::exists(storage_path('logs/fdh_claim_status_schedule.log'))) {
+            $fdhLog = \Illuminate\Support\Facades\File::get(storage_path('logs/fdh_claim_status_schedule.log'));
+        } else {
+            $fdhLog = 'ยังไม่มีประวัติการทำงานในขณะนี้ (No logs found)';
+        }
+
+        return view('admin.logs.schedule_log', compact('aopodLog', 'nhsoLog', 'fdhLog', 'hospcode'));
+    }
 }

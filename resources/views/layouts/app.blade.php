@@ -1137,7 +1137,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item d-flex align-items-center me-2">
                             <div class="nav-version-badge">
-                                V.69-06-12 20:30
+                                V.69-06-12 21:00
                             </div>
                         </li>
                         <!-- Authentication Links -->
@@ -1167,17 +1167,33 @@
                                     @auth
                                         @if (auth()->user()->status === 'admin')
                                             <a class="dropdown-item dropdown-item-modern"
-                                                href="{{ route('admin.main_setting') }}">Main Setting</a>
+                                                href="{{ route('admin.main_setting') }}">
+                                                <i class="bi bi-gear-fill me-2 text-secondary"></i> Main Setting
+                                            </a>
                                             <a class="dropdown-item dropdown-item-modern"
-                                                href="{{ route('admin.users.index') }}">Manage User</a>
+                                                href="{{ route('admin.users.index') }}">
+                                                <i class="bi bi-people-fill me-2 text-primary"></i> Manage User
+                                            </a>
                                             <a class="dropdown-item dropdown-item-modern"
-                                                href="{{ route('admin.lookup_icode.index') }}">Lookup icode</a>
+                                                href="{{ route('admin.lookup_icode.index') }}">
+                                                <i class="bi bi-search me-2 text-success"></i> Lookup icode
+                                            </a>
                                             <a class="dropdown-item dropdown-item-modern"
-                                                href="{{ route('admin.lookup_ward.index') }}">Lookup ward</a>
+                                                href="{{ route('admin.lookup_ward.index') }}">
+                                                <i class="bi bi-hospital-fill me-2 text-warning"></i> Lookup ward
+                                            </a>
                                             <a class="dropdown-item dropdown-item-modern"
-                                                href="{{ route('admin.lookup_hospcode.index') }}">Lookup hospcode</a>
+                                                href="{{ route('admin.lookup_hospcode.index') }}">
+                                                <i class="bi bi-building me-2 text-info"></i> Lookup hospcode
+                                            </a>
                                             <a class="dropdown-item dropdown-item-modern"
-                                                href="{{ route('admin.budget_year.index') }}">Budget year</a>
+                                                href="{{ route('admin.budget_year.index') }}">
+                                                <i class="bi bi-calendar3 me-2 text-danger"></i> Budget year
+                                            </a>
+                                            <a class="dropdown-item dropdown-item-modern"
+                                                href="{{ route('admin.logs.schedule') }}">
+                                                <i class="bi bi-clock-history me-2 text-success"></i> Log Schedule
+                                            </a>
                                         @endif
                                     @endauth
                                     <!-- -->
@@ -1189,7 +1205,7 @@
                                     <a class="dropdown-item dropdown-item-modern text-danger" href="{{ route('logout') }}"
                                         onclick="event.preventDefault();
                                                                                  document.getElementById('logout-form').submit();">
-                                        {{ __('Logout') }}
+                                        <i class="bi bi-box-arrow-right me-2 text-danger"></i> {{ __('Logout') }}
                                     </a>
                                     <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
                                         @csrf

@@ -53,6 +53,7 @@ Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(
     Route::get('lookup_hospcode/search_hospcodes', [LookupHospcodeController::class, 'search_hospcodes'])->name('lookup_hospcode.search_hospcodes');
     Route::resource('lookup_hospcode', LookupHospcodeController::class)->parameters(['lookup_hospcode' => 'hospcode']);
     Route::resource('budget_year', BudgetYearController::class)->parameters(['LEAVE_YEAR_ID' => 'LEAVE_YEAR_ID']);
+    Route::get('logs/schedule', [MainSettingController::class, 'showScheduleLogs'])->name('logs.schedule');
 });
 
 Route::prefix('admin')->middleware(['auth'])->group(function () {

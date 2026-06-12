@@ -610,6 +610,18 @@ class MainSettingController extends Controller
                         $insertedCount++;
                     }
                     $migrate_result .= " and imported $insertedCount records from Excel into lookup_nhso_adp_code.";
+
+                    // Update price_sss from lookup_sss_equipdev_aipn (active records)
+                    if (Schema::hasTable('lookup_sss_equipdev_aipn')) {
+                        $affectedSss = DB::update("
+                            UPDATE lookup_nhso_adp_code c
+                            INNER JOIN lookup_sss_equipdev_aipn a ON a.code = c.nhso_adp_code
+                            SET c.price_sss = COALESCE(a.rate, 0.00)
+                            WHERE c.nhso_adp_type_id = 2
+                              AND a.dateexp >= DATE(NOW())
+                        ");
+                        $migrate_result .= " and updated $affectedSss records with SSS prices.";
+                    }
                 } else {
                     $migrate_result .= " and Excel file lookup_nhso_adp_code.xlsx not found at docs/lookup/.";
                 }

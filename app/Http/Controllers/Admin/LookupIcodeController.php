@@ -131,10 +131,13 @@ class LookupIcodeController extends Controller
         });
 
         $sss_prices = [];
-        if (Schema::hasTable('lookup_nhso_adp_code')) {
-            $sss_records = DB::table('lookup_nhso_adp_code')->select('nhso_adp_code', 'price_sss')->get();
+        if (Schema::hasTable('lookup_sss_equipdev_aipn')) {
+            $sss_records = DB::table('lookup_sss_equipdev_aipn')
+                ->where('dateexp', '>=', DB::raw('DATE(NOW())'))
+                ->select('code', 'rate')
+                ->get();
             foreach ($sss_records as $r) {
-                $sss_prices[$r->nhso_adp_code] = floatval($r->price_sss);
+                $sss_prices[$r->code] = floatval($r->rate);
             }
         }
 

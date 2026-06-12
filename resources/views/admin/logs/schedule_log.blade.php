@@ -62,7 +62,7 @@
                                 <tbody>
                                     @foreach($nhsoLogs as $log)
                                         <tr>
-                                            <td class="fw-bold text-secondary">{{ $log['timestamp'] ?: 'N/A' }}</td>
+                                            <td class="fw-bold text-secondary text-nowrap">{{ $log['timestamp'] ? DatetimeThai($log['timestamp']) : 'N/A' }}</td>
                                             <td>
                                                 @if(isset($log['data']['ok']) && $log['data']['ok'] === true)
                                                     <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">สำเร็จ</span>
@@ -121,7 +121,7 @@
                                 <tbody>
                                     @foreach($fdhLogs as $log)
                                         <tr>
-                                            <td class="fw-bold text-secondary">{{ $log['timestamp'] ?: 'N/A' }}</td>
+                                            <td class="fw-bold text-secondary text-nowrap">{{ $log['timestamp'] ? DatetimeThai($log['timestamp']) : 'N/A' }}</td>
                                             <td>
                                                 @if(isset($log['data']['ok']) && $log['data']['ok'] === true)
                                                     <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">สำเร็จ</span>
@@ -183,7 +183,7 @@
                                     <tbody>
                                         @foreach($aopodLogs as $log)
                                             <tr>
-                                                <td class="fw-bold text-secondary">{{ $log['timestamp'] ?: 'N/A' }}</td>
+                                                <td class="fw-bold text-secondary text-nowrap">{{ $log['timestamp'] ? DatetimeThai($log['timestamp']) : 'N/A' }}</td>
                                                 <td>
                                                     @if(isset($log['data']['ok']) && $log['data']['ok'] === true)
                                                         <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">สำเร็จ</span>
@@ -195,7 +195,7 @@
                                                     @if($log['data'])
                                                         <div class="d-flex flex-column">
                                                             <span class="fw-semibold text-dark">
-                                                                ส่งข้อมูลระหว่างวันที่ {{ $log['data']['start_date'] ?? '-' }} ถึง {{ $log['data']['end_date'] ?? '-' }} (รหัสรพ. {{ $log['data']['hospcode'] ?? '-' }})
+                                                                ส่งข้อมูลระหว่างวันที่ {{ isset($log['data']['start_date']) ? DateThai($log['data']['start_date']) : '-' }} ถึง {{ isset($log['data']['end_date']) ? DateThai($log['data']['end_date']) : '-' }} (รหัสรพ. {{ $log['data']['hospcode'] ?? '-' }})
                                                             </span>
                                                             <small class="text-muted mt-1">
                                                                 ข้อมูลที่ได้รับ - 

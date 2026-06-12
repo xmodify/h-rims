@@ -668,7 +668,6 @@ class HomeController extends Controller
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
 
         WHERE p.hipdata_code IN ("UCS","WEL") 
-        AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province ="Y") 
         AND (o.an IS NULL OR o.an ="") 
         AND o.vstdate BETWEEN ? AND ?
         GROUP BY o.vn ORDER BY o.vstdate,o.oqueue', [$start_date, $end_date, $start_date, $end_date]);

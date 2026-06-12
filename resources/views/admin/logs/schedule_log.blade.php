@@ -393,8 +393,8 @@
                                     icon: 'success',
                                     title: 'ดึงข้อมูลสำเร็จ',
                                     html: `ดึงข้อมูลปิดสิทธิ์จาก สปสช. เรียบร้อยแล้ว!<br>
-                                           ทั้งหมด: <strong>${cids.length} คน</strong><br>
-                                           ประมวลผลสำเร็จ: <strong>${totalPulled} รายการ</strong><br>
+                                           ตรวจสอบผู้ป่วย: <strong>${cids.length} คน</strong><br>
+                                           ดึงรายการปิดสิทธิ์ได้: <strong>${totalPulled} รายการ</strong><br>
                                            เพิ่มใหม่: <strong class="text-success">${totalInserted} รายการ</strong><br>
                                            อัปเดตสิทธิ์: <strong class="text-info">${totalUpdated} รายการ</strong>`,
                                     confirmButtonText: 'ตกลง'

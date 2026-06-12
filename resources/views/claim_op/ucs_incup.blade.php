@@ -839,12 +839,7 @@ function showDetails(vn) {
             if (v.endpoint_valid) {
                 endpointBtn = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>ปิดสิทธิแล้ว (สปสช.)</span>`;
             } else {
-                const status = visit.claim_status;
-                if (status === 'pulled' || status === 'failed') {
-                    endpointBtn = `<button onclick="pushNhsoData('${visit.cid}', '${visit.vstdate}', '${vn}')" class="btn btn-warning btn-sm py-1 px-2 fw-bold text-white" style="font-size:0.75rem;"><i class="bi bi-arrow-up-circle-fill me-1"></i>รอยืนยัน (Push)</button>`;
-                } else {
-                    endpointBtn = `<button onclick="pullNhsoData('${visit.vstdate}', '${visit.cid}', '${vn}')" class="btn btn-warning btn-sm py-1 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-cloud-download-fill me-1"></i>ดึงข้อมูล (Pull)</button>`;
-                }
+                endpointBtn = `<button onclick="pullNhsoData('${visit.vstdate}', '${visit.cid}', '${vn}')" class="btn btn-warning btn-sm py-1 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-cloud-download-fill me-1"></i>ดึงข้อมูล (Pull)</button>`;
             }
 
             let fdhBtn = '';

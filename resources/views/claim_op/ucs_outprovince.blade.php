@@ -373,13 +373,7 @@ function showDetails(vn) {
 
             let endpointBtn = isEndpointDone
                 ? `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>ปิดสิทธิแล้ว (สปสช.)</span>`
-                : (() => {
-                    const status = visit.claim_status;
-                    if (status === 'pulled' || status === 'failed') {
-                        return `<button onclick="pushNhsoData('${visit.cid}','${visit.vstdate}','${vn}')" class="btn btn-warning btn-sm py-1 px-2 fw-bold text-white" style="font-size:0.75rem;"><i class="bi bi-arrow-up-circle-fill me-1"></i>รอยืนยัน (Push)</button>`;
-                    }
-                    return `<button onclick="pullNhsoData('${visit.vstdate}','${visit.cid}','${vn}')" class="btn btn-warning btn-sm py-1 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-cloud-download-fill me-1"></i>ดึงข้อมูล (Pull)</button>`;
-                })();
+                : `<button onclick="pullNhsoData('${visit.vstdate}','${visit.cid}','${vn}')" class="btn btn-warning btn-sm py-1 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-cloud-download-fill me-1"></i>ดึงข้อมูล (Pull)</button>`;
 
             let fdhBtn = visit.fdh_status
                 ? `<div class="d-inline-flex gap-2 align-items-center"><span class="badge bg-success py-1 px-2 text-wrap" style="max-width:180px;">${visit.fdh_status}</span><button onclick="checkFdh('${visit.hn}','${vn}')" class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-arrow-repeat me-1"></i>ดึงอีกครั้ง</button></div>`

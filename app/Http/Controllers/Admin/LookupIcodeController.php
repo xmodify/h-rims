@@ -123,11 +123,11 @@ class LookupIcodeController extends Controller
             }
         }
 
-        $uc_cr_instrument = $uc_cr->filter(function($item) use ($valid_ins_adps) {
-            return in_array($item->nhso_adp_code, $valid_ins_adps);
+        $uc_cr_instrument = $uc_cr->filter(function($item) use ($all_ins_adps) {
+            return in_array($item->nhso_adp_code, $all_ins_adps);
         });
-        $uc_cr_other = $uc_cr->reject(function($item) use ($valid_ins_adps) {
-            return in_array($item->nhso_adp_code, $valid_ins_adps);
+        $uc_cr_other = $uc_cr->reject(function($item) use ($all_ins_adps) {
+            return in_array($item->nhso_adp_code, $all_ins_adps);
         });
 
         $sss_prices = [];

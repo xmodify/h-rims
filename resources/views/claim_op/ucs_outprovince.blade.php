@@ -116,8 +116,10 @@
                                     <th class="text-center">วัน-เวลา | Q</th>     
                                     <th class="text-center">HN</th>    
                                     <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
+                                    <th class="text-center">Project</th>
                                     <th class="text-center">ค่ารักษา</th> 
                                     <th class="text-center">ชำระเอง</th>
+                                    <th class="text-center">กองทุนอื่น</th>
                                     <th class="text-center text-primary">เรียกเก็บ</th>
                                 </tr>
                             </thead> 
@@ -126,6 +128,8 @@
                                     $count = 1; 
                                     $sum_income = 0; 
                                     $sum_rcpt_money = 0; 
+                                    $sum_other_price = 0;
+                                    $sum_claim_price = 0;
                                 @endphp
                                 @foreach($search as $row) 
                                 <tr>
@@ -166,23 +170,28 @@
                                         <div class="text-dark fw-bold small text-truncate" style="max-width:150px;">{{$row->ptname}}</div>
                                         <div class="small text-muted text-truncate" style="max-width:150px;" title="{{$row->pttype}} [{{$row->hospmain}}]">{{$row->pttype}} [{{$row->hospmain}}]</div>
                                     </td> 
+                                    <td class="text-center small text-muted">{{ $row->project }}</td>
                                     <td class="text-end small">{{ number_format($row->income,2) }}</td>              
                                     <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
-                                    <td class="text-end fw-bold text-primary">{{ number_format($row->income - $row->rcpt_money, 2) }}</td>
+                                    <td class="text-end small">{{ number_format($row->other_price,2) }}</td>
+                                    <td class="text-end fw-bold text-primary">{{ number_format($row->claim_price, 2) }}</td>
                                 </tr>
                                 @php 
                                     $count++; 
                                     $sum_income += $row->income; 
                                     $sum_rcpt_money += $row->rcpt_money; 
+                                    $sum_other_price += $row->other_price;
+                                    $sum_claim_price += $row->claim_price;
                                 @endphp
                                 @endforeach                 
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="6" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                    <th colspan="7" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
-                                    <th class="text-end fw-bold text-primary">{{ number_format($sum_income - $sum_rcpt_money, 2) }}</th>
+                                    <th class="text-end small">{{ number_format($sum_other_price,2) }}</th>
+                                    <th class="text-end fw-bold text-primary">{{ number_format($sum_claim_price, 2) }}</th>
                                 </tr>
                             </tfoot>
                         </table>
@@ -200,12 +209,14 @@
                                     <th class="text-center" rowspan="2" width="10%">วัน-เวลา | Q</th>     
                                     <th class="text-center" rowspan="2">HN</th> 
                                     <th class="text-center" rowspan="2">ชื่อ-สกุล | สิทธิ</th>
-                                    <th class="text-center" colspan="3">ค่ารักษา</th> 
+                                    <th class="text-center" rowspan="2">Project</th>
+                                    <th class="text-center" colspan="4">ค่ารักษา</th> 
                                     <th class="text-center bg-primary-soft" colspan="3">ข้อมูลการชดเชย</th>
                                 </tr>
                                 <tr>
                                     <th class="text-center small">รวม</th>
                                     <th class="text-center small">ชำระเอง</th>
+                                    <th class="text-center small">กองทุนอื่น</th>
                                     <th class="text-center small text-primary">เรียกเก็บ</th>
                                     <th class="text-center bg-primary-soft small">STM ชดเชย</th> 
                                     <th class="text-center bg-primary-soft small">ผลต่าง</th> 
@@ -217,6 +228,8 @@
                                     $count = 1; 
                                     $sum_income = 0; 
                                     $sum_rcpt_money = 0; 
+                                    $sum_other_price = 0;
+                                    $sum_claim_price = 0;
                                     $sum_receive_total = 0; 
                                 @endphp
                                 @foreach($claim as $row) 
@@ -258,13 +271,15 @@
                                         <div class="text-dark fw-bold small text-truncate" style="max-width:150px;">{{$row->ptname}}</div>
                                         <div class="small text-muted text-truncate" style="max-width:150px;" title="{{$row->pttype}} [{{$row->hospmain}}]">{{$row->pttype}} [{{$row->hospmain}}]</div>
                                     </td> 
+                                    <td class="text-center small text-muted">{{ $row->project }}</td>
                                     <td class="text-end small">{{ number_format($row->income,2) }}</td>              
                                     <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
-                                    <td class="text-end fw-bold text-primary small">{{ number_format($row->income - $row->rcpt_money, 2) }}</td>
+                                    <td class="text-end small">{{ number_format($row->other_price,2) }}</td>
+                                    <td class="text-end fw-bold text-primary small">{{ number_format($row->claim_price, 2) }}</td>
                                     <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : ($row->receive_total < 0 ? 'text-danger' : 'text-dark') }}">
                                         {{ number_format($row->receive_total,2) }}
                                     </td>
-                                    @php $diff = $row->receive_total - ($row->income - $row->rcpt_money); @endphp
+                                    @php $diff = $row->receive_total - $row->claim_price; @endphp
                                     <td class="text-end small fw-bold {{ $diff > 0 ? 'text-success' : ($diff < 0 ? 'text-danger' : 'text-dark') }}">
                                         {{ number_format($diff, 2) }}
                                     </td>
@@ -274,18 +289,21 @@
                                     $count++; 
                                     $sum_income += $row->income; 
                                     $sum_rcpt_money += $row->rcpt_money; 
+                                    $sum_other_price += $row->other_price;
+                                    $sum_claim_price += $row->claim_price;
                                     $sum_receive_total += $row->receive_total; 
                                 @endphp
                                 @endforeach                 
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="6" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
+                                    <th colspan="7" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
-                                    <th class="text-end fw-bold text-primary small">{{ number_format($sum_income - $sum_rcpt_money, 2) }}</th>
+                                    <th class="text-end small">{{ number_format($sum_other_price,2) }}</th>
+                                    <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price, 2) }}</th>
                                     <th class="text-end small fw-bold {{ $sum_receive_total > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($sum_receive_total,2) }}</th>
-                                    @php $total_diff = $sum_receive_total - ($sum_income - $sum_rcpt_money); @endphp
+                                    @php $total_diff = $sum_receive_total - $sum_claim_price; @endphp
                                     <th class="text-end small fw-bold {{ $total_diff > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($total_diff, 2) }}</th>
                                     <th></th>
                                 </tr>
@@ -520,6 +538,141 @@ function showDetails(vn) {
                   icon: 'error',
                   title: 'การเชื่อมต่อล้มเหลว',
                   text: 'ไม่สามารถเรียก API ได้ (Network Error)'
+              });
+          }
+      });
+  }
+
+  function pullNhsoData(vstdate, cid, vn) {
+      Swal.fire({
+          title: 'กำลังดึงข้อมูล...',
+          text: 'กรุณารอสักครู่',
+          allowOutsideClick: false,
+          didOpen: () => {
+              Swal.showLoading()
+          }
+      });
+
+      fetch("{{ url('api/nhso_endpoint_pull_indiv') }}", {
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json",
+              "X-CSRF-TOKEN": "{{ csrf_token() }}",
+              "Accept": "application/json"
+          },
+          body: JSON.stringify({
+              vstdate: vstdate,
+              cid: cid
+          })
+      })
+          .then(async response => {
+              const data = await response.json();
+              if (!response.ok) {
+                  throw new Error(data.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล');
+              }
+              return data;
+          })
+          .then(data => {
+              if (data.found) {
+                  Swal.fire({
+                      icon: 'success',
+                      title: 'พบข้อมูลปิดสิทธิ',
+                      text: data.message,
+                      timer: 1500,
+                      showConfirmButton: false
+                  }).then(() => {
+                      if (vn) {
+                          showDetails(vn);
+                      } else {
+                          location.reload();
+                      }
+                  });
+              } else {
+                  Swal.fire({
+                      icon: 'warning',
+                      title: 'ไม่พบการปิดสิทธิจากระบบอื่น',
+                      text: 'ยังไม่มีการปิดสิทธิสำหรับรายการนี้ใน สปสช. ต้องการปิดสิทธิด้วยระบบ RiMS หรือไม่?',
+                      showCancelButton: true,
+                      confirmButtonColor: '#3085d6',
+                      cancelButtonColor: '#6c757d',
+                      confirmButtonText: 'ปิดสิทธิเลย',
+                      cancelButtonText: 'ยกเลิก'
+                  }).then(result => {
+                      if (result.isConfirmed) {
+                          pushNhsoData(cid, vstdate, vn);
+                      }
+                  });
+              }
+          })
+          .catch(error => {
+              Swal.fire({
+                  icon: 'error',
+                  title: 'เกิดข้อผิดพลาด',
+                  text: error.message || 'ไม่สามารถเชื่อมต่อกับระบบได้',
+              });
+          });
+  }
+
+  function pushNhsoData(cid, vstdate, vn) {
+      Swal.fire({
+          title: 'ยืนยันการส่งข้อมูล?',
+          text: "ระบบจะดึงข้อมูลจาก HOSxP และส่งไปปิดสิทธิที่ สปสช.",
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: '#d33',
+          confirmButtonText: 'ตกลง, ส่งข้อมูล!',
+          cancelButtonText: 'ยกเลิก'
+      }).then((result) => {
+          if (result.isConfirmed) {
+              Swal.fire({
+                  title: 'กำลังดำเนินการ...',
+                  allowOutsideClick: false,
+                  didOpen: () => {
+                      Swal.showLoading()
+                  }
+              });
+
+              $.ajax({
+                  url: "{{ route('api.nhso.push_indiv') }}",
+                  type: "POST",
+                  data: {
+                      _token: "{{ csrf_token() }}",
+                      cid: cid,
+                      vstdate: vstdate
+                  },
+                  success: function(response) {
+                      if (response.status == 'success') {
+                          Swal.fire({
+                              icon: 'success',
+                              title: 'สำเร็จ!',
+                              text: 'ปิดสิทธิเรียบร้อยแล้ว',
+                              timer: 1500,
+                              showConfirmButton: false
+                          }).then(() => {
+                              if (vn) {
+                                  showDetails(vn);
+                              } else {
+                                  location.reload();
+                              }
+                          });
+                      } else {
+                          Swal.fire({
+                              icon: 'error',
+                              title: 'ไม่สำเร็จ',
+                              text: response.message || 'เกิดข้อผิดพลาดในการส่งข้อมูล'
+                          });
+                      }
+                  },
+                  error: function(xhr) {
+                      let msg = 'ไม่สามารถเชื่อมต่อกับระบบได้';
+                      if(xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                      Swal.fire({
+                          icon: 'error',
+                          title: 'เกิดข้อผิดพลาด',
+                          text: msg
+                      });
+                  }
               });
           }
       });

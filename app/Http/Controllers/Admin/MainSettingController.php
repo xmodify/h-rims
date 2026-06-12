@@ -611,6 +611,54 @@ class MainSettingController extends Controller
                     }
                     $migrate_result .= " and imported $insertedCount records from Excel into lookup_nhso_adp_code.";
 
+                    // Sync UCS instrument prices from docs/lookup/ucs_prices.json (corrects the diacritics/ligature extraction issues)
+                    $ucsJsonPath = base_path('docs/lookup/ucs_prices.json');
+                    if (file_exists($ucsJsonPath)) {
+                        $ucsPrices = json_decode(file_get_contents($ucsJsonPath), true);
+                        $ucsUpdated = 0;
+                        $ucsInserted = 0;
+                        foreach ($ucsPrices as $code => $price) {
+                            $code = trim($code);
+                            $exists = DB::table('lookup_nhso_adp_code')
+                                ->where('nhso_adp_code', $code)
+                                ->where('nhso_adp_type_id', 2)
+                                ->exists();
+                            if ($exists) {
+                                DB::table('lookup_nhso_adp_code')
+                                    ->where('nhso_adp_code', $code)
+                                    ->where('nhso_adp_type_id', 2)
+                                    ->update([
+                                        'price_ucs' => $price,
+                                        'ins_ucs' => 'Y',
+                                        'updated_at' => now(),
+                                    ]);
+                                $ucsUpdated++;
+                            } else {
+                                $name = DB::table('lookup_nhso_adp_code')
+                                    ->where('nhso_adp_code', $code)
+                                    ->value('nhso_adp_code_name') ?? ('เครื่องมือแพทย์รหัส ' . $code);
+                                DB::table('lookup_nhso_adp_code')->insert([
+                                    'nhso_adp_code' => $code,
+                                    'nhso_adp_type_id' => 2,
+                                    'nhso_adp_code_name' => $name,
+                                    'category' => 'อุปกรณ์และอวัยวะเทียม',
+                                    'price_ucs' => $price,
+                                    'price_ofc' => 0.00,
+                                    'price_sss' => 0.00,
+                                    'price_lgo' => 0.00,
+                                    'price_fs' => 0.00,
+                                    'price_ucep' => 0.00,
+                                    'ins_ucs' => 'Y',
+                                    'ins_ofc' => '',
+                                    'created_at' => now(),
+                                    'updated_at' => now(),
+                                ]);
+                                $ucsInserted++;
+                            }
+                        }
+                        $migrate_result .= " and updated $ucsUpdated / inserted $ucsInserted UCS prices from JSON.";
+                    }
+
                     // Update price_sss from lookup_sss_equipdev_aipn (active records)
                     if (Schema::hasTable('lookup_sss_equipdev_aipn')) {
                         $affectedSss = DB::update("

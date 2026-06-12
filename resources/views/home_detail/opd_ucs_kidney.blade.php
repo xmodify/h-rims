@@ -14,20 +14,25 @@
           </small>
         </h5>
         
-        <form method="POST" class="d-flex gap-2 align-items-center mb-0">
-            @csrf            
-            <div class="input-group input-group-sm">
-                <span class="input-group-text bg-white"><i class="bi bi-calendar-event"></i></span>
-                <input type="hidden" id="start_date" name="start_date" value="{{ $start_date }}">
-                <input type="text" id="start_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
-                
-                <span class="input-group-text bg-white">ถึง</span>
-                
-                <input type="hidden" id="end_date" name="end_date" value="{{ $end_date }}">
-                <input type="text" id="end_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
-                <button type="submit" onclick="showLoading()" class="btn btn-primary px-3 shadow-sm">{{ __('ค้นหา') }}</button>
-            </div>
-        </form>
+        <div class="d-flex gap-2 align-items-center">
+            <button onclick="pullAllNhsoData()" class="btn btn-outline-primary btn-sm px-3 shadow-sm">
+                <i class="bi bi-cloud-download-fill me-1"></i> ดึงปิดสิทธิทั้งหมดในหน้านี้
+            </button>
+            <form method="POST" class="d-flex gap-2 align-items-center mb-0">
+                @csrf            
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white"><i class="bi bi-calendar-event"></i></span>
+                    <input type="hidden" id="start_date" name="start_date" value="{{ $start_date }}">
+                    <input type="text" id="start_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
+                    
+                    <span class="input-group-text bg-white">ถึง</span>
+                    
+                    <input type="hidden" id="end_date" name="end_date" value="{{ $end_date }}">
+                    <input type="text" id="end_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
+                    <button type="submit" onclick="showLoading()" class="btn btn-primary px-3 shadow-sm">{{ __('ค้นหา') }}</button>
+                </div>
+            </form>
+        </div>
       </div>
     </div>
 
@@ -78,7 +83,7 @@
                         <i class="bi bi-arrow-up-circle-fill"></i>
                     </button>
                 @else
-                    <button onclick="pullNhsoData('{{ $row->vstdate }}', '{{ $row->cid }}')" class="btn btn-outline-info btn-sm rounded-circle" title="ดึงข้อมูลจาก สปสช. (Pull)">
+                    <button onclick="pullNhsoData('{{ $row->vstdate }}', '{{ $row->cid }}')" class="btn btn-outline-info btn-sm rounded-circle pull-nhso-btn" data-vstdate="{{ $row->vstdate }}" data-cid="{{ $row->cid }}" title="ดึงข้อมูลจาก สปสช. (Pull)">
                         <i class="bi bi-cloud-download-fill"></i>
                     </button>
                 @endif
@@ -286,6 +291,81 @@ function pushNhsoData(cid, vstdate) {
     });
 }
 
+
+async function pullAllNhsoData() {
+    const buttons = document.querySelectorAll('.pull-nhso-btn');
+    if (buttons.length === 0) {
+        Swal.fire({
+            icon: 'info',
+            title: 'ไม่มีรายการที่ต้องดึง',
+            text: 'ทุกรายการได้รับการดึงข้อมูลหรือปิดสิทธิเรียบร้อยแล้ว'
+        });
+        return;
+    }
+
+    const result = await Swal.fire({
+        title: 'ยืนยันดึงข้อมูลทั้งหมด?',
+        text: `ระบบจะดึงข้อมูลจาก สปสช. สำหรับผู้ป่วยทั้งหมดที่ยังไม่ได้ดึงจำนวน ${buttons.length} รายการ`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#0d6efd',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'ตกลง, ดึงข้อมูล',
+        cancelButtonText: 'ยกเลิก'
+    });
+
+    if (!result.isConfirmed) return;
+
+    Swal.fire({
+        title: 'กำลังดึงข้อมูล...',
+        html: `กำลังดำเนินการรายการที่ <b id="current-pull-index">1</b> จากทั้งหมด <b>${buttons.length}</b> รายการ<br><br>` +
+              `<div class="progress" style="height: 20px;"><div id="pull-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%">0%</div></div>`,
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    let successCount = 0;
+    for (let i = 0; i < buttons.length; i++) {
+        const btn = buttons[i];
+        const vstdate = btn.getAttribute('data-vstdate');
+        const cid = btn.getAttribute('data-cid');
+        
+        // update progress
+        document.getElementById('current-pull-index').innerText = i + 1;
+        const pct = Math.round(((i) / buttons.length) * 100);
+        document.getElementById('pull-progress-bar').style.width = pct + '%';
+        document.getElementById('pull-progress-bar').innerText = pct + '%';
+
+        try {
+            const res = await fetch("{{ url('api/nhso_endpoint_pull_indiv') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify({ vstdate, cid })
+            });
+            if (res.ok) {
+                successCount++;
+            }
+        } catch (err) {
+            console.error('Failed to pull for ' + cid, err);
+        }
+    }
+
+    Swal.fire({
+        icon: 'success',
+        title: 'ดึงข้อมูลสำเร็จ',
+        text: `ดึงข้อมูลเสร็จสิ้นทั้งหมด ${successCount} จาก ${buttons.length} รายการ`,
+        confirmButtonText: 'ตกลง'
+    }).then(() => {
+        location.reload();
+    });
+}
 
 function showLoading() {
     Swal.fire({

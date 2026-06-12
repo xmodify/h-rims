@@ -23,6 +23,7 @@ Route::post('fdh/check-claim-indiv', [FdhClaimStatusController::class, 'check_in
 Route::post('fdh/check-claim-lastdays', [FdhClaimStatusController::class, 'checkLastDays'])->name('api.fdh.check_claim_lastdays');
 
 // API NHSO -----------------------------------------------------------------------------------
+Route::get('nhso/testconnection', [NhsoEndpointController::class, 'testConnection'])->name('api.nhso.testconnection');
 Route::post('nhso_endpoint_pull_yesterday', [NhsoEndpointController::class, 'pullYesterday'])->name('nhso_endpoint_pull_yesterday');
 
 // API AOPOD -----------------------------------------------------------------------------------

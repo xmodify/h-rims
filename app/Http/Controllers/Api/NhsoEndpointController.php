@@ -542,4 +542,59 @@ class NhsoEndpointController extends Controller
             return response()->json(['status' => 'error', 'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage()], 500);
         }
     }
+
+    /**
+     * ทดสอบการเชื่อมต่อและสิทธิ์การเข้าถึง API ของ สปสช. (authenucws.nhso.go.th)
+     */
+    public function testConnection()
+    {
+        $token = DB::connection('hosxp')
+            ->table('sys_var')
+            ->where('sys_name', 'NHSO-13FILE-FEE-SCHEDULE-API-TOKEN')
+            ->value('sys_value');
+
+        if (!$token) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ไม่พบตัวแปร NHSO-13FILE-FEE-SCHEDULE-API-TOKEN ในตาราง sys_var ของ HOSxP'
+            ], 400);
+        }
+
+        try {
+            $response = Http::timeout(10)
+                ->withToken($token)
+                ->acceptJson()
+                ->get('https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status', [
+                    'personalId' => '1100000000000', // CID ตัวอย่าง
+                    'serviceDate' => date('Y-m-d')
+                ]);
+
+            $status = $response->status();
+            $body = $response->body();
+
+            if ($response->successful() || $status === 400 || $status === 401) {
+                if ($status === 401) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'เชื่อมต่อ API สำเร็จ แต่ Token ไม่ถูกต้อง (Unauthorized - 401)'
+                    ]);
+                }
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'เชื่อมต่อกับระบบ สปสช. สำเร็จ และใช้งาน Token ได้ถูกต้อง (HTTP ' . $status . ')'
+                ]);
+            }
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'สปสช. ตอบกลับด้วยรหัส: ' . $status . ' - ' . substr($body, 0, 200)
+            ]);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ไม่สามารถเชื่อมต่อไปยัง สปสช. ได้: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

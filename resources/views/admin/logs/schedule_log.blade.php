@@ -43,10 +43,13 @@
         <!-- NHSO Log -->
         <div class="tab-pane fade show active" id="pills-nhso" role="tabpanel" aria-labelledby="pills-nhso-tab" tabindex="0">
             <div class="card dash-card border-0 shadow-sm rounded-4">
-                <div class="card-header bg-dark text-white border-0 py-3 rounded-top-4">
+                <div class="card-header bg-dark text-white border-0 py-3 rounded-top-4 d-flex justify-content-between align-items-center">
                     <h6 class="mb-0 fw-bold text-primary">
                         <i class="bi bi-clock-history me-2"></i> NHSO Endpoint Scheduler Log
                     </h6>
+                    <button class="btn btn-outline-primary btn-sm px-3 rounded-pill shadow-sm" onclick="testNhsoConnection()">
+                        <i class="bi bi-patch-check-fill me-1"></i> ทดสอบการเชื่อมต่อ สปสช.
+                    </button>
                 </div>
                 <div class="card-body p-3">
                     @if(count($nhsoLogs) > 0)
@@ -102,10 +105,13 @@
         <!-- FDH Log -->
         <div class="tab-pane fade" id="pills-fdh" role="tabpanel" aria-labelledby="pills-fdh-tab" tabindex="0">
             <div class="card dash-card border-0 shadow-sm rounded-4">
-                <div class="card-header bg-dark text-white border-0 py-3 rounded-top-4">
+                <div class="card-header bg-dark text-white border-0 py-3 rounded-top-4 d-flex justify-content-between align-items-center">
                     <h6 class="mb-0 fw-bold text-info">
                         <i class="bi bi-clock-history me-2"></i> FDH Claim Status Scheduler Log
                     </h6>
+                    <button class="btn btn-outline-info btn-sm px-3 rounded-pill shadow-sm" onclick="testFdhConnection()">
+                        <i class="bi bi-patch-check-fill me-1"></i> ทดสอบการเชื่อมต่อ FDH
+                    </button>
                 </div>
                 <div class="card-body p-3">
                     @if(count($fdhLogs) > 0)
@@ -246,6 +252,84 @@
             });
         });
     });
+
+    function testNhsoConnection() {
+        Swal.fire({
+            title: 'กำลังทดสอบการเชื่อมต่อ สปสช...',
+            html: 'กรุณารอสักครู่ ระบบกำลังทดสอบการเชื่อมต่อกับ authenucws.nhso.go.th',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        fetch('{{ url("api/nhso/testconnection") }}')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'การทดสอบสำเร็จ',
+                        text: data.message,
+                        confirmButtonText: 'ตกลง'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'การทดสอบล้มเหลว',
+                        text: data.message,
+                        confirmButtonText: 'ตกลง'
+                    });
+                }
+            })
+            .catch(err => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาดในการร้องขอ',
+                    text: err.message,
+                    confirmButtonText: 'ตกลง'
+                });
+            });
+    }
+
+    function testFdhConnection() {
+        Swal.fire({
+            title: 'กำลังทดสอบการเชื่อมต่อ FDH...',
+            html: 'กรุณารอสักครู่ ระบบกำลังสร้าง Token และเชื่อมต่อกับ fdh.moph.go.th',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        fetch('{{ url("api/fdh/testtoken") }}')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'เชื่อมต่อ FDH สำเร็จ',
+                        html: `<p class="mb-2">สามารถเชื่อมต่อและสร้าง Access Token ได้เรียบร้อย</p><textarea class="form-control form-control-sm bg-light text-muted" rows="4" readonly style="font-size: 11px; font-family: monospace;">${data.token}</textarea>`,
+                        confirmButtonText: 'ตกลง'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เชื่อมต่อ FDH ล้มเหลว',
+                        text: data.message || 'โปรดตรวจสอบการตั้งค่า User/Password/SecretKey/รหัสโรงพยาบาล ในหน้าตั้งค่าระบบ',
+                        confirmButtonText: 'ตกลง'
+                    });
+                }
+            })
+            .catch(err => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาดในการร้องขอ',
+                    text: err.message,
+                    confirmButtonText: 'ตกลง'
+                });
+            });
+    }
 </script>
 
 <style>

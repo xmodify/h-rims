@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Database\QueryException;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -987,36 +988,43 @@ class CheckController extends Controller
     //สิทธิการักษา nhso_subinscl---------------------------------------------------------------------------------------------------------------------------
     public function nondrugitems()
     {
-        // Mapping: nhso_adp_type_id => rules config file name (without .php)
-        $typeToRulesFile = [
-            2  => 'ins_rules',
-            3  => 'other_service_rules',
-            4  => 'pp_special_rules',
-            5  => 'project_code_rules',
-            8  => 'op_refer_rules',
-            9  => 'special_diag_rules',
-            10 => 'room_board_rules',
-            11 => 'medical_supply_rules',
-            12 => 'dental_rules',
-            13 => 'acupuncture_rules',
-            14 => 'blood_rules',
-            15 => 'lab_rules',
-            16 => 'xray_rules',
-            17 => 'nursing_rules',
-            18 => 'medical_device_rules',
-            19 => 'procedure_rules',
-            20 => 'physical_therapy_rules',
-        ];
-
-        // Cache for loaded rules files
+        // Cache for loaded rules files from database lookup_nhso_adp_code
         $rulesCache = [];
-        $loadRules = function(int $typeId) use ($typeToRulesFile, &$rulesCache): ?array {
+        $loadRules = function(int $typeId) use (&$rulesCache): ?array {
             if (array_key_exists($typeId, $rulesCache)) return $rulesCache[$typeId];
-            $fileName = $typeToRulesFile[$typeId] ?? null;
-            if (!$fileName) { $rulesCache[$typeId] = null; return null; }
-            $filePath = config_path("claims/{$fileName}.php");
-            $rulesCache[$typeId] = file_exists($filePath) ? require $filePath : null;
-            return $rulesCache[$typeId];
+            
+            if (!Schema::hasTable('lookup_nhso_adp_code')) {
+                $rulesCache[$typeId] = null;
+                return null;
+            }
+
+            $records = DB::table('lookup_nhso_adp_code')
+                ->where('nhso_adp_type_id', $typeId)
+                ->get();
+
+            if ($records->isEmpty()) {
+                $rulesCache[$typeId] = null;
+                return null;
+            }
+
+            $rules = [];
+            foreach ($records as $r) {
+                $rules[$r->nhso_adp_code] = [
+                    'name' => $r->nhso_adp_code_name,
+                    'category' => $r->category,
+                    'prices' => [
+                        'UCS' => floatval($r->price_ucs),
+                        'OFC' => floatval($r->price_ofc),
+                        'SSS' => floatval($r->price_sss),
+                        'LGO' => floatval($r->price_lgo),
+                        'FS' => floatval($r->price_fs),
+                        'UCEP' => floatval($r->price_ucep),
+                    ]
+                ];
+            }
+
+            $rulesCache[$typeId] = $rules;
+            return $rules;
         };
 
         $defaultPrices = ['UCS' => 0.0, 'OFC' => 0.0, 'SSS' => 0.0, 'LGO' => 0.0, 'FS' => 0.0, 'UCEP' => 0.0];
@@ -1032,7 +1040,7 @@ class CheckController extends Controller
             $hasPttypeItemsPrice = false;
         }
 
-        $attachPriceInfo = function(array $rows) use ($typeToRulesFile, $loadRules, $defaultPrices, $hasPttypeItemsPrice): array {
+        $attachPriceInfo = function(array $rows) use ($loadRules, $defaultPrices, $hasPttypeItemsPrice): array {
             $icodes = array_column($rows, 'icode');
             if (empty($icodes)) return $rows;
 
@@ -1054,15 +1062,20 @@ class CheckController extends Controller
                 $bindings = array_merge($icodes, $icodesInt);
                 
                 $v4Prices = DB::connection('hosxp')->select(
-                    "SELECT items_table_code, items_table_code_int, pttype_price_group_id, price 
-                     FROM pttype_items_price 
-                     WHERE (items_table_code IN ({$placeholders}) OR items_table_code_int IN ({$placeholders}))",
+                    "SELECT pip.items_table_code, pip.items_table_code_int, pip.pttype_price_group_id, pg.pttype_price_group_name, pip.price 
+                     FROM pttype_items_price pip
+                     LEFT JOIN pttype_price_group pg ON pg.pttype_price_group_id = pip.pttype_price_group_id
+                     WHERE (pip.items_table_code IN ({$placeholders}) OR pip.items_table_code_int IN ({$placeholders}))",
                     $bindings
                 );
                 foreach ($v4Prices as $vp) {
                     // Normalize lookup key to match either string code or integer code
                     $key = !empty($vp->items_table_code) ? $vp->items_table_code : strval($vp->items_table_code_int);
-                    $overrides[$key][$vp->pttype_price_group_id] = floatval($vp->price);
+                    $overrides[$key][$vp->pttype_price_group_id] = [
+                        'pttype_price_group_id' => $vp->pttype_price_group_id,
+                        'pttype_price_group_name' => $vp->pttype_price_group_name ?? ('กลุ่มที่ ' . $vp->pttype_price_group_id),
+                        'price' => floatval($vp->price),
+                    ];
                 }
             }
 
@@ -1079,6 +1092,7 @@ class CheckController extends Controller
                 // all default to $row['price'] (the main price) unless there is an override in pttype_items_price.
                 // We ignore the legacy columns price2 and price3 from nondrugitems in v4 mode.
                 $row['v4_override'] = [];
+                $row['v4_all_overrides'] = [];
                 if ($hasPttypeItemsPrice) {
                     $basePrice = floatval($row['price']);
                     
@@ -1094,29 +1108,31 @@ class CheckController extends Controller
                         $itemOverrides = $overrides[$lookupKey];
                         // Group 2: UCS -> price_ucs
                         if (isset($itemOverrides[2])) {
-                            $row['price_ucs'] = $itemOverrides[2];
+                            $row['price_ucs'] = $itemOverrides[2]['price'];
                             $row['v4_override'][] = 'UCS';
                         }
                         // Group 3: OFC -> price2
                         if (isset($itemOverrides[3])) {
-                            $row['price2'] = $itemOverrides[3];
+                            $row['price2'] = $itemOverrides[3]['price'];
                             $row['v4_override'][] = 'OFC';
                         }
                         // Group 1: OOP -> price3
                         if (isset($itemOverrides[1])) {
-                            $row['price3'] = $itemOverrides[1];
+                            $row['price3'] = $itemOverrides[1]['price'];
                             $row['v4_override'][] = 'OOP';
                         }
                         // Group 4: SSS -> price_sss
                         if (isset($itemOverrides[4])) {
-                            $row['price_sss'] = $itemOverrides[4];
+                            $row['price_sss'] = $itemOverrides[4]['price'];
                             $row['v4_override'][] = 'SSS';
                         }
                         // Group 5: LGO -> price_lgo
                         if (isset($itemOverrides[5])) {
-                            $row['price_lgo'] = $itemOverrides[5];
+                            $row['price_lgo'] = $itemOverrides[5]['price'];
                             $row['v4_override'][] = 'LGO';
                         }
+                        
+                        $row['v4_all_overrides'] = array_values($itemOverrides);
                     }
                 }
 
@@ -1136,64 +1152,54 @@ class CheckController extends Controller
                 $rulePrices = array_merge($defaultPrices, $rules[$adpCode]['prices'] ?? []);
                 
                 // Compare logic:
-                // If the database has HOSxP V4 table, we ALWAYS compare specifically:
-                // - UCS -> price
-                // - OFC -> price2 (defaults to price if not overridden)
-                // - OOP -> price3 (defaults to price if not overridden)
-                // - SSS -> price_sss (defaults to price if not overridden)
-                // - LGO -> price_lgo (defaults to price if not overridden)
-                // - FS -> price3
-                // If it is V3, we check if the non-zero rule prices match ANY of the HOSxP columns (price, price2, price3)
-                $hasMismatch = false;
-                $hasMatch = false;
-                $nonZeroRule = false;
+                // ตรงกันเบื้องต้นตรวจจาก nondrugitems.price = hrims.lookup_nhso_adp_code.price_ofc
+                $p1 = floatval($row['price']);
+                $ofcPrice = floatval($rulePrices['OFC'] ?? 0);
 
-                foreach ($rulePrices as $right => $rPrice) {
-                    if ($rPrice <= 0.5) continue;
-                    $nonZeroRule = true;
+                $status = 'mismatch';
+                if ($ofcPrice <= 0.5) {
+                    // If OFC price is 0 or not set in rules, fallback to notfound
+                    $status = 'notfound';
+                } elseif (abs($p1 - $ofcPrice) < 0.1 || intval($p1) === intval($ofcPrice)) {
+                    $status = 'match';
+                }
 
-                    if ($hasPttypeItemsPrice) {
-                        // Compare specific fields (already mapped to default $row['price'] if no override exists)
-                        $hPrice = floatval($row['price']);
-                        if ($right === 'UCS') {
-                            $hPrice = floatval($row['price_ucs'] ?? $row['price']);
-                        } elseif ($right === 'OFC') {
-                            $hPrice = floatval($row['price2'] ?? 0);
-                        } elseif ($right === 'FS') {
-                            $hPrice = floatval($row['price3'] ?? 0);
-                        } elseif ($right === 'SSS' && isset($row['price_sss'])) {
-                            $hPrice = $row['price_sss'];
-                        } elseif ($right === 'LGO' && isset($row['price_lgo'])) {
-                            $hPrice = $row['price_lgo'];
+                // If status is 'match', also check all overrides in v4_all_overrides.
+                // If any of the overrides doesn't match its corresponding rule price, change status to 'mismatch'.
+                if ($status === 'match' && !empty($row['v4_all_overrides'])) {
+                    foreach ($row['v4_all_overrides'] as $override) {
+                        $grpId = $override['pttype_price_group_id'] ?? 0;
+                        $grpName = $override['pttype_price_group_name'] ?? '';
+                        $priceVal = floatval($override['price'] ?? 0);
+
+                        $ruleKey = '';
+                        $grpLower = mb_strtolower($grpName);
+                        if ($grpId == 2 || strpos($grpLower, 'ucs') !== false || strpos($grpLower, 'บัตรทอง') !== false || strpos($grpLower, 'หลักประกัน') !== false) {
+                            $ruleKey = 'UCS';
+                        } elseif ($grpId == 3 || strpos($grpLower, 'ofc') !== false || strpos($grpLower, 'ข้าราชการ') !== false || strpos($grpLower, 'กรมบัญชีกลาง') !== false) {
+                            $ruleKey = 'OFC';
+                        } elseif ($grpId == 4 || strpos($grpLower, 'sss') !== false || strpos($grpLower, 'ประกันสังคม') !== false) {
+                            $ruleKey = 'SSS';
+                        } elseif ($grpId == 5 || strpos($grpLower, 'lgo') !== false || strpos($grpLower, 'อปท') !== false || strpos($grpLower, 'ส่วนท้องถิ่น') !== false) {
+                            $ruleKey = 'LGO';
+                        } elseif ($grpId == 1 || strpos($grpLower, 'ชำระเงินเอง') !== false || strpos($grpLower, 'cash') !== false || strpos($grpLower, 'fs') !== false) {
+                            $ruleKey = 'FS';
                         }
 
-                        if (abs($hPrice - $rPrice) < 0.1 || intval($hPrice) === intval($rPrice)) {
-                            $hasMatch = true;
-                        } else {
-                            $hasMismatch = true;
-                        }
-                    } else {
-                        // V3 Mode: Check if rule price matches ANY of the three HOSxP columns (price, price2, price3)
-                        $p1 = floatval($row['price']);
-                        $p2 = floatval($row['price2'] ?? 0);
-                        $p3 = floatval($row['price3'] ?? 0);
-
-                        if (abs($p1 - $rPrice) < 0.1 || abs($p2 - $rPrice) < 0.1 || abs($p3 - $rPrice) < 0.1 ||
-                            intval($p1) === intval($rPrice) || intval($p2) === intval($rPrice) || intval($p3) === intval($rPrice)) {
-                            $hasMatch = true;
-                        } else {
-                            $hasMismatch = true;
+                        if (!empty($ruleKey) && isset($rulePrices[$ruleKey])) {
+                            $rulePrice = floatval($rulePrices[$ruleKey]);
+                            if ($rulePrice > 0) {
+                                $isOverrideMatch = (abs($rulePrice - $priceVal) < 0.1 || intval($rulePrice) === intval($priceVal));
+                                if (!$isOverrideMatch) {
+                                    $status = 'mismatch';
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
 
-                if (!$nonZeroRule) {
-                    $row['priceStatus'] = 'notfound';
-                } elseif ($hasMismatch) {
-                    $row['priceStatus'] = 'mismatch';
-                } else {
-                    $row['priceStatus'] = 'match';
-                }
+                $row['priceStatus'] = $status;
 
                 $row['rulePrices'] = $rulePrices;
                 $row['ruleName']   = $rules[$adpCode]['name'] ?? '';

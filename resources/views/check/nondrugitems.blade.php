@@ -33,8 +33,7 @@
     $cntAll      = count($nondrugitems);
     $cntMatch    = collect($nondrugitems)->where('priceStatus', 'match')->count();
     $cntMismatch = collect($nondrugitems)->where('priceStatus', 'mismatch')->count();
-    $cntNotfound = collect($nondrugitems)->where('priceStatus', 'notfound')->count();
-    $cntNotype   = collect($nondrugitems)->where('priceStatus', 'notype')->count();
+    $cntNoAdp    = collect($nondrugitems)->whereIn('priceStatus', ['notfound', 'notype'])->count();
 @endphp
 
     <!-- Active Items Card -->
@@ -63,13 +62,8 @@
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link px-4 fw-semibold text-secondary" id="tab-notfound" data-status="notfound" type="button">
-                        <i class="bi bi-question-circle-fill me-1"></i>ไม่พบ Rules <span class="badge bg-secondary ms-1">{{ $cntNotfound }}</span>
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link px-4 fw-semibold text-muted" id="tab-notype" data-status="notype" type="button">
-                        <i class="bi bi-dash-circle me-1"></i>ไม่มี ADP <span class="badge bg-light text-muted border ms-1">{{ $cntNotype }}</span>
+                    <button class="nav-link px-4 fw-semibold text-secondary" id="tab-noadp" data-status="noadp" type="button">
+                        <i class="bi bi-question-circle-fill me-1"></i>ไม่พบ ADP <span class="badge bg-secondary ms-1">{{ $cntNoAdp }}</span>
                     </button>
                 </li>
             </ul>
@@ -114,6 +108,7 @@
                                 'status'     => $status,
                                 'rulePrices' => $rp,
                                 'v4_override'=> $row->v4_override ?? [],
+                                'v4_all_overrides' => $row->v4_all_overrides ?? [],
                                 'has_v4_table' => $hasPttypeItemsPrice,
                             ], JSON_UNESCAPED_UNICODE);
                         @endphp
@@ -140,10 +135,8 @@
                                     <button class="btn btn-sm btn-link p-0 price-detail-btn" data-info="{{ $rpJson }}" title="ดูรายละเอียดราคา">
                                         <span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="bi bi-exclamation-triangle-fill me-1"></i>ต่างกัน</span>
                                     </button>
-                                @elseif($status === 'notfound')
-                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle"><i class="bi bi-question-circle-fill me-1"></i>ไม่พบ Rules</span>
-                                @else
-                                    <span class="badge bg-light text-muted border"><i class="bi bi-dash-circle me-1"></i>ไม่มี ADP</span>
+                                @elseif($status === 'notfound' || $status === 'notype')
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle"><i class="bi bi-question-circle-fill me-1"></i>ไม่พบ ADP</span>
                                 @endif
                             </td>
                             <td class="text-center">
@@ -277,6 +270,26 @@
                     <i class="bi bi-info-circle me-1"></i>
                     <strong>คำอธิบายราคา:</strong> แสดงการเปรียบเทียบราคาในฐานข้อมูล HOSxP เทียบกับราคาอ้างอิงจาก Rules
                 </div>
+
+                <!-- Subtable for pttype_items_price overrides -->
+                <div id="v4OverridesSection" class="mt-4" style="display: none;">
+                    <h6 class="fw-bold text-dark mb-2">
+                        <i class="bi bi-tags-fill me-2 text-info"></i>ราคาพิเศษตามกลุ่มสิทธิ์ (pttype_items_price)
+                    </h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-0">
+                            <thead class="table-light text-center">
+                                <tr>
+                                    <th style="width:35%">กลุ่มสิทธิ์ (pttype_price_group)</th>
+                                    <th class="bg-info-subtle" style="width:20%">ราคาพิเศษ HOSxP</th>
+                                    <th class="bg-success-subtle" style="width:25%">เกณฑ์เปรียบเทียบ ADP</th>
+                                    <th style="width:20%">สถานะ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="v4OverridesBody"></tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -358,7 +371,11 @@
           if (settings.nTable.id !== 'nondrugitems') return true;
           if (!activeStatus) return true;
           var row = $(table1.row(dataIndex).node());
-          return row.data('price-status') === activeStatus;
+          var status = row.data('price-status');
+          if (activeStatus === 'noadp') {
+              return status === 'notfound' || status === 'notype';
+          }
+          return status === activeStatus;
       });
 
       $('#priceStatusTabs button').on('click', function () {
@@ -385,7 +402,7 @@
           var statusHtml = '';
           if (info.status==='match')    statusHtml = '<span class="badge bg-success px-3 py-2"><i class="bi bi-check-circle-fill me-1"></i>ราคาตรงกันกับ Rules</span>';
           else if (info.status==='mismatch') statusHtml = '<span class="badge bg-warning text-dark px-3 py-2"><i class="bi bi-exclamation-triangle-fill me-1"></i>ราคาต่างจาก Rules</span>';
-          else if (info.status==='notfound') statusHtml = '<span class="badge bg-secondary px-3 py-2"><i class="bi bi-question-circle me-1"></i>ไม่พบใน Rules</span>';
+          else if (info.status==='notfound' || info.status==='notype') statusHtml = '<span class="badge bg-secondary px-3 py-2"><i class="bi bi-question-circle me-1"></i>ไม่พบ ADP</span>';
           $('#modalStatusBadge').html(statusHtml);
 
           // We determine V4 mode if the environment has the V4 table
@@ -394,175 +411,105 @@
           var tbody = '';
           var headers = '';
 
-          if (isV4Db && hasV4Overrides) {
-              // HOSxP V4 mode (WITH OVERRIDES):
-              // Row 1: base price from nondrugitems.price (which typically acts as OFC / general price)
-              // Remaining rows: only overridden rights from pttype_items_price (e.g., UCS=4,400)
-              headers = '<th class="text-center" style="width:25%">โครงสร้างราคา HOSxP V4</th>' +
-                        '<th class="text-center bg-primary-subtle" style="width:20%">ราคา HOSxP</th>' +
-                        '<th class="text-center bg-success-subtle" style="width:35%">เกณฑ์เปรียบเทียบใน RULES (จากไฟล์เกณฑ์)</th>' +
-                        '<th class="text-center" style="width:20%">ราคา IPD</th>';
+          // HOSxP mode: Show only one main row representing the default base price
+          headers = '<th class="text-center" style="width:25%">โครงสร้างราคา HOSxP</th>' +
+                    '<th class="text-center bg-primary-subtle" style="width:20%">ราคา OPD</th>' +
+                    '<th class="text-center bg-success-subtle" style="width:35%">เกณฑ์เปรียบเทียบ ADP</th>' +
+                    '<th class="text-center" style="width:20%">ราคา IPD</th>';
 
-              var basePrice = parseFloat(info.hosxpPrice||0);
-              var baseIpd   = parseFloat(info.ipdPrice||0);
+          var basePrice = parseFloat(info.hosxpPrice||0);
+          var baseIpd   = parseFloat(info.ipdPrice||0);
 
-              // 1. Build Base Price Row (typically OFC, LGO, or general rights that weren't overridden)
-              // Find which rights in rules matched this base price
-              var baseMatches = [];
-              $.each(info.rulePrices || {}, function(right, rPrice) {
-                  var pr = parseFloat(rPrice);
-                  // Exclude overridden rights from matching the base price row
-                  if (info.v4_override.includes(right)) return;
-                  if (pr > 0) {
-                      var isMatch = Math.abs(pr - basePrice) < 0.1 || parseInt(pr) === parseInt(basePrice);
-                      var badgeClass = isMatch ? 'bg-success-subtle text-success border border-success-subtle' 
-                                               : 'bg-warning-subtle text-warning border border-warning-subtle';
-                      baseMatches.push('<span class="badge ' + badgeClass + ' me-1" style="font-size:0.75rem;">' + 
-                                       right + '=' + pr.toLocaleString('th-TH') + '</span>');
-                  }
-              });
-              var baseMatchesCell = baseMatches.length > 0 ? baseMatches.join(' ') : '<span class="text-muted small">- ไม่ระบุใน Rules -</span>';
+          // Render rule prices matching this base price
+          var rulesTextList = [];
+          $.each(info.rulePrices || {}, function(right, rPrice) {
+              var pr = parseFloat(rPrice);
+              if (pr > 0) {
+                  var isMatch = Math.abs(pr - basePrice) < 0.1 || parseInt(pr) === parseInt(basePrice);
+                  var badgeClass = isMatch ? 'bg-success-subtle text-success border border-success-subtle' 
+                                           : 'bg-warning-subtle text-warning border border-warning-subtle';
+                  rulesTextList.push('<span class="badge ' + badgeClass + ' me-1" style="font-size:0.75rem;">' + 
+                                     right + '=' + pr.toLocaleString('th-TH') + '</span>');
+              }
+          });
 
-              tbody += '<tr>'+
-                  '<td class="fw-semibold small">ราคากลางหลัก (OFC / ทั่วไป)</td>'+
-                  '<td class="text-end bg-primary-subtle">'+fmtPrice(basePrice)+'</td>'+
-                  '<td class="text-start bg-success-subtle lh-lg">'+baseMatchesCell+'</td>'+
-                  '<td class="text-end text-muted small">'+fmtPrice(baseIpd)+'</td>'+
-                  '</tr>';
+          var matchesCell = rulesTextList.length > 0 ? rulesTextList.join(' ') : '<span class="text-muted small">- ไม่ระบุใน Rules -</span>';
 
-              // 2. Build Overridden Rows (only overridden rights like UCS, SSS etc. from pttype_items_price)
-              const rightConfig = [
-                  { right: 'UCS',  label: 'บัตรทอง (UCS)',          hosxpField: 'hosxpPriceUcs',  ipdField: 'ipdPrice'  },
-                  { right: 'OFC',  label: 'ข้าราชการ (OFC)',         hosxpField: 'hosxpPrice2', ipdField: 'ipdPrice2' },
-                  { right: 'SSS',  label: 'ประกันสังคม (SSS)',       hosxpField: 'hosxpPrice',  ipdField: 'ipdPrice',  v4Field: 'hosxpPriceSss' },
-                  { right: 'LGO',  label: 'อปท. (LGO)',              hosxpField: 'hosxpPrice',  ipdField: 'ipdPrice',  v4Field: 'hosxpPriceLgo' },
-                  { right: 'FS',   label: 'Fee Schedule (FS)',        hosxpField: 'hosxpPrice3', ipdField: 'ipdPrice3' },
-                  { right: 'UCEP', label: 'เจ็บป่วยฉุกเฉิน (UCEP)', hosxpField: 'hosxpPrice',  ipdField: 'ipdPrice'  },
-              ];
+          tbody += '<tr>'+
+              '<td class="fw-semibold small">ราคากรมบัญชีกลาง OFC</td>'+
+              '<td class="text-end bg-primary-subtle">'+fmtPrice(basePrice)+'</td>'+
+              '<td class="text-start bg-success-subtle lh-lg">'+matchesCell+'</td>'+
+              '<td class="text-end text-muted small">'+fmtPrice(baseIpd)+'</td>'+
+              '</tr>';
 
-              rightConfig.forEach(function(cfg) {
-                  // Only process if it is explicitly overridden in pttype_items_price
-                  var isOverridden = (info.v4_override || []).includes(cfg.right);
-                  if (!isOverridden) return;
-
-                  var rulePrice = parseFloat((info.rulePrices||{})[cfg.right]||0);
-                  var hosxpOPD = parseFloat(info[cfg.hosxpField]||0);
-                  if (cfg.right === 'SSS' && info.hosxpPriceSss !== undefined) {
-                      hosxpOPD = parseFloat(info.hosxpPriceSss);
-                  } else if (cfg.right === 'LGO' && info.hosxpPriceLgo !== undefined) {
-                      hosxpOPD = parseFloat(info.hosxpPriceLgo);
-                  }
-
-                  var hosxpIPD  = parseFloat(info[cfg.ipdField]||0);
-
-                  // Compare overridden price with rules
-                  var matchBadge = '';
-                  if (rulePrice > 0) {
-                      var isMatch = Math.abs(rulePrice - hosxpOPD) < 0.1 || parseInt(rulePrice) === parseInt(hosxpOPD);
-                      var badgeClass = isMatch ? 'bg-success-subtle text-success border border-success-subtle' 
-                                               : 'bg-warning-subtle text-warning border border-warning-subtle';
-                      matchBadge = '<span class="badge ' + badgeClass + ' me-1" style="font-size:0.75rem;">' + 
-                                   cfg.right + '=' + rulePrice.toLocaleString('th-TH') + '</span>';
-                  } else {
-                      matchBadge = '<span class="text-muted small">- ไม่ระบุใน Rules -</span>';
-                  }
-
-                  tbody += '<tr>'+
-                      '<td class="fw-semibold small">' + cfg.label + ' <span class="badge bg-info text-dark" style="font-size: 0.65rem;">V4 แยกสิทธิ์</span></td>'+
-                      '<td class="text-end bg-primary-subtle">'+fmtPrice(hosxpOPD)+'</td>'+
-                      '<td class="text-start bg-success-subtle lh-lg">'+matchBadge+'</td>'+
-                      '<td class="text-end text-muted small">'+fmtPrice(hosxpIPD)+'</td>'+
-                      '</tr>';
-              });
-
-              $('#modalPriceFooterInfo').html('<i class="bi bi-info-circle me-1"></i> <span class="badge bg-info text-dark">V4 Active</span> แสดงราคากลางหลักควบคู่กับสิทธิ์ที่มีการตั้งราคาพิเศษในตาราง <code>pttype_items_price</code>');
-
-          } else if (isV4Db) {
-              // HOSxP V4 mode (NO OVERRIDES): Show only one main row representing the default base price
-              headers = '<th class="text-center" style="width:25%">โครงสร้างราคา HOSxP V4</th>' +
-                        '<th class="text-center bg-primary-subtle" style="width:20%">ราคากลาง OPD</th>' +
-                        '<th class="text-center bg-success-subtle" style="width:35%">เกณฑ์เปรียบเทียบใน RULES (จากไฟล์เกณฑ์)</th>' +
-                        '<th class="text-center" style="width:20%">ราคา IPD</th>';
-
-              var opdVal = parseFloat(info.hosxpPrice||0);
-              var ipdVal = parseFloat(info.ipdPrice||0);
-
-              // Render rule prices by keys: UCS, OFC, SSS, LGO, FS, UCEP
-              var rulesTextList = [];
-              $.each(info.rulePrices || {}, function(right, rPrice) {
-                  var pr = parseFloat(rPrice);
-                  if (pr > 0) {
-                      var isMatch = Math.abs(pr - opdVal) < 0.1 || parseInt(pr) === parseInt(opdVal);
-                      var badgeClass = isMatch ? 'bg-success-subtle text-success border border-success-subtle' 
-                                               : 'bg-warning-subtle text-warning border border-warning-subtle';
-                      rulesTextList.push('<span class="badge ' + badgeClass + ' me-1" style="font-size:0.75rem;">' + 
-                                         right + '=' + pr.toLocaleString('th-TH') + '</span>');
-                  }
-              });
-
-              var matchesCell = rulesTextList.length > 0 ? rulesTextList.join(' ') : '<span class="text-muted small">- ไม่ระบุใน Rules -</span>';
-
-              tbody += '<tr>'+
-                  '<td class="fw-semibold small">ราคากลางทั้งหมด (ทุกสิทธิ์)</td>'+
-                  '<td class="text-end bg-primary-subtle">'+fmtPrice(opdVal)+'</td>'+
-                  '<td class="text-start bg-success-subtle lh-lg">'+matchesCell+'</td>'+
-                  '<td class="text-end text-muted small">'+fmtPrice(ipdVal)+'</td>'+
-                  '</tr>';
-
-              $('#modalPriceFooterInfo').html('<i class="bi bi-info-circle me-1"></i> <span class="badge bg-light text-muted border">V4 Standard</span> ไม่มีรายการแยกสิทธิ์ (ทุกสิทธิ์ใช้ราคากลางเดียวกัน)');
-
+          if (isV4Db) {
+              $('#modalPriceFooterInfo').html('<i class="bi bi-info-circle me-1"></i> <span class="badge bg-info text-dark">V4 Active</span> แสดงราคากลางหลักกรมบัญชีกลาง OFC จาก <code>nondrugitems.price</code>');
           } else {
-              // HOSxP V3 mode: Compare price columns directly without pretending to know their rights
-              headers = '<th class="text-center" style="width:25%">ช่องราคา (HOSxP V3)</th>' +
-                        '<th class="text-center bg-primary-subtle" style="width:20%">ราคา OPD</th>' +
-                        '<th class="text-center bg-success-subtle" style="width:35%">เกณฑ์เปรียบเทียบใน RULES (จากไฟล์เกณฑ์)</th>' +
-                        '<th class="text-center" style="width:20%">ราคา IPD</th>';
-
-              const colConfig = [
-                  { label: 'ราคาหลัก (price / ipd_price)', opdField: 'hosxpPrice', ipdField: 'ipdPrice' },
-                  { label: 'ราคา 2 (price2 / ipd_price2)', opdField: 'hosxpPrice2', ipdField: 'ipdPrice2' },
-                  { label: 'ราคา 3 (price3 / ipd_price3)', opdField: 'hosxpPrice3', ipdField: 'ipdPrice3' }
-              ];
-
-              colConfig.forEach(function(cfg) {
-                  var opdVal = parseFloat(info[cfg.opdField]||0);
-                  var ipdVal = parseFloat(info[cfg.ipdField]||0);
-                  if (opdVal <= 0 && ipdVal <= 0) return;
-
-                  // Render rule prices by keys
-                  var rulesTextList = [];
-                  $.each(info.rulePrices || {}, function(right, rPrice) {
-                      var pr = parseFloat(rPrice);
-                      if (pr > 0) {
-                          var isMatch = Math.abs(pr - opdVal) < 0.1 || parseInt(pr) === parseInt(opdVal);
-                          var badgeClass = isMatch ? 'bg-success-subtle text-success border border-success-subtle' 
-                                                   : 'bg-warning-subtle text-warning border border-warning-subtle';
-                          rulesTextList.push('<span class="badge ' + badgeClass + ' me-1" style="font-size:0.75rem;">' + 
-                                             right + '=' + pr.toLocaleString('th-TH') + '</span>');
-                      }
-                  });
-
-                  var matchesCell = '';
-                  if (matchingRights.length > 0) {
-                      matchesCell = '<span class="badge bg-success-subtle text-success border border-success-subtle me-1"><i class="bi bi-check2-circle"></i> ตรงกับสิทธิ์ ' + matchingRights.join(', ') + '</span>';
-                  } else {
-                      matchesCell = '<span class="text-muted small"><i class="bi bi-dash-circle"></i> ไม่ตรงสิทธิ์ใดใน Rules</span>';
-                  }
-
-                  tbody += '<tr>'+
-                      '<td class="fw-semibold small">'+cfg.label+'</td>'+
-                      '<td class="text-end bg-primary-subtle">'+fmtPrice(opdVal)+'</td>'+
-                      '<td class="text-start bg-success-subtle small">'+matchesCell+'</td>'+
-                      '<td class="text-end text-muted small">'+fmtPrice(ipdVal)+'</td>'+
-                      '</tr>';
-              });
-
-              $('#modalPriceFooterInfo').html('<i class="bi bi-info-circle me-1"></i> <span class="badge bg-secondary">V3 Active</span> ดึงข้อมูลตรงจากตาราง <code>nondrugitems</code> (ไม่มีข้อมูลแยกสิทธิ์ราย pttype)');
+              $('#modalPriceFooterInfo').html('<i class="bi bi-info-circle me-1"></i> <span class="badge bg-secondary">V3 Active</span> แสดงราคากลางหลักกรมบัญชีกลาง OFC จาก <code>nondrugitems.price</code>');
           }
 
           if (!tbody) tbody = '<tr><td colspan="5" class="text-center text-muted py-3">ไม่มีข้อมูลราคาที่จะแสดง</td></tr>';
           $('#modalTableHeaders').html(headers);
           $('#modalPricesBody').html(tbody);
+
+          // Render sub-table for pttype_items_price overrides if available
+          var overridesHtml = '';
+          var hasAnyOverrides = info.v4_all_overrides && info.v4_all_overrides.length > 0;
+          if (isV4Db && hasAnyOverrides) {
+              $.each(info.v4_all_overrides, function(idx, item) {
+                  var grpId = item.pttype_price_group_id;
+                  var grpName = item.pttype_price_group_name || ('กลุ่มสิทธิ์ที่ ' + grpId);
+                  var priceVal = parseFloat(item.price || 0);
+
+                  // Map groups to rules keys:
+                  var ruleKey = '';
+                  var grpLower = grpName.toLowerCase();
+                  if (grpId == 2 || grpLower.indexOf('ucs') !== -1 || grpLower.indexOf('บัตรทอง') !== -1 || grpLower.indexOf('หลักประกัน') !== -1) {
+                      ruleKey = 'UCS';
+                  } else if (grpId == 3 || grpLower.indexOf('ofc') !== -1 || grpLower.indexOf('ข้าราชการ') !== -1 || grpLower.indexOf('กรมบัญชีกลาง') !== -1) {
+                      ruleKey = 'OFC';
+                  } else if (grpId == 4 || grpLower.indexOf('sss') !== -1 || grpLower.indexOf('ประกันสังคม') !== -1) {
+                      ruleKey = 'SSS';
+                  } else if (grpId == 5 || grpLower.indexOf('lgo') !== -1 || grpLower.indexOf('อปท') !== -1 || grpLower.indexOf('ส่วนท้องถิ่น') !== -1) {
+                      ruleKey = 'LGO';
+                  } else if (grpId == 1 || grpLower.indexOf('ชำระเงินเอง') !== -1 || grpLower.indexOf('cash') !== -1 || grpLower.indexOf('fs') !== -1) {
+                      ruleKey = 'FS';
+                  }
+
+                  var rulePrice = 0;
+                  var rulePriceText = '<span class="text-muted">-</span>';
+                  if (ruleKey && info.rulePrices && info.rulePrices[ruleKey] !== undefined) {
+                      rulePrice = parseFloat(info.rulePrices[ruleKey]);
+                      if (rulePrice > 0) {
+                          rulePriceText = '<span class="fw-bold">' + rulePrice.toLocaleString('th-TH', {minimumFractionDigits: 2}) + '</span> (' + ruleKey + ')';
+                      }
+                  }
+
+                  var statusBadge = '';
+                  if (rulePrice > 0) {
+                      var isMatch = Math.abs(rulePrice - priceVal) < 0.1 || parseInt(rulePrice) === parseInt(priceVal);
+                      if (isMatch) {
+                          statusBadge = '<span class="badge bg-success-subtle text-success border border-success-subtle"><i class="bi bi-check-circle-fill me-1"></i>ตรงกัน</span>';
+                      } else {
+                          statusBadge = '<span class="badge bg-warning-subtle text-warning border border-warning-subtle"><i class="bi bi-exclamation-triangle-fill me-1"></i>ต่างกัน</span>';
+                      }
+                  } else {
+                      statusBadge = '<span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">ไม่มีราคาใน Rules</span>';
+                  }
+
+                  overridesHtml += '<tr>' +
+                      '<td class="fw-semibold text-start">' + grpName + ' <span class="badge bg-light text-muted border" style="font-size:0.7rem;">ID: ' + grpId + '</span></td>' +
+                      '<td class="text-end bg-info-subtle">' + fmtPrice(priceVal) + '</td>' +
+                      '<td class="text-start bg-success-subtle">' + rulePriceText + '</td>' +
+                      '<td class="text-center">' + statusBadge + '</td>' +
+                      '</tr>';
+              });
+              $('#v4OverridesBody').html(overridesHtml);
+              $('#v4OverridesSection').show();
+          } else {
+              $('#v4OverridesSection').hide();
+          }
+
           $('#priceDetailModal').modal('show');
       });
     });

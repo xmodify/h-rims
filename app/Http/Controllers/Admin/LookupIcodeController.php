@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\LookupIcode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class LookupIcodeController extends Controller
 {
@@ -49,8 +50,26 @@ class LookupIcodeController extends Controller
             $ppfs_details[$code] = $rule;
         }
 
-        // ตรวจสอบข้อมูลรหัส Instrument ทั้งหมดที่มีในคู่มือ (รวมราคา UCS = 0 ด้วย)
-        $ins_rules = require config_path('claims/ins_rules.php');
+        $ins_rules = [];
+        if (Schema::hasTable('lookup_nhso_adp_code')) {
+            $records = DB::table('lookup_nhso_adp_code')->where('nhso_adp_type_id', 2)->get();
+            foreach ($records as $r) {
+                $ins_rules[$r->nhso_adp_code] = [
+                    'name' => $r->nhso_adp_code_name,
+                    'category' => $r->category,
+                    'prices' => [
+                        'UCS' => floatval($r->price_ucs),
+                        'OFC' => floatval($r->price_ofc),
+                        'SSS' => floatval($r->price_sss),
+                        'LGO' => floatval($r->price_lgo),
+                        'FS' => floatval($r->price_fs),
+                        'UCEP' => floatval($r->price_ucep),
+                    ],
+                    'ins_ucs' => $r->ins_ucs,
+                    'ins_ofc' => $r->ins_ofc,
+                ];
+            }
+        }
         $all_ins_adps = array_keys($ins_rules);
         $valid_ins_adps = array_keys(array_filter($ins_rules, fn($r) => ($r['prices']['UCS'] ?? 0) > 0)); // ใช้กรองหน้า UC-CR
 
@@ -84,17 +103,38 @@ class LookupIcodeController extends Controller
         $total_rules_count = count($ppfs_details) + count($ins_details);
 
         // แยก UC-CR เป็น Instrument (เฉพาะที่ UCS > 0) และ Other (ที่ไม่ใช่รหัสใน Instrument)
+        $uc_cr_icodes = $uc_cr->pluck('icode')->toArray();
+        $hosxp_prices = [];
+        if (!empty($uc_cr_icodes)) {
+            $placeholders = implode(',', array_fill(0, count($uc_cr_icodes), '?'));
+            $nondrug_prices = DB::connection('hosxp')->select(
+                "SELECT icode, price FROM nondrugitems WHERE icode IN ($placeholders)",
+                $uc_cr_icodes
+            );
+            foreach ($nondrug_prices as $p) {
+                $hosxp_prices[$p->icode] = floatval($p->price);
+            }
+            $drug_prices = DB::connection('hosxp')->select(
+                "SELECT icode, unitprice AS price FROM drugitems WHERE icode IN ($placeholders)",
+                $uc_cr_icodes
+            );
+            foreach ($drug_prices as $p) {
+                $hosxp_prices[$p->icode] = floatval($p->price);
+            }
+        }
+
         $uc_cr_instrument = $uc_cr->filter(function($item) use ($valid_ins_adps) {
             return in_array($item->nhso_adp_code, $valid_ins_adps);
         });
-        $uc_cr_other = $uc_cr->reject(function($item) use ($all_ins_adps) {
-            return in_array($item->nhso_adp_code, $all_ins_adps);
+        $uc_cr_other = $uc_cr->reject(function($item) use ($valid_ins_adps) {
+            return in_array($item->nhso_adp_code, $valid_ins_adps);
         });
 
         return view('admin.lookup_icode.index', compact(
             'all', 'uc_cr', 'ppfs', 'herb32', 'kidney', 'ems', 'sss_hc', 
             'valid_ppfs_adps', 'ppfs_details', 'ins_details', 'total_rules_count',
-            'uc_cr_instrument', 'uc_cr_other', 'valid_ins_adps', 'ins_rules'
+            'uc_cr_instrument', 'uc_cr_other', 'valid_ins_adps', 'ins_rules',
+            'hosxp_prices'
         ));
     }
 
@@ -160,7 +200,24 @@ class LookupIcodeController extends Controller
 
     public function insert_lookup_uc_cr(Request $request)
     {
-        $ins_rules = require config_path('claims/ins_rules.php');
+        $ins_rules = [];
+        if (Schema::hasTable('lookup_nhso_adp_code')) {
+            $records = DB::table('lookup_nhso_adp_code')->where('nhso_adp_type_id', 2)->get();
+            foreach ($records as $r) {
+                $ins_rules[$r->nhso_adp_code] = [
+                    'name' => $r->nhso_adp_code_name,
+                    'category' => $r->category,
+                    'prices' => [
+                        'UCS' => floatval($r->price_ucs),
+                        'OFC' => floatval($r->price_ofc),
+                        'SSS' => floatval($r->price_sss),
+                        'LGO' => floatval($r->price_lgo),
+                        'FS' => floatval($r->price_fs),
+                        'UCEP' => floatval($r->price_ucep),
+                    ]
+                ];
+            }
+        }
         $ins_adps = array_keys(array_filter($ins_rules, fn($r) => ($r['prices']['UCS'] ?? 0) > 0));
 
         if (empty($ins_adps)) {

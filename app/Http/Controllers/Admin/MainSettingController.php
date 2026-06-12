@@ -500,6 +500,124 @@ class MainSettingController extends Controller
 
 
 
+            // 8.1.5 Create and import lookup_nhso_adp_type table
+            try {
+                if (!Schema::hasTable('lookup_nhso_adp_type')) {
+                    Schema::create('lookup_nhso_adp_type', function (Blueprint $table) {
+                        $table->integer('nhso_adp_type_id')->primary();
+                        $table->string('nhso_adp_type_name', 150)->nullable();
+                        $table->timestamps();
+                    });
+                    $migrate_result .= " and created lookup_nhso_adp_type table.";
+                }
+
+                if (Schema::hasTable('lookup_nhso_adp_type')) {
+                    $hosxp_types = DB::connection('hosxp')->table('nhso_adp_type')->get();
+                    $insertedTypes = 0;
+                    foreach ($hosxp_types as $type) {
+                        DB::table('lookup_nhso_adp_type')->updateOrInsert(
+                            ['nhso_adp_type_id' => $type->nhso_adp_type_id],
+                            [
+                                'nhso_adp_type_name' => $type->nhso_adp_type_name,
+                                'updated_at' => now(),
+                                'created_at' => now()
+                            ]
+                        );
+                        $insertedTypes++;
+                    }
+                    $migrate_result .= " and copied $insertedTypes types to lookup_nhso_adp_type.";
+                }
+            } catch (\Exception $e) {
+                Log::warning("Could not setup lookup_nhso_adp_type table: " . $e->getMessage());
+                $migrate_result .= " and error setting up lookup_nhso_adp_type: " . $e->getMessage();
+            }
+
+            // 8.2 Create and import lookup_nhso_adp_code table
+            try {
+                // Drop if exists to ensure structure matches
+                Schema::dropIfExists('lookup_nhso_adp_code');
+
+                // Create matching HOSxP structure but with added prices
+                Schema::create('lookup_nhso_adp_code', function (Blueprint $table) {
+                    $table->string('nhso_adp_code', 50);
+                    $table->integer('nhso_adp_type_id');
+                    $table->string('nhso_adp_code_name', 255);
+                    $table->string('category', 100)->nullable()->index();
+                    $table->decimal('price_ucs', 10, 2)->default(0.00);
+                    $table->decimal('price_ofc', 10, 2)->default(0.00);
+                    $table->decimal('price_sss', 10, 2)->default(0.00);
+                    $table->decimal('price_lgo', 10, 2)->default(0.00);
+                    $table->decimal('price_fs', 10, 2)->default(0.00);
+                    $table->decimal('price_ucep', 10, 2)->default(0.00);
+                    $table->string('ins_ucs', 10)->nullable()->default('');
+                    $table->string('ins_ofc', 10)->nullable()->default('');
+                    $table->timestamps();
+
+                    $table->primary(['nhso_adp_code', 'nhso_adp_type_id']);
+                });
+                $migrate_result .= " and created lookup_nhso_adp_code table.";
+
+                // Import from Excel docs/lookup/lookup_nhso_adp_code.xlsx
+                $filePath = base_path('docs/lookup/lookup_nhso_adp_code.xlsx');
+                if (file_exists($filePath)) {
+                    $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
+                    $sheet = $spreadsheet->getActiveSheet();
+                    $row_limit = $sheet->getHighestDataRow();
+
+                    $cleanPrice = function ($val) {
+                        if ($val === null || $val === '-' || trim($val) === '') {
+                            return 0.00;
+                        }
+                        $val = str_replace(',', '', $val);
+                        return is_numeric($val) ? (float) $val : 0.00;
+                    };
+
+                    $insertedCount = 0;
+
+                    for ($row = 2; $row <= $row_limit; $row++) {
+                        $adp_code = $sheet->getCell('A' . $row)->getValue();
+                        $adp_type_id = $sheet->getCell('B' . $row)->getValue();
+
+                        if (empty($adp_code) || empty($adp_type_id)) {
+                            continue;
+                        }
+
+                        $price_ucs = $cleanPrice($sheet->getCell('E' . $row)->getValue());
+                        $price_ofc = $cleanPrice($sheet->getCell('F' . $row)->getValue());
+                        $price_sss = $cleanPrice($sheet->getCell('G' . $row)->getValue());
+                        $price_lgo = $cleanPrice($sheet->getCell('H' . $row)->getValue());
+                        $price_fs = $cleanPrice($sheet->getCell('I' . $row)->getValue());
+                        $price_ucep = $cleanPrice($sheet->getCell('J' . $row)->getValue());
+                        $ins_ucs = trim($sheet->getCell('K' . $row)->getValue() ?? '');
+                        $ins_ofc = trim($sheet->getCell('L' . $row)->getValue() ?? '');
+
+                        DB::table('lookup_nhso_adp_code')->insert([
+                            'nhso_adp_code' => trim($adp_code),
+                            'nhso_adp_type_id' => intval($adp_type_id),
+                            'nhso_adp_code_name' => $sheet->getCell('C' . $row)->getValue() ?? '',
+                            'category' => $sheet->getCell('D' . $row)->getValue(),
+                            'price_ucs' => $price_ucs,
+                            'price_ofc' => $price_ofc,
+                            'price_sss' => $price_sss,
+                            'price_lgo' => $price_lgo,
+                            'price_fs' => $price_fs,
+                            'price_ucep' => $price_ucep,
+                            'ins_ucs' => $ins_ucs,
+                            'ins_ofc' => $ins_ofc,
+                            'created_at' => now(),
+                            'updated_at' => now()
+                        ]);
+                        $insertedCount++;
+                    }
+                    $migrate_result .= " and imported $insertedCount records from Excel into lookup_nhso_adp_code.";
+                } else {
+                    $migrate_result .= " and Excel file lookup_nhso_adp_code.xlsx not found at docs/lookup/.";
+                }
+            } catch (\Exception $e) {
+                Log::warning("Could not setup lookup_nhso_adp_code table: " . $e->getMessage());
+                $migrate_result .= " and error setting up lookup_nhso_adp_code: " . $e->getMessage();
+            }
+
             $migrate_result .= " and updated nhso_endpoint.";
 
 

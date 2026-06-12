@@ -137,7 +137,9 @@
                                                         <th>ชื่อรายการ</th>
                                                         <th>หมวดหมู่</th>
                                                         <th class="text-center">ADP Code</th>
-                                                        <th class="text-end">ราคา UCS</th>
+                                                        <th class="text-end">ราคา HOSxP</th>
+                                                        <th class="text-end">ราคา UCS (ประกาศ)</th>
+                                                        <th class="text-center">ตรงประกาศ</th>
                                                         <th class="text-center">Flags</th>
                                                         <th class="text-center pe-4">จัดการ</th>
                                                     </tr>
@@ -147,6 +149,8 @@
                                                         @php
                                                             $insRule = $ins_rules[$item->nhso_adp_code] ?? null;
                                                             $ucsPrice = $insRule['prices']['UCS'] ?? 0;
+                                                            $hosxpPrice = $hosxp_prices[$item->icode] ?? 0;
+                                                            $isMatch = (abs($ucsPrice - $hosxpPrice) < 0.1);
                                                         @endphp
                                                         <tr>
                                                             <td class="ps-4 fw-bold text-dark">{{ $item->icode }}</td>
@@ -164,11 +168,36 @@
                                                                 <span class="badge bg-light text-dark border">{{ $item->nhso_adp_code ?? '-' }}</span>
                                                             </td>
                                                             <td class="text-end">
+                                                                @if($hosxpPrice > 0)
+                                                                    <span class="fw-bold text-primary">{{ number_format($hosxpPrice, 2) }}</span>
+                                                                    <span class="text-muted small"> บาท</span>
+                                                                @else
+                                                                    <span class="text-muted small">-</span>
+                                                                @endif
+                                                            </td>
+                                                            <td class="text-end">
                                                                 @if($ucsPrice > 0)
                                                                     <span class="fw-bold text-success">{{ number_format($ucsPrice, 2) }}</span>
                                                                     <span class="text-muted small"> บาท</span>
                                                                 @else
                                                                     <span class="text-muted small">-</span>
+                                                                @endif
+                                                            </td>
+                                                            <td class="text-center">
+                                                                @if(($insRule['ins_ucs'] ?? '') === 'Y')
+                                                                    @if($isMatch)
+                                                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                                                            <i class="bi bi-check-circle-fill me-1"></i>ตรง
+                                                                        </span>
+                                                                    @else
+                                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                                                                            <i class="bi bi-x-circle-fill me-1"></i>ไม่ตรง
+                                                                        </span>
+                                                                    @endif
+                                                                @else
+                                                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                                                        ไม่อยู่ในประกาศ
+                                                                    </span>
                                                                 @endif
                                                             </td>
                                                             <td class="text-center">

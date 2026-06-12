@@ -5,15 +5,11 @@ namespace App\Services;
 class ClaimValidator
 {
     protected $ppfsRules;
-    protected $ucCrRules;
 
     public function __construct()
     {
         $this->ppfsRules = file_exists(config_path('claims/ppfs_rules.php')) 
             ? require config_path('claims/ppfs_rules.php') 
-            : [];
-        $this->ucCrRules = file_exists(config_path('claims/ins_rules.php')) 
-            ? require config_path('claims/ins_rules.php') 
             : [];
     }
 
@@ -82,17 +78,11 @@ class ClaimValidator
 
         // 2. Item Specific Checks
         if (empty($billedItems)) {
-            $errors[] = "ไม่พบรายการยาหรือเวชภัณฑ์ที่เข้าข่ายการเคลม (PPFS/UC_CR/Herb)";
+            $errors[] = "ไม่พบรายการยาหรือเวชภัณฑ์ที่เข้าข่ายการเคลม (PPFS)";
         } else {
             foreach ($billedItems as $item) {
                 if ($item->ppfs === 'Y') {
                     $itemErrors = $this->validatePpfs($item, $sex, $age, $diagnoses, $procedures);
-                    $errors = array_merge($errors, $itemErrors);
-                } elseif ($item->uc_cr === 'Y') {
-                    $itemErrors = $this->validateUcCr($item, $visit);
-                    $errors = array_merge($errors, $itemErrors);
-                } elseif (($item->herb32 ?? 'N') === 'Y') {
-                    $itemErrors = $this->validateHerb($item, $visit, $sex, $age, $diagnoses, $procedures);
                     $errors = array_merge($errors, $itemErrors);
                 }
             }
@@ -239,35 +229,7 @@ class ClaimValidator
         return $errors;
     }
 
-    /**
-     * Validate UC_CR rules.
-     */
-    protected function validateUcCr($item, $visit)
-    {
-        $errors = [];
-        $adpCode = trim($item->nhso_adp_code ?? '');
-        $itemName = $item->name ?? $item->icode;
-        $itemPrice = floatval($item->sum_price ?? 0);
 
-        if (isset($this->ucCrRules[$adpCode])) {
-            $rule = $this->ucCrRules[$adpCode];
-            $scheme = strtoupper(trim($visit->instype ?? 'UCS'));
-            $expectedPrice = floatval($rule['prices'][$scheme] ?? $rule['prices']['UCS'] ?? 0);
-            if ($expectedPrice > 0 && $itemPrice > $expectedPrice) {
-                $errors[] = "รหัส {$adpCode} ({$itemName}): ยอดเรียกเก็บจริง (" . number_format($itemPrice, 2) . " บาท) เกินเกณฑ์ราคาชดเชย{$scheme} (" . number_format($expectedPrice, 2) . " บาท)";
-            }
-        }
-
-        return $errors;
-    }
-
-    /**
-     * Validate Herb rules (Placeholder for future extensions).
-     */
-    protected function validateHerb($item, $visit, $sex, $age, $diagnoses, $procedures)
-    {
-        return [];
-    }
 
     /**
      * Normalize medical codes by stripping spaces, dots, and converting to uppercase.

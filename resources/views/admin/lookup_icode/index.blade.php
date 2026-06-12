@@ -346,6 +346,9 @@
                                             <th class="ps-4">iCode</th>
                                             <th>ชื่อรายการ</th>
                                             <th class="text-center">ADP Code</th>
+                                            @if($pane['id'] === 'ssshc')
+                                                <th class="text-end">ราคา SSS</th>
+                                            @endif
                                             <th class="text-center">Flags</th>
                                             <th class="text-center pe-4">จัดการ</th>
                                         </tr>
@@ -362,6 +365,19 @@
                                                 <td class="text-center">
                                                     <span class="badge bg-light text-dark border">{{ $item->nhso_adp_code ?? '-' }}</span>
                                                 </td>
+                                                @if($pane['id'] === 'ssshc')
+                                                    @php
+                                                        $sssPrice = $sss_prices[$item->nhso_adp_code] ?? 0;
+                                                    @endphp
+                                                    <td class="text-end">
+                                                        @if($sssPrice > 0)
+                                                            <span class="fw-bold text-primary">{{ number_format($sssPrice, 2) }}</span>
+                                                            <span class="text-muted small"> บาท</span>
+                                                        @else
+                                                            <span class="text-muted small">-</span>
+                                                        @endif
+                                                    </td>
+                                                @endif
                                                 <td class="text-center">
                                                     <div class="d-flex justify-content-center gap-1">
                                                         @if($item->uc_cr === 'Y') <span class="badge rounded-pill bg-primary" title="UC_CR">UC-CR</span> @endif

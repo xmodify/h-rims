@@ -130,11 +130,19 @@ class LookupIcodeController extends Controller
             return in_array($item->nhso_adp_code, $valid_ins_adps);
         });
 
+        $sss_prices = [];
+        if (Schema::hasTable('lookup_nhso_adp_code')) {
+            $sss_records = DB::table('lookup_nhso_adp_code')->select('nhso_adp_code', 'price_sss')->get();
+            foreach ($sss_records as $r) {
+                $sss_prices[$r->nhso_adp_code] = floatval($r->price_sss);
+            }
+        }
+
         return view('admin.lookup_icode.index', compact(
             'all', 'uc_cr', 'ppfs', 'herb32', 'kidney', 'ems', 'sss_hc', 
             'valid_ppfs_adps', 'ppfs_details', 'ins_details', 'total_rules_count',
             'uc_cr_instrument', 'uc_cr_other', 'valid_ins_adps', 'ins_rules',
-            'hosxp_prices'
+            'hosxp_prices', 'sss_prices'
         ));
     }
 

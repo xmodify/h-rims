@@ -71,7 +71,7 @@ class LookupIcodeController extends Controller
             }
         }
         $all_ins_adps = array_keys($ins_rules);
-        $valid_ins_adps = array_keys(array_filter($ins_rules, fn($r) => ($r['prices']['UCS'] ?? 0) > 0)); // ใช้กรองหน้า UC-CR
+        $valid_ins_adps = array_keys(array_filter($ins_rules, fn($r) => ($r['ins_ucs'] ?? '') === 'Y')); // เฉพาะที่อยู่ในประกาศ UCS จริงๆ
 
         // ดึงข้อมูล ADP จาก HOSxP สำหรับ Instrument ทั้งหมด (เฉพาะ nondrugitems ที่มีสถานะใช้งาน)
         $hosxp_ins_all = DB::connection('hosxp')
@@ -218,6 +218,7 @@ class LookupIcodeController extends Controller
                 $ins_rules[$r->nhso_adp_code] = [
                     'name' => $r->nhso_adp_code_name,
                     'category' => $r->category,
+                    'ins_ucs' => $r->ins_ucs,
                     'prices' => [
                         'UCS' => floatval($r->price_ucs),
                         'OFC' => floatval($r->price_ofc),
@@ -229,7 +230,10 @@ class LookupIcodeController extends Controller
                 ];
             }
         }
-        $ins_adps = array_keys(array_filter($ins_rules, fn($r) => ($r['prices']['UCS'] ?? 0) > 0));
+        // นำเข้า instrument ที่อยู่ในประกาศ UCS (ins_ucs = 'Y') หรือมีราคา UCS กำหนดไว้ (price_ucs > 0)
+        $ins_adps = array_keys(array_filter($ins_rules, fn($r) =>
+            ($r['ins_ucs'] ?? '') === 'Y' || ($r['prices']['UCS'] ?? 0) > 0
+        ));
 
         if (empty($ins_adps)) {
             $ins_adps = ['INVALID_CODE_HOLDER'];
@@ -241,8 +245,8 @@ class LookupIcodeController extends Controller
             SELECT n.icode, n.`name`, n.nhso_adp_code, "Y" AS uc_cr 
             FROM nondrugitems n
             WHERE n.icode NOT IN (SELECT icode FROM hrims.lookup_icode WHERE uc_cr = "Y" AND COALESCE(nhso_adp_code, "") = COALESCE(n.nhso_adp_code, ""))
-            AND n.nhso_adp_code IS NOT NULL AND n.nhso_adp_code <> ""
             AND n.istatus = "Y"
+            AND n.nhso_adp_type_id = 2
             AND (
                 n.nhso_adp_code IN ("TELMED","DRUGP","Cons01","Eva001","30001","80001","80002","80003",
                 "80004","80005","80006","80007","80008","80015","80024","80025","80026","80027","80028")

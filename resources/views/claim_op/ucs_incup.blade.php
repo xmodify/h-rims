@@ -782,6 +782,15 @@ function showValidation(vn) {
                 });
                 html += '</ul>';
             }
+            // คำเตือน: ins ไม่อยู่ในประกาศ UCS (สีเหลือง — ไม่บล็อคการเคลม)
+            if (v.warnings && v.warnings.length > 0) {
+                html += '<div class="alert alert-warning p-2 mb-2 mt-2"><strong><i class="bi bi-exclamation-triangle-fill me-1"></i>คำเตือน ' + v.warnings.length + ' รายการ</strong></div>';
+                html += '<ul class="list-group list-group-flush">';
+                v.warnings.forEach(function(w) {
+                    html += `<li class="list-group-item list-group-item-warning py-2 small"><i class="bi bi-exclamation-triangle-fill me-2"></i>${w}</li>`;
+                });
+                html += '</ul>';
+            }
             body.innerHTML = html;
         })
         .fail(function() {
@@ -901,11 +910,24 @@ function showDetails(vn) {
                 v.errors.forEach(function(err) { html += `<li>${err}</li>`; });
                 html += `</ul></div></div>`;
             }
+            if (v.warnings && v.warnings.length > 0) {
+                html += `
+              <div class="col-12">
+                <div class="alert alert-warning py-2 mb-0 small">
+                  <strong><i class="bi bi-exclamation-triangle-fill me-1"></i>คำเตือน Instrument ไม่อยู่ในประกาศ UCS (${v.warnings.length} รายการ):</strong>
+                  <ul class="mb-0 mt-1 ps-3">`;
+                v.warnings.forEach(function(w) { html += `<li>${w}</li>`; });
+                html += `</ul></div></div>`;
+            }
 
             // Items table
             html += `
               <div class="col-12">
-                <div class="fw-bold small text-dark mb-2"><i class="bi bi-list-check me-1"></i>รายการเรียกเก็บ ${statusBadge}</div>
+                <div class="fw-bold small text-dark mb-2"><i class="bi bi-list-check me-1"></i>รายการเรียกเก็บ ${statusBadge}${
+                    (v.warnings && v.warnings.length > 0)
+                    ? '<span class="badge bg-warning text-dark ms-2"><i class="bi bi-exclamation-triangle-fill me-1"></i>' + v.warnings.length + ' คำเตือน</span>'
+                    : ''
+                }</div>
                 <div class="table-responsive">
                   <table class="table table-sm table-hover small mb-0">
                     <thead class="table-light">
@@ -922,9 +944,13 @@ function showDetails(vn) {
                 if (item.ppfs  === 'Y') type += '<span class="badge-type badge-ppfs me-1">PPFS</span>';
                 if (item.uc_cr === 'Y') type += '<span class="badge-type badge-uc_cr me-1">UC_CR</span>';
                 if (item.herb32=== 'Y') type += '<span class="badge-type badge-herb me-1">Herb</span>';
-                html += `<tr>
+                // แสดงไอคอนเตือนถ้า ins ไม่อยู่ในประกาศ UCS
+                const insWarn = (item.uc_cr === 'Y' && item.ins_ucs !== undefined && item.ins_ucs !== 'Y' && item.nhso_adp_code)
+                    ? `<span class="badge bg-warning text-dark ms-1" title="ADP ${item.nhso_adp_code} ไม่อยู่ในประกาศ UCS"><i class="bi bi-exclamation-triangle-fill"></i></span>`
+                    : '';
+                html += `<tr class="${(item.uc_cr === 'Y' && item.ins_ucs !== undefined && item.ins_ucs !== 'Y' && item.nhso_adp_code) ? 'table-warning' : ''}">
                     <td class="text-muted">${item.icode}</td>
-                    <td>${item.name ?? '-'}</td>
+                    <td>${item.name ?? '-'}${insWarn}</td>
                     <td>${type}</td>
                     <td class="text-center">${item.qty}</td>
                     <td class="text-end">${parseFloat(item.unitprice).toLocaleString('th-TH',{minimumFractionDigits:2})}</td>

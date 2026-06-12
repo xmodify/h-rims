@@ -325,6 +325,20 @@ class ClaimOpController extends Controller
             WHERE op.vn = ?
             AND (li.uc_cr = "Y" OR li.ppfs = "Y" OR li.herb32 = "Y")', [$vn]);
 
+        // แนบ ins_ucs flag จาก lookup_nhso_adp_code เพื่อตรวจสอบว่าอยู่ในประกาศ UCS หรือเปล่า
+        $adpCodes = collect($items)->pluck('nhso_adp_code')->filter()->unique()->values()->toArray();
+        $insUcsMap = [];
+        if (!empty($adpCodes) && \Illuminate\Support\Facades\Schema::hasTable('lookup_nhso_adp_code')) {
+            $insRecords = DB::table('lookup_nhso_adp_code')
+                ->whereIn('nhso_adp_code', $adpCodes)
+                ->where('nhso_adp_type_id', 2)
+                ->pluck('ins_ucs', 'nhso_adp_code');
+            $insUcsMap = $insRecords->toArray();
+        }
+        foreach ($items as $item) {
+            $item->ins_ucs = $insUcsMap[$item->nhso_adp_code] ?? null;
+        }
+
         // Validate
         $validator = new \App\Services\ClaimValidator();
         $validation = $validator->validate($visit, $items);

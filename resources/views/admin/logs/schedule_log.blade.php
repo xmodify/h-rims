@@ -420,7 +420,16 @@
                                         ok: true,
                                         message: 'ดึงข้อมูลด้วยตนเอง (Manual Pull) สำเร็จ'
                                     })
-                                }).finally(() => {
+                                })
+                                .then(response => {
+                                    if (!response.ok) {
+                                        return response.text().then(text => {
+                                            throw new Error(`HTTP ${response.status}: ${text}`);
+                                        });
+                                    }
+                                    return response.json();
+                                })
+                                .then(res => {
                                     Swal.fire({
                                         icon: 'success',
                                         title: 'ดึงข้อมูลสำเร็จ',
@@ -429,6 +438,16 @@
                                                ดึงรายการปิดสิทธิ์ได้: <strong>${totalPulled} รายการ</strong><br>
                                                เพิ่มใหม่: <strong class="text-success">${totalInserted} รายการ</strong><br>
                                                อัปเดตสิทธิ์: <strong class="text-info">${totalUpdated} รายการ</strong>`,
+                                        confirmButtonText: 'ตกลง'
+                                    }).then(() => {
+                                        location.reload();
+                                    });
+                                })
+                                .catch(err => {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'บันทึก Log ไม่สำเร็จ',
+                                        text: err.message,
                                         confirmButtonText: 'ตกลง'
                                     }).then(() => {
                                         location.reload();
@@ -584,7 +603,16 @@
                         ok: true,
                         message: 'ตรวจสอบสถานะด้วยตนเอง (Manual Check) สำเร็จ'
                     })
-                }).finally(() => {
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.text().then(text => {
+                            throw new Error(`HTTP ${response.status}: ${text}`);
+                        });
+                    }
+                    return response.json();
+                })
+                .then(res => {
                     Swal.fire({
                         icon: 'success',
                         title: 'ตรวจสอบเสร็จสมบูรณ์',
@@ -592,6 +620,16 @@
                                สแกนทั้งสิ้น: <strong>${items.length} รายการ</strong><br>
                                อัปเดตสถานะใหม่: <strong class="text-success">${totalUpdated} รายการ</strong><br>
                                พบการตอบกลับผิดพลาด: <strong class="text-danger">${totalErrors} รายการ</strong>`,
+                        confirmButtonText: 'ตกลง'
+                    }).then(() => {
+                        location.reload();
+                    });
+                })
+                .catch(err => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'บันทึก Log ไม่สำเร็จ',
+                        text: err.message,
                         confirmButtonText: 'ตกลง'
                     }).then(() => {
                         location.reload();

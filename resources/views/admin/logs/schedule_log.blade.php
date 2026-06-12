@@ -490,63 +490,72 @@
         ];
 
         Swal.fire({
-            title: 'กำลังตรวจสอบคิวงาน FDH...',
-            html: 'กรุณารอสักครู่ ระบบกำลังรวบรวมข้อมูลผู้ป่วยนอกสิทธิ์ UCS ย้อนหลัง 15 วัน',
+            title: 'กำลังตรวจสอบสถานะการส่งเคลม FDH ย้อนหลัง 15 วัน',
+            html: `
+                <div class="progress mb-2 mt-2" style="height: 20px;">
+                    <div id="swal-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-info text-dark" role="progressbar" style="width: 0%;">0%</div>
+                </div>
+                <div id="swal-progress-text" class="small text-muted text-start">กำลังรวบรวมข้อมูลผู้ป่วยนอกสิทธิ์ UCS ย้อนหลัง 15 วัน...</div>
+            `,
             allowOutsideClick: false,
+            showConfirmButton: false,
             didOpen: () => {
-                Swal.showLoading();
+                let allItems = [];
+                let dateIndex = 0;
+
+                function fetchNextDate() {
+                    if (dateIndex >= dates.length) {
+                        if (allItems.length === 0) {
+                            fetch('{{ url("api/fdh/log-manual-check") }}', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                },
+                                body: JSON.stringify({
+                                    checked_days: 15,
+                                    updated_claims: 0,
+                                    errors: 0,
+                                    ok: true,
+                                    message: 'ตรวจสอบสถานะด้วยตนเองสำเร็จ (ไม่พบสิทธิ์บัตรทอง UCS ที่ต้องเช็คย้อนหลัง)'
+                                })
+                            }).finally(() => {
+                                Swal.fire('ตรวจสอบเสร็จสิ้น', 'ไม่พบสิทธิ์บัตรทอง UCS ที่ต้องเช็คย้อนหลังในช่วง 15 วันนี้', 'info')
+                                .then(() => {
+                                    location.reload();
+                                });
+                            });
+                            return;
+                        }
+                        processFdhChunks(allItems);
+                        return;
+                    }
+
+                    const targetDate = dates[dateIndex];
+                    const progressText = document.getElementById('swal-progress-text');
+                    if (progressText) {
+                        progressText.innerText = `กำลังรวบรวมข้อมูล UCS วันที่ ${targetDate} (${dateIndex + 1}/${dates.length})...`;
+                    }
+
+                    fetch(`{{ url("api/fdh/get-check-list") }}?date_start=${targetDate}&date_end=${targetDate}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.items && data.items.length > 0) {
+                                allItems = allItems.concat(data.items);
+                            }
+                            dateIndex++;
+                            fetchNextDate();
+                        })
+                        .catch(err => {
+                            console.error('Fetch check list error for date ' + targetDate, err);
+                            dateIndex++;
+                            fetchNextDate();
+                        });
+                }
+
+                fetchNextDate();
             }
         });
-
-        let allItems = [];
-        let dateIndex = 0;
-
-        function fetchNextDate() {
-            if (dateIndex >= dates.length) {
-                if (allItems.length === 0) {
-                    fetch('{{ url("api/fdh/log-manual-check") }}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                        },
-                        body: JSON.stringify({
-                            checked_days: 15,
-                            updated_claims: 0,
-                            errors: 0,
-                            ok: true,
-                            message: 'ตรวจสอบสถานะด้วยตนเองสำเร็จ (ไม่พบสิทธิ์บัตรทอง UCS ที่ต้องเช็คย้อนหลัง)'
-                        })
-                    }).finally(() => {
-                        Swal.fire('ตรวจสอบเสร็จสิ้น', 'ไม่พบสิทธิ์บัตรทอง UCS ที่ต้องเช็คย้อนหลังในช่วง 15 วันนี้', 'info')
-                        .then(() => {
-                            location.reload();
-                        });
-                    });
-                    return;
-                }
-                processFdhChunks(allItems);
-                return;
-            }
-
-            const targetDate = dates[dateIndex];
-            fetch(`{{ url("api/fdh/get-check-list") }}?date_start=${targetDate}&date_end=${targetDate}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.items && data.items.length > 0) {
-                        allItems = allItems.concat(data.items);
-                    }
-                    dateIndex++;
-                    fetchNextDate();
-                })
-                .catch(err => {
-                    console.error('Fetch check list error for date ' + targetDate, err);
-                    dateIndex++;
-                    fetchNextDate();
-                });
-        }
-
-        fetchNextDate();
     }
 
     function processFdhChunks(items) {
@@ -556,91 +565,79 @@
             chunks.push(items.slice(i, i + chunkSize));
         }
 
-        Swal.fire({
-            title: 'กำลังตรวจสอบสถานะการส่งเคลม FDH ย้อนหลัง 15 วัน',
-            html: `
-                <div class="progress mb-2 mt-2" style="height: 20px;">
-                    <div id="swal-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-info text-dark" role="progressbar" style="width: 0%;">0%</div>
-                </div>
-                <div id="swal-progress-text" class="small text-muted text-start">กำลังเริ่มตรวจสอบรายการ...</div>
-            `,
-            allowOutsideClick: false,
-            showConfirmButton: false,
-            didOpen: () => {
-                let totalChecked = 0;
-                let totalUpdated = 0;
-                let totalErrors = 0;
+        let totalChecked = 0;
+        let totalUpdated = 0;
+        let totalErrors = 0;
 
-                function runChunk(index) {
-                    if (index >= chunks.length) {
-                        fetch('{{ url("api/fdh/log-manual-check") }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                            },
-                            body: JSON.stringify({
-                                checked_days: 15,
-                                updated_claims: totalUpdated,
-                                errors: totalErrors,
-                                ok: true,
-                                message: 'ตรวจสอบสถานะด้วยตนเอง (Manual Check) สำเร็จ'
-                            })
-                        }).finally(() => {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'ตรวจสอบเสร็จสมบูรณ์',
-                                html: `เช็คสถานะการส่งเคลม FDH ย้อนหลัง 15 วันเสร็จสิ้น!<br>
-                                       สแกนทั้งสิ้น: <strong>${items.length} รายการ</strong><br>
-                                       อัปเดตสถานะใหม่: <strong class="text-success">${totalUpdated} รายการ</strong><br>
-                                       พบการตอบกลับผิดพลาด: <strong class="text-danger">${totalErrors} รายการ</strong>`,
-                                confirmButtonText: 'ตกลง'
-                            }).then(() => {
-                                location.reload();
-                            });
-                        });
-                        return;
-                    }
-
-                    const progressBar = document.getElementById('swal-progress-bar');
-                    const progressText = document.getElementById('swal-progress-text');
-                    const pct = Math.round((index / chunks.length) * 100);
-
-                    if (progressBar) {
-                        progressBar.style.width = pct + '%';
-                        progressBar.innerText = pct + '%';
-                    }
-                    if (progressText) {
-                        progressText.innerText = `กำลังเชื่อมต่อกลุ่มที่ ${index + 1}/${chunks.length} (เคส ${index * chunkSize} - ${Math.min((index + 1) * chunkSize, items.length)} จากทั้งหมด ${items.length} รายการ)...`;
-                    }
-
-                    fetch('{{ url("api/fdh/check-chunk") }}', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                        },
-                        body: JSON.stringify({
-                            items: chunks[index]
-                        })
+        function runChunk(index) {
+            if (index >= chunks.length) {
+                fetch('{{ url("api/fdh/log-manual-check") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({
+                        checked_days: 15,
+                        updated_claims: totalUpdated,
+                        errors: totalErrors,
+                        ok: true,
+                        message: 'ตรวจสอบสถานะด้วยตนเอง (Manual Check) สำเร็จ'
                     })
-                    .then(r => r.json())
-                    .then(res => {
-                        totalChecked += res.total || 0;
-                        totalUpdated += res.updated_count || 0;
-                        totalErrors += res.errors_count || 0;
-                        runChunk(index + 1);
-                    })
-                    .catch(err => {
-                        console.error('FDH Chunk error:', err);
-                        runChunk(index + 1);
+                }).finally(() => {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ตรวจสอบเสร็จสมบูรณ์',
+                        html: `เช็คสถานะการส่งเคลม FDH ย้อนหลัง 15 วันเสร็จสิ้น!<br>
+                               สแกนทั้งสิ้น: <strong>${items.length} รายการ</strong><br>
+                               อัปเดตสถานะใหม่: <strong class="text-success">${totalUpdated} รายการ</strong><br>
+                               พบการตอบกลับผิดพลาด: <strong class="text-danger">${totalErrors} รายการ</strong>`,
+                        confirmButtonText: 'ตกลง'
+                    }).then(() => {
+                        location.reload();
                     });
-                }
-
-                runChunk(0);
+                });
+                return;
             }
-        });
+
+            const progressBar = document.getElementById('swal-progress-bar');
+            const progressText = document.getElementById('swal-progress-text');
+            const pct = Math.round((index / chunks.length) * 100);
+
+            if (progressBar) {
+                progressBar.style.width = pct + '%';
+                progressBar.innerText = pct + '%';
+            }
+            if (progressText) {
+                progressText.innerText = `กำลังเชื่อมต่อกลุ่มที่ ${index + 1}/${chunks.length} (เคส ${index * chunkSize} - ${Math.min((index + 1) * chunkSize, items.length)} จากทั้งหมด ${items.length} รายการ)...`;
+            }
+
+            fetch('{{ url("api/fdh/check-chunk") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    items: chunks[index]
+                })
+            })
+            .then(r => r.json())
+            .then(res => {
+                totalChecked += res.total || 0;
+                totalUpdated += res.updated_count || 0;
+                totalErrors += res.errors_count || 0;
+                runChunk(index + 1);
+            })
+            .catch(err => {
+                console.error('FDH Chunk error:', err);
+                runChunk(index + 1);
+            });
+        }
+
+        runChunk(0);
     }
+
 </script>
 
 <style>

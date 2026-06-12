@@ -14,11 +14,7 @@
           </small>
         </h5>
         
-        <div class="d-flex gap-2 align-items-center">
-            <button onclick="pullAllNhsoData()" class="btn btn-outline-primary btn-sm px-3 shadow-sm">
-                <i class="bi bi-cloud-download-fill me-1"></i> ดึงปิดสิทธิทั้งหมดในหน้านี้
-            </button>
-            <form method="POST" class="d-flex gap-2 align-items-center mb-0">
+<form method="POST" class="d-flex gap-2 align-items-center mb-0">
                 @csrf            
                 <div class="input-group input-group-sm">
                     <span class="input-group-text bg-white"><i class="bi bi-calendar-event"></i></span>
@@ -30,9 +26,11 @@
                     <input type="hidden" id="end_date" name="end_date" value="{{ $end_date }}">
                     <input type="text" id="end_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
                     <button type="submit" onclick="showLoading()" class="btn btn-primary px-3 shadow-sm">{{ __('ค้นหา') }}</button>
+                    <button type="button" onclick="pullAllNhsoData()" class="btn btn-outline-primary px-3 shadow-sm">
+                        <i class="bi bi-cloud-download-fill me-1"></i> ดึงปิดสิทธิทั้งหมด
+                    </button>
                 </div>
             </form>
-        </div>
       </div>
     </div>
 

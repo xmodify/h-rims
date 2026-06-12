@@ -134,8 +134,10 @@
                                 @foreach($search as $row) 
                                 <tr>
                                     <td class="text-center text-muted small">{{ $count }}</td>
-                                    <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ $row->endpoint == 'Y' ? '2' : '1' }}">
-                                        @if($row->endpoint == 'Y')
+                                    <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ ($row->endpoint == 'Y' && empty($row->validation_warnings)) ? '2' : '1' }}">
+                                        @if(!empty($row->validation_warnings))
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height:26px; min-height:26px; margin:0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>
+                                        @elseif($row->endpoint == 'Y')
                                             <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height:26px; min-height:26px; margin:0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ปิดสิทธิแล้ว | ดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>
                                         @else
                                             <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height:26px; min-height:26px; margin:0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ยังไม่ปิดสิทธิ สปสช. | ดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>
@@ -235,8 +237,10 @@
                                 @foreach($claim as $row) 
                                 <tr>
                                     <td class="text-center text-muted small">{{ $count }}</td>
-                                    <td class="text-center" id="td-status-claim-{{ $row->seq }}" data-order="{{ $row->endpoint == 'Y' ? '2' : '1' }}">
-                                        @if($row->endpoint == 'Y')
+                                    <td class="text-center" id="td-status-claim-{{ $row->seq }}" data-order="{{ ($row->endpoint == 'Y' && empty($row->validation_warnings)) ? '2' : '1' }}">
+                                        @if(!empty($row->validation_warnings))
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height:26px; min-height:26px; margin:0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>
+                                        @elseif($row->endpoint == 'Y')
                                             <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height:26px; min-height:26px; margin:0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ปิดสิทธิแล้ว | ดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>
                                         @else
                                             <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height:26px; min-height:26px; margin:0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ยังไม่ปิดสิทธิ สปสช. | ดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>
@@ -357,19 +361,22 @@ function showDetails(vn) {
             const items = data.items;
             const v     = data.validation;
             const isEndpointDone = v.endpoint_valid === true;
+            const hasWarnings    = v.warnings && v.warnings.length > 0;
 
-            function makeCellHtml(epDone) {
-                if (epDone) {
+            function makeCellHtml(epDone, warn) {
+                if (warn) {
+                    return `<button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem;height:26px;margin:0 auto;" onclick="showDetails('${vn}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
+                } else if (epDone) {
                     return `<button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem;height:26px;margin:0 auto;" onclick="showDetails('${vn}')" title="ปิดสิทธิแล้ว"><i class="bi bi-eye-fill"></i></button>`;
                 } else {
                     return `<button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem;height:26px;margin:0 auto;" onclick="showDetails('${vn}')" title="ยังไม่ปิดสิทธิ สปสช."><i class="bi bi-eye-fill"></i></button>`;
                 }
             }
-            const dataOrder = isEndpointDone ? '2' : '1';
+            const dataOrder = (isEndpointDone && !hasWarnings) ? '2' : '1';
             const searchRow = document.getElementById(`td-status-search-${vn}`);
             const claimRow  = document.getElementById(`td-status-claim-${vn}`);
-            if (searchRow) { searchRow.innerHTML = makeCellHtml(isEndpointDone); searchRow.setAttribute('data-order', dataOrder); }
-            if (claimRow)  { claimRow.innerHTML  = makeCellHtml(isEndpointDone); claimRow.setAttribute('data-order', dataOrder); }
+            if (searchRow) { searchRow.innerHTML = makeCellHtml(isEndpointDone, hasWarnings); searchRow.setAttribute('data-order', dataOrder); }
+            if (claimRow)  { claimRow.innerHTML  = makeCellHtml(isEndpointDone, hasWarnings); claimRow.setAttribute('data-order', dataOrder); }
 
             let endpointBtn = isEndpointDone
                 ? `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>ปิดสิทธิแล้ว (สปสช.)</span>`

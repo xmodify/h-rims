@@ -134,10 +134,15 @@
                                 @foreach($search as $row) 
                                 <tr>
                                     <td class="text-center text-muted small">{{ $count }}</td>
-                                    <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : ($row->endpoint_valid ? 2 : 1) }}">
+                                    <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
                                         @if(!$row->is_valid)
                                             {{-- แดง: ข้อมูลไม่ครบ (priority สูงสุด) --}}
                                             <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @elseif(!empty($row->validation_warnings))
+                                            {{-- เหลือง: มี warnings (ins_ucs) --}}
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด">
                                                 <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @elseif($row->endpoint_valid)
@@ -247,12 +252,17 @@
                                 @foreach($claim as $row) 
                                 <tr>
                                     <td class="text-center text-muted small">{{ $count }}</td>
-                                    <td class="text-center" id="td-status-claim-{{ $row->seq }}" data-order="{{ $row->is_valid ? ($row->endpoint_valid ? 2 : 1) : 0 }}">
+                                    <td class="text-center" id="td-status-claim-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
                                         @if(!$row->is_valid)
                                             {{-- แดง: ข้อมูลไม่ครบ --}}
                                             <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด">
                                                 <i class="bi bi-eye-fill"></i>
                                             </button>
+                                        @elseif(!empty($row->validation_warnings))
+                                             {{-- เหลือง: มี warnings (ins_ucs) --}}
+                                             <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด">
+                                                 <i class="bi bi-eye-fill"></i>
+                                             </button>
                                         @elseif($row->endpoint_valid)
                                             {{-- เขียว: ข้อมูลครบ + ปิดสิทธิแล้ว --}}
                                             <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด">
@@ -815,13 +825,18 @@ function showDetails(vn) {
                 : '<span class="badge bg-danger ms-2"><i class="bi bi-exclamation-triangle-fill"></i> ไม่ผ่าน ' + v.errors.length + ' รายการ</span>';
 
             // Update status & styling of main table rows in background
-            // 3-color logic (same for both tables):
-            //   red = !is_valid | yellow = is_valid but no endpoint | green = is_valid + endpoint ok
+            // 4-color logic:
+            //   red    = !is_valid (errors)
+            //   yellow = is_valid + has warnings (ins_ucs) หรือยังไม่ปิดสิทธิ
+            //   green  = is_valid + endpoint ok + no warnings
             const isEndpointDone = v.endpoint_valid === true;
+            const hasWarnings    = v.warnings && v.warnings.length > 0;
 
-            function makeCellHtml(isValid, epDone) {
+            function makeCellHtml(isValid, epDone, warn) {
                 if (!isValid) {
                     return `<button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
+                } else if (warn) {
+                    return `<button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
                 } else if (epDone) {
                     return `<button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
                 } else {
@@ -829,17 +844,17 @@ function showDetails(vn) {
                 }
             }
 
-            const dataOrder = !v.is_valid ? '0' : (isEndpointDone ? '2' : '1');
+            const dataOrder = !v.is_valid ? '0' : (isEndpointDone && !hasWarnings ? '2' : '1');
 
             const searchRow = document.getElementById(`td-status-search-${vn}`);
             const claimRow  = document.getElementById(`td-status-claim-${vn}`);
             if (searchRow) {
-                searchRow.innerHTML = makeCellHtml(v.is_valid, isEndpointDone);
+                searchRow.innerHTML = makeCellHtml(v.is_valid, isEndpointDone, hasWarnings);
                 searchRow.setAttribute('data-order', dataOrder);
                 $('#t_search').DataTable().cell(searchRow).invalidate().draw(false);
             }
             if (claimRow) {
-                claimRow.innerHTML = makeCellHtml(v.is_valid, isEndpointDone);
+                claimRow.innerHTML = makeCellHtml(v.is_valid, isEndpointDone, hasWarnings);
                 claimRow.setAttribute('data-order', dataOrder);
                 $('#t_claim').DataTable().cell(claimRow).invalidate().draw(false);
             }

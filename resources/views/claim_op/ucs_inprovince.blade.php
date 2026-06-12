@@ -134,9 +134,13 @@
                                 @foreach($search as $row) 
                                 <tr>
                                     <td class="text-center text-muted small">{{ $count }}</td>
-                                    <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : ($row->endpoint_valid ? 2 : 1) }}">
+                                    <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
                                         @if(!$row->is_valid)
                                             <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @elseif(!empty($row->validation_warnings))
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด">
                                                 <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @elseif($row->endpoint_valid)
@@ -244,9 +248,13 @@
                                 @foreach($claim as $row) 
                                 <tr>
                                     <td class="text-center text-muted small">{{ $count }}</td>
-                                    <td class="text-center" id="td-status-claim-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : ($row->endpoint_valid ? 2 : 1) }}">
+                                    <td class="text-center" id="td-status-claim-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
                                         @if(!$row->is_valid)
                                             <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @elseif(!empty($row->validation_warnings))
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด">
                                                 <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @elseif($row->endpoint_valid)
@@ -451,10 +459,13 @@ function showDetails(vn) {
                 : '<span class="badge bg-danger ms-2"><i class="bi bi-exclamation-triangle-fill"></i> ไม่ผ่าน ' + v.errors.length + ' รายการ</span>';
 
             const isEndpointDone = v.endpoint_valid === true;
+            const hasWarnings    = v.warnings && v.warnings.length > 0;
 
-            function makeCellHtml(isValid, epDone) {
+            function makeCellHtml(isValid, epDone, warn) {
                 if (!isValid) {
                     return `<button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
+                } else if (warn) {
+                    return `<button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
                 } else if (epDone) {
                     return `<button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
                 } else {
@@ -462,17 +473,17 @@ function showDetails(vn) {
                 }
             }
 
-            const dataOrder = !v.is_valid ? '0' : (isEndpointDone ? '2' : '1');
+            const dataOrder = !v.is_valid ? '0' : (isEndpointDone && !hasWarnings ? '2' : '1');
 
             const searchRow = document.getElementById(`td-status-search-${vn}`);
             const claimRow  = document.getElementById(`td-status-claim-${vn}`);
             if (searchRow) {
-                searchRow.innerHTML = makeCellHtml(v.is_valid, isEndpointDone);
+                searchRow.innerHTML = makeCellHtml(v.is_valid, isEndpointDone, hasWarnings);
                 searchRow.setAttribute('data-order', dataOrder);
                 $('#t_search').DataTable().cell(searchRow).invalidate().draw(false);
             }
             if (claimRow) {
-                claimRow.innerHTML = makeCellHtml(v.is_valid, isEndpointDone);
+                claimRow.innerHTML = makeCellHtml(v.is_valid, isEndpointDone, hasWarnings);
                 claimRow.setAttribute('data-order', dataOrder);
                 $('#t_claim').DataTable().cell(claimRow).invalidate().draw(false);
             }

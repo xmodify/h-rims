@@ -236,7 +236,17 @@ class ClaimOpController extends Controller
                     WHERE op.vn IN (' . implode(',', array_fill(0, count($allVns), '?')) . ')
                     AND (li.uc_cr = "Y" OR li.ppfs = "Y" OR li.herb32 = "Y")',
                 $allVns);
+            $adpCodes = collect($rawItems)->pluck('nhso_adp_code')->filter()->unique()->values()->toArray();
+            $insUcsMap = [];
+            if (!empty($adpCodes) && \Illuminate\Support\Facades\Schema::hasTable('lookup_nhso_adp_code')) {
+                $insUcsMap = DB::table('lookup_nhso_adp_code')
+                    ->whereIn('nhso_adp_code', $adpCodes)
+                    ->where('nhso_adp_type_id', 2)
+                    ->pluck('ins_ucs', 'nhso_adp_code')
+                    ->toArray();
+            }
             foreach ($rawItems as $item) {
+                $item->ins_ucs = $insUcsMap[$item->nhso_adp_code] ?? null;
                 $itemsByVn[$item->vn][] = $item;
             }
         }
@@ -248,12 +258,14 @@ class ClaimOpController extends Controller
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
+            $row->validation_warnings = $result['warnings'];
         }
         foreach ($claim as $row) {
             $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
+            $row->validation_warnings = $result['warnings'];
         }
 
         return view('claim_op.ucs_incup', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
@@ -571,7 +583,17 @@ class ClaimOpController extends Controller
                     WHERE op.vn IN (' . implode(',', array_fill(0, count($allVns), '?')) . ')
                     AND (li.uc_cr = "Y" OR li.ppfs = "Y" OR li.herb32 = "Y")',
                 $allVns);
+            $adpCodes = collect($rawItems)->pluck('nhso_adp_code')->filter()->unique()->values()->toArray();
+            $insUcsMap = [];
+            if (!empty($adpCodes) && \Illuminate\Support\Facades\Schema::hasTable('lookup_nhso_adp_code')) {
+                $insUcsMap = DB::table('lookup_nhso_adp_code')
+                    ->whereIn('nhso_adp_code', $adpCodes)
+                    ->where('nhso_adp_type_id', 2)
+                    ->pluck('ins_ucs', 'nhso_adp_code')
+                    ->toArray();
+            }
             foreach ($rawItems as $item) {
+                $item->ins_ucs = $insUcsMap[$item->nhso_adp_code] ?? null;
                 $itemsByVn[$item->vn][] = $item;
             }
         }
@@ -583,12 +605,14 @@ class ClaimOpController extends Controller
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
+            $row->validation_warnings = $result['warnings'];
         }
         foreach ($claim as $row) {
             $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
+            $row->validation_warnings = $result['warnings'];
         }
 
         return view('claim_op.ucs_inprovince', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
@@ -885,6 +909,47 @@ class ClaimOpController extends Controller
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y")
             AND (oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL )
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
+        // ── Batch load claim items for all VNs (Outprovince) ──────────────
+        $allVns = array_merge(array_column($search, 'seq'), array_column($claim, 'seq'));
+        $itemsByVn = [];
+        if (!empty($allVns)) {
+            $rawItems = DB::connection('hosxp')
+                ->select('
+                    SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
+                           li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code, li.kidney, li.ems,
+                           IFNULL(n.name, d.name) AS name
+                    FROM opitemrece op
+                    LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
+                    LEFT JOIN nondrugitems n ON n.icode = op.icode
+                    LEFT JOIN drugitems d ON d.icode = op.icode
+                    WHERE op.vn IN (' . implode(',', array_fill(0, count($allVns), '?')) . ')',
+                $allVns);
+            $adpCodes = collect($rawItems)->pluck('nhso_adp_code')->filter()->unique()->values()->toArray();
+            $insUcsMap = [];
+            if (!empty($adpCodes) && \Illuminate\Support\Facades\Schema::hasTable('lookup_nhso_adp_code')) {
+                $insUcsMap = DB::table('lookup_nhso_adp_code')
+                    ->whereIn('nhso_adp_code', $adpCodes)
+                    ->where('nhso_adp_type_id', 2)
+                    ->pluck('ins_ucs', 'nhso_adp_code')
+                    ->toArray();
+            }
+            foreach ($rawItems as $item) {
+                $item->ins_ucs = $insUcsMap[$item->nhso_adp_code] ?? null;
+                $itemsByVn[$item->vn][] = $item;
+            }
+        }
+
+        // ── Run ClaimValidator on each row (only for warnings check) ───────
+        $validator = new \App\Services\ClaimValidator();
+        foreach ($search as $row) {
+            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
+            $row->validation_warnings = $result['warnings'];
+        }
+        foreach ($claim as $row) {
+            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
+            $row->validation_warnings = $result['warnings'];
+        }
 
         return view('claim_op.ucs_outprovince', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
     }

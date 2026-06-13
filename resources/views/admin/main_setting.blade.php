@@ -346,26 +346,127 @@
     });
 
     // Upgrade Structure Logic
-    function confirmAction(event) {
+    async function confirmAction(event) {
         event.preventDefault();
-        Swal.fire({
+        
+        const steps = [
+            { num: 1, name: "ขั้นตอนที่ 1/5: ตรวจสอบและอัปเกรดโครงสร้างตารางระบบทั้งหมด" },
+            { num: 2, name: "ขั้นตอนที่ 2/5: นำเข้า EquipdevAIPN" },
+            { num: 3, name: "ขั้นตอนที่ 3/5: นำเข้า lookup_nhso_adp_type" },
+            { num: 4, name: "ขั้นตอนที่ 4/5: นำเข้า lookup_nhso_adp_code" },
+            { num: 5, name: "ขั้นตอนที่ 5/5: ซิงค์ข้อมูลตั้งค่าหลัก (main_setting)" }
+        ];
+
+        const { isConfirmed } = await Swal.fire({
             title: 'อัปเกรดโครงสร้างฐานข้อมูล?',
-            text: "คุณต้องการ Upgrade Structure หรือไม่?",
+            text: "คุณต้องการดึงข้อมูลมาตรฐานมาตรวจสอบและอัปเดตระบบหรือไม่?",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'ใช่, ดำเนินการ!',
             cancelButtonText: 'ยกเลิก',
             confirmButtonColor: '#3085d6',
             cancelButtonColor: '#d33'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({
-                    title: 'กำลังดำเนินการ...',
-                    allowOutsideClick: false,
-                    didOpen: () => { Swal.showLoading(); }
-                });
-                document.getElementById('structureForm').submit();
+        });
+
+        if (!isConfirmed) return;
+
+        Swal.fire({
+            title: 'กำลังอัปเกรดโครงสร้างฐานข้อมูล...',
+            html: `
+                <div id="upgrade-progress-text" class="mb-2 text-start small text-muted">กำลังเตรียมขั้นตอนการอัปเกรด...</div>
+                <div class="progress" style="height: 25px;">
+                    <div id="upgrade-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                </div>
+                <div id="upgrade-details-log" class="mt-3 text-start small bg-light p-2 border rounded-3" style="max-height: 150px; overflow-y: auto; font-family: monospace; font-size: 11px; line-height: 1.4;"></div>
+            `,
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        const logDiv = document.getElementById('upgrade-details-log');
+        const progressText = document.getElementById('upgrade-progress-text');
+        const progressBar = document.getElementById('upgrade-progress-bar');
+        
+        let detailsOutput = [];
+        
+        for (let i = 0; i < steps.length; i++) {
+            const step = steps[i];
+            const percent = Math.round((i / steps.length) * 100);
+
+            // Update UI before step start
+            if (progressText) progressText.innerText = step.name;
+            if (progressBar) {
+                progressBar.style.width = `${percent}%`;
+                progressBar.innerHTML = `${percent}%`;
+                progressBar.setAttribute('aria-valuenow', percent);
             }
+            if (logDiv) {
+                logDiv.innerHTML += `<div>🚀 เริ่มต้น ${step.name}...</div>`;
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
+
+            try {
+                let response = await fetch("{{ route('admin.up_structure') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ step: step.num })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (logDiv) {
+                        logDiv.innerHTML += `<div class="text-success" style="margin-left: 10px; margin-bottom: 5px;">✔ ${data.message}</div>`;
+                        logDiv.scrollTop = logDiv.scrollHeight;
+                    }
+                    detailsOutput.push(data.message);
+                } else {
+                    throw new Error(data.message || 'เกิดข้อผิดพลาดในการประมวลผล');
+                }
+            } catch (error) {
+                if (logDiv) {
+                    logDiv.innerHTML += `<div class="text-danger" style="margin-left: 10px; margin-bottom: 5px;">❌ ล้มเหลว: ${error.message}</div>`;
+                    logDiv.scrollTop = logDiv.scrollHeight;
+                }
+                
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาดในการอัปเกรด!',
+                    text: error.message || error,
+                    confirmButtonText: 'ตกลง'
+                });
+                return;
+            }
+        }
+
+        // Final UI state
+        if (progressBar) {
+            progressBar.style.width = '100%';
+            progressBar.innerHTML = '100%';
+            progressBar.setAttribute('aria-valuenow', 100);
+            progressBar.classList.replace('bg-primary', 'bg-success');
+        }
+        if (progressText) progressText.innerText = 'อัปเกรดโครงสร้างฐานข้อมูลเสร็จสมบูรณ์!';
+
+        Swal.fire({
+            icon: 'success',
+            title: 'อัปเกรดโครงสร้างเสร็จสิ้น!',
+            html: `
+                <div class="text-start p-2" style="max-height: 250px; overflow-y: auto;">
+                    <p class="fw-bold mb-2 text-success">การดำเนินการทุกขั้นตอนสำเร็จเรียบร้อย:</p>
+                    <ul class="mb-0 small text-muted" style="padding-left: 15px;">
+                        ${detailsOutput.map(d => `<li>${d}</li>`).join('')}
+                    </ul>
+                </div>
+            `,
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#0a4d2c'
+        }).then(() => {
+            window.location.reload();
         });
     }
 

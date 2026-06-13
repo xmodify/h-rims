@@ -60,6 +60,28 @@
                     </div>
                 </div>
                 <div class="card-body p-3">
+                    <!-- Windows Task Scheduler Guide -->
+                    <div class="alert alert-light border shadow-sm rounded-4 mb-3 p-3 bg-white">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="bg-primary text-white p-2 rounded-3" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-clock-history fs-4"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 fw-bold text-dark">การตั้งค่า Windows Task Scheduler (NhsoEndpoint Pull Yesterday | 00.05 น.)</h6>
+                                    <small class="text-muted"><i class="bi bi-info-circle me-1"></i> Program: <code>powershell.exe</code> | ช่อง Add arguments (optional):</small>
+                                </div>
+                            </div>
+                            <div style="flex-grow: 1; max-width: 650px; min-width: 280px;">
+                                <div class="input-group input-group-sm">
+                                    <input type="text" class="form-control border-secondary bg-white" value="-WindowStyle Hidden -Command &quot;Invoke-RestMethod -Uri '{{$nhso_endpoint_pull_yesterday}}' -Method Post&quot;" readonly id="nhso_cmd">
+                                    <button class="btn btn-primary rounded-end px-3" type="button" onclick="copyToClipboard('nhso_cmd')">
+                                        <i class="bi bi-copy me-1"></i> คัดลอก
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     @if(count($nhsoLogs) > 0)
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
@@ -127,6 +149,28 @@
                     </div>
                 </div>
                 <div class="card-body p-3">
+                    <!-- Windows Task Scheduler Guide -->
+                    <div class="alert alert-light border shadow-sm rounded-4 mb-3 p-3 bg-white">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="bg-info text-dark p-2 rounded-3" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-clock-history fs-4"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 fw-bold text-dark">การตั้งค่า Windows Task Scheduler (FDH Pull Last10Days | 00.30 น.)</h6>
+                                    <small class="text-muted"><i class="bi bi-info-circle me-1"></i> Program: <code>powershell.exe</code> | ช่อง Add arguments (optional):</small>
+                                </div>
+                            </div>
+                            <div style="flex-grow: 1; max-width: 650px; min-width: 280px;">
+                                <div class="input-group input-group-sm">
+                                    <input type="text" class="form-control border-secondary bg-white" value="-WindowStyle Hidden -Command &quot;Invoke-RestMethod -Uri '{{$fdh_check_claim_lastdays}}' -Method Post&quot;" readonly id="fdh_cmd">
+                                    <button class="btn btn-info rounded-end px-3 text-dark" type="button" onclick="copyToClipboard('fdh_cmd')">
+                                        <i class="bi bi-copy me-1"></i> คัดลอก
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     @if(count($fdhLogs) > 0)
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
@@ -197,6 +241,28 @@
                         </div>
                     </div>
                     <div class="card-body p-3">
+                        <!-- Windows Task Scheduler Guide -->
+                        <div class="alert alert-light border shadow-sm rounded-4 mb-3 p-3 bg-white">
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="bg-success text-white p-2 rounded-3" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="bi bi-clock-history fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 fw-bold text-dark">การตั้งค่า Windows Task Scheduler (AOPOD Send | ทุกชั่วโมง (นาทีที่ 15))</h6>
+                                        <small class="text-muted"><i class="bi bi-info-circle me-1"></i> Program: <code>powershell.exe</code> | ช่อง Add arguments (optional):</small>
+                                    </div>
+                                </div>
+                                <div style="flex-grow: 1; max-width: 650px; min-width: 280px;">
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control border-secondary bg-white" value="-WindowStyle Hidden -Command &quot;Invoke-RestMethod -Uri '{{$amnosend}}' -Method Post&quot;" readonly id="aopod_cmd">
+                                        <button class="btn btn-success rounded-end px-3 text-white" type="button" onclick="copyToClipboard('aopod_cmd')">
+                                            <i class="bi bi-copy me-1"></i> คัดลอก
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         @if(count($aopodLogs) > 0)
                             <div class="table-responsive">
                                 <table class="table table-hover align-middle mb-0">
@@ -269,6 +335,28 @@
                     </div>
                 </div>
                 <div class="card-body p-3">
+                    <!-- Windows Task Scheduler Guide -->
+                    <div class="alert alert-light border shadow-sm rounded-4 mb-3 p-3 bg-white">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="bg-warning text-dark p-2 rounded-3" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="bi bi-clock-history fs-4"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 fw-bold text-dark">การตั้งค่า Windows Task Scheduler (Notify Telegram | 08.00 น.)</h6>
+                                    <small class="text-muted"><i class="bi bi-info-circle me-1"></i> Program: <code>powershell.exe</code> | ช่อง Add arguments (optional):</small>
+                                </div>
+                            </div>
+                            <div style="flex-grow: 1; max-width: 650px; min-width: 280px;">
+                                <div class="input-group input-group-sm">
+                                    <input type="text" class="form-control border-secondary bg-white" value="-WindowStyle Hidden -Command &quot;Invoke-WebRequest -Uri '{{$notify_summary}}' -UseBasicParsing&quot;" readonly id="tg_cmd">
+                                    <button class="btn btn-warning rounded-end px-3 text-dark" type="button" onclick="copyToClipboard('tg_cmd')">
+                                        <i class="bi bi-copy me-1"></i> คัดลอก
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     @if(count($notifyLogs) > 0)
                         <div class="table-responsive">
                             <table class="table table-hover align-middle mb-0">
@@ -917,6 +1005,23 @@
                     });
                 });
             }
+        });
+    }
+
+    // Copy to Clipboard
+    function copyToClipboard(elementId) {
+        var copyText = document.getElementById(elementId);
+        copyText.select();
+        copyText.setSelectionRange(0, 99999);
+        navigator.clipboard.writeText(copyText.value).then(() => {
+            Swal.fire({
+                icon: 'success',
+                title: 'คัดลอกสำเร็จ',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 1500
+            });
         });
     }
 </script>

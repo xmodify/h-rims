@@ -17,11 +17,6 @@ class MainSettingController extends Controller
     {
         $hospcode = DB::table('lookup_hospcode')->value('hospcode');
 
-        $notify_summary = route('notify_summary');
-        $nhso_endpoint_pull_yesterday = route('nhso_endpoint_pull_yesterday');
-        $fdh_check_claim_lastdays = route('api.fdh.check_claim_lastdays');
-        $amnosend = url('api/amnosend');
-
         $settings = MainSetting::orderBy('name_th', 'asc')->get();
 
         $integrationTokens = [
@@ -84,7 +79,7 @@ class MainSettingController extends Controller
             $groupedData['Other Settings'] = $others;
         }
 
-        return view('admin.main_setting', compact('groupedData', 'notify_summary', 'nhso_endpoint_pull_yesterday', 'fdh_check_claim_lastdays', 'amnosend', 'hospcode'));
+        return view('admin.main_setting', compact('groupedData', 'hospcode'));
     }
     // Update Table main_setting------------------------------------------------------------------------------
     public function update(Request $request, $name)
@@ -708,6 +703,11 @@ class MainSettingController extends Controller
     {
         $hospcode = DB::table('lookup_hospcode')->value('hospcode');
 
+        $notify_summary = route('notify_summary');
+        $nhso_endpoint_pull_yesterday = route('nhso_endpoint_pull_yesterday');
+        $fdh_check_claim_lastdays = route('api.fdh.check_claim_lastdays');
+        $amnosend = url('api/amnosend');
+
         $aopodLogRaw = '';
         $nhsoLogRaw = '';
         $fdhLogRaw = '';
@@ -734,7 +734,7 @@ class MainSettingController extends Controller
         $fdhLogs = $this->parseLogs($fdhLogRaw);
         $notifyLogs = $this->parseLogs($notifyLogRaw);
 
-        return view('admin.logs.schedule_log', compact('aopodLogs', 'nhsoLogs', 'fdhLogs', 'notifyLogs', 'hospcode'));
+        return view('admin.logs.schedule_log', compact('aopodLogs', 'nhsoLogs', 'fdhLogs', 'notifyLogs', 'hospcode', 'notify_summary', 'nhso_endpoint_pull_yesterday', 'fdh_check_claim_lastdays', 'amnosend'));
     }
 
     private function parseLogs($logContent)

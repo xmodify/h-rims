@@ -121,7 +121,7 @@
 
             <div class="row g-4">
                 <!-- Task 1: Telegram -->
-                <div class="col-xl-4 col-md-12">
+                <div class="col-xl-3 col-md-6">
                     <div class="p-3 rounded-4 border bg-light h-100">
                         <h6 class="fw-bold text-info mb-2"><i class="bi bi-telegram me-2"></i>Notify Telegram | 08.00 น.</h6>
                         <div class="input-group input-group-sm">
@@ -134,7 +134,7 @@
                 </div>
 
                 <!-- Task 2: NHSO -->
-                <div class="col-xl-4 col-md-12">
+                <div class="col-xl-3 col-md-6">
                     <div class="p-3 rounded-4 border bg-light h-100">
                         <h6 class="fw-bold text-primary mb-2"><i class="bi bi-cloud-download-fill me-2"></i>NhsoEnpoint Pull Yesterday | 00.05 น.</h6>
                         <div class="input-group input-group-sm">
@@ -147,12 +147,25 @@
                 </div>
 
                 <!-- Task 3: FDH -->
-                <div class="col-xl-4 col-md-12">
+                <div class="col-xl-3 col-md-6">
                     <div class="p-3 rounded-4 border bg-light h-100">
                         <h6 class="fw-bold text-success mb-2"><i class="bi bi-calendar-check-fill me-2"></i>FDH Pull Last10Days | 00.30 น.</h6>
                         <div class="input-group input-group-sm">
                             <input type="text" class="form-control border-0 bg-white" value="-WindowStyle Hidden -Command &quot;Invoke-RestMethod -Uri '{{$fdh_check_claim_lastdays}}' -Method Post&quot;" readonly id="fdh_cmd">
                             <button class="btn btn-success rounded-end" type="button" onclick="copyToClipboard('fdh_cmd')">
+                                <i class="bi bi-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Task 4: AOPOD -->
+                <div class="col-xl-3 col-md-6">
+                    <div class="p-3 rounded-4 border bg-light h-100">
+                        <h6 class="fw-bold text-danger mb-2"><i class="bi bi-send-fill me-2"></i>AOPOD Send | ทุกชั่วโมง (นาทีที่ 15)</h6>
+                        <div class="input-group input-group-sm">
+                            <input type="text" class="form-control border-0 bg-white" value="-WindowStyle Hidden -Command &quot;Invoke-RestMethod -Uri '{{$amnosend}}' -Method Post&quot;" readonly id="aopod_cmd">
+                            <button class="btn btn-danger text-white rounded-end" type="button" onclick="copyToClipboard('aopod_cmd')">
                                 <i class="bi bi-copy"></i>
                             </button>
                         </div>

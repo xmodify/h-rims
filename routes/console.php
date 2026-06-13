@@ -46,12 +46,12 @@ if (!function_exists('appendAndLimitLog')) {
     }
 }
 
-// สั่งให้ส่งข้อมูล AOPOD ทำงานทุก 1 ชั่วโมง เริ่มเวลา hh:15 (ปรับชั่วคราวเป็นทุกนาทีเพื่อทดสอบ)
+// สั่งให้ส่งข้อมูล AOPOD ทำงานทุก 1 ชั่วโมง เริ่มเวลา hh:15
 Schedule::call(function () {
     $res = app(AmnosendController::class)->send(request());
     $logMessage = "[" . now()->toDateTimeString() . "] AOPOD output: " . json_encode($res->getData(), JSON_UNESCAPED_UNICODE) . "\n";
     appendAndLimitLog('aopod_schedule.log', $logMessage, 24); // เก็บ 24 รายการล่าสุด (1 วัน)
-})->everyMinute();
+})->cron('15 * * * *');
 
 // ดึงข้อมูลปิดสิทธิการเคลม สปสช. (ของเมื่อวาน) ทุกวัน เวลา 00:05 น.
 Schedule::call(function () {

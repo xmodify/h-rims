@@ -575,4 +575,63 @@ class AmnosendController extends Controller
 
         return $summary;
     }
+
+    public function testConnection()
+    {
+        $token    = DB::table('main_setting')->where('name', 'opoh_token')->value('value');
+        $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
+
+        if (!$token || !$hospcode) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ไม่พบค่า opoh_token หรือ hospital_code ในตาราง main_setting'
+            ], 400);
+        }
+
+        try {
+            // ลองส่ง request ไปยัง server AOPOD เพื่อตรวจสอบ token หรือการเชื่อมต่อ
+            $url = 'https://huataphanhospital.go.th/aopod/api/hospital_config';
+            $response = Http::withToken($token)
+                ->acceptJson()
+                ->timeout(10)
+                ->withoutVerifying()
+                ->post($url, [
+                    'records' => [
+                        [
+                            'hospcode' => $hospcode,
+                            'bed_qty' => 0,
+                            'bed_use' => 0,
+                            'test_connection' => true
+                        ]
+                    ]
+                ]);
+
+            $status = $response->status();
+            $body = $response->body();
+
+            if ($response->successful() || $status === 207 || $status === 422 || $status === 400 || $status === 401) {
+                if ($status === 401) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'เชื่อมต่อเซิร์ฟเวอร์ AOPOD สำเร็จ แต่ Token ไม่ถูกต้อง (Unauthorized - 401)'
+                    ]);
+                }
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'เชื่อมต่อเซิร์ฟเวอร์ AOPOD สำเร็จ (HTTP ' . $status . ')'
+                ]);
+            }
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'เซิร์ฟเวอร์ AOPOD ตอบกลับด้วยรหัส: ' . $status . ' - ' . substr($body, 0, 200)
+            ]);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ไม่สามารถเชื่อมต่อไปยังเซิร์ฟเวอร์ AOPOD ได้: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

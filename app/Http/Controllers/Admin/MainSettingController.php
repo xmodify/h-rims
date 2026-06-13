@@ -684,6 +684,7 @@ class MainSettingController extends Controller
         $aopodLogRaw = '';
         $nhsoLogRaw = '';
         $fdhLogRaw = '';
+        $notifyLogRaw = '';
 
         if (\Illuminate\Support\Facades\File::exists(storage_path('logs/aopod_schedule.log'))) {
             $aopodLogRaw = \Illuminate\Support\Facades\File::get(storage_path('logs/aopod_schedule.log'));
@@ -697,11 +698,16 @@ class MainSettingController extends Controller
             $fdhLogRaw = \Illuminate\Support\Facades\File::get(storage_path('logs/fdh_claim_status_schedule.log'));
         }
 
+        if (\Illuminate\Support\Facades\File::exists(storage_path('logs/notify_schedule.log'))) {
+            $notifyLogRaw = \Illuminate\Support\Facades\File::get(storage_path('logs/notify_schedule.log'));
+        }
+
         $aopodLogs = $this->parseLogs($aopodLogRaw);
         $nhsoLogs = $this->parseLogs($nhsoLogRaw);
         $fdhLogs = $this->parseLogs($fdhLogRaw);
+        $notifyLogs = $this->parseLogs($notifyLogRaw);
 
-        return view('admin.logs.schedule_log', compact('aopodLogs', 'nhsoLogs', 'fdhLogs', 'hospcode'));
+        return view('admin.logs.schedule_log', compact('aopodLogs', 'nhsoLogs', 'fdhLogs', 'notifyLogs', 'hospcode'));
     }
 
     private function parseLogs($logContent)
@@ -747,5 +753,107 @@ class MainSettingController extends Controller
         });
 
         return $parsed;
+    }
+
+    public function manualAopodSend(Request $request)
+    {
+        try {
+            $res = app(\App\Http\Controllers\Api\AmnosendController::class)->send($request);
+            $responseData = $res->getData();
+            $logMessage = "[" . now()->toDateTimeString() . "] AOPOD output: " . json_encode($responseData, JSON_UNESCAPED_UNICODE) . "\n";
+            appendAndLimitLog('aopod_schedule.log', $logMessage, 24);
+
+            return response()->json([
+                'status' => isset($responseData->ok) && $responseData->ok ? 'success' : 'error',
+                'message' => 'ส่งข้อมูล AOPOD เสร็จสิ้น',
+                'data' => $responseData
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'เกิดข้อผิดพลาดในการส่ง AOPOD: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function testTelegramConnection(Request $request)
+    {
+        $token = DB::table('main_setting')->where('name', 'telegram_token')->value('value');
+        $telegram_chat_id = DB::table('main_setting')->where('name', 'telegram_chat_id_notify_summary')->value('value');
+        
+        if (!$token || !$telegram_chat_id) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'กรุณาตั้งค่า Telegram Token และ Chat ID ในหน้าตั้งค่าระบบก่อน'
+            ], 400);
+        }
+        
+        try {
+            $url = "https://api.telegram.org/bot$token/getMe";
+            $response = \Illuminate\Support\Facades\Http::timeout(10)->get($url);
+            if ($response->failed()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Token Telegram ไม่ถูกต้อง หรือไม่สามารถติดต่อ API ได้'
+                ]);
+            }
+            
+            $chat_ids = explode(',', $telegram_chat_id);
+            $success_count = 0;
+            $failed_ids = [];
+            foreach ($chat_ids as $chat_id) {
+                $chat_id = trim($chat_id);
+                if (empty($chat_id)) continue;
+                
+                $sendUrl = "https://api.telegram.org/bot$token/sendMessage";
+                $sendRes = \Illuminate\Support\Facades\Http::timeout(10)->post($sendUrl, [
+                    'chat_id' => $chat_id,
+                    'text' => '🔔 ทดสอบการเชื่อมต่อ Telegram จากระบบ H-RiMS สำเร็จ ณ วันที่ ' . now()->toDateTimeString()
+                ]);
+                if ($sendRes->successful()) {
+                    $success_count++;
+                } else {
+                    $failed_ids[] = $chat_id;
+                }
+            }
+            
+            if (count($failed_ids) > 0) {
+                return response()->json([
+                    'status' => 'warning',
+                    'message' => 'เชื่อมต่อ Token สำเร็จ แต่ส่งข้อความล้มเหลวในบาง Chat ID: ' . implode(', ', $failed_ids)
+                ]);
+            }
+            
+            return response()->json([
+                'status' => 'success',
+                'message' => 'ทดสอบการเชื่อมต่อสำเร็จ ส่งข้อความทดสอบไปยัง Telegram เรียบร้อยแล้ว'
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'เกิดข้อผิดพลาดในการเชื่อมต่อ Telegram: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function manualNotifySend(Request $request)
+    {
+        try {
+            $res = app(\App\Http\Controllers\NotifyController::class)->notify_summary($request);
+            $responseData = $res->getData();
+            $logMessage = "[" . now()->toDateTimeString() . "] Notify summary output: " . json_encode($responseData, JSON_UNESCAPED_UNICODE) . "\n";
+            appendAndLimitLog('notify_schedule.log', $logMessage, 30);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'ส่งรายงานสรุปบริการไปยัง Telegram สำเร็จแล้ว',
+                'data' => $responseData
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'เกิดข้อผิดพลาดในการส่ง Notify: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

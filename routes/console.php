@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Schedule;
 use App\Http\Controllers\Api\AmnosendController;
 use App\Http\Controllers\Api\NhsoEndpointController;
 use App\Http\Controllers\Api\FdhClaimStatusController;
+use App\Http\Controllers\NotifyController;
 
 /*
 |--------------------------------------------------------------------------
@@ -65,3 +66,10 @@ Schedule::call(function () {
     $logMessage = "[" . now()->toDateTimeString() . "] FDH Claim Status output: " . json_encode($res->getData(), JSON_UNESCAPED_UNICODE) . "\n";
     appendAndLimitLog('fdh_claim_status_schedule.log', $logMessage, 30); // เก็บ 30 รายการล่าสุด (30 วัน)
 })->dailyAt('00:30');
+
+// ส่งแจ้งเตือนสรุปบริการประจำวัน (Notify Summary) ทุกวัน เวลา 08:00 น.
+Schedule::call(function () {
+    $res = app(NotifyController::class)->notify_summary(request());
+    $logMessage = "[" . now()->toDateTimeString() . "] Notify Summary output: " . json_encode($res->getData(), JSON_UNESCAPED_UNICODE) . "\n";
+    appendAndLimitLog('notify_schedule.log', $logMessage, 30); // เก็บ 30 รายการล่าสุด (30 วัน)
+})->dailyAt('08:00');

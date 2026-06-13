@@ -54,6 +54,10 @@ Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(
     Route::resource('lookup_hospcode', LookupHospcodeController::class)->parameters(['lookup_hospcode' => 'hospcode']);
     Route::resource('budget_year', BudgetYearController::class)->parameters(['LEAVE_YEAR_ID' => 'LEAVE_YEAR_ID']);
     Route::get('logs/schedule', [MainSettingController::class, 'showScheduleLogs'])->name('logs.schedule');
+    Route::get('logs/schedule/aopod/test', [\App\Http\Controllers\Api\AmnosendController::class, 'testConnection'])->name('logs.schedule.aopod.test');
+    Route::post('logs/schedule/aopod/send', [MainSettingController::class, 'manualAopodSend'])->name('logs.schedule.aopod.send');
+    Route::get('logs/schedule/notify/test', [MainSettingController::class, 'testTelegramConnection'])->name('logs.schedule.notify.test');
+    Route::post('logs/schedule/notify/send', [MainSettingController::class, 'manualNotifySend'])->name('logs.schedule.notify.send');
 });
 
 Route::prefix('admin')->middleware(['auth'])->group(function () {
@@ -123,10 +127,6 @@ Route::post('import/stm_ofc_cipn_save', [ImportController::class, 'stm_ofc_cipn_
 Route::post('import/stm_ofc_cipn_updateReceipt', [ImportController::class, 'stm_ofc_cipn_updateReceipt']);
 Route::match(['get', 'post'], 'import/stm_ofc_cipndetail', [ImportController::class, 'stm_ofc_cipndetail'])->name('stm_ofc_cipndetail');
 
-Route::match(['get', 'post'], 'import/stm_ofc_kidney', [ImportController::class, 'stm_ofc_kidney'])->name('stm_ofc_kidney');
-Route::post('import/stm_ofc_kidney_save', [ImportController::class, 'stm_ofc_kidney_save']);
-Route::post('import/stm_ofc_kidney_updateReceipt', [ImportController::class, 'stm_ofc_kidney_updateReceipt']);
-Route::match(['get', 'post'], 'import/stm_ofc_kidneydetail', [ImportController::class, 'stm_ofc_kidneydetail'])->name('stm_ofc_kidneydetail');
 Route::match(['get', 'post'], 'import/stm_lgo', [ImportController::class, 'stm_lgo'])->name('stm_lgo');
 Route::post('import/stm_lgo_save', [ImportController::class, 'stm_lgo_save']);
 Route::post('import/stm_lgo_updateReceipt', [ImportController::class, 'stm_lgo_updateReceipt']);

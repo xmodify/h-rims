@@ -16,7 +16,6 @@
             </a>
         </div>
     </div>
-
     <!-- Navigation Tabs -->
     <ul class="nav nav-pills mb-3 bg-white p-2 rounded-4 shadow-sm border" id="pills-tab" role="tablist">
         <li class="nav-item" role="presentation">
@@ -36,8 +35,12 @@
                 </button>
             </li>
         @endif
+        <li class="nav-item" role="presentation">
+            <button class="nav-link rounded-3 fw-bold" id="pills-notify-tab" data-bs-toggle="pill" data-bs-target="#pills-notify" type="button" role="tab" aria-controls="pills-notify" aria-selected="false">
+                <i class="bi bi-bell-fill me-1 text-warning"></i> Log Notify
+            </button>
+        </li>
     </ul>
-
     <!-- Tab Contents -->
     <div class="tab-content" id="pills-tabContent">
         <!-- NHSO Log -->
@@ -180,10 +183,18 @@
         @if(($hospcode ?? '') === '00025' || ($hospital_code ?? '') === '00025')
             <div class="tab-pane fade" id="pills-aopod" role="tabpanel" aria-labelledby="pills-aopod-tab" tabindex="0">
                 <div class="card dash-card border-0 shadow-sm rounded-4">
-                    <div class="card-header bg-dark text-white border-0 py-3 rounded-top-4">
+                    <div class="card-header bg-dark text-white border-0 py-3 rounded-top-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
                         <h6 class="mb-0 fw-bold text-success">
                             <i class="bi bi-clock-history me-2"></i> AOPOD Send Scheduler Log
                         </h6>
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-success btn-sm px-3 rounded-pill shadow-sm text-white" onclick="startAopodManualSend()">
+                                <i class="bi bi-send-fill me-1"></i> ส่ง AOPOD
+                            </button>
+                            <button class="btn btn-outline-success btn-sm px-3 rounded-pill shadow-sm" onclick="testAopodConnection()">
+                                <i class="bi bi-patch-check-fill me-1"></i> ทดสอบการเชื่อมต่อ
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body p-3">
                         @if(count($aopodLogs) > 0)
@@ -240,6 +251,71 @@
                 </div>
             </div>
         @endif
+
+        <!-- Notify Log -->
+        <div class="tab-pane fade" id="pills-notify" role="tabpanel" aria-labelledby="pills-notify-tab" tabindex="0">
+            <div class="card dash-card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-dark text-white border-0 py-3 rounded-top-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <h6 class="mb-0 fw-bold text-warning">
+                        <i class="bi bi-bell-fill me-2"></i> Telegram Notify Scheduler Log
+                    </h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-warning btn-sm px-3 text-dark rounded-pill shadow-sm" onclick="startNotifyManualSend()">
+                            <i class="bi bi-send-fill me-1"></i> ส่ง Notify
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm px-3 rounded-pill shadow-sm" onclick="testNotifyConnection()">
+                            <i class="bi bi-patch-check-fill me-1"></i> ทดสอบการเชื่อมต่อ
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-3">
+                    @if(count($notifyLogs) > 0)
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th style="width: 200px;">เวลา</th>
+                                        <th style="width: 120px;">สถานะ</th>
+                                        <th>รายละเอียดการทำงาน</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($notifyLogs as $log)
+                                        <tr>
+                                            <td class="fw-bold text-secondary text-nowrap">{{ $log['timestamp'] ? DatetimeThai($log['timestamp']) : 'N/A' }}</td>
+                                            <td>
+                                                @if(isset($log['data']['success']) && $log['data']['success'] === 'success')
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">สำเร็จ</span>
+                                                @else
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill">ล้มเหลว</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if($log['data'])
+                                                    <div class="d-flex flex-column">
+                                                        <span class="fw-semibold text-dark">ส่งรายงานสรุปบริการไปยัง Telegram เรียบร้อยแล้ว</span>
+                                                        <small class="text-muted mt-1">
+                                                            ผลลัพธ์: <strong class="text-success">{{ json_encode($log['data'], JSON_UNESCAPED_UNICODE) }}</strong>
+                                                        </small>
+                                                    </div>
+                                                @else
+                                                    <span class="text-muted">{{ $log['raw'] }}</span>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @else
+                        <div class="text-center py-5 text-muted">
+                            <i class="bi bi-info-circle fs-1 d-block mb-2 text-secondary"></i>
+                            ยังไม่มีประวัติการทำงานในขณะนี้ (No logs found)
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -626,66 +702,226 @@
                     });
                 })
                 .catch(err => {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'บันทึก Log ไม่สำเร็จ',
-                        text: err.message,
-                        confirmButtonText: 'ตกลง'
-                    }).then(() => {
-                        location.reload();
-                    });
+                    console.error('Chunk error:', err);
+                    totalErrors += chunks[index].length;
+                    runChunk(index + 1);
                 });
-                return;
-            }
-
-            const progressBar = document.getElementById('swal-progress-bar');
-            const progressText = document.getElementById('swal-progress-text');
-            const pct = Math.round((index / chunks.length) * 100);
-
-            if (progressBar) {
-                progressBar.style.width = pct + '%';
-                progressBar.innerText = pct + '%';
-            }
-            if (progressText) {
-                progressText.innerText = `กำลังเชื่อมต่อกลุ่มที่ ${index + 1}/${chunks.length} (เคส ${index * chunkSize} - ${Math.min((index + 1) * chunkSize, items.length)} จากทั้งหมด ${items.length} รายการ)...`;
-            }
-
-            fetch('{{ url("api/fdh/check-chunk") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({
-                    items: chunks[index]
-                })
-            })
-            .then(r => r.json())
-            .then(res => {
-                totalChecked += res.total || 0;
-                totalUpdated += res.updated_count || 0;
-                totalErrors += res.errors_count || 0;
-                runChunk(index + 1);
-            })
-            .catch(err => {
-                console.error('FDH Chunk error:', err);
-                runChunk(index + 1);
-            });
         }
 
         runChunk(0);
     }
+}
 
+    function testAopodConnection() {
+        Swal.fire({
+            title: 'กำลังทดสอบการเชื่อมต่อ AOPOD...',
+            html: 'กรุณารอสักครู่ ระบบกำลังทดสอบการเชื่อมต่อกับเซิร์ฟเวอร์ AOPOD',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        fetch('{{ url("admin/logs/schedule/aopod/test") }}')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'การทดสอบสำเร็จ',
+                        text: data.message,
+                        confirmButtonText: 'ตกลง'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'การทดสอบล้มเหลว',
+                        text: data.message,
+                        confirmButtonText: 'ตกลง'
+                    });
+                }
+            })
+            .catch(err => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาดในการร้องขอ',
+                    text: err.message,
+                    confirmButtonText: 'ตกลง'
+                });
+            });
+    }
+
+    function startAopodManualSend() {
+        Swal.fire({
+            title: 'ยืนยันการส่งข้อมูล AOPOD?',
+            text: 'ระบบจะเริ่มประมวลผลข้อมูลบริการและส่งข้อมูลไปยังเซิร์ฟเวอร์ AOPOD',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#198754',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'เริ่มส่งข้อมูล',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'กำลังส่งข้อมูล AOPOD...',
+                    html: 'กรุณารอสักครู่ ระบบกำลังประมวลผลและอัปโหลดข้อมูล',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                fetch('{{ url("admin/logs/schedule/aopod/send") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'ส่งข้อมูลสำเร็จ',
+                            text: data.message,
+                            confirmButtonText: 'ตกลง'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'ส่งข้อมูลล้มเหลว',
+                            text: data.message,
+                            confirmButtonText: 'ตกลง'
+                        });
+                    }
+                })
+                .catch(err => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาดในการร้องขอ',
+                        text: err.message,
+                        confirmButtonText: 'ตกลง'
+                    });
+                });
+            }
+        });
+    }
+
+    function testNotifyConnection() {
+        Swal.fire({
+            title: 'กำลังทดสอบการเชื่อมต่อ Telegram...',
+            html: 'กรุณารอสักครู่ ระบบกำลังทดสอบ Token และส่งข้อความทดสอบไปยัง Telegram',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        fetch('{{ url("admin/logs/schedule/notify/test") }}')
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'การทดสอบสำเร็จ',
+                        text: data.message,
+                        confirmButtonText: 'ตกลง'
+                    });
+                } else if (data.status === 'warning') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'พบข้อเตือนใจ',
+                        text: data.message,
+                        confirmButtonText: 'ตกลง'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'การทดสอบล้มเหลว',
+                        text: data.message,
+                        confirmButtonText: 'ตกลง'
+                    });
+                }
+            })
+            .catch(err => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาดในการร้องขอ',
+                    text: err.message,
+                    confirmButtonText: 'ตกลง'
+                });
+            });
+    }
+
+    function startNotifyManualSend() {
+        Swal.fire({
+            title: 'ยืนยันการส่งรายงานสรุปบริการ?',
+            text: 'ระบบจะส่งรายงานสรุปบริการปัจจุบันไปยัง Telegram Chat ID ที่กำหนด',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#ffc107',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'ส่งรายงานทันที',
+            cancelButtonText: 'ยกเลิก',
+            customClass: {
+                confirmButton: 'text-dark'
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'กำลังส่งข้อมูลไปยัง Telegram...',
+                    html: 'กรุณารอสักครู่ ระบบกำลังรวบรวมรายงานและส่งข้อมูล',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                fetch('{{ url("admin/logs/schedule/notify/send") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'ส่งรายงานสำเร็จ',
+                            text: data.message,
+                            confirmButtonText: 'ตกลง'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'ส่งรายงานล้มเหลว',
+                            text: data.message,
+                            confirmButtonText: 'ตกลง'
+                        });
+                    }
+                })
+                .catch(err => {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาดในการร้องขอ',
+                        text: err.message,
+                        confirmButtonText: 'ตกลง'
+                    });
+                });
+            }
+        });
+    }
 </script>
 
 <style>
-    .hover-scale {
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    .hover-scale:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1) !important;
-    }
     .nav-pills .nav-link {
         color: #4a5568;
     }

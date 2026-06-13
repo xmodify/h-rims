@@ -581,7 +581,7 @@ class NhsoEndpointController extends Controller
                 }
                 return response()->json([
                     'status' => 'success',
-                    'message' => 'เชื่อมต่อกับระบบ สปสช. สำเร็จ และใช้งาน Token ได้ถูกต้อง (HTTP ' . $status . ')'
+                    'message' => 'เชื่อมต่อกับระบบ สปสช. สำเร็จ และใช้งาน Token ได้ถูกต้อง (HTTP 200)'
                 ]);
             }
 

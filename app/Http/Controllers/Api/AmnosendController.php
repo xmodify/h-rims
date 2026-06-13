@@ -503,7 +503,7 @@ class AmnosendController extends Controller
 
         // 5) สรุปผลรวม
         // =====================================================
-        return response()->json([
+        $responseData = [
             'ok'         => $overallSuccess,
             'hospcode'   => $hospcode,
             'start_date' => $start,
@@ -515,7 +515,14 @@ class AmnosendController extends Controller
                 'hospital' => count($hospitalRecords),
             ],
             'results'    => $results,
-        ], 200);
+        ];
+
+        if (function_exists('appendAndLimitLog')) {
+            $logMessage = "[" . now()->toDateTimeString() . "] AOPOD output: " . json_encode($responseData, JSON_UNESCAPED_UNICODE) . "\n";
+            appendAndLimitLog('aopod_schedule.log', $logMessage, 24);
+        }
+
+        return response()->json($responseData, 200);
     }
 
     /**

@@ -386,14 +386,21 @@ class NhsoEndpointController extends Controller
             usleep(200000);
         }
 
-        return response()->json([
+        $responseData = [
             'ok' => true,
             'status' => 'success',
             'message' => 'ดึงข้อมูลจาก สปสช สำเร็จ',
             'pulled_records' => $pulled,
             'inserted' => $inserted,
             'updated' => $updated
-        ]);
+        ];
+
+        if (!app()->runningInConsole() && function_exists('appendAndLimitLog')) {
+            $logMessage = "[" . now()->toDateTimeString() . "] NHSO Endpoint output: " . json_encode($responseData, JSON_UNESCAPED_UNICODE) . "\n";
+            appendAndLimitLog('nhso_endpoint_schedule.log', $logMessage, 30);
+        }
+
+        return response()->json($responseData);
     }
     public function pushIndiv(Request $request)
     {

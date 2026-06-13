@@ -121,7 +121,7 @@ class FdhClaimStatusController extends Controller
             }
         }
 
-        return response()->json([
+        $responseData = [
             'ok' => true,
             'success' => true,
             'message' => 'FDH Check 15 Days Completed Day-by-Day',
@@ -129,7 +129,14 @@ class FdhClaimStatusController extends Controller
             'updated_claims' => $totalUpdated,
             'errors' => $totalErrors,
             'total' => $totalPulled
-        ]);
+        ];
+
+        if (!app()->runningInConsole() && function_exists('appendAndLimitLog')) {
+            $logMessage = "[" . now()->toDateTimeString() . "] FDH Claim Status output: " . json_encode($responseData, JSON_UNESCAPED_UNICODE) . "\n";
+            appendAndLimitLog('fdh_claim_status_schedule.log', $logMessage, 30);
+        }
+
+        return response()->json($responseData);
     }
 
     /**

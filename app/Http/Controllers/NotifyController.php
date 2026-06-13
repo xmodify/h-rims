@@ -134,9 +134,17 @@ class NotifyController extends Controller
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_exec($ch);
             curl_close($ch);
-            sleep(1);
+        $chat_ids_count = count(array_filter(array_map('trim', $chat_ids)));
+        $responseData = [
+            'status' => 'success',
+            'sent_to' => $chat_ids_count . ' chats'
+        ];
+
+        if (!app()->runningInConsole() && function_exists('appendAndLimitLog')) {
+            $logMessage = "[" . now()->toDateTimeString() . "] Notify Summary output: " . json_encode($responseData, JSON_UNESCAPED_UNICODE) . "\n";
+            appendAndLimitLog('notify_schedule.log', $logMessage, 30);
         }
 
-        return response()->json(['success' => 'success'], 200);
+        return response()->json($responseData, 200);
     }
 }

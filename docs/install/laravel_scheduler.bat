@@ -1,3 +1,3 @@
 @echo off
-cd /d "d:\Project Laravel\h-rims"
-C:\xampp\php\php.exe artisan schedule:run >> storage\logs\scheduler.log 2>&1
+cd /d "C:\xampp8.2\htdocs\h-rims"
+C:\xampp8.2\php\php.exe artisan schedule:run >> storage\logs\scheduler.log 2>&1

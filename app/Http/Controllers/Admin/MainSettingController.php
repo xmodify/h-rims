@@ -194,52 +194,59 @@ class MainSettingController extends Controller
                         return is_numeric($val) ? (float) $val : null;
                     };
 
+                    $existingCodes = DB::table('lookup_sss_equipdev_aipn')->pluck('code')->toArray();
+                    $existingCodesMap = array_flip($existingCodes);
+
                     $updatedCount = 0;
                     $insertedCount = 0;
 
-                    for ($row = 2; $row <= $row_limit; $row++) {
-                        $billgroup = $sheet->getCell('A' . $row)->getValue();
-                        $code = $sheet->getCell('B' . $row)->getValue();
+                    DB::beginTransaction();
+                    try {
+                        for ($row = 2; $row <= $row_limit; $row++) {
+                            $billgroup = $sheet->getCell('A' . $row)->getValue();
+                            $code = $sheet->getCell('B' . $row)->getValue();
 
-                        if (empty($billgroup) && empty($code)) {
-                            continue;
+                            if (empty($billgroup) && empty($code)) {
+                                continue;
+                            }
+
+                            $code = trim($code);
+                            $rate = $cleanRate($sheet->getCell('D' . $row)->getValue());
+                            $rate2 = $cleanRate($sheet->getCell('E' . $row)->getValue());
+
+                            $daterev = $parseDate($sheet->getCell('G' . $row)->getValue());
+                            $dateeff = $parseDate($sheet->getCell('H' . $row)->getValue());
+                            $dateexp = $parseDate($sheet->getCell('I' . $row)->getValue());
+
+                            $recordData = [
+                                'billgroup' => $billgroup,
+                                'unit' => $sheet->getCell('C' . $row)->getValue(),
+                                'rate' => $rate,
+                                'rate2' => $rate2,
+                                'desc' => $sheet->getCell('F' . $row)->getValue(),
+                                'daterev' => $daterev,
+                                'dateeff' => $dateeff,
+                                'dateexp' => $dateexp,
+                                'lastupd' => $sheet->getCell('J' . $row)->getValue(),
+                                'dtcond' => $sheet->getCell('K' . $row)->getValue(),
+                                'note' => $sheet->getCell('L' . $row)->getValue(),
+                                'updated_at' => now(),
+                            ];
+
+                            if (isset($existingCodesMap[$code])) {
+                                $updatedCount++;
+                                DB::table('lookup_sss_equipdev_aipn')->where('code', $code)->update($recordData);
+                            } else {
+                                $recordData['created_at'] = now();
+                                $recordData['code'] = $code;
+                                $insertedCount++;
+                                DB::table('lookup_sss_equipdev_aipn')->insert($recordData);
+                            }
                         }
-
-                        $rate = $cleanRate($sheet->getCell('D' . $row)->getValue());
-                        $rate2 = $cleanRate($sheet->getCell('E' . $row)->getValue());
-
-                        $daterev = $parseDate($sheet->getCell('G' . $row)->getValue());
-                        $dateeff = $parseDate($sheet->getCell('H' . $row)->getValue());
-                        $dateexp = $parseDate($sheet->getCell('I' . $row)->getValue());
-
-                        $recordData = [
-                            'billgroup' => $billgroup,
-                            'unit' => $sheet->getCell('C' . $row)->getValue(),
-                            'rate' => $rate,
-                            'rate2' => $rate2,
-                            'desc' => $sheet->getCell('F' . $row)->getValue(),
-                            'daterev' => $daterev,
-                            'dateeff' => $dateeff,
-                            'dateexp' => $dateexp,
-                            'lastupd' => $sheet->getCell('J' . $row)->getValue(),
-                            'dtcond' => $sheet->getCell('K' . $row)->getValue(),
-                            'note' => $sheet->getCell('L' . $row)->getValue(),
-                            'updated_at' => now(),
-                        ];
-
-                        $exists = DB::table('lookup_sss_equipdev_aipn')->where('code', $code)->exists();
-                        if ($exists) {
-                            $updatedCount++;
-                        } else {
-                            $recordData['created_at'] = now();
-                            $recordData['code'] = $code;
-                            $insertedCount++;
-                        }
-
-                        DB::table('lookup_sss_equipdev_aipn')->updateOrInsert(
-                            ['code' => $code],
-                            $recordData
-                        );
+                        DB::commit();
+                    } catch (\Throwable $e) {
+                        DB::rollBack();
+                        throw $e;
                     }
 
                     return response()->json([
@@ -261,23 +268,30 @@ class MainSettingController extends Controller
                     $row_limit = $sheet->getHighestDataRow();
 
                     $insertedTypes = 0;
-                    for ($row = 2; $row <= $row_limit; $row++) {
-                        $type_id = $sheet->getCell('A' . $row)->getValue();
-                        $type_name = $sheet->getCell('B' . $row)->getValue();
+                    DB::beginTransaction();
+                    try {
+                        for ($row = 2; $row <= $row_limit; $row++) {
+                            $type_id = $sheet->getCell('A' . $row)->getValue();
+                            $type_name = $sheet->getCell('B' . $row)->getValue();
 
-                        if (empty($type_id)) {
-                            continue;
+                            if (empty($type_id)) {
+                                continue;
+                            }
+
+                            DB::table('lookup_nhso_adp_type')->updateOrInsert(
+                                ['nhso_adp_type_id' => intval($type_id)],
+                                [
+                                    'nhso_adp_type_name' => $type_name,
+                                    'updated_at' => now(),
+                                    'created_at' => now()
+                                ]
+                            );
+                            $insertedTypes++;
                         }
-
-                        DB::table('lookup_nhso_adp_type')->updateOrInsert(
-                            ['nhso_adp_type_id' => intval($type_id)],
-                            [
-                                'nhso_adp_type_name' => $type_name,
-                                'updated_at' => now(),
-                                'created_at' => now()
-                            ]
-                        );
-                        $insertedTypes++;
+                        DB::commit();
+                    } catch (\Throwable $e) {
+                        DB::rollBack();
+                        throw $e;
                     }
 
                     return response()->json([
@@ -309,6 +323,7 @@ class MainSettingController extends Controller
                     // Truncate first to have a clean import
                     DB::table('lookup_nhso_adp_code')->truncate();
 
+                    $batchData = [];
                     $insertedCount = 0;
                     for ($row = 2; $row <= $row_limit; $row++) {
                         $adp_code = $sheet->getCell('A' . $row)->getValue();
@@ -328,7 +343,7 @@ class MainSettingController extends Controller
                         $ins_ofc = trim($sheet->getCell('L' . $row)->getValue() ?? '');
                         $fs = trim($sheet->getCell('M' . $row)->getValue() ?? '');
 
-                        DB::table('lookup_nhso_adp_code')->insert([
+                        $batchData[] = [
                             'nhso_adp_code' => trim($adp_code),
                             'nhso_adp_type_id' => intval($adp_type_id),
                             'nhso_adp_code_name' => $sheet->getCell('C' . $row)->getValue() ?? '',
@@ -344,8 +359,19 @@ class MainSettingController extends Controller
                             'fs' => $fs,
                             'created_at' => now(),
                             'updated_at' => now()
-                        ]);
+                        ];
                         $insertedCount++;
+                    }
+
+                    DB::beginTransaction();
+                    try {
+                        foreach (array_chunk($batchData, 500) as $chunk) {
+                            DB::table('lookup_nhso_adp_code')->insert($chunk);
+                        }
+                        DB::commit();
+                    } catch (\Throwable $e) {
+                        DB::rollBack();
+                        throw $e;
                     }
 
                     return response()->json([
@@ -495,8 +521,8 @@ class MainSettingController extends Controller
                     
                     $typeMismatch = false;
                     // Check if types are different (excluding minor display widths e.g. int(11) vs int)
-                    $cleanActualType = preg_replace('/\(\d+\)/', '', $actualType);
-                    $cleanExpectedType = preg_replace('/\(\d+\)/', '', $expectedType);
+                    $cleanActualType = preg_replace('/\([\d,\s]+\)/', '', $actualType);
+                    $cleanExpectedType = preg_replace('/\([\d,\s]+\)/', '', $expectedType);
                     if ($cleanActualType !== $cleanExpectedType) {
                         $typeMismatch = true;
                     }

@@ -285,11 +285,9 @@
         event.preventDefault();
         
         const steps = [
-            { num: 1, name: "ขั้นตอนที่ 1/5: ตรวจสอบและอัปเกรดโครงสร้างตารางระบบทั้งหมด" },
-            { num: 2, name: "ขั้นตอนที่ 2/5: นำเข้า EquipdevAIPN" },
-            { num: 3, name: "ขั้นตอนที่ 3/5: นำเข้า lookup_nhso_adp_type" },
-            { num: 4, name: "ขั้นตอนที่ 4/5: นำเข้า lookup_nhso_adp_code" },
-            { num: 5, name: "ขั้นตอนที่ 5/5: ซิงค์ข้อมูลตั้งค่าหลัก (main_setting)" }
+            { num: 1, name: "ขั้นตอนที่ 1/3: ตรวจสอบและอัปเกรดโครงสร้างตารางระบบทั้งหมด" },
+            { num: 2, name: "ขั้นตอนที่ 2/3: นำเข้า/ซิงค์ข้อมูล Lookup (EquipdevAIPN, adp_type, adp_code, subinscl)" },
+            { num: 3, name: "ขั้นตอนที่ 3/3: ซิงค์ข้อมูลตั้งค่าหลัก (main_setting)" }
         ];
 
         const { isConfirmed } = await Swal.fire({

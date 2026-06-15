@@ -162,6 +162,7 @@ class DebtorController extends Controller
                     WHEN p.hipdata_code = 'UCS' THEN 'ประกันสุขภาพ'
                     WHEN p.hipdata_code = 'SRT' THEN 'การรถไฟแห่งประเทศไทย'
                     WHEN p.hipdata_code = 'NHS' THEN 'สิทธิ สปสช.'
+                    WHEN p.hipdata_code = 'PVT' THEN 'ครูเอกชน'
                     ELSE 'คนไข้ไม่ลงสิทธิ' END AS pttype_group,
                 COUNT(DISTINCT o_split.vn) AS vn,
                 SUM(IFNULL(vi.income,0)) AS income,
@@ -259,6 +260,7 @@ class DebtorController extends Controller
                     WHEN p.hipdata_code = 'UCS' THEN 'ประกันสุขภาพ'
                     WHEN p.hipdata_code = 'SRT' THEN 'การรถไฟแห่งประเทศไทย'
                     WHEN p.hipdata_code = 'NHS' THEN 'สิทธิ สปสช.'
+                    WHEN p.hipdata_code = 'PVT' THEN 'ครูเอกชน'
                     ELSE 'ไม่พบเงื่อนไข' END AS pttype_group,
                 SUM(ip.num_an) AS an,
                 SUM(IFNULL(v_inc.income,0)) AS income,
@@ -7366,7 +7368,7 @@ class DebtorController extends Controller
             WHERE (o.an IS NULL OR o.an = "")
             AND o.vstdate BETWEEN ? AND ?
             AND (IFNULL(total.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(total.other_price,0)) > 0
-            AND p.hipdata_code IN ("BFC","GOF","PVT","WVO")
+            AND p.hipdata_code IN ("BFC","GOF","WVO")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_108 WHERE vn IS NOT NULL)
             GROUP BY o.vn, vp.pttype
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date]);
@@ -7428,7 +7430,7 @@ class DebtorController extends Controller
             WHERE (o.an IS NULL OR o.an = "")
             AND o.vstdate BETWEEN ? AND ?
             AND (IFNULL(total.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(total.other_price,0)) > 0
-            AND p.hipdata_code IN ("BFC","GOF","PVT","WVO")
+            AND p.hipdata_code IN ("BFC","GOF","WVO")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_108 WHERE vn IS NOT NULL)
             AND o.vn IN (' . $checkbox_string . ')
             GROUP BY o.vn, vp.pttype
@@ -7736,7 +7738,7 @@ class DebtorController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
             WHERE (o.an IS NULL OR o.an = "")
             AND o.vstdate BETWEEN ? AND ?
-            AND p.hipdata_code IN ("BMT","KKT","SRT")         
+            AND p.hipdata_code IN ("BMT","KKT","SRT","PVT")         
             AND (IFNULL(total.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(total.other_price,0)) > 0
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_110 WHERE vn IS NOT NULL)
             AND p.pttype NOT IN (' . $pttype_checkup . ')   
@@ -7801,7 +7803,7 @@ class DebtorController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn = o.vn
             WHERE (o.an IS NULL OR o.an = "")
             AND o.vstdate BETWEEN ? AND ?
-            AND p.hipdata_code IN ("BMT","KKT","SRT")         
+            AND p.hipdata_code IN ("BMT","KKT","SRT","PVT")         
             AND (IFNULL(total.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(total.other_price,0)) > 0
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050102_110 WHERE vn IS NOT NULL)
             AND p.pttype NOT IN (' . $pttype_checkup . ')   
@@ -13345,7 +13347,7 @@ class DebtorController extends Controller
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             WHERE i.confirm_discharge = "Y"
-            AND p.hipdata_code IN ("BFC","GOF","PVT","WVO")
+            AND p.hipdata_code IN ("BFC","GOF","WVO")
             AND i.dchdate BETWEEN ? AND ?
             AND (COALESCE(total.income,0)-COALESCE(rc.rcpt_money,0)-COALESCE(total.other_price,0)) > 0
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_109 WHERE an IS NOT NULL)
@@ -13407,7 +13409,7 @@ class DebtorController extends Controller
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
             WHERE i.confirm_discharge = "Y"
-            AND p.hipdata_code IN ("BFC","GOF","PVT","WVO")
+            AND p.hipdata_code IN ("BFC","GOF","WVO")
             AND i.dchdate BETWEEN ? AND ?
             AND (COALESCE(total.income,0)-COALESCE(rc.rcpt_money,0)-COALESCE(total.other_price,0)) > 0
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_109 WHERE an IS NOT NULL)
@@ -13708,7 +13710,7 @@ class DebtorController extends Controller
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn) rc ON rc.an = i.an
             WHERE i.confirm_discharge = "Y"
-            AND p.hipdata_code IN ("BMT","KKT")
+            AND p.hipdata_code IN ("BMT","KKT","SRT","PVT")
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_111 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype
@@ -13764,7 +13766,7 @@ class DebtorController extends Controller
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn) rc ON rc.an = i.an
             WHERE i.confirm_discharge = "Y"
-            AND p.hipdata_code IN ("BMT","KKT")
+            AND p.hipdata_code IN ("BMT","KKT","SRT","PVT")
             AND i.dchdate BETWEEN ? AND ?
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050102_111 WHERE an IS NOT NULL)
             AND i.an IN (' . $checkbox_string . ') 

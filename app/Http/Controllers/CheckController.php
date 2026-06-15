@@ -981,8 +981,18 @@ class CheckController extends Controller
             FROM hrims.subinscl s
             LEFT JOIN pttype p ON p.pttype=s.`code`');
 
+        $subinscl_found = [];
+        $subinscl_notfound = [];
 
-        return view('check.nhso_subinscl', compact('subinscl'));
+        foreach ($subinscl as $row) {
+            if ($row->pttype !== null) {
+                $subinscl_found[] = $row;
+            } else {
+                $subinscl_notfound[] = $row;
+            }
+        }
+
+        return view('check.nhso_subinscl', compact('subinscl', 'subinscl_found', 'subinscl_notfound'));
     }
 
     //สิทธิการักษา nhso_subinscl---------------------------------------------------------------------------------------------------------------------------

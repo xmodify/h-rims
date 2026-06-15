@@ -149,235 +149,261 @@ class MainSettingController extends Controller
 
                 case 2:
                     // ==========================================
-                    // STEP 2: Import/Sync Lookup (EquipdevAIPN.xlsx)
+                    // STEP 2: Import/Sync Lookup Tables
                     // ==========================================
-                    $filePath = base_path('docs/lookup/EquipdevAIPN.xlsx');
-                    if (!file_exists($filePath)) {
-                        throw new \Exception("ไม่พบไฟล์ Excel EquipdevAIPN.xlsx ที่ docs/lookup/");
+                    $report = [];
+
+                    // --- 2.1: Import/Sync Lookup (EquipdevAIPN.xlsx) ---
+                    $filePathAIPN = base_path('docs/lookup/EquipdevAIPN.xlsx');
+                    if (file_exists($filePathAIPN)) {
+                        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePathAIPN);
+                        $sheet = $spreadsheet->setActiveSheetIndex(0);
+                        $row_limit = $sheet->getHighestDataRow();
+
+                        $parseDate = function ($value) {
+                            if (empty($value) || $value === '-' || trim($value) === '') {
+                                return null;
+                            }
+                            $value = trim($value);
+                            if (is_numeric($value)) {
+                                try {
+                                    return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value)->format('Y-m-d');
+                                } catch (\Exception $e) {}
+                            }
+                            foreach (['d/m/Y', 'Y-m-d', 'd-m-Y', 'd/m/y', 'd-m-y'] as $format) {
+                                try {
+                                    return \Carbon\Carbon::createFromFormat($format, $value)->format('Y-m-d');
+                                } catch (\Exception $e) {}
+                            }
+                            try {
+                                return \Carbon\Carbon::parse($value)->format('Y-m-d');
+                            } catch (\Exception $e) {
+                                return null;
+                            }
+                        };
+
+                        $cleanRate = function ($val) {
+                            if ($val === null || $val === '-' || trim($val) === '') {
+                                return null;
+                            }
+                            $val = str_replace(',', '', $val);
+                            return is_numeric($val) ? (float) $val : null;
+                        };
+
+                        $existingCodes = DB::table('lookup_sss_equipdev_aipn')->pluck('code')->toArray();
+                        $existingCodesMap = array_flip($existingCodes);
+
+                        $updatedCount = 0;
+                        $insertedCount = 0;
+
+                        DB::beginTransaction();
+                        try {
+                            for ($row = 2; $row <= $row_limit; $row++) {
+                                $billgroup = $sheet->getCell('A' . $row)->getValue();
+                                $code = $sheet->getCell('B' . $row)->getValue();
+
+                                if (empty($billgroup) && empty($code)) {
+                                    continue;
+                                }
+
+                                $code = trim($code);
+                                $rate = $cleanRate($sheet->getCell('D' . $row)->getValue());
+                                $rate2 = $cleanRate($sheet->getCell('E' . $row)->getValue());
+
+                                $daterev = $parseDate($sheet->getCell('G' . $row)->getValue());
+                                $dateeff = $parseDate($sheet->getCell('H' . $row)->getValue());
+                                $dateexp = $parseDate($sheet->getCell('I' . $row)->getValue());
+
+                                $recordData = [
+                                    'billgroup' => $billgroup,
+                                    'unit' => $sheet->getCell('C' . $row)->getValue(),
+                                    'rate' => $rate,
+                                    'rate2' => $rate2,
+                                    'desc' => $sheet->getCell('F' . $row)->getValue(),
+                                    'daterev' => $daterev,
+                                    'dateeff' => $dateeff,
+                                    'dateexp' => $dateexp,
+                                    'lastupd' => $sheet->getCell('J' . $row)->getValue(),
+                                    'dtcond' => $sheet->getCell('K' . $row)->getValue(),
+                                    'note' => $sheet->getCell('L' . $row)->getValue(),
+                                    'updated_at' => now(),
+                                ];
+
+                                if (isset($existingCodesMap[$code])) {
+                                    $updatedCount++;
+                                    DB::table('lookup_sss_equipdev_aipn')->where('code', $code)->update($recordData);
+                                } else {
+                                    $recordData['created_at'] = now();
+                                    $recordData['code'] = $code;
+                                    $insertedCount++;
+                                    DB::table('lookup_sss_equipdev_aipn')->insert($recordData);
+                                }
+                            }
+                            DB::commit();
+                            $report[] = "EquipdevAIPN (เพิ่ม: $insertedCount, อัปเดต: $updatedCount แถว)";
+                        } catch (\Throwable $e) {
+                            DB::rollBack();
+                            throw $e;
+                        }
+                    } else {
+                        $report[] = "EquipdevAIPN (ไม่พบไฟล์)";
                     }
 
-                    $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
-                    $sheet = $spreadsheet->setActiveSheetIndex(0);
-                    $row_limit = $sheet->getHighestDataRow();
+                    // --- 2.2: Import/Sync Lookup (lookup_nhso_adp_type.xlsx) ---
+                    $filePathAdpType = base_path('docs/lookup/lookup_nhso_adp_type.xlsx');
+                    if (file_exists($filePathAdpType)) {
+                        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePathAdpType);
+                        $sheet = $spreadsheet->getActiveSheet();
+                        $row_limit = $sheet->getHighestDataRow();
 
-                    $parseDate = function ($value) {
-                        if (empty($value) || $value === '-' || trim($value) === '') {
-                            return null;
-                        }
-                        $value = trim($value);
-                        if (is_numeric($value)) {
-                            try {
-                                return \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value)->format('Y-m-d');
-                            } catch (\Exception $e) {}
-                        }
-                        foreach (['d/m/Y', 'Y-m-d', 'd-m-Y', 'd/m/y', 'd-m-y'] as $format) {
-                            try {
-                                return \Carbon\Carbon::createFromFormat($format, $value)->format('Y-m-d');
-                            } catch (\Exception $e) {}
-                        }
+                        $insertedTypes = 0;
+                        DB::beginTransaction();
                         try {
-                            return \Carbon\Carbon::parse($value)->format('Y-m-d');
-                        } catch (\Exception $e) {
-                            return null;
+                            for ($row = 2; $row <= $row_limit; $row++) {
+                                $type_id = $sheet->getCell('A' . $row)->getValue();
+                                $type_name = $sheet->getCell('B' . $row)->getValue();
+
+                                if (empty($type_id)) {
+                                    continue;
+                                }
+
+                                DB::table('lookup_nhso_adp_type')->updateOrInsert(
+                                    ['nhso_adp_type_id' => intval($type_id)],
+                                    [
+                                        'nhso_adp_type_name' => $type_name,
+                                        'updated_at' => now(),
+                                        'created_at' => now()
+                                    ]
+                                );
+                                $insertedTypes++;
+                            }
+                            DB::commit();
+                            $report[] = "adp_type ($insertedTypes รายการ)";
+                        } catch (\Throwable $e) {
+                            DB::rollBack();
+                            throw $e;
                         }
-                    };
+                    } else {
+                        $report[] = "adp_type (ไม่พบไฟล์)";
+                    }
 
-                    $cleanRate = function ($val) {
-                        if ($val === null || $val === '-' || trim($val) === '') {
-                            return null;
-                        }
-                        $val = str_replace(',', '', $val);
-                        return is_numeric($val) ? (float) $val : null;
-                    };
+                    // --- 2.3: Import/Sync Lookup (lookup_nhso_adp_code.xlsx) ---
+                    $filePathAdpCode = base_path('docs/lookup/lookup_nhso_adp_code.xlsx');
+                    if (file_exists($filePathAdpCode)) {
+                        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePathAdpCode);
+                        $sheet = $spreadsheet->getActiveSheet();
+                        $row_limit = $sheet->getHighestDataRow();
 
-                    $existingCodes = DB::table('lookup_sss_equipdev_aipn')->pluck('code')->toArray();
-                    $existingCodesMap = array_flip($existingCodes);
+                        $cleanPrice = function ($val) {
+                            if ($val === null || $val === '-' || trim($val) === '') {
+                                return 0.00;
+                            }
+                            $val = str_replace(',', '', $val);
+                            return is_numeric($val) ? (float) $val : 0.00;
+                        };
 
-                    $updatedCount = 0;
-                    $insertedCount = 0;
+                        // Truncate first to have a clean import
+                        DB::table('lookup_nhso_adp_code')->truncate();
 
-                    DB::beginTransaction();
-                    try {
+                        $batchData = [];
+                        $insertedCountCode = 0;
                         for ($row = 2; $row <= $row_limit; $row++) {
-                            $billgroup = $sheet->getCell('A' . $row)->getValue();
-                            $code = $sheet->getCell('B' . $row)->getValue();
+                            $adp_code = $sheet->getCell('A' . $row)->getValue();
+                            $adp_type_id = $sheet->getCell('B' . $row)->getValue();
 
-                            if (empty($billgroup) && empty($code)) {
+                            if (empty($adp_code) || empty($adp_type_id)) {
                                 continue;
                             }
 
-                            $code = trim($code);
-                            $rate = $cleanRate($sheet->getCell('D' . $row)->getValue());
-                            $rate2 = $cleanRate($sheet->getCell('E' . $row)->getValue());
+                            $price_ucs = $cleanPrice($sheet->getCell('E' . $row)->getValue());
+                            $price_ofc = $cleanPrice($sheet->getCell('F' . $row)->getValue());
+                            $price_sss = $cleanPrice($sheet->getCell('G' . $row)->getValue());
+                            $price_lgo = $cleanPrice($sheet->getCell('H' . $row)->getValue());
+                            $price_fs = $cleanPrice($sheet->getCell('I' . $row)->getValue());
+                            $price_ucep = $cleanPrice($sheet->getCell('J' . $row)->getValue());
+                            $ins_ucs = trim($sheet->getCell('K' . $row)->getValue() ?? '');
+                            $ins_ofc = trim($sheet->getCell('L' . $row)->getValue() ?? '');
+                            $fs = trim($sheet->getCell('M' . $row)->getValue() ?? '');
 
-                            $daterev = $parseDate($sheet->getCell('G' . $row)->getValue());
-                            $dateeff = $parseDate($sheet->getCell('H' . $row)->getValue());
-                            $dateexp = $parseDate($sheet->getCell('I' . $row)->getValue());
-
-                            $recordData = [
-                                'billgroup' => $billgroup,
-                                'unit' => $sheet->getCell('C' . $row)->getValue(),
-                                'rate' => $rate,
-                                'rate2' => $rate2,
-                                'desc' => $sheet->getCell('F' . $row)->getValue(),
-                                'daterev' => $daterev,
-                                'dateeff' => $dateeff,
-                                'dateexp' => $dateexp,
-                                'lastupd' => $sheet->getCell('J' . $row)->getValue(),
-                                'dtcond' => $sheet->getCell('K' . $row)->getValue(),
-                                'note' => $sheet->getCell('L' . $row)->getValue(),
-                                'updated_at' => now(),
+                            $batchData[] = [
+                                'nhso_adp_code' => trim($adp_code),
+                                'nhso_adp_type_id' => intval($adp_type_id),
+                                'nhso_adp_code_name' => $sheet->getCell('C' . $row)->getValue() ?? '',
+                                'category' => $sheet->getCell('D' . $row)->getValue(),
+                                'price_ucs' => $price_ucs,
+                                'price_ofc' => $price_ofc,
+                                'price_sss' => $price_sss,
+                                'price_lgo' => $price_lgo,
+                                'price_fs' => $price_fs,
+                                'price_ucep' => $price_ucep,
+                                'ins_ucs' => $ins_ucs,
+                                'ins_ofc' => $ins_ofc,
+                                'fs' => $fs,
+                                'created_at' => now(),
+                                'updated_at' => now()
                             ];
-
-                            if (isset($existingCodesMap[$code])) {
-                                $updatedCount++;
-                                DB::table('lookup_sss_equipdev_aipn')->where('code', $code)->update($recordData);
-                            } else {
-                                $recordData['created_at'] = now();
-                                $recordData['code'] = $code;
-                                $insertedCount++;
-                                DB::table('lookup_sss_equipdev_aipn')->insert($recordData);
-                            }
+                            $insertedCountCode++;
                         }
-                        DB::commit();
-                    } catch (\Throwable $e) {
-                        DB::rollBack();
-                        throw $e;
+
+                        DB::beginTransaction();
+                        try {
+                            foreach (array_chunk($batchData, 500) as $chunk) {
+                                DB::table('lookup_nhso_adp_code')->insert($chunk);
+                            }
+                            DB::commit();
+                            $report[] = "adp_code ($insertedCountCode รายการ)";
+                        } catch (\Throwable $e) {
+                            DB::rollBack();
+                            throw $e;
+                        }
+                    } else {
+                        $report[] = "adp_code (ไม่พบไฟล์)";
+                    }
+
+                    // --- 2.4: Import/Sync Lookup Subinscl (nhso_subinscl.json) ---
+                    $jsonPathSubinscl = base_path('docs/lookup/nhso_subinscl.json');
+                    if (file_exists($jsonPathSubinscl)) {
+                        $jsonData = json_decode(file_get_contents($jsonPathSubinscl), true);
+                        if (json_last_error() !== JSON_ERROR_NONE) {
+                            throw new \Exception("ไฟล์ nhso_subinscl.json รูปแบบไม่ถูกต้อง: " . json_last_error_msg());
+                        }
+
+                        $insertedCountSub = 0;
+                        DB::beginTransaction();
+                        try {
+                            foreach ($jsonData as $item) {
+                                $code = trim($item['code'] ?? '');
+                                if (empty($code)) {
+                                    continue;
+                                }
+
+                                DB::table('subinscl')->updateOrInsert(
+                                    ['code' => $code],
+                                    [
+                                        'name' => $item['name'] ?? null,
+                                        'maininscl' => $item['maininscl'] ?? null,
+                                    ]
+                                );
+                                $insertedCountSub++;
+                            }
+                            DB::commit();
+                            $report[] = "subinscl ($insertedCountSub รายการ)";
+                        } catch (\Throwable $e) {
+                            DB::rollBack();
+                            throw $e;
+                        }
+                    } else {
+                        $report[] = "subinscl (ไม่พบไฟล์)";
                     }
 
                     return response()->json([
                         'success' => true,
-                        'message' => "นำเข้า EquipdevAIPN เพิ่ม: $insertedCount, อัปเดต: $updatedCount แถว"
+                        'message' => "นำเข้า lookup สำเร็จ: " . implode(', ', $report)
                     ]);
 
                 case 3:
                     // ==========================================
-                    // STEP 3: Import/Sync Lookup (lookup_nhso_adp_type.xlsx)
-                    // ==========================================
-                    $filePath = base_path('docs/lookup/lookup_nhso_adp_type.xlsx');
-                    if (!file_exists($filePath)) {
-                        throw new \Exception("ไม่พบไฟล์ Excel lookup_nhso_adp_type.xlsx ที่ docs/lookup/");
-                    }
-
-                    $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
-                    $sheet = $spreadsheet->getActiveSheet();
-                    $row_limit = $sheet->getHighestDataRow();
-
-                    $insertedTypes = 0;
-                    DB::beginTransaction();
-                    try {
-                        for ($row = 2; $row <= $row_limit; $row++) {
-                            $type_id = $sheet->getCell('A' . $row)->getValue();
-                            $type_name = $sheet->getCell('B' . $row)->getValue();
-
-                            if (empty($type_id)) {
-                                continue;
-                            }
-
-                            DB::table('lookup_nhso_adp_type')->updateOrInsert(
-                                ['nhso_adp_type_id' => intval($type_id)],
-                                [
-                                    'nhso_adp_type_name' => $type_name,
-                                    'updated_at' => now(),
-                                    'created_at' => now()
-                                ]
-                            );
-                            $insertedTypes++;
-                        }
-                        DB::commit();
-                    } catch (\Throwable $e) {
-                        DB::rollBack();
-                        throw $e;
-                    }
-
-                    return response()->json([
-                        'success' => true,
-                        'message' => "นำเข้า lookup_nhso_adp_type สำเร็จทั้งหมด $insertedTypes รายการ"
-                    ]);
-
-                case 4:
-                    // ==========================================
-                    // STEP 4: Import/Sync Lookup (lookup_nhso_adp_code.xlsx)
-                    // ==========================================
-                    $filePath = base_path('docs/lookup/lookup_nhso_adp_code.xlsx');
-                    if (!file_exists($filePath)) {
-                        throw new \Exception("ไม่พบไฟล์ Excel lookup_nhso_adp_code.xlsx ที่ docs/lookup/");
-                    }
-
-                    $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePath);
-                    $sheet = $spreadsheet->getActiveSheet();
-                    $row_limit = $sheet->getHighestDataRow();
-
-                    $cleanPrice = function ($val) {
-                        if ($val === null || $val === '-' || trim($val) === '') {
-                            return 0.00;
-                        }
-                        $val = str_replace(',', '', $val);
-                        return is_numeric($val) ? (float) $val : 0.00;
-                    };
-
-                    // Truncate first to have a clean import
-                    DB::table('lookup_nhso_adp_code')->truncate();
-
-                    $batchData = [];
-                    $insertedCount = 0;
-                    for ($row = 2; $row <= $row_limit; $row++) {
-                        $adp_code = $sheet->getCell('A' . $row)->getValue();
-                        $adp_type_id = $sheet->getCell('B' . $row)->getValue();
-
-                        if (empty($adp_code) || empty($adp_type_id)) {
-                            continue;
-                        }
-
-                        $price_ucs = $cleanPrice($sheet->getCell('E' . $row)->getValue());
-                        $price_ofc = $cleanPrice($sheet->getCell('F' . $row)->getValue());
-                        $price_sss = $cleanPrice($sheet->getCell('G' . $row)->getValue());
-                        $price_lgo = $cleanPrice($sheet->getCell('H' . $row)->getValue());
-                        $price_fs = $cleanPrice($sheet->getCell('I' . $row)->getValue());
-                        $price_ucep = $cleanPrice($sheet->getCell('J' . $row)->getValue());
-                        $ins_ucs = trim($sheet->getCell('K' . $row)->getValue() ?? '');
-                        $ins_ofc = trim($sheet->getCell('L' . $row)->getValue() ?? '');
-                        $fs = trim($sheet->getCell('M' . $row)->getValue() ?? '');
-
-                        $batchData[] = [
-                            'nhso_adp_code' => trim($adp_code),
-                            'nhso_adp_type_id' => intval($adp_type_id),
-                            'nhso_adp_code_name' => $sheet->getCell('C' . $row)->getValue() ?? '',
-                            'category' => $sheet->getCell('D' . $row)->getValue(),
-                            'price_ucs' => $price_ucs,
-                            'price_ofc' => $price_ofc,
-                            'price_sss' => $price_sss,
-                            'price_lgo' => $price_lgo,
-                            'price_fs' => $price_fs,
-                            'price_ucep' => $price_ucep,
-                            'ins_ucs' => $ins_ucs,
-                            'ins_ofc' => $ins_ofc,
-                            'fs' => $fs,
-                            'created_at' => now(),
-                            'updated_at' => now()
-                        ];
-                        $insertedCount++;
-                    }
-
-                    DB::beginTransaction();
-                    try {
-                        foreach (array_chunk($batchData, 500) as $chunk) {
-                            DB::table('lookup_nhso_adp_code')->insert($chunk);
-                        }
-                        DB::commit();
-                    } catch (\Throwable $e) {
-                        DB::rollBack();
-                        throw $e;
-                    }
-
-                    return response()->json([
-                        'success' => true,
-                        'message' => "นำเข้า lookup_nhso_adp_code สำเร็จทั้งหมด $insertedCount รายการ"
-                    ]);
-
-                case 5:
-                    // ==========================================
-                    // STEP 5: Settings Synchronization (main_setting)
+                    // STEP 3: Settings Synchronization (main_setting)
                     // ==========================================
                     $main_setting = [
                         ['name' => 'bed_qty', 'name_th' => 'IPD จำนวนเตียง', 'value' => ''],

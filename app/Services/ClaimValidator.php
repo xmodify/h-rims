@@ -91,6 +91,60 @@ class ClaimValidator
         ];
     }
 
+    /**
+     * @param  object $visit
+     * @param  array  $billedItems
+     * @return array  ['is_valid', 'endpoint_valid', 'errors', 'warnings']
+     */
+    public function validateOfc($visit, $billedItems): array
+    {
+        // 1. PPFS validation (only validate if there is at least one PPFS item)
+        $hasPpfs = false;
+        foreach ((array) $billedItems as $item) {
+            if (($item->ppfs ?? '') === 'Y') {
+                $hasPpfs = true;
+                break;
+            }
+        }
+
+        $errors   = [];
+        $warnings = [];
+        if ($hasPpfs) {
+            $ppfs = $this->validatePpfs($visit, (array) $billedItems);
+            $errors   = $ppfs['errors'];
+            $warnings = $ppfs['warnings'];
+        }
+
+        // 2. EDC Approve Code matching check
+        $edc_hosxp_list = array_filter(array_map('trim', explode(',', $visit->edc ?? '')));
+        $edc_ktb_list = array_filter(array_map('trim', explode(',', $visit->edc_ktb ?? '')));
+
+        if (!empty($edc_hosxp_list) || !empty($edc_ktb_list)) {
+            if (empty($edc_hosxp_list)) {
+                $errors[] = "ไม่พบเลขอนุมัติ EDC ใน HOSxP";
+            } elseif (empty($edc_ktb_list)) {
+                $errors[] = "ไม่พบเลขอนุมัติ EDC ในไฟล์นำเข้า KTB (กรุณานำเข้าไฟล์ EDC)";
+            } elseif (count(array_intersect($edc_hosxp_list, $edc_ktb_list)) === 0) {
+                $errors[] = "เลขอนุมัติ EDC ใน HOSxP (" . implode(',', $edc_hosxp_list) . ") ไม่ตรงกับไฟล์นำเข้า KTB (" . implode(',', $edc_ktb_list) . ")";
+            }
+        }
+
+        // Basic check: auth_code
+        if (($visit->auth_code ?? '') !== 'Y') {
+            $errors[] = "ยังไม่มีรหัส Authen Code";
+        }
+
+        // 3. Endpoint check (closure)
+        $endpointOk = ($visit->endpoint ?? '') === 'Y';
+
+        return [
+            'is_valid'       => empty($errors),
+            'endpoint_valid' => $endpointOk,
+            'errors'         => $errors,
+            'warnings'       => $warnings,
+        ];
+    }
+
     // =========================================================================
     // validatePpfs() — ตรวจเงื่อนไข PPFS (เพศ / อายุ / ICD-10 / ICD-9 / ราคา)
     // =========================================================================

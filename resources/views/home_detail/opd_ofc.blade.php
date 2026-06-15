@@ -30,7 +30,7 @@
                         <i class="bi bi-cloud-download-fill me-1"></i> ดึงปิดสิทธิทั้งหมด
                     </button>
                     <button type="button" class="btn btn-outline-success px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importEdcModal">
-                        <i class="bi bi-file-earmark-arrow-up-fill me-1"></i> นำเข้าเลข EDC
+                        <i class="bi bi-file-earmark-arrow-up-fill me-1"></i> นำเข้า EDC
                     </button>
             </div>
         </form>
@@ -640,7 +640,7 @@ function showLoading() {
 
               Swal.fire({
                   icon: 'success',
-                  title: 'นำเข้าเลข EDC สำเร็จ!',
+                  title: 'นำเข้า EDC สำเร็จ!',
                   text: `ประมวลผลเสร็จสิ้นทั้งหมด ${processedCount} จาก ${totalFiles} ไฟล์`,
                   confirmButtonText: 'ตกลง',
                   confirmButtonColor: '#198754'

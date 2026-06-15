@@ -59,6 +59,38 @@ class ClaimValidator
         ];
     }
 
+    /**
+     * @param  object $visit
+     * @param  array  $billedItems
+     * @return array  ['is_valid', 'endpoint_valid', 'errors', 'warnings']
+     */
+    public function validatePpfsOnly($visit, $billedItems): array
+    {
+        $ppfs = $this->validatePpfs($visit, (array) $billedItems);
+
+        $errors   = $ppfs['errors'];
+        $warnings = $ppfs['warnings'];
+
+        // Basic check: auth_code
+        if (($visit->auth_code ?? '') !== 'Y') {
+            array_unshift($errors, "ยังไม่มีรหัส Authen Code");
+        }
+
+        // Endpoint check
+        $endpointOk = ($visit->endpoint ?? '') === 'Y'
+            || (!empty($visit->fdh_status) && (
+                strpos($visit->fdh_status, 'อนุมัติ') !== false ||
+                strpos($visit->fdh_status, 'สำเร็จ') !== false
+            ));
+
+        return [
+            'is_valid'       => empty($errors),
+            'endpoint_valid' => $endpointOk,
+            'errors'         => $errors,
+            'warnings'       => $warnings,
+        ];
+    }
+
     // =========================================================================
     // validatePpfs() — ตรวจเงื่อนไข PPFS (เพศ / อายุ / ICD-10 / ICD-9 / ราคา)
     // =========================================================================

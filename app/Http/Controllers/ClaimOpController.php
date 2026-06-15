@@ -2816,18 +2816,22 @@ class ClaimOpController extends Controller
         $search = DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
-            vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
+            vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
-            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
+            os.cc,
+            MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
             op_data.claim_list,
             v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.claim_price, 0) AS claim_price,
-            ec.status AS ec_status
+            fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,
+            pt.sex, v.age_y
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN opdscreen os ON os.vn=o.vn
-            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
+            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
                 SELECT r.vn, SUM(r.total_amount) AS rcpt_money
@@ -2848,10 +2852,11 @@ class ClaimOpController extends Controller
                 AND op.paidst = "02"
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
-
+            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
                 GROUP_CONCAT(DISTINCT repno) AS repno FROM hrims.stm_ucs
@@ -2860,22 +2865,33 @@ class ClaimOpController extends Controller
             ) stm ON stm.cid = pt.cid AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5) 
             WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("SSS","SSI") 
-            AND ec.hn IS NULL AND stm.cid IS NULL
+            AND oe.moph_finance_upload_status IS NULL
+            AND fdh.seq IS NULL
+            AND ec.hn IS NULL
+            AND stm.cid IS NULL
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+            SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
+            vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
+            CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
+            os.cc,
+            MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
             op_data.claim_list,
-            COALESCE(op_data.claim_price, 0) AS ppfs,rep.rep_eclaim_detail_nhso AS rep_nhso,
+            v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.claim_price, 0) AS ppfs,
+            rep.rep_eclaim_detail_nhso AS rep_nhso,
             rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno,
-            ec.status AS ec_status
+            fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,
+            pt.sex, v.age_y
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN opdscreen os ON os.vn=o.vn
-            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
+            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn        
             LEFT JOIN (
                 SELECT r.vn, SUM(r.total_amount) AS rcpt_money
@@ -2897,8 +2913,10 @@ class ClaimOpController extends Controller
                 GROUP BY op.vn
             ) op_data ON op_data.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
+            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
             LEFT JOIN ( 
                 SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
@@ -2908,10 +2926,127 @@ class ClaimOpController extends Controller
             ) stm ON stm.cid = pt.cid AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5) 
             WHERE (o.an ="" OR o.an IS NULL) AND o.vstdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("SSS","SSI") 
-            AND (ec.hn IS NOT NULL OR stm.cid IS NOT NULL)
+            AND (oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL)
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
+        // ── Batch load claim items for all VNs ──────────────────────────────
+        $allVns = array_merge(array_column($search, 'seq'), array_column($claim, 'seq'));
+        $itemsByVn = [];
+        if (!empty($allVns)) {
+            $rawItems = DB::connection('hosxp')
+                ->select('
+                    SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
+                           li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
+                           IFNULL(n.name, d.name) AS name
+                    FROM opitemrece op
+                    INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = "Y"
+                    LEFT JOIN nondrugitems n ON n.icode = op.icode
+                    LEFT JOIN drugitems d ON d.icode = op.icode
+                    WHERE op.vn IN (' . implode(',', array_fill(0, count($allVns), '?')) . ')
+                    AND op.paidst = "02"',
+                $allVns);
+            foreach ($rawItems as $item) {
+                $itemsByVn[$item->vn][] = $item;
+            }
+        }
+
+        // ── Run ClaimValidator on each row ──────────────────────────────────
+        $validator = new \App\Services\ClaimValidator();
+        foreach ($search as $row) {
+            $result = $validator->validatePpfsOnly($row, $itemsByVn[$row->seq] ?? []);
+            $row->is_valid           = $result['is_valid'];
+            $row->endpoint_valid     = $result['endpoint_valid'];
+            $row->validation_errors  = $result['errors'];
+            $row->validation_warnings = $result['warnings'];
+        }
+        foreach ($claim as $row) {
+            $result = $validator->validatePpfsOnly($row, $itemsByVn[$row->seq] ?? []);
+            $row->is_valid           = $result['is_valid'];
+            $row->endpoint_valid     = $result['endpoint_valid'];
+            $row->validation_errors  = $result['errors'];
+            $row->validation_warnings = $result['warnings'];
+        }
+
         return view('claim_op.sss_ppfs', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
+    }
+    //----------------------------------------------------------------------------------------------------------------------------------------
+    // API: ดึงรายละเอียดการรับบริการสำหรับ Modal (Details + Validation) ของ PPFS
+    public function get_sss_ppfs_visit_details(Request $request)
+    {
+        $vn = $request->input('vn');
+        if (empty($vn)) {
+            return response()->json(['error' => 'กรุณาระบุ VN'], 400);
+        }
+
+        // ดึงข้อมูลหลักของ Visit
+        $visit = DB::connection('hosxp')->selectOne('
+            SELECT o.vn, o.vstdate, o.vsttime, o.oqueue,
+                   pt.hn, pt.sex, v.age_y, pt.cid,
+                   CONCAT(pt.pname,pt.fname," ",pt.lname) AS ptname,
+                   p.name AS pttype, vp.hospmain, os.cc, (SELECT icd10 FROM ovstdiag WHERE vn = o.vn AND diagtype = "1" LIMIT 1) AS pdx,
+                   v.income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
+                   IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
+                   IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
+                   ep.claim_status,
+                   fdh.status_message_th AS fdh_status,
+                   vp.confirm_and_locked,
+                   vp.request_funds
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN opdscreen os ON os.vn = o.vn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno=r.rcpno WHERE a.rcpno IS NULL GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
+            WHERE o.vn = ?', [$vn]);
+
+        if (!$visit) {
+            return response()->json(['error' => 'ไม่พบข้อมูลการรับบริการ'], 404);
+        }
+
+        // รหัสโรครอง
+        $secDiags = DB::connection('hosxp')
+            ->table('ovstdiag')
+            ->where('vn', $vn)
+            ->whereNotIn('diagtype', ['1', '2'])
+            ->pluck('icd10')
+            ->toArray();
+        $visit->sdx = implode(',', $secDiags);
+
+        // รหัสหัตถการ (ICD-9/Procedure)
+        $procedures = DB::connection('hosxp')
+            ->table('ovstdiag')
+            ->where('vn', $vn)
+            ->where('diagtype', '2')
+            ->pluck('icd10')
+            ->toArray();
+        $visit->icd9 = implode(',', $procedures);
+
+        // รายการเวชภัณฑ์/ค่าใช้จ่ายที่เรียกเก็บเฉพาะ PPFS
+        $items = DB::connection('hosxp')->select('
+            SELECT op.icode, IFNULL(n.name, d.name) AS name,
+                   op.qty, op.unitprice, op.sum_price,
+                   li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code
+            FROM opitemrece op
+            INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = "Y"
+            LEFT JOIN nondrugitems n ON n.icode = op.icode
+            LEFT JOIN drugitems d ON d.icode = op.icode
+            WHERE op.vn = ?
+            AND op.paidst = "02"', [$vn]);
+
+        // Validate
+        $validator = new \App\Services\ClaimValidator();
+        $validation = $validator->validatePpfsOnly($visit, $items);
+
+        return response()->json([
+            'visit'      => $visit,
+            'sec_diags'  => $secDiags,
+            'procedures' => $procedures,
+            'items'      => $items,
+            'validation' => $validation,
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function sss_fund(Request $request)
@@ -3163,8 +3298,7 @@ class ClaimOpController extends Controller
             INNER JOIN (
                 SELECT op.vn, SUM(op.sum_price) AS claim_price
                 FROM opitemrece op
-                INNER JOIN nondrugitems n ON op.icode = n.icode 
-                INNER JOIN hrims.lookup_sss_equipdev_aipn a ON a.`code`=n.nhso_adp_code AND a.dateexp >= DATE(NOW())
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.sss_hc = "Y"
                 WHERE op.vstdate BETWEEN ? AND ?
                 AND op.vn IS NOT NULL 
                 GROUP BY op.vn
@@ -3203,8 +3337,8 @@ class ClaimOpController extends Controller
                     GROUP_CONCAT(DISTINCT IFNULL(sd.`name`, n.`name`)) AS claim_list,
                     SUM(op.sum_price) AS claim_price
                 FROM opitemrece op
-                INNER JOIN nondrugitems n ON op.icode = n.icode 
-                INNER JOIN hrims.lookup_sss_equipdev_aipn a ON a.`code`=n.nhso_adp_code AND a.dateexp >= DATE(NOW())
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.sss_hc = "Y"
+                LEFT JOIN nondrugitems n ON op.icode = n.icode
                 LEFT JOIN s_drugitems sd ON sd.icode = op.icode
                 WHERE op.vstdate BETWEEN ? AND ? 
                 AND op.vn IS NOT NULL 

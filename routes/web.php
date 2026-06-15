@@ -680,4 +680,6 @@ Route::prefix('api')->middleware(['auth'])->group(function () {
     Route::post('nhso_endpoint_pull', [NhsoEndpointController::class, 'pull'])->name('nhso_endpoint_pull');
     Route::post('nhso_endpoint_pull_indiv', [NhsoEndpointController::class, 'pullIndiv'])->name('nhso_endpoint_pull_indiv');
     Route::post('nhso_endpoint_push_indiv', [NhsoEndpointController::class, 'pushIndiv'])->name('api.nhso.push_indiv');
+    Route::post('import_edc_zip', [\App\Http\Controllers\EdcImportController::class, 'importZip'])->name('api.import_edc_zip');
+    Route::post('import_edc_file', [\App\Http\Controllers\EdcImportController::class, 'importFile'])->name('api.import_edc_file');
 });

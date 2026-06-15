@@ -94,7 +94,7 @@ class HomeController extends Controller
             SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND kidney_flag = "Y" THEN 1 ELSE 0 END) AS uc_kidney,
             SUM(CASE WHEN hipdata_code IN ("UCS","WEL") AND kidney_flag = "Y" AND endpoint = "Y" THEN 1 ELSE 0 END) AS uc_kidney_endpoint
         FROM (
-            SELECT o.vn, pt.cid, vp.auth_code, p.hipdata_code, vp.hospmain, os.edc_approve_list_text,
+            SELECT o.vn, pt.cid, vp.auth_code, p.hipdata_code, vp.hospmain, COALESCE(os.edc_approve_list_text, eal.approve_code) as edc_approve_list_text,
                 lh.in_province,
                 IFNULL(li.ppfs_flag, "N") as ppfs_flag,
                 IFNULL(li.uc_cr_flag, "N") as uc_cr_flag,
@@ -102,13 +102,14 @@ class HomeController extends Controller
                 IFNULL(li.kidney_flag, "N") as kidney_flag,
                 IF(hms.vn IS NOT NULL, "Y", "N") as healthmed_flag,
                 IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""), "Y", "N") as auth_code_flag,
-                MAX(CASE WHEN vp.Claim_Code IS NOT NULL AND vp.Claim_Code <> "" THEN "Y" ELSE "N" END) as claim_code_flag,
+                MAX(CASE WHEN (vp.Claim_Code IS NOT NULL AND vp.Claim_Code <> "") OR (eal.approve_code IS NOT NULL AND eal.approve_code <> "") THEN "Y" ELSE "N" END) as claim_code_flag,
                 IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimCode LIKE "EP%" OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1
             LEFT JOIN pttype p ON p.pttype = vp.pttype
             LEFT JOIN ovst_seq os ON os.vn = o.vn
+            LEFT JOIN hrims.edc_approve_list eal ON eal.cid = pt.cid AND eal.vstdate = o.vstdate
             LEFT JOIN (
                 SELECT ori.vn,
                     MAX(CASE WHEN li.ppfs = "Y" THEN "Y" ELSE "N" END) as ppfs_flag,
@@ -384,7 +385,7 @@ class HomeController extends Controller
         pt.cid,pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         v.pdx,IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
         IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimCode LIKE "EP%" OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint, ep.claim_status,
-        IFNULL(vp.Claim_Code,os.edc_approve_list_text) AS edc,IF(ppfs.vn IS NOT NULL,"Y",NULL) AS ppfs,k.department
+        COALESCE(vp.Claim_Code,os.edc_approve_list_text) AS edc, eal.edc_ktb, eal.edc_ktb_with_time, IF(ppfs.vn IS NOT NULL,"Y",NULL) AS ppfs,k.department
         FROM ovst o
         LEFT JOIN patient pt ON pt.hn=o.hn
         LEFT JOIN visit_pttype vp ON vp.vn=o.vn AND vp.pttype_number = 1
@@ -400,6 +401,13 @@ class HomeController extends Controller
             GROUP BY ori.vn
         ) ppfs ON ppfs.vn=o.vn
         LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
+        LEFT JOIN (
+            SELECT cid, vstdate, 
+                   GROUP_CONCAT(DISTINCT approve_code ORDER BY approve_code SEPARATOR ",") AS edc_ktb,
+                   GROUP_CONCAT(DISTINCT CONCAT(approve_code, " (", DATE_FORMAT(vsttime, "%H:%i"), ")") ORDER BY approve_code SEPARATOR ", ") AS edc_ktb_with_time
+            FROM hrims.edc_approve_list
+            GROUP BY cid, vstdate
+        ) eal ON eal.cid = pt.cid AND eal.vstdate = o.vstdate
         WHERE o.vstdate BETWEEN ? AND ? AND p.hipdata_code = "OFC" AND (o.an ="" OR o.an IS NULL)
         GROUP BY o.vn ORDER BY ep.claimCode DESC ,o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date]);
 

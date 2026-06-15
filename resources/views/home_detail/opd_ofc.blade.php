@@ -29,6 +29,9 @@
                     <button type="button" onclick="pullAllNhsoData()" class="btn btn-outline-primary px-3 shadow-sm">
                         <i class="bi bi-cloud-download-fill me-1"></i> ดึงปิดสิทธิทั้งหมด
                     </button>
+                    <button type="button" class="btn btn-outline-success px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#importEdcModal">
+                        <i class="bi bi-file-earmark-arrow-up-fill me-1"></i> นำเข้าเลข EDC
+                    </button>
             </div>
         </form>
       </div>
@@ -44,6 +47,7 @@
                 <th class="text-center text-nowrap">Authen</th>
                 <th class="text-center">PPFS</th>
                 <th class="text-center">EDC</th>
+                <th class="text-center">EDC (KTB)</th>
                 <th class="text-center">วันที่รับบริการ/เวลา</th> 
                 <th class="text-center text-nowrap">ชื่อ-สกุล | CID | HN</th>    
                 <th class="text-center">การติดต่อ</th>
@@ -93,9 +97,27 @@
                   <span class="badge bg-danger shadow-sm">N</span>
                 @endif
               </td> 
+              @php
+                  $edc_hosxp_list = array_filter(array_map('trim', explode(',', $row->edc)));
+                  $edc_ktb_list = array_filter(array_map('trim', explode(',', $row->edc_ktb)));
+                  
+                  sort($edc_hosxp_list);
+                  sort($edc_ktb_list);
+                  
+                  $is_match = ($edc_hosxp_list === $edc_ktb_list);
+                  $text_class = $is_match ? '' : 'text-danger fw-bold';
+                  $order_val = $is_match ? 1 : 0;
+              @endphp
               <td align="center">
                 @if($row->edc)
-                  <span class="badge bg-info text-dark shadow-sm">{{$row->edc}}</span>
+                  <span class="{{ $text_class }}">{{$row->edc}}</span>
+                @endif
+              </td>
+              <td align="center" data-order="{{ $order_val }}">
+                @if($row->edc_ktb_with_time)
+                  <span>{{$row->edc_ktb_with_time}}</span>
+                @else
+                  -
                 @endif
               </td>                
               <td align="left">
@@ -125,7 +147,47 @@
       </div>          
     </div> 
   </div>    
-</div>      
+</div>
+
+    <!-- Modal Import EDC ZIP -->
+    <div class="modal fade" id="importEdcModal" tabindex="-1" aria-labelledby="importEdcModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title fw-bold" id="importEdcModalLabel">
+                        <i class="bi bi-file-earmark-zip-fill me-2"></i> นำเข้าไฟล์เลขอนุมัติ EDC (ZIP)
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="edcZipForm" enctype="multipart/form-data">
+                        <div class="mb-4 text-center">
+                            <i class="bi bi-cloud-arrow-up-fill text-success" style="font-size: 3rem;"></i>
+                            <p class="text-muted mt-2 small">เลือกไฟล์ ZIP ที่ประกอบไปด้วยไฟล์รายงานเลข EDC ด้านใน</p>
+                        </div>
+                        <div class="mb-3">
+                            <label for="zip_file" class="form-label small fw-bold text-muted">เลือกไฟล์ ZIP</label>
+                            <input class="form-control" type="file" id="zip_file" name="zip_file" accept=".zip" required>
+                        </div>
+                    </form>
+
+                    <!-- Progress Bar Area -->
+                    <div id="edc-import-progress-area" style="display: none;">
+                        <hr>
+                        <div id="edc-progress-text" class="mb-2 text-start small text-muted">กำลังเตรียมนำเข้า...</div>
+                        <div class="progress mb-2" style="height: 20px;">
+                            <div id="edc-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                        </div>
+                        <div id="edc-details-log" class="text-start small bg-light p-2 border rounded-3" style="max-height: 120px; overflow-y: auto; font-family: monospace; font-size: 11px; line-height: 1.4;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0">
+                    <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal" id="cancelImportBtn">ยกเลิก</button>
+                    <button type="button" class="btn btn-success px-4 rounded-pill shadow" id="submitZipBtn">นำเข้าข้อมูล</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <script>
 function alertAlreadyClosed(source) {
@@ -423,6 +485,119 @@ function showLoading() {
               next: '<i class="bi bi-chevron-right"></i>'
             }
         }
+      });
+
+      // EDC ZIP Import Handler
+      document.getElementById('submitZipBtn').addEventListener('click', async function () {
+          const fileInput = document.getElementById('zip_file');
+          if (fileInput.files.length === 0) {
+              Swal.fire({ icon: 'warning', title: 'กรุณาเลือกไฟล์ ZIP', confirmButtonText: 'ตกลง' });
+              return;
+          }
+
+          const formData = new FormData();
+          formData.append('zip_file', fileInput.files[0]);
+          formData.append('_token', "{{ csrf_token() }}");
+
+          // Show progress area
+          document.getElementById('edc-import-progress-area').style.display = 'block';
+          const logDiv = document.getElementById('edc-details-log');
+          const progressText = document.getElementById('edc-progress-text');
+          const progressBar = document.getElementById('edc-progress-bar');
+          const submitBtn = document.getElementById('submitZipBtn');
+          const cancelBtn = document.getElementById('cancelImportBtn');
+
+          logDiv.innerHTML = '';
+          progressText.innerText = 'กำลังอัปโหลดและแตกไฟล์ ZIP...';
+          progressBar.style.width = '0%';
+          progressBar.innerText = '0%';
+          progressBar.setAttribute('aria-valuenow', 0);
+          submitBtn.disabled = true;
+          cancelBtn.disabled = true;
+
+          try {
+              logDiv.innerHTML += `<div>📤 กำลังอัปโหลดและแตกไฟล์ ZIP...</div>`;
+              const uploadRes = await fetch("{{ route('api.import_edc_zip') }}", {
+                  method: 'POST',
+                  body: formData,
+                  headers: {
+                      'X-CSRF-TOKEN': "{{ csrf_token() }}",
+                      'Accept': 'application/json'
+                  }
+              });
+
+              const uploadData = await uploadRes.json();
+              if (!uploadRes.ok || !uploadData.success) {
+                  throw new Error(uploadData.message || 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์ ZIP');
+              }
+
+              const uniqueId = uploadData.unique_id;
+              const files = uploadData.files;
+              const totalFiles = files.length;
+
+              logDiv.innerHTML += `<div class="text-success">✔ อัปโหลดสำเร็จ พบไฟล์รายงานด้านในทั้งหมด ${totalFiles} ไฟล์</div>`;
+              logDiv.scrollTop = logDiv.scrollHeight;
+
+              let processedCount = 0;
+              for (let i = 0; i < totalFiles; i++) {
+                  const fileObj = files[i];
+                  progressText.innerText = `กำลังประมวลผลไฟล์ที่ ${i + 1}/${totalFiles}: ${fileObj.name}`;
+                  logDiv.innerHTML += `<div>🚀 เริ่มนำเข้าไฟล์ ${fileObj.name}...</div>`;
+                  logDiv.scrollTop = logDiv.scrollHeight;
+
+                  const fileFormData = new FormData();
+                  fileFormData.append('unique_id', uniqueId);
+                  fileFormData.append('file_name', fileObj.name);
+
+                  const fileRes = await fetch("{{ route('api.import_edc_file') }}", {
+                      method: 'POST',
+                      body: fileFormData,
+                      headers: {
+                          'X-CSRF-TOKEN': "{{ csrf_token() }}",
+                          'Accept': 'application/json'
+                      }
+                  });
+
+                  const fileData = await fileRes.json();
+                  if (fileRes.ok && fileData.success) {
+                      processedCount++;
+                      logDiv.innerHTML += `<div class="text-success" style="margin-left: 10px;">✔ ${fileData.message}</div>`;
+                  } else {
+                      logDiv.innerHTML += `<div class="text-danger" style="margin-left: 10px;">❌ ล้มเหลว: ${fileData.message || 'เกิดข้อผิดพลาด'}</div>`;
+                  }
+
+                  const percent = Math.round((processedCount / totalFiles) * 100);
+                  progressBar.style.width = `${percent}%`;
+                  progressBar.innerText = `${percent}%`;
+                  progressBar.setAttribute('aria-valuenow', percent);
+                  logDiv.scrollTop = logDiv.scrollHeight;
+              }
+
+              progressText.innerText = 'นำเข้าข้อมูลเสร็จสิ้น!';
+              progressBar.classList.replace('bg-success', 'bg-primary');
+
+              Swal.fire({
+                  icon: 'success',
+                  title: 'นำเข้าเลข EDC สำเร็จ!',
+                  text: `ประมวลผลเสร็จสิ้นทั้งหมด ${processedCount} จาก ${totalFiles} ไฟล์`,
+                  confirmButtonText: 'ตกลง',
+                  confirmButtonColor: '#198754'
+              }).then(() => {
+                  location.reload();
+              });
+
+          } catch (error) {
+              logDiv.innerHTML += `<div class="text-danger">❌ เกิดข้อผิดพลาดร้ายแรง: ${error.message}</div>`;
+              progressText.innerText = 'การนำเข้าล้มเหลว';
+              Swal.fire({
+                  icon: 'error',
+                  title: 'การนำเข้าล้มเหลว',
+                  text: error.message
+              });
+          } finally {
+              submitBtn.disabled = false;
+              cancelBtn.disabled = false;
+          }
       });
     });
   </script>

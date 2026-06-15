@@ -105,7 +105,7 @@
                   sort($edc_ktb_list);
                   
                   $is_match = ($edc_hosxp_list === $edc_ktb_list);
-                  $text_class = $is_match ? '' : 'text-danger fw-bold';
+                  $text_class = $is_match ? 'text-success fw-bold' : 'text-danger fw-bold';
                   $order_val = $is_match ? 1 : 0;
               @endphp
               <td align="center">
@@ -123,6 +123,9 @@
               <td align="left">
                 <small class="d-block fw-bold text-dark">{{ DateThai($row->vstdate) }}</small>
                 <small class="text-muted">{{ $row->vsttime }}</small>
+                @if(!empty($row->oqueue))
+                  <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 ms-1" style="font-size: 0.7rem;">Q-{{ $row->oqueue }}</span>
+                @endif
               </td>                
               <td align="left">
                 <div class="fw-bold text-dark">{{ $row->ptname }}</div>

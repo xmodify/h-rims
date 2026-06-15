@@ -381,7 +381,7 @@ class HomeController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d');
 
         $sql = DB::connection('hosxp')->select('
-        SELECT o.vstdate,o.vsttime,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+        SELECT o.vstdate,o.vsttime,o.oqueue,o.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
         pt.cid,pt.mobile_phone_number,p.`name` AS pttype,vp.hospmain,v.income,v.rcpt_money,v.income-v.paid_money AS debtor,
         v.pdx,IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
         IF((vp.auth_code LIKE "EP%" OR ep.claim_status IN ("success") OR ep.claimCode LIKE "EP%" OR ep.claimType IN ("PG0130001", "PG0140001")),"Y",NULL) AS endpoint, ep.claim_status,

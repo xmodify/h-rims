@@ -38,116 +38,175 @@
     </div>
 
     <div class="card-body">
-      <div class="table-responsive">            
-        <table id="list" class="table table-hover table-bordered align-middle" width="100%">
-           <thead class="bg-light">
-            <tr>
-                <th class="text-center">ลำดับ</th>
-                <th class="text-center" width="6%">ปิดสิทธิ</th>
-                <th class="text-center text-nowrap">Authen</th>
-                <th class="text-center">PPFS</th>
-                <th class="text-center">EDC</th>
-                <th class="text-center">EDC (KTB)</th>
-                <th class="text-center">วันที่รับบริการ/เวลา</th> 
-                <th class="text-center text-nowrap">ชื่อ-สกุล | CID | HN</th>    
-                <th class="text-center">การติดต่อ</th>
-                <th class="text-center">สิทธิ | Hmain</th>
-                <th class="text-center">PDX</th>
-                <th class="text-center text-nowrap">ค่ารักษาทั้งหมด</th>
-                <th class="text-center text-nowrap">ชำระเอง</th>
-                <th class="text-center text-nowrap">ที่เบิกได้</th>
-                <th class="text-center text-nowrap">ห้องตรวจ</th>
-            </tr>
-          </thead> 
-          <tbody> 
-            @foreach($sql as $index => $row) 
-            <tr>
-              <td align="center" class="text-muted">{{ $index + 1 }}</td>
-              <td align="center" data-order="{{ $row->endpoint === 'Y' ? 3 : (in_array($row->claim_status, ['pulled', 'failed']) ? 2 : 1) }}">                  
-                @php
-                    $status = $row->claim_status;
-                @endphp
+      @php
+          $sql_all = $sql;
+          $sql_match = [];
+          $sql_no_hosxp = [];
+          $sql_no_ktb = [];
+          $sql_mismatch = [];
+          $sql_no_info = [];
 
-                @if($row->endpoint === 'Y')
-                    <button onclick="alertAlreadyClosed('สปสช.')" class="btn btn-outline-success btn-sm rounded-circle" title="ปิดสิทธิเรียบร้อยแล้ว">
-                        <i class="bi bi-check-circle-fill"></i>
-                    </button>
-                @elseif(in_array($status, ['pulled', 'failed']))
+          foreach ($sql as $row) {
+              $edc_hosxp_list = array_filter(array_map('trim', explode(',', $row->edc)));
+              $edc_ktb_list = array_filter(array_map('trim', explode(',', $row->edc_ktb)));
 
-                    <button onclick="pushNhsoData('{{ $row->cid }}', '{{ $row->vstdate }}')" class="btn btn-outline-warning btn-sm rounded-circle" title="รอยืนยันปิดสิทธิ (Push)">
-                        <i class="bi bi-arrow-up-circle-fill"></i>
-                    </button>
-                @else
-                    <button onclick="pullNhsoData('{{ $row->vstdate }}', '{{ $row->cid }}')" class="btn btn-outline-info btn-sm rounded-circle pull-nhso-btn" data-vstdate="{{ $row->vstdate }}" data-cid="{{ $row->cid }}" title="ดึงข้อมูลจาก สปสช. (Pull)">
-                        <i class="bi bi-cloud-download-fill"></i>
-                    </button>
-                @endif
-              </td> 
-              <td align="center">
-                @if($row->auth_code == 'Y')
-                  <span class="badge bg-success shadow-sm">Y</span>
-                @else
-                  <span class="badge bg-danger shadow-sm">N</span>
-                @endif
-              </td>               
-              <td align="center">
-                @if($row->ppfs == 'Y')
-                  <span class="badge bg-success shadow-sm">Y</span>
-                @else
-                  <span class="badge bg-danger shadow-sm">N</span>
-                @endif
-              </td> 
-              @php
-                  $edc_hosxp_list = array_filter(array_map('trim', explode(',', $row->edc)));
-                  $edc_ktb_list = array_filter(array_map('trim', explode(',', $row->edc_ktb)));
-                  
-                  sort($edc_hosxp_list);
-                  sort($edc_ktb_list);
-                  
-                  $is_match = ($edc_hosxp_list === $edc_ktb_list);
-                  $text_class = $is_match ? 'text-success fw-bold' : 'text-danger fw-bold';
-                  $order_val = $is_match ? 1 : 0;
-              @endphp
-              <td align="center">
-                @if($row->edc)
-                  <span class="{{ $text_class }}">{{$row->edc}}</span>
-                @endif
-              </td>
-              <td align="center" data-order="{{ $order_val }}">
-                @if($row->edc_ktb_with_time)
-                  <span>{{$row->edc_ktb_with_time}}</span>
-                @else
-                  -
-                @endif
-              </td>                
-              <td align="left">
-                <small class="d-block fw-bold text-dark">{{ DateThai($row->vstdate) }}</small>
-                <small class="text-muted">{{ $row->vsttime }}</small>
-                @if(!empty($row->oqueue))
-                  <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 ms-1" style="font-size: 0.7rem;">Q-{{ $row->oqueue }}</span>
-                @endif
-              </td>                
-              <td align="left">
-                <div class="fw-bold text-dark">{{ $row->ptname }}</div>
-                <small class="text-muted">CID: <span>{{ $row->cid }}</span> | HN: <span>{{ $row->hn }}</span></small>
-              </td> 
-              <td align="left">
-                <div class="mt-1"><small class="text-muted"><i class="bi bi-phone"></i> {{ $row->mobile_phone_number ?: '-' }}</small></div>
-              </td>
-              <td align="left">
-                <small class="d-block text-truncate" style="max-width: 150px;" title="{{ $row->pttype }}">{{ $row->pttype }}</small>
-                <span class="badge bg-secondary shadow-sm">H: {{ $row->hospmain ?: 'N/A' }}</span>
-              </td>
-              <td align="center"><span class="badge bg-secondary shadow-sm">{{$row->pdx}}</span></td>
-              <td align="right" class="fw-bold">{{ number_format($row->income, 2) }}</td>
-              <td align="right" class="text-danger">{{ number_format($row->rcpt_money, 2) }}</td>
-              <td align="right" class="text-primary fw-bold">{{ number_format($row->debtor, 2) }}</td>
-              <td align="center"><span class="badge bg-secondary shadow-sm">{{$row->department}}</span></td>
-            </tr>
-            @endforeach                 
-          </tbody>
-        </table>     
-      </div>          
+              $has_hosxp = !empty($edc_hosxp_list);
+              $has_ktb = !empty($edc_ktb_list);
+              $is_match = $has_hosxp && $has_ktb && count(array_intersect($edc_hosxp_list, $edc_ktb_list)) > 0;
+
+              if ($is_match) {
+                  $sql_match[] = $row;
+              } elseif ($has_ktb && !$has_hosxp) {
+                  $sql_no_hosxp[] = $row;
+              } elseif ($has_hosxp && !$has_ktb) {
+                  $sql_no_ktb[] = $row;
+              } elseif ($has_hosxp && $has_ktb && !$is_match) {
+                  $sql_mismatch[] = $row;
+              } else {
+                  $sql_no_info[] = $row;
+              }
+          }
+
+          $tabs = [
+              ['id' => 'all', 'title' => 'ทั้งหมด', 'badge_class' => 'bg-secondary', 'data' => $sql_all, 'active' => true],
+              ['id' => 'match', 'title' => 'จับคู่ถูกต้อง (Match)', 'badge_class' => 'bg-success', 'data' => $sql_match, 'active' => false],
+              ['id' => 'no-hosxp', 'title' => 'ไม่พบคีย์ใน HOSxP', 'badge_class' => 'bg-danger', 'data' => $sql_no_hosxp, 'active' => false],
+              ['id' => 'no-ktb', 'title' => 'ไม่พบข้อมูลใน KTB', 'badge_class' => 'bg-warning text-dark', 'data' => $sql_no_ktb, 'active' => false],
+              ['id' => 'mismatch', 'title' => 'เลข EDC ไม่ตรงกัน', 'badge_class' => 'bg-primary', 'data' => $sql_mismatch, 'active' => false],
+              ['id' => 'no-info', 'title' => 'ไม่มีข้อมูล EDC ทั้งคู่', 'badge_class' => 'bg-light text-dark', 'data' => $sql_no_info, 'active' => false],
+          ];
+      @endphp
+
+      <ul class="nav nav-tabs mb-3" id="edcTab" role="tablist">
+          @foreach($tabs as $tab)
+          <li class="nav-item" role="presentation">
+              <button class="nav-link {{ $tab['active'] ? 'active' : '' }} {{ $tab['id'] !== 'all' && $tab['id'] !== 'no-info' ? 'fw-bold' : '' }}" 
+                      id="{{ $tab['id'] }}-tab" 
+                      data-bs-toggle="tab" 
+                      data-bs-target="#{{ $tab['id'] }}-pane" 
+                      type="button" 
+                      role="tab" 
+                      aria-controls="{{ $tab['id'] }}-pane" 
+                      aria-selected="{{ $tab['active'] ? 'true' : 'false' }}">
+                  {{ $tab['title'] }} <span class="badge {{ $tab['badge_class'] }}">{{ count($tab['data']) }}</span>
+              </button>
+          </li>
+          @endforeach
+      </ul>
+
+      <div class="tab-content" id="edcTabContent">
+          @foreach($tabs as $tab)
+          <div class="tab-pane fade {{ $tab['active'] ? 'show active' : '' }}" id="{{ $tab['id'] }}-pane" role="tabpanel" aria-labelledby="{{ $tab['id'] }}-tab">
+            <div class="table-responsive mt-3">            
+              <table class="table table-hover table-bordered align-middle datatable-list" width="100%">
+                 <thead class="bg-light">
+                  <tr>
+                      <th class="text-center">ลำดับ</th>
+                      <th class="text-center" width="6%">ปิดสิทธิ</th>
+                      <th class="text-center text-nowrap">Authen</th>
+                      <th class="text-center">PPFS</th>
+                      <th class="text-center">EDC</th>
+                      <th class="text-center">EDC (KTB)</th>
+                      <th class="text-center">วันที่รับบริการ/เวลา</th> 
+                      <th class="text-center text-nowrap">ชื่อ-สกุล | CID | HN</th>    
+                      <th class="text-center">การติดต่อ</th>
+                      <th class="text-center">สิทธิ | Hmain</th>
+                      <th class="text-center">PDX</th>
+                      <th class="text-center text-nowrap">ค่ารักษาทั้งหมด</th>
+                      <th class="text-center text-nowrap">ชำระเอง</th>
+                      <th class="text-center text-nowrap">ที่เบิกได้</th>
+                      <th class="text-center text-nowrap">ห้องตรวจ</th>
+                  </tr>
+                </thead> 
+                <tbody> 
+                  @foreach($tab['data'] as $index => $row) 
+                  <tr>
+                    <td align="center" class="text-muted">{{ $index + 1 }}</td>
+                    <td align="center" data-order="{{ $row->endpoint === 'Y' ? 3 : (in_array($row->claim_status, ['pulled', 'failed']) ? 2 : 1) }}">                  
+                      @php
+                          $status = $row->claim_status;
+                      @endphp
+
+                      @if($row->endpoint === 'Y')
+                          <button onclick="alertAlreadyClosed('สปสช.')" class="btn btn-outline-success btn-sm rounded-circle" title="ปิดสิทธิเรียบร้อยแล้ว">
+                              <i class="bi bi-check-circle-fill"></i>
+                          </button>
+                      @elseif(in_array($status, ['pulled', 'failed']))
+
+                          <button onclick="pushNhsoData('{{ $row->cid }}', '{{ $row->vstdate }}')" class="btn btn-outline-warning btn-sm rounded-circle" title="รอยืนยันปิดสิทธิ (Push)">
+                              <i class="bi bi-arrow-up-circle-fill"></i>
+                          </button>
+                      @else
+                          <button onclick="pullNhsoData('{{ $row->vstdate }}', '{{ $row->cid }}')" class="btn btn-outline-info btn-sm rounded-circle pull-nhso-btn" data-vstdate="{{ $row->vstdate }}" data-cid="{{ $row->cid }}" title="ดึงข้อมูลจาก สปสช. (Pull)">
+                              <i class="bi bi-cloud-download-fill"></i>
+                          </button>
+                      @endif
+                    </td> 
+                    <td align="center">
+                      @if($row->auth_code == 'Y')
+                        <span class="badge bg-success shadow-sm">Y</span>
+                      @else
+                        <span class="badge bg-danger shadow-sm">N</span>
+                      @endif
+                    </td>               
+                    <td align="center">
+                      @if($row->ppfs == 'Y')
+                        <span class="badge bg-success shadow-sm">Y</span>
+                      @else
+                        <span class="badge bg-danger shadow-sm">N</span>
+                      @endif
+                    </td> 
+                    @php
+                        $edc_hosxp_list = array_filter(array_map('trim', explode(',', $row->edc)));
+                        $edc_ktb_list = array_filter(array_map('trim', explode(',', $row->edc_ktb)));
+                        
+                        $is_match = !empty($edc_hosxp_list) && !empty($edc_ktb_list) && count(array_intersect($edc_hosxp_list, $edc_ktb_list)) > 0;
+                        $text_class = $is_match ? 'text-success fw-bold' : 'text-danger fw-bold';
+                        $order_val = $is_match ? 1 : 0;
+                    @endphp
+                    <td align="center">
+                      @if($row->edc)
+                        <span class="{{ $text_class }}">{{$row->edc}}</span>
+                      @endif
+                    </td>
+                    <td align="center" data-order="{{ $order_val }}">
+                      @if($row->edc_ktb_with_time)
+                        <span>{{$row->edc_ktb_with_time}}</span>
+                      @else
+                        -
+                      @endif
+                    </td>                
+                    <td align="left">
+                      <small class="d-block fw-bold text-dark">{{ DateThai($row->vstdate) }}</small>
+                      <small class="text-muted">{{ $row->vsttime }}</small>
+                      @if(!empty($row->oqueue))
+                        <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 ms-1" style="font-size: 0.7rem;">Q-{{ $row->oqueue }}</span>
+                      @endif
+                    </td>                
+                    <td align="left">
+                      <div class="fw-bold text-dark">{{ $row->ptname }}</div>
+                      <small class="text-muted">CID: <span>{{ $row->cid }}</span> | HN: <span>{{ $row->hn }}</span></small>
+                    </td> 
+                    <td align="left">
+                      <div class="mt-1"><small class="text-muted"><i class="bi bi-phone"></i> {{ $row->mobile_phone_number ?: '-' }}</small></div>
+                    </td>
+                    <td align="left">
+                      <small class="d-block text-truncate" style="max-width: 150px;" title="{{ $row->pttype }}">{{ $row->pttype }}</small>
+                      <span class="badge bg-secondary shadow-sm">H: {{ $row->hospmain ?: 'N/A' }}</span>
+                    </td>
+                    <td align="center"><span class="badge bg-secondary shadow-sm">{{$row->pdx}}</span></td>
+                    <td align="right" class="fw-bold">{{ number_format($row->income, 2) }}</td>
+                    <td align="right" class="text-danger">{{ number_format($row->rcpt_money, 2) }}</td>
+                    <td align="right" class="text-primary fw-bold">{{ number_format($row->debtor, 2) }}</td>
+                    <td align="center"><span class="badge bg-secondary shadow-sm">{{$row->department}}</span></td>
+                  </tr>
+                  @endforeach                 
+                </tbody>
+              </table>     
+            </div>          
+          </div>
+          @endforeach
+      </div>
     </div> 
   </div>    
 </div>
@@ -459,7 +518,7 @@ function showLoading() {
           }
       });
 
-      $('#list').DataTable({
+      $('.datatable-list').DataTable({
         order: [[1, 'asc']],
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 

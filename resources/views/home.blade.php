@@ -53,8 +53,8 @@
       <div class="col-sm-3 mb-3">
           <div class="card dash-card accent-1">
             <div class="card-body">
-              <span class="card-label"><i class="bi bi-credit-card-2-front me-1 icon-color-1"></i> OFC Visit : รูดบัตร</span>
-              <div class="card-metric">{{$ofc}} : {{$ofc_edc}}</div> 
+              <span class="card-label"><i class="bi bi-credit-card-2-front me-1 icon-color-1"></i> OFC Visit : รูดบัตร : ปิดสิทธิ</span>
+              <div class="card-metric">{{$ofc}} : {{$ofc_edc}} : {{$ofc_endpoint}}</div> 
               <a href="{{ url('/opd_ofc') }}" target="_blank" class="card-footer-link text-color-1">
                 View Report <i class="bi bi-chevron-right"></i>
               </a>

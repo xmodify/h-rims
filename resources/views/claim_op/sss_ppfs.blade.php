@@ -82,8 +82,8 @@
                             <button onclick="fetchData()" type="submit" class="btn btn-success px-3 shadow-sm">
                                 <i class="bi bi-table me-1"></i> โหลด indiv
                             </button>
-                            <button onclick="checkFdhBulk(event)" type="button" class="btn btn-info text-white px-3 shadow-sm" title="ดึงสถานะ FDH ตามช่วงเวลาที่เลือก (ทีละ 1 วัน)">
-                                <i class="bi bi-arrow-repeat me-1"></i> ดึง FDH
+                            <button type="button" class="btn btn-outline-success px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#ExtensionInfoModal">
+                                <i class="bi bi-puzzle-fill me-1"></i> ดึง E-Claim ด้วย Extension
                             </button>
                         </div>
                     </form>
@@ -378,6 +378,59 @@
         </div>
     </div>
 
+    <!-- Modal Extension Info -->
+    <div class="modal fade" id="ExtensionInfoModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header bg-dark text-white">
+            <h5 class="modal-title fw-bold"><i class="bi bi-puzzle-fill text-warning me-2"></i> วิธีติดตั้งและใช้งาน Chrome Extension</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-4 text-start">
+              <h6 class="fw-bold mb-3 text-primary border-bottom pb-2"><i class="bi bi-1-circle"></i> ขั้นตอนที่ 1 : ติดตั้งส่วนเสริม (ทำครั้งเดียว)</h6>
+              <ol class="mb-4 text-muted small lh-lg">
+                  <li>ดาวน์โหลดไฟล์ส่วนเสริมลงในเครื่องคอมพิวเตอร์ของคุณ <br/><a href="{{ url('downloads/eclaim_sync.zip') }}" class="btn btn-sm btn-outline-primary mt-1 mb-2"><i class="bi bi-download"></i> ดาวน์โหลด eclaim_sync.zip (เวอร์ชั่นล่าสุด)</a><br/> จากนั้น<b>แตกไฟล์ (Extract / Unzip)</b> ลงในโฟลเดอร์ให้เรียบร้อย (เช่น สร้างโฟลเดอร์ชื่อ <code>eclaim_sync</code> บน Desktop)</li>
+                  <li>เปิด Google Chrome และพิมพ์ที่ช่อง URL ด้านบน: <code class="bg-light p-1 text-primary">chrome://extensions/</code> แล้วกด Enter</li>
+                  <li>ที่มุมขวาบนของหน้าจอ ให้คลิกเปิดสวิตช์ <b>โหมดนักพัฒนาซอฟต์แวร์ (Developer mode)</b></li>
+                  <li>คลิกปุ่ม <b>โหลดส่วนขยายที่ยังไม่ได้แพ็ก (Load unpacked)</b> (มุมซ้ายบน) แล้วคลิกเลือกโฟลเดอร์ <code>eclaim_sync</code> ที่แตกไฟล์ไว้</li>
+              </ol>
+
+              <h6 class="fw-bold mb-3 text-warning border-bottom pb-2"><i class="bi bi-gear-fill me-1"></i> ขั้นตอนที่ 2 : ตั้งค่าการส่งข้อมูล (ทำครั้งเดียว)</h6>
+              <div class="mb-4 text-muted small">
+                  <p class="mb-1">เมื่อติดตั้งแล้ว ให้ตั้งค่าที่อยู่ในการส่งข้อมูล (API URL) ดังนี้:</p>
+                  <div class="bg-light p-3 rounded-3 border">
+                      <div class="d-flex justify-content-between align-items-center mb-2">
+                           <span class="fw-bold text-dark">URL ที่ต้องคัดลอก:</span>
+                           <button class="btn btn-xs btn-primary py-0" onclick="copyToClipboard('{{ url('api') }}')">คัดลอก</button>
+                      </div>
+                      <code id="apiUrlPath" class="text-break text-danger fw-bold">{{ url('api') }}</code>
+                  </div>
+                  <ol class="mt-2 lh-lg">
+                      <li>คลิกที่ไอคอน Extension <b>"RiMS E-Claim Sync"</b></li>
+                      <li>คลิกที่ไอคอน <b>⚙️ (ฟันเฟือง)</b> มุมขวาบนของหน้าต่างป๊อปอัป</li>
+                      <li><b>คัดลอก URL ด้านบนไปวาง</b> ในช่อง RiMS API URL จากนั้นกด <b>บันทึกการตั้งค่า</b></li>
+                  </ol>
+              </div>
+              
+              <h6 class="fw-bold mb-3 text-success border-bottom pb-2"><i class="bi bi-2-circle"></i> ขั้นตอนที่ 3 : วิธีการดึงข้อมูล (ทำรายวัน)</h6>
+              <ol class="mb-4 text-muted small lh-lg">
+                  <li>ให้ใช้ Google Chrome เปิดหน้าเว็บ <a href="https://eclaim.nhso.go.th/Client" target="_blank" class="text-decoration-underline fw-bold">E-Claim สปสช.</a> และ Login เข้าสู่ระบบ</li>
+                  <li>เปิดเข้าสู่หน้าระบบและค้นหาช่วงวันที่ต้องการ เมื่อมีข้อมูลรายชื่อผู้ป่วยแสดงในตารางเรียบร้อยแล้ว</li>
+                  <li>คลิกที่ <b>ไอคอนส่วนขยาย "RiMS E-Claim Sync"</b> แล้วกดปุ่ม <b>"ดึงข้อมูลเข้าสู่ RiMS"</b> </li>
+                  <li>รอให้ระบบทำการกวาดตารางและส่งข้อมูลเข้าฐานข้อมูลของโรงพยาบาลจนขึ้นข้อความสำเร็จ</li>
+              </ol>
+
+              <div class="alert alert-warning py-2 mb-0" style="font-size: 0.85rem">
+                 <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> <b>หมายเหตุ:</b> หากข้อมูลมีหลายหน้า ต้องคลิกเปลี่ยนหน้า และกดปุ่มซิงค์ทีละหน้า
+              </div>
+          </div>
+          <div class="modal-footer border-0 bg-light">
+              <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
 <script>
   function showLoading() {
       Swal.fire({
@@ -392,136 +445,19 @@
   function fetchData() {
       showLoading();
   }
-
-  async function checkFdhBulk(e) {
-      e.preventDefault();
-      const startDate = document.getElementById('start_date').value;
-      const endDate   = document.getElementById('end_date').value;
-      const startDateText = document.getElementById('start_date_picker').value || startDate;
-      const endDateText   = document.getElementById('end_date_picker').value || endDate;
-
-      if (!startDate || !endDate) {
-          Swal.fire({ icon: 'warning', title: 'กรุณาเลือกช่วงวันก่อน', confirmButtonColor: '#0dcaf0' });
-          return;
-      }
-
-      // ยืนยันก่อนดึง
-      const confirm = await Swal.fire({
-          title: 'ยืนยันการดึง FDH?',
-          html: `ดึงสถานะ FDH ในช่วง <b>${startDateText}</b> ถึง <b>${endDateText}</b><br><small class="text-muted">ระบบจะส่งทีละ 1 วัน</small>`,
-          icon: 'question',
-          showCancelButton: true,
-          confirmButtonText: 'ดึงข้อมูล',
-          cancelButtonText: 'ยกเลิก',
-          confirmButtonColor: '#0dcaf0'
+  function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+          Swal.fire({
+              icon: 'success',
+              title: 'คัดลอกแล้ว!',
+              text: 'นำไปวางในช่อง RiMS API URL ในหน้าตั้งค่าของ Extension ได้เลย',
+              timer: 2000,
+              showConfirmButton: false
+          });
       });
-      if (!confirm.isConfirmed) return;
-
-      // สร้างรายการวันทีละ 1 วัน
-      function getDayList(startStr, endStr) {
-          const days = [];
-          let cur = new Date(startStr);
-          const last = new Date(endStr);
-          while (cur <= last) {
-              days.push(cur.toISOString().split('T')[0]);
-              cur.setDate(cur.getDate() + 1);
-          }
-          return days;
-      }
-
-      function formatThaiDateShort(dateStr) {
-          if (!dateStr) return '';
-          const parts = dateStr.split('-');
-          if (parts.length !== 3) return dateStr;
-          const year = parseInt(parts[0]) + 543;
-          const monthIndex = parseInt(parts[1]) - 1;
-          const day = parseInt(parts[2]);
-          const shortMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-          return `${day} ${shortMonths[monthIndex]} ${year}`;
-      }
-
-      const days = getDayList(startDate, endDate);
-      const total = days.length;
-      let totalFound = 0;
-      let failedDays = [];
-      let overallSuccess = true;
-
-      // แสดง progress
-      Swal.fire({
-          title: 'กำลังดึงสถานะ FDH...',
-          html: `
-              <div id="fdh-progress-text" class="mb-2">กำลังเตรียมข้อมูล...</div>
-              <div class="progress" style="height: 22px;">
-                  <div id="fdh-progress-bar"
-                       class="progress-bar progress-bar-striped progress-bar-animated bg-info"
-                       role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
-              </div>
-              <div id="fdh-progress-sub" class="mt-2 text-muted small"></div>
-          `,
-          allowOutsideClick: false,
-          showConfirmButton: false
-      });
-
-      for (let i = 0; i < total; i++) {
-          const day = days[i];
-          const percent = Math.round((i / total) * 100);
-
-          const pText = document.getElementById('fdh-progress-text');
-          const pBar  = document.getElementById('fdh-progress-bar');
-          const pSub  = document.getElementById('fdh-progress-sub');
-          if (pText) pText.innerHTML = `กำลังดึงวันที่ <b>${i + 1}/${total}</b> : <code>${formatThaiDateShort(day)}</code>`;
-          if (pBar)  { pBar.style.width = `${percent}%`; pBar.innerHTML = `${percent}%`; pBar.setAttribute('aria-valuenow', percent); }
-          if (pSub)  pSub.textContent = failedDays.length > 0 ? `⚠️ มี ${failedDays.length} วันที่เกิดข้อผิดพลาด` : '';
-
-          try {
-              const res = await fetch("{{ url('/api/fdh/check-claim') }}", {
-                  method: 'POST',
-                  headers: {
-                      'Content-Type': 'application/json',
-                      'X-CSRF-TOKEN': "{{ csrf_token() }}"
-                  },
-                  body: JSON.stringify({ date_start: day, date_end: day })
-              });
-              const data = await res.json();
-              if (data.total !== undefined) {
-                  totalFound += parseInt(data.total) || 0;
-              } else if (!res.ok) {
-                  overallSuccess = false;
-                  failedDays.push(`${formatThaiDateShort(day)} (${data.message || data.error || 'ข้อผิดพลาด'})`);
-              }
-          } catch (err) {
-              overallSuccess = false;
-              failedDays.push(`${formatThaiDateShort(day)} (${err.message || 'Network error'})`);
-          }
-      }
-
-      // 100%
-      const pBarFinal = document.getElementById('fdh-progress-bar');
-      if (pBarFinal) { pBarFinal.style.width = '100%'; pBarFinal.innerHTML = '100%'; pBarFinal.setAttribute('aria-valuenow', 100); }
-
-      // สรุปผล
-      const summaryHtml = `
-          <div class="text-start p-2">
-              <b>สถานะ:</b> ${overallSuccess ? '✅ สำเร็จทั้งหมด' : '⚠️ เสร็จสิ้น แต่มีข้อผิดพลาดบางส่วน'}<br>
-              <b>ช่วงวันที่:</b> ${startDateText} ถึง ${endDateText}<br>
-              <b>จำนวนวันที่ดึง:</b> ${total} วัน<br>
-              <b>พบข้อมูลรวม:</b> <span class="badge bg-info text-white">${totalFound}</span> รายการ
-              ${failedDays.length > 0 ? `<hr><b class="text-danger">วันที่เกิดข้อผิดพลาด:</b><ul class="text-danger mb-0">${failedDays.map(d => `<li>${d}</li>`).join('')}</ul>` : ''}
-          </div>
-      `;
-
-      await Swal.fire({
-          icon: overallSuccess ? 'success' : 'warning',
-          title: 'ดึงสถานะ FDH เสร็จสิ้น',
-          html: summaryHtml,
-          confirmButtonText: 'โหลดข้อมูล',
-          confirmButtonColor: '#0dcaf0'
-      });
-
-      // โหลดตาราง indiv ใหม่
-      localStorage.setItem('active_tab', '#search');
-      $('#form_indiv').submit();
   }
+
+
 
   function alertAlreadyClosed(source) {
       Swal.fire({
@@ -669,101 +605,7 @@
   }
 </script>
 
-{{-- ✅ FDH Check Claim ------------------------------------------------------------ --}}
-<script>
-  function checkFdh(hn, seq) {
 
-      Swal.fire({
-          title: 'กำลังตรวจสอบสถานะ...',
-          text: 'กรุณารอสักครู่',
-          allowOutsideClick: false,
-          didOpen: () => Swal.showLoading()
-      });
-
-      $.ajax({
-          url: "{{ url('/api/fdh/check-claim-indiv') }}",
-          type: "POST",
-          data: {
-              hn: hn,
-              seq: seq,
-              _token: "{{ csrf_token() }}"
-          },
-          success: function (res) {
-
-              const isSearchTab = $(`#td-status-search-${seq}`).length > 0;
-
-              // ------------------------------
-              // ✔ FDH ตอบสำเร็จ (200)
-              // ------------------------------
-              if (res.status === 200) {
-                  Swal.fire({
-                      icon: 'success',
-                      title: 'ตรวจสอบสำเร็จ',
-                      text: 'พบข้อมูลในระบบ FDH',
-                      timer: 1500,
-                      showConfirmButton: false
-                  }).then(() => {
-                      if (isSearchTab) {
-                          localStorage.setItem('active_tab', '#claim');
-                          fetchData();
-                          $('#form_indiv').submit();
-                      } else {
-                          showDetails(seq);
-                      }
-                  });
-                  return;
-              }
-
-              // ------------------------------
-              // ✔ ไม่พบข้อมูล FDH (404)
-              // ------------------------------
-              if (res.status === 404 || res.status === 500) {
-                  const statusText = res.body?.message_th ?? "ไม่มีรายการนี้ส่ง";
-                  Swal.fire({
-                      icon: 'warning',
-                      title: 'ไม่พบข้อมูลในระบบ FDH',
-                      text: statusText
-                  }).then(() => {
-                      showDetails(seq);
-                  });
-                  return;
-              }
-
-              // ------------------------------
-              // ✔ ปัญหาฝั่งระบบ หรือ token/validate
-              // ------------------------------
-              if (res.status === 400) {
-                  const statusText = res.body?.message ?? res.error ?? 'ไม่สามารถตรวจสอบได้';
-                  Swal.fire({
-                      icon: 'error',
-                      title: 'เกิดข้อผิดพลาด',
-                      text: statusText
-                  }).then(() => {
-                      showDetails(seq);
-                  });
-                  return;
-              }
-
-              // fallback อื่นๆ
-              Swal.fire({
-                  icon: 'warning',
-                  title: 'ผลการตรวจสอบ',
-                  text: res.message || 'ไม่มีข้อมูล'
-              });
-
-          },
-          error: function (xhr) {
-              let msg = 'ไม่สามารถดึงข้อมูลได้';
-              if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-              Swal.fire({
-                  icon: 'error',
-                  title: 'เกิดข้อผิดพลาด (Network)',
-                  text: msg
-              });
-          }
-      });
-  }
-</script>
 
 @endsection
 
@@ -824,21 +666,6 @@
                     endpointBtn = `<button onclick="pullNhsoData('${visit.vstdate}', '${visit.cid}', '${vn}')" class="btn btn-warning btn-sm py-1 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-cloud-download-fill me-1"></i>ดึงข้อมูล (Pull)</button>`;
                 }
 
-                let fdhBtn = '';
-                if (visit.fdh_status) {
-                    fdhBtn = `
-                        <div class="d-inline-flex gap-2 align-items-center">
-                            <span class="badge bg-success py-1 px-2 text-wrap" style="max-width:180px;">${visit.fdh_status}</span>
-                            <button onclick="checkFdh('${visit.hn}', '${vn}')" class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-arrow-repeat me-1"></i>ดึงอีกครั้ง</button>
-                        </div>`;
-                } else {
-                    fdhBtn = `
-                        <div class="d-inline-flex gap-2 align-items-center">
-                            <span class="badge bg-secondary py-1 px-2">ยังไม่ได้ส่งเคลม</span>
-                            <button onclick="checkFdh('${visit.hn}', '${vn}')" class="btn btn-outline-info btn-sm py-0 px-2 fw-bold text-dark" style="font-size:0.75rem;"><i class="bi bi-arrow-repeat me-1"></i>ดึง/ส่ง FDH</button>
-                        </div>`;
-                }
-
                 let html = `
                 <div class="row g-3">
                   <div class="col-md-6">
@@ -853,7 +680,6 @@
                           <tr><th class="text-muted">ประสงค์เบิก</th><td>${visit.request_funds === 'Y' ? '<span class="badge bg-success py-0 px-2 fw-bold text-white"><i class="bi bi-check-circle-fill me-1"></i>Y</span>' : '<span class="badge bg-danger py-0 px-2 fw-bold text-white"><i class="bi bi-x-circle-fill me-1"></i>N</span>'}</td></tr>
                           <tr><th class="text-muted">พร้อมส่ง</th><td>${visit.confirm_and_locked === 'Y' ? '<span class="badge bg-success py-0 px-2 fw-bold text-white"><i class="bi bi-check-circle-fill me-1"></i>Y</span>' : '<span class="badge bg-danger py-0 px-2 fw-bold text-white"><i class="bi bi-x-circle-fill me-1"></i>N</span>'}</td></tr>
                           <tr><th class="text-muted">สถานะปิดสิทธิ</th><td>${endpointBtn}</td></tr>
-                          <tr><th class="text-muted">สถานะ FDH</th><td>${fdhBtn}</td></tr>
                         </table>
                       </div>
                     </div>

@@ -9560,6 +9560,16 @@
                     "column": "dchtime",
                     "unique": false
                 }
+            ],
+            "idx_hn_vstdate": [
+                {
+                    "column": "hn",
+                    "unique": false
+                },
+                {
+                    "column": "vstdate",
+                    "unique": false
+                }
             ]
         }
     },
@@ -9708,6 +9718,12 @@
             "idx_an": [
                 {
                     "column": "an",
+                    "unique": false
+                }
+            ],
+            "idx_seq": [
+                {
+                    "column": "seq",
                     "unique": false
                 }
             ]
@@ -12218,6 +12234,16 @@
                     "column": "dchtime",
                     "unique": false
                 }
+            ],
+            "idx_vstdate_hn": [
+                {
+                    "column": "vstdate",
+                    "unique": false
+                },
+                {
+                    "column": "hn",
+                    "unique": false
+                }
             ]
         }
     },
@@ -12544,6 +12570,16 @@
             "csop_vsttime": [
                 {
                     "column": "vsttime",
+                    "unique": false
+                }
+            ],
+            "idx_vstdate_hn": [
+                {
+                    "column": "vstdate",
+                    "unique": false
+                },
+                {
+                    "column": "hn",
                     "unique": false
                 }
             ]
@@ -14236,6 +14272,16 @@
             "approve_code": [
                 {
                     "column": "approve_code",
+                    "unique": false
+                }
+            ],
+            "idx_vstdate_cid": [
+                {
+                    "column": "vstdate",
+                    "unique": false
+                },
+                {
+                    "column": "cid",
                     "unique": false
                 }
             ]

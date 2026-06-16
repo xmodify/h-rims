@@ -679,8 +679,16 @@
                     Swal.fire({
                         icon: 'warning',
                         title: 'ไม่พบการปิดสิทธิจากระบบอื่น',
-                        text: 'ยังไม่มีการปิดสิทธิสำหรับรายการนี้ใน สปสช.',
-                        confirmButtonText: 'รับทราบ'
+                        text: 'ยังไม่มีการปิดสิทธิสำหรับรายการนี้ใน สปสช. ต้องการปิดสิทธิด้วยระบบ RiMS หรือไม่?',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'ปิดสิทธิเลย',
+                        cancelButtonText: 'ยกเลิก'
+                    }).then(result => {
+                        if (result.isConfirmed) {
+                            pushNhsoData(cid, vstdate, vn);
+                        }
                     });
                 }
             })
@@ -691,6 +699,71 @@
                     text: error.message || 'ไม่สามารถเชื่อมต่อกับระบบได้',
                 });
             });
+    }
+
+    function pushNhsoData(cid, vstdate, vn) {
+        Swal.fire({
+            title: 'ยืนยันการส่งข้อมูล?',
+            text: "ระบบจะดึงข้อมูลจาก HOSxP และส่งไปปิดสิทธิที่ สปสช.",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'ตกลง, ส่งข้อมูล!',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'กำลังดำเนินการ...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading()
+                    }
+                });
+
+                $.ajax({
+                    url: "{{ route('api.nhso.push_indiv') }}",
+                    type: "POST",
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        cid: cid,
+                        vstdate: vstdate
+                    },
+                    success: function(response) {
+                        if (response.status == 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'สำเร็จ!',
+                                text: 'ปิดสิทธิเรียบร้อยแล้ว',
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                if (vn) {
+                                    showDetails(vn);
+                                } else {
+                                    location.reload();
+                                }
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ไม่สำเร็จ',
+                                text: response.message || 'เกิดข้อผิดพลาดในการส่งข้อมูล'
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        let msg = 'ไม่สามารถเชื่อมต่อกับระบบได้';
+                        if(xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: msg
+                        });
+                    }
+                });
+            }
+        });
     }
 
 

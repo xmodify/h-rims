@@ -186,7 +186,7 @@ return [
             'max' => null,
         ],
         'sex' => 'F',
-        'icd10' => ['Z392'],
+        'icd10' => ['Z392', 'Z340', 'Z348', 'Z349'],
         'icd9' => [],
         'lab_codes' => [],
         'co_services' => [],

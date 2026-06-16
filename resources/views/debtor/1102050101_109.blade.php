@@ -228,7 +228,7 @@
                 <div class="tab-pane fade" id="confirm-pane" role="tabpanel"> 
                     <form id="form-confirm" action="{{ url('debtor/1102050101_109_confirm') }}" method="POST" enctype="multipart/form-data">
                         @csrf
-                        <div class="mb-2 mt-3">
+                        <div class="mb-2">
                             <button type="button" class="btn btn-outline-success btn-sm" onclick="confirmSubmit()">
                                 <i class="bi bi-check-circle me-1"></i> ยืนยันลูกหนี้
                             </button>

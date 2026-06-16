@@ -104,7 +104,7 @@
                         <th class="text-center text-primary" colspan = "10">การชดเชย</th>                                                 
                     </tr>
                     <tr class="table-success">
-                        <th class="text-center"><input type="checkbox" onClick="toggle_d(this)"> All</th> 
+                        <th class="text-center" style="width: 70px; min-width: 70px; max-width: 70px;"><div class="d-flex align-items-center justify-content-center gap-1"><input type="checkbox" onClick="toggle_d(this)"> <span>All</span></div></th> 
                         <th class="text-center">วันที่</th>
                         <th class="text-center">HN</th>
                         <th class="text-center">ชื่อ-สกุล</th>
@@ -259,7 +259,7 @@
                         <th class="text-left text-primary" colspan = "13">1102050101.301-ลูกหนี้ค่ารักษา ประกันสังคม OP-เครือข่าย รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                         
                     </tr>
                     <tr class="table-secondary">
-                        <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th> 
+                        <th class="text-center" style="width: 70px; min-width: 70px; max-width: 70px;"><div class="d-flex align-items-center justify-content-center gap-1"><input type="checkbox" onClick="toggle(this)"> <span>All</span></div></th> 
                         <th class="text-center">วันที่</th>
                         <th class="text-center">HN</th>
                         <th class="text-center">ชื่อ-สกุล</th>
@@ -882,6 +882,9 @@ $(document).ready(function() {
         $('#debtor').DataTable({
             dom: '<"row mb-3"<"col-md-6"l>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
             ordering: true,
+            columnDefs: [
+                { orderable: false, targets: 0 }
+            ],
             lengthMenu: [[10, 25, 50, 100, 200, 500, -1], [10, 25, 50, 100, 200, 500, "ทั้งหมด"]],
             language: {
                 lengthMenu: 'แสดง _MENU_ รายการ',
@@ -975,6 +978,9 @@ $(document).ready(function() {
 
                 dtSearchInstance = $(tableId).DataTable({
                         dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                        columnDefs: [
+                            { orderable: false, targets: 0 }
+                        ],
                         lengthMenu: [[10, 25, 50, 100, 200, 500, -1], [10, 25, 50, 100, 200, 500, "ทั้งหมด"]],
                         buttons: [
                             {

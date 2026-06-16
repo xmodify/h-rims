@@ -216,19 +216,19 @@
                                 <tr>
                                     <th class="text-center" rowspan="2">#</th>  
                                     <th class="text-center" rowspan="2">สถานะ</th>
+                                    <th class="text-center" rowspan="2">E-CLAIM</th>
                                     <th class="text-center" rowspan="2">เบิก/ส่ง</th>
                                     <th class="text-center" rowspan="2" width="10%">วัน-เวลา | Q</th>     
                                     <th class="text-center" rowspan="2">HN</th> 
                                     <th class="text-center" rowspan="2">ชื่อ-สกุล | สิทธิ</th>
                                     <th class="text-center" rowspan="2">รายการต้องเรียกเก็บ</th>
-                                    <th class="text-center" colspan="4">ค่ารักษา</th>                                     
+                                    <th class="text-center" colspan="3">ค่ารักษา</th>                                     
                                     <th class="text-center bg-primary-soft" colspan="5">ข้อมูลการชดเชย</th>
                                 </tr>
                                 <tr>                                    
                                     <th class="text-center small">รวม</th>
                                     <th class="text-center small">ชำระเอง</th>                                                                  
                                     <th class="text-center small">PPFS</th>
-                                    <th class="text-center small">E-Claim</th>
                                     <th class="text-center bg-primary-soft small px-1">Rep NHSO</th> 
                                     <th class="text-center bg-primary-soft small px-1 text-nowrap">Error</th> 
                                     <th class="text-center bg-primary-soft small px-1">STM ชดเชย</th> 
@@ -260,15 +260,28 @@
                                                  <i class="bi bi-eye-fill"></i>
                                              </button>
                                         @elseif($row->endpoint_valid)
-                                            {{-- เขียว: ข้อมูลครบ + ปิดสิทธิแล้ว --}}
-                                            <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด">
-                                                <i class="bi bi-eye-fill"></i>
-                                            </button>
+                                             {{-- เขียว: ข้อมูลครบ + ปิดสิทธิแล้ว --}}
+                                             <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด">
+                                                 <i class="bi bi-eye-fill"></i>
+                                             </button>
                                         @else
-                                            {{-- เหลือง: ข้อมูลครบ แต่ยังไม่ปิดสิทธิ --}}
-                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ | คลิกดูรายละเอียด">
-                                                <i class="bi bi-eye-fill"></i>
-                                            </button>
+                                             {{-- เหลือง: ข้อมูลครบ แต่ยังไม่ปิดสิทธิ --}}
+                                             <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ | คลิกดูรายละเอียด">
+                                                 <i class="bi bi-eye-fill"></i>
+                                             </button>
+                                        @endif
+                                    </td>
+                                    <td class="text-center">
+                                        @if(substr($row->ec_status, 0, 1) == '0')
+                                            <span class="badge bg-secondary-soft text-secondary py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
+                                        @elseif(substr($row->ec_status, 0, 1) == '1')
+                                            <span class="badge bg-warning-soft text-warning py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
+                                        @elseif(substr($row->ec_status, 0, 1) == '2' || substr($row->ec_status, 0, 1) == 'M')
+                                            <span class="badge bg-danger-soft text-danger py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
+                                        @elseif(substr($row->ec_status, 0, 1) == '3')
+                                            <span class="badge bg-orange-soft text-orange py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
+                                        @elseif(substr($row->ec_status, 0, 1) == '4')    
+                                            <span class="badge bg-primary-soft text-primary py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
                                         @endif
                                     </td>
                                     <td class="text-start ps-3" data-order="{{ $row->confirm_and_locked == 'Y' ? '2' : '1' }}">
@@ -305,19 +318,6 @@
                                     <td class="text-end small">{{ number_format($row->income,2) }}</td>              
                                     <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>                                      
                                     <td class="text-end small">{{ number_format($row->ppfs,2) }}</td> 
-                                    <td class="text-center">
-                                        @if(substr($row->ec_status, 0, 1) == '0')
-                                            <span class="badge bg-secondary-soft text-secondary py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
-                                        @elseif(substr($row->ec_status, 0, 1) == '1')
-                                            <span class="badge bg-warning-soft text-warning py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
-                                        @elseif(substr($row->ec_status, 0, 1) == '2' || substr($row->ec_status, 0, 1) == 'M')
-                                            <span class="badge bg-danger-soft text-danger py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
-                                        @elseif(substr($row->ec_status, 0, 1) == '3')
-                                            <span class="badge bg-orange-soft text-orange py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
-                                        @elseif(substr($row->ec_status, 0, 1) == '4')    
-                                            <span class="badge bg-primary-soft text-primary py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
-                                        @endif
-                                    </td>
                                     <td class="text-end small text-primary">{{ number_format($row->rep_nhso,2) }}</td>
                                     <td class="text-center small text-muted">{{ $row->rep_error }}</td>
                                     <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : ($row->receive_total < 0 ? 'text-danger' : 'text-dark') }}">
@@ -336,16 +336,15 @@
                                     $sum_ppfs += $row->ppfs; 
                                     $sum_rep_nhso += $row->rep_nhso;
                                     $sum_receive_total += $row->receive_total; 
-                                @endphp
+                                 @endphp
                                 @endforeach                 
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="7" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
+                                    <th colspan="8" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_ppfs,2) }}</th>
-                                    <th></th>
                                     <th class="text-end small text-primary">{{ number_format($sum_rep_nhso,2) }}</th>
                                     <th></th>
                                     <th class="text-end small fw-bold {{ $sum_receive_total > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($sum_receive_total,2) }}</th>

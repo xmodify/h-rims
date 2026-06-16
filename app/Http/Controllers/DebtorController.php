@@ -4754,6 +4754,7 @@ class DebtorController extends Controller
     {
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
+        $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value');
 
         $debtor_search = DB::connection('hosxp')->select('
             SELECT o.vn,o.hn,o.an,pt.cid,CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname,o.vstdate,o.vsttime,
@@ -4788,6 +4789,7 @@ class DebtorController extends Controller
             AND p.hipdata_code IN ("SSS","SSI")
             AND IFNULL(rc.rcpt_money,0) < IFNULL(total.kidney_price,0)
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_309 WHERE vn IS NOT NULL)
+            AND p.pttype NOT IN (' . $pttype_sss_ae . ')
             GROUP BY o.vn, vp.pttype
             ORDER BY o.vstdate, o.oqueue', [$start_date, $end_date, $start_date, $end_date]);
 

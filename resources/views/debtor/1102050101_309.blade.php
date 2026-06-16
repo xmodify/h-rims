@@ -135,7 +135,7 @@
                                 <th class="text-center">ICD10</th>
                                 <th class="text-center">ค่ารักษาทั้งหมด</th>  
                                 <th class="text-center">ชำระเอง</th>  
-                                <th class="text-center">ฟอกไต</th>        
+                                <th class="text-center">ค่าใช้จ่ายสูง</th>        
                                 <th class="text-center text-primary">ลูกหนี้</th>
                                 <th class="text-center text-primary">ชดเชย</th>
                                 <th class="text-center" style="color: #9c27b0;">ปรับเพิ่ม</th>

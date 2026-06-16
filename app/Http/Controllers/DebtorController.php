@@ -1848,6 +1848,30 @@ class DebtorController extends Controller
             Debtor_1102050101_201::whereIn('vn', $deletable_items)->delete();
         }
 
+        if ($request->ajax()) {
+            if ($locked_items == count($checkbox)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด',
+                    'locked' => $locked_items,
+                    'deleted' => 0
+                ]);
+            } elseif ($locked_items > 0) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)",
+                    'locked' => $locked_items,
+                    'deleted' => count($deletable_items)
+                ]);
+            }
+            return response()->json([
+                'success' => true,
+                'message' => 'ลบลูกหนี้เรียบร้อย',
+                'locked' => 0,
+                'deleted' => count($deletable_items)
+            ]);
+        }
+
         if ($locked_items == count($checkbox)) {
             return redirect()->back()->with('error', 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด');
         } elseif ($locked_items > 0) {

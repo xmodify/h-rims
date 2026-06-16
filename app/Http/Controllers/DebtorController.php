@@ -4760,6 +4760,13 @@ class DebtorController extends Controller
             ]);
         }
 
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'ยืนยันลูกหนี้สำเร็จ'
+            ]);
+        }
+
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
     //_1102050101_307_confirm_ip-------------------------------------------------------------------------------------------------------
@@ -4853,6 +4860,13 @@ class DebtorController extends Controller
             ]);
         }
 
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'ยืนยันลูกหนี้สำเร็จ'
+            ]);
+        }
+
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
     //_1102050101_307_delete-------------------------------------------------------------------------------------------------------
@@ -4861,6 +4875,12 @@ class DebtorController extends Controller
         $checkbox = $request->input('checkbox_d');
 
         if (empty($checkbox) || !is_array($checkbox)) {
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'กรุณาเลือกรายการที่จะลบ'
+                ]);
+            }
             return redirect()->back()->with('error', 'กรุณาเลือกรายการที่จะลบ');
         }
 
@@ -4870,6 +4890,30 @@ class DebtorController extends Controller
 
         if (count($deletable_items) > 0) {
             Debtor_1102050101_307::whereIn('vn', $deletable_items)->delete();
+        }
+
+        if ($request->ajax()) {
+            if ($locked_items == count($checkbox)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ไม่สามารถลบรายการได้ เนื่องจากรายการที่เลือกถูกล็อคทั้งหมด',
+                    'locked' => $locked_items,
+                    'deleted' => 0
+                ]);
+            } elseif ($locked_items > 0) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "ลบรายการสำเร็จ " . count($deletable_items) . " รายการ (ข้ามรายการที่ถูกล็อค " . $locked_items . " รายการ)",
+                    'locked' => $locked_items,
+                    'deleted' => count($deletable_items)
+                ]);
+            }
+            return response()->json([
+                'success' => true,
+                'message' => 'ลบลูกหนี้เรียบร้อย',
+                'locked' => 0,
+                'deleted' => count($deletable_items)
+            ]);
         }
 
         if ($locked_items == count($checkbox)) {

@@ -1822,6 +1822,13 @@ class DebtorController extends Controller
             ]);
         }
 
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'ยืนยันลูกหนี้สำเร็จ'
+            ]);
+        }
+
         return redirect()->back()->with('success', 'ยืนยันลูกหนี้สำเร็จ');
     }
     //_1102050101_201_delete-------------------------------------------------------------------------------------------------------

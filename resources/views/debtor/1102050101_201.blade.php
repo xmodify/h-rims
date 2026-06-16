@@ -359,11 +359,78 @@
         const selected = [...document.querySelectorAll('input[name="checkbox[]"]:checked')].map(e => e.value);    
         if (selected.length === 0) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะยืนยัน', 'warning'); return; }
         Swal.fire({
-            title: 'ยืนยัน?', text: "ต้องการยืนยันลูกหนี้รายการที่เลือกใช่หรือไม่?", icon: 'question',
+            title: 'ยืนยัน?', text: `ต้องการยืนยันลูกหนี้จำนวน ${selected.length} รายการที่เลือกใช่หรือไม่?`, icon: 'question',
             showCancelButton: true, confirmButtonColor: '#28a745', cancelButtonColor: '#6c757d', confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก'
         }).then((result) => { if (result.isConfirmed) { 
-            const f = document.getElementById('form-confirm') || document.querySelector('form[action*="confirm"]');
-            if(f) f.submit(); 
+            const chunkSize = 10;
+            const chunks = [];
+            for (let i = 0; i < selected.length; i += chunkSize) {
+                chunks.push(selected.slice(i, i + chunkSize));
+            }
+            
+            let currentChunkIndex = 0;
+            const total = selected.length;
+            
+            Swal.fire({
+                title: 'กำลังยืนยันลูกหนี้...',
+                html: `
+                    <div class="progress mb-2" style="height: 25px;">
+                        <div id="confirm-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
+                    <div id="confirm-progress-text" class="text-muted small">กำลังดำเนินการ 0 จากทั้งหมด ${total} รายการ</div>
+                `,
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    sendNextChunk();
+                }
+            });
+            
+            function sendNextChunk() {
+                if (currentChunkIndex >= chunks.length) {
+                    Swal.fire({
+                        title: 'สำเร็จ!',
+                        text: 'ยืนยันลูกหนี้ที่เลือกเรียบร้อย',
+                        icon: 'success',
+                        confirmButtonText: 'ตกลง'
+                    }).then(() => {
+                        location.reload();
+                    });
+                    return;
+                }
+                
+                const chunk = chunks[currentChunkIndex];
+                
+                $.ajax({
+                    url: "{{ url('debtor/1102050101_201_confirm') }}",
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        checkbox: chunk
+                    },
+                    success: function(res) {
+                        currentChunkIndex++;
+                        const processedCount = Math.min(currentChunkIndex * chunkSize, total);
+                        const percent = Math.round((processedCount / total) * 100);
+                        
+                        const progressBar = document.getElementById('confirm-progress-bar');
+                        const progressText = document.getElementById('confirm-progress-text');
+                        if (progressBar) {
+                            progressBar.style.width = percent + '%';
+                            progressBar.setAttribute('aria-valuenow', percent);
+                            progressBar.innerText = percent + '%';
+                        }
+                        if (progressText) {
+                            progressText.innerText = `กำลังดำเนินการ ${processedCount} จากทั้งหมด ${total} รายการ`;
+                        }
+                        
+                        sendNextChunk();
+                    },
+                    error: function(xhr) {
+                        Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถยืนยันลูกหนี้บางรายการได้ กรุณาลองใหม่อีกครั้ง', 'error');
+                    }
+                });
+            }
         } });
     }
 
@@ -744,6 +811,7 @@ $(document).ready(function() {
             }
             $(tableId).DataTable({
                 dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                lengthMenu: [[10, 25, 50, 100, 200, 500, -1], [10, 25, 50, 100, 200, 500, "ทั้งหมด"]],
                 buttons: [
                     {
                         extend: 'excelHtml5',
@@ -814,6 +882,7 @@ $(document).ready(function() {
     if ($('#debtor').length && !$.fn.DataTable.isDataTable('#debtor')) {
         $('#debtor').DataTable({
             dom: '<"row mb-3"<"col-md-6"l>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+            lengthMenu: [[10, 25, 50, 100, 200, 500, -1], [10, 25, 50, 100, 200, 500, "ทั้งหมด"]],
             ordering: true,
             language: {
                 lengthMenu: 'แสดง _MENU_ รายการ',

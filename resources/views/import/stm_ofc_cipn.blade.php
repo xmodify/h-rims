@@ -305,7 +305,7 @@
             if (fileInput.files.length > 5) {
                 Swal.fire({
                     title: 'แจ้งเตือน',
-                    text: 'เลือกไฟล์ได้ไม่เกิน 5 ไฟล์',
+                    text: 'เลือกไฟล์ได้ไม่จำกัดจำนวนไฟล์',
                     icon: 'error',
                     confirmButtonText: 'ปิด',
                     confirmButtonColor: '#673ab7',

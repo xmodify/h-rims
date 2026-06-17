@@ -12,7 +12,7 @@
                         @csrf
                         <div class="text-center mb-3">
                             <h6 class="fw-bold text-dark"><i class="bi bi-file-earmark-excel me-2 text-success"></i> นำเข้าไฟล์ STM (Excel Only)</h6>
-                            <p class="text-muted small">เลือกไฟล์ Excel (.xlsx, .xls) ได้ไม่เกิน 5 ไฟล์ต่อครั้ง</p>
+                            <p class="text-muted small">เลือกไฟล์ Excel (.xlsx, .xls) ได้ไม่จำกัดจำนวนไฟล์</p>
                         </div>
                         
                         <div class="input-group mb-3">
@@ -202,36 +202,88 @@
     
 @endsection
 
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        /* ===== เปิด modal (ออกใหม่ / แก้ไข) ===== */
-        document.querySelectorAll('.btn-new-receipt, .btn-edit-receipt')
-            .forEach(btn => {
-                btn.addEventListener('click', function () {
+@push('scripts')
+  <script>
+        // Global helper for file upload form
+        function showLoadingAlert() {
+            Swal.fire({
+                title: 'กำลังนำเข้าข้อมูล...',
+                text: 'กรุณารอสักครู่',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading()
+                }
+            });
+        }
 
-                    document.getElementById('round_no').value =
-                        this.dataset.round;
-
-                    document.getElementById('receive_no').value =
-                        this.dataset.receive ?? '';
-
-                    document.getElementById('receipt_date').value =
-                        this.dataset.date ?? '';
-                    
-                    if(this.dataset.date) {
-                        $('#receipt_date_display').datepicker('setDate', new Date(this.dataset.date));
-                    } else {
-                        $('#receipt_date_display').datepicker('clearDates');
+        window.simulateProcess = function(event) {
+            event.preventDefault(); 
+            const fileInput = document.querySelector('input[type="file"]');
+            if (!fileInput.files || fileInput.files.length === 0) {
+                Swal.fire({
+                    title: 'แจ้งเตือน',
+                    text: 'กรุณาเลือกไฟล์ก่อนนำเข้า',
+                    icon: 'warning',
+                    confirmButtonText: 'ปิด',
+                    confirmButtonColor: '#673ab7',
+                    customClass: {
+                        confirmButton: 'btn btn-primary btn-sm px-4'
                     }
                 });
-            });
-        /* ===== บันทึก (AJAX) ===== */
-        document.getElementById('btnSaveReceipt')
-            .addEventListener('click', function () {
+                return;
+            }
+            
+            showLoadingAlert();
+            document.getElementById('importForm').submit();
+        };
 
-                let round_no     = document.getElementById('round_no').value;
-                let receive_no   = document.getElementById('receive_no').value;
-                let receipt_date = document.getElementById('receipt_date').value;
+        $(document).ready(function () {
+            // Initialize Datepicker Thai
+            $('.datepicker_th').datepicker({
+                format: 'd M yyyy', // Matches DateThai() helper output
+                todayBtn: "linked",
+                todayHighlight: true,
+                autoclose: true,
+                language: 'th-th',
+                thaiyear: true,
+                zIndexOffset: 1050
+            });
+
+            // Sync Changes to Hidden Inputs for Backend (YYYY-MM-DD)
+            $('.datepicker_th').on('changeDate', function(e) {
+                var date = e.date;
+                var targetId = $(this).attr('id').replace('_display', '');
+                var hiddenInput = $('#' + targetId);
+                
+                if(date) {
+                    var day = ("0" + date.getDate()).slice(-2);
+                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                    var year = date.getFullYear(); // Gregorian
+                    hiddenInput.val(year + "-" + month + "-" + day);
+                } else {
+                    hiddenInput.val('');
+                }
+            });
+
+            // Event delegation for receipt modal buttons (needed because DataTable pagination redraws the DOM)
+            $(document).on('click', '.btn-new-receipt, .btn-edit-receipt', function () {
+                $('#round_no').val($(this).data('round'));
+                $('#receive_no').val($(this).data('receive') || '');
+                $('#receipt_date').val($(this).data('date') || '');
+                
+                var rDate = $(this).data('date');
+                if(rDate) {
+                    $('#receipt_date_display').datepicker('setDate', new Date(rDate));
+                } else {
+                    $('#receipt_date_display').datepicker('clearDates');
+                }
+            });
+
+            // AJAX Save Receipt
+            $('#btnSaveReceipt').on('click', function () {
+                let round_no     = $('#round_no').val();
+                let receive_no   = $('#receive_no').val();
+                let receipt_date = $('#receipt_date').val();
                 if (!receive_no || !receipt_date) {
                     Swal.fire('แจ้งเตือน','กรุณากรอกข้อมูลให้ครบ','warning');
                     return;
@@ -239,9 +291,7 @@
                 fetch("{{ url('import/stm_ucs_updateReceipt') }}", {
                     method: "POST",
                     headers: {
-                        "X-CSRF-TOKEN": document
-                            .querySelector('meta[name=\"csrf-token\"]')
-                            .getAttribute('content'),
+                        "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content'),
                         "Content-Type": "application/json",
                         "Accept": "application/json"
                     },
@@ -269,91 +319,6 @@
                         Swal.fire('ผิดพลาด', res.message, 'error');
                     }
                 });
-            });
-
-    });
-</script>
-
-<script>
-    function showLoadingAlert() {
-        Swal.fire({
-            title: 'กำลังนำเข้าข้อมูล...',
-            text: 'กรุณารอสักครู่',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading()
-            }
-        });
-    }
-
-    function simulateProcess(event) {
-
-            // ป้องกันฟอร์มส่งออกไปก่อนเวลา
-        event.preventDefault(); 
-
-        const fileInput = document.querySelector('input[type="file"]');
-                // ตรวจสอบว่าไม่ได้เลือกไฟล์
-        if (!fileInput.files || fileInput.files.length === 0) {
-            Swal.fire({
-                title: 'แจ้งเตือน',
-                text: 'กรุณาเลือกไฟล์ก่อนนำเข้า',
-                icon: 'warning',
-                confirmButtonText: 'ปิด',
-                confirmButtonColor: '#673ab7',
-                customClass: {
-                    confirmButton: 'btn btn-primary btn-sm px-4'
-                }
-            });
-            return; // ❌ หยุดการทำงาน ไม่ส่งฟอร์ม
-        }
-            // ✅ ตรวจสอบจำนวนไฟล์เกิน 5
-        if (fileInput.files.length > 5) {
-            Swal.fire({
-                title: 'แจ้งเตือน',
-                text: 'เลือกไฟล์ได้ไม่เกิน 5 ไฟล์',
-                icon: 'error',
-                confirmButtonText: 'ปิด',
-                confirmButtonColor: '#673ab7',
-                customClass: {
-                    confirmButton: 'btn btn-primary btn-sm px-4'
-                }
-            });
-            return; // ❌ หยุดการทำงาน
-        }
-
-        showLoadingAlert();
-        document.getElementById('importForm').submit();
-    }
-</script>
-
-@push('scripts')
-  <script>
-        $(document).ready(function () {
-            // Initialize Datepicker Thai
-            $('.datepicker_th').datepicker({
-                format: 'd M yyyy', // Matches DateThai() helper output
-                todayBtn: "linked",
-                todayHighlight: true,
-                autoclose: true,
-                language: 'th-th',
-                thaiyear: true,
-                zIndexOffset: 1050
-            });
-
-            // Sync Changes to Hidden Inputs for Backend (YYYY-MM-DD)
-            $('.datepicker_th').on('changeDate', function(e) {
-                var date = e.date;
-                var targetId = $(this).attr('id').replace('_display', '');
-                var hiddenInput = $('#' + targetId);
-                
-                if(date) {
-                    var day = ("0" + date.getDate()).slice(-2);
-                    var month = ("0" + (date.getMonth() + 1)).slice(-2);
-                    var year = date.getFullYear(); // Gregorian
-                    hiddenInput.val(year + "-" + month + "-" + day);
-                } else {
-                    hiddenInput.val('');
-                }
             });
 
             $('#stm_ucs').DataTable({

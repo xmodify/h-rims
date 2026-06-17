@@ -11,7 +11,7 @@
                         @csrf
                         <div class="text-center mb-3">
                             <h6 class="fw-bold text-dark"><i class="bi bi-file-earmark-excel me-2 text-success"></i> นำเข้าไฟล์ STM (Excel Only)</h6>
-                            <p class="text-muted small">เลือกไฟล์ Excel (.xlsx, .xls) ได้ไม่เกิน 5 ไฟล์ต่อครั้ง</p>
+                            <p class="text-muted small">เลือกไฟล์ Excel (.xlsx, .xls) ได้ไม่จำกัดจำนวนไฟล์</p>
                         </div>
                         
                         <div class="input-group mb-3">
@@ -306,7 +306,7 @@
             if (fileInput.files.length > 5) {
                 Swal.fire({
                     title: 'แจ้งเตือน',
-                    text: 'เลือกไฟล์ได้ไม่เกิน 5 ไฟล์',
+                    text: 'เลือกไฟล์ได้ไม่จำกัดจำนวนไฟล์',
                     icon: 'error',
                     confirmButtonText: 'ปิด',
                     confirmButtonColor: '#673ab7',

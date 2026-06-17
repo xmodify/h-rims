@@ -1031,7 +1031,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item d-flex align-items-center me-2">
                             <div class="nav-version-badge">
-                                V.69-06-16 21:30
+                                V.69-06-17 21:00
                             </div>
                         </li>
                         <!-- Authentication Links -->
@@ -1221,14 +1221,7 @@
     <script>
         // Override showLoadingAlert and simulateProcess for sequential AJAX multi-upload
         $(document).ready(function() {
-            // Replace any 5-file limits text in descriptions
-            $('p, span, div, label, h6').each(function() {
-                let html = $(this).html();
-                if (html && html.includes('ไม่เกิน 5 ไฟล์')) {
-                    html = html.replace(/ไม่เกิน 5 ไฟล์/g, 'ไม่จำกัดจำนวนไฟล์');
-                    $(this).html(html);
-                }
-            });
+
 
             window.showLoadingAlert = function() {
                 Swal.fire({

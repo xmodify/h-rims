@@ -771,7 +771,7 @@
                                                 <i class="bi bi-flower1 text-success me-2"></i> OP-BKK ข้าราชการ กรุงเทพมหานคร
                                             </a>
                                             <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/bmt') }}">
-                                                <i class="bi bi-bus-front text-secondary me-2"></i> OP-BMT สิทธิองค์การขนส่งมวลชนกรุงเทพ
+                                                <i class="bi bi-car-front-fill text-secondary me-2"></i> OP-BMT สิทธิองค์การขนส่งมวลชนกรุงเทพ
                                             </a>
                                             <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/srt') }}">
                                                 <i class="bi bi-train-front text-primary me-2"></i> OP-SRT สิทธิการรถไฟแห่งประเทศไทย
@@ -857,7 +857,7 @@
                                                 <i class="bi bi-flower1 text-success me-2"></i> IP-BKK ข้าราชการ กรุงเทพมหานคร
                                             </a>
                                             <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/bmt') }}">
-                                                <i class="bi bi-bus-front text-secondary me-2"></i> IP-BMT สิทธิองค์การขนส่งมวลชนกรุงเทพ
+                                                <i class="bi bi-car-front-fill text-secondary me-2"></i> IP-BMT สิทธิองค์การขนส่งมวลชนกรุงเทพ
                                             </a>
                                             <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/srt') }}">
                                                 <i class="bi bi-train-front text-primary me-2"></i> IP-SRT สิทธิการรถไฟแห่งประเทศไทย

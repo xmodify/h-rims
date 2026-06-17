@@ -563,7 +563,7 @@
                                     <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
                                         role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                                         v-pre>
-                                        <i class="bi bi-cloud-arrow-down-fill me-1"></i> นำเข้าข้อมูล
+                                        <i class="bi bi-cloud-arrow-down-fill me-1" style="color: #38bdf8;"></i> นำเข้าข้อมูล
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-modern">
                                         <li>
@@ -580,7 +580,7 @@
                                     <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
                                         role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                                         v-pre>
-                                        <i class="bi bi-check-circle-fill me-1"></i> ตรวจสอบข้อมูล
+                                        <i class="bi bi-check-circle-fill me-1" style="color: #facc15;"></i> ตรวจสอบข้อมูล
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end">
                                         <!-- เมนูอื่น -->
@@ -634,7 +634,7 @@
                                     <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
                                         role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                                         v-pre>
-                                        <i class="bi bi-file-earmark-medical-fill me-1"></i> งานเวชระเบียน
+                                        <i class="bi bi-file-earmark-medical-fill me-1" style="color: #60a5fa;"></i> งานเวชระเบียน
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end">
                                         <!-- เมนูอื่น -->
@@ -675,7 +675,7 @@
                                     <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
                                         role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                                         v-pre>
-                                        <i class="bi bi-wallet-fill me-1"></i> เรียกเก็บ OP
+                                        <i class="bi bi-wallet-fill me-1" style="color: #4ade80;"></i> เรียกเก็บ OP
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end">
                                         <!-- ชี้ขวา -->
@@ -822,7 +822,7 @@
                                     <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
                                         role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                                         v-pre>
-                                        <i class="bi bi-hospital-fill me-1"></i> เรียกเก็บ IP
+                                        <i class="bi bi-hospital-fill me-1" style="color: #f87171;"></i> เรียกเก็บ IP
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end">
                                         <!-- ชี้ขวา -->
@@ -902,7 +902,7 @@
                                     <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
                                         role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                                         v-pre>
-                                        <i class="bi bi-graph-up-arrow me-1"></i> MIS Hospital
+                                        <i class="bi bi-graph-up-arrow me-1" style="color: #f472b6;"></i> MIS Hospital
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end">
                                         <!-- ชี้ขวา -->
@@ -1013,7 +1013,7 @@
                             @if(Auth::user()->status == 'admin' || Auth::user()->allow_debtor == 'Y')
                                 <li class="nav-item">
                                     <a class="nav-link nav-link-modern" href="{{ url('debtor') }}">
-                                        <i class="bi bi-person-lines-fill me-1"></i> ลูกหนี้ค่ารักษา
+                                        <i class="bi bi-person-lines-fill me-1" style="color: #fb923c;"></i> ลูกหนี้ค่ารักษา
                                     </a>
                                 </li>
                             @endif
@@ -1045,7 +1045,7 @@
                                 <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
                                     role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
                                     v-pre>
-                                    <i class="bi bi-person-circle me-1"></i> {{ Auth::user()->name }}
+                                    <i class="bi bi-person-circle me-1" style="color: #c084fc;"></i> {{ Auth::user()->name }}
                                 </a>
 
                                 <div class="dropdown-menu dropdown-menu-end dropdown-menu-modern"

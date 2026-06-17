@@ -99,21 +99,20 @@
                             <thead>
                                 <tr>
                                     <th class="text-center">#</th>
+                                    <th class="text-center">ตรวจสอบ</th>
+                                    <th class="text-center">ส่ง Claim</th>
                                     <th class="text-center" width="8%">วันที่รับบริการ</th>
                                     <th class="text-center">Queue</th>
-                                    <th class="text-start" width="12%">ชื่อ-สกุล</th>
                                     <th class="text-center">HN</th>
-                                    <th class="text-center">อายุ</th>
+                                    <th class="text-start" width="12%">ชื่อ-สกุล</th>
                                     <th class="text-start" width="15%">สิทธิการรักษา</th>
-                                    <th class="text-start">PDX</th>
-                                    <th class="text-center">ICD10 Claim</th>
-                                    <th class="text-end">ค่ารักษาทั้งหมด</th> 
+                                    <th class="text-center">อายุ</th>
+                                    <th class="text-start">รายการเรียกเก็บ</th>
+                                    <th class="text-end">ค่ารักษาทั้งหมด</th>
                                     <th class="text-end">ชำระเอง</th>
                                     <th class="text-end text-primary">เรียกเก็บ</th>
                                     <th class="text-end text-success">ชดเชย</th>
                                     <th class="text-end">ส่วนต่าง</th>
-                                    <th class="text-start">รายการเรียกเก็บ</th>
-                                    <th class="text-center">ส่ง Claim</th>
                                 </tr>
                             </thead> 
                             <tbody> 
@@ -126,22 +125,33 @@
                                 @endphp
                                 @foreach($search as $row) 
                                 <tr>
-                                    <td class="text-center text-muted small">{{ $count }}</td>   
+                                    <td class="text-center text-muted small">{{ $count }}</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-outline-primary px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ดูรายละเอียด">
+                                            <i class="bi bi-eye-fill"></i>
+                                        </button>
+                                    </td>
+                                    <td class="text-center" data-order="{{ $row->claim == 'Y' ? 1 : 0 }}">
+                                        @if($row->claim && $row->claim == 'Y')
+                                            <span class="badge bg-success-soft text-success p-2 rounded-circle" title="ส่งเคลมแล้ว"><i class="bi bi-check-circle-fill" style="font-size: 0.9rem;"></i></span>
+                                        @else
+                                            <span class="badge bg-secondary-soft text-secondary p-2 rounded-circle" title="ยังไม่ได้ส่ง"><i class="bi bi-dash-circle-fill" style="font-size: 0.9rem;"></i></span>
+                                        @endif
+                                    </td>
                                     <td class="text-center small">
                                         {{ DateThai($row->vstdate) }}<br>
                                         <span class="text-muted" style="font-size: 0.75rem;">{{$row->vsttime}}</span>
                                     </td>
-                                    <td class="text-center small">{{ $row->oqueue }}</td>   
-                                    <td class="text-start text-dark fw-bold small">{{$row->ptname}}</td> 
-                                    <td class="text-center small text-primary fw-bold">{{$row->hn}}</td> 
-                                    <td class="text-center small">{{$row->age_y}}</td>
+                                    <td class="text-center small">{{ $row->oqueue }}</td>
+                                    <td class="text-center small text-primary fw-bold">{{$row->hn}}</td>
+                                    <td class="text-start text-dark fw-bold small">{{$row->ptname}}</td>
                                     <td class="text-start small text-muted">
                                         <div class="text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
                                         <div style="font-size: 0.7rem;">[{{$row->hospmain}}]</div>
-                                    </td> 
-                                    <td class="text-start small">{{ $row->pdx }}</td>
-                                    <td class="text-center small fw-bold">{{ $row->icd10 }}</td>
-                                    <td class="text-end small">{{ number_format($row->income,2) }}</td>              
+                                    </td>
+                                    <td class="text-center small">{{$row->age_y}}</td>
+                                    <td class="text-start small text-muted">{{$row->claim_list}}</td>
+                                    <td class="text-end small">{{ number_format($row->income,2) }}</td>
                                     <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
                                     <td class="text-end small fw-bold text-primary">{{ number_format($row->claim_price,2) }}</td>
                                     <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : ($row->receive_total < 0 ? 'text-danger' : 'text-muted') }}">
@@ -149,12 +159,6 @@
                                     </td>
                                     <td class="text-end small fw-bold {{ ($row->receive_total-$row->claim_price) > 0 ? 'text-success' : (($row->receive_total-$row->claim_price) < 0 ? 'text-danger' : 'text-muted') }}">
                                         {{ number_format($row->receive_total-$row->claim_price,2) }}
-                                    </td>
-                                    <td class="text-start small text-muted">{{$row->claim_list}}</td>
-                                    <td class="text-center">
-                                       <span class="badge {{ $row->claim ? 'bg-success-soft text-success' : 'bg-secondary-soft text-secondary' }}">
-                                            {{$row->claim ?? 'None'}}
-                                       </span>
                                     </td>
                                 </tr>
                                 @php 
@@ -168,7 +172,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="9" class="text-end small text-muted px-3">รวมทั้งหมด:</th>
+                                    <th colspan="10" class="text-end small text-muted px-3">รวมทั้งหมด:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2)}}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2)}}</th>
                                     <th class="text-end small fw-bold text-primary">{{ number_format($sum_claim_price,2)}}</th>
@@ -178,7 +182,6 @@
                                     <th class="text-end small fw-bold {{ ($sum_receive_total-$sum_claim_price) > 0 ? 'text-success' : (($sum_receive_total-$sum_claim_price) < 0 ? 'text-danger' : 'text-muted') }}">
                                         {{ number_format($sum_receive_total-$sum_claim_price,2)}}
                                     </th>
-                                    <th colspan="2"></th>
                                 </tr>
                             </tfoot>
                         </table>

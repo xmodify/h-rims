@@ -1024,7 +1024,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item d-flex align-items-center me-2">
                             <div class="nav-version-badge">
-                                V.69-06-17 22:00
+                                V.69-06-18 02:00
                             </div>
                         </li>
                         <!-- Authentication Links -->
@@ -1458,6 +1458,121 @@
                 }
             };
         });
+    </script>
+
+    {{-- Global Details Modal for visiting/claim views --}}
+    <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-clipboard2-pulse-fill me-2"></i>รายละเอียดการรับบริการ</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="detailsModalBody">
+                    <div class="text-center text-muted py-4"><i class="bi bi-arrow-repeat spin me-2"></i>กำลังโหลด...</div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">ปิด</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+    .spin { animation: spin 1s linear infinite; display: inline-block; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .badge-type { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+    .badge-ppfs  { background:#fff3cd; color:#856404; }
+    .badge-uc_cr { background:#cce5ff; color:#004085; }
+    .badge-herb  { background:#d4edda; color:#155724; }
+    </style>
+
+    <script>
+    if (typeof showDetails !== 'function') {
+        window.showDetails = function(vn) {
+            const body = document.getElementById('detailsModalBody');
+            if (!body) return;
+            body.innerHTML = '<div class="text-center text-muted py-4"><i class="bi bi-arrow-repeat spin me-2"></i>กำลังโหลด...</div>';
+            $('#detailsModal').modal('show');
+
+            $.get("{{ url('claim_op/ucs_incup/visit_details') }}", { vn: vn })
+                .done(function(data) {
+                    const visit = data.visit;
+                    const items = data.items;
+                    const v     = data.validation;
+
+                    const statusBadge = v.is_valid
+                        ? '<span class="badge bg-success ms-2"><i class="bi bi-check-circle-fill"></i> ผ่านเงื่อนไข</span>'
+                        : '<span class="badge bg-danger ms-2"><i class="bi bi-exclamation-triangle-fill"></i> ไม่ผ่าน ' + v.errors.length + ' รายการ</span>';
+
+                    let html = `
+                    <div class="row g-3">
+                      <div class="col-md-6">
+                        <div class="card border-0 bg-light-soft h-100">
+                          <div class="card-body py-2 px-3">
+                            <div class="fw-bold text-primary mb-2 small"><i class="bi bi-person-fill me-1"></i>ข้อมูลผู้ป่วย</div>
+                            <table class="table table-sm table-borderless mb-0 small">
+                              <tr><th class="text-muted" style="width:35%">HN</th><td class="fw-bold">${visit.hn}</td></tr>
+                              <tr><th class="text-muted">ชื่อ-สกุล</th><td>${visit.ptname}</td></tr>
+                              <tr><th class="text-muted">สิทธิ์</th><td>${visit.pttype ?? '-'}</td></tr>
+                              <tr><th class="text-muted">เพศ/อายุ</th><td>${visit.sex == '1' ? 'ชาย' : (visit.sex == '2' ? 'หญิง' : visit.sex)} / ${visit.age_y ?? '-'} ปี</td></tr>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col-md-6">
+                        <div class="card border-0 bg-light-soft h-100">
+                          <div class="card-body py-2 px-3">
+                            <div class="fw-bold text-primary mb-2 small"><i class="bi bi-clipboard2-pulse me-1"></i>ข้อมูลทางคลินิก</div>
+                            <table class="table table-sm table-borderless mb-0 small">
+                              <tr><th class="text-muted" style="width:35%">วันที่</th><td>${visit.vstdate} ${visit.vsttime}</td></tr>
+                              <tr><th class="text-muted">CC</th><td>${visit.cc ?? '-'}</td></tr>
+                              <tr><th class="text-muted">PDX</th><td class="fw-bold text-danger">${visit.pdx ?? '-'}</td></tr>
+                              <tr><th class="text-muted">SDX</th><td>${data.sec_diags.join(', ') || '-'}</td></tr>
+                              <tr><th class="text-muted">ICD-9</th><td>${data.procedures.join(', ') || '-'}</td></tr>
+                            </table>
+                          </div>
+                        </div>
+                      </div>`;
+
+                    // Items table
+                    html += `
+                      <div class="col-12">
+                        <div class="fw-bold small text-dark mb-2"><i class="bi bi-list-check me-1"></i>รายการเรียกเก็บ ${statusBadge}</div>
+                        <div class="table-responsive">
+                          <table class="table table-sm table-hover small mb-0">
+                            <thead class="table-light">
+                              <tr>
+                                <th>icode</th><th>รายการ</th><th>ประเภท</th>
+                                <th class="text-center">จำนวน</th>
+                                <th class="text-end">ราคา/หน่วย</th>
+                                <th class="text-end">รวม</th>
+                              </tr>
+                            </thead><tbody>`;
+
+                    items.forEach(function(item) {
+                        let type = '';
+                        if (item.ppfs  === 'Y') type += '<span class="badge-type badge-ppfs me-1">PPFS</span>';
+                        if (item.uc_cr === 'Y') type += '<span class="badge-type badge-uc_cr me-1">UC_CR</span>';
+                        if (item.herb32=== 'Y') type += '<span class="badge-type badge-herb me-1">Herb</span>';
+                        html += `<tr>
+                            <td class="text-muted">${item.icode}</td>
+                            <td>${item.name ?? '-'}</td>
+                            <td>${type}</td>
+                            <td class="text-center">${item.qty}</td>
+                            <td class="text-end">${parseFloat(item.unitprice).toLocaleString('th-TH',{minimumFractionDigits:2})}</td>
+                            <td class="text-end fw-bold">${parseFloat(item.sum_price).toLocaleString('th-TH',{minimumFractionDigits:2})}</td>
+                        </tr>`;
+                    });
+
+                    html += `</tbody></table></div></div></div>`;
+                    body.innerHTML = html;
+                })
+                .fail(function() {
+                    body.innerHTML = '<div class="alert alert-warning">ไม่สามารถโหลดข้อมูลได้</div>';
+                });
+        };
+    }
     </script>
 </body>
 

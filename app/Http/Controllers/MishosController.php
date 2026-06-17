@@ -100,7 +100,7 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
             IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0) AS claim_price,
             stm.receive_total,stm.repno,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
@@ -218,7 +218,7 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
             IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0) AS claim_price,
             stm.receive_total,stm.repno,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
@@ -305,8 +305,10 @@ class MishosController extends Controller
                 LEFT JOIN pttype p ON p.pttype=vp.pttype          
                 LEFT JOIN vn_stat v ON v.vn = o.vn
 				INNER JOIN (
-                    SELECT vn FROM opitemrece 
-                    WHERE vstdate BETWEEN ? AND ? AND paidst = "02"
+                    SELECT DISTINCT op.vn 
+                    FROM opitemrece op
+                    INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.herb32 = "Y"
+                    WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
                 ) o1 ON o1.vn=o.vn
                 LEFT JOIN (
                     SELECT r.vn, SUM(r.total_amount) AS rcpt_money,
@@ -316,10 +318,9 @@ class MishosController extends Controller
                     WHERE a.rcpno IS NULL 
                     GROUP BY r.vn
                 ) rc ON rc.vn = o.vn
-				INNER JOIN hrims.lookup_icode li ON o1.vn = o.vn AND li.herb32 = "Y" AND li.icode IN (SELECT icode FROM opitemrece WHERE vn=o1.vn AND paidst="02")
 				LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price	FROM opitemrece op
-					INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
-					WHERE op.vstdate BETWEEN ? AND ? AND li.herb32 = "Y" AND op.paidst = "02" GROUP BY op.vn) herb ON herb.vn=o.vn						
+					INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.herb32 = "Y"
+					WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02" GROUP BY op.vn) herb ON herb.vn=o.vn						
                 LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_hc_drug) AS receive_hc_drug,
                     SUM(receive_hc_hc) AS receive_hc_hc FROM hrims.stm_ucs  
                     WHERE vstdate BETWEEN ? AND ?
@@ -337,7 +338,7 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(herb.claim_price, 0) AS claim_price,
             LEAST(IF(stm.receive_hc_drug = 0, stm.receive_hc_hc, stm.receive_hc_drug),COALESCE(herb.claim_price, 0)) AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
@@ -457,7 +458,7 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
                 p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(tele.claim_price, 0) AS claim_price,
                 LEAST(stm.receive_op, tele.claim_price) AS receive_total,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
 				IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
@@ -577,7 +578,7 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
                 p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(rider.claim_price, 0) AS claim_price,
                 LEAST(stm.receive_op, rider.claim_price) AS receive_total,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
 				IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
@@ -697,8 +698,8 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,GROUP_CONCAT(DISTINCT ov.icd10) AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
             COALESCE(ppfs.claim_price, 0) AS claim_price,stm.receive_dmis_compensate_pay AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -718,7 +719,6 @@ class MishosController extends Controller
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
-			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("O244","O249")
 			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
                 AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("80008"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
@@ -734,7 +734,7 @@ class MishosController extends Controller
                 AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code IN ("UCS","WEL") 	 
-			AND (o1.vn IS NOT NULL OR ov.icd10 IS NOT NULL)
+			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
@@ -806,7 +806,7 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
                 p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(drug.claim_price, 0) AS claim_price,
                 LEAST(stm.receive_hc_drug, drug.claim_price) AS receive_total ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
                 IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
@@ -922,7 +922,7 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
                 p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(sk.claim_price, 0) AS claim_price,
                 stm.receive_dmis_drug AS receive_total ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
                 IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
@@ -1041,7 +1041,7 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
                 p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(ins.claim_price, 0) AS claim_price,
                 stm.receive_inst AS receive_total ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -1157,7 +1157,7 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
                 p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(ppfs.claim_price, 0) AS claim_price,
                 stm.receive_palliative AS receive_total ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
                 IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
@@ -1277,8 +1277,8 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,GROUP_CONCAT(DISTINCT ov.icd10) AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
 			COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -1298,7 +1298,6 @@ class MishosController extends Controller
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
-			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("Z301","Z304","Z308","G431","697","9923")
 			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02"
                 AND (o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("FP001","FP002","FP002_1","FP002_2","FP003_1","FP003_2","FP003_3","FP003_4"))
 			    OR o1.icode IN (SELECT icode FROM drugitems WHERE nhso_adp_code IN ("FP001","FP002","FP002_1","FP002_2","FP003_1","FP003_2","FP003_3","FP003_4")))
@@ -1315,7 +1314,7 @@ class MishosController extends Controller
                 GROUP BY cid, vstdate, LEFT(vsttime,5)) stm ON stm.cid = pt.cid
                 AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL)  
-			AND (o1.vn IS NOT NULL OR ov.icd10 IS NOT NULL)
+			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
@@ -1399,8 +1398,8 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,ov.icd10,lo.lab_items_name_ref,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,lo.lab_items_name_ref,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
 			COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -1420,7 +1419,6 @@ class MishosController extends Controller
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
-			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("Z320","Z321")
 			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30014"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode
 			LEFT JOIN lab_head lh ON lh.vn=o.vn
@@ -1435,7 +1433,7 @@ class MishosController extends Controller
                 GROUP BY cid, vstdate, LEFT(vsttime,5)) stm ON stm.cid = pt.cid
                 AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL)  
-			AND (o1.vn IS NOT NULL OR lo.lab_items_name_ref IS NOT NULL OR ov.icd10 IS NOT NULL)
+			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
@@ -1518,8 +1516,8 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,v.age_y,
-            p.`name` AS pttype,vp.hospmain,v.pdx,GROUP_CONCAT(DISTINCT ov.icd10) AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,v.age_y,
+            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
 			COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -1539,7 +1537,6 @@ class MishosController extends Controller
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
-			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("Z130")
 			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("13001"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
 			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
@@ -1552,7 +1549,7 @@ class MishosController extends Controller
                 GROUP BY cid, vstdate, LEFT(vsttime,5)) stm ON stm.cid = pt.cid
                 AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL)  
-			AND (o1.vn IS NOT NULL OR ov.icd10 IS NOT NULL)
+			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
@@ -1635,8 +1632,8 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,GROUP_CONCAT(DISTINCT ov.icd10) AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
 			COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -1656,7 +1653,6 @@ class MishosController extends Controller
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
-			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("Z130")
 			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("14001"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
 			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
@@ -1669,7 +1665,7 @@ class MishosController extends Controller
                 GROUP BY cid, vstdate, LEFT(vsttime,5)) stm ON stm.cid = pt.cid
                 AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL)  
-			AND (o1.vn IS NOT NULL OR ov.icd10 IS NOT NULL)
+			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
@@ -1742,8 +1738,8 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,GROUP_CONCAT(DISTINCT ov.icd10) AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
 			COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -1763,7 +1759,6 @@ class MishosController extends Controller
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
-			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("K020","K1170","Z298","9654","2387021")
 			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("15001"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
 			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
@@ -1776,7 +1771,7 @@ class MishosController extends Controller
                 GROUP BY cid, vstdate, LEFT(vsttime,5)) stm ON stm.cid = pt.cid
                 AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL)  
-			AND (o1.vn IS NOT NULL OR ov.icd10 IS NOT NULL)
+			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
@@ -1860,8 +1855,8 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,a.anc_service_number,v.pdx,GROUP_CONCAT(DISTINCT ov.icd10) AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+            p.`name` AS pttype,vp.hospmain,a.anc_service_number,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
             COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -1882,8 +1877,6 @@ class MishosController extends Controller
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
-			LEFT JOIN ovstdiag ov ON ov.vn=o.vn
-                AND ov.icd10 IN ("Z340","Z348","Z350","Z359","8878","2387010","2277310","2277320","2287310","2287320")
 			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" 
                 AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30008","30009","30010","30011","30012","30013"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
@@ -1898,7 +1891,7 @@ class MishosController extends Controller
                 GROUP BY cid, vstdate, LEFT(vsttime,5)) stm ON stm.cid = pt.cid
                 AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL)  
-			AND (o1.vn IS NOT NULL OR ov.icd10 IS NOT NULL)
+			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
@@ -1982,8 +1975,8 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,GROUP_CONCAT(DISTINCT ov.icd10) AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
             COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -2003,7 +1996,6 @@ class MishosController extends Controller
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
-			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("Z390","Z392")
 			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" 
                 AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("30015","30016"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
@@ -2018,7 +2010,7 @@ class MishosController extends Controller
                 GROUP BY cid, vstdate, LEFT(vsttime,5)) stm ON stm.cid = pt.cid
                 AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL)  
-			AND (o1.vn IS NOT NULL OR ov.icd10 IS NOT NULL)
+			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
@@ -2102,8 +2094,8 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,GROUP_CONCAT(DISTINCT ov.icd10) AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
             COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -2123,14 +2115,13 @@ class MishosController extends Controller
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
-			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("Z121")
-			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" 
+            LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" 
                 AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("90005"))
-			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
-			LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
-			LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
-			WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
-			AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("90005")) 
+            LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
+            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
+            LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS claim_price FROM opitemrece op					
+            WHERE op.vstdate BETWEEN ? AND ? AND op.paidst = "02"
+            AND op.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("90005")) 
             GROUP BY op.vn) ppfs ON ppfs.vn=o.vn						
             LEFT JOIN (SELECT cid, vstdate,LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
                 FROM hrims.stm_ucs 
@@ -2138,7 +2129,7 @@ class MishosController extends Controller
                 GROUP BY cid, vstdate, LEFT(vsttime,5)) stm ON stm.cid = pt.cid
                 AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL)  
-			AND (o1.vn IS NOT NULL OR ov.icd10 IS NOT NULL)
+			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
@@ -2222,8 +2213,8 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,GROUP_CONCAT(DISTINCT ov.icd10) AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+            p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
             COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -2243,7 +2234,6 @@ class MishosController extends Controller
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
-			LEFT JOIN ovstdiag ov ON ov.vn=o.vn AND ov.icd10 IN ("Z131","Z136")
 			LEFT JOIN opitemrece o1 ON o1.vn=o.vn AND o1.paidst = "02" 
                 AND o1.icode IN (SELECT icode FROM nondrugitems WHERE nhso_adp_code IN ("12003","12004"))
 			LEFT JOIN s_drugitems sd ON sd.icode=o1.icode			
@@ -2258,7 +2248,7 @@ class MishosController extends Controller
                 GROUP BY cid, vstdate, LEFT(vsttime,5)) stm ON stm.cid = pt.cid
                 AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL)  
-			AND (o1.vn IS NOT NULL OR ov.icd10 IS NOT NULL)
+			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 

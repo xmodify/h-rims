@@ -1,20 +1,4 @@
 @extends('layouts.app')
-    <script>
-        function toggle_d(source) {
-            checkbox = document.getElementsByName('checkbox_d[]');
-            for (var i = 0; i < checkbox.length; i++) {
-                checkbox[i].checked = source.checked;
-            }
-        }
-    </script>
-    <script>
-        function toggle(source) {
-            checkboxes = document.getElementsByName('checkbox[]');
-            for (var i = 0; i < checkboxes.length; i++) {
-                checkboxes[i].checked = source.checked;
-            }
-        }
-    </script>    
 @section('content')
     <!-- Page Header & Logic Filters -->
     <div class="page-header-box mt-2 mb-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center flex-wrap">
@@ -115,7 +99,11 @@
                                 <th class="text-center text-primary" colspan = "12">การชดเชย</th>                                                 
                             </tr>
                             <tr class="table-success align-middle text-center">
-                                <th class="text-center"><input type="checkbox" onClick="toggle_d(this)"> All</th> 
+                                <th class="text-center" style="width: 70px; min-width: 70px; max-width: 70px;">
+                                    <div class="d-flex align-items-center justify-content-center gap-1">
+                                        <input type="checkbox" onClick="toggle_d(this)"> <span>All</span>
+                                    </div>
+                                </th> 
                                 <th class="text-center" width="6%">วันที่</th>
                                 <th class="text-center">HN</th>
                                 <th class="text-center">ชื่อ-สกุล</th>
@@ -289,7 +277,11 @@
                                 <th class="text-left text-primary" colspan = "17">1102050102.801-ลูกหนี้ค่ารักษา เบิกจ่ายตรง อปท.OP รอยืนยัน วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} รอยืนยันลูกหนี้</th>                         
                             </tr>
                             <tr class="table-secondary">
-                                <th class="text-center"><input type="checkbox" onClick="toggle(this)"> All</th> 
+                                <th class="text-center" style="width: 70px; min-width: 70px; max-width: 70px;">
+                                    <div class="d-flex align-items-center justify-content-center gap-1">
+                                        <input type="checkbox" onClick="toggle(this)"> <span>All</span>
+                                    </div>
+                                </th>
                                 <th class="text-center">วันที่</th>
                                 <th class="text-center">HN</th>
                                 <th class="text-center">ชื่อ-สกุล</th>
@@ -359,43 +351,190 @@
     function fetchData() { showLoading(); }
 
     function confirmDelete() { 
-        const selected = [...document.querySelectorAll('input[name="checkbox_d[]"]:checked')].map(e => e.value);    
+        let selected = [];
+        if ($.fn.DataTable.isDataTable('#debtor')) {
+            let table = $('#debtor').DataTable();
+            let cells = table.cells().nodes();
+            $(cells).find('input[name="checkbox_d[]"]:checked').each(function() {
+                selected.push($(this).val());
+            });
+        } else {
+            selected = [...document.querySelectorAll('input[name="checkbox_d[]"]:checked')].map(e => e.value);
+        }
+
         if (selected.length === 0) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะลบ', 'warning'); return; }
         Swal.fire({
-            title: 'ยืนยัน?', text: "ต้องการลบลูกหนี้รายการที่เลือกใช่หรือไม่?", icon: 'warning',
+            title: 'ยืนยัน?', text: `ต้องการลบลูกหนี้จำนวน ${selected.length} รายการที่เลือกใช่หรือไม่?`, icon: 'warning',
             showCancelButton: true, confirmButtonColor: '#d33', cancelButtonColor: '#3085d6', confirmButtonText: 'ใช่, ลบเลย!', cancelButtonText: 'ยกเลิก'
         }).then((result) => { if (result.isConfirmed) { 
-            const f = document.getElementById('form-delete') || document.querySelector('form[action*="delete"]');
-            if(f) f.submit(); 
+            const chunkSize = 100;
+            const chunks = [];
+            for (let i = 0; i < selected.length; i += chunkSize) {
+                chunks.push(selected.slice(i, i + chunkSize));
+            }
+            
+            let currentChunkIndex = 0;
+            const total = selected.length;
+            let totalDeleted = 0;
+            let totalLocked = 0;
+            
+            Swal.fire({
+                title: 'กำลังลบรายการลูกหนี้...',
+                html: `
+                    <div class="progress mb-2" style="height: 25px;">
+                        <div id="delete-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-danger" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
+                    <div id="delete-progress-text" class="text-muted small">กำลังดำเนินการ 0 จากทั้งหมด ${total} รายการ</div>
+                `,
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    sendNextDeleteChunk();
+                }
+            });
+            
+            function sendNextDeleteChunk() {
+                if (currentChunkIndex >= chunks.length) {
+                    let alertText = `ลบรายการลูกหนี้จำนวน ${totalDeleted} รายการเรียบร้อยแล้ว`;
+                    if (totalLocked > 0) {
+                        alertText += ` (ข้ามรายการที่ถูกล็อค ${totalLocked} รายการ)`;
+                    }
+                    Swal.fire({
+                        title: 'สำเร็จ!',
+                        text: alertText,
+                        icon: totalLocked === total ? 'error' : (totalLocked > 0 ? 'warning' : 'success'),
+                        confirmButtonText: 'ตกลง'
+                    }).then(() => {
+                        location.reload();
+                    });
+                    return;
+                }
+                
+                const chunk = chunks[currentChunkIndex];
+                
+                $.ajax({
+                    url: "{{ url('debtor/1102050102_801_delete') }}",
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        _method: 'DELETE',
+                        checkbox_d: chunk
+                    },
+                    success: function(res) {
+                        currentChunkIndex++;
+                        totalDeleted += (res.deleted || 0);
+                        totalLocked += (res.locked || 0);
+                        
+                        const processedCount = Math.min(currentChunkIndex * chunkSize, total);
+                        const percent = Math.round((processedCount / total) * 100);
+                        
+                        const progressBar = document.getElementById('delete-progress-bar');
+                        const progressText = document.getElementById('delete-progress-text');
+                        if (progressBar) {
+                            progressBar.style.width = percent + '%';
+                            progressBar.setAttribute('aria-valuenow', percent);
+                            progressBar.innerText = percent + '%';
+                        }
+                        if (progressText) {
+                            progressText.innerText = `กำลังดำเนินการ ${processedCount} จากทั้งหมด ${total} รายการ`;
+                        }
+                        
+                        sendNextDeleteChunk();
+                    },
+                    error: function(xhr) {
+                        Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถลบลูกหนี้บางรายการได้ กรุณาลองใหม่อีกครั้ง', 'error');
+                    }
+                });
+            }
         } });
     }
 
     function confirmSubmit() {
-        const selected = [...document.querySelectorAll('input[name="checkbox[]"]:checked')].map(e => e.value);    
+        let selected = [];
+        if ($.fn.DataTable.isDataTable('#debtor_search')) {
+            let table = $('#debtor_search').DataTable();
+            let cells = table.cells().nodes();
+            $(cells).find('input[name="checkbox[]"]:checked').each(function() {
+                selected.push($(this).val());
+            });
+        } else {
+            selected = [...document.querySelectorAll('input[name="checkbox[]"]:checked')].map(e => e.value);
+        }
+
         if (selected.length === 0) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะยืนยัน', 'warning'); return; }
         Swal.fire({
-            title: 'ยืนยัน?', text: "ต้องการยืนยันลูกหนี้รายการที่เลือกใช่หรือไม่?", icon: 'question',
+            title: 'ยืนยัน?', text: `ต้องการยืนยันลูกหนี้จำนวน ${selected.length} รายการที่เลือกใช่หรือไม่?`, icon: 'question',
             showCancelButton: true, confirmButtonColor: '#28a745', cancelButtonColor: '#6c757d', confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก'
         }).then((result) => { if (result.isConfirmed) { 
-            const f = document.getElementById('form-confirm') || document.querySelector('form[action*="confirm"]');
-            if(f) f.submit(); 
-        } });
-    }
-
-    function toggle_ae(source) {
-        checkboxes = document.getElementsByName('checkbox_ae[]');
-        for (var i = 0; i < checkboxes.length; i++) { checkboxes[i].checked = source.checked; }
-    }
-
-    function confirmSubmit_ae() {
-        const selected = [...document.querySelectorAll('input[name="checkbox_ae[]"]:checked')].map(e => e.value);    
-        if (selected.length === 0) { Swal.fire('แจ้งเตือน', 'กรุณาเลือกรายการที่จะยืนยัน', 'warning'); return; }
-        Swal.fire({
-            title: 'ยืนยัน?', text: "ต้องการยืนยันลูกหนี้รายการที่เลือกใช่หรือไม่?", icon: 'question',
-            showCancelButton: true, confirmButtonColor: '#28a745', cancelButtonColor: '#6c757d', confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก'
-        }).then((result) => { if (result.isConfirmed) { 
-            const f = document.querySelector('form[action*="confirm_ae"]');
-            if(f) f.submit(); 
+            const chunkSize = 10;
+            const chunks = [];
+            for (let i = 0; i < selected.length; i += chunkSize) {
+                chunks.push(selected.slice(i, i + chunkSize));
+            }
+            
+            let currentChunkIndex = 0;
+            const total = selected.length;
+            
+            Swal.fire({
+                title: 'กำลังยืนยันลูกหนี้...',
+                html: `
+                    <div class="progress mb-2" style="height: 25px;">
+                        <div id="confirm-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                    </div>
+                    <div id="confirm-progress-text" class="text-muted small">กำลังดำเนินการ 0 จากทั้งหมด ${total} รายการ</div>
+                `,
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    sendNextChunk();
+                }
+            });
+            
+            function sendNextChunk() {
+                if (currentChunkIndex >= chunks.length) {
+                    Swal.fire({
+                        title: 'สำเร็จ!',
+                        text: `ยืนยันลูกหนี้จำนวน ${total} เรียบร้อยแล้ว`,
+                        icon: 'success',
+                        confirmButtonText: 'ตกลง'
+                    }).then(() => {
+                        location.reload();
+                    });
+                    return;
+                }
+                
+                const chunk = chunks[currentChunkIndex];
+                
+                $.ajax({
+                    url: "{{ url('debtor/1102050102_801_confirm') }}",
+                    type: 'POST',
+                    data: {
+                        _token: '{{ csrf_token() }}',
+                        checkbox: chunk
+                    },
+                    success: function(res) {
+                        currentChunkIndex++;
+                        const processedCount = Math.min(currentChunkIndex * chunkSize, total);
+                        const percent = Math.round((processedCount / total) * 100);
+                        
+                        const progressBar = document.getElementById('confirm-progress-bar');
+                        const progressText = document.getElementById('confirm-progress-text');
+                        if (progressBar) {
+                            progressBar.style.width = percent + '%';
+                            progressBar.setAttribute('aria-valuenow', percent);
+                            progressBar.innerText = percent + '%';
+                        }
+                        if (progressText) {
+                            progressText.innerText = `กำลังดำเนินการ ${processedCount} จากทั้งหมด ${total} รายการ`;
+                        }
+                        
+                        sendNextChunk();
+                    },
+                    error: function(xhr) {
+                        Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถยืนยันลูกหนี้บางรายการได้ กรุณาลองใหม่อีกครั้ง', 'error');
+                    }
+                });
+            }
         } });
     }
 
@@ -569,6 +708,28 @@
 @push('scripts')
 
 <script>
+window.toggle_d = function(source) {
+    if ($.fn.DataTable.isDataTable('#debtor')) {
+        let table = $('#debtor').DataTable();
+        let rows = table.rows({ page: 'current' }).nodes();
+        $(rows).find('input[name="checkbox_d[]"]').prop('checked', source.checked);
+    } else {
+        $('input[name="checkbox_d[]"]').prop('checked', source.checked);
+    }
+};
+
+window.toggle = function(source) {
+    if ($.fn.DataTable.isDataTable('#debtor_search')) {
+        let table = $('#debtor_search').DataTable();
+        let rows = table.rows({ page: 'current' }).nodes();
+        $(rows).find('input[name="checkbox[]"]').prop('checked', source.checked);
+    } else {
+        $('input[name="checkbox[]"]').prop('checked', source.checked);
+    }
+};
+</script>
+
+<script>
 $(document).ready(function() {
     // 1. Initialize Datepicker Thai for Filter with Today button
     // language: 'th-th' and thaiyear: true work together for BE year display.
@@ -624,6 +785,10 @@ $(document).ready(function() {
         $('#debtor').DataTable({
             dom: '<"row mb-3"<"col-md-6"l>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
             ordering: true,
+            lengthMenu: [[10, 25, 50, 100, 200, 500, -1], [10, 25, 50, 100, 200, 500, "ทั้งหมด"]],
+            columnDefs: [
+                { orderable: false, targets: 0 }
+            ],
             language: {
                 lengthMenu: 'แสดง _MENU_ รายการ',
                 info: 'แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ',
@@ -728,6 +893,10 @@ $(document).ready(function() {
 
             dtSearchInstance = $(tableId).DataTable({
                     dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                    lengthMenu: [[10, 25, 50, 100, 200, 500, -1], [10, 25, 50, 100, 200, 500, "ทั้งหมด"]],
+                    columnDefs: [
+                        { orderable: false, targets: 0 }
+                    ],
                     buttons: [
                         {
                             extend: 'excelHtml5',

@@ -587,42 +587,42 @@
                                         <li>
                                             <a class="dropdown-item dropdown-item-modern"
                                                 href="{{ url('check/nhso_endpoint') }}">
-                                                ปิดสิทธิ สปสช.
+                                                <i class="bi bi-person-x-fill text-danger me-2"></i> ปิดสิทธิ สปสช.
                                             </a>
                                             <a class="dropdown-item dropdown-item-modern"
                                                 href="{{ url('check/fdh_claim_status') }}">
-                                                FDH-Claim Status
+                                                <i class="bi bi-cloud-check-fill text-primary me-2"></i> FDH-Claim Status
                                             </a>
                                             <a class="dropdown-item dropdown-item-modern"
                                                 href="{{ url('check/eclaim_status') }}">
-                                                E-Claim Status
+                                                <i class="bi bi-file-earmark-check-fill text-success me-2"></i> E-Claim Status
                                             </a>
                                             <a class="dropdown-item dropdown-item-modern" href="{{ url('check/drugcat_nhso') }}">
-                                                Drug Catalog สปสช.
+                                                <i class="bi bi-capsule-pill text-info me-2"></i> Drug Catalog สปสช.
                                             </a>
                                             <a class="dropdown-item dropdown-item-modern" href="{{ url('check/drugcat_chi') }}">
-                                                Drug Catalog สกส.
+                                                <i class="bi bi-capsule text-warning me-2"></i> Drug Catalog สกส.
                                             </a>
                                             <a class="dropdown-item dropdown-item-modern"
                                                 href="{{ url('check/sss_equipdev_aipn') }}">
-                                                SSS Equipdev AIPN
+                                                <i class="bi bi-tools text-secondary me-2"></i> SSS Equipdev AIPN
                                             </a>
                                             <a class="dropdown-item dropdown-item-modern"
                                                 href="{{ url('check/nondrugitems') }}">
-                                                ค่ารักษาพยาบาล
+                                                <i class="bi bi-cash-stack text-success me-2"></i> ค่ารักษาพยาบาล
                                             </a>
                                         </li>
                                         <!-- ชี้ขวา -->
                                         <li class="dropend position-relative">
                                             <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
                                                 data-bs-toggle="dropdown">
-                                                สิทธิการรักษา
+                                                <i class="bi bi-card-checklist text-primary me-2"></i> สิทธิการรักษา
                                             </a>
                                             <ul class="dropdown-menu dropdown-menu-modern">
                                                 <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('check/pttype') }}">HOSxP</a></li>
+                                                        href="{{ url('check/pttype') }}"><i class="bi bi-chevron-right text-muted me-1"></i> HOSxP</a></li>
                                                 <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('check/nhso_subinscl') }}">สปสช.</a></li>
+                                                        href="{{ url('check/nhso_subinscl') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สปสช.</a></li>
                                             </ul>
                                         </li>
                                     </ul>

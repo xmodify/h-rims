@@ -538,7 +538,7 @@
         <nav class="navbar navbar-expand-md navbar-dark navbar-modern sticky-top">
             <div class="container-fluid px-lg-4">
                 <a class="navbar-brand-modern" href="{{ url('/') }}">
-                    <i class="bi bi-cash-coin" style="color: #ffd700;"></i>
+                    <i class="bi bi-wallet-fill" style="color: #ffd700; font-size: 1.7rem;"></i>
                     <div class="d-flex flex-column leading-none">
                         <span class="fs-5 lh-1">RiMS</span>
                         @if($hospital_name)

@@ -1043,7 +1043,9 @@ class MishosController extends Controller
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
                 p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(ins.claim_price, 0) AS claim_price,
-                stm.receive_inst AS receive_total ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
+                stm.receive_inst AS receive_total ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim,
+                pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
+                IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -1078,6 +1080,8 @@ class MishosController extends Controller
             AND p.hipdata_code IN ("UCS","WEL")       
             AND o.vstdate BETWEEN ? AND ? 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
+        $this->validateUcsInsRows($search);
 
         return view('mishos.ucs_ins', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
@@ -2350,7 +2354,7 @@ class MishosController extends Controller
             LEFT JOIN nondrugitems n ON n.icode = op.icode
             LEFT JOIN drugitems d ON d.icode = op.icode
             WHERE op.vn = ?
-            AND li.ppfs = "Y"', [$vn]);
+            AND (li.ppfs = "Y" OR li.uc_cr = "Y")', [$vn]);
 
         $adpCodes = collect($items)->pluck('nhso_adp_code')->filter()->unique()->values()->toArray();
         $insUcsMap = [];
@@ -2365,8 +2369,16 @@ class MishosController extends Controller
             $item->ins_ucs = $insUcsMap[$item->nhso_adp_code] ?? null;
         }
 
+        $hasPpfs = false;
+        foreach ($items as $item) {
+            if (($item->ppfs ?? '') === 'Y') {
+                $hasPpfs = true;
+                break;
+            }
+        }
+
         $validator = new \App\Services\ClaimValidator();
-        $validation = $validator->validate($visit, $items);
+        $validation = $hasPpfs ? $validator->validate($visit, $items) : $validator->validateInsUcsOnly($visit, $items);
 
         return response()->json([
             'visit'      => $visit,
@@ -2463,6 +2475,83 @@ class MishosController extends Controller
 
             // Run validation
             $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
+            $row->is_valid           = $result['is_valid'];
+            $row->endpoint_valid     = $result['endpoint_valid'];
+            $row->validation_errors  = $result['errors'];
+            $row->validation_warnings = $result['warnings'];
+        }
+    }
+
+    private function validateUcsInsRows(&$search)
+    {
+        $allVns = array_column($search, 'seq');
+        if (empty($allVns)) {
+            return;
+        }
+
+        // 1. Batch load claim items (where uc_cr = Y) for all VNs
+        $itemsByVn = [];
+        $rawItems = \Illuminate\Support\Facades\DB::connection('hosxp')
+            ->select('
+                SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
+                       li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
+                       IFNULL(n.name, d.name) AS name
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                LEFT JOIN nondrugitems n ON n.icode = op.icode
+                LEFT JOIN drugitems d ON d.icode = op.icode
+                WHERE op.vn IN (' . implode(',', array_fill(0, count($allVns), '?')) . ')
+                AND li.uc_cr = "Y"',
+            $allVns);
+
+        $adpCodes = collect($rawItems)->pluck('nhso_adp_code')->filter()->unique()->values()->toArray();
+        $insUcsMap = [];
+        if (!empty($adpCodes) && \Illuminate\Support\Facades\Schema::hasTable('lookup_nhso_adp_code')) {
+            $insUcsMap = \Illuminate\Support\Facades\DB::table('lookup_nhso_adp_code')
+                ->whereIn('nhso_adp_code', $adpCodes)
+                ->where('nhso_adp_type_id', 2)
+                ->pluck('ins_ucs', 'nhso_adp_code')
+                ->toArray();
+        }
+        foreach ($rawItems as $item) {
+            $item->ins_ucs = $insUcsMap[$item->nhso_adp_code] ?? null;
+            $itemsByVn[$item->vn][] = $item;
+        }
+
+        // 2. Batch load additional patient details, endpoints, FDH status
+        $cids = array_filter(array_unique(array_column($search, 'cid')));
+        $endpointsMap = [];
+        if (!empty($cids)) {
+            $endpoints = \Illuminate\Support\Facades\DB::table('hrims.nhso_endpoint')
+                ->whereIn('cid', $cids)
+                ->where('claimCode', 'LIKE', 'EP%')
+                ->get()
+                ->groupBy('cid');
+            foreach ($endpoints as $cid => $group) {
+                foreach ($group as $ep) {
+                    $endpointsMap[$cid][$ep->vstdate] = true;
+                }
+            }
+        }
+
+        $fdhStatuses = \Illuminate\Support\Facades\DB::table('hrims.fdh_claim_status')
+            ->whereIn('seq', $allVns)
+            ->pluck('status_message_th', 'seq')
+            ->toArray();
+
+        // 3. Run ClaimValidator
+        $validator = new \App\Services\ClaimValidator();
+        foreach ($search as $row) {
+            // Populate fields for validator
+            $row->sdx = '';
+            $row->icd9 = '';
+            $row->fdh_status = $fdhStatuses[$row->seq] ?? null;
+
+            $hasEp = isset($endpointsMap[$row->cid][$row->vstdate]);
+            $row->endpoint = $hasEp || (isset($row->auth_code_ep) && $row->auth_code_ep === 'Y') ? 'Y' : null;
+
+            // Run validation
+            $result = $validator->validateInsUcsOnly($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];

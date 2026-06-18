@@ -765,6 +765,7 @@ class CheckController extends Controller
             return $this->exportToExcel([], $hosp_code . 'DrugN' . $seq . '.xlsx');
         }
 
+        $local_db = config('database.connections.mysql.database');
         $quoted = array_map(function($val) {
             return DB::connection('hosxp')->getPdo()->quote($val);
         }, $icodes);
@@ -773,33 +774,37 @@ class CheckController extends Controller
         $drugs = DB::connection('hosxp')->select("
             SELECT  
                 d.icode AS HospDrugCode,
-                '1' AS ProductCat,
-                d3.ref_code AS TMTID,
-                '' AS SpecPrep,
+                d.sks_product_category_id AS ProductCat,
+                d.sks_drug_code AS TMTID,
+                IFNULL(s.SpecPrep, '') AS SpecPrep,
                 IFNULL(d.generic_name, d.`name`) AS GenericName,
-                d.trade_name AS TradeName,
-                '' AS DFSCode,
-                d.dosageform AS DosageForm,
-                d.strength AS Strength,
-                d.units AS Content,
+                IFNULL(d.trade_name, s.TradeName) AS TradeName,
+                IFNULL(d.sks_dfs_code, s.DSFCode) AS DFSCode,
+                IFNULL(d.dosageform, s.DosageForm) AS DosageForm,
+                IFNULL(d.strength, s.Strength) AS Strength,
+                IFNULL(d.dosageform, s.DosageForm) AS Content,
                 d.unitprice AS UnitPrice,
-                '' AS Distributor,
-                '' AS Manufacturer,
-                CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ISED,
-                d2.ref_code AS NDC24,
-                '' AS PackSize,
-                '' AS PackPrice,
+                dr.comp AS Distributor,
+                CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN tc.manufacturer ELSE dr.manufacturer END AS Manufacturer,
+                CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' WHEN d.drugaccount <> '' THEN 'E' END AS ISED,
+                d.did AS NDC24,
+                CASE WHEN d.provis_medication_unit_code = '' OR d.provis_medication_unit_code IS NULL THEN d.units ELSE p.provis_medication_unit_name END AS Packsize,
+                d.unitprice AS Packprice,
                 'A' AS UpdateFlag,
                 '' AS DateChange,
                 '' AS DateUpdate,
-                DATE_FORMAT(NOW(), '%Y-%m-%d') AS DateEffective,
-                '' AS RP
+                DATE_FORMAT(IFNULL(nd.dateeffective, IFNULL(s.DateEffective, IFNULL(d.last_update, NOW()))), '%d/%m/%Y') AS DateEffective,
+                NULL AS Reimbprice
             FROM drugitems d
-            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
-            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%'
+            LEFT JOIN tmt_tpu_code tc ON tc.tpu_code = d.sks_drug_code
+            LEFT JOIN drugitems_register_unique dr ON dr.std_code = d.did
+            LEFT JOIN provis_medication_unit p ON p.provis_medication_unit_code = d.provis_medication_unit_code 
+            LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%'
               {$where_icode}
-            ORDER BY d.NAME, d.strength, d.units
+            ORDER BY d.icode
         ");
 
         return $this->exportToExcel($drugs, $hosp_code . 'DrugN' . $seq . '.xlsx');
@@ -816,6 +821,7 @@ class CheckController extends Controller
             return $this->exportToExcel([], $hosp_code . 'DrugN' . $seq . '.xlsx');
         }
 
+        $local_db = config('database.connections.mysql.database');
         $quoted = array_map(function($val) {
             return DB::connection('hosxp')->getPdo()->quote($val);
         }, $icodes);
@@ -824,33 +830,42 @@ class CheckController extends Controller
         $drugs = DB::connection('hosxp')->select("
             SELECT  
                 d.icode AS HospDrugCode,
-                '1' AS ProductCat,
-                d3.ref_code AS TMTID,
-                '' AS SpecPrep,
+                d.sks_product_category_id AS ProductCat,
+                d.sks_drug_code AS TMTID,
+                IFNULL(s.SpecPrep, '') AS SpecPrep,
                 IFNULL(d.generic_name, d.`name`) AS GenericName,
-                d.trade_name AS TradeName,
-                '' AS DFSCode,
-                d.dosageform AS DosageForm,
-                d.strength AS Strength,
-                d.units AS Content,
+                IFNULL(d.trade_name, s.TradeName) AS TradeName,
+                IFNULL(d.sks_dfs_code, s.DSFCode) AS DFSCode,
+                IFNULL(d.dosageform, s.DosageForm) AS DosageForm,
+                IFNULL(d.strength, s.Strength) AS Strength,
+                IFNULL(d.dosageform, s.DosageForm) AS Content,
                 d.unitprice AS UnitPrice,
-                '' AS Distributor,
-                '' AS Manufacturer,
-                CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ISED,
-                d2.ref_code AS NDC24,
-                '' AS PackSize,
-                '' AS PackPrice,
+                dr.comp AS Distributor,
+                CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN tc.manufacturer ELSE dr.manufacturer END AS Manufacturer,
+                CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' WHEN d.drugaccount <> '' THEN 'E' END AS ISED,
+                d.did AS NDC24,
+                CASE WHEN d.provis_medication_unit_code = '' OR d.provis_medication_unit_code IS NULL THEN d.units ELSE p.provis_medication_unit_name END AS Packsize,
+                d.unitprice AS Packprice,
                 'E' AS UpdateFlag,
-                DATE_FORMAT(NOW(), '%Y-%m-%d') AS DateChange,
+                DATE_FORMAT(IFNULL(d.last_update, NOW()), '%d/%m/%Y') AS DateChange,
                 '' AS DateUpdate,
-                DATE_FORMAT(NOW(), '%Y-%m-%d') AS DateEffective,
-                '' AS RP
+                DATE_FORMAT(CASE 
+                    WHEN nd.dateeffective IS NOT NULL AND nd.dateeffective >= CURRENT_DATE() THEN DATE_ADD(nd.dateeffective, INTERVAL 1 DAY)
+                    WHEN nd.dateeffective IS NOT NULL THEN CURRENT_DATE()
+                    WHEN s.DateEffective IS NOT NULL AND s.DateEffective >= CURRENT_DATE() THEN DATE_ADD(s.DateEffective, INTERVAL 1 DAY)
+                    ELSE CURRENT_DATE()
+                END, '%d/%m/%Y') AS DateEffective,
+                NULL AS Reimbprice
             FROM drugitems d
-            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
-            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%'
+            LEFT JOIN tmt_tpu_code tc ON tc.tpu_code = d.sks_drug_code
+            LEFT JOIN drugitems_register_unique dr ON dr.std_code = d.did
+            LEFT JOIN provis_medication_unit p ON p.provis_medication_unit_code = d.provis_medication_unit_code 
+            LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%'
               {$where_icode}
-            ORDER BY d.NAME, d.strength, d.units
+            ORDER BY d.icode
         ");
 
         return $this->exportToExcel($drugs, $hosp_code . 'DrugN' . $seq . '.xlsx');
@@ -867,6 +882,7 @@ class CheckController extends Controller
             return $this->exportToExcel([], $hosp_code . 'DrugN' . $seq . '.xlsx');
         }
 
+        $local_db = config('database.connections.mysql.database');
         $quoted = array_map(function($val) {
             return DB::connection('hosxp')->getPdo()->quote($val);
         }, $icodes);
@@ -875,36 +891,134 @@ class CheckController extends Controller
         $drugs = DB::connection('hosxp')->select("
             SELECT  
                 d.icode AS HospDrugCode,
-                '1' AS ProductCat,
-                d3.ref_code AS TMTID,
-                '' AS SpecPrep,
+                d.sks_product_category_id AS ProductCat,
+                d.sks_drug_code AS TMTID,
+                IFNULL(s.SpecPrep, '') AS SpecPrep,
                 IFNULL(d.generic_name, d.`name`) AS GenericName,
-                d.trade_name AS TradeName,
-                '' AS DFSCode,
-                d.dosageform AS DosageForm,
-                d.strength AS Strength,
-                d.units AS Content,
+                IFNULL(d.trade_name, s.TradeName) AS TradeName,
+                IFNULL(d.sks_dfs_code, s.DSFCode) AS DFSCode,
+                IFNULL(d.dosageform, s.DosageForm) AS DosageForm,
+                IFNULL(d.strength, s.Strength) AS Strength,
+                IFNULL(d.dosageform, s.DosageForm) AS Content,
                 d.unitprice AS UnitPrice,
-                '' AS Distributor,
-                '' AS Manufacturer,
-                CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' ELSE 'E' END AS ISED,
-                d2.ref_code AS NDC24,
-                '' AS PackSize,
-                '' AS PackPrice,
+                dr.comp AS Distributor,
+                CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN tc.manufacturer ELSE dr.manufacturer END AS Manufacturer,
+                CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' WHEN d.drugaccount <> '' THEN 'E' END AS ISED,
+                d.did AS NDC24,
+                CASE WHEN d.provis_medication_unit_code = '' OR d.provis_medication_unit_code IS NULL THEN d.units ELSE p.provis_medication_unit_name END AS Packsize,
+                d.unitprice AS Packprice,
                 'U' AS UpdateFlag,
                 '' AS DateChange,
-                DATE_FORMAT(NOW(), '%Y-%m-%d') AS DateUpdate,
-                DATE_FORMAT(NOW(), '%Y-%m-%d') AS DateEffective,
-                '' AS RP
+                DATE_FORMAT(IFNULL(d.lastupdatestdprice, NOW()), '%d/%m/%Y') AS DateUpdate,
+                DATE_FORMAT(CASE 
+                    WHEN nd.dateeffective IS NOT NULL AND nd.dateeffective >= CURRENT_DATE() THEN DATE_ADD(nd.dateeffective, INTERVAL 1 DAY)
+                    WHEN nd.dateeffective IS NOT NULL THEN CURRENT_DATE()
+                    WHEN s.DateEffective IS NOT NULL AND s.DateEffective >= CURRENT_DATE() THEN DATE_ADD(s.DateEffective, INTERVAL 1 DAY)
+                    ELSE CURRENT_DATE()
+                END, '%d/%m/%Y') AS DateEffective,
+                NULL AS Reimbprice
             FROM drugitems d
-            LEFT JOIN drugitems_ref_code d2 ON d2.icode=d.icode AND d2.drugitems_ref_code_type_id=1
-            LEFT JOIN drugitems_ref_code d3 ON d3.icode=d.icode AND d3.drugitems_ref_code_type_id=3
-            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%' AND d.`name` NOT LIKE '(ยาผู้ป่วย)%'
+            LEFT JOIN tmt_tpu_code tc ON tc.tpu_code = d.sks_drug_code
+            LEFT JOIN drugitems_register_unique dr ON dr.std_code = d.did
+            LEFT JOIN provis_medication_unit p ON p.provis_medication_unit_code = d.provis_medication_unit_code 
+            LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode
+            LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode
+            WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%'
               {$where_icode}
-            ORDER BY d.NAME, d.strength, d.units
+            ORDER BY d.icode
         ");
 
         return $this->exportToExcel($drugs, $hosp_code . 'DrugN' . $seq . '.xlsx');
+    }
+
+    public function drugcat_chi_export_preview(Request $request)
+    {
+        $type = $request->input('type', 'new');
+        $icodes = $request->input('icodes', []);
+        
+        if (empty($icodes) || !is_array($icodes)) {
+            return response()->json(['success' => false, 'message' => 'กรุณาเลือกรายการยาอย่างน้อย 1 รายการ', 'data' => []]);
+        }
+
+        $local_db = config('database.connections.mysql.database');
+        $quoted = array_map(function($val) {
+            return DB::connection('hosxp')->getPdo()->quote($val);
+        }, $icodes);
+        $where_icode = " AND d.icode IN (" . implode(',', $quoted) . ") ";
+        
+        $updateFlag = 'A';
+        $dateChangeExpr = "'' AS DateChange";
+        $dateUpdateExpr = "'' AS DateUpdate";
+        $dateEffectiveExpr = "DATE_FORMAT(IFNULL(nd.dateeffective, IFNULL(s.DateEffective, IFNULL(d.last_update, NOW()))), '%d/%m/%Y') AS DateEffective";
+        
+        if ($type === 'edit') {
+            $updateFlag = 'E';
+            $dateChangeExpr = "DATE_FORMAT(IFNULL(d.last_update, NOW()), '%d/%m/%Y') AS DateChange";
+            $dateEffectiveExpr = "DATE_FORMAT(CASE 
+                WHEN nd.dateeffective IS NOT NULL AND nd.dateeffective >= CURRENT_DATE() THEN DATE_ADD(nd.dateeffective, INTERVAL 1 DAY)
+                WHEN nd.dateeffective IS NOT NULL THEN CURRENT_DATE()
+                WHEN s.DateEffective IS NOT NULL AND s.DateEffective >= CURRENT_DATE() THEN DATE_ADD(s.DateEffective, INTERVAL 1 DAY)
+                ELSE CURRENT_DATE()
+            END, '%d/%m/%Y') AS DateEffective";
+        } elseif ($type === 'update') {
+            $updateFlag = 'U';
+            $dateUpdateExpr = "DATE_FORMAT(IFNULL(d.lastupdatestdprice, NOW()), '%d/%m/%Y') AS DateUpdate";
+            $dateEffectiveExpr = "DATE_FORMAT(CASE 
+                WHEN nd.dateeffective IS NOT NULL AND nd.dateeffective >= CURRENT_DATE() THEN DATE_ADD(nd.dateeffective, INTERVAL 1 DAY)
+                WHEN nd.dateeffective IS NOT NULL THEN CURRENT_DATE()
+                WHEN s.DateEffective IS NOT NULL AND s.DateEffective >= CURRENT_DATE() THEN DATE_ADD(s.DateEffective, INTERVAL 1 DAY)
+                ELSE CURRENT_DATE()
+            END, '%d/%m/%Y') AS DateEffective";
+        }
+
+        try {
+            $drugs = DB::connection('hosxp')->select("
+                SELECT  
+                    d.icode AS HospDrugCode,
+                    d.sks_product_category_id AS ProductCat,
+                    d.sks_drug_code AS TMTID,
+                    IFNULL(s.SpecPrep, '') AS SpecPrep,
+                    IFNULL(d.generic_name, d.`name`) AS GenericName,
+                    IFNULL(d.trade_name, s.TradeName) AS TradeName,
+                    IFNULL(d.sks_dfs_code, s.DSFCode) AS DFSCode,
+                    IFNULL(d.dosageform, s.DosageForm) AS DosageForm,
+                    IFNULL(d.strength, s.Strength) AS Strength,
+                    IFNULL(d.dosageform, s.DosageForm) AS Content,
+                    d.unitprice AS UnitPrice,
+                    dr.comp AS Distributor,
+                    CASE WHEN dr.manufacturer IS NULL OR dr.manufacturer = '' THEN tc.manufacturer ELSE dr.manufacturer END AS Manufacturer,
+                    CASE WHEN (d.drugaccount = '-' OR d.drugaccount = '') THEN 'N' WHEN d.drugaccount <> '' THEN 'E' END AS ISED,
+                    d.did AS NDC24,
+                    CASE WHEN d.provis_medication_unit_code = '' OR d.provis_medication_unit_code IS NULL THEN d.units ELSE p.provis_medication_unit_name END AS Packsize,
+                    d.unitprice AS Packprice,
+                    '{$updateFlag}' AS UpdateFlag,
+                    {$dateChangeExpr},
+                    {$dateUpdateExpr},
+                    {$dateEffectiveExpr},
+                    NULL AS Reimbprice
+                FROM drugitems d
+                LEFT JOIN tmt_tpu_code tc ON tc.tpu_code = d.sks_drug_code
+                LEFT JOIN drugitems_register_unique dr ON dr.std_code = d.did
+                LEFT JOIN provis_medication_unit p ON p.provis_medication_unit_code = d.provis_medication_unit_code 
+                LEFT JOIN sks_drugcatalog s ON s.HospDrugCode = d.icode
+                LEFT JOIN (SELECT dc.* FROM {$local_db}.drugcat_chi dc WHERE dc.date_approved = (SELECT MAX(dc1.date_approved) 
+                    FROM {$local_db}.drugcat_chi dc1 WHERE dc.hospdrugcode=dc1.hospdrugcode AND dc1.updateflag IN ('A','U','E'))) nd ON nd.hospdrugcode=d.icode
+                WHERE d.istatus = 'Y' AND d.`name` NOT LIKE '*%'
+                  {$where_icode}
+                ORDER BY d.icode
+            ");
+            
+            return response()->json([
+                'success' => true,
+                'data' => $drugs
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาดในการดึงข้อมูลตัวอย่าง: ' . $e->getMessage()
+            ]);
+        }
     }
 
     //ฟังก์ชันหลักในการแปลงข้อมูล SQL เป็น Excel ตาม format สกส (CSMBS)---------------------------------------------------------------------------------
@@ -914,10 +1028,10 @@ class CheckController extends Controller
         $sheet = $spreadsheet->getActiveSheet();
         
         $headers = [
-            'HospDrugCode', 'ProductCat', 'TMTID', 'SpecPrep', 'GenericName', 'TradeName', 
-            'DFSCode', 'Dosage Form', 'Strength', 'Content', 'UnitPrice', 'Distributor', 
-            'Manufacturer', 'ISED', 'NDC24', 'PackSize', 'PackPrice', 'UpdateFlag', 
-            'Date change', 'Date Update', 'Date Effective', 'RP'
+            'HOSPDRUGCODE', 'PRODUCTCAT', 'TMTID', 'SPECPREP', 'GENERICNAME', 'TRADENAME', 
+            'DFSCODE', 'DOSAGEFORM', 'STRENGTH', 'CONTENT', 'UNITPRICE', 'DISTRIBUTOR', 
+            'MANUFACTURER', 'ISED', 'NDC24', 'PACKSIZE', 'PACKPRICE', 'UPDATEFLAG', 
+            'DATECHANGE', 'DATEUPDATE', 'DATEEFFECTIVE', 'Reimbprice'
         ];
         
         // Write headers

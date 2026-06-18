@@ -230,10 +230,72 @@
     </div>
 </div>
 
+<!-- Modal for Export Preview -->
+<div class="modal fade" id="previewExportModal" tabindex="-1" aria-labelledby="previewExportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+            <div class="modal-header bg-light border-bottom-0" style="border-radius: 15px 15px 0 0;">
+                <h6 class="modal-title fw-bold text-dark" id="previewExportModalLabel">
+                    <i class="bi bi-file-earmark-spreadsheet text-primary me-2"></i> ตรวจสอบโครงสร้างข้อมูลก่อนส่งออก (Preview)
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-info py-2 px-3 small border-0 d-flex align-items-center" style="background-color: rgba(13, 202, 240, 0.1); color: #055160; border-radius: 8px;">
+                    <i class="bi bi-info-circle-fill me-2"></i> 
+                    <span>แสดงตัวอย่างข้อมูลตามโครงสร้างไฟล์ ว 246 จำนวน <strong id="previewCount">0</strong> รายการที่เลือก</span>
+                </div>
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-bordered table-striped table-hover small text-nowrap" id="previewTable">
+                        <thead class="bg-light sticky-top" style="top: 0;">
+                            <tr>
+                                <th>HOSPDRUGCODE</th>
+                                <th>PRODUCTCAT</th>
+                                <th>TMTID</th>
+                                <th>SPECPREP</th>
+                                <th>GENERICNAME</th>
+                                <th>TRADENAME</th>
+                                <th>DFSCODE</th>
+                                <th>DOSAGEFORM</th>
+                                <th>STRENGTH</th>
+                                <th>CONTENT</th>
+                                <th>UNITPRICE</th>
+                                <th>DISTRIBUTOR</th>
+                                <th>MANUFACTURER</th>
+                                <th>ISED</th>
+                                <th>NDC24</th>
+                                <th>PACKSIZE</th>
+                                <th>PACKPRICE</th>
+                                <th>UPDATEFLAG</th>
+                                <th>DATECHANGE</th>
+                                <th>DATEUPDATE</th>
+                                <th>DATEEFFECTIVE</th>
+                                <th>Reimbprice</th>
+                            </tr>
+                        </thead>
+                        <tbody id="previewTableBody">
+                            <!-- Data rows will be dynamically appended here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-top-0">
+                <button type="button" class="btn btn-secondary rounded-pill px-4" data-bs-dismiss="modal">ยกเลิก</button>
+                <button type="button" class="btn btn-success rounded-pill px-4" id="confirmExportBtn">
+                    <i class="bi bi-check-circle me-1"></i> ยืนยันส่งออกไฟล์ Excel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')  
   <script>
+    let currentExportType = '';
+    let currentCheckedBoxes = [];
+
     function showCompletenessModal(icode, name, tmt, ndc24, price, ised, generic, trade, dosage, units) {
         document.getElementById('modalDrugName').innerText = 'ชื่อยา: ' + name;
         document.getElementById('modalDrugCode').innerText = 'รหัส HOSxP: ' + icode;
@@ -285,9 +347,6 @@
     }
 
     function exportData(type) {
-        let seq = document.getElementById('seq_no').value.trim() || '001';
-        seq = seq.padStart(3, '0');
-        
         // Find checked checkboxes using DataTable API to catch checkboxes across all pages
         const table = $('#drug').DataTable();
         const checkedBoxes = [];
@@ -305,36 +364,170 @@
             return;
         }
 
-        let baseUrl = '{{ url("check/drugcat_chi_export_new") }}';
-        if (type === 'edit') {
-            baseUrl = '{{ url("check/drugcat_chi_export_edit") }}';
-        } else if (type === 'update') {
-            baseUrl = '{{ url("check/drugcat_chi_export_update") }}';
-        }
-        
-        // Create a temporary form to submit via POST
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = baseUrl + '/' + seq;
-        
-        const csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = '_token';
-        csrfInput.value = '{{ csrf_token() }}';
-        form.appendChild(csrfInput);
+        currentExportType = type;
+        currentCheckedBoxes = checkedBoxes;
 
-        checkedBoxes.forEach(code => {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'icodes[]';
-            input.value = code;
-            form.appendChild(input);
+        // Show loading alert while loading preview
+        Swal.fire({
+            title: 'กำลังเตรียมข้อมูลตัวอย่าง...',
+            text: 'กรุณารอสักครู่',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading()
+            }
         });
 
-        document.body.appendChild(form);
-        form.submit();
-        document.body.removeChild(form);
+        // Fetch preview data
+        fetch('{{ url("check/drugcat_chi_export_preview") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                type: type,
+                icodes: checkedBoxes
+            })
+        })
+        .then(response => response.json())
+        .then(res => {
+            Swal.close();
+            if (res.success) {
+                // Destroy existing DataTable if it exists
+                if ($.fn.DataTable.isDataTable('#previewTable')) {
+                    $('#previewTable').DataTable().destroy();
+                }
+
+                document.getElementById('previewCount').innerText = res.data.length;
+                const tbody = document.getElementById('previewTableBody');
+                tbody.innerHTML = '';
+                
+                res.data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    
+                    const cells = [
+                        row.HospDrugCode,
+                        row.ProductCat,
+                        row.TMTID,
+                        row.SpecPrep,
+                        row.GenericName,
+                        row.TradeName,
+                        row.DFSCode,
+                        row.DosageForm,
+                        row.Strength,
+                        row.Content,
+                        row.UnitPrice,
+                        row.Distributor,
+                        row.Manufacturer,
+                        row.ISED,
+                        row.NDC24,
+                        row.Packsize,
+                        row.Packprice,
+                        row.UpdateFlag,
+                        row.DateChange,
+                        row.DateUpdate,
+                        row.DateEffective,
+                        row.Reimbprice
+                    ];
+                    
+                    cells.forEach(val => {
+                        const td = document.createElement('td');
+                        td.innerText = val !== null ? val : '';
+                        tr.appendChild(td);
+                    });
+                    
+                    tbody.appendChild(tr);
+                });
+                
+                // Show modal
+                $('#previewExportModal').modal('show');
+                
+                // Initialize DataTable
+                $('#previewTable').DataTable({
+                    pageLength: 10,
+                    lengthMenu: [5, 10, 25, 50, 100],
+                    scrollX: true,
+                    language: {
+                        search: "ค้นหาในตารางพรีวิว:",
+                        lengthMenu: "แสดง _MENU_ รายการ",
+                        info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                        paginate: {
+                            previous: "ก่อนหน้า",
+                            next: "ถัดไป"
+                        }
+                    }
+                });
+            } else {
+                Swal.fire({
+                    title: 'เกิดข้อผิดพลาด',
+                    text: res.message || 'ไม่สามารถดึงข้อมูลตัวอย่างได้',
+                    icon: 'error',
+                    confirmButtonText: 'ตกลง'
+                });
+            }
+        })
+        .catch(err => {
+            Swal.close();
+            Swal.fire({
+                title: 'เกิดข้อผิดพลาด',
+                text: 'ไม่สามารถติดต่อเซิร์ฟเวอร์ได้: ' + err.message,
+                icon: 'error',
+                confirmButtonText: 'ตกลง'
+            });
+        });
     }
+
+    // Adjust DataTable column widths when modal is fully shown
+    $(document).ready(function() {
+        $('#previewExportModal').on('shown.bs.modal', function () {
+            if ($.fn.DataTable.isDataTable('#previewTable')) {
+                $('#previewTable').DataTable().columns.adjust().draw();
+            }
+        });
+    });
+
+    // Set up click handler for confirmExportBtn
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('confirmExportBtn').addEventListener('click', function() {
+            if (currentCheckedBoxes.length === 0 || !currentExportType) return;
+            
+            let seq = document.getElementById('seq_no').value.trim() || '001';
+            seq = seq.padStart(3, '0');
+            
+            let baseUrl = '{{ url("check/drugcat_chi_export_new") }}';
+            if (currentExportType === 'edit') {
+                baseUrl = '{{ url("check/drugcat_chi_export_edit") }}';
+            } else if (currentExportType === 'update') {
+                baseUrl = '{{ url("check/drugcat_chi_export_update") }}';
+            }
+            
+            // Close the preview modal
+            $('#previewExportModal').modal('hide');
+            
+            // Create a temporary form to submit via POST
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = baseUrl + '/' + seq;
+            
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = '_token';
+            csrfInput.value = '{{ csrf_token() }}';
+            form.appendChild(csrfInput);
+
+            currentCheckedBoxes.forEach(code => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'icodes[]';
+                input.value = code;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        });
+    });
 
     function showLoadingAlert() {
         Swal.fire({

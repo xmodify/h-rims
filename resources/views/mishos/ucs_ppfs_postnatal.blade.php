@@ -380,7 +380,7 @@
 
                 const statusBadge = v.is_valid
                     ? '<span class="badge bg-success ms-2"><i class="bi bi-check-circle-fill"></i> ผ่านเงื่อนไข</span>'
-                    : '<span class="badge bg-danger ms-2"><i class="bi bi-exclamation-triangle-fill"></i> ไม่ผ่าน ' + v.errors.length + ' รายาร</span>';
+                    : '<span class="badge bg-danger ms-2"><i class="bi bi-exclamation-triangle-fill"></i> ไม่ผ่าน ' + v.errors.length + ' รายการ</span>';
 
                 const isEndpointDone = v.endpoint_valid === true;
                 const hasWarnings    = v.warnings && v.warnings.length > 0;
@@ -526,6 +526,154 @@
             .fail(function() {
                 body.innerHTML = '<div class="alert alert-warning">ไม่สามารถโหลดข้อมูลได้</div>';
             });
+    }
+
+    function pullNhsoData(vstdate, cid, vn) {
+        Swal.fire({
+            title: 'กำลังดึงข้อมูล...',
+            text: 'กรุณารอสักครู่',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading() }
+        });
+        fetch("{{ url('api/nhso_endpoint_pull_indiv') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify({ vstdate: vstdate, cid: cid })
+        })
+        .then(async response => {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || "ล้มเหลว");
+            }
+            return data;
+        })
+        .then(data => {
+            if (data.found) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'พบข้อมูลปิดสิทธิ',
+                    text: data.message,
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => {
+                    showDetails(vn);
+                });
+            } else {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ไม่พบการปิดสิทธิจากระบบอื่น',
+                    text: 'ยังไม่มีการปิดสิทธิสำหรับรายการนี้ใน สปสช. ต้องการปิดสิทธิด้วยระบบ RiMS หรือไม่?',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'ปิดสิทธิเลย',
+                    cancelButtonText: 'ยกเลิก'
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        pushNhsoData(cid, vstdate, vn);
+                    }
+                });
+            }
+        })
+        .catch(err => {
+            Swal.fire({ icon: 'error', title: 'ดึงข้อมูลล้มเหลว', text: err.message });
+        });
+    }
+
+    function pushNhsoData(cid, vstdate, vn) {
+        Swal.fire({
+            title: 'ยืนยันการส่งข้อมูล?',
+            text: "ระบบจะดึงข้อมูลจาก HOSxP และส่งไปปิดสิทธิที่ สปสช.",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'ตกลง, ส่งข้อมูล!',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'กำลังดำเนินการ...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading()
+                    }
+                });
+
+                $.ajax({
+                    url: "{{ route('api.nhso.push_indiv') }}",
+                    type: "POST",
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        cid: cid,
+                        vstdate: vstdate
+                    },
+                    success: function(response) {
+                        if (response.status == 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'สำเร็จ!',
+                                text: 'ปิดสิทธิเรียบร้อยแล้ว',
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                showDetails(vn);
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ไม่สำเร็จ',
+                                text: response.message || 'เกิดข้อผิดพลาดในการส่งข้อมูล'
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        let msg = 'ไม่สามารถเชื่อมต่อกับระบบได้';
+                        if(xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: msg
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    function checkFdh(hn, seq) {
+        Swal.fire({
+            title: 'กำลังตรวจสอบสถานะ...',
+            text: 'กรุณารอสักครู่',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+        $.ajax({
+            url: "{{ url('/api/fdh/check-claim-indiv') }}",
+            type: "POST",
+            data: { hn: hn, seq: seq, _token: "{{ csrf_token() }}" },
+            success: function (res) {
+                if (res.status === 200) {
+                    Swal.fire({ icon: 'success', title: 'ตรวจสอบสำเร็จ', text: 'พบข้อมูลในระบบ FDH', timer: 1500, showConfirmButton: false })
+                    .then(() => { showDetails(seq); });
+                } else if (res.status === 404 || res.status === 500) {
+                    const statusText = res.body?.message_th ?? "ไม่มีรายการนี้ส่ง";
+                    Swal.fire({ icon: 'warning', title: 'ไม่พบข้อมูลในระบบ FDH', text: statusText })
+                    .then(() => { showDetails(seq); });
+                } else if (res.status === 400) {
+                    const statusText = res.body?.message ?? res.error ?? 'ไม่สามารถตรวจสอบได้';
+                    Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: statusText })
+                    .then(() => { showDetails(seq); });
+                }
+            },
+            error: function () {
+                Swal.fire({ icon: 'error', title: 'การเชื่อมต่อล้มเหลว', text: 'ไม่สามารถเรียก API ได้ (Network Error)' });
+            }
+        });
     }
 </script>
 @endpush

@@ -137,6 +137,7 @@ class MishosController extends Controller
 			AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
+        $this->checkClosedStatusOnly($search);
         return view('mishos.ucs_ae', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -255,6 +256,7 @@ class MishosController extends Controller
 			AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
+        $this->checkClosedStatusOnly($search);
         return view('mishos.ucs_walkin', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -377,6 +379,7 @@ class MishosController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
+        $this->checkClosedStatusOnly($search);
         return view('mishos.ucs_herb', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -497,6 +500,7 @@ class MishosController extends Controller
             AND o.vstdate BETWEEN ? AND ? 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
+        $this->checkClosedStatusOnly($search);
         return view('mishos.ucs_telemed', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -617,6 +621,7 @@ class MishosController extends Controller
             AND o.vstdate BETWEEN ? AND ? 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
+        $this->checkClosedStatusOnly($search);
         return view('mishos.ucs_rider', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -738,6 +743,7 @@ class MishosController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
+        $this->checkClosedStatusOnly($search);
         return view('mishos.ucs_gdm', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -842,6 +848,7 @@ class MishosController extends Controller
             AND o.vstdate BETWEEN ? AND ? 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $drug_clopidogrel, $start_date, $end_date, $drug_clopidogrel, $start_date, $end_date, $start_date, $end_date]);
 
+        $this->checkClosedStatusOnly($search);
         return view('mishos.ucs_drug_clopidogrel', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -961,6 +968,7 @@ class MishosController extends Controller
             AND o.vstdate BETWEEN ? AND ? 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
+        $this->checkClosedStatusOnly($search);
         return view('mishos.ucs_drug_sk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -1200,6 +1208,7 @@ class MishosController extends Controller
             AND o.vstdate BETWEEN ? AND ? 
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
+        $this->checkClosedStatusOnly($search);
         return view('mishos.ucs_palliative', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -2309,7 +2318,7 @@ class MishosController extends Controller
                    p.name AS pttype, vp.hospmain, os.cc, (SELECT icd10 FROM ovstdiag WHERE vn = o.vn AND diagtype = "1" LIMIT 1) AS pdx,
                    v.income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                    IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
-                   IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
+                   IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%" OR ep.claim_status = "success"),"Y",NULL) AS endpoint,
                    ep.claim_status,
                    fdh.status_message_th AS fdh_status,
                    vp.confirm_and_locked,
@@ -2321,7 +2330,7 @@ class MishosController extends Controller
             LEFT JOIN opdscreen os ON os.vn = o.vn
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno=r.rcpno WHERE a.rcpno IS NULL GROUP BY r.vn) rc ON rc.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate AND (ep.claimCode LIKE "EP%" OR ep.claim_status = "success")
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
             WHERE o.vn = ?', [$vn]);
 
@@ -2431,7 +2440,10 @@ class MishosController extends Controller
         if (!empty($cids)) {
             $endpoints = \Illuminate\Support\Facades\DB::table('hrims.nhso_endpoint')
                 ->whereIn('cid', $cids)
-                ->where('claimCode', 'LIKE', 'EP%')
+                ->where(function($query) {
+                    $query->where('claimCode', 'LIKE', 'EP%')
+                          ->orWhere('claim_status', 'success');
+                })
                 ->get()
                 ->groupBy('cid');
             foreach ($endpoints as $cid => $group) {
@@ -2524,7 +2536,10 @@ class MishosController extends Controller
         if (!empty($cids)) {
             $endpoints = \Illuminate\Support\Facades\DB::table('hrims.nhso_endpoint')
                 ->whereIn('cid', $cids)
-                ->where('claimCode', 'LIKE', 'EP%')
+                ->where(function($query) {
+                    $query->where('claimCode', 'LIKE', 'EP%')
+                          ->orWhere('claim_status', 'success');
+                })
                 ->get()
                 ->groupBy('cid');
             foreach ($endpoints as $cid => $group) {
@@ -2556,6 +2571,45 @@ class MishosController extends Controller
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
             $row->validation_warnings = $result['warnings'];
+        }
+    }
+
+    private function checkClosedStatusOnly(&$search)
+    {
+        $allVns = array_column($search, 'seq');
+        if (empty($allVns)) {
+            return;
+        }
+
+        $cids = array_filter(array_unique(array_column($search, 'cid')));
+        $endpointsMap = [];
+        if (!empty($cids)) {
+            $endpoints = \Illuminate\Support\Facades\DB::table('hrims.nhso_endpoint')
+                ->whereIn('cid', $cids)
+                ->where(function($query) {
+                    $query->where('claimCode', 'LIKE', 'EP%')
+                          ->orWhere('claim_status', 'success');
+                })
+                ->get()
+                ->groupBy('cid');
+            foreach ($endpoints as $cid => $group) {
+                foreach ($group as $ep) {
+                    $endpointsMap[$cid][$ep->vstdate] = true;
+                }
+            }
+        }
+
+        // Get auth_code status from visit_pttype
+        $authCodes = \Illuminate\Support\Facades\DB::connection('hosxp')
+            ->table('visit_pttype')
+            ->whereIn('vn', $allVns)
+            ->pluck('auth_code', 'vn')
+            ->toArray();
+
+        foreach ($search as $row) {
+            $hasEp = isset($endpointsMap[$row->cid][$row->vstdate]);
+            $authCode = $authCodes[$row->seq] ?? null;
+            $row->endpoint_valid = $hasEp || (isset($authCode) && strpos($authCode, 'EP') === 0) ? true : false;
         }
     }
 }

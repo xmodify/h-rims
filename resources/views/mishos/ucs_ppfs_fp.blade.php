@@ -438,8 +438,8 @@
                           <tr><th class="text-muted">ชื่อ-สกุล</th><td>${visit.ptname}</td></tr>
                           <tr><th class="text-muted">สิทธิ์</th><td>${visit.pttype ?? '-'}</td></tr>
                           <tr><th class="text-muted">เพศ/อายุ</th><td>${visit.sex == '1' ? 'ชาย' : (visit.sex == '2' ? 'หญิง' : visit.sex)} / ${visit.age_y ?? '-'} ปี</td></tr>
-                          <tr><th class="text-muted">ประสงค์เบิก</th><td>${visit.request_funds === 'Y' ? '<span class="badge bg-success py-0 px-2 fw-bold text-white"><i class="bi bi-check-circle-fill me-1"></i>Y</span>' : '<span class="badge bg-danger py-0 px-2 fw-bold text-white"><i class="bi bi-x-circle-fill me-1"></i>N</span>'}</td></tr>
-                          <tr><th class="text-muted">พร้อมส่ง</th><td>${visit.confirm_and_locked === 'Y' ? '<span class="badge bg-success py-0 px-2 fw-bold text-white"><i class="bi bi-check-circle-fill me-1"></i>Y</span>' : '<span class="badge bg-danger py-0 px-2 fw-bold text-white"><i class="bi bi-x-circle-fill me-1"></i>N</span>'}</td></tr>
+                          <tr><th class="text-muted">ประสงค์เบิก</th><td>${visit.request_funds === 'Y' ? '<span class="badge bg-success py-0 px-2 fw-bold text-white"><i class="bi bi-check-circle-fill"></i>Y</span>' : '<span class="badge bg-danger py-0 px-2 fw-bold text-white"><i class="bi bi-x-circle-fill"></i>N</span>'}</td></tr>
+                          <tr><th class="text-muted">พร้อมส่ง</th><td>${visit.confirm_and_locked === 'Y' ? '<span class="badge bg-success py-0 px-2 fw-bold text-white"><i class="bi bi-check-circle-fill"></i>Y</span>' : '<span class="badge bg-danger py-0 px-2 fw-bold text-white"><i class="bi bi-x-circle-fill"></i>N</span>'}</td></tr>
                           <tr><th class="text-muted">สถานะปิดสิทธิ</th><td>${endpointBtn}</td></tr>
                           <tr><th class="text-muted">สถานะ FDH</th><td>${fdhBtn}</td></tr>
                         </table>
@@ -488,7 +488,7 @@
                   <div class="col-12">
                     <div class="fw-bold small text-dark mb-2"><i class="bi bi-list-check me-1"></i>รายการเรียกเก็บ ${statusBadge}${
                         (v.warnings && v.warnings.length > 0)
-                        ? '<span class="badge bg-warning text-dark ms-2"><i class="bi bi-exclamation-triangle-fill me-1"></i>' + v.warnings.length + ' คำเตือน</span>'
+                        ? '<span class="badge bg-warning text-dark ms-2"><i class="bi bi-exclamation-triangle-fill"></i>' + v.warnings.length + ' คำเตือน</span>'
                         : ''
                     }</div>
                     <div class="table-responsive">
@@ -549,11 +549,99 @@
             if (!response.ok) {
                 throw new Error(data.message || "ล้มเหลว");
             }
-            Swal.fire({ icon: 'success', title: 'ดึงข้อมูลสำเร็จ', timer: 1500, showConfirmButton: false })
-            .then(() => { showDetails(vn); });
+            return data;
+        })
+        .then(data => {
+            if (data.found) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'พบข้อมูลปิดสิทธิ',
+                    text: data.message,
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => {
+                    showDetails(vn);
+                });
+            } else {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ไม่พบการปิดสิทธิจากระบบอื่น',
+                    text: 'ยังไม่มีการปิดสิทธิสำหรับรายการนี้ใน สปสช. ต้องการปิดสิทธิด้วยระบบ RiMS หรือไม่?',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'ปิดสิทธิเลย',
+                    cancelButtonText: 'ยกเลิก'
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        pushNhsoData(cid, vstdate, vn);
+                    }
+                });
+            }
         })
         .catch(err => {
             Swal.fire({ icon: 'error', title: 'ดึงข้อมูลล้มเหลว', text: err.message });
+        });
+    }
+
+    function pushNhsoData(cid, vstdate, vn) {
+        Swal.fire({
+            title: 'ยืนยันการส่งข้อมูล?',
+            text: "ระบบจะดึงข้อมูลจาก HOSxP และส่งไปปิดสิทธิที่ สปสช.",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'ตกลง, ส่งข้อมูล!',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'กำลังดำเนินการ...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading()
+                    }
+                });
+
+                $.ajax({
+                    url: "{{ route('api.nhso.push_indiv') }}",
+                    type: "POST",
+                    data: {
+                        _token: "{{ csrf_token() }}",
+                        cid: cid,
+                        vstdate: vstdate
+                    },
+                    success: function(response) {
+                        if (response.status == 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'สำเร็จ!',
+                                text: 'ปิดสิทธิเรียบร้อยแล้ว',
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                showDetails(vn);
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'ไม่สำเร็จ',
+                                text: response.message || 'เกิดข้อผิดพลาดในการส่งข้อมูล'
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        let msg = 'ไม่สามารถเชื่อมต่อกับระบบได้';
+                        if(xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด',
+                            text: msg
+                        });
+                    }
+                });
+            }
         });
     }
 

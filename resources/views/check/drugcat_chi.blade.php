@@ -446,7 +446,7 @@
                 $('#previewTable').DataTable({
                     pageLength: 10,
                     lengthMenu: [5, 10, 25, 50, 100],
-                    scrollX: true,
+                    scrollX: false,
                     language: {
                         search: "ค้นหาในตารางพรีวิว:",
                         lengthMenu: "แสดง _MENU_ รายการ",
@@ -611,20 +611,44 @@
         order: [[4, 'asc']] // sort by name (column index 4 now)
       });
 
+      // Function to update the checkAll checkbox state based on current page selection
+      function updateCheckAllState() {
+         const rows = table.rows({ page: 'current' }).nodes();
+         const checkboxes = $('input[name="selected_drugs[]"]', rows);
+         const checkedCount = checkboxes.filter(':checked').length;
+         const el = $('#checkAll').get(0);
+         
+         if (el && checkboxes.length > 0) {
+            if (checkedCount === 0) {
+               el.checked = false;
+               el.indeterminate = false;
+            } else if (checkedCount === checkboxes.length) {
+               el.checked = true;
+               el.indeterminate = false;
+            } else {
+               el.checked = false;
+               el.indeterminate = true;
+            }
+         } else if (el) {
+            el.checked = false;
+            el.indeterminate = false;
+         }
+      }
+
       // Handle "Check All" checkbox click
       $('#checkAll').on('click', function() {
-         const rows = table.rows({ 'search': 'applied' }).nodes();
+         const rows = table.rows({ page: 'current' }).nodes();
          $('input[name="selected_drugs[]"]', rows).prop('checked', this.checked);
       });
 
       // Update "Check All" when individual checkboxes are checked/unchecked
       $('#drug tbody').on('change', 'input[name="selected_drugs[]"]', function() {
-         if(!this.checked) {
-            const el = $('#checkAll').get(0);
-            if(el && el.checked && ('indeterminate' in el)) {
-               el.checked = false;
-            }
-         }
+         updateCheckAllState();
+      });
+
+      // Update "Check All" when changing pages, searching, or drawing the table
+      table.on('draw', function() {
+         updateCheckAllState();
       });
     });
   </script>

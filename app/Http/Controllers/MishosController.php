@@ -1280,7 +1280,9 @@ class MishosController extends Controller
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
 			COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
+            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim,
+            pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -1317,6 +1319,8 @@ class MishosController extends Controller
 			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
+        $this->validateUcsPpfsRows($search);
 
         return view('mishos.ucs_ppfs_fp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
@@ -1401,7 +1405,9 @@ class MishosController extends Controller
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,lo.lab_items_name_ref,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
 			COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
+            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim,
+            pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -1436,6 +1442,8 @@ class MishosController extends Controller
 			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
+        $this->validateUcsPpfsRows($search);
 
         return view('mishos.ucs_ppfs_prt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
@@ -1516,10 +1524,12 @@ class MishosController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,v.age_y,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
 			COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
+            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim,
+            pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -1552,6 +1562,8 @@ class MishosController extends Controller
 			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
+        $this->validateUcsPpfsRows($search);
 
         return view('mishos.ucs_ppfs_ida', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
@@ -1635,7 +1647,9 @@ class MishosController extends Controller
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
 			COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
+            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim,
+            pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -1668,6 +1682,8 @@ class MishosController extends Controller
 			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
+        $this->validateUcsPpfsRows($search);
 
         return view('mishos.ucs_ppfs_ferrofolic', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
@@ -1741,7 +1757,9 @@ class MishosController extends Controller
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
 			COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
+            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim,
+            pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -1774,6 +1792,8 @@ class MishosController extends Controller
 			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
+        $this->validateUcsPpfsRows($search);
 
         return view('mishos.ucs_ppfs_fluoride', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
@@ -1858,7 +1878,9 @@ class MishosController extends Controller
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,a.anc_service_number,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
             COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
+            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim,
+            pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
             FROM ovst o
             LEFT JOIN person_anc_service a ON a.vn=o.vn
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -1894,6 +1916,8 @@ class MishosController extends Controller
 			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
+        $this->validateUcsPpfsRows($search);
 
         return view('mishos.ucs_ppfs_anc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
@@ -1978,7 +2002,9 @@ class MishosController extends Controller
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
             COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
+            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim,
+            pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -2013,6 +2039,8 @@ class MishosController extends Controller
 			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
+        $this->validateUcsPpfsRows($search);
 
         return view('mishos.ucs_ppfs_postnatal', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
@@ -2097,7 +2125,9 @@ class MishosController extends Controller
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
             COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
+            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim,
+            pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -2132,6 +2162,8 @@ class MishosController extends Controller
 			AND o1.vn IS NOT NULL
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
+        $this->validateUcsPpfsRows($search);
 
         return view('mishos.ucs_ppfs_fittest', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
@@ -2216,7 +2248,9 @@ class MishosController extends Controller
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
             COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
-            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim
+            GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(oe.moph_finance_upload_status IS NOT NULL,"Y","") AS claim,
+            pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -2252,6 +2286,187 @@ class MishosController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
+        $this->validateUcsPpfsRows($search);
+
         return view('mishos.ucs_ppfs_scr', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+    }
+
+    public function ucs_ppfs_visit_details(\Illuminate\Http\Request $request)
+    {
+        $vn = $request->input('vn');
+        if (empty($vn)) {
+            return response()->json(['error' => 'กรุณาระบุ VN'], 400);
+        }
+
+        $visit = \Illuminate\Support\Facades\DB::connection('hosxp')->selectOne('
+            SELECT o.vn, o.vstdate, o.vsttime, o.oqueue,
+                   pt.hn, pt.sex, v.age_y, pt.cid,
+                   CONCAT(pt.pname,pt.fname," ",pt.lname) AS ptname,
+                   p.name AS pttype, vp.hospmain, os.cc, (SELECT icd10 FROM ovstdiag WHERE vn = o.vn AND diagtype = "1" LIMIT 1) AS pdx,
+                   v.income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
+                   IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
+                   IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint,
+                   ep.claim_status,
+                   fdh.status_message_th AS fdh_status,
+                   vp.confirm_and_locked,
+                   vp.request_funds
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN opdscreen os ON os.vn = o.vn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS rcpt_money FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno=r.rcpno WHERE a.rcpno IS NULL GROUP BY r.vn) rc ON rc.vn = o.vn
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
+            WHERE o.vn = ?', [$vn]);
+
+        if (!$visit) {
+            return response()->json(['error' => 'ไม่พบข้อมูลรับบริการ'], 404);
+        }
+
+        $secDiags = \Illuminate\Support\Facades\DB::connection('hosxp')
+            ->table('ovstdiag')
+            ->where('vn', $vn)
+            ->whereNotIn('diagtype', ['1', '2'])
+            ->pluck('icd10')
+            ->toArray();
+        $visit->sdx = implode(',', $secDiags);
+
+        $procedures = \Illuminate\Support\Facades\DB::connection('hosxp')
+            ->table('ovstdiag')
+            ->where('vn', $vn)
+            ->where('diagtype', '2')
+            ->pluck('icd10')
+            ->toArray();
+        $visit->icd9 = implode(',', $procedures);
+
+        $items = \Illuminate\Support\Facades\DB::connection('hosxp')->select('
+            SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
+                   li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
+                   IFNULL(n.name, d.name) AS name
+            FROM opitemrece op
+            INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+            LEFT JOIN nondrugitems n ON n.icode = op.icode
+            LEFT JOIN drugitems d ON d.icode = op.icode
+            WHERE op.vn = ?
+            AND li.ppfs = "Y"', [$vn]);
+
+        $adpCodes = collect($items)->pluck('nhso_adp_code')->filter()->unique()->values()->toArray();
+        $insUcsMap = [];
+        if (!empty($adpCodes) && \Illuminate\Support\Facades\Schema::hasTable('lookup_nhso_adp_code')) {
+            $insRecords = \Illuminate\Support\Facades\DB::table('lookup_nhso_adp_code')
+                ->whereIn('nhso_adp_code', $adpCodes)
+                ->where('nhso_adp_type_id', 2)
+                ->pluck('ins_ucs', 'nhso_adp_code');
+            $insUcsMap = $insRecords->toArray();
+        }
+        foreach ($items as $item) {
+            $item->ins_ucs = $insUcsMap[$item->nhso_adp_code] ?? null;
+        }
+
+        $validator = new \App\Services\ClaimValidator();
+        $validation = $validator->validate($visit, $items);
+
+        return response()->json([
+            'visit'      => $visit,
+            'sec_diags'  => $secDiags,
+            'procedures' => $procedures,
+            'items'      => $items,
+            'validation' => $validation,
+        ]);
+    }
+
+    private function validateUcsPpfsRows(&$search)
+    {
+        $allVns = array_column($search, 'seq');
+        if (empty($allVns)) {
+            return;
+        }
+
+        // 1. Batch load claim items for all VNs
+        $itemsByVn = [];
+        $rawItems = \Illuminate\Support\Facades\DB::connection('hosxp')
+            ->select('
+                SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
+                       li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
+                       IFNULL(n.name, d.name) AS name
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                LEFT JOIN nondrugitems n ON n.icode = op.icode
+                LEFT JOIN drugitems d ON d.icode = op.icode
+                WHERE op.vn IN (' . implode(',', array_fill(0, count($allVns), '?')) . ')
+                AND li.ppfs = "Y"',
+            $allVns);
+
+        $adpCodes = collect($rawItems)->pluck('nhso_adp_code')->filter()->unique()->values()->toArray();
+        $insUcsMap = [];
+        if (!empty($adpCodes) && \Illuminate\Support\Facades\Schema::hasTable('lookup_nhso_adp_code')) {
+            $insUcsMap = \Illuminate\Support\Facades\DB::table('lookup_nhso_adp_code')
+                ->whereIn('nhso_adp_code', $adpCodes)
+                ->where('nhso_adp_type_id', 2)
+                ->pluck('ins_ucs', 'nhso_adp_code')
+                ->toArray();
+        }
+        foreach ($rawItems as $item) {
+            $item->ins_ucs = $insUcsMap[$item->nhso_adp_code] ?? null;
+            $itemsByVn[$item->vn][] = $item;
+        }
+
+        // 2. Batch load additional patient details, endpoints, FDH status, sdx, icd9
+        $cids = array_filter(array_unique(array_column($search, 'cid')));
+        $endpointsMap = [];
+        if (!empty($cids)) {
+            $endpoints = \Illuminate\Support\Facades\DB::table('hrims.nhso_endpoint')
+                ->whereIn('cid', $cids)
+                ->where('claimCode', 'LIKE', 'EP%')
+                ->get()
+                ->groupBy('cid');
+            foreach ($endpoints as $cid => $group) {
+                foreach ($group as $ep) {
+                    $endpointsMap[$cid][$ep->vstdate] = true;
+                }
+            }
+        }
+
+        $fdhStatuses = \Illuminate\Support\Facades\DB::table('hrims.fdh_claim_status')
+            ->whereIn('seq', $allVns)
+            ->pluck('status_message_th', 'seq')
+            ->toArray();
+
+        $rawSdx = \Illuminate\Support\Facades\DB::connection('hosxp')
+            ->table('ovstdiag')
+            ->whereIn('vn', $allVns)
+            ->whereNotIn('diagtype', ['1', '2'])
+            ->select('vn', 'icd10')
+            ->get()
+            ->groupBy('vn');
+
+        $rawIcd9 = \Illuminate\Support\Facades\DB::connection('hosxp')
+            ->table('ovstdiag')
+            ->whereIn('vn', $allVns)
+            ->where('diagtype', '2')
+            ->select('vn', 'icd10')
+            ->get()
+            ->groupBy('vn');
+
+        // 3. Run ClaimValidator
+        $validator = new \App\Services\ClaimValidator();
+        foreach ($search as $row) {
+            // Populate fields for validator
+            $row->sdx = isset($rawSdx[$row->seq]) ? implode(',', $rawSdx[$row->seq]->pluck('icd10')->toArray()) : '';
+            $row->icd9 = isset($rawIcd9[$row->seq]) ? implode(',', $rawIcd9[$row->seq]->pluck('icd10')->toArray()) : '';
+            $row->fdh_status = $fdhStatuses[$row->seq] ?? null;
+
+            $hasEp = isset($endpointsMap[$row->cid][$row->vstdate]);
+            $row->endpoint = $hasEp || (isset($row->auth_code_ep) && $row->auth_code_ep === 'Y') ? 'Y' : null;
+
+            // Run validation
+            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
+            $row->is_valid           = $result['is_valid'];
+            $row->endpoint_valid     = $result['endpoint_valid'];
+            $row->validation_errors  = $result['errors'];
+            $row->validation_warnings = $result['warnings'];
+        }
     }
 }

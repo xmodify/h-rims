@@ -685,3 +685,4 @@ Route::prefix('api')->middleware(['auth'])->group(function () {
     Route::post('import_edc_zip', [\App\Http\Controllers\EdcImportController::class, 'importZip'])->name('api.import_edc_zip');
     Route::post('import_edc_file', [\App\Http\Controllers\EdcImportController::class, 'importFile'])->name('api.import_edc_file');
 });
+Route::get('mishos/ucs_ppfs/visit_details', [MishosController::class, 'ucs_ppfs_visit_details']);

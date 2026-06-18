@@ -356,7 +356,8 @@ class ClaimValidator
 
         // Price
         if (isset($rule['amount']) && floatval($rule['amount']) > 0) {
-            $expectedPrice = floatval($rule['amount']);
+            $qty = isset($item->qty) ? floatval($item->qty) : 1;
+            $expectedPrice = floatval($rule['amount']) * $qty;
             if (abs($itemPrice - $expectedPrice) > 0.01) {
                 $errors[] = "รหัส {$adpCode} ({$itemName}): ยอดเรียกเก็บ (" . number_format($itemPrice, 2) . " บาท) ไม่ตรงกับเกณฑ์ชดเชย (" . number_format($expectedPrice, 2) . " บาท)";
             }

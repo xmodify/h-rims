@@ -128,10 +128,28 @@
                                 @foreach ($search as $row)
                                     <tr>
                                     <td class="text-center text-muted small">{{ $count }}</td>
-                                    <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-primary px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ดูรายละเอียด">
-                                            <i class="bi bi-eye-fill"></i>
-                                        </button>
+                                    <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
+                                        @if(!$row->is_valid)
+                                            {{-- แดง: ข้อมูลไม่ครบ (priority สูงสุด) --}}
+                                            <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @elseif(!empty($row->validation_warnings))
+                                            {{-- เหลือง: มี warnings (ins_ucs) --}}
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @elseif($row->endpoint_valid)
+                                            {{-- เขียว: ข้อมูลครบ + ปิดสิทธิแล้ว --}}
+                                            <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @else
+                                            {{-- เหลือง: ข้อมูลครบ แต่ยังไม่ปิดสิทธิ --}}
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @endif
                                     </td>
                                     <td class="text-center" data-order="{{ $row->claim == 'Y' ? 1 : 0 }}">
                                         @if($row->claim && $row->claim == 'Y')
@@ -357,4 +375,227 @@
             });
         });
     </script>
+<script>
+    function showDetails(vn) {
+        const body = document.getElementById('detailsModalBody');
+        if (!body) return;
+        body.innerHTML = '<div class="text-center text-muted py-4"><i class="bi bi-arrow-repeat spin me-2"></i>กำลังโหลด...</div>';
+        $('#detailsModal').modal('show');
+
+        $.get("{{ url('mishos/ucs_ppfs/visit_details') }}", { vn: vn })
+            .done(function(data) {
+                const visit = data.visit;
+                const items = data.items;
+                const v     = data.validation;
+
+                const statusBadge = v.is_valid
+                    ? '<span class="badge bg-success ms-2"><i class="bi bi-check-circle-fill"></i> ผ่านเงื่อนไข</span>'
+                    : '<span class="badge bg-danger ms-2"><i class="bi bi-exclamation-triangle-fill"></i> ไม่ผ่าน ' + v.errors.length + ' รายการ</span>';
+
+                const isEndpointDone = v.endpoint_valid === true;
+                const hasWarnings    = v.warnings && v.warnings.length > 0;
+
+                // Update cell status in background
+                function makeCellHtml(isValid, epDone, warn) {
+                    if (!isValid) {
+                        return `<button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
+                    } else if (warn) {
+                        return `<button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
+                    } else if (epDone) {
+                        return `<button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
+                    } else {
+                        return `<button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
+                    }
+                }
+                const dataOrder = !v.is_valid ? '0' : (isEndpointDone && !hasWarnings ? '2' : '1');
+                const searchRow = document.getElementById(`td-status-search-${vn}`);
+                if (searchRow) {
+                    searchRow.innerHTML = makeCellHtml(v.is_valid, isEndpointDone, hasWarnings);
+                    searchRow.setAttribute('data-order', dataOrder);
+                    $('#t_search').DataTable().cell(searchRow).invalidate().draw(false);
+                }
+
+                let endpointBtn = '';
+                if (v.endpoint_valid) {
+                    endpointBtn = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>ปิดสิทธิแล้ว (สปสช.)</span>`;
+                } else {
+                    endpointBtn = `<button onclick="pullNhsoData('${visit.vstdate}', '${visit.cid}', '${vn}')" class="btn btn-warning btn-sm py-1 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-cloud-download-fill me-1"></i>ดึงข้อมูล (Pull)</button>`;
+                }
+
+                let fdhBtn = '';
+                if (visit.fdh_status) {
+                    fdhBtn = `
+                        <div class="d-inline-flex gap-2 align-items-center">
+                            <span class="badge bg-success py-1 px-2 text-wrap" style="max-width:180px;">${visit.fdh_status}</span>
+                            <button onclick="checkFdh('${visit.hn}', '${vn}')" class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-arrow-repeat me-1"></i>ดึงอีกครั้ง</button>
+                        </div>`;
+                } else {
+                    fdhBtn = `
+                        <div class="d-inline-flex gap-2 align-items-center">
+                            <span class="badge bg-secondary py-1 px-2">ยังไม่ได้ส่งเคลม</span>
+                            <button onclick="checkFdh('${visit.hn}', '${vn}')" class="btn btn-outline-info btn-sm py-0 px-2 fw-bold text-dark" style="font-size:0.75rem;"><i class="bi bi-arrow-repeat me-1"></i>ดึง/ส่ง FDH</button>
+                        </div>`;
+                }
+
+                let html = `
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <div class="card border-0 bg-light-soft h-100">
+                      <div class="card-body py-2 px-3">
+                        <div class="fw-bold text-primary mb-2 small"><i class="bi bi-person-fill me-1"></i>ข้อมูลผู้ป่วย</div>
+                        <table class="table table-sm table-borderless mb-0 small">
+                          <tr><th class="text-muted" style="width:35%">HN</th><td class="fw-bold">${visit.hn}</td></tr>
+                          <tr><th class="text-muted">ชื่อ-สกุล</th><td>${visit.ptname}</td></tr>
+                          <tr><th class="text-muted">สิทธิ์</th><td>${visit.pttype ?? '-'}</td></tr>
+                          <tr><th class="text-muted">เพศ/อายุ</th><td>${visit.sex == '1' ? 'ชาย' : (visit.sex == '2' ? 'หญิง' : visit.sex)} / ${visit.age_y ?? '-'} ปี</td></tr>
+                          <tr><th class="text-muted">ประสงค์เบิก</th><td>${visit.request_funds === 'Y' ? '<span class="badge bg-success py-0 px-2 fw-bold text-white"><i class="bi bi-check-circle-fill"></i>Y</span>' : '<span class="badge bg-danger py-0 px-2 fw-bold text-white"><i class="bi bi-x-circle-fill"></i>N</span>'}</td></tr>
+                          <tr><th class="text-muted">พร้อมส่ง</th><td>${visit.confirm_and_locked === 'Y' ? '<span class="badge bg-success py-0 px-2 fw-bold text-white"><i class="bi bi-check-circle-fill"></i>Y</span>' : '<span class="badge bg-danger py-0 px-2 fw-bold text-white"><i class="bi bi-x-circle-fill"></i>N</span>'}</td></tr>
+                          <tr><th class="text-muted">สถานะปิดสิทธิ</th><td>${endpointBtn}</td></tr>
+                          <tr><th class="text-muted">สถานะ FDH</th><td>${fdhBtn}</td></tr>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="card border-0 bg-light-soft h-100">
+                      <div class="card-body py-2 px-3">
+                        <div class="fw-bold text-primary mb-2 small"><i class="bi bi-clipboard2-pulse me-1"></i>ข้อมูลทางคลินิก</div>
+                        <table class="table table-sm table-borderless mb-0 small">
+                          <tr><th class="text-muted" style="width:35%">วันที่</th><td>${visit.vstdate} ${visit.vsttime}</td></tr>
+                          <tr><th class="text-muted">CC</th><td>${visit.cc ?? '-'}</td></tr>
+                          <tr><th class="text-muted">PDX</th><td class="fw-bold text-danger">${visit.pdx ?? '-'}</td></tr>
+                          <tr><th class="text-muted">SDX</th><td>${data.sec_diags.join(', ') || '-'}</td></tr>
+                          <tr><th class="text-muted">ICD-9</th><td>${data.procedures.join(', ') || '-'}</td></tr>
+                        </table>
+                      </div>
+                    </div>
+                  </div>`;
+
+                // Validation errors
+                if (!v.is_valid) {
+                    html += `
+                  <div class="col-12">
+                    <div class="alert alert-danger py-2 mb-0 small">
+                      <strong><i class="bi bi-x-octagon-fill me-1"></i>เงื่อนไขที่ไม่ผ่าน:</strong>
+                      <ul class="mb-0 mt-1 ps-3">`;
+                    v.errors.forEach(function(err) { html += `<li>${err}</li>`; });
+                    html += `</ul></div></div>`;
+                }
+
+                // Warnings
+                if (v.warnings && v.warnings.length > 0) {
+                    html += `
+                  <div class="col-12">
+                    <div class="alert alert-warning py-2 mb-0 small">
+                      <strong><i class="bi bi-exclamation-triangle-fill me-1"></i>คำเตือน Instrument ไม่อยู่ในประกาศ UCS (${v.warnings.length} รายการ):</strong>
+                      <ul class="mb-0 mt-1 ps-3">`;
+                    v.warnings.forEach(function(w) { html += `<li>${w}</li>`; });
+                    html += `</ul></div></div>`;
+                }
+
+                // Items table
+                html += `
+                  <div class="col-12">
+                    <div class="fw-bold small text-dark mb-2"><i class="bi bi-list-check me-1"></i>รายการเรียกเก็บ ${statusBadge}${
+                        (v.warnings && v.warnings.length > 0)
+                        ? '<span class="badge bg-warning text-dark ms-2"><i class="bi bi-exclamation-triangle-fill me-1"></i>' + v.warnings.length + ' คำเตือน</span>'
+                        : ''
+                    }</div>
+                    <div class="table-responsive">
+                      <table class="table table-sm table-hover small mb-0">
+                        <thead class="table-light">
+                          <tr>
+                            <th>icode</th><th>รายการ</th><th>ประเภท</th>
+                            <th class="text-center">จำนวน</th>
+                            <th class="text-end">ราคา/หน่วย</th>
+                            <th class="text-end">รวม</th>
+                          </tr>
+                        </thead><tbody>`;
+
+                items.forEach(function(item) {
+                    let type = '';
+                    if (item.ppfs  === 'Y') type += '<span class="badge-type badge-ppfs me-1">PPFS</span>';
+                    if (item.uc_cr === 'Y') type += '<span class="badge-type badge-uc_cr me-1">UC_CR</span>';
+                    if (item.herb32=== 'Y') type += '<span class="badge-type badge-herb me-1">Herb</span>';
+                    const insWarn = (item.uc_cr === 'Y' && item.ins_ucs !== undefined && item.ins_ucs !== 'Y' && item.nhso_adp_code)
+                        ? `<span class="badge bg-warning text-dark ms-1" title="ADP ${item.nhso_adp_code} ไม่อยู่ในประกาศ UCS"><i class="bi bi-exclamation-triangle-fill"></i></span>`
+                        : '';
+                    html += `<tr class="${(item.uc_cr === 'Y' && item.ins_ucs !== undefined && item.ins_ucs !== 'Y' && item.nhso_adp_code) ? 'table-warning' : ''}">
+                        <td class="text-muted">${item.icode}</td>
+                        <td>${item.name ?? '-'}${insWarn}</td>
+                        <td>${type}</td>
+                        <td class="text-center">${item.qty}</td>
+                        <td class="text-end">${parseFloat(item.unitprice).toLocaleString('th-TH',{minimumFractionDigits:2})}</td>
+                        <td class="text-end fw-bold">${parseFloat(item.sum_price).toLocaleString('th-TH',{minimumFractionDigits:2})}</td>
+                    </tr>`;
+                });
+
+                html += `</tbody></table></div></div></div>`;
+                body.innerHTML = html;
+            })
+            .fail(function() {
+                body.innerHTML = '<div class="alert alert-warning">ไม่สามารถโหลดข้อมูลได้</div>';
+            });
+    }
+
+    function pullNhsoData(vstdate, cid, vn) {
+        Swal.fire({
+            title: 'กำลังดึงข้อมูล...',
+            text: 'กรุณารอสักครู่',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading() }
+        });
+        fetch("{{ url('api/nhso_endpoint_pull_indiv') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify({ vstdate: vstdate, cid: cid })
+        })
+        .then(async response => {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || "ล้มเหลว");
+            }
+            Swal.fire({ icon: 'success', title: 'ดึงข้อมูลสำเร็จ', timer: 1500, showConfirmButton: false })
+            .then(() => { showDetails(vn); });
+        })
+        .catch(err => {
+            Swal.fire({ icon: 'error', title: 'ดึงข้อมูลล้มเหลว', text: err.message });
+        });
+    }
+
+    function checkFdh(hn, seq) {
+        Swal.fire({
+            title: 'กำลังตรวจสอบสถานะ...',
+            text: 'กรุณารอสักครู่',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+        $.ajax({
+            url: "{{ url('/api/fdh/check-claim-indiv') }}",
+            type: "POST",
+            data: { hn: hn, seq: seq, _token: "{{ csrf_token() }}" },
+            success: function (res) {
+                if (res.status === 200) {
+                    Swal.fire({ icon: 'success', title: 'ตรวจสอบสำเร็จ', text: 'พบข้อมูลในระบบ FDH', timer: 1500, showConfirmButton: false })
+                    .then(() => { showDetails(seq); });
+                } else if (res.status === 404 || res.status === 500) {
+                    const statusText = res.body?.message_th ?? "ไม่มีรายการนี้ส่ง";
+                    Swal.fire({ icon: 'warning', title: 'ไม่พบข้อมูลในระบบ FDH', text: statusText })
+                    .then(() => { showDetails(seq); });
+                } else if (res.status === 400) {
+                    const statusText = res.body?.message ?? res.error ?? 'ไม่สามารถตรวจสอบได้';
+                    Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: statusText })
+                    .then(() => { showDetails(seq); });
+                }
+            },
+            error: function () {
+                Swal.fire({ icon: 'error', title: 'การเชื่อมต่อล้มเหลว', text: 'ไม่สามารถเรียก API ได้ (Network Error)' });
+            }
+        });
+    }
+</script>
 @endpush

@@ -126,10 +126,185 @@
                                 @foreach($search as $row) 
                                 <tr>
                                     <td class="text-center text-muted small">{{ $count }}</td>
-                                    <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-primary px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ดูรายละเอียด">
-                                            <i class="bi bi-eye-fill"></i>
-                                        </button>
+                                    <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
+                                        @if(!$row->is_valid)
+                                            {{-- แดง: ข้อมูลไม่ครบ (priority สูงสุด) --}}
+                                            <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @elseif(!empty($row->validation_warnings))
+                                            {{-- เหลือง: มี warnings (ins_ucs) --}}
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @elseif($row->endpoint_valid)
+                                            {{-- เขียว: ข้อมูลครบ + ปิดสิทธิแล้ว --}}
+                                            <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @else
+                                            {{-- เหลือง: ข้อมูลครบ แต่ยังไม่ปิดสิทธิ --}}
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด">
+                                                <i class="bi bi-eye-fill"></i>
+                                            </button>
+                                        @endif
+                                    </td>
+                                    <td class="text-center" data-order="{{ $row->claim == 'Y' ? 1 : 0 }}">
+                                        @if($row->claim && $row->claim == 'Y')
+                                            <span class="badge bg-success-soft text-success p-2 rounded-circle" title="ส่งเคลมแล้ว"><i class="bi bi-check-circle-fill" style="font-size: 0.9rem;"></i></span>
+                                        @else
+                                            <span class="badge bg-secondary-soft text-secondary p-2 rounded-circle" title="ยังไม่ได้ส่ง"><i class="bi bi-dash-circle-fill" style="font-size: 0.9rem;"></i></span>
+                                        @endif
+                                    </td>
+                                    <td class="text-center small">
+                                        {{ DateThai($row->vstdate) }}<br>
+                                        <span class="text-muted" style="font-size: 0.75rem;">{{$row->vsttime}}</span>
+                                    </td>
+                                    <td class="text-center small">{{ $row->oqueue }}</td>
+                                    <td class="text-center small text-primary fw-bold">{{$row->hn}}</td>
+                                    <td class="text-start text-dark fw-bold small">{{$row->ptname}}</td>
+                                    <td class="text-start small text-muted">
+                                        <div class="text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
+                                        <div style="font-size: 0.7rem;">[{{$row->hospmain}}]</div>
+                                    </td>
+                                    <td class="text-center small">{{$row->age_y}}</td>
+                                    <td class="text-start small text-muted">{{$row->claim_list}}</td>
+                                    <td class="text-end small">{{ number_format($row->income,2) }}</td>
+                                    <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
+                                    <td class="text-end small fw-bold text-primary">{{ number_format($row->claim_price,2) }}</td>
+                                    <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : ($row->receive_total < 0 ? 'text-danger' : 'text-muted') }}">
+                                        {{ number_format($row->receive_total,2) }}
+                                    </td>
+                                    <td class="text-end small fw-bold {{ ($row->receive_total-$row->claim_price) > 0 ? 'text-success' : (($row->receive_total-$row->claim_price) < 0 ? 'text-danger' : 'text-muted') }}">
+                                        {{ number_format($row->receive_total-$row->claim_price,2) }}
+                                    </td>
+                                </tr>
+                                @php 
+                                    $count++; 
+                                    $sum_income += $row->income; 
+                                    $sum_rcpt_money += $row->rcpt_money; 
+                                    $sum_claim_price += $row->claim_price; 
+                                    $sum_receive_total += $row->receive_total;
+                                @endphp
+                                @endforeach                 
+                            </tbody>
+                            <tfoot class="bg-light-soft">
+                                <tr>
+                                    <th colspan="10" class="text-end small text-muted px-3">รวมทั้งหมด:</th>
+                                    <th class="text-end small">{{ number_format($sum_income,2)}}</th>
+                                    <th class="text-end small">{{ number_format($sum_rcpt_money,2)}}</th>
+                                    <th class="text-end small fw-bold text-primary">{{ number_format($sum_claim_price,2)}}</th>
+                                    <th class="text-end small fw-bold {{ $sum_receive_total > 0 ? 'text-success' : ($sum_receive_total < 0 ? 'text-danger' : 'text-muted') }}">
+                                        {{ number_format($sum_receive_total,2)}}
+                                    </th>
+                                    <th class="text-end small fw-bold {{ ($sum_receive_total-$sum_claim_price) > 0 ? 'text-success' : (($sum_receive_total-$sum_claim_price) < 0 ? 'text-danger' : 'text-muted') }}">
+                                        {{ number_format($sum_receive_total-$sum_claim_price,2)}}
+                                    </th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>          
+                </div> 
+            </div>
+        </div>
+    </div>
+</div>      
+
+@endsection
+
+@push('scripts')
+<script src="{{ asset('assets/vendor/chart.js/chart.min.js') }}"></script>
+<script src="{{ asset('assets/vendor/chartjs-plugin-datalabels/chartjs-plugin-datalabels.min.js') }}"></script>
+<script>
+  function showLoading() {
+      Swal.fire({
+          title: 'กำลังโหลด...',
+          text: 'กรุณารอสักครู่',
+          allowOutsideClick: false,
+          didOpen: () => {
+              Swal.showLoading();
+          }
+      });
+  }
+  function fetchData() {
+      showLoading();
+  }
+
+  $(document).ready(function () {
+        // Initialize Thai Datepicker
+        $('.datepicker_th').datepicker({
+            format: 'd M yyyy', // Matches DateThai() helper output
+            todayBtn: "linked",
+            todayHighlight: true,
+            autoclose: true,
+            language: 'th-th',
+            thaiyear: true,
+            zIndexOffset: 1050
+        });
+
+        // Set initial values (ensures calendar is synced)
+        var start_date_val = "{{ $start_date }}";
+        var end_date_val = "{{ $end_date }}";
+        if(start_date_val) {
+            $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
+        }
+        if(end_date_val) {
+            $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
+        }
+
+        // Sync Changes to Hidden Inputs for Backend (YYYY-MM-DD)
+        $('.datepicker_th').on('changeDate', function(e) {
+            var date = e.date;
+            var targetId = $(this).attr('id').replace('_picker', '');
+            var hiddenInput = $('#' + targetId);
+            
+            if(date) {
+                var day = ("0" + date.getDate()).slice(-2);
+                var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                var year = date.getFullYear(); // Gregorian
+                hiddenInput.val(year + "-" + month + "-" + day);
+            } else {
+                hiddenInput.val('');
+            }
+        });
+
+      $('#t_search').DataTable({
+        dom: '<"row mb-3"' +
+                '<"col-md-6"l>' + // Show รายการ
+                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + // Search + Export
+              '>' +
+              'rt' +
+              '<"row mt-3"' +
+                '<"col-md-6"i>' + // Info
+                '<"col-md-6 d-flex justify-content-end"p>' + // Pagination
+              '>',
+        buttons: [
+            {
+              extend: 'excelHtml5',
+              text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+              className: 'btn btn-success btn-sm shadow-sm',
+              title: 'รายชื่อผู้รับบริการคัดกรองโลหิตจางจากการขาดธาตุเหล็ก วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+            }
+        ],
+        language: {
+            search: "ค้นหา:",
+            lengthMenu: "แสดง _MENU_ รายการ",
+            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+            paginate: {
+              previous: "ก่อนหน้า",
+              next: "ถัดไป"
+            }
+        }
+      });
+
+      // Chart.js
+      new Chart(document.querySelector('#sum_month'), {
+      type: 'bar',
+      data: {
+        labels: <?php echo json_encode($month); ?>,
+        datasets: [
+          {
+            label: 'เรียกเก็บ',
                                     </td>
                                     <td class="text-center" data-order="{{ $row->claim == 'Y' ? 1 : 0 }}">
                                         @if($row->claim && $row->claim == 'Y')
@@ -348,5 +523,168 @@
       plugins: [ChartDataLabels]
     });
   });
+</script>
+<script>
+    function showDetails(vn) {
+        const body = document.getElementById('detailsModalBody');
+        if (!body) return;
+        body.innerHTML = '<div class="text-center text-muted py-4"><i class="bi bi-arrow-repeat spin me-2"></i>กำลังโหลด...</div>';
+        $('#detailsModal').modal('show');
+
+        $.get("{{ url('mishos/ucs_ppfs/visit_details') }}", { vn: vn })
+            .done(function(data) {
+                const visit = data.visit;
+                const items = data.items;
+                const v     = data.validation;
+
+                const statusBadge = v.is_valid
+                    ? '<span class="badge bg-success ms-2"><i class="bi bi-check-circle-fill"></i> ผ่านเงื่อนไข</span>'
+                    : '<span class="badge bg-danger ms-2"><i class="bi bi-exclamation-triangle-fill"></i> ไม่ผ่าน ' + v.errors.length + ' รายการ</span>';
+
+                const isEndpointDone = v.endpoint_valid === true;
+                const hasWarnings    = v.warnings && v.warnings.length > 0;
+
+                // Update cell status in background
+                function makeCellHtml(isValid, epDone, warn) {
+                    if (!isValid) {
+                        return `<button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
+                    } else if (warn) {
+                        return `<button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
+                    } else if (epDone) {
+                        return `<button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
+                    } else {
+                        return `<button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
+                    }
+                }
+                const dataOrder = !v.is_valid ? '0' : (isEndpointDone && !hasWarnings ? '2' : '1');
+                const searchRow = document.getElementById(`td-status-search-${vn}`);
+                if (searchRow) {
+                    searchRow.innerHTML = makeCellHtml(v.is_valid, isEndpointDone, hasWarnings);
+                    searchRow.setAttribute('data-order', dataOrder);
+                    $('#t_search').DataTable().cell(searchRow).invalidate().draw(false);
+                }
+
+                let endpointBtn = '';
+                if (v.endpoint_valid) {
+                    endpointBtn = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>ปิดสิทธิแล้ว (สปสช.)</span>`;
+                } else {
+                    endpointBtn = `<button onclick="pullNhsoData('${visit.vstdate}', '${visit.cid}', '${vn}')" class="btn btn-warning btn-sm py-1 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-cloud-download-fill me-1"></i>ดึงข้อมูล (Pull)</button>`;
+                }
+
+                let fdhBtn = '';
+                if (visit.fdh_status) {
+                    fdhBtn = `
+                        <div class="d-inline-flex gap-2 align-items-center">
+                            <span class="badge bg-success py-1 px-2 text-wrap" style="max-width:180px;">${visit.fdh_status}</span>
+                            <button onclick="checkFdh('${visit.hn}', '${vn}')" class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-arrow-repeat me-1"></i>ดึงอีกครั้ง</button>
+                        </div>`;
+                } else {
+                    fdhBtn = `
+                        <div class="d-inline-flex gap-2 align-items-center">
+                            <span class="badge bg-secondary py-1 px-2">ยังไม่ได้ส่งเคลม</span>
+                            <button onclick="checkFdh('${visit.hn}', '${vn}')" class="btn btn-outline-info btn-sm py-0 px-2 fw-bold text-dark" style="font-size:0.75rem;"><i class="bi bi-arrow-repeat me-1"></i>ดึง/ส่ง FDH</button>
+                        </div>`;
+                }
+
+                let html = `
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <div class="card border-0 bg-light-soft h-100">
+                      <div class="card-body py-2 px-3">
+                        <div class="fw-bold text-primary mb-2 small"><i class="bi bi-person-fill me-1"></i>ข้อมูลผู้ป่วย</div>
+                        <table class="table table-sm table-borderless mb-0 small">
+                          <tr><th class="text-muted" style="width:35%">HN</th><td class="fw-bold">${visit.hn}</td></tr>
+                          <tr><th class="text-muted">ชื่อ-สกุล</th><td>${visit.ptname}</td></tr>
+                          <tr><th class="text-muted">สิทธิ์</th><td>${visit.pttype ?? '-'}</td></tr>
+                          <tr><th class="text-muted">เพศ/อายุ</th><td>${visit.sex == '1' ? 'ชาย' : (visit.sex == '2' ? 'หญิง' : visit.sex)} / ${visit.age_y ?? '-'} ปี</td></tr>
+                          <tr><th class="text-muted">ประสงค์เบิก</th><td>${visit.request_funds === 'Y' ? '<span class="badge bg-success py-0 px-2 fw-bold text-white"><i class="bi bi-check-circle-fill justify-content-center me-1"></i>Y</span>' : '<span class="badge bg-danger py-0 px-2 fw-bold text-white"><i class="bi bi-x-circle-fill justify-content-center me-1"></i>N</span>'}</td></tr>
+                          <tr><th class="text-muted">พร้อมส่ง</th><td>${visit.confirm_and_locked === 'Y' ? '<span class="badge bg-success py-0 px-2 fw-bold text-white"><i class="bi bi-check-circle-fill justify-content-center me-1"></i>Y</span>' : '<span class="badge bg-danger py-0 px-2 fw-bold text-white"><i class="bi bi-x-circle-fill justify-content-center me-1"></i>N</span>'}</td></tr>
+                          <tr><th class="text-muted">สถานะปิดสิทธิ</th><td>${endpointBtn}</td></tr>
+                          <tr><th class="text-muted">สถานะ FDH</th><td>${fdhBtn}</td></tr>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-6">
+                    <div class="card border-0 bg-light-soft h-100">
+                      <div class="card-body py-2 px-3">
+                        <div class="fw-bold text-primary mb-2 small"><i class="bi bi-clipboard2-pulse me-1"></i>ข้อมูลทางคลินิก</div>
+                        <table class="table table-sm table-borderless mb-0 small">
+                          <tr><th class="text-muted" style="width:35%">วันที่</th><td>${visit.vstdate} ${visit.vsttime}</td></tr>
+                          <tr><th class="text-muted">CC</th><td>${visit.cc ?? '-'}</td></tr>
+                          <tr><th class="text-muted">PDX</th><td class="fw-bold text-danger">${visit.pdx ?? '-'}</td></tr>
+                          <tr><th class="text-muted">SDX</th><td>${data.sec_diags.join(', ') || '-'}</td></tr>
+                          <tr><th class="text-muted">ICD-9</th><td>${data.procedures.join(', ') || '-'}</td></tr>
+                        </table>
+                      </div>
+                    </div>
+                  </div>`;
+
+                // Validation errors
+                if (!v.is_valid) {
+                    html += `
+                  <div class="col-12">
+                    <div class="alert alert-danger py-2 mb-0 small">
+                      <strong><i class="bi bi-x-octagon-fill me-1"></i>เงื่อนไขที่ไม่ผ่าน:</strong>
+                      <ul class="mb-0 mt-1 ps-3">`;
+                    v.errors.forEach(function(err) { html += `<li>${err}</li>`; });
+                    html += `</ul></div></div>`;
+                }
+
+                // Warnings
+                if (v.warnings && v.warnings.length > 0) {
+                    html += `
+                  <div class="col-12">
+                    <div class="alert alert-warning py-2 mb-0 small">
+                      <strong><i class="bi bi-exclamation-triangle-fill me-1"></i>คำเตือน Instrument ไม่อยู่ในประกาศ UCS (${v.warnings.length} รายการ):</strong>
+                      <ul class="mb-0 mt-1 ps-3">`;
+                    v.warnings.forEach(function(w) { html += `<li>${w}</li>`; });
+                    html += `</ul></div></div>`;
+                }
+
+                // Items table
+                html += `
+                  <div class="col-12">
+                    <div class="fw-bold small text-dark mb-2"><i class="bi bi-list-check me-1"></i>รายการเรียกเก็บ ${statusBadge}${
+                        (v.warnings && v.warnings.length > 0)
+                        ? '<span class="badge bg-warning text-dark ms-2"><i class="bi bi-exclamation-triangle-fill"></i>' + v.warnings.length + ' คำเตือน</span>'
+                        : ''
+                    }</div>
+                    <div class="table-responsive">
+                      <table class="table table-sm table-hover small mb-0">
+                        <thead class="table-light">
+                          <tr>
+                            <th>icode</th><th>รายการ</th><th>ประเภท</th>
+                            <th class="text-center">จำนวน</th>
+                            <th class="text-end">ราคา/หน่วย</th>
+                            <th class="text-end">รวม</th>
+                          </tr>
+                        </thead><tbody>`;
+
+                items.forEach(function(item) {
+                    let type = '';
+                    if (item.ppfs  === 'Y') type += '<span class="badge-type badge-ppfs me-1">PPFS</span>';
+                    if (item.uc_cr === 'Y') type += '<span class="badge-type badge-uc_cr me-1">UC_CR</span>';
+                    if (item.herb32=== 'Y') type += '<span class="badge-type badge-herb me-1">Herb</span>';
+                    const insWarn = (item.uc_cr === 'Y' && item.ins_ucs !== undefined && item.ins_ucs !== 'Y' && item.nhso_adp_code)
+                        ? `<span class="badge bg-warning text-dark ms-1" title="ADP ${item.nhso_adp_code} ไม่อยู่ในประกาศ UCS"><i class="bi bi-exclamation-triangle-fill"></i></span>`
+                        : '';
+                    html += `<tr class="${(item.uc_cr === 'Y' && item.ins_ucs !== undefined && item.ins_ucs !== 'Y' && item.nhso_adp_code) ? 'table-warning' : ''}">
+                        <td class="text-muted">${item.icode}</td>
+                        <td>${item.name ?? '-'}${insWarn}</td>
+                        <td>${type}</td>
+                        <td class="text-center">${item.qty}</td>
+                        <td class="text-end">${parseFloat(item.unitprice).toLocaleString('th-TH',{minimumFractionDigits:2})}</td>
+                        <td class="text-end fw-bold">${parseFloat(item.sum_price).toLocaleString('th-TH',{minimumFractionDigits:2})}</td>
+                    </tr>`;
+                });
+
+                html += `</tbody></table></div></div></div>`;
+                body.innerHTML = html;
+            })
+            .fail(function() {
+                body.innerHTML = '<div class="alert alert-warning">ไม่สามารถโหลดข้อมูลได้</div>';
+            });
+    }
 </script>
 @endpush

@@ -22,7 +22,7 @@ class EdcImportController extends Controller
     public function importZip(Request $request)
     {
         $request->validate([
-            'zip_file' => 'required|file|mimes:zip',
+            'zip_file' => 'required|file|extensions:zip',
         ]);
 
         $file = $request->file('zip_file');

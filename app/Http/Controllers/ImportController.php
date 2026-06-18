@@ -107,7 +107,7 @@ class ImportController extends Controller
 
         $this->validate($request, [
             'files' => 'required|array|max:5',
-            'files.*' => 'file|mimes:xls,xlsx'
+            'files.*' => 'file|extensions:xls,xlsx'
         ]);
 
         $uploadedFiles = $request->file('files');
@@ -840,7 +840,7 @@ class ImportController extends Controller
 
         $this->validate($request, [
             'files' => 'required|array|max:5',
-            'files.*' => 'file|mimes:xls,xlsx'
+            'files.*' => 'file|extensions:xls,xlsx'
         ]);
 
         $uploadedFiles = $request->file('files');
@@ -1154,7 +1154,7 @@ class ImportController extends Controller
         // ✅ เปลี่ยน validation ให้รองรับหลายไฟล์และจำกัดไม่เกิน 5
         $this->validate($request, [
             'files' => 'required|array|max:5',
-            'files.*' => 'file|mimes:xls,xlsx'
+            'files.*' => 'file|extensions:xls,xlsx'
         ]);
 
         $uploadedFiles = $request->file('files');
@@ -1795,7 +1795,7 @@ class ImportController extends Controller
 
         $request->validate([
             'files' => 'required|array|max:5',
-            'files.*' => 'file|mimes:zip'
+            'files.*' => 'file|extensions:zip'
         ]);
 
         $docCounts = []; // [STMdoc => count]
@@ -2262,7 +2262,7 @@ class ImportController extends Controller
 
         $request->validate([
             'files' => 'required|array',
-            'files.*' => 'file|mimes:zip'
+            'files.*' => 'file|extensions:zip'
         ]);
 
         // ===== ตัวนับผลลัพธ์ =====
@@ -2581,7 +2581,7 @@ class ImportController extends Controller
         // ✅ รองรับหลายไฟล์ จำกัดไม่เกิน 5
         $this->validate($request, [
             'files' => 'required|array|max:5',
-            'files.*' => 'file|mimes:xls,xlsx',
+            'files.*' => 'file|extensions:xls,xlsx',
         ]);
 
         $uploadedFiles = $request->file('files');
@@ -3325,7 +3325,7 @@ class ImportController extends Controller
         // ✅ หลายไฟล์ ไม่เกิน 5
         $this->validate($request, [
             'files' => 'required|array|max:5',
-            'files.*' => 'file|mimes:xls,xlsx'
+            'files.*' => 'file|extensions:xls,xlsx'
         ]);
 
         $uploadedFiles = $request->file('files');
@@ -3628,7 +3628,7 @@ class ImportController extends Controller
         // ✅ หลายไฟล์ .zip ไม่เกิน 5
         $this->validate($request, [
             'files' => 'required|array|max:5',
-            'files.*' => 'file|mimes:zip',
+            'files.*' => 'file|extensions:zip',
         ]);
 
         $uploadedFiles = $request->file('files');

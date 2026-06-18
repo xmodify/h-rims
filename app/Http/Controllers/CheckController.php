@@ -1340,7 +1340,7 @@ class CheckController extends Controller
         ini_set('memory_limit', '1024M');
 
         $this->validate($request, [
-            'file' => 'required|file|mimes:xls,xlsx'
+            'file' => 'required|file|extensions:xls,xlsx'
         ]);
 
         $the_file = $request->file('file');

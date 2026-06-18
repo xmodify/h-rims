@@ -210,8 +210,8 @@ class FdhClaimStatusController extends Controller
         $totalUpdated = 0;
         $totalErrors = 0;
 
-        // 5) Chunk = 50 วิเคราะห์แบบหลายๆ คิวพร้อมกัน (Concurrent Requests)
-        $chunks = array_chunk($items, 50);
+        // 5) Chunk = 5 วิเคราะห์พร้อมๆ กันแบบควบคุม เพื่อป้องกัน 503 Service Unavailable จากการเชื่อมต่อเยอะเกินไป
+        $chunks = array_chunk($items, 5);
         foreach ($chunks as $chunk) {
 
             // ยิง HTTP พร้อมๆ กันแบบ Asynchronous
@@ -503,62 +503,87 @@ class FdhClaimStatusController extends Controller
         $totalUpdated = 0;
         $totalErrors = 0;
 
-        // ยิง HTTP พร้อมๆ กันแบบ Asynchronous สำหรับ chunk นี้
-        $responses = Http::pool(function (\Illuminate\Http\Client\Pool $pool) use ($items, $hcode, $apiUrl, $token) {
-            $reqs = [];
-            foreach ($items as $index => $item) {
-                $payload = [
-                    'hcode' => $hcode,
-                    'hn'    => $item['hn'],
-                ];
-                if (!empty($item['an'])) {
-                    $payload['an'] = $item['an'];
-                } else {
-                    $payload['seq'] = $item['seq'];
-                }
-
-                $reqs[] = $pool->as((string)$index)
-                    ->withOptions(['verify' => false])
-                    ->withToken($token)
-                    ->timeout(120)
-                    ->post($apiUrl, $payload);
-            }
-            return $reqs;
-        });
-
         $upsertData = [];
 
-        foreach ($responses as $index => $response) {
-            $itemObj = (object)$items[$index];
-
-            if ($response instanceof \Exception) {
-                $status = 500;
-                $totalErrors++;
+        foreach ($items as $item) {
+            $itemObj = (object)$item;
+            $payload = [
+                'hcode' => $hcode,
+                'hn'    => $itemObj->hn,
+            ];
+            if (!empty($itemObj->an)) {
+                $payload['an'] = $itemObj->an;
             } else {
-                $status = $response->status();
-                $body   = $response->json();
+                $payload['seq'] = $itemObj->seq;
+            }
 
-                if ($status == 200 && isset($body['data'][0])) {
-                    $d = $body['data'][0];
-                    $now = now();
-                    $upsertData[] = [
-                        'hn'                => $d['hn']  ?? $itemObj->hn,
-                        'seq'               => $d['seq'] ?? $itemObj->seq,
-                        'an'                => $d['an']  ?? $itemObj->an,
-                        'hcode'             => $d['hcode'] ?? $hcode,
-                        'status'            => $d['status'] ?? null,
-                        'process_status'    => $d['process_status'] ?? null,
-                        'status_message_th' => $d['status_message_th'] ?? null,
-                        'stm_period'        => $d['stm_period'] ?? null,
-                        'updated_at'        => $now,
-                        'created_at'        => $now,
-                    ];
-                } else {
-                    if ($status != 200 && $status != 404) {
-                        $totalErrors++;
+            $status = 500;
+            $body = null;
+            $attempts = 3;
+            $success = false;
+
+            for ($attempt = 1; $attempt <= $attempts; $attempt++) {
+                try {
+                    $response = Http::withOptions(['verify' => false])
+                        ->withToken($token)
+                        ->timeout(30)
+                        ->post($apiUrl, $payload);
+
+                    $status = $response->status();
+                    $body   = $response->json();
+
+                    if ($status != 503 && $status != 500) {
+                        $success = true;
+                        break;
                     }
+
+                    \Illuminate\Support\Facades\Log::warning("FDH check-chunk attempt $attempt returned status $status", [
+                        'hn' => $itemObj->hn,
+                        'body' => $body
+                    ]);
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::warning("FDH check-chunk attempt $attempt exception", [
+                        'hn' => $itemObj->hn,
+                        'message' => $e->getMessage()
+                    ]);
+                }
+
+                if ($attempt < $attempts) {
+                    // sleep 1.5 seconds before retry
+                    usleep(1500000);
                 }
             }
+
+            if ($status == 200 && isset($body['data'][0])) {
+                $d = $body['data'][0];
+                $now = now();
+                $upsertData[] = [
+                    'hn'                => $d['hn']  ?? $itemObj->hn,
+                    'seq'               => $d['seq'] ?? $itemObj->seq,
+                    'an'                => $d['an']  ?? $itemObj->an,
+                    'hcode'             => $d['hcode'] ?? $hcode,
+                    'status'            => $d['status'] ?? null,
+                    'process_status'    => $d['process_status'] ?? null,
+                    'status_message_th' => $d['status_message_th'] ?? null,
+                    'stm_period'        => $d['stm_period'] ?? null,
+                    'updated_at'        => $now,
+                    'created_at'        => $now,
+                ];
+            } else {
+                if ($status != 200 && $status != 404) {
+                    $totalErrors++;
+                    \Illuminate\Support\Facades\Log::warning("FDH check-chunk final error response", [
+                        'hn' => $itemObj->hn,
+                        'seq' => $itemObj->seq ?? null,
+                        'an' => $itemObj->an ?? null,
+                        'status' => $status,
+                        'body' => $body
+                    ]);
+                }
+            }
+
+            // หน่วงเวลา 150ms ระหว่างแต่ละคนไข้ เพื่อป้องกัน 503
+            usleep(150000);
         }
 
         if (!empty($upsertData)) {

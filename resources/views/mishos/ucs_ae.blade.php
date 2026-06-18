@@ -78,6 +78,9 @@
                             <button onclick="fetchData()" type="submit" class="btn btn-success px-3 shadow-sm">
                                 <i class="bi bi-table me-1"></i> โหลด indiv
                             </button>
+                            <button onclick="checkFdhBulk(event)" type="button" class="btn btn-info text-white px-3 shadow-sm" title="ดึงสถานะ FDH ตามช่วงเวลาที่เลือก (ทีละ 1 วัน)">
+                                <i class="bi bi-arrow-repeat me-1"></i> ดึง FDH
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -655,6 +658,114 @@ function showDetails(vn) {
                 Swal.fire({ icon: 'error', title: 'การเชื่อมต่อล้มเหลว', text: 'ไม่สามารถเรียก API ได้ (Network Error)' });
             }
         });
+    }
+
+    async function checkFdhBulk(e) {
+        e.preventDefault();
+        const items = {!! json_encode(array_map(function($row) {
+            return [
+                'hn' => $row->hn,
+                'seq' => $row->seq,
+                'an' => ''
+            ];
+        }, $search)) !!};
+
+        if (!items || items.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'ไม่พบรายการผู้ป่วยในหน้านี้', confirmButtonColor: '#0dcaf0' });
+            return;
+        }
+
+        const confirm = await Swal.fire({
+            title: 'ยืนยันการดึง FDH?',
+            html: `ดึงสถานะ FDH สำหรับผู้ป่วยในหน้านี้จำนวน <b>${items.length}</b> รายการ`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'ดึงข้อมูล',
+            cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#0dcaf0'
+        });
+        if (!confirm.isConfirmed) return;
+
+        const chunkSize = 10;
+        const totalItems = items.length;
+        let totalUpdated = 0;
+        let totalErrors = 0;
+        let overallSuccess = true;
+
+        Swal.fire({
+            title: 'กำลังดึงสถานะ FDH...',
+            html: `
+                <div id="fdh-progress-text" class="mb-2">กำลังเตรียมข้อมูล...</div>
+                <div class="progress" style="height: 22px;">
+                    <div id="fdh-progress-bar"
+                         class="progress-bar progress-bar-striped progress-bar-animated bg-info"
+                         role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                </div>
+                <div id="fdh-progress-sub" class="mt-2 text-muted small"></div>
+            `,
+            allowOutsideClick: false,
+            showConfirmButton: false
+        });
+
+        for (let i = 0; i < totalItems; i += chunkSize) {
+            const chunk = items.slice(i, i + chunkSize);
+            const percent = Math.round((i / totalItems) * 100);
+
+            const pText = document.getElementById('fdh-progress-text');
+            const pBar  = document.getElementById('fdh-progress-bar');
+            const pSub  = document.getElementById('fdh-progress-sub');
+            if (pText) pText.innerHTML = `กำลังดึงข้อมูล <b>${i + chunk.length}/${totalItems}</b> รายการ`;
+            if (pBar)  { pBar.style.width = `${percent}%`; pBar.innerHTML = `${percent}%`; pBar.setAttribute('aria-valuenow', percent); }
+            if (pSub)  pSub.textContent = totalErrors > 0 ? `⚠️ พบข้อผิดพลาด ${totalErrors} รายการ` : '';
+
+            try {
+                const res = await fetch("{{ url('/api/fdh/check-chunk') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': "{{ csrf_token() }}"
+                    },
+                    body: JSON.stringify({ items: chunk })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    totalUpdated += parseInt(data.updated_count) || 0;
+                    totalErrors += parseInt(data.errors_count) || 0;
+                    if (parseInt(data.errors_count) > 0) {
+                        overallSuccess = false;
+                    }
+                } else {
+                    overallSuccess = false;
+                    totalErrors += chunk.length;
+                }
+            } catch (err) {
+                overallSuccess = false;
+                totalErrors += chunk.length;
+            }
+        }
+
+        const pBarFinal = document.getElementById('fdh-progress-bar');
+        if (pBarFinal) { pBarFinal.style.width = '100%'; pBarFinal.innerHTML = '100%'; pBarFinal.setAttribute('aria-valuenow', 100); }
+
+        const summaryHtml = `
+            <div class="text-start p-2">
+                <b>สถานะ:</b> ${overallSuccess ? '✅ สำเร็จทั้งหมด' : '⚠️ เสร็จสิ้น แต่มีข้อผิดพลาดบางส่วน'}<br>
+                <b>รายการทั้งหมด:</b> ${totalItems} รายการ<br>
+                <b>ดึงข้อมูลสำเร็จ:</b> <span class="badge bg-success text-white">${totalUpdated}</span> รายการ<br>
+                <b>เกิดข้อผิดพลาด:</b> <span class="badge bg-danger text-white">${totalErrors}</span> รายการ
+            </div>
+        `;
+
+        await Swal.fire({
+            icon: overallSuccess ? 'success' : 'warning',
+            title: 'ดึงสถานะ FDH เสร็จสิ้น',
+            html: summaryHtml,
+            confirmButtonText: 'โหลดข้อมูล',
+            confirmButtonColor: '#0dcaf0'
+        });
+
+        fetchData();
+        $('#form_indiv').submit();
     }
 </script>
 @endpush

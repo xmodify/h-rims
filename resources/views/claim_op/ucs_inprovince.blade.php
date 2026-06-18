@@ -804,19 +804,32 @@ function pushNhsoData(cid, vstdate, vn) {
   async function checkFdhBulk(event) {
       if (event) event.preventDefault();
 
-      const startDate = document.getElementById('start_date').value;
-      const endDate   = document.getElementById('end_date').value;
-      const startDateText = document.getElementById('start_date_picker').value || startDate;
-      const endDateText   = document.getElementById('end_date_picker').value || endDate;
+      const searchItems = {!! json_encode(array_map(function($row) {
+          return [
+              'hn' => $row->hn,
+              'seq' => $row->seq,
+              'an' => ''
+          ];
+      }, $search)) !!};
 
-      if (!startDate || !endDate) {
-          Swal.fire({ icon: 'warning', title: 'กรุณาเลือกช่วงวันก่อน', confirmButtonColor: '#0dcaf0' });
+      const claimItems = {!! json_encode(array_map(function($row) {
+          return [
+              'hn' => $row->hn,
+              'seq' => $row->seq,
+              'an' => ''
+          ];
+      }, $claim)) !!};
+
+      const items = [...searchItems, ...claimItems];
+
+      if (!items || items.length === 0) {
+          Swal.fire({ icon: 'warning', title: 'ไม่พบรายการผู้ป่วยในหน้านี้', confirmButtonColor: '#0dcaf0' });
           return;
       }
 
       const confirm = await Swal.fire({
           title: 'ยืนยันการดึง FDH?',
-          html: `ดึงสถานะ FDH ในช่วง <b>${startDateText}</b> ถึง <b>${endDateText}</b><br><small class="text-muted">ระบบจะส่งทีละ 1 วัน</small>`,
+          html: `ดึงสถานะ FDH สำหรับผู้ป่วยในหน้านี้จำนวน <b>${items.length}</b> รายการ`,
           icon: 'question',
           showCancelButton: true,
           confirmButtonText: 'ดึงข้อมูล',
@@ -825,32 +838,10 @@ function pushNhsoData(cid, vstdate, vn) {
       });
       if (!confirm.isConfirmed) return;
 
-      function getDayList(startStr, endStr) {
-          const days = [];
-          let cur = new Date(startStr);
-          const last = new Date(endStr);
-          while (cur <= last) {
-              days.push(cur.toISOString().split('T')[0]);
-              cur.setDate(cur.getDate() + 1);
-          }
-          return days;
-      }
-
-      function formatThaiDateShort(dateStr) {
-          if (!dateStr) return '';
-          const parts = dateStr.split('-');
-          if (parts.length !== 3) return dateStr;
-          const year = parseInt(parts[0]) + 543;
-          const monthIndex = parseInt(parts[1]) - 1;
-          const day = parseInt(parts[2]);
-          const shortMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-          return `${day} ${shortMonths[monthIndex]} ${year}`;
-      }
-
-      const days = getDayList(startDate, endDate);
-      const total = days.length;
-      let totalFound = 0;
-      let failedDays = [];
+      const chunkSize = 10;
+      const totalItems = items.length;
+      let totalUpdated = 0;
+      let totalErrors = 0;
       let overallSuccess = true;
 
       Swal.fire({
@@ -868,36 +859,40 @@ function pushNhsoData(cid, vstdate, vn) {
           showConfirmButton: false
       });
 
-      for (let i = 0; i < total; i++) {
-          const day = days[i];
-          const percent = Math.round((i / total) * 100);
+      for (let i = 0; i < totalItems; i += chunkSize) {
+          const chunk = items.slice(i, i + chunkSize);
+          const percent = Math.round((i / totalItems) * 100);
 
           const pText = document.getElementById('fdh-progress-text');
           const pBar  = document.getElementById('fdh-progress-bar');
           const pSub  = document.getElementById('fdh-progress-sub');
-          if (pText) pText.innerHTML = `กำลังดึงวันที่ <b>${i + 1}/${total}</b> : <code>${formatThaiDateShort(day)}</code>`;
+          if (pText) pText.innerHTML = `กำลังดึงข้อมูล <b>${i + chunk.length}/${totalItems}</b> รายการ`;
           if (pBar)  { pBar.style.width = `${percent}%`; pBar.innerHTML = `${percent}%`; pBar.setAttribute('aria-valuenow', percent); }
-          if (pSub)  pSub.textContent = failedDays.length > 0 ? `⚠️ มี ${failedDays.length} วันที่เกิดข้อผิดพลาด` : '';
+          if (pSub)  pSub.textContent = totalErrors > 0 ? `⚠️ พบข้อผิดพลาด ${totalErrors} รายการ` : '';
 
           try {
-              const res = await fetch("{{ url('/api/fdh/check-claim') }}", {
+              const res = await fetch("{{ url('/api/fdh/check-chunk') }}", {
                   method: 'POST',
                   headers: {
                       'Content-Type': 'application/json',
                       'X-CSRF-TOKEN': "{{ csrf_token() }}"
                   },
-                  body: JSON.stringify({ date_start: day, date_end: day })
+                  body: JSON.stringify({ items: chunk })
               });
               const data = await res.json();
-              if (data.total !== undefined) {
-                  totalFound += parseInt(data.total) || 0;
-              } else if (!res.ok) {
+              if (data.success) {
+                  totalUpdated += parseInt(data.updated_count) || 0;
+                  totalErrors += parseInt(data.errors_count) || 0;
+                  if (parseInt(data.errors_count) > 0) {
+                      overallSuccess = false;
+                  }
+              } else {
                   overallSuccess = false;
-                  failedDays.push(`${formatThaiDateShort(day)} (${data.message || data.error || 'ข้อผิดพลาด'})`);
+                  totalErrors += chunk.length;
               }
           } catch (err) {
               overallSuccess = false;
-              failedDays.push(`${formatThaiDateShort(day)} (${err.message || 'Network error'})`);
+              totalErrors += chunk.length;
           }
       }
 
@@ -907,10 +902,9 @@ function pushNhsoData(cid, vstdate, vn) {
       const summaryHtml = `
           <div class="text-start p-2">
               <b>สถานะ:</b> ${overallSuccess ? '✅ สำเร็จทั้งหมด' : '⚠️ เสร็จสิ้น แต่มีข้อผิดพลาดบางส่วน'}<br>
-              <b>ช่วงวันที่:</b> ${startDateText} ถึง ${endDateText}<br>
-              <b>จำนวนวันที่ดึง:</b> ${total} วัน<br>
-              <b>พบข้อมูลรวม:</b> <span class="badge bg-info text-white">${totalFound}</span> รายการ
-              ${failedDays.length > 0 ? `<hr><b class="text-danger">วันที่เกิดข้อผิดพลาด:</b><ul class="text-danger mb-0">${failedDays.map(d => `<li>${d}</li>`).join('')}</ul>` : ''}
+              <b>รายการทั้งหมด:</b> ${totalItems} รายการ<br>
+              <b>ดึงข้อมูลสำเร็จ:</b> <span class="badge bg-success text-white">${totalUpdated}</span> รายการ<br>
+              <b>เกิดข้อผิดพลาด:</b> <span class="badge bg-danger text-white">${totalErrors}</span> รายการ
           </div>
       `;
 

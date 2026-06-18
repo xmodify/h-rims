@@ -211,12 +211,6 @@
               return;
           }
 
-          const dates = getDatesInRange(dateStartVal, dateEndVal);
-          if (dates.length === 0) {
-              alert("ไม่พบช่วงวันที่ถูกต้อง");
-              return;
-          }
-
           // Start processing
           isProcessing = true;
           inputsContainer.classList.add("d-none");
@@ -226,36 +220,66 @@
           FdhBtn.classList.add("d-none");
           resultMessage.classList.add("d-none");
 
+          progressBar.style.width = "0%";
+          progressBar.textContent = "0%";
+          progressText.innerHTML = "กำลังดึงรายชื่อคนไข้จากระบบ...";
+
+          // Step 1: Get all check items
+          let items = [];
+          try {
+              const res = await fetch(`{{ url('api/fdh/get-check-list') }}?date_start=${dateStartVal}&date_end=${dateEndVal}`);
+              if (!res.ok) throw new Error("HTTP error " + res.status);
+              const data = await res.json();
+              items = data.items || [];
+          } catch (err) {
+              console.error(err);
+              isProcessing = false;
+              inputsContainer.classList.remove("d-none");
+              progressContainer.classList.add("d-none");
+              modalCloseHeaderBtn.classList.remove("d-none");
+              modalCancelBtn.classList.remove("d-none");
+              FdhBtn.classList.remove("d-none");
+              alert("ไม่สามารถดึงรายชื่อคนไข้ได้: " + err.message);
+              return;
+          }
+
+          const totalPatients = items.length;
+          if (totalPatients === 0) {
+              isProcessing = false;
+              inputsContainer.classList.remove("d-none");
+              progressContainer.classList.add("d-none");
+              modalCloseHeaderBtn.classList.remove("d-none");
+              modalCancelBtn.classList.remove("d-none");
+              FdhBtn.classList.remove("d-none");
+              alert("ไม่พบข้อมูลคนไข้ในช่วงเวลาที่เลือก");
+              return;
+          }
+
           let successCount = 0;
           let failCount = 0;
-          const totalDays = dates.length;
+          let totalUpdated = 0;
+          let totalErrors = 0;
 
-          for (let i = 0; i < totalDays; i++) {
-              const currentDate = dates[i];
-              
-              // format date for display in Thai Buddhist Era if possible
-              const parts = currentDate.split('-');
-              const thaiDisplayYear = parseInt(parts[0]) + 543;
-              const displayDateStr = `${parts[2]}/${parts[1]}/${thaiDisplayYear}`;
+          const chunkSize = 10;
 
-              // Update progress bar
-              const percent = Math.round((i / totalDays) * 100);
+          // Step 2: Loop and check chunk
+          for (let i = 0; i < totalPatients; i += chunkSize) {
+              const chunk = items.slice(i, i + chunkSize);
+              const currentProgress = i + chunk.length;
+              const percent = Math.round((currentProgress / totalPatients) * 100);
+
               progressBar.style.width = percent + "%";
               progressBar.textContent = percent + "%";
-              progressText.innerHTML = `กำลังดึงข้อมูลวันที่ ${displayDateStr} (${i + 1}/${totalDays} วัน)...`;
+              progressText.innerHTML = `กำลังดึงข้อมูลคนไข้ <b>${currentProgress}/${totalPatients}</b> ราย...`;
 
-              // Send AJAX request for the current single day
               try {
-                  const formData = new FormData();
-                  formData.append("date_start", currentDate);
-                  formData.append("date_end", currentDate);
-
-                  const response = await fetch("{{ route('api.fdh.check_claim') }}", {
+                  const response = await fetch("{{ url('api/fdh/check-chunk') }}", {
                       method: "POST",
                       headers: {
+                          "Content-Type": "application/json",
                           "X-CSRF-TOKEN": "{{ csrf_token() }}"
                       },
-                      body: formData
+                      body: JSON.stringify({ items: chunk })
                   });
 
                   if (!response.ok) {
@@ -265,12 +289,16 @@
                   const data = await response.json();
                   if (data.success) {
                       successCount++;
+                      totalUpdated += parseInt(data.updated_count) || 0;
+                      totalErrors += parseInt(data.errors_count) || 0;
                   } else {
                       failCount++;
+                      totalErrors += chunk.length;
                   }
               } catch (err) {
                   console.error(err);
                   failCount++;
+                  totalErrors += chunk.length;
               }
           }
 
@@ -285,7 +313,14 @@
 
           resultMessage.classList.remove("d-none");
           resultMessage.className = "mt-3 alert alert-success text-center";
-          resultMessage.innerHTML = `<strong>ดึงข้อมูลสำเร็จ:</strong> ${successCount} วัน | <strong>ล้มเหลว:</strong> ${failCount} วัน`;
+          resultMessage.innerHTML = `
+              <strong>ตรวจสอบเสร็จสิ้น:</strong> ดึงข้อมูลคนไข้ครบถ้วน<br>
+              <div class="mt-2 small text-muted">
+                  พบข้อมูลคนไข้ทั้งหมด: <b>${totalPatients}</b> ราย | 
+                  ดึงสำเร็จ: <span class="badge bg-success text-white">${totalUpdated}</span> ราย | 
+                  เกิดข้อผิดพลาด: <span class="badge bg-danger text-white">${totalErrors}</span> ราย
+              </div>
+          `;
       });
   });
 </script>

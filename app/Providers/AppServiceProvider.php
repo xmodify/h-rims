@@ -49,19 +49,17 @@ class AppServiceProvider extends ServiceProvider
             $hasLookupIcode_kidney = false;
             $hospital_name = '';
             $hospital_code = '';
-            // เฉพาะหน้าที่ยกเว้น ไม่โหลดจาก DB แต่ยังแชร์ค่าดีฟอลต์
-            if (!request()->is('admin/main_setting')) {
-                if (Schema::hasColumn('lookup_icode', 'kidney')) {
-                    $hasLookupIcode_kidney = DB::table('lookup_icode')
-                        ->where('kidney', '<>', '')
-                        ->exists();
-                }
-                
-                // Load core settings if main_setting table exists
-                if (Schema::hasTable('main_setting')) {
-                    $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?? '';
-                    $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?? '';
-                }
+            // Load variables for all views if tables/columns exist
+            if (Schema::hasTable('lookup_icode') && Schema::hasColumn('lookup_icode', 'kidney')) {
+                $hasLookupIcode_kidney = DB::table('lookup_icode')
+                    ->where('kidney', '<>', '')
+                    ->exists();
+            }
+            
+            // Load core settings if main_setting table exists
+            if (Schema::hasTable('main_setting')) {
+                $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?? '';
+                $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?? '';
             }
             $view->with('hasLookupIcode_kidney', $hasLookupIcode_kidney)
                  ->with('hospital_name', $hospital_name)

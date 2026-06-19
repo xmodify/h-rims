@@ -2399,6 +2399,7 @@ class ImportController extends Controller
             ]);
         }
 
+        return view('import.stm_ofc_detail_ipd', compact('start_date', 'end_date'));
     }
 
     //stm_bkk-----------------------------------------------------------------------------------------------------------------------------

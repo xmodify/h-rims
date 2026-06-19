@@ -111,7 +111,7 @@
         processing: true,
         serverSide: true,
         ajax: {
-            url: route('stm_bmt_detail_ipd'),
+            url: "{{ route('stm_bmt_detail_ipd') }}",
             data: function (d) {
                 d.start_date = $('#start_date').val();
                 d.end_date = $('#end_date').val();

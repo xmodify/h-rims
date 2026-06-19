@@ -37,7 +37,7 @@
         <div>
             <h5 class="text-dark mb-0 fw-bold">
                 <i class="bi bi-cloud-arrow-down-fill text-success me-2"></i>
-                ข้อมูล Statement ประกันสุขภาพ BKK [ฟอกไต HD]
+                ข้อมูล Statement BKK [ฟอกไต HD]
             </h5>
             <div class="text-muted small mt-1">ปีงบประมาณประจำปัจจุบัน: {{ $budget_year }}</div>
             <div class="mt-2">

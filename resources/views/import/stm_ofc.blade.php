@@ -37,7 +37,7 @@
         <div>
             <h5 class="text-dark mb-0 fw-bold">
                 <i class="bi bi-cloud-arrow-down-fill text-success me-2"></i>
-                ข้อมูล Statement เบิกจ่ายตรง OFC | กทม.BKK | ขสมก.BMT
+                ข้อมูล Statement เบิกจ่ายตรง OFC 
             </h5>
             <div class="text-muted small mt-1">ปีงบประมาณประจำปัจจุบัน: {{ $budget_year }}</div>
             <div class="mt-2 d-flex gap-2">

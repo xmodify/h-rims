@@ -134,6 +134,7 @@ class NotifyController extends Controller
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_exec($ch);
             curl_close($ch);
+        }
         $chat_ids_count = count(array_filter(array_map('trim', $chat_ids)));
         $responseData = [
             'status' => 'success',

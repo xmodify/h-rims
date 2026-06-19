@@ -766,15 +766,48 @@
                                             </ul>
                                         </li>
                                         <!-- เมนูอื่น -->
+                                        <!-- ชี้ขวา -->
+                                        <li class="dropend position-relative">
+                                            <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                                data-bs-toggle="dropdown">
+                                                <i class="bi bi-flower1 text-success me-2"></i> OP-BKK ข้าราชการ กทม.
+                                            </a>
+                                            <ul class="dropdown-menu dropdown-menu-modern">
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('claim_op/bkk') }}"><i class="bi bi-chevron-right text-muted me-1"></i> BKK-OP ข้าราชการ กทม.</a>
+                                                </li>
+                                                @if ($hasLookupIcode_kidney)
+                                                    <li>
+                                                        <a class="dropdown-item dropdown-item-modern"
+                                                            href="{{ url('claim_op/bkk_kidney') }}"><i class="bi bi-chevron-right text-muted me-1"></i> BKK-OP ข้าราชการ กทม. ฟอกไต </a>
+                                                    </li>
+                                                @endif
+                                            </ul>
+                                        </li>
+                                        <!-- ชี้ขวา -->
+                                        <li class="dropend position-relative">
+                                            <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                                data-bs-toggle="dropdown">
+                                                <i class="bi bi-car-front-fill text-secondary me-2"></i> OP-BMT องค์การขนส่งมวลชนกรุงเทพ
+                                            </a>
+                                            <ul class="dropdown-menu dropdown-menu-modern">
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('claim_op/bmt') }}"><i class="bi bi-chevron-right text-muted me-1"></i> BMT-OP ขสมก.</a>
+                                                </li>
+                                                @if ($hasLookupIcode_kidney)
+                                                    <li>
+                                                        <a class="dropdown-item dropdown-item-modern"
+                                                            href="{{ url('claim_op/bmt_kidney') }}"><i class="bi bi-chevron-right text-muted me-1"></i> BMT-OP ขสมก. ฟอกไต </a>
+                                                    </li>
+                                                @endif
+                                            </ul>
+                                        </li>
+                                        <!-- เมนูอื่น -->
                                         <li>
-                                            <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/bkk') }}">
-                                                <i class="bi bi-flower1 text-success me-2"></i> OP-BKK ข้าราชการ กรุงเทพมหานคร
-                                            </a>
-                                            <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/bmt') }}">
-                                                <i class="bi bi-car-front-fill text-secondary me-2"></i> OP-BMT สิทธิองค์การขนส่งมวลชนกรุงเทพ
-                                            </a>
                                             <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/srt') }}">
-                                                <i class="bi bi-train-front text-primary me-2"></i> OP-SRT สิทธิการรถไฟแห่งประเทศไทย
+                                                <i class="bi bi-train-front text-primary me-2"></i> OP-SRT การรถไฟแห่งประเทศไทย
                                             </a>
                                         </li>
                                         <!-- ชี้ขวา -->
@@ -854,13 +887,13 @@
                                                 <i class="bi bi-bank text-info me-2"></i> IP-LGO อปท.
                                             </a>
                                             <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/bkk') }}">
-                                                <i class="bi bi-flower1 text-success me-2"></i> IP-BKK ข้าราชการ กรุงเทพมหานคร
+                                                <i class="bi bi-flower1 text-success me-2"></i> IP-BKK ข้าราชการ กทม.
                                             </a>
                                             <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/bmt') }}">
-                                                <i class="bi bi-car-front-fill text-secondary me-2"></i> IP-BMT สิทธิองค์การขนส่งมวลชนกรุงเทพ
+                                                <i class="bi bi-car-front-fill text-secondary me-2"></i> IP-BMT องค์การขนส่งมวลชนกรุงเทพ
                                             </a>
                                             <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/srt') }}">
-                                                <i class="bi bi-train-front text-primary me-2"></i> IP-SRT สิทธิการรถไฟแห่งประเทศไทย
+                                                <i class="bi bi-train-front text-primary me-2"></i> IP-SRT การรถไฟแห่งประเทศไทย
                                             </a>
                                         </li>
                                         <!-- ชี้ขวา -->
@@ -1024,7 +1057,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item d-flex align-items-center me-2">
                             <div class="nav-version-badge">
-                                V.69-06-18 16:00
+                                V.69-06-19 19:00
                             </div>
                         </li>
                         <!-- Authentication Links -->

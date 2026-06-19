@@ -1181,7 +1181,10 @@ class ImportController extends Controller
                     if ($dateVal) {
                         $day = substr($dateVal, 0, 2);
                         $mo = substr($dateVal, 3, 2);
-                        $year = substr($dateVal, 6, 4);
+                        $year = intval(substr($dateVal, 6, 4));
+                        if ($year > 2500) {
+                            $year -= 543;
+                        }
                         $datetimeadm = $year . '-' . $mo . '-' . $day . ' ' . ($timeVal ? $timeVal . ':00' : '00:00:00');
                     }
 
@@ -1506,7 +1509,10 @@ class ImportController extends Controller
                     if ($dateVal) {
                         $day = substr($dateVal, 0, 2);
                         $mo = substr($dateVal, 3, 2);
-                        $year = substr($dateVal, 6, 4);
+                        $year = intval(substr($dateVal, 6, 4));
+                        if ($year > 2500) {
+                            $year -= 543;
+                        }
                         $datetimeadm = $year . '-' . $mo . '-' . $day . ' ' . ($timeVal ? $timeVal . ':00' : '00:00:00');
                     }
 

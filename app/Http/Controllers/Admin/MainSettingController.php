@@ -808,13 +808,30 @@ class MainSettingController extends Controller
         return $parsed;
     }
 
+    public function aopodIndex()
+    {
+        $hospcode = DB::table('lookup_hospcode')->value('hospcode');
+        if ($hospcode !== '00025') {
+            abort(403, 'Unauthorized.');
+        }
+
+        $amnosend = url('api/amnosend');
+
+        $aopodLogRaw = '';
+        if (\Illuminate\Support\Facades\File::exists(storage_path('logs/aopod_schedule.log'))) {
+            $aopodLogRaw = \Illuminate\Support\Facades\File::get(storage_path('logs/aopod_schedule.log'));
+        }
+
+        $aopodLogs = $this->parseLogs($aopodLogRaw);
+
+        return view('admin.aopod', compact('aopodLogs', 'hospcode', 'amnosend'));
+    }
+
     public function manualAopodSend(Request $request)
     {
         try {
             $res = app(\App\Http\Controllers\Api\AmnosendController::class)->send($request);
             $responseData = $res->getData();
-            $logMessage = "[" . now()->toDateTimeString() . "] AOPOD output: " . json_encode($responseData, JSON_UNESCAPED_UNICODE) . "\n";
-            appendAndLimitLog('aopod_schedule.log', $logMessage, 24);
 
             return response()->json([
                 'status' => isset($responseData->ok) && $responseData->ok ? 'success' : 'error',
@@ -887,6 +904,49 @@ class MainSettingController extends Controller
                 'message' => 'เกิดข้อผิดพลาดในการเชื่อมต่อ Telegram: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function saveAopodLogSummary(Request $request)
+    {
+        $hospcode = DB::table('lookup_hospcode')->value('hospcode');
+        if ($hospcode !== '00025') {
+            abort(403, 'Unauthorized.');
+        }
+
+        $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date',
+            'ok' => 'required|boolean',
+            'opd' => 'required|integer',
+            'ipd' => 'required|integer',
+            'ipd_bed' => 'required|integer',
+            'hospital' => 'required|integer',
+        ]);
+
+        $responseData = [
+            'ok'         => (bool)$request->input('ok'),
+            'hospcode'   => DB::table('main_setting')->where('name', 'hospital_code')->value('value'),
+            'start_date' => $request->input('start_date'),
+            'end_date'   => $request->input('end_date'),
+            'received'   => [
+                'opd'      => (int)$request->input('opd'),
+                'ipd'      => (int)$request->input('ipd'),
+                'ipd_bed'  => (int)$request->input('ipd_bed'),
+                'hospital' => (int)$request->input('hospital'),
+            ],
+            'results'    => [
+                'Manual Send' => [
+                    'ok' => (bool)$request->input('ok')
+                ]
+            ]
+        ];
+
+        if (function_exists('appendAndLimitLog')) {
+            $logMessage = "[" . now()->toDateTimeString() . "] AOPOD output: " . json_encode($responseData, JSON_UNESCAPED_UNICODE) . "\n";
+            appendAndLimitLog('aopod_schedule.log', $logMessage, 24);
+        }
+
+        return response()->json(['status' => 'success']);
     }
 
     public function manualNotifySend(Request $request)

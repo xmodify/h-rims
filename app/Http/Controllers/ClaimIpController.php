@@ -1515,7 +1515,7 @@ class ClaimIpController extends Controller
                     END AS month,
                     i.an,
                     (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
-                    (IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) + IFNULL(csop.amount,0)) AS receive_total,
+                    IFNULL(stm.receive_total,0) AS receive_total,
                     YEAR(i.dchdate) AS y, MONTH(i.dchdate) AS m
                 FROM ipt i            
                 LEFT JOIN ipt_pttype ip ON ip.an = i.an
@@ -1536,25 +1536,10 @@ class ClaimIpController extends Controller
                 ) rc ON rc.an = i.an
                 LEFT JOIN (
                     SELECT an, SUM(receive_total) AS receive_total 
-                    FROM hrims.stm_ofc 
+                    FROM hrims.stm_srt 
                     WHERE an IN (SELECT an FROM ipt WHERE dchdate BETWEEN ? AND ? AND confirm_discharge = "Y")
                     GROUP BY an
                 ) stm ON stm.an = i.an
-                LEFT JOIN (
-                    SELECT an, SUM(gtotal) AS gtotal 
-                    FROM hrims.stm_ofc_cipn 
-                    WHERE an IN (SELECT an FROM ipt WHERE dchdate BETWEEN ? AND ? AND confirm_discharge = "Y")
-                    GROUP BY an
-                ) cipn ON cipn.an = i.an
-                LEFT JOIN (
-                    SELECT i2.an, SUM(c.amount) AS amount 
-                    FROM hrims.stm_ofc_csop c
-                    INNER JOIN ipt i2 ON i2.hn = c.hn AND c.vstdate BETWEEN i2.regdate AND i2.dchdate
-                    WHERE c.sys = "HD"
-                    AND i2.confirm_discharge = "Y"
-                    AND i2.dchdate BETWEEN ? AND ?
-                    GROUP BY i2.an
-                ) csop ON csop.an = i.an
                 WHERE i.confirm_discharge = "Y" 
                 AND i.dchdate BETWEEN ? AND ?
                 AND p.hipdata_code = "SRT"
@@ -1562,7 +1547,7 @@ class ClaimIpController extends Controller
             ) AS a
             GROUP BY y, m
             ORDER BY y, m',
-            [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]
+            [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]
         );
 
         $month = array_column($sum_month, 'month');
@@ -1607,30 +1592,17 @@ class ClaimIpController extends Controller
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
             LEFT JOIN (
-                SELECT an FROM hrims.stm_ofc 
+                SELECT an FROM hrims.stm_srt 
                 WHERE an IN (SELECT an FROM ipt WHERE dchdate BETWEEN ? AND ? AND confirm_discharge = "Y")
                 GROUP BY an
             ) stm ON stm.an = i.an
-            LEFT JOIN (
-                SELECT an FROM hrims.stm_ofc_cipn 
-                WHERE an IN (SELECT an FROM ipt WHERE dchdate BETWEEN ? AND ? AND confirm_discharge = "Y")
-                GROUP BY an
-            ) cipn ON cipn.an = i.an
-            LEFT JOIN (
-                SELECT i2.an FROM hrims.stm_ofc_csop c
-                INNER JOIN ipt i2 ON i2.hn = c.hn AND c.vstdate BETWEEN i2.regdate AND i2.dchdate
-                WHERE c.sys = "HD"
-                AND i2.confirm_discharge = "Y"
-                AND i2.dchdate BETWEEN ? AND ?
-                GROUP BY i2.an
-            ) csop ON csop.an = i.an
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "SRT" 
             AND (ic.an IS NULL OR (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id NOT IN ("4","5"))) 
-            AND stm.an IS NULL AND cipn.an IS NULL AND csop.an IS NULL AND ec.an IS NULL
+            AND stm.an IS NULL AND ec.an IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate',
-            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
         // 4. Claimed Data (SRT)
@@ -1642,8 +1614,8 @@ class ClaimIpController extends Controller
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
                 CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IFNULL(stm.receive_total,0) AS receive_treatment,
-                IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) + IFNULL(csop.amount,0) AS receive_total,
-                CONCAT_WS(",", stm.repno, cipn.rid, csop.rid) AS repno,
+                IFNULL(stm.receive_total,0) AS receive_total,
+                stm.repno AS repno,
                 ec.status AS ec_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -1674,32 +1646,17 @@ class ClaimIpController extends Controller
             LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
             LEFT JOIN (
                 SELECT an, SUM(receive_total) AS receive_total, GROUP_CONCAT(repno) AS repno 
-                FROM hrims.stm_ofc 
+                FROM hrims.stm_srt 
                 WHERE an IN (SELECT an FROM ipt WHERE dchdate BETWEEN ? AND ? AND confirm_discharge = "Y")
                 GROUP BY an
             ) stm ON stm.an = i.an
-            LEFT JOIN (
-                SELECT an, SUM(gtotal) AS gtotal, GROUP_CONCAT(rid) AS rid 
-                FROM hrims.stm_ofc_cipn 
-                WHERE an IN (SELECT an FROM ipt WHERE dchdate BETWEEN ? AND ? AND confirm_discharge = "Y")
-                GROUP BY an
-            ) cipn ON cipn.an = i.an
-            LEFT JOIN (
-                SELECT i2.an, SUM(c.amount) AS amount, GROUP_CONCAT(c.rid) AS rid 
-                FROM hrims.stm_ofc_csop c
-                INNER JOIN ipt i2 ON i2.hn = c.hn AND c.vstdate BETWEEN i2.regdate AND i2.dchdate
-                WHERE c.sys = "HD"
-                AND i2.confirm_discharge = "Y"
-                AND i2.dchdate BETWEEN ? AND ?
-                GROUP BY i2.an
-            ) csop ON csop.an = i.an
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "SRT" 
             AND ((ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) 
-                OR stm.an IS NOT NULL OR cipn.an IS NOT NULL OR csop.an IS NOT NULL OR ec.an IS NOT NULL)
+                OR stm.an IS NOT NULL OR ec.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate',
-            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
+            [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
         return view('claim_ip.srt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));

@@ -568,9 +568,16 @@
                                     <ul class="dropdown-menu dropdown-menu-modern">
                                         <li>
                                             <a class="dropdown-item dropdown-item-modern" href="{{ route('import.statement') }}">
-                                                <i class="bi bi-file-earmark-arrow-up-fill me-1 text-primary"></i> Statement
+                                                <i class="bi bi-file-earmark-arrow-up-fill me-1 text-primary"></i> Statement OP-IP
                                             </a>
                                         </li>
+                                        @if ($hasLookupIcode_kidney)
+                                            <li>
+                                                <a class="dropdown-item dropdown-item-modern" href="{{ route('import.statement_kidney') }}">
+                                                    <i class="bi bi-droplet-fill me-1 text-danger"></i> Statement ฟอกไต
+                                                </a>
+                                            </li>
+                                        @endif
                                     </ul>
                                 </li>
                             @endif
@@ -597,32 +604,35 @@
                                                 href="{{ url('check/eclaim_status') }}">
                                                 <i class="bi bi-file-earmark-check-fill text-success me-2"></i> E-Claim Status
                                             </a>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('check/drugcat_nhso') }}">
-                                                <i class="bi bi-capsule-pill text-info me-2"></i> Drug Catalog สปสช.
-                                            </a>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('check/drugcat_chi') }}">
-                                                <i class="bi bi-capsule text-warning me-2"></i> Drug Catalog สกส.
-                                            </a>
-                                            <a class="dropdown-item dropdown-item-modern"
-                                                href="{{ url('check/sss_equipdev_aipn') }}">
-                                                <i class="bi bi-tools text-secondary me-2"></i> SSS Equipdev AIPN
-                                            </a>
-                                            <a class="dropdown-item dropdown-item-modern"
-                                                href="{{ url('check/nondrugitems') }}">
-                                                <i class="bi bi-cash-stack text-success me-2"></i> ค่ารักษาพยาบาล
-                                            </a>
                                         </li>
                                         <!-- ชี้ขวา -->
                                         <li class="dropend position-relative">
                                             <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
                                                 data-bs-toggle="dropdown">
-                                                <i class="bi bi-card-checklist text-primary me-2"></i> สิทธิการรักษา
+                                                <i class="bi bi-capsule-pill text-info me-2"></i> Drug Catalog
                                             </a>
                                             <ul class="dropdown-menu dropdown-menu-modern">
                                                 <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('check/pttype') }}"><i class="bi bi-chevron-right text-muted me-1"></i> HOSxP</a></li>
+                                                        href="{{ url('check/drugcat_nhso') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สปสช.</a></li>
                                                 <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('check/nhso_subinscl') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สปสช.</a></li>
+                                                        href="{{ url('check/drugcat_chi') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สกส.</a></li>
+                                            </ul>
+                                        </li>
+                                        <!-- ชี้ขวา -->
+                                        <li class="dropend position-relative">
+                                            <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                                data-bs-toggle="dropdown">
+                                                <i class="bi bi-card-checklist text-primary me-2"></i> ข้อมูลพื้นฐาน
+                                            </a>
+                                            <ul class="dropdown-menu dropdown-menu-modern">
+                                                <li><a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('check/nondrugitems') }}"><i class="bi bi-chevron-right text-muted me-1"></i> ค่ารักษาพยาบาล</a></li>
+                                                <li><a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('check/pttype') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สิทธิการักษา HOSxP</a></li>
+                                                <li><a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('check/nhso_subinscl') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สิทธิการรักษา สปสช.</a></li>
+                                                <li><a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('check/sss_equipdev_aipn') }}"><i class="bi bi-chevron-right text-muted me-1"></i> Equipdev AIPN</a></li>
                                             </ul>
                                         </li>
                                     </ul>
@@ -1057,7 +1067,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item d-flex align-items-center me-2">
                             <div class="nav-version-badge">
-                                V.69-06-19 19:00
+                                V.69-06-20 14:00
                             </div>
                         </li>
                         <!-- Authentication Links -->
@@ -1114,6 +1124,12 @@
                                                 href="{{ route('admin.logs.schedule') }}">
                                                 <i class="bi bi-clock-history me-2 text-success"></i> Log Schedule
                                             </a>
+                                            @if(($hospcode ?? '') === '00025' || ($hospital_code ?? '') === '00025')
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ route('admin.aopod') }}">
+                                                    <i class="bi bi-send-fill me-2 text-success"></i> ข้อมูล AOPOD
+                                                </a>
+                                            @endif
                                         @endif
                                     @endauth
                                     <!-- -->
@@ -1142,9 +1158,18 @@
         <main class="py-4">
             @if (request()->routeIs('stm_*') || request()->is('import/stm_*') || request()->is('import/stm_*/*'))
                 <div class="container-fluid px-lg-4 mb-3">
-                    <a href="{{ route('import.statement') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm">
-                        <i class="bi bi-arrow-left me-1"></i> ย้อนกลับไปยัง Statement Portal
-                    </a>
+                    @php
+                        $is_kidney = request()->is('*kidney*') || request()->is('*csop*') || request()->routeIs('*kidney*') || request()->routeIs('*csop*');
+                    @endphp
+                    @if ($is_kidney)
+                        <a href="{{ route('import.statement_kidney') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm">
+                            <i class="bi bi-arrow-left me-1"></i> ย้อนกลับไปยัง Statement ฟอกไต Portal
+                        </a>
+                    @else
+                        <a href="{{ route('import.statement') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm">
+                            <i class="bi bi-arrow-left me-1"></i> ย้อนกลับไปยัง Statement Portal
+                        </a>
+                    @endif
                 </div>
             @endif
             @yield('content')

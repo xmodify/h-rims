@@ -20,11 +20,6 @@
                     <i class="bi bi-database-fill-up me-1"></i> Upgrade Structure
                 </button>
             </form>
-            @if($hospcode === '00025')
-                <button type="button" class="btn btn-success btn-sm px-3 shadow-sm hover-scale" data-bs-toggle="modal" data-bs-target="#sendAOPODModal">
-                    <i class="bi bi-send-fill me-1"></i> ส่งข้อมูล AOPOD
-                </button>
-            @endif
         </div>
     </div>
 
@@ -129,35 +124,6 @@
                     <button type="submit" class="btn btn-primary px-4 rounded-pill shadow">บันทึกการเปลี่ยนแปลง</button>
                 </div>
             </form>
-        </div>
-    </div>
-
-    <!-- Modal เลือกช่วงวันที่ AOPOD -->
-    <div class="modal fade" id="sendAOPODModal" tabindex="-1" aria-labelledby="sendAOPODLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title fw-bold"><i class="bi bi-send-check-fill me-2"></i> ส่งข้อมูล AOPOD</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body p-4 text-center">
-                    <p class="text-muted mb-4">กรุณาเลือกช่วงเวลาที่ต้องการส่งข้อมูลไปยังระบบกลาง</p>
-                    <div class="row g-3">
-                        <div class="col-6">
-                            <label class="form-label small fw-bold text-muted text-uppercase">วันที่เริ่มต้น</label>
-                            <input type="date" id="start_date" class="form-control border-success shadow-sm" required>
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label small fw-bold text-muted text-uppercase">วันที่สิ้นสุด</label>
-                            <input type="date" id="end_date" class="form-control border-success shadow-sm" required>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer bg-light border-0">
-                    <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="button" class="btn btn-success px-4 rounded-pill shadow" id="sendAOPODBtn">ส่งข้อมูลทันที</button>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -414,153 +380,6 @@
             document.getElementById('editLabelNameTh').innerHTML = `<i class="bi bi-tag-fill me-2"></i> ${nameTh} (<code>${name}</code>)`;
             document.getElementById('editValue').value = value;
             document.getElementById('editForm').action = "{{ url('admin/main_setting') }}/" + name;
-        });
-    });
-
-    // AOPOD Sending Logic
-    document.getElementById('sendAOPODBtn').addEventListener('click', function() {
-        const start = document.getElementById('start_date').value;
-        const end = document.getElementById('end_date').value;
-
-        if (!start || !end) {
-            Swal.fire({ icon: 'warning', title: 'กรุณาเลือกวันที่ให้ครบ', confirmButtonText: 'ตกลง' });
-            return;
-        }
-
-        Swal.fire({
-            title: 'ยืนยันการส่งข้อมูล?',
-            text: `ช่วงวันที่ ${start} ถึง ${end}`,
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonText: 'ส่งข้อมูล',
-            cancelButtonText: 'ยกเลิก',
-            confirmButtonColor: '#28a745'
-        }).then(async (result) => {
-            if (result.isConfirmed) {
-                // Helper to split date range into chunks of 10 days
-                function getPeriods(startDateStr, endDateStr, daysPerPeriod = 10) {
-                    let start = new Date(startDateStr);
-                    let end = new Date(endDateStr);
-                    let periods = [];
-                    
-                    let currentStart = new Date(start);
-                    while (currentStart <= end) {
-                        let currentEnd = new Date(currentStart);
-                        currentEnd.setDate(currentEnd.getDate() + daysPerPeriod - 1);
-                        if (currentEnd > end) {
-                            currentEnd = new Date(end);
-                        }
-                        
-                        periods.push({
-                            start: currentStart.toISOString().split('T')[0],
-                            end: currentEnd.toISOString().split('T')[0]
-                        });
-                        
-                        currentStart = new Date(currentEnd);
-                        currentStart.setDate(currentStart.getDate() + 1);
-                    }
-                    return periods;
-                }
-
-                const periods = getPeriods(start, end, 10);
-                const totalPeriods = periods.length;
-
-                Swal.fire({
-                    title: 'กำลังส่งข้อมูล...',
-                    html: `
-                        <div id="aopods-progress-text" class="mb-2">กำลังเตรียมข้อมูลและแบ่งช่วงเวลา...</div>
-                        <div class="progress" style="height: 20px;">
-                            <div id="aopods-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
-                        </div>
-                    `,
-                    allowOutsideClick: false,
-                    showConfirmButton: false,
-                    didOpen: () => { Swal.showLoading(); }
-                });
-
-                let opdTotal = 0;
-                let ipdTotal = 0;
-                let ipdBedTotal = 0;
-                let hospitalTotal = 0;
-                let failedPeriods = [];
-                let overallSuccess = true;
-
-                for (let i = 0; i < totalPeriods; i++) {
-                    const period = periods[i];
-                    const percent = Math.round((i / totalPeriods) * 100);
-
-                    // Update UI
-                    const progressText = document.getElementById('aopods-progress-text');
-                    const progressBar = document.getElementById('aopods-progress-bar');
-                    if (progressText) {
-                        progressText.innerHTML = `กำลังส่งข้อมูลช่วงที่ ${i + 1}/${totalPeriods}<br>(${period.start} ถึง ${period.end})`;
-                    }
-                    if (progressBar) {
-                        progressBar.style.width = `${percent}%`;
-                        progressBar.innerHTML = `${percent}%`;
-                        progressBar.setAttribute('aria-valuenow', percent);
-                    }
-
-                    try {
-                        let response = await fetch(`{{ url('api/amnosend') }}?start_date=${period.start}&end_date=${period.end}`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' }
-                        });
-
-                        const text = await response.text();
-                        try {
-                            const data = JSON.parse(text);
-                            if (data.ok) {
-                                opdTotal += data.received.opd || 0;
-                                ipdTotal += data.received.ipd || 0;
-                                ipdBedTotal += data.received.ipd_bed || 0;
-                                hospitalTotal += data.received.hospital || 0;
-                            } else {
-                                overallSuccess = false;
-                                failedPeriods.push(`${period.start} ถึง ${period.end} (มีช่วงที่ล้มเลว)`);
-                            }
-                        } catch (e) {
-                            overallSuccess = false;
-                            failedPeriods.push(`${period.start} ถึง ${period.end} (ข้อมูลตอบกลับไม่ถูกต้อง)`);
-                        }
-                    } catch (error) {
-                        overallSuccess = false;
-                        failedPeriods.push(`${period.start} ถึง ${period.end} (${error.message || error})`);
-                    }
-                }
-
-                // Final update to progress bar
-                const progressBar = document.getElementById('aopods-progress-bar');
-                if (progressBar) {
-                    progressBar.style.width = '100%';
-                    progressBar.innerHTML = '100%';
-                    progressBar.setAttribute('aria-valuenow', 100);
-                }
-
-                // Show final result
-                const summaryText = `
-                    <div class="text-start p-2">
-                        <b>สถานะ:</b> ${overallSuccess ? '✅ สำเร็จทั้งหมด' : '⚠️ เสร็จสิ้นแต่มีข้อผิดพลาดบางส่วน'}<br>
-                        <b>ช่วงวันที่ส่งจริง:</b> ${start} ถึง ${end}<br>
-                        ${failedPeriods.length > 0 ? `<b class="text-danger">ช่วงข้อมูลที่ล้มเหลว:</b><br><ul class="text-danger">${failedPeriods.map(p => `<li>${p}</li>`).join('')}</ul>` : ''}
-                        <hr>
-                        <b>สรุปจำนวนข้อมูลที่ถูกส่งสำเร็จ:</b><br>
-                        <ul class="mb-0">
-                            <li>OPD: <span class="badge bg-primary">${opdTotal}</span></li>
-                            <li>IPD: <span class="badge bg-primary">${ipdTotal}</span></li>
-                            <li>IPD Bed: <span class="badge bg-primary">${ipdBedTotal}</span></li>
-                            <li>Hospital: <span class="badge bg-primary">${hospitalTotal}</span></li>
-                        </ul>
-                    </div>
-                `;
-
-                Swal.fire({
-                    icon: overallSuccess ? 'success' : 'warning',
-                    title: 'การส่งข้อมูล AOPOD เสร็จสิ้น',
-                    html: summaryText,
-                    confirmButtonText: 'ปิด'
-                });
-            }
         });
     });
 

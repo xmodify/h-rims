@@ -56,6 +56,8 @@ Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(
     Route::get('logs/schedule', [MainSettingController::class, 'showScheduleLogs'])->name('logs.schedule');
     Route::get('logs/schedule/aopod/test', [\App\Http\Controllers\Api\AmnosendController::class, 'testConnection'])->name('logs.schedule.aopod.test');
     Route::post('logs/schedule/aopod/send', [MainSettingController::class, 'manualAopodSend'])->name('logs.schedule.aopod.send');
+    Route::get('aopod', [MainSettingController::class, 'aopodIndex'])->name('aopod');
+    Route::post('aopod/log-summary', [MainSettingController::class, 'saveAopodLogSummary'])->name('aopod.log-summary');
     Route::get('logs/schedule/notify/test', [MainSettingController::class, 'testTelegramConnection'])->name('logs.schedule.notify.test');
     Route::post('logs/schedule/notify/send', [MainSettingController::class, 'manualNotifySend'])->name('logs.schedule.notify.send');
 });
@@ -99,6 +101,7 @@ Route::match(['get', 'post'], 'ipd_finance_chk_wait_rcpt_money', [HomeController
 
 //Import---------------------------------------------------------------------------------------------------------------------------
 Route::get('import/statement', [ImportController::class, 'statement_index'])->name('import.statement');
+Route::get('import/statement_kidney', [ImportController::class, 'statement_kidney_index'])->name('import.statement_kidney');
 Route::match(['get', 'post'], 'import/stm_ucs', [ImportController::class, 'stm_ucs'])->name('stm_ucs');
 Route::post('import/stm_ucs_save', [ImportController::class, 'stm_ucs_save']);
 Route::post('import/stm_ucs_updateReceipt', [ImportController::class, 'stm_ucs_updateReceipt']);
@@ -140,6 +143,13 @@ Route::post('import/stm_bmt_updateReceipt', [ImportController::class, 'stm_bmt_u
 Route::match(['get', 'post'], 'import/stm_bmt_detail', [ImportController::class, 'stm_bmt_detail']);
 Route::match(['get', 'post'], 'import/stm_bmt_detail_opd', [ImportController::class, 'stm_bmt_detail_opd'])->name('stm_bmt_detail_opd');
 Route::match(['get', 'post'], 'import/stm_bmt_detail_ipd', [ImportController::class, 'stm_bmt_detail_ipd'])->name('stm_bmt_detail_ipd');
+
+Route::match(['get', 'post'], 'import/stm_srt', [ImportController::class, 'stm_srt'])->name('stm_srt');
+Route::post('import/stm_srt_save', [ImportController::class, 'stm_srt_save']);
+Route::post('import/stm_srt_updateReceipt', [ImportController::class, 'stm_srt_updateReceipt']);
+Route::match(['get', 'post'], 'import/stm_srt_detail', [ImportController::class, 'stm_srt_detail']);
+Route::match(['get', 'post'], 'import/stm_srt_detail_opd', [ImportController::class, 'stm_srt_detail_opd'])->name('stm_srt_detail_opd');
+Route::match(['get', 'post'], 'import/stm_srt_detail_ipd', [ImportController::class, 'stm_srt_detail_ipd'])->name('stm_srt_detail_ipd');
 
 Route::match(['get', 'post'], 'import/stm_ofc_csop', [ImportController::class, 'stm_ofc_csop'])->name('stm_ofc_csop');
 Route::post('import/stm_ofc_csop_save', [ImportController::class, 'stm_ofc_csop_save']);

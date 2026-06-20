@@ -66,7 +66,7 @@
                     <div class="card-body p-4 d-flex flex-column">
                         <div class="d-flex align-items-center mb-3">
                             <div class="icon-box bg-royal-soft text-royal me-3">
-                                <i class="bi bi-building-fill fs-3"></i>
+                                <i class="bi bi-building fs-3"></i>
                             </div>
                             <div>
                                 <h5 class="card-title fw-bold mb-0 text-dark">STM-BKK [OP-IP]</h5>
@@ -91,7 +91,7 @@
                     <div class="card-body p-4 d-flex flex-column">
                         <div class="d-flex align-items-center mb-3">
                             <div class="icon-box bg-rose-soft text-rose me-3">
-                                <i class="bi bi-bus-front-fill fs-3"></i>
+                                <i class="bi bi-truck-front-fill fs-3"></i>
                             </div>
                             <div>
                                 <h5 class="card-title fw-bold mb-0 text-dark">STM-BMT [OP-IP]</h5>
@@ -184,163 +184,25 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Blue Divider -->
-    <hr class="border-primary my-5 opacity-25" style="border-width: 2px;">
-
-    <!-- Section 2: Specialty & Dialysis Claims -->
-    @if ($hasLookupIcode_kidney)
-    <div class="mt-4 mb-4">
-        <h5 class="text-secondary fw-bold mb-3 d-flex align-items-center">
-            <span class="badge bg-danger me-2"><i class="bi bi-droplet-fill"></i></span>
-            ระบบนำเข้าข้อมูล Statement ฟอกไต 
-        </h5>
-        <div class="row g-4">
-            <!-- 1. UCS Kidney -->
+            <!-- 8. SRT General [OP-IP] -->
             <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <div class="card h-100 border-0 shadow-sm stm-card card-ucs-kidney">
+                <div class="card h-100 border-0 shadow-sm stm-card card-srt-general">
                     <div class="card-body p-4 d-flex flex-column">
                         <div class="d-flex align-items-center mb-3">
-                            <div class="icon-box bg-teal-soft text-teal me-3">
-                                <i class="bi bi-activity fs-3"></i>
+                            <div class="icon-box bg-slate-soft text-slate me-3">
+                                <i class="bi bi-train-front-fill fs-3"></i>
                             </div>
                             <div>
-                                <h5 class="card-title fw-bold mb-0 text-dark">STM-UCS [ฟอกไต]</h5>
-                                <span class="badge bg-teal-soft text-teal small mt-1">สิทธิ์ฟอกไตบัตรทอง</span>
+                                <h5 class="card-title fw-bold mb-0 text-dark">STM-SRT [OP-IP]</h5>
+                                <span class="badge bg-slate-soft text-slate small mt-1">การรถไฟแห่งประเทศไทย</span>
                             </div>
                         </div>
                         <p class="text-muted small flex-grow-1">
-                            ข้อมูลการชดเชยค่าบริการผู้ป่วยไตวายเรื้อรัง สิทธิ์ประกันสุขภาพถ้วนหน้า
+                            ข้อมูลการชดเชยค่าบริการสิทธิ์การรถไฟแห่งประเทศไทย (SRT)
                         </p>
                         <div class="d-grid gap-2 mt-3">
-                            <a href="{{ url('/import/stm_ucs_kidney') }}" class="btn btn-outline-teal btn-sm fw-bold d-flex align-items-center justify-content-center gap-1">
-                                <i class="bi bi-cloud-arrow-up-fill"></i> นำเข้าข้อมูล
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 2. OFC Kidney -->
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <div class="card h-100 border-0 shadow-sm stm-card card-ofc-kidney">
-                    <div class="card-body p-4 d-flex flex-column">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="icon-box bg-pink-soft text-pink me-3">
-                                <i class="bi bi-heart-pulse fs-3"></i>
-                            </div>
-                            <div>
-                                <h5 class="card-title fw-bold mb-0 text-dark">STM-OFC [ฟอกไต]</h5>
-                                <span class="badge bg-pink-soft text-pink small mt-1">สิทธิ์ฟอกไตข้าราชการ</span>
-                            </div>
-                        </div>
-                        <p class="text-muted small flex-grow-1">
-                            ข้อมูลการชดเชยค่าบริการผู้ป่วยไตวายเรื้อรัง สิทธิ์ข้าราชการ
-                        </p>
-                        <div class="d-grid gap-2 mt-3">
-                            <a href="{{ url('/import/stm_ofc_csop') }}" class="btn btn-outline-pink btn-sm fw-bold d-flex align-items-center justify-content-center gap-1">
-                                <i class="bi bi-cloud-arrow-up-fill"></i> นำเข้าข้อมูล
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 4. BKK Kidney -->
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <div class="card h-100 border-0 shadow-sm stm-card card-bkk-kidney">
-                    <div class="card-body p-4 d-flex flex-column">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="icon-box bg-violet-soft text-violet me-3">
-                                <i class="bi bi-clipboard-pulse fs-3"></i>
-                            </div>
-                            <div>
-                                <h5 class="card-title fw-bold mb-0 text-dark">STM-BKK [ฟอกไต]</h5>
-                                <span class="badge bg-violet-soft text-violet small mt-1">สิทธิ์ฟอกไต กทม.</span>
-                            </div>
-                        </div>
-                        <p class="text-muted small flex-grow-1">
-                            ข้อมูลการชดเชยค่าบริการผู้ป่วยฟอกไต กทม.
-                        </p>
-                        <div class="d-grid gap-2 mt-3">
-                            <a href="{{ url('/import/stm_bkk_kidney') }}" class="btn btn-outline-violet btn-sm fw-bold d-flex align-items-center justify-content-center gap-1">
-                                <i class="bi bi-cloud-arrow-up-fill"></i> นำเข้าข้อมูล
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 5. BMT Kidney -->
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <div class="card h-100 border-0 shadow-sm stm-card card-bmt-kidney">
-                    <div class="card-body p-4 d-flex flex-column">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="icon-box bg-fuchsia-soft text-fuchsia me-3">
-                                <i class="bi bi-clipboard-pulse fs-3"></i>
-                            </div>
-                            <div>
-                                <h5 class="card-title fw-bold mb-0 text-dark">STM-BMT [ฟอกไต]</h5>
-                                <span class="badge bg-fuchsia-soft text-fuchsia small mt-1">สิทธิ์ฟอกไต ขสมก.</span>
-                            </div>
-                        </div>
-                        <p class="text-muted small flex-grow-1">
-                            ข้อมูลการชดเชยค่าบริการผู้ป่วยฟอกไต ขสมก.
-                        </p>
-                        <div class="d-grid gap-2 mt-3">
-                            <a href="{{ url('/import/stm_bmt_kidney') }}" class="btn btn-outline-fuchsia btn-sm fw-bold d-flex align-items-center justify-content-center gap-1">
-                                <i class="bi bi-cloud-arrow-up-fill"></i> นำเข้าข้อมูล
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 6. LGO Kidney -->
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <div class="card h-100 border-0 shadow-sm stm-card card-lgo-kidney">
-                    <div class="card-body p-4 d-flex flex-column">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="icon-box bg-sky-soft text-sky me-3">
-                                <i class="bi bi-water fs-3"></i>
-                            </div>
-                            <div>
-                                <h5 class="card-title fw-bold mb-0 text-dark">STM-LGO [ฟอกไต]</h5>
-                                <span class="badge bg-sky-soft text-sky small mt-1">สิทธิ์ฟอกไต อปท.</span>
-                            </div>
-                        </div>
-                        <p class="text-muted small flex-grow-1">
-                            ข้อมูลการชดเชยค่าบริการผู้ป่วยฟอกไต พนักงานส่วนท้องถิ่น
-                        </p>
-                        <div class="d-grid gap-2 mt-3">
-                            <a href="{{ url('/import/stm_lgo_kidney') }}" class="btn btn-outline-sky btn-sm fw-bold d-flex align-items-center justify-content-center gap-1">
-                                <i class="bi bi-cloud-arrow-up-fill"></i> นำเข้าข้อมูล
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 7. SSS Kidney -->
-            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                <div class="card h-100 border-0 shadow-sm stm-card card-sss-kidney">
-                    <div class="card-body p-4 d-flex flex-column">
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="icon-box bg-indigo-soft text-indigo me-3">
-                                <i class="bi bi-heart-pulse-fill fs-3"></i>
-                            </div>
-                            <div>
-                                <h5 class="card-title fw-bold mb-0 text-dark">STM-SSS [ฟอกไต]</h5>
-                                <span class="badge bg-indigo-soft text-indigo small mt-1">สิทธิ์ฟอกไตประกันสังคม</span>
-                            </div>
-                        </div>
-                        <p class="text-muted small flex-grow-1">
-                            ข้อมูลการชดเชยค่าบริการผู้ป่วยฟอกไต ประกันสังคม
-                        </p>
-                        <div class="d-grid gap-2 mt-3">
-                            <a href="{{ url('/import/stm_sss_kidney') }}" class="btn btn-outline-indigo btn-sm fw-bold d-flex align-items-center justify-content-center gap-1">
+                            <a href="{{ url('/import/stm_srt') }}" class="btn btn-outline-slate btn-sm fw-bold d-flex align-items-center justify-content-center gap-1">
                                 <i class="bi bi-cloud-arrow-up-fill"></i> นำเข้าข้อมูล
                             </a>
                         </div>
@@ -349,7 +211,7 @@
             </div>
         </div>
     </div>
-    @endif
+
 
     <!-- Styling for modern looks -->
     <style>
@@ -369,6 +231,7 @@
         .card-csop { border-top: 4px solid #ea580c !important; }
         .card-cipn { border-top: 4px solid #7c3aed !important; }
         .card-lgo { border-top: 4px solid #0891b2 !important; }
+        .card-srt-general { border-top: 4px solid #64748b !important; }
         .card-ucs-kidney { border-top: 4px solid #0d9488 !important; }
         .card-ofc-kidney { border-top: 4px solid #db2777 !important; }
         .card-lgo-kidney { border-top: 4px solid #0284c7 !important; }
@@ -384,6 +247,7 @@
         .card-csop:hover { border-color: #ea580c !important; box-shadow: 0 12px 24px rgba(234, 88, 12, 0.15) !important; transform: translateY(-5px); }
         .card-cipn:hover { border-color: #7c3aed !important; box-shadow: 0 12px 24px rgba(124, 58, 237, 0.15) !important; transform: translateY(-5px); }
         .card-lgo:hover { border-color: #0891b2 !important; box-shadow: 0 12px 24px rgba(8, 145, 178, 0.15) !important; transform: translateY(-5px); }
+        .card-srt-general:hover { border-color: #64748b !important; box-shadow: 0 12px 24px rgba(100, 116, 139, 0.15) !important; transform: translateY(-5px); }
         .card-ucs-kidney:hover { border-color: #0d9488 !important; box-shadow: 0 12px 24px rgba(13, 148, 136, 0.15) !important; transform: translateY(-5px); }
         .card-ofc-kidney:hover { border-color: #db2777 !important; box-shadow: 0 12px 24px rgba(219, 39, 119, 0.15) !important; transform: translateY(-5px); }
         .card-lgo-kidney:hover { border-color: #0284c7 !important; box-shadow: 0 12px 24px rgba(2, 132, 199, 0.15) !important; transform: translateY(-5px); }
@@ -408,6 +272,7 @@
         .bg-orange-soft { background-color: rgba(234, 88, 12, 0.08) !important; }
         .bg-purple-soft { background-color: rgba(124, 58, 237, 0.08) !important; }
         .bg-cyan-soft { background-color: rgba(8, 145, 178, 0.08) !important; }
+        .bg-slate-soft { background-color: rgba(100, 116, 139, 0.08) !important; }
         .bg-teal-soft { background-color: rgba(13, 148, 136, 0.08) !important; }
         .bg-pink-soft { background-color: rgba(219, 39, 119, 0.08) !important; }
         .bg-sky-soft { background-color: rgba(2, 132, 199, 0.08) !important; }
@@ -423,6 +288,7 @@
         .text-orange { color: #ea580c !important; }
         .text-purple { color: #7c3aed !important; }
         .text-cyan { color: #0891b2 !important; }
+        .text-slate { color: #64748b !important; }
         .text-teal { color: #0d9488 !important; }
         .text-pink { color: #db2777 !important; }
         .text-sky { color: #0284c7 !important; }
@@ -451,6 +317,9 @@
 
         .btn-outline-cyan { color: #0891b2; border-color: #0891b2; }
         .btn-outline-cyan:hover { color: #fff; background-color: #0891b2; border-color: #0891b2; }
+
+        .btn-outline-slate { color: #64748b; border-color: #64748b; }
+        .btn-outline-slate:hover { color: #fff; background-color: #64748b; border-color: #64748b; }
 
         .btn-outline-teal { color: #0d9488; border-color: #0d9488; }
         .btn-outline-teal:hover { color: #fff; background-color: #0d9488; border-color: #0d9488; }

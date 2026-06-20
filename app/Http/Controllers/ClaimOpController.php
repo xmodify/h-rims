@@ -2972,7 +2972,7 @@ class ClaimOpController extends Controller
             ) rc ON rc.vn = o.vn
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
-                FROM hrims.stm_ofc 
+                FROM hrims.stm_srt 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
             ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
@@ -3032,7 +3032,7 @@ class ClaimOpController extends Controller
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
-                FROM hrims.stm_ofc 
+                FROM hrims.stm_srt 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
             ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
@@ -3086,7 +3086,7 @@ class ClaimOpController extends Controller
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
-                FROM hrims.stm_ofc 
+                FROM hrims.stm_srt 
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
             ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   

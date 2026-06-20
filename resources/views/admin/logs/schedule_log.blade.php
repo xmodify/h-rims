@@ -28,13 +28,6 @@
                 <i class="bi bi-wallet-fill me-1 text-info"></i> Log FDH
             </button>
         </li>
-        @if(($hospcode ?? '') === '00025' || ($hospital_code ?? '') === '00025')
-            <li class="nav-item" role="presentation">
-                <button class="nav-link rounded-3 fw-bold" id="pills-aopod-tab" data-bs-toggle="pill" data-bs-target="#pills-aopod" type="button" role="tab" aria-controls="pills-aopod" aria-selected="false">
-                    <i class="bi bi-send-fill me-1 text-success"></i> Log AOPOD
-                </button>
-            </li>
-        @endif
         <li class="nav-item" role="presentation">
             <button class="nav-link rounded-3 fw-bold" id="pills-notify-tab" data-bs-toggle="pill" data-bs-target="#pills-notify" type="button" role="tab" aria-controls="pills-notify" aria-selected="false">
                 <i class="bi bi-bell-fill me-1 text-warning"></i> Log Notify
@@ -84,7 +77,7 @@
                     </div>
                     @if(count($nhsoLogs) > 0)
                         <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
+                            <table id="nhsoLogsTable" class="table table-hover align-middle mb-0 w-100">
                                 <thead class="table-light">
                                     <tr>
                                         <th style="width: 200px;">เวลา</th>
@@ -173,7 +166,7 @@
                     </div>
                     @if(count($fdhLogs) > 0)
                         <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
+                            <table id="fdhLogsTable" class="table table-hover align-middle mb-0 w-100">
                                 <thead class="table-light">
                                     <tr>
                                         <th style="width: 200px;">เวลา</th>
@@ -223,100 +216,6 @@
             </div>
         </div>
 
-        <!-- AOPOD Log -->
-        @if(($hospcode ?? '') === '00025' || ($hospital_code ?? '') === '00025')
-            <div class="tab-pane fade" id="pills-aopod" role="tabpanel" aria-labelledby="pills-aopod-tab" tabindex="0">
-                <div class="card dash-card border-0 shadow-sm rounded-4">
-                    <div class="card-header bg-dark text-white border-0 py-3 rounded-top-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        <h6 class="mb-0 fw-bold text-success">
-                            <i class="bi bi-clock-history me-2"></i> AOPOD Send Scheduler Log
-                        </h6>
-                        <div class="d-flex align-items-center gap-2">
-                            <button class="btn btn-success btn-sm px-3 rounded-pill shadow-sm text-white" onclick="startAopodManualSend()">
-                                <i class="bi bi-send-fill me-1"></i> ส่ง AOPOD
-                            </button>
-                            <button class="btn btn-outline-success btn-sm px-3 rounded-pill shadow-sm" onclick="testAopodConnection()">
-                                <i class="bi bi-patch-check-fill me-1"></i> ทดสอบการเชื่อมต่อ
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-body p-3">
-                        <!-- Windows Task Scheduler Guide -->
-                        <div class="alert alert-light border shadow-sm rounded-4 mb-3 p-3 bg-white">
-                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-                                <div class="d-flex align-items-center gap-3">
-                                    <div class="bg-success text-white p-2 rounded-3" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
-                                        <i class="bi bi-clock-history fs-4"></i>
-                                    </div>
-                                    <div>
-                                        <h6 class="mb-0 fw-bold text-dark">การตั้งค่า Windows Task Scheduler (AOPOD Send | ทุกชั่วโมง (นาทีที่ 15))</h6>
-                                        <small class="text-muted"><i class="bi bi-info-circle me-1"></i> Program: <code>powershell.exe</code> | ช่อง Add arguments (optional):</small>
-                                    </div>
-                                </div>
-                                <div style="flex-grow: 1; max-width: 650px; min-width: 280px;">
-                                    <div class="input-group input-group-sm">
-                                        <input type="text" class="form-control border-secondary bg-white" value="-WindowStyle Hidden -Command &quot;Invoke-RestMethod -Uri '{{$amnosend}}' -Method Post&quot;" readonly id="aopod_cmd">
-                                        <button class="btn btn-success rounded-end px-3 text-white" type="button" onclick="copyToClipboard('aopod_cmd')">
-                                            <i class="bi bi-copy me-1"></i> คัดลอก
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        @if(count($aopodLogs) > 0)
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0">
-                                    <thead class="table-light">
-                                        <tr>
-                                            <th style="width: 200px;">เวลา</th>
-                                            <th style="width: 120px;">สถานะ</th>
-                                            <th>รายละเอียดการทำงาน</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach($aopodLogs as $log)
-                                            <tr>
-                                                <td class="fw-bold text-secondary text-nowrap">{{ $log['timestamp'] ? DatetimeThai($log['timestamp']) : 'N/A' }}</td>
-                                                <td>
-                                                    @if(isset($log['data']['ok']) && $log['data']['ok'] === true)
-                                                        <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">สำเร็จ</span>
-                                                    @else
-                                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill">ล้มเหลว</span>
-                                                    @endif
-                                                </td>
-                                                <td>
-                                                    @if($log['data'])
-                                                        <div class="d-flex flex-column">
-                                                            <span class="fw-semibold text-dark">
-                                                                ส่งข้อมูลระหว่างวันที่ {{ isset($log['data']['start_date']) ? DateThai($log['data']['start_date']) : '-' }} ถึง {{ isset($log['data']['end_date']) ? DateThai($log['data']['end_date']) : '-' }} (รหัสรพ. {{ $log['data']['hospcode'] ?? '-' }})
-                                                            </span>
-                                                            <small class="text-muted mt-1">
-                                                                ข้อมูลที่ได้รับ - 
-                                                                OPD: <strong class="text-primary">{{ $log['data']['received']['opd'] ?? 0 }} รายการ</strong> | 
-                                                                IPD: <strong class="text-info">{{ $log['data']['received']['ipd'] ?? 0 }} รายการ</strong> | 
-                                                                IPD Bed: <strong class="text-success">{{ $log['data']['received']['ipd_bed'] ?? 0 }} รายการ</strong> | 
-                                                                Hospital: <strong class="text-warning">{{ $log['data']['received']['hospital'] ?? 0 }} รายการ</strong>
-                                                            </small>
-                                                        </div>
-                                                    @else
-                                                        <span class="text-muted">{{ $log['raw'] }}</span>
-                                                    @endif
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        @else
-                            <div class="text-center py-5 text-muted">
-                                <i class="bi bi-info-circle fs-1 d-block mb-2 text-secondary"></i>
-                                ยังไม่มีประวัติการทำงานในขณะนี้ (No logs found)
-                            </div>
-                        @endif
-                    </div>
-                </div>
-            </div>
-        @endif
 
         <!-- Notify Log -->
         <div class="tab-pane fade" id="pills-notify" role="tabpanel" aria-labelledby="pills-notify-tab" tabindex="0">
@@ -359,7 +258,7 @@
                     </div>
                     @if(count($notifyLogs) > 0)
                         <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
+                            <table id="notifyLogsTable" class="table table-hover align-middle mb-0 w-100">
                                 <thead class="table-light">
                                     <tr>
                                         <th style="width: 200px;">เวลา</th>
@@ -425,6 +324,30 @@
                 }
             });
         });
+
+        const dtConfig = {
+            pageLength: 10,
+            lengthMenu: [10, 25, 50, 100],
+            ordering: false,
+            language: {
+                search: "ค้นหา:",
+                lengthMenu: "แสดง _MENU_ รายการ",
+                info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                infoEmpty: "แสดง 0 ถึง 0 จากทั้งหมด 0 รายการ",
+                infoFiltered: "(กรองข้อมูลจากทั้งหมด _MAX_ รายการ)",
+                zeroRecords: "ไม่พบข้อมูลที่ค้นหา",
+                paginate: {
+                    first: "หน้าแรก",
+                    last: "หน้าสุดท้าย",
+                    next: "ถัดไป",
+                    previous: "ก่อนหน้า"
+                }
+            }
+        };
+
+        $('#nhsoLogsTable').DataTable(dtConfig);
+        $('#fdhLogsTable').DataTable(dtConfig);
+        $('#notifyLogsTable').DataTable(dtConfig);
     });
 
     function testNhsoConnection() {
@@ -799,105 +722,6 @@
         runChunk(0);
     }
 }
-
-    function testAopodConnection() {
-        Swal.fire({
-            title: 'กำลังทดสอบการเชื่อมต่อ AOPOD...',
-            html: 'กรุณารอสักครู่ ระบบกำลังทดสอบการเชื่อมต่อกับเซิร์ฟเวอร์ AOPOD',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        fetch('{{ url("admin/logs/schedule/aopod/test") }}')
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'การทดสอบสำเร็จ',
-                        text: data.message,
-                        confirmButtonText: 'ตกลง'
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'การทดสอบล้มเหลว',
-                        text: data.message,
-                        confirmButtonText: 'ตกลง'
-                    });
-                }
-            })
-            .catch(err => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'เกิดข้อผิดพลาดในการร้องขอ',
-                    text: err.message,
-                    confirmButtonText: 'ตกลง'
-                });
-            });
-    }
-
-    function startAopodManualSend() {
-        Swal.fire({
-            title: 'ยืนยันการส่งข้อมูล AOPOD?',
-            text: 'ระบบจะเริ่มประมวลผลข้อมูลบริการและส่งข้อมูลไปยังเซิร์ฟเวอร์ AOPOD',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#198754',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'เริ่มส่งข้อมูล',
-            cancelButtonText: 'ยกเลิก'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({
-                    title: 'กำลังส่งข้อมูล AOPOD...',
-                    html: 'กรุณารอสักครู่ ระบบกำลังประมวลผลและอัปโหลดข้อมูล',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-
-                fetch('{{ url("admin/logs/schedule/aopod/send") }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    }
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'ส่งข้อมูลสำเร็จ',
-                            text: data.message,
-                            confirmButtonText: 'ตกลง'
-                        }).then(() => {
-                            location.reload();
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'ส่งข้อมูลล้มเหลว',
-                            text: data.message,
-                            confirmButtonText: 'ตกลง'
-                        });
-                    }
-                })
-                .catch(err => {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'เกิดข้อผิดพลาดในการร้องขอ',
-                        text: err.message,
-                        confirmButtonText: 'ตกลง'
-                    });
-                });
-            }
-        });
-    }
 
     function testNotifyConnection() {
         Swal.fire({

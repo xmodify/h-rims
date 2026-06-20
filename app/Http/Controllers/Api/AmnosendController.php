@@ -517,7 +517,7 @@ class AmnosendController extends Controller
             'results'    => $results,
         ];
 
-        if (!app()->runningInConsole() && function_exists('appendAndLimitLog')) {
+        if (!app()->runningInConsole() && function_exists('appendAndLimitLog') && $request->query('log') !== 'false') {
             $logMessage = "[" . now()->toDateTimeString() . "] AOPOD output: " . json_encode($responseData, JSON_UNESCAPED_UNICODE) . "\n";
             appendAndLimitLog('aopod_schedule.log', $logMessage, 24);
         }

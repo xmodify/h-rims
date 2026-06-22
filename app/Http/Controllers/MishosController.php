@@ -1238,21 +1238,8 @@ class MishosController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d');
 
         $sum_month = DB::connection('hosxp')->select('
-            SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
-                LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total
+            SELECT vn, vstdate, claim_price, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
+                0.00 AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -1282,17 +1269,34 @@ class MishosController extends Controller
                 WHERE (o.an ="" OR o.an IS NULL)       
 			    AND o.vstdate BETWEEN ? AND ? 
                 AND o1.vn IS NOT NULL
-                GROUP BY o.vn ) AS a
-				GROUP BY YEAR(vstdate), MONTH(vstdate)
-                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $receive_total = array_column($sum_month, 'receive_total');
+                GROUP BY o.vn ) AS a', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+        $this->allocatePpfs($sum_month, ["FP001", "FP002", "FP002_1", "FP002_2", "FP003_1", "FP003_2", "FP003_3", "FP003_4"], 'vn');
+        $grouped = [];
+        foreach ($sum_month as $row) {
+            $time = strtotime($row->vstdate);
+            $m = intval(date('n', $time));
+            $y = intval(date('Y', $time)) + 543;
+            $monthNames = [
+                1 => "ม.ค.", 2 => "ก.พ.", 3 => "มี.ค.", 4 => "เม.ย.", 5 => "พ.ค.", 6 => "มิ.ย.",
+                7 => "ก.ค.", 8 => "ส.ค.", 9 => "ก.ย.", 10 => "ต.ค.", 11 => "พ.ย.", 12 => "ธ.ค."
+            ];
+            $monthStr = $monthNames[$m] . " " . substr($y, -2);
+            $key = date('Y-m', $time);
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'receive_total' => 0];
+            }
+            $grouped[$key]['claim_price'] += floatval($row->claim_price);
+            $grouped[$key]['receive_total'] += floatval($row->receive_total);
+        }
+        ksort($grouped);
+        $month = array_column($grouped, 'month');
+        $claim_price = array_column($grouped, 'claim_price');
+        $receive_total = array_column($grouped, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-			COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
+			COALESCE(ppfs.claim_price, 0) AS claim_price,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -1334,6 +1338,7 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->validateUcsPpfsRows($search);
+        $this->allocatePpfs($search, ["FP001", "FP002", "FP002_1", "FP002_2", "FP003_1", "FP003_2", "FP003_3", "FP003_4"], 'seq');
 
         return view('mishos.ucs_ppfs_fp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
@@ -1365,21 +1370,8 @@ class MishosController extends Controller
         $lab_prt = DB::table('main_setting')->where('name', 'lab_prt')->value('value');
 
         $sum_month = DB::connection('hosxp')->select('
-            SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
-                LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total
+            SELECT vn, vstdate, claim_price, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
+                0.00 AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -1407,17 +1399,34 @@ class MishosController extends Controller
                     AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)       
 			    AND o.vstdate BETWEEN ? AND ? 
-                GROUP BY o.vn ) AS a
-				GROUP BY YEAR(vstdate), MONTH(vstdate)
-                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $receive_total = array_column($sum_month, 'receive_total');
+                GROUP BY o.vn ) AS a', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+        $this->allocatePpfs($sum_month, ["30014"], 'vn');
+        $grouped = [];
+        foreach ($sum_month as $row) {
+            $time = strtotime($row->vstdate);
+            $m = intval(date('n', $time));
+            $y = intval(date('Y', $time)) + 543;
+            $monthNames = [
+                1 => "ม.ค.", 2 => "ก.พ.", 3 => "มี.ค.", 4 => "เม.ย.", 5 => "พ.ค.", 6 => "มิ.ย.",
+                7 => "ก.ค.", 8 => "ส.ค.", 9 => "ก.ย.", 10 => "ต.ค.", 11 => "พ.ย.", 12 => "ธ.ค."
+            ];
+            $monthStr = $monthNames[$m] . " " . substr($y, -2);
+            $key = date('Y-m', $time);
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'receive_total' => 0];
+            }
+            $grouped[$key]['claim_price'] += floatval($row->claim_price);
+            $grouped[$key]['receive_total'] += floatval($row->receive_total);
+        }
+        ksort($grouped);
+        $month = array_column($grouped, 'month');
+        $claim_price = array_column($grouped, 'claim_price');
+        $receive_total = array_column($grouped, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,lo.lab_items_name_ref,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-			COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
+			COALESCE(ppfs.claim_price, 0) AS claim_price,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -1457,6 +1466,7 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->validateUcsPpfsRows($search);
+        $this->allocatePpfs($search, ["30014"], 'seq');
 
         return view('mishos.ucs_ppfs_prt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
@@ -1487,21 +1497,8 @@ class MishosController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d');
 
         $sum_month = DB::connection('hosxp')->select('
-            SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
-                LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total
+            SELECT vn, vstdate, claim_price, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
+                0.00 AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -1529,17 +1526,34 @@ class MishosController extends Controller
                     AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)       
 			    AND o.vstdate BETWEEN ? AND ? 
-                GROUP BY o.vn ) AS a
-				GROUP BY YEAR(vstdate), MONTH(vstdate)
-                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $receive_total = array_column($sum_month, 'receive_total');
+                GROUP BY o.vn ) AS a', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+        $this->allocatePpfs($sum_month, ["13001"], 'vn');
+        $grouped = [];
+        foreach ($sum_month as $row) {
+            $time = strtotime($row->vstdate);
+            $m = intval(date('n', $time));
+            $y = intval(date('Y', $time)) + 543;
+            $monthNames = [
+                1 => "ม.ค.", 2 => "ก.พ.", 3 => "มี.ค.", 4 => "เม.ย.", 5 => "พ.ค.", 6 => "มิ.ย.",
+                7 => "ก.ค.", 8 => "ส.ค.", 9 => "ก.ย.", 10 => "ต.ค.", 11 => "พ.ย.", 12 => "ธ.ค."
+            ];
+            $monthStr = $monthNames[$m] . " " . substr($y, -2);
+            $key = date('Y-m', $time);
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'receive_total' => 0];
+            }
+            $grouped[$key]['claim_price'] += floatval($row->claim_price);
+            $grouped[$key]['receive_total'] += floatval($row->receive_total);
+        }
+        ksort($grouped);
+        $month = array_column($grouped, 'month');
+        $claim_price = array_column($grouped, 'claim_price');
+        $receive_total = array_column($grouped, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-			COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
+			COALESCE(ppfs.claim_price, 0) AS claim_price,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -1577,6 +1591,7 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->validateUcsPpfsRows($search);
+        $this->allocatePpfs($search, ["13001"], 'seq');
 
         return view('mishos.ucs_ppfs_ida', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
@@ -1607,21 +1622,8 @@ class MishosController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d');
 
         $sum_month = DB::connection('hosxp')->select('
-            SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
-                LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total
+            SELECT vn, vstdate, claim_price, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
+                0.00 AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -1649,17 +1651,34 @@ class MishosController extends Controller
                     AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)       
 			    AND o.vstdate BETWEEN ? AND ? 
-                GROUP BY o.vn ) AS a
-				GROUP BY YEAR(vstdate), MONTH(vstdate)
-                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $receive_total = array_column($sum_month, 'receive_total');
+                GROUP BY o.vn ) AS a', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+        $this->allocatePpfs($sum_month, ["14001"], 'vn');
+        $grouped = [];
+        foreach ($sum_month as $row) {
+            $time = strtotime($row->vstdate);
+            $m = intval(date('n', $time));
+            $y = intval(date('Y', $time)) + 543;
+            $monthNames = [
+                1 => "ม.ค.", 2 => "ก.พ.", 3 => "มี.ค.", 4 => "เม.ย.", 5 => "พ.ค.", 6 => "มิ.ย.",
+                7 => "ก.ค.", 8 => "ส.ค.", 9 => "ก.ย.", 10 => "ต.ค.", 11 => "พ.ย.", 12 => "ธ.ค."
+            ];
+            $monthStr = $monthNames[$m] . " " . substr($y, -2);
+            $key = date('Y-m', $time);
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'receive_total' => 0];
+            }
+            $grouped[$key]['claim_price'] += floatval($row->claim_price);
+            $grouped[$key]['receive_total'] += floatval($row->receive_total);
+        }
+        ksort($grouped);
+        $month = array_column($grouped, 'month');
+        $claim_price = array_column($grouped, 'claim_price');
+        $receive_total = array_column($grouped, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-			COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
+			COALESCE(ppfs.claim_price, 0) AS claim_price,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -1697,6 +1716,7 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->validateUcsPpfsRows($search);
+        $this->allocatePpfs($search, ["14001"], 'seq');
 
         return view('mishos.ucs_ppfs_ferrofolic', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
@@ -1727,21 +1747,8 @@ class MishosController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d');
 
         $sum_month = DB::connection('hosxp')->select('
-            SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
-                LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total
+            SELECT vn, vstdate, claim_price, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
+                0.00 AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -1759,17 +1766,34 @@ class MishosController extends Controller
                     AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)       
 			    AND o.vstdate BETWEEN ? AND ? 
-                GROUP BY o.vn ) AS a
-				GROUP BY YEAR(vstdate), MONTH(vstdate)
-                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $receive_total = array_column($sum_month, 'receive_total');
+                GROUP BY o.vn ) AS a', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+        $this->allocatePpfs($sum_month, ["15001"], 'vn');
+        $grouped = [];
+        foreach ($sum_month as $row) {
+            $time = strtotime($row->vstdate);
+            $m = intval(date('n', $time));
+            $y = intval(date('Y', $time)) + 543;
+            $monthNames = [
+                1 => "ม.ค.", 2 => "ก.พ.", 3 => "มี.ค.", 4 => "เม.ย.", 5 => "พ.ค.", 6 => "มิ.ย.",
+                7 => "ก.ค.", 8 => "ส.ค.", 9 => "ก.ย.", 10 => "ต.ค.", 11 => "พ.ย.", 12 => "ธ.ค."
+            ];
+            $monthStr = $monthNames[$m] . " " . substr($y, -2);
+            $key = date('Y-m', $time);
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'receive_total' => 0];
+            }
+            $grouped[$key]['claim_price'] += floatval($row->claim_price);
+            $grouped[$key]['receive_total'] += floatval($row->receive_total);
+        }
+        ksort($grouped);
+        $month = array_column($grouped, 'month');
+        $claim_price = array_column($grouped, 'claim_price');
+        $receive_total = array_column($grouped, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-			COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
+			COALESCE(ppfs.claim_price, 0) AS claim_price,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -1807,6 +1831,7 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->validateUcsPpfsRows($search);
+        $this->allocatePpfs($search, ["15001"], 'seq');
 
         return view('mishos.ucs_ppfs_fluoride', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
@@ -1837,21 +1862,8 @@ class MishosController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d');
 
         $sum_month = DB::connection('hosxp')->select('
-            SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
-                LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total
+            SELECT vn, vstdate, claim_price, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
+                0.00 AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -1880,17 +1892,34 @@ class MishosController extends Controller
                     AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)       
 			    AND o.vstdate BETWEEN ? AND ? 
-                GROUP BY o.vn ) AS a
-				GROUP BY YEAR(vstdate), MONTH(vstdate)
-                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $receive_total = array_column($sum_month, 'receive_total');
+                GROUP BY o.vn ) AS a', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+        $this->allocatePpfs($sum_month, ["30008", "30009", "30010", "30011", "30012", "30013"], 'vn');
+        $grouped = [];
+        foreach ($sum_month as $row) {
+            $time = strtotime($row->vstdate);
+            $m = intval(date('n', $time));
+            $y = intval(date('Y', $time)) + 543;
+            $monthNames = [
+                1 => "ม.ค.", 2 => "ก.พ.", 3 => "มี.ค.", 4 => "เม.ย.", 5 => "พ.ค.", 6 => "มิ.ย.",
+                7 => "ก.ค.", 8 => "ส.ค.", 9 => "ก.ย.", 10 => "ต.ค.", 11 => "พ.ย.", 12 => "ธ.ค."
+            ];
+            $monthStr = $monthNames[$m] . " " . substr($y, -2);
+            $key = date('Y-m', $time);
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'receive_total' => 0];
+            }
+            $grouped[$key]['claim_price'] += floatval($row->claim_price);
+            $grouped[$key]['receive_total'] += floatval($row->receive_total);
+        }
+        ksort($grouped);
+        $month = array_column($grouped, 'month');
+        $claim_price = array_column($grouped, 'claim_price');
+        $receive_total = array_column($grouped, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,a.anc_service_number,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-            COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
+            COALESCE(ppfs.claim_price, 0) AS claim_price,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -1931,6 +1960,7 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->validateUcsPpfsRows($search);
+        $this->allocatePpfs($search, ["30008", "30009", "30010", "30011", "30012", "30013"], 'seq');
 
         return view('mishos.ucs_ppfs_anc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
@@ -1961,21 +1991,8 @@ class MishosController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d');
 
         $sum_month = DB::connection('hosxp')->select('
-            SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
-                LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total
+            SELECT vn, vstdate, claim_price, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
+                0.00 AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -2004,17 +2021,34 @@ class MishosController extends Controller
                     AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)       
 			    AND o.vstdate BETWEEN ? AND ? 
-                GROUP BY o.vn ) AS a
-				GROUP BY YEAR(vstdate), MONTH(vstdate)
-                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $receive_total = array_column($sum_month, 'receive_total');
+                GROUP BY o.vn ) AS a', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+        $this->allocatePpfs($sum_month, ["30015", "30016"], 'vn');
+        $grouped = [];
+        foreach ($sum_month as $row) {
+            $time = strtotime($row->vstdate);
+            $m = intval(date('n', $time));
+            $y = intval(date('Y', $time)) + 543;
+            $monthNames = [
+                1 => "ม.ค.", 2 => "ก.พ.", 3 => "มี.ค.", 4 => "เม.ย.", 5 => "พ.ค.", 6 => "มิ.ย.",
+                7 => "ก.ค.", 8 => "ส.ค.", 9 => "ก.ย.", 10 => "ต.ค.", 11 => "พ.ย.", 12 => "ธ.ค."
+            ];
+            $monthStr = $monthNames[$m] . " " . substr($y, -2);
+            $key = date('Y-m', $time);
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'receive_total' => 0];
+            }
+            $grouped[$key]['claim_price'] += floatval($row->claim_price);
+            $grouped[$key]['receive_total'] += floatval($row->receive_total);
+        }
+        ksort($grouped);
+        $month = array_column($grouped, 'month');
+        $claim_price = array_column($grouped, 'claim_price');
+        $receive_total = array_column($grouped, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-            COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
+            COALESCE(ppfs.claim_price, 0) AS claim_price,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -2054,6 +2088,7 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->validateUcsPpfsRows($search);
+        $this->allocatePpfs($search, ["30015", "30016"], 'seq');
 
         return view('mishos.ucs_ppfs_postnatal', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
@@ -2084,21 +2119,8 @@ class MishosController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d');
 
         $sum_month = DB::connection('hosxp')->select('
-            SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
-                LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total
+            SELECT vn, vstdate, claim_price, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
+                0.00 AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -2127,17 +2149,34 @@ class MishosController extends Controller
                     AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)       
 			    AND o.vstdate BETWEEN ? AND ? 
-                GROUP BY o.vn ) AS a
-				GROUP BY YEAR(vstdate), MONTH(vstdate)
-                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $receive_total = array_column($sum_month, 'receive_total');
+                GROUP BY o.vn ) AS a', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+        $this->allocatePpfs($sum_month, ["90005"], 'vn');
+        $grouped = [];
+        foreach ($sum_month as $row) {
+            $time = strtotime($row->vstdate);
+            $m = intval(date('n', $time));
+            $y = intval(date('Y', $time)) + 543;
+            $monthNames = [
+                1 => "ม.ค.", 2 => "ก.พ.", 3 => "มี.ค.", 4 => "เม.ย.", 5 => "พ.ค.", 6 => "มิ.ย.",
+                7 => "ก.ค.", 8 => "ส.ค.", 9 => "ก.ย.", 10 => "ต.ค.", 11 => "พ.ย.", 12 => "ธ.ค."
+            ];
+            $monthStr = $monthNames[$m] . " " . substr($y, -2);
+            $key = date('Y-m', $time);
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'receive_total' => 0];
+            }
+            $grouped[$key]['claim_price'] += floatval($row->claim_price);
+            $grouped[$key]['receive_total'] += floatval($row->receive_total);
+        }
+        ksort($grouped);
+        $month = array_column($grouped, 'month');
+        $claim_price = array_column($grouped, 'claim_price');
+        $receive_total = array_column($grouped, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-            COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
+            COALESCE(ppfs.claim_price, 0) AS claim_price,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -2177,6 +2216,7 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->validateUcsPpfsRows($search);
+        $this->allocatePpfs($search, ["90005"], 'seq');
 
         return view('mishos.ucs_ppfs_fittest', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
@@ -2207,21 +2247,8 @@ class MishosController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d');
 
         $sum_month = DB::connection('hosxp')->select('
-            SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
-                LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total
+            SELECT vn, vstdate, claim_price, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
+                0.00 AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -2250,17 +2277,34 @@ class MishosController extends Controller
                     AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
                 WHERE (o.an ="" OR o.an IS NULL)       
 			    AND o.vstdate BETWEEN ? AND ? 
-                GROUP BY o.vn ) AS a
-				GROUP BY YEAR(vstdate), MONTH(vstdate)
-                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $receive_total = array_column($sum_month, 'receive_total');
+                GROUP BY o.vn ) AS a', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+        $this->allocatePpfs($sum_month, ["12003", "12004"], 'vn');
+        $grouped = [];
+        foreach ($sum_month as $row) {
+            $time = strtotime($row->vstdate);
+            $m = intval(date('n', $time));
+            $y = intval(date('Y', $time)) + 543;
+            $monthNames = [
+                1 => "ม.ค.", 2 => "ก.พ.", 3 => "มี.ค.", 4 => "เม.ย.", 5 => "พ.ค.", 6 => "มิ.ย.",
+                7 => "ก.ค.", 8 => "ส.ค.", 9 => "ก.ย.", 10 => "ต.ค.", 11 => "พ.ย.", 12 => "ธ.ค."
+            ];
+            $monthStr = $monthNames[$m] . " " . substr($y, -2);
+            $key = date('Y-m', $time);
+            if (!isset($grouped[$key])) {
+                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'receive_total' => 0];
+            }
+            $grouped[$key]['claim_price'] += floatval($row->claim_price);
+            $grouped[$key]['receive_total'] += floatval($row->receive_total);
+        }
+        ksort($grouped);
+        $month = array_column($grouped, 'month');
+        $claim_price = array_column($grouped, 'claim_price');
+        $receive_total = array_column($grouped, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-            COALESCE(ppfs.claim_price, 0) AS claim_price,LEAST(stm.receive_pp, ppfs.claim_price) AS receive_total,
+            COALESCE(ppfs.claim_price, 0) AS claim_price,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -2300,6 +2344,7 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->validateUcsPpfsRows($search);
+        $this->allocatePpfs($search, ["12003", "12004"], 'seq');
 
         return view('mishos.ucs_ppfs_scr', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
     }
@@ -2612,4 +2657,83 @@ class MishosController extends Controller
             $row->endpoint_valid = $hasEp || (isset($authCode) && strpos($authCode, 'EP') === 0) ? true : false;
         }
     }
+
+    private function allocatePpfs(&$rows, $adpCodes, $vnField = 'seq')
+    {
+        if (empty($rows)) return;
+        
+        $vns = [];
+        foreach ($rows as $row) {
+            $vns[] = $row->{$vnField};
+        }
+        $vns = array_values(array_unique($vns));
+        
+        $vnChunks = array_chunk($vns, 1000);
+        $itemsByVn = [];
+        $stmMap = [];
+        
+        foreach ($vnChunks as $chunk) {
+            $placeholders = implode(',', array_fill(0, count($chunk), '?'));
+            
+            $rawItems = DB::connection('hosxp')->select("
+                SELECT op.vn, op.icode, op.sum_price, li.nhso_adp_code
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                WHERE op.vn IN ($placeholders) AND op.paidst = '02' AND li.ppfs = 'Y'
+            ", $chunk);
+            
+            foreach ($rawItems as $item) {
+                $itemsByVn[$item->vn][] = $item;
+            }
+            
+            $rawStm = DB::connection('hosxp')->select("
+                SELECT o.vn, SUM(stm.receive_pp) AS receive_pp
+                FROM ovst o
+                INNER JOIN patient pt ON pt.hn = o.hn
+                INNER JOIN hrims.stm_ucs stm ON stm.cid = pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime, 5) = LEFT(o.vsttime, 5)
+                WHERE o.vn IN ($placeholders)
+                GROUP BY o.vn
+            ", $chunk);
+            
+            foreach ($rawStm as $stm) {
+                $stmMap[$stm->vn] = $stm->receive_pp;
+            }
+        }
+        
+        foreach ($rows as $row) {
+            $vn = $row->{$vnField};
+            $items = $itemsByVn[$vn] ?? [];
+            $receive_pp = floatval($stmMap[$vn] ?? 0);
+            
+            if (empty($items)) {
+                $row->receive_total = 0;
+                continue;
+            }
+            
+            // Sort items: exact match first, then by nhso_adp_code ascending
+            usort($items, function($a, $b) use ($receive_pp) {
+                $aMatch = (abs(floatval($a->sum_price) - $receive_pp) < 0.01) ? 0 : 1;
+                $bMatch = (abs(floatval($b->sum_price) - $receive_pp) < 0.01) ? 0 : 1;
+                if ($aMatch !== $bMatch) {
+                    return $aMatch <=> $bMatch;
+                }
+                return strcasecmp($a->nhso_adp_code, $b->nhso_adp_code);
+            });
+            
+            $remaining = $receive_pp;
+            $allocated = [];
+            foreach ($items as $item) {
+                $alloc = min(floatval($item->sum_price), $remaining);
+                $allocated[$item->nhso_adp_code] = ($allocated[$item->nhso_adp_code] ?? 0) + $alloc;
+                $remaining -= $alloc;
+            }
+            
+            $row_receive_total = 0;
+            foreach ($adpCodes as $code) {
+                $row_receive_total += $allocated[$code] ?? 0;
+            }
+            $row->receive_total = $row_receive_total;
+        }
+    }
+
 }

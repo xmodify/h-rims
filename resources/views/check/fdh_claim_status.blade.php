@@ -116,6 +116,11 @@
                     <div id="fdhProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: 0%">0%</div>
                 </div>
                 <small id="progressText" class="text-muted d-block text-center fw-bold">กำลังเริ่มดึงข้อมูล...</small>
+                
+                <!-- Real-time log box -->
+                <div class="mt-3 border rounded p-2 bg-light" style="max-height: 180px; overflow-y: auto; font-size: 0.75rem; font-family: monospace; line-height: 1.4;" id="fdhLogsBox">
+                    <div class="text-muted">เตรียมการดึงข้อมูล...</div>
+                </div>
             </div>
 
             <div id="resultMessage" class="mt-2 d-none"></div>
@@ -168,6 +173,8 @@
           progressBar.style.width = "0%";
           progressBar.textContent = "0%";
           progressText.innerHTML = "กำลังเริ่มดึงข้อมูล...";
+          const logsBox = document.getElementById("fdhLogsBox");
+          if (logsBox) logsBox.innerHTML = '<div class="text-muted">เตรียมการดึงข้อมูล...</div>';
           resultMessage.classList.add("d-none");
           resultMessage.className = "mt-2 d-none";
           resultMessage.innerHTML = "";
@@ -223,6 +230,8 @@
           progressBar.style.width = "0%";
           progressBar.textContent = "0%";
           progressText.innerHTML = "กำลังดึงรายชื่อคนไข้จากระบบ...";
+          const logsBox = document.getElementById("fdhLogsBox");
+          if (logsBox) logsBox.innerHTML = '<div class="text-muted">กำลังดึงรายชื่อคนไข้จากระบบ...</div>';
 
           // Step 1: Get all check items
           let items = [];
@@ -260,7 +269,7 @@
           let totalUpdated = 0;
           let totalErrors = 0;
 
-          const chunkSize = 10;
+          const chunkSize = 50;
 
           // Step 2: Loop and check chunk
           for (let i = 0; i < totalPatients; i += chunkSize) {
@@ -291,15 +300,38 @@
                       successCount++;
                       totalUpdated += parseInt(data.updated_count) || 0;
                       totalErrors += parseInt(data.errors_count) || 0;
+
+                      // แสดงผล Log รายคนไข้ในกล่องข้อความ
+                      if (data.details && data.details.length > 0) {
+                          data.details.forEach(detail => {
+                              const ident = detail.an ? `AN: ${detail.an}` : `SEQ: ${detail.seq}`;
+                              let logClass = "text-success";
+                              let prefix = "✔ [สำเร็จ]";
+                              if (detail.status != 200) {
+                                  logClass = detail.status == 404 ? "text-warning" : "text-danger";
+                                  prefix = detail.status == 404 ? "⚠ [ไม่พบ]" : `❌ [Error ${detail.status}]`;
+                              }
+                              const msg = detail.status_message_th || detail.error || '';
+                              logsBox.innerHTML += `<div class="${logClass}">${prefix} HN: ${detail.hn} (${ident}) - ${msg}</div>`;
+                          });
+                          logsBox.scrollTop = logsBox.scrollHeight;
+                      }
                   } else {
                       failCount++;
                       totalErrors += chunk.length;
+                      logsBox.innerHTML += `<div class="text-danger">❌ [ล้มเหลว] เกิดข้อผิดพลาดในการดึงข้อมูลทั้งกลุ่ม (Chunk)</div>`;
+                      logsBox.scrollTop = logsBox.scrollHeight;
                   }
               } catch (err) {
                   console.error(err);
                   failCount++;
                   totalErrors += chunk.length;
+                  logsBox.innerHTML += `<div class="text-danger">❌ [ล้มเหลว] เชื่อมต่อหลังบ้านล้มเหลว: ${err.message}</div>`;
+                  logsBox.scrollTop = logsBox.scrollHeight;
               }
+
+              // หน่วงเวลาฝั่ง Client 300ms ระหว่างเรียก Chunk ถัดไป เพื่อลดภาระของ Server FDH
+              await new Promise(resolve => setTimeout(resolve, 300));
           }
 
           // Completed

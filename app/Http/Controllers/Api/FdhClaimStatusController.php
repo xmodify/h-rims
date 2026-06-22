@@ -482,7 +482,8 @@ class FdhClaimStatusController extends Controller
                 'success' => true,
                 'total' => 0,
                 'updated_count' => 0,
-                'errors_count' => 0
+                'errors_count' => 0,
+                'details' => []
             ]);
         }
 
@@ -499,91 +500,92 @@ class FdhClaimStatusController extends Controller
         }
 
         $apiUrl = 'https://fdh.moph.go.th/api/v1/ucs/track_trans';
-        $results = [];
         $totalUpdated = 0;
         $totalErrors = 0;
-
         $upsertData = [];
+        $detailedResults = [];
 
-        foreach ($items as $item) {
-            $itemObj = (object)$item;
-            $payload = [
-                'hcode' => $hcode,
-                'hn'    => $itemObj->hn,
-            ];
-            if (!empty($itemObj->an)) {
-                $payload['an'] = $itemObj->an;
-            } else {
-                $payload['seq'] = $itemObj->seq;
+        // ยิง HTTP พร้อมๆ กันแบบ Asynchronous สำหรับทั้ง Chunk
+        $responses = Http::pool(function (\Illuminate\Http\Client\Pool $pool) use ($items, $hcode, $apiUrl, $token) {
+            $reqs = [];
+            foreach ($items as $index => $item) {
+                $itemObj = (object)$item;
+                $payload = [
+                    'hcode' => $hcode,
+                    'hn'    => $itemObj->hn,
+                ];
+                if (!empty($itemObj->an)) {
+                    $payload['an'] = $itemObj->an;
+                } else {
+                    $payload['seq'] = $itemObj->seq;
+                }
+
+                $reqs[] = $pool->as((string)$index)
+                    ->withOptions(['verify' => false])
+                    ->withToken($token)
+                    ->timeout(30)
+                    ->post($apiUrl, $payload);
             }
+            return $reqs;
+        });
+
+        foreach ($responses as $index => $response) {
+            $itemObj = (object)$items[$index];
+            $hn = $itemObj->hn;
+            $seq = $itemObj->seq ?? null;
+            $an = $itemObj->an ?? null;
 
             $status = 500;
             $body = null;
-            $attempts = 3;
-            $success = false;
+            $errorMessage = null;
 
-            for ($attempt = 1; $attempt <= $attempts; $attempt++) {
-                try {
-                    $response = Http::withOptions(['verify' => false])
-                        ->withToken($token)
-                        ->timeout(30)
-                        ->post($apiUrl, $payload);
-
-                    $status = $response->status();
-                    $body   = $response->json();
-
-                    if ($status != 503 && $status != 500) {
-                        $success = true;
-                        break;
-                    }
-
-                    \Illuminate\Support\Facades\Log::warning("FDH check-chunk attempt $attempt returned status $status", [
-                        'hn' => $itemObj->hn,
-                        'body' => $body
-                    ]);
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::warning("FDH check-chunk attempt $attempt exception", [
-                        'hn' => $itemObj->hn,
-                        'message' => $e->getMessage()
-                    ]);
-                }
-
-                if ($attempt < $attempts) {
-                    // sleep 1.5 seconds before retry
-                    usleep(1500000);
-                }
-            }
-
-            if ($status == 200 && isset($body['data'][0])) {
-                $d = $body['data'][0];
-                $now = now();
-                $upsertData[] = [
-                    'hn'                => $d['hn']  ?? $itemObj->hn,
-                    'seq'               => $d['seq'] ?? $itemObj->seq,
-                    'an'                => $d['an']  ?? $itemObj->an,
-                    'hcode'             => $d['hcode'] ?? $hcode,
-                    'status'            => $d['status'] ?? null,
-                    'process_status'    => $d['process_status'] ?? null,
-                    'status_message_th' => $d['status_message_th'] ?? null,
-                    'stm_period'        => $d['stm_period'] ?? null,
-                    'updated_at'        => $now,
-                    'created_at'        => $now,
-                ];
+            if ($response instanceof \Exception) {
+                $errorMessage = $response->getMessage();
+                $totalErrors++;
             } else {
-                if ($status != 200 && $status != 404) {
-                    $totalErrors++;
-                    \Illuminate\Support\Facades\Log::warning("FDH check-chunk final error response", [
-                        'hn' => $itemObj->hn,
-                        'seq' => $itemObj->seq ?? null,
-                        'an' => $itemObj->an ?? null,
-                        'status' => $status,
-                        'body' => $body
-                    ]);
+                $status = $response->status();
+                $body   = $response->json();
+
+                if ($status == 200 && isset($body['data'][0])) {
+                    $d = $body['data'][0];
+                    $now = now();
+                    $upsertData[] = [
+                        'hn'                => $d['hn']  ?? $hn,
+                        'seq'               => $d['seq'] ?? $seq,
+                        'an'                => $d['an']  ?? $an,
+                        'hcode'             => $d['hcode'] ?? $hcode,
+                        'status'            => $d['status'] ?? null,
+                        'process_status'    => $d['process_status'] ?? null,
+                        'status_message_th' => $d['status_message_th'] ?? null,
+                        'stm_period'        => $d['stm_period'] ?? null,
+                        'updated_at'        => $now,
+                        'created_at'        => $now,
+                    ];
+                    $totalUpdated++;
+                } else {
+                    if ($status != 200 && $status != 404) {
+                        $totalErrors++;
+                        $errorMessage = isset($body['message']) ? $body['message'] : "HTTP $status";
+                        \Illuminate\Support\Facades\Log::warning("FDH checkChunk error response", [
+                            'hn' => $hn,
+                            'status' => $status,
+                            'body' => $body
+                        ]);
+                    }
                 }
             }
 
-            // หน่วงเวลา 150ms ระหว่างแต่ละคนไข้ เพื่อป้องกัน 503
-            usleep(150000);
+            // บันทึกผลลัพธ์รายบุคคล
+            $detailedResults[] = [
+                'hn' => $hn,
+                'seq' => $seq,
+                'an' => $an,
+                'status' => $status,
+                'error' => $errorMessage,
+                'status_message_th' => ($status == 200 && isset($body['data'][0]['status_message_th'])) 
+                    ? $body['data'][0]['status_message_th'] 
+                    : ($status == 404 ? 'ไม่พบข้อมูลการส่งเคลมในระบบ FDH' : ($errorMessage ?? 'เกิดข้อผิดพลาดในการเชื่อมต่อ'))
+            ];
         }
 
         if (!empty($upsertData)) {
@@ -592,14 +594,14 @@ class FdhClaimStatusController extends Controller
                 ['hn', 'seq', 'an'],
                 ['hcode', 'status', 'process_status', 'status_message_th', 'stm_period', 'updated_at']
             );
-            $totalUpdated += count($upsertData);
         }
 
         return response()->json([
             'success' => true,
             'total' => count($items),
             'updated_count' => $totalUpdated,
-            'errors_count' => $totalErrors
+            'errors_count' => $totalErrors,
+            'details' => $detailedResults
         ]);
     }
 

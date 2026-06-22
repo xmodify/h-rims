@@ -77,6 +77,9 @@
                             <button onclick="fetchData()" type="submit" class="btn btn-success px-3 shadow-sm">
                                 <i class="bi bi-table me-1"></i> โหลด indiv
                             </button>
+                            <button onclick="checkFdhBulk(event)" type="button" class="btn btn-info text-white px-3 shadow-sm" title="ดึงสถานะ FDH ตามช่วงเวลาที่เลือก">
+                                <i class="bi bi-arrow-repeat me-1"></i> ดึง FDH
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -308,7 +311,97 @@
                 </div> 
             </div>
         </div>
-    </div>
+  {{-- ✅ FDH Check Claim --}}
+  <script>
+    function checkFdh(hn, an) {
+        Swal.fire({
+            title: 'กำลังตรวจสอบสถานะ...',
+            text: 'กรุณารอสักครู่',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
+        $.ajax({
+            url: "{{ url('/api/fdh/check-claim-indiv') }}",
+            type: "POST",
+            data: {
+                hn: hn,
+                an: an,
+                _token: "{{ csrf_token() }}"
+            },
+            success: function (res) {
+                if (res.status === 200) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ตรวจสอบสำเร็จ',
+                        text: 'พบข้อมูลในระบบ FDH',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                         fetchData();
+                         $('#form_indiv').submit();
+                    });
+                    return;
+                }
+                if (res.status === 404 || res.status === 500) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'ไม่พบข้อมูลในระบบ FDH',
+                        text: res.body?.message_th ?? "ไม่มีรายการนี้ส่ง"
+                    });
+                    return;
+                }
+                if (res.status === 400) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด',
+                        text: res.body?.message ?? res.error ?? 'ไม่สามารถตรวจสอบได้'
+                    });
+                    return;
+                }
+            },
+            error: function () {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'การเชื่อมต่อล้มเหลว',
+                    text: 'ไม่สามารถเรียก API ได้ (Network Error)'
+                });
+            }
+        });
+    }
+
+    async function checkFdhBulk(e) {
+        if (e) e.preventDefault();
+        const searchItems = {!! json_encode(array_map(function($row) {
+            return [
+                'hn' => $row->hn,
+                'seq' => '',
+                'an' => $row->an
+            ];
+        }, $search)) !!};
+
+        const claimItems = {!! json_encode(array_map(function($row) {
+            return [
+                'hn' => $row->hn,
+                'seq' => '',
+                'an' => $row->an
+            ];
+        }, $claim)) !!};
+
+        const items = [...searchItems, ...claimItems];
+
+        if (!items || items.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'ไม่พบรายการผู้ป่วยในหน้านี้', confirmButtonColor: '#0dcaf0' });
+            return;
+        }
+
+        await runFdhBulkCheck(items, "{{ csrf_token() }}", "{{ url('/api/fdh/check-chunk') }}", function() {
+            localStorage.setItem('active_tab', '#search');
+            fetchData();
+            $('#form_indiv').submit();
+        });
+    }
+  </script>
 
 @endsection
 

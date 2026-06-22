@@ -83,6 +83,9 @@
                             <button onclick="fetchData()" type="submit" class="btn btn-success px-3 shadow-sm">
                                 <i class="bi bi-table me-1"></i> โหลด indiv
                             </button>
+                            <button onclick="checkFdhBulk(event)" type="button" class="btn btn-info text-white px-3 shadow-sm" title="ดึงสถานะ FDH ตามช่วงเวลาที่เลือก">
+                                <i class="bi bi-arrow-repeat me-1"></i> ดึง FDH
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -377,6 +380,37 @@
         });
       }
     });
+  }
+
+  async function checkFdhBulk(e) {
+      if (e) e.preventDefault();
+      const searchItems = {!! json_encode(array_map(function($row) {
+          return [
+              'hn' => $row->hn,
+              'seq' => $row->seq,
+              'an' => ''
+          ];
+      }, $search)) !!};
+
+      const claimItems = {!! json_encode(array_map(function($row) {
+          return [
+              'hn' => $row->hn,
+              'seq' => $row->seq,
+              'an' => ''
+          ];
+      }, $claim)) !!};
+
+      const items = [...searchItems, ...claimItems];
+
+      if (!items || items.length === 0) {
+          Swal.fire({ icon: 'warning', title: 'ไม่พบรายการผู้ป่วยในหน้านี้', confirmButtonColor: '#0dcaf0' });
+          return;
+      }
+
+      await runFdhBulkCheck(items, "{{ csrf_token() }}", "{{ url('/api/fdh/check-chunk') }}", function() {
+          showLoading();
+          $('#form_indiv').submit();
+      });
   }
 </script>
 

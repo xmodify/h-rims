@@ -210,8 +210,8 @@ class FdhClaimStatusController extends Controller
         $totalUpdated = 0;
         $totalErrors = 0;
 
-        // 5) Chunk = 5 วิเคราะห์พร้อมๆ กันแบบควบคุม เพื่อป้องกัน 503 Service Unavailable จากการเชื่อมต่อเยอะเกินไป
-        $chunks = array_chunk($items, 5);
+        // 5) Chunk = 50 วิเคราะห์พร้อมๆ กันแบบควบคุม
+        $chunks = array_chunk($items, 50);
         foreach ($chunks as $chunk) {
 
             // ยิง HTTP พร้อมๆ กันแบบ Asynchronous
@@ -231,6 +231,7 @@ class FdhClaimStatusController extends Controller
                     $reqs[] = $pool->as((string)$index)
                         ->withOptions(['verify' => false])
                         ->withToken($token)
+                        ->retry(3, 2000)
                         ->timeout(120)
                         ->post($apiUrl, $payload);
                 }
@@ -523,6 +524,7 @@ class FdhClaimStatusController extends Controller
                 $reqs[] = $pool->as((string)$index)
                     ->withOptions(['verify' => false])
                     ->withToken($token)
+                    ->retry(3, 2000)
                     ->timeout(30)
                     ->post($apiUrl, $payload);
             }

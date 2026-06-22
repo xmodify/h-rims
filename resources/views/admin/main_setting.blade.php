@@ -29,10 +29,15 @@
         @foreach($groupedData as $category => $settings)
             <div class="col-xl-6 col-lg-12 mb-4">
                 <div class="card dash-card accent-{{ $i }}">
-                    <div class="card-header bg-white border-0 py-3">
+                    <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
                         <h6 class="mb-0 fw-bold text-color-{{ $i }}">
                             <i class="bi bi-collection-fill me-2"></i> {{ $category }}
                         </h6>
+                        @if($category === 'Claim (FDH)')
+                            <button type="button" class="btn btn-outline-info btn-sm px-3 rounded-pill shadow-sm hover-scale" id="testFdhUserBtn">
+                                <i class="bi bi-shield-lock-fill me-1"></i> ทดสอบดึง Token
+                            </button>
+                        @endif
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
@@ -245,6 +250,57 @@
             }
         });
     });
+
+    // Test FDH User Token Logic
+    const testFdhUserBtn = document.getElementById('testFdhUserBtn');
+    if (testFdhUserBtn) {
+        testFdhUserBtn.addEventListener('click', function () {
+            Swal.fire({
+                title: 'กำลังทดสอบการเชื่อมต่อ...',
+                text: 'กรุณารอสักครู่ ระบบกำลังขอ Token จาก FDH',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            fetch('{{ url("api/fdh/testtoken") }}')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success' && data.token) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'เชื่อมต่อสำเร็จ',
+                        html: `
+                            <div class="text-start p-2">
+                                <p class="mb-2 text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> ดึง Access Token สำเร็จ</p>
+                                <div class="bg-light p-3 small border rounded-3" style="word-break: break-all; font-family: monospace; max-height: 150px; overflow-y: auto;">
+                                    ${data.token}
+                                </div>
+                            </div>
+                        `,
+                        confirmButtonText: 'ตกลง',
+                        confirmButtonColor: '#0a4d2c'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เชื่อมต่อล้มเหลว',
+                        text: 'ไม่สามารถขอ Access Token จาก FDH ได้ กรุณาตรวจสอบความถูกต้องของ FDH User, Pass, Secret Key และ Hospital Code ในการตั้งค่า',
+                        confirmButtonText: 'ตกลง',
+                        confirmButtonColor: '#d33'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: error.message || error,
+                    confirmButtonText: 'ตกลง',
+                    confirmButtonColor: '#d33'
+                });
+            });
+        });
+    }
 
     // Upgrade Structure Logic
     async function confirmAction(event) {

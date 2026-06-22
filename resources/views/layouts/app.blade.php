@@ -616,8 +616,26 @@
                                                         href="{{ url('check/drugcat_nhso') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สปสช.</a></li>
                                                 <li><a class="dropdown-item dropdown-item-modern"
                                                         href="{{ url('check/drugcat_chi') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สกส.</a></li>
+                                                <li><a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('check/drugcat_fdh') }}"><i class="bi bi-chevron-right text-muted me-1"></i> FDH</a></li>
                                             </ul>
                                         </li>
+                                        <!-- ชี้ขวา -->
+                                        <li class="dropend position-relative">
+                                            <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
+                                                data-bs-toggle="dropdown">
+                                                <i class="bi bi-clipboard-pulse text-warning me-2"></i> Lab Catalog
+                                            </a>
+                                            <ul class="dropdown-menu dropdown-menu-modern">
+                                                <li><a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('check/labcat_nhso') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สปสช.</a></li>
+                                                <li><a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('check/labcat_chi') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สกส.</a></li>
+                                                <li><a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('check/labcat_fdh') }}"><i class="bi bi-chevron-right text-muted me-1"></i> FDH</a></li>
+                                            </ul>
+                                        </li>
+
                                         <!-- ชี้ขวา -->
                                         <li class="dropend position-relative">
                                             <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"

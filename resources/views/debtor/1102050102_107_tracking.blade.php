@@ -96,7 +96,7 @@
                     <th class="text-center">เลขที่เอกสาร</th> 
                     <th class="text-center">เจ้าหน้าที่ผู้ติดต่อ</th>                                       
                     <th class="text-center">หมายเหตุ</th>
-                    <th class="text-center" width="6%">Action</th>                
+                    <th class="text-center" width="15%">Action</th>                
                 </thead>
                 <?php $count = 1 ; ?>
                 @foreach($tracking as $row)
@@ -107,10 +107,22 @@
                     <td align="center">{{ $row->tracking_no }}</td>   
                     <td align="left">{{ $row->tracking_officer }}</td>
                     <td align="left">{{ $row->tracking_note }}</td>  
-                    <td align="center">        
-                        <button type="button" class="btn btn-warning btn-sm text-primary " data-toggle="modal" data-target="#edit-{{ $row->tracking_id }}"> 
-                        แก้ไข
-                        </button>    
+                    <td align="center">
+                        <div class="d-flex justify-content-center gap-1">
+                            @if($row->tracking_type == 'ส่งเอกสาร')
+                                <a href="{{ url('debtor/1102050102_107/tracking_print', $row->tracking_id) }}" target="_blank" class="btn btn-primary btn-sm text-white" title="พิมพ์หนังสือทวงหนี้">
+                                    พิมพ์
+                                </a>
+                            @endif
+                            <button type="button" class="btn btn-warning btn-sm text-primary" data-toggle="modal" data-target="#edit-{{ $row->tracking_id }}"> 
+                            แก้ไข
+                            </button>
+                            <form action="{{ url('debtor/1102050102_107/tracking_delete', $row->tracking_id) }}" method="POST" style="display:inline;" onsubmit="return confirm('ยืนยันการลบข้อมูลการติดตามนี้ใช่หรือไม่?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-danger btn-sm text-white">ลบ</button>
+                            </form>
+                        </div>
                     </td>                     
                 <?php $count++; ?>                     
                 @endforeach 
@@ -195,7 +207,7 @@
             <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"></button>
             </button>
             </div>         
-            <form action={{ url('finance_debtor/1102050102_107/tracking_update', $row->tracking_id) }} method="POST" enctype="multipart/form-data">
+            <form action="{{ url('debtor/1102050102_107/tracking_update', $row->tracking_id) }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
                 <div class="modal-body"> 

@@ -115,7 +115,7 @@
                             <thead>
                             <tr class="table-success">
                                 <th class="text-left text-primary" colspan="12">1102050102.107-ลูกหนี้ค่ารักษา ชําระเงิน IP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</th> 
-                                <th class="text-center text-primary" colspan="9">การชดเชย</th>                                                 
+                                <th class="text-center text-primary" colspan="10">การชดเชย</th>                                                 
                             </tr>
                             <tr class="table-success">
                                 <th class="text-center" style="width: 70px; min-width: 70px; max-width: 70px;">
@@ -141,8 +141,9 @@
                                 <th class="text-center text-primary">ยอดคงเหลือ</th>
                                 <th class="text-center text-primary">เลขที่ใบเสร็จ</th>    
                                 <th class="text-center text-primary">อายุหนี้</th>   
-                                <th class="text-center text-primary" width="6%">Action</th> 
-                                <th class="text-center text-primary">Lock</th>   
+                                <th class="text-center text-primary" style="width: 75px; min-width: 75px; max-width: 75px;">ติดตาม</th> 
+                                <th class="text-center text-primary" style="width: 55px; min-width: 55px; max-width: 55px;" title="แก้ไข"><i class="bi bi-pencil-square" style="font-size: 1.1rem; vertical-align: middle;"></i></th> 
+                                <th class="text-center text-primary" style="width: 55px; min-width: 55px; max-width: 55px;" title="ล็อค"><i class="bi bi-lock-fill" style="font-size: 1.1rem; vertical-align: middle;"></i></th>   
                             </tr>
                             </thead>
                             <tbody>
@@ -187,7 +188,29 @@
                                     @else style="background-color: #FF7F7F;" @endif >
                                     {{ $row->days }} วัน
                                 </td>   
-                                <td align="right" width="9%">
+                                <td align="center" data-order="{{ $row->visit ?? 0 }}" style="width: 75px; min-width: 75px; max-width: 75px;">
+                                    <a href="javascript:void(0)" onclick="openTrackingModal('{{ $row->an }}', '{{ $row->vn }}', '{{ $row->ptname }}', '{{ $row->hn }}', '{{ number_format($row->debtor, 2) }}')" class="text-decoration-none d-inline-flex gap-1 align-items-center" title="ติดตามแล้ว {{ $row->visit ?? 0 }} ครั้ง">
+                                        @php $vCount = $row->visit ?? 0; @endphp
+                                        @if($vCount == 0)
+                                            <i class="bi bi-circle text-muted" style="font-size: 0.85rem;"></i>
+                                            <i class="bi bi-circle text-muted" style="font-size: 0.85rem;"></i>
+                                            <i class="bi bi-circle text-muted" style="font-size: 0.85rem;"></i>
+                                        @elseif($vCount == 1)
+                                            <i class="bi bi-circle-fill text-success" style="font-size: 0.85rem;"></i>
+                                            <i class="bi bi-circle text-muted" style="font-size: 0.85rem;"></i>
+                                            <i class="bi bi-circle text-muted" style="font-size: 0.85rem;"></i>
+                                        @elseif($vCount == 2)
+                                            <i class="bi bi-circle-fill text-warning" style="font-size: 0.85rem;"></i>
+                                            <i class="bi bi-circle-fill text-warning" style="font-size: 0.85rem;"></i>
+                                            <i class="bi bi-circle text-muted" style="font-size: 0.85rem;"></i>
+                                        @else
+                                            <i class="bi bi-circle-fill text-danger" style="font-size: 0.85rem;"></i>
+                                            <i class="bi bi-circle-fill text-danger" style="font-size: 0.85rem;"></i>
+                                            <i class="bi bi-circle-fill text-danger" style="font-size: 0.85rem;"></i>
+                                        @endif
+                                    </a>
+                                </td>
+                                <td align="center" style="width: 55px; min-width: 55px; max-width: 55px;">
                                     <button type="button" class="btn btn-warning btn-sm px-2 shadow-sm text-dark btn-edit-debtor"
                                         data-vn="{{ $row->an }}"
                                         data-ptname="{{ $row->ptname }}"
@@ -211,7 +234,6 @@
                                         data-update-url="{{ url('debtor/1102050102_107/update', $row->an) }}">
                                         <i class="bi bi-pencil-square"></i>
                                     </button>
-                                    <a class="btn btn-outline-info btn-sm" href="{{ url('debtor/1102050102_107/tracking', $row->an) }}" target="_blank">ติดตาม {{ $row->visit }}</a> 
                                 </td> 
                                 <td align="center">
                                     @if(Auth::user()->status == 'admin' || Auth::user()->allow_debtor_lock == 'Y')
@@ -247,7 +269,7 @@
                                     <td class="text-end" style="color:@if($sum_balance > 0.05) green @elseif($sum_balance < -0.05) red @else black @endif">
                                         {{ number_format($sum_balance, 2) }}
                                     </td>
-                                    <td></td><td></td><td></td><td></td>
+                                     <td></td><td></td><td></td><td></td><td></td>
                                 </tr>
                             </tfoot>
                         </table></div>
@@ -508,6 +530,116 @@
     </div>
 </div>
         <!-- end modal -->
+
+        <!-- Modal Tracking -->
+        <div id="trackingModal" class="modal fade" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-primary text-white border-0 py-3">
+                        <h5 class="modal-title fw-bold d-flex align-items-center">
+                            <i class="bi bi-telephone-outbound-fill me-2"></i> รายละเอียดการติดตามลูกหนี้ค่ารักษา ชําระเงิน IP
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4 text-start">
+                        <!-- Patient Info Header -->
+                        <div class="card border-0 bg-light-soft mb-2">
+                            <div class="card-body py-2 px-4">
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <div><span class="text-muted small">ชื่อ-สกุล:</span> <strong id="track_modal_ptname" class="text-primary">-</strong></div>
+                                        <div class="mt-1">
+                                            <span class="text-muted small">เลขบัตรประชาชน:</span> <strong id="track_modal_cid" class="small">-</strong> 
+                                            <span class="text-muted small ms-2">HN:</span> <strong id="track_modal_hn" class="small">-</strong>
+                                        </div>
+                                        <div class="mt-1"><span class="text-muted small">เบอร์โทร:</span> <strong id="track_modal_phone" class="small">-</strong></div>
+                                    </div>
+                                    <div class="col-md-6 text-md-end">
+                                        <div>
+                                            <span class="text-muted small">วันที่ Admit:</span> <strong id="track_modal_regdate" class="small">-</strong> 
+                                            <span class="text-muted small ms-2">วันที่ Discharge:</span> <strong id="track_modal_dchdate" class="small">-</strong>
+                                        </div>
+                                        <div class="mt-1"><span class="text-muted small">สิทธิการรักษา:</span> <strong id="track_modal_pttype" class="small">-</strong></div>
+                                        <div class="mt-1"><span class="text-muted small">ลูกหนี้ค่ารักษา:</span> <strong class="text-danger fw-bold fs-5"><span id="track_modal_debtor">-</span> บาท</strong></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- History Section -->
+                        <div id="tracking_history_section">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="fw-bold small text-dark"><i class="bi bi-clock-history me-1"></i> ประวัติการติดตาม</div>
+                                <button type="button" class="btn btn-success btn-sm rounded-pill px-3 shadow-sm" id="btn_new_tracking">
+                                    <i class="bi bi-plus-circle me-1"></i> บันทึกติดตาม
+                                </button>
+                            </div>
+                            <div class="table-responsive mb-3" style="max-height: 250px; overflow-y: auto;">
+                                <table class="table table-sm table-hover small" id="track_history_table">
+                                    <thead class="table-light sticky-top">
+                                        <tr>
+                                            <th class="text-center">ครั้งที่</th>
+                                            <th class="text-center">วันที่ติดตาม</th>
+                                            <th class="text-center">การติดตาม</th>
+                                            <th class="text-center">เลขที่หนังสือ</th>
+                                            <th>เจ้าหน้าที่</th>
+                                            <th>หมายเหตุ</th>
+                                            <th class="text-center" style="width: 120px;">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Loaded via AJAX -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Insert/Edit Form Section -->
+                        <div id="tracking_form_section" style="display: none;">
+                            <div class="fw-bold mb-2 small text-success" id="tracking_form_title"><i class="bi bi-plus-circle-fill me-1"></i> บันทึกข้อมูลการติดตามครั้งใหม่</div>
+                            <form action="{{ url('debtor/1102050102_107/tracking_insert') }}" method="POST" id="track_insert_form">
+                                @csrf
+                                <input type="hidden" name="_method" id="track_form_method" value="POST">
+                                <input type="hidden" name="an" id="track_modal_an_hidden">
+                                <input type="hidden" name="vn" id="track_modal_vn_hidden">
+                                <div class="row g-2">
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label small fw-bold">วันที่ติดตาม</label>
+                                        <input type="hidden" name="tracking_date" id="track_date" value="{{ date('Y-m-d') }}">
+                                        <input type="text" id="track_date_picker" class="form-control form-control-sm rounded-pill datepicker_th" value="{{ DateThai(date('Y-m-d')) }}" readonly required>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label small fw-bold">การติดตาม</label>
+                                        <select class="form-select form-select-sm rounded-pill" name="tracking_type" required>
+                                            <option value="โทรศัพท์">โทรศัพท์</option>
+                                            <option value="ส่งเอกสาร">ส่งเอกสาร</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label small fw-bold">เลขที่หนังสือ</label>
+                                        <input type="text" class="form-control form-control-sm rounded-pill" name="tracking_no" placeholder="เช่น นร 0023.2/...">
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label small fw-bold">เจ้าหน้าที่ผู้ติดต่อ</label>
+                                        <input type="text" class="form-control form-control-sm rounded-pill" name="tracking_officer" value="{{ Auth::user()->name ?? '' }}" required>
+                                    </div>
+                                    <div class="col-md-12 mb-2">
+                                        <label class="form-label small fw-bold">หมายเหตุ</label>
+                                        <input type="text" class="form-control form-control-sm rounded-pill" name="tracking_note" placeholder="ผลการติดต่อ หรือ รายละเอียดเพิ่มเติม">
+                                    </div>
+                                </div>
+                                <div class="modal-footer bg-light border-0 p-2 mt-3">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-4" id="btn_cancel_tracking">ยกเลิก</button>
+                                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 shadow-sm">
+                                        <i class="bi bi-save me-1"></i> บันทึกการติดตาม
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
 <!-- สำเร็จ -->
@@ -1327,7 +1459,7 @@
                 language: { lengthMenu: "แสดง _MENU_ รายการ", info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ", paginate: { previous: "ก่อนหน้า", next: "ถัดไป" } },
                 lengthMenu: [[10, 25, 50, 100, 200, 500, -1], [10, 25, 50, 100, 200, 500, "ทั้งหมด"]],
                 columnDefs: [
-                    { orderable: false, targets: 0 }
+                    { orderable: false, targets: [0, 20] }
                 ]
             });
 
@@ -1535,6 +1667,295 @@
                     $('#adj_end_date').val(y + '-' + m + '-' + d);
                     updateAdjPdfUrl();
                 }
+            });
+
+            // Tracking Modal Functions
+            window.currentTrackingLogs = [];
+
+            window.openTrackingModal = function(an, vn, ptname, hn, debtorAmt) {
+                $('#tracking_history_section').show();
+                $('#tracking_form_section').hide();
+                
+                $('#track_modal_an_hidden').val(an);
+                $('#track_modal_vn_hidden').val(vn);
+                $('#track_modal_ptname').text(ptname);
+                $('#track_modal_hn').text(hn);
+                $('#track_modal_debtor').text(debtorAmt);
+                
+                loadTrackingHistory(an);
+                $('#trackingModal').modal('show');
+            };
+
+            window.editTrackingLog = function(index) {
+                if (!window.currentTrackingLogs || !window.currentTrackingLogs[index]) return;
+                const log = window.currentTrackingLogs[index];
+                
+                $('#track_insert_form').attr('action', `{{ url('debtor/1102050102_107/tracking_update') }}/${log.tracking_id}`);
+                $('#track_form_method').val('PUT');
+                
+                $('#track_date').val(log.tracking_date);
+                if (log.tracking_date) {
+                    const dateParts = log.tracking_date.split('-');
+                    if (dateParts.length === 3) {
+                        $('#track_date_picker').datepicker('setDate', new Date(dateParts[0], dateParts[1] - 1, dateParts[2]));
+                    }
+                }
+                
+                $('select[name="tracking_type"]').val(log.tracking_type);
+                $('input[name="tracking_no"]').val(log.tracking_no || '');
+                $('input[name="tracking_officer"]').val(log.tracking_officer || '');
+                $('input[name="tracking_note"]').val(log.tracking_note || '');
+                
+                $('#tracking_form_title').html('<i class="bi bi-pencil-square me-1"></i> แก้ไขข้อมูลการติดตาม');
+                
+                $('#tracking_history_section').hide();
+                $('#tracking_form_section').show();
+            };
+
+            window.deleteTrackingLog = function(index) {
+                if (!window.currentTrackingLogs || !window.currentTrackingLogs[index]) return;
+                const log = window.currentTrackingLogs[index];
+                
+                Swal.fire({
+                    title: 'ยืนยันการลบ?',
+                    text: "คุณต้องการลบข้อมูลการติดตามรายการนี้ใช่หรือไม่?",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'ใช่, ต้องการลบ',
+                    cancelButtonText: 'ยกเลิก'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `{{ url('debtor/1102050102_107/tracking_delete') }}/${log.tracking_id}`,
+                            type: 'POST',
+                            data: {
+                                _method: 'DELETE',
+                                _token: '{{ csrf_token() }}'
+                            },
+                            success: function(res) {
+                                if (res.success) {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'ลบสำเร็จ',
+                                        text: res.message,
+                                        timer: 1500,
+                                        showConfirmButton: false
+                                    });
+                                    const an = $('#track_modal_an_hidden').val();
+                                    loadTrackingHistory(an);
+                                } else {
+                                    Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถลบข้อมูลได้', 'error');
+                                }
+                            },
+                            error: function() {
+                                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถดำเนินการได้', 'error');
+                            }
+                        });
+                    }
+                });
+            };
+
+            function loadTrackingHistory(an) {
+                $('#track_history_table tbody').html(`
+                    <tr>
+                        <td colspan="7" class="text-center p-3">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                            <span class="text-muted small ms-2">กำลังดึงประวัติการติดตาม...</span>
+                        </td>
+                    </tr>
+                `);
+
+                $.ajax({
+                    url: `{{ url('debtor/1102050102_107/tracking') }}/${an}`,
+                    type: 'GET',
+                    success: function(res) {
+                        if (res.debtor) {
+                            $('#track_modal_cid').text(res.debtor.cid || '-');
+                            $('#track_modal_phone').text(res.debtor.mobile_phone_number || '-');
+                            $('#track_modal_regdate').text(formatThaiDate(res.debtor.regdate));
+                            $('#track_modal_dchdate').text(formatThaiDate(res.debtor.dchdate));
+                            $('#track_modal_pttype').text(res.debtor.pttype || '-');
+                            
+                            const debtorAmt = parseFloat(res.debtor.debtor || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                            $('#track_modal_debtor').text(debtorAmt);
+                        }
+                        
+                        window.currentTrackingLogs = res.tracking || [];
+                        updateMainTableRowTracking(an, window.currentTrackingLogs.length);
+                        
+                        if (res.tracking && res.tracking.length > 0) {
+                            let html = '';
+                            res.tracking.forEach((t, i) => {
+                                html += `
+                                    <tr>
+                                        <td class="text-center">${i + 1}</td>
+                                        <td class="text-center">${formatThaiDate(t.tracking_date)}</td>
+                                        <td class="text-center">
+                                            <span class="badge ${t.tracking_type === 'โทรศัพท์' ? 'bg-success text-white' : 'bg-primary text-white'} py-1 px-2">
+                                                ${t.tracking_type}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">${t.tracking_no || '-'}</td>
+                                        <td>${t.tracking_officer || ''}</td>
+                                        <td>${t.tracking_note || ''}</td>
+                                        <td class="text-center">
+                                            <div class="d-flex justify-content-center gap-1">
+                                                ${t.tracking_type === 'ส่งเอกสาร' ? `
+                                                    <a href="{{ url('debtor/1102050102_107/tracking_print') }}/${t.tracking_id}" target="_blank" class="btn btn-sm btn-outline-primary py-0 px-1 border-0" title="พิมพ์หนังสือทวงหนี้">
+                                                        <i class="bi bi-printer"></i>
+                                                    </a>
+                                                ` : ''}
+                                                <button type="button" class="btn btn-sm btn-outline-warning py-0 px-1 border-0" onclick="editTrackingLog(${i})" title="แก้ไข">
+                                                    <i class="bi bi-pencil-square"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger py-0 px-1 border-0" onclick="deleteTrackingLog(${i})" title="ลบ">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `;
+                            });
+                            $('#track_history_table tbody').html(html);
+                        } else {
+                            $('#track_history_table tbody').html(`
+                                <tr>
+                                    <td colspan="7" class="text-center p-3 text-muted">ยังไม่มีประวัติการติดตามสำหรับเคสนี้</td>
+                                </tr>
+                            `);
+                        }
+                    },
+                    error: function() {
+                        $('#track_history_table tbody').html(`
+                            <tr>
+                                <td colspan="7" class="text-center p-3 text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</td>
+                            </tr>
+                        `);
+                    }
+                });
+            }
+
+            function updateMainTableRowTracking(an, visitCount) {
+                const rowCheckbox = $(`input[name="checkbox_d[]"][value="${an}"]`);
+                if (rowCheckbox.length) {
+                    const row = rowCheckbox.closest('tr');
+                    const cell = row.find('td').eq(19);
+                    
+                    let dotsHtml = '';
+                    if (visitCount == 0) {
+                        dotsHtml = `
+                            <i class="bi bi-circle text-muted" style="font-size: 0.85rem;"></i>
+                            <i class="bi bi-circle text-muted" style="font-size: 0.85rem;"></i>
+                            <i class="bi bi-circle text-muted" style="font-size: 0.85rem;"></i>
+                        `;
+                    } else if (visitCount == 1) {
+                        dotsHtml = `
+                            <i class="bi bi-circle-fill text-success" style="font-size: 0.85rem;"></i>
+                            <i class="bi bi-circle text-muted" style="font-size: 0.85rem;"></i>
+                            <i class="bi bi-circle text-muted" style="font-size: 0.85rem;"></i>
+                        `;
+                    } else if (visitCount == 2) {
+                        dotsHtml = `
+                            <i class="bi bi-circle-fill text-warning" style="font-size: 0.85rem;"></i>
+                            <i class="bi bi-circle-fill text-warning" style="font-size: 0.85rem;"></i>
+                            <i class="bi bi-circle text-muted" style="font-size: 0.85rem;"></i>
+                        `;
+                    } else {
+                        dotsHtml = `
+                            <i class="bi bi-circle-fill text-danger" style="font-size: 0.85rem;"></i>
+                            <i class="bi bi-circle-fill text-danger" style="font-size: 0.85rem;"></i>
+                            <i class="bi bi-circle-fill text-danger" style="font-size: 0.85rem;"></i>
+                        `;
+                    }
+                    
+                    cell.attr('data-order', visitCount);
+                    const anchor = cell.find('a');
+                    anchor.attr('title', `ติดตามแล้ว ${visitCount} ครั้ง`);
+                    anchor.html(dotsHtml);
+                    
+                    if ($.fn.DataTable.isDataTable('#debtor')) {
+                        const table = $('#debtor').DataTable();
+                        table.cell(cell).invalidate();
+                    }
+                }
+            }
+
+            $(document).ready(function() {
+                $('#track_date_picker').datepicker({
+                    format: 'd M yyyy',
+                    autoclose: true,
+                    language: 'th-th',
+                    thaiyear: true,
+                    todayBtn: 'linked',
+                    todayHighlight: true
+                }).on('changeDate', function(e) {
+                    if (e.date) {
+                        const y = e.date.getFullYear(), m = ('0' + (e.date.getMonth() + 1)).slice(-2), d = ('0' + e.date.getDate()).slice(-2);
+                        $('#track_date').val(y + '-' + m + '-' + d);
+                    }
+                });
+
+                $('#btn_new_tracking').on('click', function() {
+                    $('#track_insert_form').attr('action', `{{ url('debtor/1102050102_107/tracking_insert') }}`);
+                    $('#track_form_method').val('POST');
+                    
+                    const today = new Date();
+                    const y = today.getFullYear(), m = ('0' + (today.getMonth() + 1)).slice(-2), d = ('0' + today.getDate()).slice(-2);
+                    $('#track_date').val(y + '-' + m + '-' + d);
+                    $('#track_date_picker').datepicker('setDate', today);
+                    
+                    $('select[name="tracking_type"]').val('โทรศัพท์');
+                    $('input[name="tracking_no"]').val('');
+                    $('input[name="tracking_officer"]').val('{{ Auth::user()->name ?? "" }}');
+                    $('input[name="tracking_note"]').val('');
+                    
+                    $('#tracking_form_title').html('<i class="bi bi-plus-circle-fill me-1"></i> บันทึกข้อมูลการติดตามครั้งใหม่');
+                    
+                    $('#tracking_history_section').hide();
+                    $('#tracking_form_section').show();
+                });
+
+                $('#btn_cancel_tracking').on('click', function() {
+                    $('#tracking_form_section').hide();
+                    $('#tracking_history_section').show();
+                });
+
+                $('#track_insert_form').on('submit', function(e) {
+                    e.preventDefault();
+                    const form = $(this);
+                    const url = form.attr('action');
+                    const data = form.serialize();
+                    
+                    $.ajax({
+                        url: url,
+                        type: 'POST',
+                        data: data,
+                        success: function(res) {
+                            if (res.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'สำเร็จ',
+                                    text: res.message,
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                });
+                                
+                                const an = $('#track_modal_an_hidden').val();
+                                loadTrackingHistory(an);
+                                
+                                $('#tracking_form_section').hide();
+                                $('#tracking_history_section').show();
+                            } else {
+                                Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถบันทึกข้อมูลได้', 'error');
+                            }
+                        },
+                        error: function() {
+                            Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถดำเนินการได้', 'error');
+                        }
+                    });
+                });
             });
         });
     </script>

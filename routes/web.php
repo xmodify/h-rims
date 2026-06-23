@@ -664,6 +664,8 @@ Route::put('debtor/1102050102_107/update/{an}', [DebtorController::class, '_1102
 Route::get('debtor/1102050102_107/tracking/{an}', [DebtorController::class, '_1102050102_107_tracking']);
 Route::post('debtor/1102050102_107/tracking_insert', [DebtorController::class, '_1102050102_107_tracking_insert']);
 Route::put('debtor/1102050102_107/tracking_update/{tracking_id}', [DebtorController::class, '_1102050102_107_tracking_update']);
+Route::get('debtor/1102050102_107/tracking_print/{tracking_id}', [DebtorController::class, '_1102050102_107_tracking_print']);
+Route::delete('debtor/1102050102_107/tracking_delete/{tracking_id}', [DebtorController::class, '_1102050102_107_tracking_delete']);
 Route::get('debtor/1102050102_107_daily_pdf', [DebtorController::class, '_1102050102_107_daily_pdf']);
 Route::post('debtor/1102050102_107/unlock/{an}', [DebtorController::class, '_1102050102_107_unlock']);
 Route::post('debtor/1102050102_107/lock/{an}', [DebtorController::class, '_1102050102_107_lock']);

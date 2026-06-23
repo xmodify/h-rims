@@ -13424,6 +13424,13 @@ class DebtorController extends Controller
         $tracking = DB::select('
             SELECT * FROM debtor_1102050102_107_tracking WHERE an = ?', [$an]);
 
+        if ($request->ajax()) {
+            return response()->json([
+                'debtor' => $debtor[0] ?? null,
+                'tracking' => $tracking
+            ]);
+        }
+
         return view('debtor.1102050102_107_tracking', compact('debtor', 'tracking'));
     }
     //1102050102_107_tracking_insert-------------------------------------------------------------------------------------------------------
@@ -13439,6 +13446,10 @@ class DebtorController extends Controller
         $item->tracking_note = $request->input('tracking_note');
         $item->save();
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'บันทึกข้อมูลเรียบร้อย']);
+        }
+
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
     //_1102050102_107_tracking_update-------------------------------------------------------------------------------------------------------
@@ -13453,7 +13464,39 @@ class DebtorController extends Controller
                 'tracking_note' => $request->input('tracking_note')
             ]);
 
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'บันทึกข้อมูลเรียบร้อย']);
+        }
+
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
+    }
+
+    public function _1102050102_107_tracking_print(Request $request, $tracking_id)
+    {
+        $tracking = DB::table('debtor_1102050102_107_tracking')->where('tracking_id', $tracking_id)->first();
+        if (!$tracking) {
+            abort(404, 'ไม่พบข้อมูลการติดตาม');
+        }
+
+        $debtor = DB::table('debtor_1102050102_107')->where('an', $tracking->an)->first();
+        if (!$debtor) {
+            abort(404, 'ไม่พบข้อมูลลูกหนี้');
+        }
+
+        $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?: 'โรงพยาบาล';
+
+        return view('debtor.1102050102_107_tracking_print', compact('tracking', 'debtor', 'hospital_name'));
+    }
+
+    public function _1102050102_107_tracking_delete(Request $request, $tracking_id)
+    {
+        Debtor_1102050102_107_tracking::where('tracking_id', $tracking_id)->delete();
+
+        if ($request->ajax()) {
+            return response()->json(['success' => true, 'message' => 'ลบข้อมูลเรียบร้อย']);
+        }
+
+        return redirect()->back()->with('success', 'ลบข้อมูลเรียบร้อย');
     }
 
     ##############################################################################################################################################################

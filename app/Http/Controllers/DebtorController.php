@@ -7895,6 +7895,13 @@ class DebtorController extends Controller
                 $adjusted_count++;
             }
         }
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ',
+                'adjusted_count' => $adjusted_count
+            ]);
+        }
         return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
     ##############################################################################################################################################################

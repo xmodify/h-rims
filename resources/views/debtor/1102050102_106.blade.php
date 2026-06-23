@@ -646,12 +646,80 @@
             preConfirm: () => { return { note: $('#blk_note').val(), date: $('#blk_date') .val() } }
         }).then((r) => {
             if (r.isConfirmed) {
-                showLoading(); let f=document.createElement('form'); f.method='POST'; f.action="{{ url('debtor/1102050102_106_bulk_adj') }}";
-                f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'_token', value:'{{csrf_token()}}'}));
-                f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'bulk_adj_note', value:r.value.note}));
-                f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'bulk_adj_date', value:r.value.date}));
-                sel.forEach(id=>f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'checkbox_d[]', value:id})));
-                document.body.appendChild(f); f.submit();
+                const chunkSize = 100;
+                const chunks = [];
+                for (let i = 0; i < sel.length; i += chunkSize) {
+                    chunks.push(sel.slice(i, i + chunkSize));
+                }
+
+                let currentChunkIndex = 0;
+                const total = sel.length;
+                let totalAdjusted = 0;
+
+                Swal.fire({
+                    title: 'กำลังปรับปรุงยอดเป็น 0...',
+                    html: `
+                        <div class="progress mb-2" style="height: 25px;">
+                            <div id="adj-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                        </div>
+                        <div id="adj-progress-text" class="text-muted small">กำลังดำเนินการ 0 จากทั้งหมด ${total} รายการ</div>
+                    `,
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        sendNextAdjChunk();
+                    }
+                });
+
+                function sendNextAdjChunk() {
+                    if (currentChunkIndex >= chunks.length) {
+                        Swal.fire({
+                            title: 'สำเร็จ!',
+                            text: `ปรับปรุงยอดจำนวน ${totalAdjusted} รายการเรียบร้อยแล้ว`,
+                            icon: 'success',
+                            confirmButtonText: 'ตกลง'
+                        }).then(() => {
+                            location.reload();
+                        });
+                        return;
+                    }
+
+                    const chunk = chunks[currentChunkIndex];
+
+                    $.ajax({
+                        url: "{{ url('debtor/1102050102_106_bulk_adj') }}",
+                        type: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            checkbox_d: chunk,
+                            bulk_adj_note: r.value.note,
+                            bulk_adj_date: r.value.date
+                        },
+                        success: function(res) {
+                            currentChunkIndex++;
+                            totalAdjusted += (res.adjusted_count || 0);
+
+                            const processedCount = Math.min(currentChunkIndex * chunkSize, total);
+                            const percent = Math.round((processedCount / total) * 100);
+
+                            const progressBar = document.getElementById('adj-progress-bar');
+                            const progressText = document.getElementById('adj-progress-text');
+                            if (progressBar) {
+                                progressBar.style.width = percent + '%';
+                                progressBar.setAttribute('aria-valuenow', percent);
+                                progressBar.innerText = percent + '%';
+                            }
+                            if (progressText) {
+                                progressText.innerText = `กำลังดำเนินการ ${processedCount} จากทั้งหมด ${total} รายการ`;
+                            }
+
+                            sendNextAdjChunk();
+                        },
+                        error: function(xhr) {
+                            Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถปรับปรุงยอดบางรายการได้ กรุณาลองใหม่อีกครั้ง', 'error');
+                        }
+                    });
+                }
             }
         });
     }

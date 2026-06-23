@@ -13507,50 +13507,69 @@ class DebtorController extends Controller
     public function _1102050101_402_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
+        if (empty($ids)) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'กรุณาเลือกรายการ']);
+            }
+            return back()->with('error', 'กรุณาเลือกรายการ');
+        }
+
+        $adjusted_count = 0;
         $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
         $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-        $adjusted_count = 0;
 
-        foreach ($ids as $id) {
-            $row = \App\Models\Debtor_1102050101_402::where('an', $id)->where('debtor_lock', 'Y')->first();
-            if ($row) {
-                $stm = \DB::table('stm_ofc')->where('an', $id)->sum('receive_total');
-                $cipn = \DB::table('stm_ofc_cipn')->where('an', $id)->sum('gtotal');
-                $csop = \DB::table('stm_ofc_csop')->join('debtor_1102050101_402', 'debtor_1102050101_402.hn', '=', 'stm_ofc_csop.hn')
-                    ->where('debtor_1102050101_402.an', $id)
-                    ->whereBetween('stm_ofc_csop.vstdate', [\DB::raw('debtor_1102050101_402.regdate'), \DB::raw('debtor_1102050101_402.dchdate')])
-                    ->sum('stm_ofc_csop.amount');
-                
-                $total_received = (float)($row->receive ?? 0) 
-                    + (float)$stm 
-                    + (float)$cipn 
-                    + (float)($row->kidney > 0 ? $csop : 0)
-                    + (float)($row->receive_manual ?? 0);
-                $diff = (float)$row->debtor - $total_received;
-                
-                if ($diff >= 0) {
-                    $adj_inc = $diff;
-                    $adj_dec = 0;
-                } else {
-                    $adj_inc = 0;
-                    $adj_dec = abs($diff);
-                }
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
 
-                \App\Models\Debtor_1102050101_402::where('an', $id)->update([
-                    'adj_inc' => $adj_inc,
-                    'adj_dec' => $adj_dec,
-                    'adj_date' => $adj_date,
-                    'adj_note' => $adj_note,
-                ]);
-                $adjusted_count++;
+        $rows = DB::select("
+            SELECT d.an, d.hn, d.regdate, d.dchdate, d.debtor, d.receive AS receive_manual, d.debtor_lock, d.kidney,
+                   (SELECT SUM(s.receive_total) FROM stm_ofc s WHERE s.an = d.an) AS stm_val,
+                   (SELECT SUM(c.gtotal) FROM stm_ofc_cipn c WHERE c.an = d.an) AS cipn_val,
+                   (
+                       SELECT SUM(cs.amount) 
+                       FROM stm_ofc_csop cs 
+                       WHERE cs.hn = d.hn AND cs.vstdate BETWEEN d.regdate AND d.dchdate
+                   ) AS csop_val
+            FROM debtor_1102050101_402 d
+            WHERE d.an IN ($placeholders)
+              AND d.debtor_lock = 'Y'
+        ", $ids);
+
+        foreach ($rows as $row) {
+            $total_received = (float)($row->receive_manual ?? 0) 
+                + (float)($row->stm_val ?? 0) 
+                + (float)($row->cipn_val ?? 0) 
+                + (float)($row->kidney > 0 ? ($row->csop_val ?? 0) : 0);
+            $diff = (float)$row->debtor - $total_received;
+
+            if ($diff >= 0) {
+                $adj_inc = $diff;
+                $adj_dec = 0;
+            } else {
+                $adj_inc = 0;
+                $adj_dec = abs($diff);
             }
+
+            \App\Models\Debtor_1102050101_402::where('an', $row->an)->update([
+                'adj_inc' => $adj_inc,
+                'adj_dec' => $adj_dec,
+                'adj_date' => $adj_date,
+                'adj_note' => $adj_note,
+            ]);
+            $adjusted_count++;
         }
-        
-        if ($adjusted_count > 0) {
-             return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-        } else {
-             return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ',
+                'adjusted_count' => $adjusted_count
+            ]);
         }
+
+        if ($adjusted_count == 0) {
+            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
     ##############################################################################################################################################################
     //_1102050101_502--------------------------------------------------------------------------------------------------------------

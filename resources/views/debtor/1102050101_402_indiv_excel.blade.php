@@ -57,7 +57,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
 
             @foreach($debtor as $row)          
             @php
-                $total_received = ($row->receive ?? 0) + ($row->receive_manual ?? 0);
+                $total_received = ($row->receive ?? 0);
                 $balance = ($total_received + ($row->adj_inc ?? 0) - ($row->adj_dec ?? 0)) - $row->debtor;
             @endphp
             <tr>
@@ -114,7 +114,7 @@ header("Content-Disposition: attachment; filename=".$files); //ชื่อไ�
                 <td align="right"><strong>{{number_format($sum_rcpt_money,2)}}&nbsp;</strong></td>  
                 <td align="right"><strong>{{number_format($sum_kidney,2)}}&nbsp;</strong></td>  
                 <td align="right"><strong>{{number_format($sum_debtor,2)}}&nbsp;</strong></td>
-                <td align="right"><strong>{{number_format($sum_receive + $sum_receive_manual,2)}}&nbsp;</strong></td>  
+                <td align="right"><strong>{{number_format($sum_receive,2)}}&nbsp;</strong></td>  
                 <td align="right"><strong>{{number_format($sum_adj_inc,2)}}&nbsp;</strong></td>
                 <td align="right"><strong>{{number_format($sum_adj_dec,2)}}&nbsp;</strong></td>
                 <td align="right"><strong>{{number_format($sum_balance,2)}}&nbsp;</strong></td>

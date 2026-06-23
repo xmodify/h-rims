@@ -446,6 +446,7 @@ Route::get('debtor/1102050101_309_daily_pdf', [DebtorController::class, '_110205
 Route::post('debtor/1102050101_309/unlock/{vn}', [DebtorController::class, '_1102050101_309_unlock']);
 Route::post('debtor/1102050101_309/lock/{vn}', [DebtorController::class, '_1102050101_309_lock']);
 Route::get('debtor/1102050101_309_indiv_excel', [DebtorController::class, '_1102050101_309_indiv_excel']);
+Route::get('debtor/adjust_log/1102050101_309', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_309']);
 Route::match(['get', 'post'], 'debtor/1102050101_401', [DebtorController::class, '_1102050101_401']);
 Route::get('debtor/1102050101_401_search_ajax', [DebtorController::class, '_1102050101_401_search_ajax']);
 Route::post('debtor/1102050101_401_confirm', [DebtorController::class, '_1102050101_401_confirm']);
@@ -455,6 +456,7 @@ Route::get('debtor/1102050101_401_daily_pdf', [DebtorController::class, '_110205
 Route::post('debtor/1102050101_401/unlock/{vn}', [DebtorController::class, '_1102050101_401_unlock']);
 Route::post('debtor/1102050101_401/lock/{vn}', [DebtorController::class, '_1102050101_401_lock']);
 Route::get('debtor/1102050101_401_indiv_excel', [DebtorController::class, '_1102050101_401_indiv_excel']);
+Route::get('debtor/adjust_log/1102050101_401', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_401']);
 Route::match(['get', 'post'], 'debtor/1102050101_501', [DebtorController::class, '_1102050101_501']);
 Route::get('debtor/1102050101_501_search_ajax', [DebtorController::class, '_1102050101_501_search_ajax']);
 Route::post('debtor/1102050101_501_confirm', [DebtorController::class, '_1102050101_501_confirm']);
@@ -719,15 +721,15 @@ Route::post('debtor/1102050101_216_bulk_adj', [\App\Http\Controllers\DebtorAdjCo
 Route::put('debtor/1102050101_217/update/{id}', [DebtorController::class, '_1102050101_217_update']);
 Route::post('debtor/1102050101_217_bulk_adj', [DebtorController::class, '_1102050101_217_bulk_adj']);
 Route::put('debtor/1102050101_301/update/{id}', [DebtorController::class, '_1102050101_301_update']);
-Route::post('debtor/1102050101_301_bulk_adj', [DebtorController::class, '_1102050101_301_bulk_adj']);
+Route::post('debtor/1102050101_301_bulk_adj', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_301_bulk_adj']);
 Route::post('debtor/1102050101_302_bulk_adj', [DebtorController::class, '_1102050101_302_bulk_adj']);
-Route::post('debtor/1102050101_303_bulk_adj', [DebtorController::class, '_1102050101_303_bulk_adj']);
+Route::post('debtor/1102050101_303_bulk_adj', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_303_bulk_adj']);
 Route::post('debtor/1102050101_304_bulk_adj', [DebtorController::class, '_1102050101_304_bulk_adj']);
-Route::post('debtor/1102050101_307_bulk_adj', [DebtorController::class, '_1102050101_307_bulk_adj']);
+Route::post('debtor/1102050101_307_bulk_adj', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_307_bulk_adj']);
 Route::post('debtor/1102050101_308_bulk_adj', [DebtorController::class, '_1102050101_308_bulk_adj']);
-Route::post('debtor/1102050101_309_bulk_adj', [DebtorController::class, '_1102050101_309_bulk_adj']);
+Route::post('debtor/1102050101_309_bulk_adj', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_309_bulk_adj']);
 Route::post('debtor/1102050101_310_bulk_adj', [DebtorController::class, '_1102050101_310_bulk_adj']);
-Route::post('debtor/1102050101_401_bulk_adj', [DebtorController::class, '_1102050101_401_bulk_adj']);
+Route::post('debtor/1102050101_401_bulk_adj', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_401_bulk_adj']);
 Route::put('debtor/1102050101_402/update/{an}', [DebtorController::class, '_1102050101_402_update']);
 Route::post('debtor/1102050101_402_bulk_adj', [DebtorController::class, '_1102050101_402_bulk_adj']);
 Route::put('debtor/1102050101_502/update/{an}', [DebtorController::class, '_1102050101_502_update']);
@@ -776,3 +778,6 @@ Route::get('debtor/adjust_log/1102050101_201', [\App\Http\Controllers\DebtorAdjC
 Route::get('debtor/adjust_log/1102050101_203', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_203']);
 Route::get('debtor/adjust_log/1102050101_209', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_209']);
 Route::get('debtor/adjust_log/1102050101_216', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_216']);
+Route::get('debtor/adjust_log/1102050101_301', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_301']);
+Route::get('debtor/adjust_log/1102050101_303', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_303']);
+Route::get('debtor/adjust_log/1102050101_307', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_307']);

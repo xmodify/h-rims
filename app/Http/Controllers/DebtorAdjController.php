@@ -595,4 +595,487 @@ class DebtorAdjController extends Controller
 
         return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
+
+    public function _1102050101_301(Request $request)
+    {
+        $start_date = $request->input('start_date') ?: date('Y-m-01');
+        $end_date = $request->input('end_date') ?: date('Y-m-t');
+        $export_type = $request->input('export_type'); // 'json', 'pdf'
+
+        // Query adjustments from debtor_1102050101_301
+        $data = DB::select("
+            SELECT hn, vn, ptname, vstdate, pttype, pdx, debtor, receive, adj_inc, adj_dec, adj_date, adj_note
+            FROM debtor_1102050101_301
+            WHERE adj_date BETWEEN ? AND ?
+              AND (adj_inc > 0 OR adj_dec > 0)
+            ORDER BY adj_date ASC, vn ASC
+        ", [$start_date, $end_date]);
+
+        if ($export_type === 'json') {
+            return response()->json([
+                'success' => true,
+                'data' => $data
+            ]);
+        }
+
+        if ($export_type === 'pdf') {
+            $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?: 'โรงพยาบาล';
+            $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '';
+            
+            $pdf = PDF::loadView('debtor_adj.1102050101_301_pdf', compact('data', 'start_date', 'end_date', 'hospital_name', 'hospital_code'))
+                ->setPaper('a4', 'portrait');
+            return $pdf->stream('adjustment_report_301.pdf');
+        }
+
+        return abort(404);
+    }
+
+    public function _1102050101_301_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        if (empty($ids)) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'กรุณาเลือกรายการที่ต้องการปรับปรุงยอด']);
+            }
+            return back()->with('error', 'กรุณาเลือกรายการที่ต้องการปรับปรุงยอด');
+        }
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
+        // Batch Query (Fetch all lockable records at once)
+        $rows = \App\Models\Debtor_1102050101_301::whereIn('vn', $ids)->where('debtor_lock', 'Y')->get();
+
+        foreach ($rows as $row) {
+            $adj_val = (float)$row->debtor - (float)$row->receive;
+
+            if ($adj_val >= 0) {
+                $row->adj_inc = $adj_val;
+                $row->adj_dec = 0;
+            } else {
+                $row->adj_inc = 0;
+                $row->adj_dec = abs($adj_val);
+            }
+            $row->adj_date = $adj_date;
+            $row->adj_note = $adj_note;
+            $row->save();
+            $adjusted_count++;
+        }
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ',
+                'adjusted_count' => $adjusted_count
+            ]);
+        }
+
+        if ($adjusted_count == 0) {
+            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
+
+    public function _1102050101_303(Request $request)
+    {
+        $start_date = $request->input('start_date') ?: date('Y-m-01');
+        $end_date = $request->input('end_date') ?: date('Y-m-t');
+        $export_type = $request->input('export_type'); // 'json', 'pdf'
+
+        // Query adjustments from debtor_1102050101_303
+        $data = DB::select("
+            SELECT hn, vn, ptname, vstdate, pttype, pdx, debtor, receive, adj_inc, adj_dec, adj_date, adj_note
+            FROM debtor_1102050101_303
+            WHERE adj_date BETWEEN ? AND ?
+              AND (adj_inc > 0 OR adj_dec > 0)
+            ORDER BY adj_date ASC, vn ASC
+        ", [$start_date, $end_date]);
+
+        if ($export_type === 'json') {
+            return response()->json([
+                'success' => true,
+                'data' => $data
+            ]);
+        }
+
+        if ($export_type === 'pdf') {
+            $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?: 'โรงพยาบาล';
+            $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '';
+            
+            $pdf = PDF::loadView('debtor_adj.1102050101_303_pdf', compact('data', 'start_date', 'end_date', 'hospital_name', 'hospital_code'))
+                ->setPaper('a4', 'portrait');
+            return $pdf->stream('adjustment_report_303.pdf');
+        }
+
+        return abort(404);
+    }
+
+    public function _1102050101_303_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        if (empty($ids)) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'กรุณาเลือกรายการที่ต้องการปรับปรุงยอด']);
+            }
+            return back()->with('error', 'กรุณาเลือกรายการที่ต้องการปรับปรุงยอด');
+        }
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
+        // Batch Query (Fetch all lockable records at once)
+        $rows = \App\Models\Debtor_1102050101_303::whereIn('vn', $ids)->where('debtor_lock', 'Y')->get();
+
+        foreach ($rows as $row) {
+            $balance = (float)$row->receive - (float)$row->debtor;
+            $adj_val = 0 - $balance;
+
+            if ($adj_val > 0) {
+                $row->adj_inc = $adj_val;
+                $row->adj_dec = 0;
+            } else {
+                $row->adj_inc = 0;
+                $row->adj_dec = abs($adj_val);
+            }
+            $row->adj_date = $adj_date;
+            $row->adj_note = $adj_note;
+            $row->save();
+            $adjusted_count++;
+        }
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ',
+                'adjusted_count' => $adjusted_count
+            ]);
+        }
+
+        if ($adjusted_count == 0) {
+            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
+
+    public function _1102050101_307(Request $request)
+    {
+        $start_date = $request->input('start_date') ?: date('Y-m-01');
+        $end_date = $request->input('end_date') ?: date('Y-m-t');
+        $export_type = $request->input('export_type'); // 'json', 'pdf'
+
+        // Query adjustments from debtor_1102050101_307
+        $data = DB::select("
+            SELECT hn, vn, ptname, vstdate, pttype, pdx, debtor, receive, adj_inc, adj_dec, adj_date, adj_note
+            FROM debtor_1102050101_307
+            WHERE adj_date BETWEEN ? AND ?
+              AND (adj_inc > 0 OR adj_dec > 0)
+            ORDER BY adj_date ASC, vn ASC
+        ", [$start_date, $end_date]);
+
+        if ($export_type === 'json') {
+            return response()->json([
+                'success' => true,
+                'data' => $data
+            ]);
+        }
+
+        if ($export_type === 'pdf') {
+            $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?: 'โรงพยาบาล';
+            $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '';
+            
+            $pdf = PDF::loadView('debtor_adj.1102050101_307_pdf', compact('data', 'start_date', 'end_date', 'hospital_name', 'hospital_code'))
+                ->setPaper('a4', 'portrait');
+            return $pdf->stream('adjustment_report_307.pdf');
+        }
+
+        return abort(404);
+    }
+
+    public function _1102050101_307_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        if (empty($ids)) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'กรุณาเลือกรายการที่ต้องการปรับปรุงยอด']);
+            }
+            return back()->with('error', 'กรุณาเลือกรายการที่ต้องการปรับปรุงยอด');
+        }
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $adjusted_count = 0;
+
+        // Batch Query (Fetch all lockable records at once)
+        $rows = \App\Models\Debtor_1102050101_307::whereIn('vn', $ids)->where('debtor_lock', 'Y')->get();
+
+        foreach ($rows as $row) {
+            $balance = (float)$row->receive - (float)$row->debtor;
+            $adj_val = 0 - $balance;
+
+            if ($adj_val > 0) {
+                $row->adj_inc = $adj_val;
+                $row->adj_dec = 0;
+            } else {
+                $row->adj_inc = 0;
+                $row->adj_dec = abs($adj_val);
+            }
+            $row->adj_date = $adj_date;
+            $row->adj_note = $adj_note;
+            $row->save();
+            $adjusted_count++;
+        }
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ',
+                'adjusted_count' => $adjusted_count
+            ]);
+        }
+
+        if ($adjusted_count == 0) {
+            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
+
+    public function _1102050101_309(Request $request)
+    {
+        $start_date = $request->input('start_date') ?: date('Y-m-01');
+        $end_date = $request->input('end_date') ?: date('Y-m-t');
+        $export_type = $request->input('export_type'); // 'json', 'pdf'
+
+        // Query adjustments from debtor_1102050101_309
+        $data = DB::select("
+            SELECT hn, vn, ptname, vstdate, pttype, pdx, debtor, receive, adj_inc, adj_dec, adj_date, adj_note
+            FROM debtor_1102050101_309
+            WHERE adj_date BETWEEN ? AND ?
+              AND (adj_inc > 0 OR adj_dec > 0)
+            ORDER BY adj_date ASC, vn ASC
+        ", [$start_date, $end_date]);
+
+        if ($export_type === 'json') {
+            return response()->json([
+                'success' => true,
+                'data' => $data
+            ]);
+        }
+
+        if ($export_type === 'pdf') {
+            $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?: 'โรงพยาบาล';
+            $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '';
+            
+            $pdf = PDF::loadView('debtor_adj.1102050101_309_pdf', compact('data', 'start_date', 'end_date', 'hospital_name', 'hospital_code'))
+                ->setPaper('a4', 'portrait');
+            return $pdf->stream('adjustment_report_309.pdf');
+        }
+
+        return abort(404);
+    }
+
+    public function _1102050101_309_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        if (empty($ids)) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'กรุณาเลือกรายการที่ต้องการปรับปรุงยอด']);
+            }
+            return back()->with('error', 'กรุณาเลือกรายการที่ต้องการปรับปรุงยอด');
+        }
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adjusted_count = 0;
+
+        // Batch Query (Fetch all lockable records at once)
+        $rows = \App\Models\Debtor_1102050101_309::whereIn('vn', $ids)->where('debtor_lock', 'Y')->get();
+
+        if ($rows->isNotEmpty()) {
+            $cids = $rows->pluck('cid')->filter()->unique()->toArray();
+            $vstdates = $rows->pluck('vstdate')->filter()->unique()->toArray();
+
+            $stm_records = [];
+            if (!empty($cids) && !empty($vstdates)) {
+                $stm_records = DB::table('stm_sss_kidney')
+                    ->select('cid', 'vstdate', DB::raw('SUM(IFNULL(amount,0)+ IFNULL(epopay,0)+ IFNULL(epoadm,0)) as receive_sum'))
+                    ->whereIn('cid', $cids)
+                    ->whereIn('vstdate', $vstdates)
+                    ->groupBy('cid', 'vstdate')
+                    ->get();
+            }
+
+            $stm_map = [];
+            foreach ($stm_records as $rec) {
+                $key = $rec->cid . '|' . $rec->vstdate;
+                $stm_map[$key] = (float)$rec->receive_sum;
+            }
+
+            foreach ($rows as $row) {
+                $stm_key = $row->cid . '|' . $row->vstdate;
+                $stm_val = $stm_map[$stm_key] ?? 0.0;
+
+                $balance = ((float)$row->receive + $stm_val) - (float)$row->debtor;
+                $adj_val = 0 - $balance;
+
+                $update_data = [
+                    'adj_date' => $date,
+                    'adj_note' => $note,
+                ];
+
+                if ($adj_val > 0) {
+                    $update_data['adj_inc'] = $adj_val;
+                    $update_data['adj_dec'] = 0;
+                } else {
+                    $update_data['adj_inc'] = 0;
+                    $update_data['adj_dec'] = abs($adj_val);
+                }
+
+                $row->update($update_data);
+                $adjusted_count++;
+            }
+        }
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ',
+                'adjusted_count' => $adjusted_count
+            ]);
+        }
+
+        if ($adjusted_count == 0) {
+            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
+        }
+
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
+
+    public function _1102050101_401(Request $request)
+    {
+        $start_date = $request->input('start_date') ?: date('Y-m-01');
+        $end_date = $request->input('end_date') ?: date('Y-m-t');
+        $export_type = $request->input('export_type'); // 'json', 'pdf'
+
+        // Query adjustments from debtor_1102050101_401
+        $data = DB::select("
+            SELECT hn, vn, ptname, vstdate, pttype, pdx, debtor, receive, adj_inc, adj_dec, adj_date, adj_note
+            FROM debtor_1102050101_401
+            WHERE adj_date BETWEEN ? AND ?
+              AND (adj_inc > 0 OR adj_dec > 0)
+            ORDER BY adj_date ASC, vn ASC
+        ", [$start_date, $end_date]);
+
+        if ($export_type === 'json') {
+            return response()->json([
+                'success' => true,
+                'data' => $data
+            ]);
+        }
+
+        if ($export_type === 'pdf') {
+            $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?: 'โรงพยาบาล';
+            $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '';
+            
+            $pdf = PDF::loadView('debtor_adj.1102050101_401_pdf', compact('data', 'start_date', 'end_date', 'hospital_name', 'hospital_code'))
+                ->setPaper('a4', 'portrait');
+            return $pdf->stream('adjustment_report_401.pdf');
+        }
+
+        return abort(404);
+    }
+
+    public function _1102050101_401_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        if (empty($ids)) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'กรุณาเลือกรายการที่ต้องการปรับปรุงยอด']);
+            }
+            return back()->with('error', 'กรุณาเลือกรายการที่ต้องการปรับปรุงยอด');
+        }
+        $note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+        $date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adjusted_count = 0;
+
+        // Fetch lockable rows in one query
+        $rows = \App\Models\Debtor_1102050101_401::whereIn('vn', $ids)->where('debtor_lock', 'Y')->get();
+
+        if ($rows->isNotEmpty()) {
+            $hns = $rows->pluck('hn')->unique()->toArray();
+            $vstdates = $rows->pluck('vstdate')->unique()->toArray();
+
+            // Batch query for stm_ofc
+            $stm_ofc_data = DB::table('stm_ofc')
+                ->whereIn('hn', $hns)
+                ->whereIn('vstdate', $vstdates)
+                ->select('hn', 'vstdate', DB::raw('LEFT(vsttime, 5) as vsttime_short'), DB::raw('SUM(receive_total) as total_receive'))
+                ->groupBy('hn', 'vstdate', 'vsttime_short')
+                ->get()
+                ->keyBy(function($item) {
+                    return "{$item->hn}|{$item->vstdate}|{$item->vsttime_short}";
+                });
+
+            // Batch query for stm_ofc_csop (sys <> HD)
+            $stm_csop_data = DB::table('stm_ofc_csop')
+                ->whereIn('hn', $hns)
+                ->whereIn('vstdate', $vstdates)
+                ->where('sys', '<>', 'HD')
+                ->select('hn', 'vstdate', DB::raw('LEFT(vsttime, 5) as vsttime_short'), DB::raw('SUM(amount) as total_amount'))
+                ->groupBy('hn', 'vstdate', 'vsttime_short')
+                ->get()
+                ->keyBy(function($item) {
+                    return "{$item->hn}|{$item->vstdate}|{$item->vsttime_short}";
+                });
+
+            // Batch query for stm_ofc_csop (sys == HD)
+            $stm_csop_hd_data = DB::table('stm_ofc_csop')
+                ->whereIn('hn', $hns)
+                ->whereIn('vstdate', $vstdates)
+                ->where('sys', 'HD')
+                ->select('hn', 'vstdate', DB::raw('SUM(amount) as total_amount'))
+                ->groupBy('hn', 'vstdate')
+                ->get()
+                ->keyBy(function($item) {
+                    return "{$item->hn}|{$item->vstdate}";
+                });
+
+            foreach ($rows as $row) {
+                $vsttime_short = substr($row->vsttime, 0, 5);
+                $key_short = "{$row->hn}|{$row->vstdate}|{$vsttime_short}";
+                $key_date = "{$row->hn}|{$row->vstdate}";
+
+                $stm1 = isset($stm_ofc_data[$key_short]) ? (float)$stm_ofc_data[$key_short]->total_receive : 0.0;
+                $stm2 = isset($stm_csop_data[$key_short]) ? (float)$stm_csop_data[$key_short]->total_amount : 0.0;
+                $stm3 = 0.0;
+                if ($row->kidney > 0) {
+                    $stm3 = isset($stm_csop_hd_data[$key_date]) ? (float)$stm_csop_hd_data[$key_date]->total_amount : 0.0;
+                }
+
+                $balance = ((float)$row->receive + $stm1 + $stm2 + $stm3) - (float)$row->debtor;
+                $adj_val = 0 - $balance;
+                if ($adj_val > 0) {
+                    $row->adj_inc = $adj_val;
+                    $row->adj_dec = 0;
+                } else {
+                    $row->adj_inc = 0;
+                    $row->adj_dec = abs($adj_val);
+                }
+                $row->adj_date = $date;
+                $row->adj_note = $note;
+                $row->save();
+                $adjusted_count++;
+            }
+        }
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'adjusted_count' => $adjusted_count,
+                'message' => 'ปรับปรุงยอดเรียบร้อยแล้ว'
+            ]);
+        }
+
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
 }

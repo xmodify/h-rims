@@ -7848,24 +7848,32 @@ class DebtorController extends Controller
     public function _1102050102_106_bulk_adj(Request $request)
     {
         $ids = $request->checkbox_d ?: [];
+        if (empty($ids)) {
+            return back()->with('error', 'กรุณาเลือกรายการที่ต้องการปรับปรุงยอด');
+        }
         $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
         $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
         $adjusted_count = 0;
 
-        foreach ($ids as $id) {
-            $row = DB::connection('hosxp')->selectOne("
-                SELECT d.*, IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0) AS total_bill
-                FROM hrims.debtor_1102050102_106 d
-                LEFT JOIN (
-                    SELECT r.vn, SUM(r.total_amount) AS total_amount
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL
-                    GROUP BY r.vn
-                ) r ON r.vn = d.vn
-                WHERE d.vn = ?
-            ", [$id]);
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $params = array_merge($ids, $ids);
 
+        $rows = DB::connection('hosxp')->select("
+            SELECT d.vn, d.debtor, d.receive, d.rcpt_money, d.debtor_lock,
+                   IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0) AS total_bill
+            FROM hrims.debtor_1102050102_106 d
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.total_amount) AS total_amount
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
+                WHERE a.rcpno IS NULL
+                  AND r.vn IN ($placeholders)
+                GROUP BY r.vn
+            ) r ON r.vn = d.vn
+            WHERE d.vn IN ($placeholders)
+        ", $params);
+
+        foreach ($rows as $row) {
             if ($row && $row->debtor_lock == 'Y') {
                 $receive = (float)$row->receive + (float)$row->total_bill;
 
@@ -7883,7 +7891,7 @@ class DebtorController extends Controller
                     $update_data['adj_dec'] = abs($diff);
                 }
 
-                \App\Models\Debtor_1102050102_106::where('vn', $id)->update($update_data);
+                \App\Models\Debtor_1102050102_106::where('vn', $row->vn)->update($update_data);
                 $adjusted_count++;
             }
         }

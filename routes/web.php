@@ -508,8 +508,10 @@ Route::post('debtor/1102050102_106/unlock/{vn}', [DebtorController::class, '_110
 Route::post('debtor/1102050102_106/lock/{vn}', [DebtorController::class, '_1102050102_106_lock']);
 Route::get('debtor/1102050102_106_indiv_excel', [DebtorController::class, '_1102050102_106_indiv_excel']);
 Route::get('debtor/1102050102_106/tracking/{vn}', [DebtorController::class, '_1102050102_106_tracking']);
+Route::get('debtor/1102050102_106/tracking_print/{tracking_id}', [DebtorController::class, '_1102050102_106_tracking_print']);
 Route::post('debtor/1102050102_106/tracking_insert', [DebtorController::class, '_1102050102_106_tracking_insert']);
 Route::put('debtor/1102050102_106/tracking_update/{tracking_id}', [DebtorController::class, '_1102050102_106_tracking_update']);
+Route::delete('debtor/1102050102_106/tracking_delete/{tracking_id}', [DebtorController::class, '_1102050102_106_tracking_delete']);
 Route::get('debtor/adjust_log/1102050102_108', [\App\Http\Controllers\DebtorAdjController::class, '_1102050102_108']);
 Route::match(['get', 'post'], 'debtor/1102050102_108', [DebtorController::class, '_1102050102_108']);
 Route::get('debtor/1102050102_108_search_ajax', [DebtorController::class, '_1102050102_108_search_ajax']);

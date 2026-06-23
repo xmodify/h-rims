@@ -10509,57 +10509,7 @@ class DebtorController extends Controller
                 ยอดที่จัดสรรได้จริง : <b>" . number_format($finalSum, 2) . "</b> ✔ ตรง 100%
             "
         ]);
-    }
-
-    public function _1102050101_302_bulk_adj(Request $request)
-    {
-        $ids = $request->checkbox_d ?: [];
-        if (empty($ids)) {
-            if ($request->ajax()) {
-                return response()->json(['success' => false, 'message' => 'กรุณาเลือกรายการ']);
-            }
-            return back()->with('error', 'กรุณาเลือกรายการ');
-        }
-
-        $adjusted_count = 0;
-        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
-        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
-
-        $rows = \App\Models\Debtor_1102050101_302::whereIn('an', $ids)->where('debtor_lock', 'Y')->get();
-
-        foreach ($rows as $row) {
-            $receive = (float)$row->receive;
-            $diff = (float)$row->debtor - (float)$receive;
-            if ($diff > 0) {
-                $adj_inc = $diff;
-                $adj_dec = 0;
-            } else {
-                $adj_inc = 0;
-                $adj_dec = abs($diff);
-            }
-
-            $row->update([
-                'adj_inc' => $adj_inc,
-                'adj_dec' => $adj_dec,
-                'adj_date' => $adj_date,
-                'adj_note' => $adj_note,
-            ]);
-            $adjusted_count++;
-        }
-
-        if ($request->ajax()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ',
-                'adjusted_count' => $adjusted_count
-            ]);
-        }
-
-        if ($adjusted_count == 0) {
-            return back()->with('error', 'ไม่พบรายการที่สามารถปรับปรุงยอดได้ (ต้อง Lock รายการก่อน)');
-        }
-        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
-    }
+    }    
     ##############################################################################################################################################################
     //_1102050101_304--------------------------------------------------------------------------------------------------------------
     public function _1102050101_304(Request $request)

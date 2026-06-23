@@ -86,6 +86,9 @@
                                 @endif
                             </div>
                             <div>
+                                <button type="button" class="btn btn-outline-info btn-sm me-1" onclick="openAdjModal()">
+                                     <i class="bi bi-journal-text me-1"></i> ประวัติปรับปรุง
+                                </button>
                                 <a class="btn btn-outline-success btn-sm" href="{{ url('debtor/1102050101_504_indiv_excel')}}" target="_blank">
                                      <i class="bi bi-file-earmark-excel me-1"></i> ส่งออกรายตัว
                                 </a>                
@@ -421,6 +424,65 @@
             </div>
         </div>
         <!-- end modal -->         
+        
+        <!-- History Adjustment Modal -->
+        <div id="adjLogModal" class="modal fade" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-info text-dark border-0 py-3">
+                        <h5 class="modal-title fw-bold d-flex align-items-center">
+                            <i class="bi bi-journal-text me-2"></i> ประวัติการปรับปรุงยอดลูกหนี้ 1102050101.504-ลูกหนี้ค่ารักษา คนต่างด้าวและแรงงานต่างด้าว IP นอก CUP
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body p-4">
+                        <!-- ส่วนตัวกรองช่วงวันที่ค้นหาประวัติ -->
+                        <div class="row g-2 align-items-center mb-3">
+                            <div class="col-md-5 d-flex align-items-center">
+                                <span class="input-group-text bg-white text-muted border-end-0 rounded-start">วันที่ปรับยอด</span>
+                                <input type="hidden" id="adj_start_date" value="{{date('Y-m-01')}}">
+                                <input type="text" id="adj_start_date_picker" class="form-control border-start-0 rounded-0 datepicker_th" value="{{DateThai(date('Y-m-01'))}}" readonly>
+                                <span class="input-group-text bg-white border-start-0 border-end-0 rounded-0">ถึง</span>
+                                <input type="hidden" id="adj_end_date" value="{{date('Y-m-t')}}">
+                                <input type="text" id="adj_end_date_picker" class="form-control border-start-0 rounded-end datepicker_th" value="{{DateThai(date('Y-m-t'))}}" readonly>
+                            </div>
+                            <div class="col-md-7 d-flex gap-2">
+                                <button type="button" class="btn btn-info text-dark fw-bold px-3 shadow-sm" onclick="loadAdjLogs()">
+                                    <i class="bi bi-search me-1"></i> ค้นหา
+                                </button>
+                                <a id="btn-adj-print-pdf" class="btn btn-danger fw-bold px-3 shadow-sm" href="#" target="_blank">
+                                    <i class="bi bi-file-pdf me-1"></i> พิมพ์ใบแนบปรับปรุง (PDF)
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- ตารางประวัติปรับยอด -->
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped" id="adj_logs_table" width="100%">
+                                <thead>
+                                    <tr class="table-info align-middle text-center" style="font-size: 13px;">
+                                        <th>ลำดับ</th>
+                                        <th>วันที่ปรับปรุง</th>
+                                        <th>วันที่จำหน่าย</th>
+                                        <th>HN</th>
+                                        <th>AN</th>
+                                        <th>ชื่อ-สกุล</th>
+                                        <th>ยอดลูกหนี้</th>
+                                        <th>ยอดชดเชย</th>
+                                        <th>ปรับเพิ่ม</th>
+                                        <th>ปรับลด</th>
+                                        <th>เหตุผลการปรับปรุง</th>
+                                    </tr>
+                                </thead>
+                                <tbody style="font-size: 13px;">
+                                    <!-- ข้อมูลจะถูกดึงเข้าแบบ AJAX -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
         
     </div>
 
@@ -1079,6 +1141,126 @@
                 $('#empty-tab2').removeClass('d-none').html('<i class="bi bi-exclamation-triangle fs-1 text-danger"></i><p class="mt-2 text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</p>');
             });
         }
+
+        window.openAdjModal = function() {
+            $('#adjLogModal').modal('show');
+            
+            // Set initial datepicker values
+            const startVal = $('#adj_start_date').val();
+            const endVal = $('#adj_end_date').val();
+            if (startVal) {
+                $('#adj_start_date_picker').datepicker('setDate', new Date(startVal));
+            }
+            if (endVal) {
+                $('#adj_end_date_picker').datepicker('setDate', new Date(endVal));
+            }
+
+            updateAdjPdfUrl();
+            loadAdjLogs();
+        };
+
+        window.updateAdjPdfUrl = function() {
+            const start = $('#adj_start_date').val();
+            const end = $('#adj_end_date').val();
+            const url = `{{ url('debtor/adjust_log/1102050101_504') }}?start_date=${start}&end_date=${end}&export_type=pdf`;
+            $('#btn-adj-print-pdf').attr('href', url);
+        };
+
+        window.loadAdjLogs = function() {
+            const start = $('#adj_start_date').val();
+            const end = $('#adj_end_date').val();
+            
+            if ($.fn.DataTable.isDataTable('#adj_logs_table')) {
+                $('#adj_logs_table').DataTable().destroy();
+            }
+            
+            $('#adj_logs_table tbody').html(`
+                <tr>
+                    <td colspan="11" class="text-center p-4">
+                        <div class="spinner-border text-info" role="status"></div>
+                        <div class="text-muted small mt-2">กำลังดึงข้อมูลประวัติการปรับปรุงยอด...</div>
+                    </td>
+                </tr>
+            `);
+
+            $.ajax({
+                url: `{{ url('debtor/adjust_log/1102050101_504') }}`,
+                type: 'GET',
+                data: {
+                    start_date: start,
+                    end_date: end,
+                    export_type: 'json'
+                },
+                success: function(res) {
+                    if (res.success && res.data.length > 0) {
+                        let html = '';
+                        res.data.forEach((row, index) => {
+                            html += `
+                                <tr>
+                                    <td class="text-center">${index + 1}</td>
+                                    <td class="text-center" style="white-space: nowrap;">${formatThaiDate(row.adj_date)}</td>
+                                    <td class="text-center" style="white-space: nowrap;">${formatThaiDate(row.dchdate)}</td>
+                                    <td class="text-center">${row.hn}</td>
+                                    <td class="text-center">${row.an}</td>
+                                    <td class="text-start">${row.ptname}</td>
+                                    <td class="text-end">${parseFloat(row.debtor || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                    <td class="text-end">${parseFloat(row.receive || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                    <td class="text-end text-purple fw-bold" style="color: purple;">${parseFloat(row.adj_inc || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                    <td class="text-end text-primary fw-bold" style="color: blue;">${parseFloat(row.adj_dec || 0).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                    <td class="text-start">${row.adj_note || ''}</td>
+                                </tr>
+                            `;
+                        });
+                        $('#adj_logs_table tbody').html(html);
+                        
+                        $('#adj_logs_table').DataTable({
+                            pageLength: 10,
+                            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"]],
+                            language: {
+                                search: "ค้นหา:",
+                                lengthMenu: "แสดง _MENU_ รายการ",
+                                info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                                infoEmpty: "แสดง 0 ถึง 0 จากทั้งหมด 0 รายการ",
+                                zeroRecords: "ไม่พบข้อมูลที่ตรงกัน",
+                                paginate: {
+                                    first: "หน้าแรก",
+                                    last: "หน้าสุดท้าย",
+                                    next: "ถัดไป",
+                                    previous: "ก่อนหน้า"
+                                }
+                            },
+                            columnDefs: [
+                                { orderable: false, targets: 0 }
+                            ]
+                        });
+                    } else {
+                        $('#adj_logs_table tbody').html(`
+                            <tr>
+                                <td colspan="11" class="text-center p-4 text-muted">ไม่พบข้อมูลการปรับปรุงยอดในช่วงวันที่ระบุ</td>
+                            </tr>
+                        `);
+                    }
+                },
+                error: function() {
+                    $('#adj_logs_table tbody').html(`
+                        <tr>
+                            <td colspan="11" class="text-center p-4 text-danger">เกิดข้อผิดพลาดในการโหลดข้อมูล</td>
+                        </tr>
+                    `);
+                }
+            });
+        };
+
+        window.formatThaiDate = function(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            const months = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+            return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`;
+        };
+
+        $(document).on('changeDate', '#adj_start_date_picker, #adj_end_date_picker', function() {
+            updateAdjPdfUrl();
+        });
     </script>
 @endpush
 

@@ -170,6 +170,12 @@
 
                         </button>
 
+                        <button type="button" class="btn btn-outline-info btn-sm fw-bold shadow-sm" onclick="openAdjModal()">
+
+                            <i class="bi bi-clock-history me-1"></i> ประวัติปรับปรุง
+
+                        </button>
+
                         @endif
 
                     </div>

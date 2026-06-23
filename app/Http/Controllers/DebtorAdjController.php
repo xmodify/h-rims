@@ -2440,6 +2440,110 @@ class DebtorAdjController extends Controller
         }
         return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
+
+    public function _1102050101_310(Request $request)
+    {
+        $start_date = $request->input('start_date') ?: date('Y-m-01');
+        $end_date = $request->input('end_date') ?: date('Y-m-t');
+        $export_type = $request->input('export_type'); // 'json', 'pdf'
+
+        // Query adjustments from debtor_1102050101_310 (including stm_receive)
+        $data = DB::select("
+            SELECT d.hn, d.an, d.ptname, d.dchdate, d.pttype, d.pdx, d.debtor,
+                   (IFNULL(d.receive, 0) + IFNULL(
+                       (SELECT SUM(IFNULL(s.amount,0) + IFNULL(s.epopay,0) + IFNULL(s.epoadm,0))
+                        FROM stm_sss_kidney s
+                        WHERE s.hn = d.hn AND s.vstdate BETWEEN d.regdate AND d.dchdate
+                       ), 0
+                   )) AS receive,
+                   d.adj_inc, d.adj_dec, d.adj_date, d.adj_note
+            FROM debtor_1102050101_310 d
+            WHERE d.adj_date BETWEEN ? AND ?
+              AND (d.adj_inc > 0 OR d.adj_dec > 0)
+            ORDER BY d.adj_date ASC, d.an ASC
+        ", [$start_date, $end_date]);
+
+        if ($export_type === 'json') {
+            return response()->json([
+                'success' => true,
+                'data' => $data
+            ]);
+        }
+
+        if ($export_type === 'pdf') {
+            $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?: 'โรงพยาบาล';
+            $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '';
+            
+            $pdf = PDF::loadView('debtor_adj.1102050101_310_pdf', compact('data', 'start_date', 'end_date', 'hospital_name', 'hospital_code'))
+                ->setPaper('a4', 'portrait');
+            return $pdf->stream('adjustment_report_310.pdf');
+        }
+
+        return abort(404);
+    }
+
+    public function _1102050101_310_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        if (empty($ids)) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'กรุณาเลือกรายการ']);
+            }
+            return back()->with('error', 'กรุณาเลือกรายการ');
+        }
+
+        $adjusted_count = 0;
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+
+        $rows = DB::select("
+            SELECT d.an, d.hn, d.regdate, d.dchdate, d.debtor, d.receive, d.debtor_lock,
+                   (
+                       SELECT SUM(IFNULL(s.amount,0) + IFNULL(s.epopay,0) + IFNULL(s.epoadm,0))
+                       FROM stm_sss_kidney s
+                       WHERE s.hn = d.hn AND s.vstdate BETWEEN d.regdate AND d.dchdate
+                   ) AS stm_receive
+            FROM debtor_1102050101_310 d
+            WHERE d.an IN ($placeholders)
+              AND d.debtor_lock = 'Y'
+        ", $ids);
+
+        foreach ($rows as $row) {
+            $total_receive = (float)$row->receive + (float)($row->stm_receive ?? 0);
+            $diff = (float)$row->debtor - $total_receive;
+
+            if ($diff > 0) {
+                $adj_inc = $diff;
+                $adj_dec = 0;
+            } else {
+                $adj_inc = 0;
+                $adj_dec = abs($diff);
+            }
+
+            \App\Models\Debtor_1102050101_310::where('an', $row->an)->update([
+                'adj_inc' => $adj_inc,
+                'adj_dec' => $adj_dec,
+                'adj_date' => $adj_date,
+                'adj_note' => $adj_note,
+            ]);
+            $adjusted_count++;
+        }
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ',
+                'adjusted_count' => $adjusted_count
+            ]);
+        }
+
+        if ($adjusted_count == 0) {
+            return back()->with('warning', 'ไม่มีรายการที่ต้องปรับปรุง (ยอดคงเหลือเป็น 0 หรือ ยังไม่ได้ Lock)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
 }
 
 

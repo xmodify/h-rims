@@ -433,49 +433,43 @@
     </div>
 </div>
 
-<!-- Modal ประวัติการปรับปรุงยอด (Adjustment History Log) -->
-<div class="modal fade" id="adjLogModal" tabindex="-1" aria-labelledby="adjLogModalLabel" aria-hidden="true">
+<!-- History Adjustment Modal -->
+<div id="adjLogModal" class="modal fade" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-info text-white border-0 py-3">
-                <h5 class="modal-title fw-bold" id="adjLogModalLabel">
-                    <i class="bi bi-clock-history me-2"></i>ประวัติการปรับปรุงยอดลูกหนี้ (ผัง 1102050101_308)
+            <div class="modal-header bg-info text-dark border-0 py-3">
+                <h5 class="modal-title fw-bold d-flex align-items-center">
+                    <i class="bi bi-journal-text me-2"></i> ประวัติการปรับปรุงยอดลูกหนี้ 1102050101.308-ลูกหนี้ค่ารักษา ประกันสังคม 72 ชั่วโมงแรก
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
-                <!-- Filters for Log -->
-                <div class="row g-3 align-items-center mb-4 bg-light p-3 rounded">
-                    <div class="col-md-auto">
-                        <span class="fw-bold text-secondary">ช่วงวันที่ปรับปรุงยอด:</span>
+                <!-- ส่วนตัวกรองช่วงวันที่ค้นหาประวัติ -->
+                <div class="row g-2 align-items-center mb-3">
+                    <div class="col-md-5 d-flex align-items-center">
+                        <span class="input-group-text bg-white text-muted border-end-0 rounded-start">วันที่ปรับยอด</span>
+                        <input type="text" id="adj_start_date_picker" class="form-control border-start-0 rounded-0 datepicker_th" value="{{DateThai(date('Y-m-01'))}}" readonly>
+                        <input type="hidden" id="adj_start_date" value="{{date('Y-m-01')}}">
+                        <span class="input-group-text bg-white border-start-0 border-end-0 rounded-0">ถึง</span>
+                        <input type="text" id="adj_end_date_picker" class="form-control border-start-0 rounded-end datepicker_th" value="{{DateThai(date('Y-m-t'))}}" readonly>
+                        <input type="hidden" id="adj_end_date" value="{{date('Y-m-t')}}">
                     </div>
-                    <div class="col-md-auto">
-                        <div class="d-flex align-items-center">
-                            <input type="hidden" id="adj_start_date" value="{{ date('Y-m-01') }}">
-                            <input type="text" id="adj_start_date_picker" class="form-control form-control-sm datepicker_th" value="{{ DateThai(date('Y-m-01')) }}" style="width: 130px;" readonly>
-                            <span class="mx-2 text-muted">ถึง</span>
-                            <input type="hidden" id="adj_end_date" value="{{ date('Y-m-t') }}">
-                            <input type="text" id="adj_end_date_picker" class="form-control form-control-sm datepicker_th" value="{{ DateThai(date('Y-m-t')) }}" style="width: 130px;" readonly>
-                        </div>
-                    </div>
-                    <div class="col-md-auto">
-                        <button type="button" class="btn btn-primary btn-sm px-3 shadow-sm" onclick="loadAdjLogs()">
+                    <div class="col-md-7 d-flex gap-2">
+                        <button type="button" class="btn btn-info text-dark fw-bold px-3 shadow-sm" onclick="loadAdjLogs()">
                             <i class="bi bi-search me-1"></i> ค้นหา
                         </button>
-                    </div>
-                    <div class="col-md-auto ms-auto">
-                        <a id="btn-adj-print-pdf" href="#" target="_blank" class="btn btn-danger btn-sm px-3 shadow-sm">
-                            <i class="bi bi-file-earmark-pdf-fill me-1"></i> พิมพ์ PDF (แนวตั้ง)
+                        <a id="btn-adj-print-pdf" class="btn btn-danger fw-bold px-3 shadow-sm" href="#" target="_blank">
+                            <i class="bi bi-file-pdf me-1"></i> พิมพ์ใบแนบปรับปรุง (PDF)
                         </a>
                     </div>
                 </div>
 
-                <!-- Table for Log -->
+                <!-- ตารางประวัติปรับยอด -->
                 <div class="table-responsive">
-                    <table class="table table-hover table-striped table-bordered align-middle" id="adj_logs_table" style="width:100%">
-                        <thead class="table-info" style="font-size: 13px;">
-                            <tr class="text-center">
-                                <th width="5%">ลำดับ</th>
+                    <table class="table table-bordered table-striped" id="adj_logs_table" width="100%">
+                        <thead>
+                            <tr class="table-info align-middle text-center" style="font-size: 13px;">
+                                <th>ลำดับ</th>
                                 <th>วันที่ปรับปรุง</th>
                                 <th>วันที่จำหน่าย</th>
                                 <th>HN</th>

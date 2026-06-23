@@ -2067,6 +2067,127 @@ class DebtorAdjController extends Controller
         }
         return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
     }
+
+    public function _1102050101_217(Request $request)
+    {
+        $start_date = $request->input('start_date') ?: date('Y-m-01');
+        $end_date = $request->input('end_date') ?: date('Y-m-t');
+        $export_type = $request->input('export_type'); // 'json', 'pdf'
+
+        // Query adjustments from debtor_1102050101_217
+        $data = DB::select("
+            SELECT d.hn, d.an, d.ptname, d.dchdate, d.pttype, d.pdx, d.debtor, 
+                   ((IFNULL(stm.receive_total, 0) - IFNULL(stm.receive_ip_compensate_pay, 0)) + IFNULL(k.receive_total, 0) + IFNULL(d.receive, 0)) AS receive, 
+                   d.adj_inc, d.adj_dec, d.adj_date, d.adj_note
+            FROM debtor_1102050101_217 d
+            LEFT JOIN (
+                SELECT an, SUM(receive_total) AS receive_total, SUM(receive_ip_compensate_pay) AS receive_ip_compensate_pay
+                FROM stm_ucs
+                GROUP BY an
+            ) stm ON stm.an = d.an
+            LEFT JOIN (
+                SELECT d2.an, SUM(sk.receive_total) AS receive_total
+                FROM debtor_1102050101_217 d2
+                JOIN stm_ucs_kidney sk ON sk.cid = d2.cid AND sk.datetimeadm BETWEEN d2.regdate AND d2.dchdate
+                WHERE d2.adj_date BETWEEN ? AND ?
+                GROUP BY d2.an
+            ) k ON k.an = d.an
+            WHERE d.adj_date BETWEEN ? AND ?
+              AND (d.adj_inc > 0 OR d.adj_dec > 0)
+            ORDER BY d.adj_date ASC, d.an ASC
+        ", [$start_date, $end_date, $start_date, $end_date]);
+
+        if ($export_type === 'json') {
+            return response()->json([
+                'success' => true,
+                'data' => $data
+            ]);
+        }
+
+        if ($export_type === 'pdf') {
+            $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?: 'โรงพยาบาล';
+            $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '';
+            
+            $pdf = PDF::loadView('debtor_adj.1102050101_217_pdf', compact('data', 'start_date', 'end_date', 'hospital_name', 'hospital_code'))
+                ->setPaper('a4', 'portrait');
+            return $pdf->stream('adjustment_report_217.pdf');
+        }
+
+        return abort(404);
+    }
+
+    public function _1102050101_217_bulk_adj(Request $request)
+    {
+        $ids = $request->checkbox_d ?: [];
+        if (empty($ids)) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'กรุณาเลือกรายการ']);
+            }
+            return back()->with('error', 'กรุณาเลือกรายการ');
+        }
+
+        $adjusted_count = 0;
+        $adj_date = $request->bulk_adj_date ?: date('Y-m-d');
+        $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $params = array_merge($ids, $ids, $ids);
+
+        $rows = DB::select("
+            SELECT d.an, d.debtor, d.receive, d.debtor_lock,
+                   (IFNULL(stm.stm_total,0) + IFNULL(k.kidney_total,0)) AS stm_receive
+            FROM debtor_1102050101_217 d
+            LEFT JOIN (
+                SELECT an, SUM(receive_total) - SUM(receive_ip_compensate_pay) AS stm_total
+                FROM stm_ucs
+                WHERE an IN ($placeholders)
+                GROUP BY an
+            ) stm ON stm.an = d.an
+            LEFT JOIN (
+                SELECT d2.an, SUM(sk.receive_total) AS kidney_total
+                FROM debtor_1102050101_217 d2
+                JOIN stm_ucs_kidney sk ON sk.cid = d2.cid AND sk.datetimeadm BETWEEN d2.regdate AND d2.dchdate
+                WHERE d2.an IN ($placeholders)
+                GROUP BY d2.an
+            ) k ON k.an = d.an
+            WHERE d.an IN ($placeholders)
+              AND d.debtor_lock = 'Y'
+        ", $params);
+
+        foreach ($rows as $row) {
+            $total_received = (float)($row->stm_receive ?? 0) + (float)($row->receive ?? 0);
+            $diff = (float)$row->debtor - $total_received;
+            
+            if ($diff > 0) {
+                $adj_inc = $diff;
+                $adj_dec = 0;
+            } else {
+                $adj_inc = 0;
+                $adj_dec = abs($diff);
+            }
+
+            \App\Models\Debtor_1102050101_217::where('an', $row->an)->update([
+                'adj_inc' => $adj_inc,
+                'adj_dec' => $adj_dec,
+                'adj_date' => $adj_date,
+                'adj_note' => $adj_note,
+            ]);
+            $adjusted_count++;
+        }
+
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ',
+                'adjusted_count' => $adjusted_count
+            ]);
+        }
+
+        if ($adjusted_count == 0) {
+            return back()->with('warning', 'ไม่มีรายการที่ต้องปรับปรุง (ยอดคงเหลือเป็น 0 หรือ ยังไม่ได้ Lock)');
+        }
+        return back()->with('success', 'ปรับปรุงยอดเรียบร้อยแล้ว ' . $adjusted_count . ' รายการ');
+    }
 }
 
 

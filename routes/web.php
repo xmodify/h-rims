@@ -729,7 +729,7 @@ Route::post('debtor/1102050101_209_bulk_adj', [\App\Http\Controllers\DebtorAdjCo
 Route::put('debtor/1102050101_216/update/{id}', [DebtorController::class, '_1102050101_216_update']);
 Route::post('debtor/1102050101_216_bulk_adj', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_216_bulk_adj']);
 Route::put('debtor/1102050101_217/update/{id}', [DebtorController::class, '_1102050101_217_update']);
-Route::post('debtor/1102050101_217_bulk_adj', [DebtorController::class, '_1102050101_217_bulk_adj']);
+Route::post('debtor/1102050101_217_bulk_adj', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_217_bulk_adj']);
 Route::put('debtor/1102050101_301/update/{id}', [DebtorController::class, '_1102050101_301_update']);
 Route::post('debtor/1102050101_301_bulk_adj', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_301_bulk_adj']);
 Route::post('debtor/1102050101_302_bulk_adj', [DebtorController::class, '_1102050101_302_bulk_adj']);
@@ -789,6 +789,7 @@ Route::get('debtor/adjust_log/1102050101_202', [\App\Http\Controllers\DebtorAdjC
 Route::get('debtor/adjust_log/1102050101_203', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_203']);
 Route::get('debtor/adjust_log/1102050101_209', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_209']);
 Route::get('debtor/adjust_log/1102050101_216', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_216']);
+Route::get('debtor/adjust_log/1102050101_217', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_217']);
 Route::get('debtor/adjust_log/1102050101_301', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_301']);
 Route::get('debtor/adjust_log/1102050101_303', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_303']);
 Route::get('debtor/adjust_log/1102050101_307', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_307']);

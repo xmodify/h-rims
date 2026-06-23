@@ -235,7 +235,7 @@
                                         <i class="bi bi-pencil-square"></i>
                                     </button>
                                 </td> 
-                                <td align="center">
+                                <td align="center" data-order="{{ $row->debtor_lock == 'Y' ? 1 : 0 }}" style="width: 55px; min-width: 55px; max-width: 55px;">
                                     @if(Auth::user()->status == 'admin' || Auth::user()->allow_debtor_lock == 'Y')
                                         <button type="button" class="btn btn-sm btn-outline-{{$row->debtor_lock == 'Y' ? 'danger' : 'primary'}}" onclick="{{$row->debtor_lock == 'Y' ? 'confirmUnlock' : 'confirmLock'}}('{{ $row->an }}')">
                                             <i class="bi bi-{{$row->debtor_lock == 'Y' ? 'unlock' : 'lock'}}"></i>

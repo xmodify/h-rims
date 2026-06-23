@@ -258,9 +258,8 @@
 
                         <th class="text-center text-primary">อายุหนี้</th>
 
-                        <th class="text-center text-primary" width="5%">ACTION</th>              
-
-                        <th class="text-center text-primary">LOCK</th> 
+                        <th class="text-center text-primary" style="width: 55px; min-width: 55px; max-width: 55px;" title="แก้ไข"><i class="bi bi-pencil-square" style="font-size: 1.1rem; vertical-align: middle;"></i></th>
+                                <th class="text-center text-primary" style="width: 55px; min-width: 55px; max-width: 55px;" title="ล็อค"><i class="bi bi-lock-fill" style="font-size: 1.1rem; vertical-align: middle;"></i></th> 
 
                     </tr>
 
@@ -340,7 +339,7 @@
 
                         </td>     
 
-                        <td align="center">         
+                        <td align="center" style="width: 55px; min-width: 55px; max-width: 55px;">         
 
                                  <button type="button" class="btn btn-warning btn-sm px-2 shadow-sm text-dark btn-edit-debtor"
 
@@ -390,7 +389,7 @@
 
                         </td>
 
-                        <td align="center">
+                        <td align="center" data-order="{{ $row->debtor_lock == 'Y' ? 1 : 0 }}" style="width: 55px; min-width: 55px; max-width: 55px;">
 
                             @if(Auth::user()->status == 'admin' || Auth::user()->allow_debtor_lock == 'Y')
 

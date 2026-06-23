@@ -127,8 +127,8 @@
                                 <th class="text-center text-primary" width="9%">สถานะ</th>  
                                 <th class="text-center text-primary">REP</th>
                                 <th class="text-center text-primary">อายุหนี้</th> 
-                                <th class="text-center text-primary" width="5%">Action</th>
-                                <th class="text-center text-primary">Lock</th>                                       
+                                <th class="text-center text-primary" style="width: 55px; min-width: 55px; max-width: 55px;" title="แก้ไข"><i class="bi bi-pencil-square" style="font-size: 1.1rem; vertical-align: middle;"></i></th>
+                                <th class="text-center text-primary" style="width: 55px; min-width: 55px; max-width: 55px;" title="ล็อค"><i class="bi bi-lock-fill" style="font-size: 1.1rem; vertical-align: middle;"></i></th>                                       
                             </tr>
                             </thead>
                             @php 
@@ -173,7 +173,7 @@
                                 <td align="center" style="background-color: {{ $days_bg }};">
                                     {{ $row->days }} วัน
                                 </td>  
-                                <td align="center">         
+                                <td align="center" style="width: 55px; min-width: 55px; max-width: 55px;">         
                                     @php
                                         $charge_date_th = !empty($row->charge_date) ? DateThai($row->charge_date) : '';
                                         $receive_date_th = !empty($row->receive_date) ? DateThai($row->receive_date) : '';
@@ -203,7 +203,7 @@
                                         <i class="bi bi-pencil-square"></i>
                                     </button>                            
                                 </td>  
-                                <td align="center">
+                                <td align="center" data-order="{{ $row->debtor_lock == 'Y' ? 1 : 0 }}" style="width: 55px; min-width: 55px; max-width: 55px;">
                                     @if(Auth::user()->status == 'admin' || Auth::user()->allow_debtor_lock == 'Y')
                                         @php
                                             $btn_class = $row->debtor_lock == 'Y' ? 'danger' : 'primary';

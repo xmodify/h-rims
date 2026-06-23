@@ -176,17 +176,17 @@
 
                         </button>
 
-                        <button type="button" class="btn btn-outline-info btn-sm fw-bold shadow-sm" onclick="openAdjModal()">
-
-                            <i class="bi bi-clock-history me-1"></i> ประวัติปรับปรุง
-
-                        </button>
+                        
 
                         @endif
 
                     </div>
 
                     <div>
+
+                        <button type="button" class="btn btn-outline-info btn-sm" onclick="openAdjModal()">
+                            <i class="bi bi-journal-text me-1"></i> ประวัติปรับปรุง
+                        </button>
 
                         <a class="btn btn-outline-success btn-sm" href="{{ url('debtor/1102050101_310_indiv_excel')}}" target="_blank">
 

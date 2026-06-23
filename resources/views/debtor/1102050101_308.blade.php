@@ -84,12 +84,14 @@
                          <button type="button" class="btn btn-warning btn-sm shadow-sm text-dark fw-bold" onclick="bulkAdjust()">
                             <i class="bi bi-tools me-1"></i> ปรับปรุงยอดเป็น 0
                         </button>
-                        <button type="button" class="btn btn-outline-info btn-sm fw-bold shadow-sm" onclick="openAdjModal()">
-                            <i class="bi bi-clock-history me-1"></i> ประวัติปรับปรุง
-                        </button>
+                        
                         @endif
                     </div>
                     <div>
+
+                        <button type="button" class="btn btn-outline-info btn-sm" onclick="openAdjModal()">
+                            <i class="bi bi-journal-text me-1"></i> ประวัติปรับปรุง
+                        </button>
                         <a class="btn btn-outline-success btn-sm" href="{{ url('debtor/1102050101_308_indiv_excel')}}" target="_blank">
                              <i class="bi bi-file-earmark-excel me-1"></i> ส่งออกรายตัว
                         </a>                

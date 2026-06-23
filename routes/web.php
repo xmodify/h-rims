@@ -722,7 +722,7 @@ Route::post('debtor/1102050101_109_bulk_adj', [\App\Http\Controllers\DebtorAdjCo
 Route::put('debtor/1102050101_201/update/{id}', [DebtorController::class, '_1102050101_201_update']);
 Route::post('debtor/1102050101_201_bulk_adj', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_201_bulk_adj']);
 Route::put('debtor/1102050101_202/update/{id}', [DebtorController::class, '_1102050101_202_update']);
-Route::post('debtor/1102050101_202_bulk_adj', [DebtorController::class, '_1102050101_202_bulk_adj']);
+Route::post('debtor/1102050101_202_bulk_adj', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_202_bulk_adj']);
 Route::post('debtor/1102050101_203_bulk_adj', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_203_bulk_adj']);
 Route::put('debtor/1102050101_209/update/{id}', [DebtorController::class, '_1102050101_209_update']);
 Route::post('debtor/1102050101_209_bulk_adj', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_209_bulk_adj']);
@@ -785,6 +785,7 @@ Route::get('mishos/ucs_ppfs/visit_details', [MishosController::class, 'ucs_ppfs_
 Route::get('debtor/adjust_log/1102050101_103', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_103']);
 Route::get('debtor/adjust_log/1102050101_109', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_109']);
 Route::get('debtor/adjust_log/1102050101_201', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_201']);
+Route::get('debtor/adjust_log/1102050101_202', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_202']);
 Route::get('debtor/adjust_log/1102050101_203', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_203']);
 Route::get('debtor/adjust_log/1102050101_209', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_209']);
 Route::get('debtor/adjust_log/1102050101_216', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_216']);

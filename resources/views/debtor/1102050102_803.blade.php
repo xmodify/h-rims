@@ -569,6 +569,7 @@
         Swal.fire({
             title: 'ปรับปรุงยอดเป็น 0',
             html: `
+                <div class="text-center mb-3" style="font-size: 16px; color: #6c757d;">จำนวน ${sel.length} รายการ</div>
                 <div class="text-start">
                     <div class="mb-3"><label class="form-label small fw-bold">หมายเหตุการปรับปรุง</label><input type="text" id="blk_note" class="form-control rounded-pill" value="ปรับปรุงยอดเป็น 0"></div>
                     <div class="mb-3"><label class="form-label small fw-bold">วันที่ปรับปรุง</label><input type="text" id="blk_date_th" class="form-control rounded-pill datepicker_th" value="{{DateThai(date('Y-m-d'))}}" readonly><input type="hidden" id="blk_date" value="{{date('Y-m-d')}}"></div>
@@ -579,12 +580,75 @@
             preConfirm: () => { return { note: $('#blk_note').val(), date: $('#blk_date').val() } }
         }).then((r) => {
             if (r.isConfirmed) {
-                showLoading(); let f=document.createElement('form'); f.method='POST'; f.action="{{ url('debtor/1102050102_803_bulk_adj') }}";
-                f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'_token', value:'{{csrf_token()}}'}));
-                f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'bulk_adj_note', value:r.value.note}));
-                f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'bulk_adj_date', value:r.value.date}));
-                sel.forEach(id=>f.appendChild(Object.assign(document.createElement('input'), {type:'hidden', name:'checkbox_d[]', value:id})));
-                document.body.appendChild(f); f.submit();
+                const chunkSize = 100;
+                const chunks = [];
+                for (let i = 0; i < sel.length; i += chunkSize) {
+                    chunks.push(sel.slice(i, i + chunkSize));
+                }
+
+                let currentChunkIndex = 0;
+                const total = sel.length;
+                let totalAdjusted = 0;
+
+                Swal.fire({
+                    title: 'กำลังปรับปรุงยอดเป็น 0...',
+                    html: `
+                        <div class="progress mb-2" style="height: 25px;">
+                            <div id="adj-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold" role="progressbar" style="width: 0%;">0%</div>
+                        </div>
+                        <div id="adj-progress-text" class="text-muted small">กำลังดำเนินการ 0 จากทั้งหมด ${total} รายการ</div>
+                    `,
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    didOpen: () => { sendNextAdjChunk(); }
+                });
+
+                function sendNextAdjChunk() {
+                    if (currentChunkIndex >= chunks.length) {
+                        Swal.fire({
+                            title: 'สำเร็จ!',
+                            text: `ปรับปรุงยอดจำนวน ${totalAdjusted} รายการเรียบร้อยแล้ว`,
+                            icon: 'success',
+                            confirmButtonText: 'ตกลง'
+                        }).then(() => { location.reload(); });
+                        return;
+                    }
+
+                    const chunk = chunks[currentChunkIndex];
+
+                    $.ajax({
+                        url: "{{ url('debtor/1102050102_803_bulk_adj') }}",
+                        type: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            checkbox_d: chunk,
+                            bulk_adj_note: r.value.note,
+                            bulk_adj_date: r.value.date
+                        },
+                        success: function(res) {
+                            currentChunkIndex++;
+                            totalAdjusted += (res.adjusted_count || 0);
+
+                            const processedCount = Math.min(currentChunkIndex * chunkSize, total);
+                            const percent = Math.round((processedCount / total) * 100);
+
+                            const progressBar = document.getElementById('adj-progress-bar');
+                            const progressText = document.getElementById('adj-progress-text');
+                            if (progressBar) {
+                                progressBar.style.width = percent + '%';
+                                progressBar.innerText = percent + '%';
+                            }
+                            if (progressText) {
+                                progressText.innerText = `กำลังดำเนินการ ${processedCount} จากทั้งหมด ${total} รายการ`;
+                            }
+
+                            sendNextAdjChunk();
+                        },
+                        error: function() {
+                            Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถปรับปรุงยอดได้สำเร็จ', 'error');
+                        }
+                    });
+                }
             }
         });
     }

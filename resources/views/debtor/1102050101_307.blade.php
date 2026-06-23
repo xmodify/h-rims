@@ -730,83 +730,96 @@
         const sel = [...document.querySelectorAll('input[name="checkbox_d[]"]:checked')].map(e=>e.value);
         if(!sel.length) { Swal.fire('แจ้งเตือน','กรุณาเลือกรายการ','warning'); return; }
         
-        var today = new Date();
-        var y = today.getFullYear();
-        var m = ('0'+(today.getMonth()+1)).slice(-2);
-        var d = ('0'+today.getDate()).slice(-2);
-        var todayDate = y + '-' + m + '-' + d;
-        
         Swal.fire({
             title: 'ปรับปรุงยอดเป็น 0',
             html: `
+                <div class="text-center mb-3" style="font-size: 16px; color: #6c757d;">จำนวน ${sel.length} รายการ</div>
                 <div class="text-start">
-                    <div class="mb-3"><label class="form-label small fw-bold">หมายเหตุการปรับปรุง</label><input type="text" id="blk_note" class="form-control rounded-pill" value="ปรับปรุงยอดเป็น 0"></div>
-                    <div class="mb-3"><label class="form-label small fw-bold">วันที่ปรับปรุง</label><input type="text" id="blk_date_th" class="form-control rounded-pill datepicker_th" readonly><input type="hidden" id="blk_date" value="${todayDate}"></div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">หมายเหตุการปรับปรุง</label>
+                        <input type="text" id="blk_note" class="form-control rounded-pill" value="ปรับปรุงยอดเป็น 0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">วันที่ปรับปรุง</label>
+                        <input type="text" id="blk_date_th" class="form-control rounded-pill datepicker_th" value="{{DateThai(date('Y-m-d'))}}" readonly>
+                        <input type="hidden" id="blk_date" value="{{date('Y-m-d')}}">
+                    </div>
                 </div>
             `,
-            icon: 'info', 
-            showCancelButton: true, 
-            confirmButtonColor: '#ffc107', 
-            confirmButtonText: 'ยืนยัน',
-            didOpen: function() {
-                var displayDate = "{{ DateThai(date('Y-m-d')) }}";
-                $('#blk_date_th').val(displayDate).datepicker({ 
-                    format: 'd M yyyy', 
-                    autoclose: true, 
-                    language: 'th-th', 
-                    thaiyear: true, 
-                    todayBtn: 'linked', 
-                    todayHighlight: true 
-                }).on('changeDate', function(e) { 
-                    if (e.date) { 
-                        var y = e.date.getFullYear();
-                        var m = ('0'+(e.date.getMonth()+1)).slice(-2);
-                        var d = ('0'+e.date.getDate()).slice(-2); 
-                        $('#blk_date').val(y+'-'+m+'-'+d); 
-                    } 
-                }); 
-            },
-            preConfirm: function() { 
-                return { 
-                    note: $('#blk_note').val(), 
-                    date: $('#blk_date').val() 
-                }; 
-            }
+            icon: 'info', showCancelButton: true, confirmButtonColor: '#ffc107', confirmButtonText: 'ยืนยัน',
+            didOpen: () => { $('#blk_date_th').datepicker({ format: 'd M yyyy', autoclose: true, language: 'th-th', thaiyear: true, todayBtn: 'linked', todayHighlight: true }).on('changeDate', (e) => { if (e.date) { const y = e.date.getFullYear(), m=('0'+(e.date.getMonth()+1)).slice(-2), d=('0'+e.date.getDate()).slice(-2); $('#blk_date').val(y+'-'+m+'-'+d); } }); },
+            preConfirm: () => { return { note: $('#blk_note').val(), date: $('#blk_date').val() } }
         }).then((r) => {
             if (r.isConfirmed) {
-                showLoading(); 
-                let f = document.createElement('form'); 
-                f.method = 'POST'; 
-                f.action = "{{ url('debtor/1102050101_307_bulk_adj') }}";
-                
-                let tokenInput = document.createElement('input');
-                tokenInput.type = 'hidden';
-                tokenInput.name = '_token';
-                tokenInput.value = "{{ csrf_token() }}";
-                f.appendChild(tokenInput);
-                
-                let noteInput = document.createElement('input');
-                noteInput.type = 'hidden';
-                noteInput.name = 'bulk_adj_note';
-                noteInput.value = r.value.note;
-                f.appendChild(noteInput);
-                
-                let dateInput = document.createElement('input');
-                dateInput.type = 'hidden';
-                dateInput.name = 'bulk_adj_date';
-                dateInput.value = r.value.date;
-                f.appendChild(dateInput);
-                
-                sel.forEach(id => {
-                    let checkInput = document.createElement('input');
-                    checkInput.type = 'hidden';
-                    checkInput.name = 'checkbox_d[]';
-                    checkInput.value = id;
-                    f.appendChild(checkInput);
+                const chunkSize = 100;
+                const chunks = [];
+                for (let i = 0; i < sel.length; i += chunkSize) {
+                    chunks.push(sel.slice(i, i + chunkSize));
+                }
+
+                let currentChunkIndex = 0;
+                const total = sel.length;
+                let totalAdjusted = 0;
+
+                Swal.fire({
+                    title: 'กำลังปรับปรุงยอดเป็น 0...',
+                    html: `
+                        <div class="progress mb-2" style="height: 25px;">
+                            <div id="adj-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-warning text-dark fw-bold" role="progressbar" style="width: 0%;">0%</div>
+                        </div>
+                        <div id="adj-progress-text" class="text-muted small">กำลังดำเนินการ 0 จากทั้งหมด ${total} รายการ</div>
+                    `,
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    didOpen: () => { sendNextAdjChunk(); }
                 });
-                
-                document.body.appendChild(f); 
-                f.submit();
+
+                function sendNextAdjChunk() {
+                    if (currentChunkIndex >= chunks.length) {
+                        Swal.fire({
+                            title: 'สำเร็จ!',
+                            text: `ปรับปรุงยอดจำนวน ${totalAdjusted} รายการเรียบร้อยแล้ว`,
+                            icon: 'success',
+                            confirmButtonText: 'ตกลง'
+                        }).then(() => { location.reload(); });
+                        return;
+                    }
+
+                    const chunk = chunks[currentChunkIndex];
+
+                    $.ajax({
+                        url: "{{ url('debtor/1102050101_307_bulk_adj') }}",
+                        type: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            checkbox_d: chunk,
+                            bulk_adj_note: r.value.note,
+                            bulk_adj_date: r.value.date
+                        },
+                        success: function(res) {
+                            currentChunkIndex++;
+                            totalAdjusted += (res.adjusted_count || 0);
+
+                            const processedCount = Math.min(currentChunkIndex * chunkSize, total);
+                            const percent = Math.round((processedCount / total) * 100);
+
+                            const progressBar = document.getElementById('adj-progress-bar');
+                            const progressText = document.getElementById('adj-progress-text');
+                            if (progressBar) {
+                                progressBar.style.width = percent + '%';
+                                progressBar.innerText = percent + '%';
+                            }
+                            if (progressText) {
+                                progressText.innerText = `กำลังดำเนินการ ${processedCount} จากทั้งหมด ${total} รายการ`;
+                            }
+
+                            sendNextAdjChunk();
+                        },
+                        error: function() {
+                            Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถปรับปรุงยอดได้สำเร็จ', 'error');
+                        }
+                    });
+                }
             }
         });
     }

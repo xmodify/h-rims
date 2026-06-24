@@ -123,6 +123,12 @@
                                                     title="แก้ไข">
                                                     <i class="bi bi-pencil-square text-warning"></i>
                                                 </button>
+                                                <form class="d-inline reset-password-form" method="POST" action="{{ route('admin.users.reset-password', $user) }}">
+                                                    @csrf
+                                                    <button type="button" class="btn btn-white btn-sm px-3 btn-reset-password border-end" data-name="{{ $user->name }}" title="รีเซ็ตรหัสผ่าน">
+                                                        <i class="bi bi-key text-info"></i>
+                                                    </button>
+                                                </form>
                                                 <form class="d-inline delete-form" method="POST" action="{{ route('admin.users.destroy', $user) }}">
                                                     @csrf @method('DELETE')
                                                     <button type="button" class="btn btn-white btn-sm px-3 btn-delete" title="ลบ">
@@ -224,6 +230,12 @@
                                                     title="แก้ไข">
                                                     <i class="bi bi-pencil-square text-warning"></i>
                                                 </button>
+                                                <form class="d-inline reset-password-form" method="POST" action="{{ route('admin.users.reset-password', $user) }}">
+                                                    @csrf
+                                                    <button type="button" class="btn btn-white btn-sm px-3 btn-reset-password border-end" data-name="{{ $user->name }}" title="รีเซ็ตรหัสผ่าน">
+                                                        <i class="bi bi-key text-info"></i>
+                                                    </button>
+                                                </form>
                                                 <form class="d-inline delete-form" method="POST" action="{{ route('admin.users.destroy', $user) }}">
                                                     @csrf @method('DELETE')
                                                     <button type="button" class="btn btn-white btn-sm px-3 btn-delete" title="ลบ">
@@ -493,15 +505,7 @@
                             </div>
                         </div>
                     </div>
-                    <hr class="my-4 opacity-10">
-                    <div class="mb-2">
-                        <label class="form-label fw-bold text-danger">Change Password</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-shield-lock"></i></span>
-                            <input class="form-control bg-light border-start-0 ps-0" type="password" name="password" placeholder="ทิ้งว่างไว้หากไม่ต้องการเปลี่ยน">
-                        </div>
-                        <div class="form-text small">ระบุรหัสผ่านใหม่หากต้องการเปลี่ยนแปลงสิทธิ์การเข้าถึง</div>
-                    </div>
+
                 </div>
                 <div class="modal-footer bg-light border-0">
                     <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">ยกเลิก</button>
@@ -570,8 +574,8 @@
             $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
         });
 
-        // Set ข้อมูลใน Edit Modal
-        $('.btn-edit').on('click', function () {
+        // Set ข้อมูลใน Edit Modal (using event delegation for DataTables compatibility)
+        $(document).on('click', '.btn-edit', function () {
             const data = $(this).data();
             $('#editName').val(data.name);
             $('#editEmail').val(data.email);
@@ -621,8 +625,30 @@
             $('#activeLabel').text(isActive ? 'เปิดใช้งาน' : 'ระงับการใช้งาน').toggleClass('text-success', isActive).toggleClass('text-danger', !isActive);
         }
 
-        // SweetAlert ยืนยันลบ
-        $('.btn-delete').on('click', function () {
+        // SweetAlert ยืนยัน Reset Password
+        $(document).on('click', '.btn-reset-password', function () {
+            const form = $(this).closest('form');
+            const name = $(this).data('name');
+            Swal.fire({
+                title: 'ยืนยันรีเซ็ตรหัสผ่าน?',
+                text: `คุณต้องการรีเซ็ตรหัสผ่านของ "${name}" เป็น "12345678" ใช่หรือไม่?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#0ea5e9',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'ใช่, รีเซ็ตทันที!',
+                cancelButtonText: 'ยกเลิก',
+                reverseButtons: true,
+                borderRadius: '15px'
+            }).then(result => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+
+        // SweetAlert ยืนยันลบ (using event delegation for DataTables compatibility)
+        $(document).on('click', '.btn-delete', function () {
             const form = $(this).closest('form');
             Swal.fire({
                 title: 'ยืนยันการลบผู้ใช้?',

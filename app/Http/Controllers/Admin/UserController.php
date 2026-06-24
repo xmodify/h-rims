@@ -95,6 +95,14 @@ class UserController extends Controller
         return redirect()->route('admin.users.index')->with('success', 'แก้ไขข้อมูลสำเร็จ');
     }
 
+    public function resetPassword(User $user)
+    {
+        $user->update([
+            'password' => Hash::make('12345678')
+        ]);
+        return redirect()->route('admin.users.index')->with('success', 'รีเซ็ตรหัสผ่านเป็น 12345678 สำเร็จ');
+    }
+
     public function destroy(User $user)
     {
         $user->delete();

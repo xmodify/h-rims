@@ -185,7 +185,19 @@
                                     @elseif($balance < -0.05) style="color:red" @endif>
                                     {{ number_format($balance,2) }}
                                 </td> 
-                                <td align="center">{{ $row->repno ?? '' }} {{ $row->rcpno ?? '' }}</td>                    
+                                <td align="center">
+                                    {{ $row->repno ?? '' }}
+                                    @if(!empty($row->rcpno))
+                                        @foreach(explode(',', $row->rcpno) as $rcp)
+                                            @php 
+                                                $parts = explode('|', $rcp);
+                                                $no = $parts[0] ?? '';
+                                                $date = isset($parts[1]) ? DateThai($parts[1]) : '';
+                                            @endphp
+                                            {{ $no }}@if($date) ({{ $date }})@endif{{ !$loop->last ? ', ' : '' }}
+                                        @endforeach
+                                    @endif
+                                </td>                   
                                 <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  
                                     @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" 
                                     @else style="background-color: #FF7F7F;" @endif >

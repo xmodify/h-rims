@@ -6974,7 +6974,7 @@ class DebtorController extends Controller
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.05 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM hrims.debtor_1102050102_106 d
                 LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS total_amount,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
+                    GROUP_CONCAT(CONCAT(r.rcpno, '|', r.bill_date) ORDER BY r.rcpno) AS rcpno
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                     WHERE a.rcpno IS NULL   
@@ -6997,7 +6997,7 @@ class DebtorController extends Controller
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.05 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM hrims.debtor_1102050102_106 d
                 LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS total_amount,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
+                    GROUP_CONCAT(CONCAT(r.rcpno, '|', r.bill_date) ORDER BY r.rcpno) AS rcpno
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                     WHERE a.rcpno IS NULL   
@@ -13107,7 +13107,7 @@ class DebtorController extends Controller
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM hrims.debtor_1102050102_107 d
                 LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS total_amount,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
+                    GROUP_CONCAT(CONCAT(r.rcpno, '|', r.bill_date) ORDER BY r.rcpno) AS rcpno
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                     WHERE a.rcpno IS NULL
@@ -13126,7 +13126,7 @@ class DebtorController extends Controller
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM hrims.debtor_1102050102_107 d
                 LEFT JOIN (SELECT r.vn, SUM(r.total_amount) AS total_amount,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno
+                    GROUP_CONCAT(CONCAT(r.rcpno, '|', r.bill_date) ORDER BY r.rcpno) AS rcpno
                     FROM rcpt_print r
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
                     WHERE a.rcpno IS NULL

@@ -11454,6 +11454,16 @@
                     "column": "datetimeadm",
                     "unique": false
                 }
+            ],
+            "idx_cid_datetimeadm": [
+                {
+                    "column": "cid",
+                    "unique": false
+                },
+                {
+                    "column": "datetimeadm",
+                    "unique": false
+                }
             ]
         }
     },
@@ -12582,6 +12592,16 @@
                     "column": "hn",
                     "unique": false
                 }
+            ],
+            "idx_hn_vstdate": [
+                {
+                    "column": "hn",
+                    "unique": false
+                },
+                {
+                    "column": "vstdate",
+                    "unique": false
+                }
             ]
         }
     },
@@ -12988,6 +13008,26 @@
             "hn": [
                 {
                     "column": "hn",
+                    "unique": false
+                }
+            ],
+            "idx_hn_vstdate": [
+                {
+                    "column": "hn",
+                    "unique": false
+                },
+                {
+                    "column": "vstdate",
+                    "unique": false
+                }
+            ],
+            "idx_cid_vstdate": [
+                {
+                    "column": "cid",
+                    "unique": false
+                },
+                {
+                    "column": "vstdate",
                     "unique": false
                 }
             ]
@@ -13518,6 +13558,16 @@
                 },
                 {
                     "column": "vstdate",
+                    "unique": false
+                }
+            ],
+            "idx_cid_datetimeadm": [
+                {
+                    "column": "cid",
+                    "unique": false
+                },
+                {
+                    "column": "datetimeadm",
                     "unique": false
                 }
             ]
@@ -14442,6 +14492,16 @@
                     "column": "datetimeadm",
                     "unique": false
                 }
+            ],
+            "idx_hn_datetimeadm": [
+                {
+                    "column": "hn",
+                    "unique": false
+                },
+                {
+                    "column": "datetimeadm",
+                    "unique": false
+                }
             ]
         }
     },
@@ -14688,6 +14748,16 @@
                     "column": "datetimeadm",
                     "unique": false
                 }
+            ],
+            "idx_hn_datetimeadm": [
+                {
+                    "column": "hn",
+                    "unique": false
+                },
+                {
+                    "column": "datetimeadm",
+                    "unique": false
+                }
             ]
         }
     },
@@ -14898,61 +14968,61 @@
                 "extra": ""
             },
             "charge": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "act": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_room": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_instument": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_drug": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_treatment": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_car": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_waitdch": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_other": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_total": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
@@ -15382,61 +15452,61 @@
                 "extra": ""
             },
             "charge": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "act": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_room": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_instument": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_drug": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_treatment": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_car": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_waitdch": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_other": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_total": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
@@ -15866,61 +15936,61 @@
                 "extra": ""
             },
             "charge": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "act": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_room": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_instument": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_drug": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_treatment": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_car": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_waitdch": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_other": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
             "receive_total": {
-                "type": "double(15,2)",
+                "type": "double",
                 "nullable": true,
                 "default": null,
                 "extra": ""

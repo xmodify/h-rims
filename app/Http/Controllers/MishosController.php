@@ -24,7 +24,7 @@ class MishosController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ae(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -143,7 +143,7 @@ class MishosController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_walkin(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -262,7 +262,7 @@ class MishosController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_herb(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -385,7 +385,7 @@ class MishosController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_telemed(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -506,7 +506,7 @@ class MishosController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_rider(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -627,7 +627,7 @@ class MishosController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_gdm(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -749,7 +749,7 @@ class MishosController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_drug_clopidogrel(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -854,7 +854,7 @@ class MishosController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_drug_sk(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -974,7 +974,7 @@ class MishosController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ins(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -1096,7 +1096,7 @@ class MishosController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_palliative(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -1214,7 +1214,7 @@ class MishosController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_fp(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -1345,7 +1345,7 @@ class MishosController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_prt(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -1473,7 +1473,7 @@ class MishosController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_ida(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -1598,7 +1598,7 @@ class MishosController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_ferrofolic(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -1723,7 +1723,7 @@ class MishosController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_fluoride(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -1838,7 +1838,7 @@ class MishosController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_anc(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -1967,7 +1967,7 @@ class MishosController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_postnatal(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -2095,7 +2095,7 @@ class MishosController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_fittest(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -2223,7 +2223,7 @@ class MishosController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_scr(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')

@@ -24,7 +24,7 @@ class ClaimIpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_incup(Request $request)
     {
-        ini_set('max_execution_time', 300);
+        ini_set('max_execution_time', 0);
 
         // 1. Budget Year & Date Range Logic (Optimized)
         $budget_year_now = DB::table('budget_year')
@@ -217,7 +217,7 @@ class ClaimIpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_outcup(Request $request)
     {
-        ini_set('max_execution_time', 300);
+        ini_set('max_execution_time', 0);
 
         // 1. Budget Year & Date Range Logic
         $budget_year_now = DB::table('budget_year')
@@ -411,7 +411,7 @@ class ClaimIpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function stp(Request $request)
     {
-        ini_set('max_execution_time', 300);
+        ini_set('max_execution_time', 0);
 
         // 1. Budget Year & Date Range Logic
         $budget_year_now = DB::table('budget_year')
@@ -601,7 +601,7 @@ class ClaimIpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ofc(Request $request)
     {
-        ini_set('max_execution_time', 300);
+        ini_set('max_execution_time', 0);
 
         // 1. Budget Year & Date Range Logic
         $budget_year_now = DB::table('budget_year')
@@ -842,7 +842,7 @@ class ClaimIpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function lgo(Request $request)
     {
-        ini_set('max_execution_time', 300);
+        ini_set('max_execution_time', 0);
 
         // 1. Budget Year & Date Range Logic
         $budget_year_now = DB::table('budget_year')
@@ -1026,7 +1026,7 @@ class ClaimIpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function bkk(Request $request)
     {
-        ini_set('max_execution_time', 300);
+        ini_set('max_execution_time', 0);
 
         // 1. Budget Year & Date Range Logic
         $budget_year_now = DB::table('budget_year')
@@ -1246,7 +1246,7 @@ class ClaimIpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function bmt(Request $request)
     {
-        ini_set('max_execution_time', 300);
+        ini_set('max_execution_time', 0);
 
         // 1. Budget Year & Date Range Logic
         $budget_year_now = DB::table('budget_year')
@@ -1467,7 +1467,7 @@ class ClaimIpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function srt(Request $request)
     {
-        ini_set('max_execution_time', 300);
+        ini_set('max_execution_time', 0);
 
         // 1. Budget Year & Date Range Logic
         $budget_year_now = DB::table('budget_year')
@@ -1664,7 +1664,7 @@ class ClaimIpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function sss(Request $request)
     {
-        ini_set('max_execution_time', 300);
+        ini_set('max_execution_time', 0);
 
         // 1. Budget Year & Date Range Logic
         $budget_year_now = DB::table('budget_year')
@@ -1829,7 +1829,7 @@ class ClaimIpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function sss_hc(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -1939,7 +1939,7 @@ class ClaimIpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function gof(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -2085,7 +2085,7 @@ class ClaimIpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function rcpt(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -2262,7 +2262,7 @@ class ClaimIpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function act(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')

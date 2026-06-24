@@ -13362,6 +13362,16 @@
                     "column": "dchtime",
                     "unique": false
                 }
+            ],
+            "idx_cid_vstdate": [
+                {
+                    "column": "cid",
+                    "unique": false
+                },
+                {
+                    "column": "vstdate",
+                    "unique": false
+                }
             ]
         }
     },
@@ -13498,6 +13508,16 @@
             "datetimeadm": [
                 {
                     "column": "datetimeadm",
+                    "unique": false
+                }
+            ],
+            "idx_cid_vstdate": [
+                {
+                    "column": "cid",
+                    "unique": false
+                },
+                {
+                    "column": "vstdate",
                     "unique": false
                 }
             ]

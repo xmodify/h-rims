@@ -24,7 +24,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_incup(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -366,7 +366,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_inprovince(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -620,7 +620,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_inprovince_va(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
@@ -712,7 +712,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_outprovince(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -1036,7 +1036,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_kidney(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -1142,7 +1142,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function stp_incup(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -1323,7 +1323,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function stp_outcup(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -1516,7 +1516,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ofc(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -1883,7 +1883,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ofc_kidney(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -1996,7 +1996,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function lgo(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -2192,7 +2192,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function lgo_kidney(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -2307,7 +2307,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function bkk(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -2504,7 +2504,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function bkk_kidney(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -2611,7 +2611,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function bmt(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -2808,7 +2808,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function bmt_kidney(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -2915,7 +2915,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function srt(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -3111,7 +3111,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function sss_ppfs(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -3420,7 +3420,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function sss_fund(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -3512,7 +3512,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function sss_kidney(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -3617,7 +3617,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function sss_hc(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -3723,7 +3723,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function rcpt(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -3858,7 +3858,7 @@ class ClaimOpController extends Controller
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function act(Request $request)
     {
-        ini_set('max_execution_time', 300); // เพิ่มเป็น 5 นาที
+        ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')

@@ -812,3 +812,6 @@ Route::get('debtor/adjust_log/1102050101_304', [\App\Http\Controllers\DebtorAdjC
 Route::get('debtor/adjust_log/1102050101_307', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_307']);
 Route::get('debtor/adjust_log/1102050101_308', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_308']);
 Route::get('debtor/adjust_log/1102050101_310', [\App\Http\Controllers\DebtorAdjController::class, '_1102050101_310']);
+
+Route::get('debtor/payment_log/1102050102_106', [DebtorController::class, '_1102050102_106_payment_log']);
+Route::get('debtor/payment_log/1102050102_107', [DebtorController::class, '_1102050102_107_payment_log']);

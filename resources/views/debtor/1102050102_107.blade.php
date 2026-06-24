@@ -103,7 +103,10 @@
                                 <button type="button" class="btn btn-outline-info btn-sm me-1" onclick="openAdjModal()">
                                      <i class="bi bi-journal-text me-1"></i> ประวัติปรับปรุง
                                 </button>
-                                <a class="btn btn-outline-success btn-sm" href="{{ url('debtor/1102050102_107_indiv_excel')}}" target="_blank">
+                                <button type="button" class="btn btn-sm me-1" style="color: #6f42c1; border-color: #6f42c1; background-color: transparent; transition: all 0.2s;" onmouseover="this.style.backgroundColor='#6f42c1'; this.style.color='#fff';" onmouseout="this.style.backgroundColor='transparent'; this.style.color='#6f42c1';" onclick="openPaymentModal()">
+                                     <i class="bi bi-currency-dollar me-1"></i> ประวัติชำระหนี้
+                                </button>
+                                <a class="btn btn-outline-success btn-sm me-1" href="{{ url('debtor/1102050102_107_indiv_excel')}}" target="_blank">
                                      <i class="bi bi-file-earmark-excel me-1"></i> ส่งออกรายตัว
                                 </a>                
                                 <a class="btn btn-outline-primary btn-sm" href="{{ url('debtor/1102050102_107_daily_pdf')}}" target="_blank">
@@ -1195,6 +1198,65 @@
     </div>
 </div>
 
+<!-- History Payment Modal -->
+<div id="paymentLogModal" class="modal fade" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white border-0 py-3">
+                <h5 class="modal-title fw-bold d-flex align-items-center">
+                    <i class="bi bi-currency-dollar me-2"></i> ประวัติการชำระหนี้ 1102050102.107-ลูกหนี้ค่ารักษา ชําระเงิน IP
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-start">
+                <!-- ส่วนตัวกรองช่วงวันที่ออกใบเสร็จ -->
+                <div class="row g-2 align-items-center mb-3">
+                    <div class="col-md-5 d-flex align-items-center">
+                        <span class="input-group-text bg-white text-muted border-end-0 rounded-start">วันที่รับชำระ</span>
+                        <input type="text" id="pay_start_date_picker" class="form-control border-start-0 rounded-0 datepicker_th" value="{{DateThai(date('Y-m-01'))}}" readonly>
+                        <input type="hidden" id="pay_start_date" value="{{date('Y-m-01')}}">
+                        <span class="input-group-text bg-white border-start-0 border-end-0 rounded-0">ถึง</span>
+                        <input type="text" id="pay_end_date_picker" class="form-control border-start-0 rounded-end datepicker_th" value="{{DateThai(date('Y-m-t'))}}" readonly>
+                        <input type="hidden" id="pay_end_date" value="{{date('Y-m-t')}}">
+                    </div>
+                    <div class="col-md-7 d-flex gap-2">
+                        <button type="button" class="btn btn-success fw-bold px-3 shadow-sm" onclick="loadPaymentLogs()">
+                            <i class="bi bi-search me-1"></i> ค้นหา
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ตารางประวัติรับชำระเงิน -->
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped" id="pay_logs_table" width="100%">
+                        <thead>
+                            <tr class="table-success align-middle text-center" style="font-size: 13px;">
+                                <th>ลำดับ</th>
+                                <th>วันที่รับชำระ</th>
+                                <th>เลขที่ใบเสร็จ</th>
+                                <th>จำนวนเงินที่ชำระ</th>
+                                <th>HN</th>
+                                <th>ชื่อ-สกุล</th>
+                                <th>วันที่จำหน่าย (dchdate)</th>
+                            </tr>
+                        </thead>
+                        <tbody style="font-size: 13px;">
+                            <!-- ข้อมูลจะถูกดึงเข้าแบบ AJAX -->
+                        </tbody>
+                        <tfoot>
+                            <tr class="fw-bold table-light" style="font-size: 13px;">
+                                <td colspan="3" class="text-end">ยอดรวม:</td>
+                                <td id="pay_logs_total_amount" class="text-end text-success">0.00</td>
+                                <td colspan="3"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @push('scripts')
     <script>
         window.toggle_d = function(source) {
@@ -1533,6 +1595,86 @@
     });
     </script>
     <script>
+        function openPaymentModal() {
+            $('#paymentLogModal').modal('show');
+            loadPaymentLogs();
+        }
+
+        function loadPaymentLogs() {
+            const start = $('#pay_start_date').val();
+            const end = $('#pay_end_date').val();
+            
+            if ($.fn.DataTable.isDataTable('#pay_logs_table')) {
+                $('#pay_logs_table').DataTable().destroy();
+            }
+            
+            $('#pay_logs_table tbody').html(`
+                <tr>
+                    <td colspan="7" class="text-center p-4">
+                        <div class="spinner-border text-success" role="status"></div>
+                        <div class="text-muted small mt-2">กำลังดึงข้อมูลประวัติการชำระหนี้...</div>
+                    </td>
+                </tr>
+            `);
+            $('#pay_logs_total_amount').text('0.00');
+
+            $.ajax({
+                url: `{{ url('debtor/payment_log/1102050102_107') }}`,
+                type: 'GET',
+                data: {
+                    start_date: start,
+                    end_date: end
+                },
+                success: function(res) {
+                    if (res.success && res.data.length > 0) {
+                        let html = '';
+                        let totalSum = 0;
+                        res.data.forEach((row, index) => {
+                            let amount = parseFloat(row.total_amount || 0);
+                            totalSum += amount;
+                            html += `
+                                <tr>
+                                    <td class="text-center">${index + 1}</td>
+                                    <td class="text-center" style="white-space: nowrap;">${formatThaiDate(row.bill_date)}</td>
+                                    <td class="text-center">${row.rcpno || ''}</td>
+                                    <td class="text-end fw-bold text-success">${amount.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                                    <td class="text-center">${row.hn}</td>
+                                    <td class="text-start">${row.ptname}</td>
+                                    <td class="text-center" style="white-space: nowrap;">${formatThaiDate(row.vstdate)}</td>
+                                </tr>
+                            `;
+                        });
+                        $('#pay_logs_table tbody').html(html);
+                        $('#pay_logs_total_amount').text(totalSum.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}));
+                        
+                        $('#pay_logs_table').DataTable({
+                            pageLength: 10,
+                            language: { url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/th.json' },
+                            order: [[1, 'desc']],
+                            dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+                                 "<'row'<'col-sm-12'tr>>" +
+                                 "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+                        });
+                    } else {
+                        $('#pay_logs_table tbody').html(`
+                            <tr>
+                                <td colspan="7" class="text-center text-muted p-4">ไม่พบประวัติการชำระหนี้ในช่วงเวลาดังกล่าว</td>
+                            </tr>
+                        `);
+                        $('#pay_logs_total_amount').text('0.00');
+                    }
+                },
+                error: function() {
+                    $('#pay_logs_table tbody').html(`
+                        <tr>
+                            <td colspan="7" class="text-center text-danger p-4">เกิดข้อผิดพลาดในการดึงข้อมูล</td>
+                        </tr>
+                    `);
+                    $('#pay_logs_total_amount').text('0.00');
+                }
+            });
+        }
+
         function openAdjModal() {
             $('#adjLogModal').modal('show');
             updateAdjPdfUrl();
@@ -1666,6 +1808,34 @@
                     const y = e.date.getFullYear(), m = ('0' + (e.date.getMonth() + 1)).slice(-2), d = ('0' + e.date.getDate()).slice(-2);
                     $('#adj_end_date').val(y + '-' + m + '-' + d);
                     updateAdjPdfUrl();
+                }
+            });
+
+            $('#pay_start_date_picker').datepicker({
+                format: 'd M yyyy',
+                autoclose: true,
+                language: 'th-th',
+                thaiyear: true,
+                todayBtn: 'linked',
+                todayHighlight: true
+            }).on('changeDate', function(e) {
+                if (e.date) {
+                    const y = e.date.getFullYear(), m = ('0' + (e.date.getMonth() + 1)).slice(-2), d = ('0' + e.date.getDate()).slice(-2);
+                    $('#pay_start_date').val(y + '-' + m + '-' + d);
+                }
+            });
+
+            $('#pay_end_date_picker').datepicker({
+                format: 'd M yyyy',
+                autoclose: true,
+                language: 'th-th',
+                thaiyear: true,
+                todayBtn: 'linked',
+                todayHighlight: true
+            }).on('changeDate', function(e) {
+                if (e.date) {
+                    const y = e.date.getFullYear(), m = ('0' + (e.date.getMonth() + 1)).slice(-2), d = ('0' + e.date.getDate()).slice(-2);
+                    $('#pay_end_date').val(y + '-' + m + '-' + d);
                 }
             });
 

@@ -1177,6 +1177,8 @@ class DebtorController extends Controller
                 'rcpt_money' => $row->rcpt_money,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -1282,6 +1284,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -1479,6 +1482,8 @@ class DebtorController extends Controller
                 'rcpt_money' => $row->rcpt_money,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -1570,6 +1575,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -1579,7 +1585,8 @@ class DebtorController extends Controller
     {
         $item = Debtor_1102050101_109::findOrFail($vn);
         $item->update([
-            'debtor_lock' => NULL
+            'debtor_lock' => NULL,
+            'updated_at' => Carbon::now(),
         ]);
         return redirect()->back()->with('success', 'Unlock เรียบร้อย');
     }
@@ -1588,7 +1595,8 @@ class DebtorController extends Controller
     {
         $item = Debtor_1102050101_109::findOrFail($vn);
         $item->update([
-            'debtor_lock' => 'Y'
+            'debtor_lock' => 'Y',
+            'updated_at' => Carbon::now(),
         ]);
         return redirect()->back()->with('success', 'Lock เรียบร้อย');
     }
@@ -1826,6 +1834,8 @@ class DebtorController extends Controller
                 'ppfs' => $row->ppfs,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -2081,6 +2091,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
@@ -2257,6 +2268,8 @@ class DebtorController extends Controller
                 'ppfs' => $row->ppfs,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -2361,6 +2374,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -2684,6 +2698,8 @@ class DebtorController extends Controller
                 'ppfs' => $row->ppfs,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -2843,6 +2859,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
@@ -3140,6 +3157,8 @@ class DebtorController extends Controller
                     'kidney' => $row->debtor,
                     'debtor' => $row->debtor,
                     'status' => $row->status,
+                    'created_at' => Carbon::now(),
+                    'updated_at' => Carbon::now(),
                 ]);
             }
         }
@@ -3233,6 +3252,8 @@ class DebtorController extends Controller
                     'cr' => $row->debtor,
                     'debtor' => $row->debtor,
                     'status' => $row->status,
+                    'created_at' => Carbon::now(),
+                    'updated_at' => Carbon::now(),
                 ]);
             }
         }
@@ -3331,6 +3352,8 @@ class DebtorController extends Controller
                     'ppfs' => $row->ppfs,
                     'debtor' => $row->debtor,
                     'status' => $row->status,
+                    'created_at' => Carbon::now(),
+                    'updated_at' => Carbon::now(),
                 ]);
             }
         }
@@ -3522,6 +3545,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
@@ -3696,6 +3720,8 @@ class DebtorController extends Controller
                 'ppfs' => $row->ppfs,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -3939,6 +3965,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
@@ -4117,6 +4144,8 @@ class DebtorController extends Controller
                 'ppfs' => $row->ppfs,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -4214,6 +4243,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -4492,6 +4522,8 @@ class DebtorController extends Controller
                 'ppfs' => $row->ppfs,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -4592,6 +4624,8 @@ class DebtorController extends Controller
                 'other' => $row->other,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -4695,6 +4729,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -4973,6 +5008,8 @@ class DebtorController extends Controller
                 'kidney' => $row->kidney,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -5067,6 +5104,8 @@ class DebtorController extends Controller
                 'ppfs' => $row->ppfs,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -5171,6 +5210,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -5463,6 +5503,8 @@ class DebtorController extends Controller
                 'other' => $row->other,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -5554,6 +5596,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -5798,6 +5841,8 @@ class DebtorController extends Controller
                 'rcpt_money' => $row->rcpt_money,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -5889,6 +5934,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -6093,6 +6139,8 @@ class DebtorController extends Controller
                 'rcpt_money' => $row->rcpt_money,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -6184,6 +6232,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -6405,6 +6454,8 @@ class DebtorController extends Controller
                 'ppfs' => $row->ppfs,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -6557,6 +6608,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
@@ -6736,6 +6788,8 @@ class DebtorController extends Controller
                 'ppfs' => $row->ppfs,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -6888,6 +6942,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
@@ -7100,6 +7155,8 @@ class DebtorController extends Controller
                 'rcpt_money' => $row->rcpt_money,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -7174,6 +7231,8 @@ class DebtorController extends Controller
                 'other' => $row->other,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -7283,6 +7342,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -7623,6 +7683,8 @@ class DebtorController extends Controller
                 'other' => $row->other,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -7732,6 +7794,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -8017,6 +8080,8 @@ class DebtorController extends Controller
                 'other' => $row->other,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -8124,6 +8189,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -8411,6 +8477,8 @@ class DebtorController extends Controller
                 'other' => $row->other,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -8518,6 +8586,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -8795,6 +8864,8 @@ class DebtorController extends Controller
                 'other' => $row->other,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -8903,6 +8974,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -9230,6 +9302,8 @@ class DebtorController extends Controller
                 'other' => $row->other,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -9337,6 +9411,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -9607,6 +9682,8 @@ class DebtorController extends Controller
                 'rcpt_money' => $row->rcpt_money,
                 'other' => $row->other,
                 'debtor' => $row->debtor,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -9776,6 +9853,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
@@ -9954,6 +10032,8 @@ class DebtorController extends Controller
                 'rcpt_money' => $row->rcpt_money,
                 'cr' => $row->cr,
                 'debtor' => $row->debtor,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -10127,6 +10207,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }    
@@ -10304,6 +10385,8 @@ class DebtorController extends Controller
                 'other' => $row->other,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -10411,6 +10494,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -10733,6 +10817,8 @@ class DebtorController extends Controller
                 'other' => $row->other,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -10840,6 +10926,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -11069,6 +11156,8 @@ class DebtorController extends Controller
                 'other' => $row->other,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -11136,6 +11225,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -11381,6 +11471,8 @@ class DebtorController extends Controller
                 'kidney' => $row->kidney,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -11488,6 +11580,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -11774,6 +11867,8 @@ class DebtorController extends Controller
                 'rcpt_money' => $row->rcpt_money,
                 'kidney' => $row->kidney,
                 'debtor' => $row->debtor,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -11981,6 +12076,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
@@ -12149,6 +12245,8 @@ class DebtorController extends Controller
                 'other' => $row->other,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -12246,6 +12344,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -12474,6 +12573,8 @@ class DebtorController extends Controller
                 'other' => $row->other,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -12571,6 +12672,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -12797,6 +12899,8 @@ class DebtorController extends Controller
                 'other' => $row->other,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -12894,6 +12998,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -13158,6 +13263,8 @@ class DebtorController extends Controller
                 'rcpt_money' => $row->rcpt_money,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -13231,6 +13338,8 @@ class DebtorController extends Controller
                 'rcpt_money' => $row->rcpt_money,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -13338,6 +13447,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -13678,6 +13788,8 @@ class DebtorController extends Controller
                 'other' => $row->other,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -13785,6 +13897,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -14040,6 +14153,8 @@ class DebtorController extends Controller
                 'rcpt_money' => $row->rcpt_money,
                 'kidney' => $row->kidney,
                 'debtor' => $row->debtor,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -14243,6 +14358,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
     }
@@ -14417,6 +14533,8 @@ class DebtorController extends Controller
                 'other' => $row->other,
                 'debtor' => $row->debtor,
                 'status' => $row->status,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -14514,6 +14632,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
 
         return redirect()->back()->with('success', 'บันทึกข้อมูลเรียบร้อย');
@@ -14761,6 +14880,8 @@ class DebtorController extends Controller
                 'rcpt_money' => $row->rcpt_money,
                 'kidney' => $row->kidney,
                 'debtor' => $row->debtor,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -14941,6 +15062,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
     }
 
@@ -15145,6 +15267,8 @@ class DebtorController extends Controller
                 'rcpt_money' => $row->rcpt_money,
                 'kidney' => $row->kidney,
                 'debtor' => $row->debtor,
+                'created_at' => Carbon::now(),
+                'updated_at' => Carbon::now(),
             ]);
         }
 
@@ -15330,6 +15454,7 @@ class DebtorController extends Controller
             'adj_dec' => $request->input('adj_dec'),
             'adj_date' => $request->input('adj_date'),
             'adj_note' => $request->input('adj_note'),
+            'updated_at' => Carbon::now(),
         ]);
     }
 
@@ -15758,7 +15883,7 @@ class DebtorController extends Controller
             'claim_price' => collect($sum_month)->pluck('claim_price'),
             'receive_total' => collect($sum_month)->pluck('receive_total'),
             'budget_year' => $budget_year
-        ]);
+        ]);        
     }
 
 }

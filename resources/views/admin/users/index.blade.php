@@ -17,107 +17,227 @@
         </div>
     </div>
 
-    <!-- User Table Card -->
-    <div class="dash-card border-0 shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" id="userTable">
-                    <thead class="bg-light text-primary border-bottom">
-                        <tr>
-                            <th class="ps-4">ชื่อ - นามสกุล</th>
-                            <th>อีเมล (Email)</th>
-                            <th class="text-center">สถานะใช้งาน</th>
-                            <th class="text-center">ประเภทผู้ใช้</th>
-                            <th class="text-center">สิทธิ์การเข้าถึง</th>
-                            <th class="text-center pe-4">จัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($users as $user)
-                            <tr>
-                                <td class="ps-4">
-                                    <div class="d-flex align-items-center">
-                                        <div class="icon-box icon-bg-2 me-3 mb-0" style="width: 35px; height: 35px; border-radius: 50%;">
-                                            <i class="bi bi-person"></i>
-                                        </div>
-                                        <span class="fw-bold">{{ $user->name }}</span>
-                                    </div>
-                                </td>
-                                <td>{{ $user->email }}</td>
-                                <td class="text-center">
-                                    @if($user->active === 'Y')
-                                        <span class="badge rounded-pill bg-success-subtle text-success px-3">
-                                            <i class="bi bi-check-circle-fill me-1"></i> Active
-                                        </span>
-                                    @else
-                                        <span class="badge rounded-pill bg-danger-subtle text-danger px-3">
-                                            <i class="bi bi-x-circle-fill me-1"></i> Inactive
-                                        </span>
-                                    @endif
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge rounded-pill {{ $user->status === 'admin' ? 'bg-primary-subtle text-primary' : 'bg-secondary-subtle text-secondary' }} px-3">
-                                        {{ strtoupper($user->status) }}
-                                    </span>
-                                </td>
-                                <td class="text-center">
-                                    @if($user->status === 'admin')
-                                        <span class="badge rounded-pill bg-dark text-white px-2 shadow-sm" style="font-size: 0.7rem;">ADMIN (ALL)</span>
-                                    @else
-                                        <div class="d-flex flex-wrap justify-content-center gap-1" style="max-width: 250px; margin: 0 auto;">
-                                            @if($user->allow_home === 'Y') <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.65rem;">Home Detail</span> @endif
-                                            @if($user->allow_import === 'Y') <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.65rem;">นำเข้าข้อมูล</span> @endif
-                                            @if($user->allow_check === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">ตรวจสอบข้อมูล</span> @endif
-                                            @if($user->allow_emr === 'Y') <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.65rem;">งานเวชระเบียน</span> @endif
-                                            @if($user->allow_claim_op === 'Y') <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.65rem;">เรียกเก็บ OP</span> @endif
-                                            @if($user->allow_claim_ip === 'Y') <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.65rem;">เรียกเก็บ IP</span> @endif
-                                            @if($user->allow_mishos === 'Y') <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style="font-size: 0.65rem;">MIS Hospital</span> @endif
-                                            @if($user->allow_debtor === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">ลูกหนี้ค่ารักษา</span> @endif
-                                            @if($user->allow_debtor_lock === 'Y') <span class="badge bg-danger text-white" style="font-size: 0.65rem;">Lock ลูกหนี้</span> @endif
-                                            @if($user->allow_debtor_acc === 'Y') <span class="badge bg-info text-dark" style="font-size: 0.65rem;">ทะเบียนคุมลูกหนี้</span> @endif
-                                            @if($user->allow_receipt === 'Y') <span class="badge bg-warning text-dark border border-warning" style="font-size: 0.65rem;">ออกใบเสร็จ</span> @endif
-                                            @if($user->allow_nhso_endpoint === 'Y') <span class="badge bg-primary text-white" style="font-size: 0.65rem;">ปิดสิทธิ สปสช. (API)</span> @endif
-                                        </div>
-                                    @endif
-                                </td>
-                                <td class="text-center pe-4">
-                                    <div class="btn-group shadow-sm rounded-pill overflow-hidden">
-                                        <button class="btn btn-white btn-sm px-3 btn-edit border-end" 
-                                            data-id="{{ $user->id }}"
-                                            data-name="{{ $user->name }}"
-                                            data-email="{{ $user->email }}"
-                                            data-active="{{ $user->active }}"
-                                            data-status="{{ $user->status }}"
-                                            data-allow_home="{{ $user->allow_home }}"
-                                            data-allow_import="{{ $user->allow_import }}"
-                                            data-allow_check="{{ $user->allow_check }}"
-                                            data-allow_emr="{{ $user->allow_emr }}"
-                                            data-allow_claim_op="{{ $user->allow_claim_op }}"
-                                            data-allow_claim_ip="{{ $user->allow_claim_ip }}"
-                                            data-allow_mishos="{{ $user->allow_mishos }}"
-                                            data-allow_debtor="{{ $user->allow_debtor }}"
-                                            data-allow_debtor_lock="{{ $user->allow_debtor_lock }}"
-                                            data-allow_debtor_acc="{{ $user->allow_debtor_acc }}"
-                                            data-allow_receipt="{{ $user->allow_receipt }}"
-                                            data-cid="{{ $user->cid }}"
-                                            data-allow_nhso_endpoint="{{ $user->allow_nhso_endpoint }}"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editModal"
-                                            title="แก้ไข">
-                                            <i class="bi bi-pencil-square text-warning"></i>
-                                        </button>
-                                        <form class="d-inline delete-form" method="POST" action="{{ route('admin.users.destroy', $user) }}">
-                                            @csrf @method('DELETE')
-                                            <button type="button" class="btn btn-white btn-sm px-3 btn-delete" title="ลบ">
-                                                <i class="bi bi-trash3 text-danger"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+    <!-- User Tabs -->
+    <ul class="nav nav-pills mb-3" id="userTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active px-4 py-2 rounded-pill me-2 d-flex align-items-center gap-2 fw-bold nav-link-active" 
+                    id="active-tab" data-bs-toggle="pill" data-bs-target="#active-pane" type="button" role="tab" aria-controls="active-pane" aria-selected="true">
+                <i class="bi bi-check-circle-fill"></i>
+                เปิดการใช้งาน
+                <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle ms-1 px-2 py-1">{{ $users->where('active', 'Y')->count() }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link px-4 py-2 rounded-pill d-flex align-items-center gap-2 fw-bold nav-link-inactive" 
+                    id="inactive-tab" data-bs-toggle="pill" data-bs-target="#inactive-pane" type="button" role="tab" aria-controls="inactive-pane" aria-selected="false">
+                <i class="bi bi-x-circle-fill"></i>
+                ปิดการใช้งาน
+                <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle ms-1 px-2 py-1">{{ $users->where('active', '!=', 'Y')->count() }}</span>
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="userTabContent">
+        <!-- Active Tab Pane -->
+        <div class="tab-pane fade show active" id="active-pane" role="tabpanel" aria-labelledby="active-tab" tabindex="0">
+            <div class="dash-card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="activeUserTable" style="width:100%">
+                            <thead class="bg-light text-primary border-bottom">
+                                <tr>
+                                    <th class="ps-4">ชื่อ - นามสกุล</th>
+                                    <th>อีเมล (Email)</th>
+                                    <th class="text-center">สถานะใช้งาน</th>
+                                    <th class="text-center">ประเภทผู้ใช้</th>
+                                    <th class="text-center">สิทธิ์การเข้าถึง</th>
+                                    <th class="text-center pe-4">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($users->where('active', 'Y') as $user)
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="d-flex align-items-center">
+                                                <div class="icon-box icon-bg-2 me-3 mb-0" style="width: 35px; height: 35px; border-radius: 50%;">
+                                                    <i class="bi bi-person"></i>
+                                                </div>
+                                                <span class="fw-bold">{{ $user->name }}</span>
+                                            </div>
+                                        </td>
+                                        <td>{{ $user->email }}</td>
+                                        <td class="text-center">
+                                            <span class="badge rounded-pill bg-success-subtle text-success px-3">
+                                                <i class="bi bi-check-circle-fill me-1"></i> Active
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge rounded-pill {{ $user->status === 'admin' ? 'bg-primary-subtle text-primary' : 'bg-secondary-subtle text-secondary' }} px-3">
+                                                {{ strtoupper($user->status) }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            @if($user->status === 'admin')
+                                                <span class="badge rounded-pill bg-dark text-white px-2 shadow-sm" style="font-size: 0.7rem;">ADMIN (ALL)</span>
+                                            @else
+                                                <div class="d-flex flex-wrap justify-content-center gap-1" style="max-width: 250px; margin: 0 auto;">
+                                                    @if($user->allow_home === 'Y') <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.65rem;">Home Detail</span> @endif
+                                                    @if($user->allow_import === 'Y') <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.65rem;">นำเข้าข้อมูล</span> @endif
+                                                    @if($user->allow_check === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">ตรวจสอบข้อมูล</span> @endif
+                                                    @if($user->allow_emr === 'Y') <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.65rem;">งานเวชระเบียน</span> @endif
+                                                    @if($user->allow_claim_op === 'Y') <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.65rem;">เรียกเก็บ OP</span> @endif
+                                                    @if($user->allow_claim_ip === 'Y') <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.65rem;">เรียกเก็บ IP</span> @endif
+                                                    @if($user->allow_mishos === 'Y') <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style="font-size: 0.65rem;">MIS Hospital</span> @endif
+                                                    @if($user->allow_debtor === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">ลูกหนี้ค่ารักษา</span> @endif
+                                                    @if($user->allow_debtor_lock === 'Y') <span class="badge bg-danger text-white" style="font-size: 0.65rem;">Lock ลูกหนี้</span> @endif
+                                                    @if($user->allow_debtor_acc === 'Y') <span class="badge bg-info text-dark" style="font-size: 0.65rem;">ทะเบียนคุมลูกหนี้</span> @endif
+                                                    @if($user->allow_receipt === 'Y') <span class="badge bg-warning text-dark border border-warning" style="font-size: 0.65rem;">ออกใบเสร็จ</span> @endif
+                                                    @if($user->allow_nhso_endpoint === 'Y') <span class="badge bg-primary text-white" style="font-size: 0.65rem;">ปิดสิทธิ สปสช. (API)</span> @endif
+                                                </div>
+                                            @endif
+                                        </td>
+                                        <td class="text-center pe-4">
+                                            <div class="btn-group shadow-sm rounded-pill overflow-hidden">
+                                                <button class="btn btn-white btn-sm px-3 btn-edit border-end" 
+                                                    data-id="{{ $user->id }}"
+                                                    data-name="{{ $user->name }}"
+                                                    data-email="{{ $user->email }}"
+                                                    data-active="{{ $user->active }}"
+                                                    data-status="{{ $user->status }}"
+                                                    data-allow_home="{{ $user->allow_home }}"
+                                                    data-allow_import="{{ $user->allow_import }}"
+                                                    data-allow_check="{{ $user->allow_check }}"
+                                                    data-allow_emr="{{ $user->allow_emr }}"
+                                                    data-allow_claim_op="{{ $user->allow_claim_op }}"
+                                                    data-allow_claim_ip="{{ $user->allow_claim_ip }}"
+                                                    data-allow_mishos="{{ $user->allow_mishos }}"
+                                                    data-allow_debtor="{{ $user->allow_debtor }}"
+                                                    data-allow_debtor_lock="{{ $user->allow_debtor_lock }}"
+                                                    data-allow_debtor_acc="{{ $user->allow_debtor_acc }}"
+                                                    data-allow_receipt="{{ $user->allow_receipt }}"
+                                                    data-cid="{{ $user->cid }}"
+                                                    data-allow_nhso_endpoint="{{ $user->allow_nhso_endpoint }}"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#editModal"
+                                                    title="แก้ไข">
+                                                    <i class="bi bi-pencil-square text-warning"></i>
+                                                </button>
+                                                <form class="d-inline delete-form" method="POST" action="{{ route('admin.users.destroy', $user) }}">
+                                                    @csrf @method('DELETE')
+                                                    <button type="button" class="btn btn-white btn-sm px-3 btn-delete" title="ลบ">
+                                                        <i class="bi bi-trash3 text-danger"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inactive Tab Pane -->
+        <div class="tab-pane fade" id="inactive-pane" role="tabpanel" aria-labelledby="inactive-tab" tabindex="0">
+            <div class="dash-card border-0 shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="inactiveUserTable" style="width:100%">
+                            <thead class="bg-light text-primary border-bottom">
+                                <tr>
+                                    <th class="ps-4">ชื่อ - นามสกุล</th>
+                                    <th>อีเมล (Email)</th>
+                                    <th class="text-center">สถานะใช้งาน</th>
+                                    <th class="text-center">ประเภทผู้ใช้</th>
+                                    <th class="text-center">สิทธิ์การเข้าถึง</th>
+                                    <th class="text-center pe-4">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($users->where('active', '!=', 'Y') as $user)
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="d-flex align-items-center">
+                                                <div class="icon-box icon-bg-2 me-3 mb-0" style="width: 35px; height: 35px; border-radius: 50%;">
+                                                    <i class="bi bi-person"></i>
+                                                </div>
+                                                <span class="fw-bold">{{ $user->name }}</span>
+                                            </div>
+                                        </td>
+                                        <td>{{ $user->email }}</td>
+                                        <td class="text-center">
+                                            <span class="badge rounded-pill bg-danger-subtle text-danger px-3">
+                                                <i class="bi bi-x-circle-fill me-1"></i> Inactive
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge rounded-pill {{ $user->status === 'admin' ? 'bg-primary-subtle text-primary' : 'bg-secondary-subtle text-secondary' }} px-3">
+                                                {{ strtoupper($user->status) }}
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            @if($user->status === 'admin')
+                                                <span class="badge rounded-pill bg-dark text-white px-2 shadow-sm" style="font-size: 0.7rem;">ADMIN (ALL)</span>
+                                            @else
+                                                <div class="d-flex flex-wrap justify-content-center gap-1" style="max-width: 250px; margin: 0 auto;">
+                                                    @if($user->allow_home === 'Y') <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.65rem;">Home Detail</span> @endif
+                                                    @if($user->allow_import === 'Y') <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.65rem;">นำเข้าข้อมูล</span> @endif
+                                                    @if($user->allow_check === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">ตรวจสอบข้อมูล</span> @endif
+                                                    @if($user->allow_emr === 'Y') <span class="badge bg-warning-subtle text-warning border border-warning-subtle" style="font-size: 0.65rem;">งานเวชระเบียน</span> @endif
+                                                    @if($user->allow_claim_op === 'Y') <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.65rem;">เรียกเก็บ OP</span> @endif
+                                                    @if($user->allow_claim_ip === 'Y') <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.65rem;">เรียกเก็บ IP</span> @endif
+                                                    @if($user->allow_mishos === 'Y') <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style="font-size: 0.65rem;">MIS Hospital</span> @endif
+                                                    @if($user->allow_debtor === 'Y') <span class="badge bg-success-subtle text-success border border-success-subtle" style="font-size: 0.65rem;">ลูกหนี้ค่ารักษา</span> @endif
+                                                    @if($user->allow_debtor_lock === 'Y') <span class="badge bg-danger text-white" style="font-size: 0.65rem;">Lock ลูกหนี้</span> @endif
+                                                    @if($user->allow_debtor_acc === 'Y') <span class="badge bg-info text-dark" style="font-size: 0.65rem;">ทะเบียนคุมลูกหนี้</span> @endif
+                                                    @if($user->allow_receipt === 'Y') <span class="badge bg-warning text-dark border border-warning" style="font-size: 0.65rem;">ออกใบเสร็จ</span> @endif
+                                                    @if($user->allow_nhso_endpoint === 'Y') <span class="badge bg-primary text-white" style="font-size: 0.65rem;">ปิดสิทธิ สปสช. (API)</span> @endif
+                                                </div>
+                                            @endif
+                                        </td>
+                                        <td class="text-center pe-4">
+                                            <div class="btn-group shadow-sm rounded-pill overflow-hidden">
+                                                <button class="btn btn-white btn-sm px-3 btn-edit border-end" 
+                                                    data-id="{{ $user->id }}"
+                                                    data-name="{{ $user->name }}"
+                                                    data-email="{{ $user->email }}"
+                                                    data-active="{{ $user->active }}"
+                                                    data-status="{{ $user->status }}"
+                                                    data-allow_home="{{ $user->allow_home }}"
+                                                    data-allow_import="{{ $user->allow_import }}"
+                                                    data-allow_check="{{ $user->allow_check }}"
+                                                    data-allow_emr="{{ $user->allow_emr }}"
+                                                    data-allow_claim_op="{{ $user->allow_claim_op }}"
+                                                    data-allow_claim_ip="{{ $user->allow_claim_ip }}"
+                                                    data-allow_mishos="{{ $user->allow_mishos }}"
+                                                    data-allow_debtor="{{ $user->allow_debtor }}"
+                                                    data-allow_debtor_lock="{{ $user->allow_debtor_lock }}"
+                                                    data-allow_debtor_acc="{{ $user->allow_debtor_acc }}"
+                                                    data-allow_receipt="{{ $user->allow_receipt }}"
+                                                    data-cid="{{ $user->cid }}"
+                                                    data-allow_nhso_endpoint="{{ $user->allow_nhso_endpoint }}"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#editModal"
+                                                    title="แก้ไข">
+                                                    <i class="bi bi-pencil-square text-warning"></i>
+                                                </button>
+                                                <form class="d-inline delete-form" method="POST" action="{{ route('admin.users.destroy', $user) }}">
+                                                    @csrf @method('DELETE')
+                                                    <button type="button" class="btn btn-white btn-sm px-3 btn-delete" title="ลบ">
+                                                        <i class="bi bi-trash3 text-danger"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -403,6 +523,31 @@
     .bg-secondary-subtle { background-color: #f1f5f9; }
     .bg-info-subtle { background-color: #e0f2fe; }
     .bg-warning-subtle { background-color: #fef3c7; }
+
+    .nav-pills .nav-link-active {
+        color: #15803d !important;
+        background-color: #f0fdf4 !important;
+        border: 1px solid #bbf7d0 !important;
+        transition: all 0.2s ease-in-out;
+    }
+    .nav-pills .nav-link-active.active {
+        color: #ffffff !important;
+        background-color: #16a34a !important;
+        border-color: #16a34a !important;
+        box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.2);
+    }
+    .nav-pills .nav-link-inactive {
+        color: #b91c1c !important;
+        background-color: #fef2f2 !important;
+        border: 1px solid #fecaca !important;
+        transition: all 0.2s ease-in-out;
+    }
+    .nav-pills .nav-link-inactive.active {
+        color: #ffffff !important;
+        background-color: #dc2626 !important;
+        border-color: #dc2626 !important;
+        box-shadow: 0 4px 6px -1px rgba(220, 38, 38, 0.2);
+    }
 </style>
 
 @endsection
@@ -410,14 +555,19 @@
 @push('scripts')
 <script>
     $(document).ready(function () {
-        // Initialize DataTable
-        $('#userTable').DataTable({
+        // Initialize DataTable on both tables
+        $('#activeUserTable, #inactiveUserTable').DataTable({
             pageLength: 10,
             language: { url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/th.json' },
             order: [[0, 'asc']],
             dom: "<'row px-4 pt-4'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
                  "<'row'<'col-sm-12'tr>>" +
                  "<'row px-4 pb-4'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+        });
+
+        // Adjust column sizes of hidden tables when tab switching occurs to prevent layout bugs
+        $('button[data-bs-toggle="pill"]').on('shown.bs.tab', function (e) {
+            $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
         });
 
         // Set ข้อมูลใน Edit Modal

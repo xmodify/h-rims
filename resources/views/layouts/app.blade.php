@@ -1142,7 +1142,7 @@
                                                 href="{{ route('admin.logs.schedule') }}">
                                                 <i class="bi bi-clock-history me-2 text-success"></i> Log Schedule
                                             </a>
-                                            @if(($hospcode ?? '') === '00025' || ($hospital_code ?? '') === '00025')
+                                            @if(\Illuminate\Support\Facades\Schema::hasTable('lookup_hospcode') && \Illuminate\Support\Facades\DB::table('lookup_hospcode')->where('hospcode', '00025')->exists())
                                                 <a class="dropdown-item dropdown-item-modern"
                                                     href="{{ route('admin.aopod') }}">
                                                     <i class="bi bi-send-fill me-2 text-success"></i> ข้อมูล AOPOD

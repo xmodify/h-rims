@@ -7403,8 +7403,9 @@ class DebtorController extends Controller
         }
 
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?: 'โรงพยาบาล';
+        $hospital_phone_finance = DB::table('main_setting')->where('name', 'hospital_phone_finance')->value('value') ?: '';
 
-        return view('debtor.1102050102_106_tracking_print', compact('tracking', 'debtor', 'hospital_name'));
+        return view('debtor.1102050102_106_tracking_print', compact('tracking', 'debtor', 'hospital_name', 'hospital_phone_finance'));
     }
     //_1102050102_106_tracking_insert--------------------------------------------------------------------------------------------------
     public function _1102050102_106_tracking_insert(Request $request)
@@ -13484,8 +13485,9 @@ class DebtorController extends Controller
         }
 
         $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?: 'โรงพยาบาล';
+        $hospital_phone_finance = DB::table('main_setting')->where('name', 'hospital_phone_finance')->value('value') ?: '';
 
-        return view('debtor.1102050102_107_tracking_print', compact('tracking', 'debtor', 'hospital_name'));
+        return view('debtor.1102050102_107_tracking_print', compact('tracking', 'debtor', 'hospital_name', 'hospital_phone_finance'));
     }
 
     public function _1102050102_107_tracking_delete(Request $request, $tracking_id)

@@ -39,6 +39,7 @@ class MainSettingController extends Controller
             'Basic Information' => [
                 'hospital_name',
                 'hospital_code',
+                'hospital_phone_finance',
                 'bed_qty',
                 'k_value',
                 'base_rate',
@@ -426,6 +427,7 @@ class MainSettingController extends Controller
                         ['name' => 'drug_clopidogrel', 'name_th' => 'ยา Clopidogrel (รหัส drugitems HOSxP)', 'value' => '0000000'],
                         ['name' => 'hospital_name', 'name_th' => 'ชื่อโรงพยาบาล', 'value' => '"โรงพยาบาลทดสอบ"'],
                         ['name' => 'hospital_code', 'name_th' => 'รหัส 5 หลักโรงพยาบาล', 'value' => '00000'],
+                        ['name' => 'hospital_phone_finance', 'name_th' => 'เบอร์โทรศัพท์งานการเงินและบัญชี', 'value' => ''],
                         ['name' => 'opoh_token', 'name_th' => 'AOPOD Token', 'value' => ''],
                         ['name' => 'fdh_user', 'name_th' => 'FDH User', 'value' => ''],
                         ['name' => 'fdh_pass', 'name_th' => 'FDH Pass', 'value' => ''],
@@ -436,8 +438,9 @@ class MainSettingController extends Controller
                         ['name' => 'moph_notify_client_id', 'name_th' => 'Moph Notify ClientID', 'value' => ''],
                     ];
 
-                    // Clean up obsolete settings
-                    MainSetting::whereIn('name', ['telegram_chat_id', 'git_user', 'telegram_chat_id_ipdsummary'])->delete();
+                    // Clean up obsolete settings dynamically
+                    $activeNames = collect($main_setting)->pluck('name')->toArray();
+                    MainSetting::whereNotIn('name', $activeNames)->delete();
 
                     foreach ($main_setting as $row) {
                         MainSetting::firstOrCreate(

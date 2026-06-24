@@ -57,10 +57,12 @@ Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(
     Route::resource('lookup_hospcode', LookupHospcodeController::class)->parameters(['lookup_hospcode' => 'hospcode']);
     Route::resource('budget_year', BudgetYearController::class)->parameters(['LEAVE_YEAR_ID' => 'LEAVE_YEAR_ID']);
     Route::get('logs/schedule', [MainSettingController::class, 'showScheduleLogs'])->name('logs.schedule');
-    Route::get('logs/schedule/aopod/test', [\App\Http\Controllers\Api\AmnosendController::class, 'testConnection'])->name('logs.schedule.aopod.test');
-    Route::post('logs/schedule/aopod/send', [MainSettingController::class, 'manualAopodSend'])->name('logs.schedule.aopod.send');
-    Route::get('aopod', [MainSettingController::class, 'aopodIndex'])->name('aopod');
-    Route::post('aopod/log-summary', [MainSettingController::class, 'saveAopodLogSummary'])->name('aopod.log-summary');
+    Route::get('logs/schedule/aopod/test', [\App\Http\Controllers\Api\AopodSendController::class, 'testConnection'])->name('logs.schedule.aopod.test');
+    Route::post('logs/schedule/aopod/send', [\App\Http\Controllers\Admin\AopodController::class, 'manualAopodSend'])->name('logs.schedule.aopod.send');
+    Route::get('aopod', [\App\Http\Controllers\Admin\AopodController::class, 'aopodIndex'])->name('aopod');
+    Route::post('aopod/log-summary', [\App\Http\Controllers\Admin\AopodController::class, 'saveAopodLogSummary'])->name('aopod.log-summary');
+    Route::post('aopod/death-check', [\App\Http\Controllers\Admin\AopodController::class, 'aopodDeathCheck'])->name('aopod.death-check');
+    Route::post('aopod/save-token', [\App\Http\Controllers\Admin\AopodController::class, 'updateToken'])->name('aopod.save-token');
     Route::get('logs/schedule/notify/test', [MainSettingController::class, 'testTelegramConnection'])->name('logs.schedule.notify.test');
     Route::post('logs/schedule/notify/send', [MainSettingController::class, 'manualNotifySend'])->name('logs.schedule.notify.send');
 });

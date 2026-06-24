@@ -29,10 +29,7 @@ class MainSettingController extends Controller
             'moph_notify_client_id'
         ];
 
-        if ($hospcode === '00025') {
-            // แทรก opoh_token ไว้ลำดับแรก
-            array_splice($integrationTokens, 0, 0, 'opoh_token');
-        }
+
 
         // Grouping settings into categories
         $categories = [
@@ -403,6 +400,16 @@ class MainSettingController extends Controller
                     ]);
 
                 case 3:
+                    // ย้ายค่าเดิมจาก opoh_ ไปยัง aopod_ เพื่อป้องกันข้อมูลสูญหาย
+                    $oldToken = DB::table('main_setting')->where('name', 'opoh_token')->value('value');
+                    if (!is_null($oldToken)) {
+                        DB::table('main_setting')->updateOrInsert(['name' => 'aopod_token'], ['value' => $oldToken]);
+                    }
+                    $oldUrl = DB::table('main_setting')->where('name', 'opoh_url_api_death')->value('value');
+                    if (!is_null($oldUrl)) {
+                        DB::table('main_setting')->updateOrInsert(['name' => 'aopod_url_api_death'], ['value' => $oldUrl]);
+                    }
+
                     // ==========================================
                     // STEP 3: Settings Synchronization (main_setting)
                     // ==========================================
@@ -428,7 +435,16 @@ class MainSettingController extends Controller
                         ['name' => 'hospital_name', 'name_th' => 'ชื่อโรงพยาบาล', 'value' => '"โรงพยาบาลทดสอบ"'],
                         ['name' => 'hospital_code', 'name_th' => 'รหัส 5 หลักโรงพยาบาล', 'value' => '00000'],
                         ['name' => 'hospital_phone_finance', 'name_th' => 'เบอร์โทรศัพท์งานการเงินและบัญชี', 'value' => ''],
-                        ['name' => 'opoh_token', 'name_th' => 'AOPOD Token', 'value' => ''],
+                        ['name' => 'aopod_token', 'name_th' => 'AOPOD Token', 'value' => ''],
+                        ['name' => 'aopod_url_api_death', 'name_th' => 'AOPOD Death API URL', 'value' => 'https://huataphanhospital.go.th/aopod/api/death-data'],
+                        ['name' => 'aopod_death_pct_patient', 'name_th' => 'AOPOD % ความสมบูรณ์ PATIENT', 'value' => '0'],
+                        ['name' => 'aopod_death_details_patient', 'name_th' => 'AOPOD รายละเอียด PATIENT', 'value' => '0 / 0 ราย'],
+                        ['name' => 'aopod_death_pct_person', 'name_th' => 'AOPOD % ความสมบูรณ์ PERSON', 'value' => '0'],
+                        ['name' => 'aopod_death_details_person', 'name_th' => 'AOPOD รายละเอียด PERSON', 'value' => '0 / 0 ราย'],
+                        ['name' => 'aopod_death_pct_clinicmember', 'name_th' => 'AOPOD % ความสมบูรณ์ CLINICMEMBER', 'value' => '0'],
+                        ['name' => 'aopod_death_details_clinicmember', 'name_th' => 'AOPOD รายละเอียด CLINICMEMBER', 'value' => '0 รายค้างจำหน่าย'],
+                        ['name' => 'aopod_death_pct_death', 'name_th' => 'AOPOD % ความสมบูรณ์ DEATH', 'value' => '0'],
+                        ['name' => 'aopod_death_details_death', 'name_th' => 'AOPOD รายละเอียด DEATH', 'value' => '0 / 0 ราย'],
                         ['name' => 'fdh_user', 'name_th' => 'FDH User', 'value' => ''],
                         ['name' => 'fdh_pass', 'name_th' => 'FDH Pass', 'value' => ''],
                         ['name' => 'fdh_secretKey', 'name_th' => 'FDH Secret Key', 'value' => '$jwt@moph#'],
@@ -811,43 +827,6 @@ class MainSettingController extends Controller
         return $parsed;
     }
 
-    public function aopodIndex()
-    {
-        $hospcode = DB::table('lookup_hospcode')->value('hospcode');
-        if ($hospcode !== '00025') {
-            abort(403, 'Unauthorized.');
-        }
-
-        $amnosend = url('api/amnosend');
-
-        $aopodLogRaw = '';
-        if (\Illuminate\Support\Facades\File::exists(storage_path('logs/aopod_schedule.log'))) {
-            $aopodLogRaw = \Illuminate\Support\Facades\File::get(storage_path('logs/aopod_schedule.log'));
-        }
-
-        $aopodLogs = $this->parseLogs($aopodLogRaw);
-
-        return view('admin.aopod', compact('aopodLogs', 'hospcode', 'amnosend'));
-    }
-
-    public function manualAopodSend(Request $request)
-    {
-        try {
-            $res = app(\App\Http\Controllers\Api\AmnosendController::class)->send($request);
-            $responseData = $res->getData();
-
-            return response()->json([
-                'status' => isset($responseData->ok) && $responseData->ok ? 'success' : 'error',
-                'message' => 'ส่งข้อมูล AOPOD เสร็จสิ้น',
-                'data' => $responseData
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'เกิดข้อผิดพลาดในการส่ง AOPOD: ' . $e->getMessage()
-            ], 500);
-        }
-    }
 
     public function testTelegramConnection(Request $request)
     {
@@ -907,49 +886,6 @@ class MainSettingController extends Controller
                 'message' => 'เกิดข้อผิดพลาดในการเชื่อมต่อ Telegram: ' . $e->getMessage()
             ], 500);
         }
-    }
-
-    public function saveAopodLogSummary(Request $request)
-    {
-        $hospcode = DB::table('lookup_hospcode')->value('hospcode');
-        if ($hospcode !== '00025') {
-            abort(403, 'Unauthorized.');
-        }
-
-        $request->validate([
-            'start_date' => 'required|date',
-            'end_date' => 'required|date',
-            'ok' => 'required|boolean',
-            'opd' => 'required|integer',
-            'ipd' => 'required|integer',
-            'ipd_bed' => 'required|integer',
-            'hospital' => 'required|integer',
-        ]);
-
-        $responseData = [
-            'ok'         => (bool)$request->input('ok'),
-            'hospcode'   => DB::table('main_setting')->where('name', 'hospital_code')->value('value'),
-            'start_date' => $request->input('start_date'),
-            'end_date'   => $request->input('end_date'),
-            'received'   => [
-                'opd'      => (int)$request->input('opd'),
-                'ipd'      => (int)$request->input('ipd'),
-                'ipd_bed'  => (int)$request->input('ipd_bed'),
-                'hospital' => (int)$request->input('hospital'),
-            ],
-            'results'    => [
-                'Manual Send' => [
-                    'ok' => (bool)$request->input('ok')
-                ]
-            ]
-        ];
-
-        if (function_exists('appendAndLimitLog')) {
-            $logMessage = "[" . now()->toDateTimeString() . "] AOPOD output: " . json_encode($responseData, JSON_UNESCAPED_UNICODE) . "\n";
-            appendAndLimitLog('aopod_schedule.log', $logMessage, 24);
-        }
-
-        return response()->json(['status' => 'success']);
     }
 
     public function manualNotifySend(Request $request)

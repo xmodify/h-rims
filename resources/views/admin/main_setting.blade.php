@@ -52,7 +52,7 @@
                                 <tbody>
                                     @foreach ($settings as $row)
                                         @php 
-                                            $isSensitive = in_array($row->name, ['fdh_pass', 'fdh_secretKey', 'telegram_token', 'opoh_token', 'token_authen_kiosk_nhso', 'telegram_chat_id_register', 'telegram_chat_id_ipdsummary']);
+                                            $isSensitive = in_array($row->name, ['fdh_pass', 'fdh_secretKey', 'telegram_token', 'aopod_token', 'token_authen_kiosk_nhso', 'telegram_chat_id_register', 'telegram_chat_id_ipdsummary']);
                                         @endphp
                                         <tr>
                                             <td class="ps-3 border-0">

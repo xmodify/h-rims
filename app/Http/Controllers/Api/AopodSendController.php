@@ -8,21 +8,21 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Carbon;
 
-class AmnosendController extends Controller
+class AopodSendController extends Controller
 {
     public function send(Request $request)
     {
         set_time_limit(0);
 
         // 1) โหลดค่าพื้นฐานจาก main_setting-------------------------------------------------------------------------
-        $token    = DB::table('main_setting')->where('name', 'opoh_token')->value('value');
+        $token    = DB::table('main_setting')->where('name', 'aopod_token')->value('value');
         $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
         $bed_qty = DB::table('main_setting')->where('name', 'bed_qty')->value('value');
 
         if (!$token || !$hospcode) {
             return response()->json([
                 'ok' => false,
-                'message' => 'Missing opoh_token or hospital_code in main_setting.'
+                'message' => 'Missing aopod_token or hospital_code in main_setting.'
             ], 422);
         }
 
@@ -585,13 +585,13 @@ class AmnosendController extends Controller
 
     public function testConnection()
     {
-        $token    = DB::table('main_setting')->where('name', 'opoh_token')->value('value');
+        $token    = DB::table('main_setting')->where('name', 'aopod_token')->value('value');
         $hospcode = DB::table('main_setting')->where('name', 'hospital_code')->value('value');
 
         if (!$token || !$hospcode) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'ไม่พบค่า opoh_token หรือ hospital_code ในตาราง main_setting'
+                'message' => 'ไม่พบค่า aopod_token หรือ hospital_code ในตาราง main_setting'
             ], 400);
         }
 

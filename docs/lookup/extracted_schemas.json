@@ -1,4 +1,154 @@
 {
+    "aopod_death_list": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "cid": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "fullname": {
+                "type": "varchar(150)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "patient_death": {
+                "type": "varchar(5)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "patient_deathday": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "person_death": {
+                "type": "varchar(5)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "person_deathday": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "active_clinics": {
+                "type": "int(11)",
+                "nullable": false,
+                "default": "0",
+                "extra": ""
+            },
+            "active_clinics_list": {
+                "type": "text",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "has_clinics": {
+                "type": "tinyint(4)",
+                "nullable": false,
+                "default": "0",
+                "extra": ""
+            },
+            "death_table_date": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "death_table_diag": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "death_table_cause": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "aopod_death_date": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "aopod_death_diag": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "aopod_death_cause": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "aopod_death_place": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "is_complete": {
+                "type": "tinyint(4)",
+                "nullable": false,
+                "default": "0",
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "aopod_death_list_cid_index": [
+                {
+                    "column": "cid",
+                    "unique": false
+                }
+            ],
+            "aopod_death_list_hn_index": [
+                {
+                    "column": "hn",
+                    "unique": false
+                }
+            ]
+        }
+    },
     "budget_year": {
         "columns": {
             "LEAVE_YEAR_ID": {

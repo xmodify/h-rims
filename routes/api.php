@@ -4,7 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\FdhClaimStatusController;
 use App\Http\Controllers\Api\NhsoEndpointController;
-use App\Http\Controllers\Api\AmnosendController;
+use App\Http\Controllers\Api\AopodSendController;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,7 +37,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::post('/amnosend', [AmnosendController::class, 'send']);
+Route::post('/amnosend', [AopodSendController::class, 'send']);
 
 // API E-Claim ---------------------------------------------------------------------------------
 Route::post('/eclaim/sync', [\App\Http\Controllers\CheckEclaimController::class, 'sync_eclaim_extension']);

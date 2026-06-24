@@ -9186,6 +9186,192 @@
         },
         "indexes": []
     },
+    "drugcat_fdh": {
+        "columns": {
+            "id": {
+                "type": "int(10) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "hospdrugcode": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "productcat": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "tmtid": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "specprep": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "genericname": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "tradename": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dfscode": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dosageform": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "strength": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "content": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "unitprice": {
+                "type": "decimal(15,4)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "distributor": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "manufacturer": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ised": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ndc24": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "packsize": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "packprice": {
+                "type": "decimal(15,4)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updateflag": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datechange": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dateupdate": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dateeffective": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "date_approved": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ised_status": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "stm_filename": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "date_import": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "filename": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hospcode": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "hospdrugcode": [
+                {
+                    "column": "hospdrugcode",
+                    "unique": false
+                }
+            ]
+        }
+    },
     "drugcat_nhso": {
         "columns": {
             "hospdrugcode": {
@@ -9573,6 +9759,154 @@
             ]
         }
     },
+    "edc_approve_list": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "cid": {
+                "type": "varchar(13)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ptname": {
+                "type": "varchar(150)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vstdate": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vsttime": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "amount": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "approve_code": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "app_code": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ref_no": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "trans_type": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "inv_no": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "terminal_id": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "merchant_id": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "edc_type": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "card_type": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "note": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "cid": [
+                {
+                    "column": "cid",
+                    "unique": false
+                }
+            ],
+            "vstdate": [
+                {
+                    "column": "vstdate",
+                    "unique": false
+                }
+            ],
+            "approve_code": [
+                {
+                    "column": "approve_code",
+                    "unique": false
+                }
+            ],
+            "idx_vstdate_cid": [
+                {
+                    "column": "vstdate",
+                    "unique": false
+                },
+                {
+                    "column": "cid",
+                    "unique": false
+                }
+            ]
+        }
+    },
     "failed_jobs": {
         "columns": {
             "id": {
@@ -9728,6 +10062,394 @@
                 }
             ]
         }
+    },
+    "labcat_chi": {
+        "columns": {
+            "lccode": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "billgroup": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cscode": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "tmlt": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "loinc": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "panel": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "name": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "sflag": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "chargecat": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "unitprice": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "benefitplan": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "reimbprice": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updateflag": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updatebeg": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updateend": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rpdatebeg": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rpdateend": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dateupd": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hcode": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "message": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "stm_filename": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": []
+    },
+    "labcat_fdh": {
+        "columns": {
+            "id": {
+                "type": "int(10) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "benefitplan": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cscode": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "name": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "unit": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "unitprice": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "gyear": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updatebeg": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updateend": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updateflag": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "tmlt": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "tmlt_name": {
+                "type": "text",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "lccode": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "loinc": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "exception": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "stm_filename": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "lccode": [
+                {
+                    "column": "lccode",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "labcat_nhso": {
+        "columns": {
+            "lccode": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "billgroup": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cscode": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "tmlt": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "loinc": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "panel": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "name": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "sflag": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "chargecat": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "unitprice": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "benefitplan": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "reimbprice": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updateflag": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updatebeg": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updateend": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rpdatebeg": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rpdateend": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dateupd": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hcode": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "message": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "stm_filename": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": []
     },
     "labcat_ss": {
         "columns": {
@@ -10864,6 +11586,1486 @@
                 },
                 {
                     "column": "tokenable_id",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "stm_bkk": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "round_no": {
+                "type": "varchar(30)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "repno": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "no": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "an": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cid": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pt_name": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimeadm": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vstdate": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vsttime": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimedch": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dchdate": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dchtime": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "projcode": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "adjrw": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "charge": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "act": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_room": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_instument": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_drug": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_treatment": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_car": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_waitdch": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_other": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_total": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "stm_filename": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_no": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receipt_date": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receipt_by": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "an": [
+                {
+                    "column": "an",
+                    "unique": false
+                }
+            ],
+            "hn": [
+                {
+                    "column": "hn",
+                    "unique": false
+                }
+            ],
+            "cid": [
+                {
+                    "column": "cid",
+                    "unique": false
+                }
+            ],
+            "vstdate": [
+                {
+                    "column": "vstdate",
+                    "unique": false
+                }
+            ],
+            "vsttime": [
+                {
+                    "column": "vsttime",
+                    "unique": false
+                }
+            ],
+            "dchdate": [
+                {
+                    "column": "dchdate",
+                    "unique": false
+                }
+            ],
+            "dchtime": [
+                {
+                    "column": "dchtime",
+                    "unique": false
+                }
+            ],
+            "idx_vstdate_hn": [
+                {
+                    "column": "vstdate",
+                    "unique": false
+                },
+                {
+                    "column": "hn",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "stm_bkk_kidney": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "round_no": {
+                "type": "varchar(30)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "no": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "repno": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "an": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cid": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pt_name": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimeadm": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hd_type": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "charge_total": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_total": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "note": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "stm_filename": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_no": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receipt_date": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receipt_by": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "cid": [
+                {
+                    "column": "cid",
+                    "unique": false
+                }
+            ],
+            "datetimeadm": [
+                {
+                    "column": "datetimeadm",
+                    "unique": false
+                }
+            ],
+            "idx_hn_datetimeadm": [
+                {
+                    "column": "hn",
+                    "unique": false
+                },
+                {
+                    "column": "datetimeadm",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "stm_bkk_kidneyexcel": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "round_no": {
+                "type": "varchar(30)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "no": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "repno": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "an": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cid": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pt_name": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimeadm": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hd_type": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "charge_total": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_total": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "note": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "stm_filename": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ]
+        }
+    },
+    "stm_bkkexcel": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "round_no": {
+                "type": "varchar(30)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "repno": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "no": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "an": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cid": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pt_name": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimeadm": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vstdate": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vsttime": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimedch": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dchdate": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dchtime": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "projcode": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "adjrw": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "charge": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "act": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_room": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_instument": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_drug": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_treatment": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_car": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_waitdch": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_other": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_total": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "stm_filename": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "an": [
+                {
+                    "column": "an",
+                    "unique": false
+                }
+            ],
+            "hn": [
+                {
+                    "column": "hn",
+                    "unique": false
+                }
+            ],
+            "cid": [
+                {
+                    "column": "cid",
+                    "unique": false
+                }
+            ],
+            "vstdate": [
+                {
+                    "column": "vstdate",
+                    "unique": false
+                }
+            ],
+            "vsttime": [
+                {
+                    "column": "vsttime",
+                    "unique": false
+                }
+            ],
+            "dchdate": [
+                {
+                    "column": "dchdate",
+                    "unique": false
+                }
+            ],
+            "dchtime": [
+                {
+                    "column": "dchtime",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "stm_bmt": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "round_no": {
+                "type": "varchar(30)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "repno": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "no": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "an": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cid": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pt_name": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimeadm": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vstdate": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vsttime": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimedch": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dchdate": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dchtime": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "projcode": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "adjrw": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "charge": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "act": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_room": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_instument": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_drug": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_treatment": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_car": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_waitdch": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_other": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_total": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "stm_filename": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_no": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receipt_date": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receipt_by": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "an": [
+                {
+                    "column": "an",
+                    "unique": false
+                }
+            ],
+            "hn": [
+                {
+                    "column": "hn",
+                    "unique": false
+                }
+            ],
+            "cid": [
+                {
+                    "column": "cid",
+                    "unique": false
+                }
+            ],
+            "vstdate": [
+                {
+                    "column": "vstdate",
+                    "unique": false
+                }
+            ],
+            "vsttime": [
+                {
+                    "column": "vsttime",
+                    "unique": false
+                }
+            ],
+            "dchdate": [
+                {
+                    "column": "dchdate",
+                    "unique": false
+                }
+            ],
+            "dchtime": [
+                {
+                    "column": "dchtime",
+                    "unique": false
+                }
+            ],
+            "idx_vstdate_hn": [
+                {
+                    "column": "vstdate",
+                    "unique": false
+                },
+                {
+                    "column": "hn",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "stm_bmt_kidney": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "round_no": {
+                "type": "varchar(30)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "no": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "repno": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "an": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cid": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pt_name": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimeadm": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hd_type": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "charge_total": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_total": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "note": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "stm_filename": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_no": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receipt_date": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receipt_by": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "cid": [
+                {
+                    "column": "cid",
+                    "unique": false
+                }
+            ],
+            "datetimeadm": [
+                {
+                    "column": "datetimeadm",
+                    "unique": false
+                }
+            ],
+            "idx_hn_datetimeadm": [
+                {
+                    "column": "hn",
+                    "unique": false
+                },
+                {
+                    "column": "datetimeadm",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "stm_bmt_kidneyexcel": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "round_no": {
+                "type": "varchar(30)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "no": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "repno": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "an": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cid": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pt_name": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimeadm": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hd_type": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "charge_total": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_total": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "note": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "stm_filename": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ]
+        }
+    },
+    "stm_bmtexcel": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "round_no": {
+                "type": "varchar(30)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "repno": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "no": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "an": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cid": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pt_name": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimeadm": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vstdate": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vsttime": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimedch": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dchdate": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dchtime": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "projcode": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "adjrw": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "charge": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "act": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_room": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_instument": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_drug": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_treatment": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_car": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_waitdch": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_other": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_total": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "stm_filename": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "an": [
+                {
+                    "column": "an",
+                    "unique": false
+                }
+            ],
+            "hn": [
+                {
+                    "column": "hn",
+                    "unique": false
+                }
+            ],
+            "cid": [
+                {
+                    "column": "cid",
+                    "unique": false
+                }
+            ],
+            "vstdate": [
+                {
+                    "column": "vstdate",
+                    "unique": false
+                }
+            ],
+            "vsttime": [
+                {
+                    "column": "vsttime",
+                    "unique": false
+                }
+            ],
+            "dchdate": [
+                {
+                    "column": "dchdate",
+                    "unique": false
+                }
+            ],
+            "dchtime": [
+                {
+                    "column": "dchtime",
                     "unique": false
                 }
             ]
@@ -12833,6 +15035,490 @@
             ]
         }
     },
+    "stm_srt": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "round_no": {
+                "type": "varchar(30)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "repno": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "no": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "an": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cid": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pt_name": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimeadm": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vstdate": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vsttime": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimedch": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dchdate": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dchtime": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "projcode": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "adjrw": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "charge": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "act": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_room": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_instument": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_drug": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_treatment": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_car": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_waitdch": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_other": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_total": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "stm_filename": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_no": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receipt_date": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receipt_by": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "an": [
+                {
+                    "column": "an",
+                    "unique": false
+                }
+            ],
+            "hn": [
+                {
+                    "column": "hn",
+                    "unique": false
+                }
+            ],
+            "cid": [
+                {
+                    "column": "cid",
+                    "unique": false
+                }
+            ],
+            "vstdate": [
+                {
+                    "column": "vstdate",
+                    "unique": false
+                }
+            ],
+            "vsttime": [
+                {
+                    "column": "vsttime",
+                    "unique": false
+                }
+            ],
+            "dchdate": [
+                {
+                    "column": "dchdate",
+                    "unique": false
+                }
+            ],
+            "dchtime": [
+                {
+                    "column": "dchtime",
+                    "unique": false
+                }
+            ],
+            "idx_vstdate_hn": [
+                {
+                    "column": "vstdate",
+                    "unique": false
+                },
+                {
+                    "column": "hn",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "stm_srtexcel": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "round_no": {
+                "type": "varchar(30)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "repno": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "no": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "an": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cid": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pt_name": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimeadm": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vstdate": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vsttime": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datetimedch": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dchdate": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dchtime": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "projcode": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "adjrw": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "charge": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "act": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_room": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_instument": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_drug": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_treatment": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_car": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_waitdch": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_other": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_total": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "stm_filename": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "an": [
+                {
+                    "column": "an",
+                    "unique": false
+                }
+            ],
+            "hn": [
+                {
+                    "column": "hn",
+                    "unique": false
+                }
+            ],
+            "cid": [
+                {
+                    "column": "cid",
+                    "unique": false
+                }
+            ],
+            "vstdate": [
+                {
+                    "column": "vstdate",
+                    "unique": false
+                }
+            ],
+            "vsttime": [
+                {
+                    "column": "vsttime",
+                    "unique": false
+                }
+            ],
+            "dchdate": [
+                {
+                    "column": "dchdate",
+                    "unique": false
+                }
+            ],
+            "dchtime": [
+                {
+                    "column": "dchtime",
+                    "unique": false
+                }
+            ]
+        }
+    },
     "stm_sss_kidney": {
         "columns": {
             "id": {
@@ -13551,16 +16237,6 @@
                     "unique": false
                 }
             ],
-            "idx_cid_vstdate": [
-                {
-                    "column": "cid",
-                    "unique": false
-                },
-                {
-                    "column": "vstdate",
-                    "unique": false
-                }
-            ],
             "idx_cid_datetimeadm": [
                 {
                     "column": "cid",
@@ -14205,2692 +16881,6 @@
                 {
                     "column": "id",
                     "unique": true
-                }
-            ]
-        }
-    },
-    "edc_approve_list": {
-        "columns": {
-            "id": {
-                "type": "bigint(20) unsigned",
-                "nullable": false,
-                "default": null,
-                "extra": "auto_increment"
-            },
-            "cid": {
-                "type": "varchar(13)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "ptname": {
-                "type": "varchar(150)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "vstdate": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "vsttime": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "amount": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "approve_code": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "app_code": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "ref_no": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "trans_type": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "inv_no": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "terminal_id": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "merchant_id": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "edc_type": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "card_type": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "note": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "created_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updated_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "indexes": {
-            "PRIMARY": [
-                {
-                    "column": "id",
-                    "unique": true
-                }
-            ],
-            "cid": [
-                {
-                    "column": "cid",
-                    "unique": false
-                }
-            ],
-            "vstdate": [
-                {
-                    "column": "vstdate",
-                    "unique": false
-                }
-            ],
-            "approve_code": [
-                {
-                    "column": "approve_code",
-                    "unique": false
-                }
-            ],
-            "idx_vstdate_cid": [
-                {
-                    "column": "vstdate",
-                    "unique": false
-                },
-                {
-                    "column": "cid",
-                    "unique": false
-                }
-            ]
-        }
-    },
-    "stm_bkk_kidney": {
-        "columns": {
-            "id": {
-                "type": "bigint(20) unsigned",
-                "nullable": false,
-                "default": null,
-                "extra": "auto_increment"
-            },
-            "round_no": {
-                "type": "varchar(30)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "no": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "repno": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hn": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "an": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "cid": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "pt_name": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "datetimeadm": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hd_type": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "charge_total": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_total": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "note": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "stm_filename": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_no": {
-                "type": "varchar(20)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receipt_date": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receipt_by": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "created_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updated_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "indexes": {
-            "PRIMARY": [
-                {
-                    "column": "id",
-                    "unique": true
-                }
-            ],
-            "cid": [
-                {
-                    "column": "cid",
-                    "unique": false
-                }
-            ],
-            "datetimeadm": [
-                {
-                    "column": "datetimeadm",
-                    "unique": false
-                }
-            ],
-            "idx_hn_datetimeadm": [
-                {
-                    "column": "hn",
-                    "unique": false
-                },
-                {
-                    "column": "datetimeadm",
-                    "unique": false
-                }
-            ]
-        }
-    },
-    "stm_bkk_kidneyexcel": {
-        "columns": {
-            "id": {
-                "type": "bigint(20) unsigned",
-                "nullable": false,
-                "default": null,
-                "extra": "auto_increment"
-            },
-            "round_no": {
-                "type": "varchar(30)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "no": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "repno": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hn": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "an": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "cid": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "pt_name": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "datetimeadm": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hd_type": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "charge_total": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_total": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "note": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "stm_filename": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "created_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updated_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "indexes": {
-            "PRIMARY": [
-                {
-                    "column": "id",
-                    "unique": true
-                }
-            ]
-        }
-    },
-    "stm_bmt_kidney": {
-        "columns": {
-            "id": {
-                "type": "bigint(20) unsigned",
-                "nullable": false,
-                "default": null,
-                "extra": "auto_increment"
-            },
-            "round_no": {
-                "type": "varchar(30)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "no": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "repno": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hn": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "an": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "cid": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "pt_name": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "datetimeadm": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hd_type": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "charge_total": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_total": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "note": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "stm_filename": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_no": {
-                "type": "varchar(20)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receipt_date": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receipt_by": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "created_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updated_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "indexes": {
-            "PRIMARY": [
-                {
-                    "column": "id",
-                    "unique": true
-                }
-            ],
-            "cid": [
-                {
-                    "column": "cid",
-                    "unique": false
-                }
-            ],
-            "datetimeadm": [
-                {
-                    "column": "datetimeadm",
-                    "unique": false
-                }
-            ],
-            "idx_hn_datetimeadm": [
-                {
-                    "column": "hn",
-                    "unique": false
-                },
-                {
-                    "column": "datetimeadm",
-                    "unique": false
-                }
-            ]
-        }
-    },
-    "stm_bmt_kidneyexcel": {
-        "columns": {
-            "id": {
-                "type": "bigint(20) unsigned",
-                "nullable": false,
-                "default": null,
-                "extra": "auto_increment"
-            },
-            "round_no": {
-                "type": "varchar(30)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "no": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "repno": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hn": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "an": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "cid": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "pt_name": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "datetimeadm": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hd_type": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "charge_total": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_total": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "note": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "stm_filename": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "created_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updated_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "indexes": {
-            "PRIMARY": [
-                {
-                    "column": "id",
-                    "unique": true
-                }
-            ]
-        }
-    },
-    "stm_bkk": {
-        "columns": {
-            "id": {
-                "type": "bigint(20) unsigned",
-                "nullable": false,
-                "default": null,
-                "extra": "auto_increment"
-            },
-            "round_no": {
-                "type": "varchar(30)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "repno": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "no": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hn": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "an": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "cid": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "pt_name": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "datetimeadm": {
-                "type": "datetime",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "vstdate": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "vsttime": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "datetimedch": {
-                "type": "datetime",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dchdate": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dchtime": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "projcode": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "adjrw": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "charge": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "act": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_room": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_instument": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_drug": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_treatment": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_car": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_waitdch": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_other": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_total": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "stm_filename": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_no": {
-                "type": "varchar(20)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receipt_date": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receipt_by": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "created_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updated_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "indexes": {
-            "PRIMARY": [
-                {
-                    "column": "id",
-                    "unique": true
-                }
-            ],
-            "an": [
-                {
-                    "column": "an",
-                    "unique": false
-                }
-            ],
-            "hn": [
-                {
-                    "column": "hn",
-                    "unique": false
-                }
-            ],
-            "cid": [
-                {
-                    "column": "cid",
-                    "unique": false
-                }
-            ],
-            "vstdate": [
-                {
-                    "column": "vstdate",
-                    "unique": false
-                }
-            ],
-            "vsttime": [
-                {
-                    "column": "vsttime",
-                    "unique": false
-                }
-            ],
-            "dchdate": [
-                {
-                    "column": "dchdate",
-                    "unique": false
-                }
-            ],
-            "dchtime": [
-                {
-                    "column": "dchtime",
-                    "unique": false
-                }
-            ],
-            "idx_vstdate_hn": [
-                {
-                    "column": "vstdate",
-                    "unique": false
-                },
-                {
-                    "column": "hn",
-                    "unique": false
-                }
-            ]
-        }
-    },
-    "stm_bkkexcel": {
-        "columns": {
-            "id": {
-                "type": "bigint(20) unsigned",
-                "nullable": false,
-                "default": null,
-                "extra": "auto_increment"
-            },
-            "round_no": {
-                "type": "varchar(30)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "repno": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "no": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hn": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "an": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "cid": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "pt_name": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "datetimeadm": {
-                "type": "datetime",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "vstdate": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "vsttime": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "datetimedch": {
-                "type": "datetime",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dchdate": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dchtime": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "projcode": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "adjrw": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "charge": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "act": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_room": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_instument": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_drug": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_treatment": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_car": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_waitdch": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_other": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_total": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "stm_filename": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "created_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updated_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "indexes": {
-            "PRIMARY": [
-                {
-                    "column": "id",
-                    "unique": true
-                }
-            ],
-            "an": [
-                {
-                    "column": "an",
-                    "unique": false
-                }
-            ],
-            "hn": [
-                {
-                    "column": "hn",
-                    "unique": false
-                }
-            ],
-            "cid": [
-                {
-                    "column": "cid",
-                    "unique": false
-                }
-            ],
-            "vstdate": [
-                {
-                    "column": "vstdate",
-                    "unique": false
-                }
-            ],
-            "vsttime": [
-                {
-                    "column": "vsttime",
-                    "unique": false
-                }
-            ],
-            "dchdate": [
-                {
-                    "column": "dchdate",
-                    "unique": false
-                }
-            ],
-            "dchtime": [
-                {
-                    "column": "dchtime",
-                    "unique": false
-                }
-            ]
-        }
-    },
-    "stm_bmt": {
-        "columns": {
-            "id": {
-                "type": "bigint(20) unsigned",
-                "nullable": false,
-                "default": null,
-                "extra": "auto_increment"
-            },
-            "round_no": {
-                "type": "varchar(30)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "repno": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "no": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hn": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "an": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "cid": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "pt_name": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "datetimeadm": {
-                "type": "datetime",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "vstdate": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "vsttime": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "datetimedch": {
-                "type": "datetime",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dchdate": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dchtime": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "projcode": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "adjrw": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "charge": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "act": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_room": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_instument": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_drug": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_treatment": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_car": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_waitdch": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_other": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_total": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "stm_filename": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_no": {
-                "type": "varchar(20)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receipt_date": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receipt_by": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "created_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updated_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "indexes": {
-            "PRIMARY": [
-                {
-                    "column": "id",
-                    "unique": true
-                }
-            ],
-            "an": [
-                {
-                    "column": "an",
-                    "unique": false
-                }
-            ],
-            "hn": [
-                {
-                    "column": "hn",
-                    "unique": false
-                }
-            ],
-            "cid": [
-                {
-                    "column": "cid",
-                    "unique": false
-                }
-            ],
-            "vstdate": [
-                {
-                    "column": "vstdate",
-                    "unique": false
-                }
-            ],
-            "vsttime": [
-                {
-                    "column": "vsttime",
-                    "unique": false
-                }
-            ],
-            "dchdate": [
-                {
-                    "column": "dchdate",
-                    "unique": false
-                }
-            ],
-            "dchtime": [
-                {
-                    "column": "dchtime",
-                    "unique": false
-                }
-            ],
-            "idx_vstdate_hn": [
-                {
-                    "column": "vstdate",
-                    "unique": false
-                },
-                {
-                    "column": "hn",
-                    "unique": false
-                }
-            ]
-        }
-    },
-    "stm_bmtexcel": {
-        "columns": {
-            "id": {
-                "type": "bigint(20) unsigned",
-                "nullable": false,
-                "default": null,
-                "extra": "auto_increment"
-            },
-            "round_no": {
-                "type": "varchar(30)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "repno": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "no": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hn": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "an": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "cid": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "pt_name": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "datetimeadm": {
-                "type": "datetime",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "vstdate": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "vsttime": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "datetimedch": {
-                "type": "datetime",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dchdate": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dchtime": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "projcode": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "adjrw": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "charge": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "act": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_room": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_instument": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_drug": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_treatment": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_car": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_waitdch": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_other": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_total": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "stm_filename": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "created_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updated_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "indexes": {
-            "PRIMARY": [
-                {
-                    "column": "id",
-                    "unique": true
-                }
-            ],
-            "an": [
-                {
-                    "column": "an",
-                    "unique": false
-                }
-            ],
-            "hn": [
-                {
-                    "column": "hn",
-                    "unique": false
-                }
-            ],
-            "cid": [
-                {
-                    "column": "cid",
-                    "unique": false
-                }
-            ],
-            "vstdate": [
-                {
-                    "column": "vstdate",
-                    "unique": false
-                }
-            ],
-            "vsttime": [
-                {
-                    "column": "vsttime",
-                    "unique": false
-                }
-            ],
-            "dchdate": [
-                {
-                    "column": "dchdate",
-                    "unique": false
-                }
-            ],
-            "dchtime": [
-                {
-                    "column": "dchtime",
-                    "unique": false
-                }
-            ]
-        }
-    },
-    "stm_srt": {
-        "columns": {
-            "id": {
-                "type": "bigint(20) unsigned",
-                "nullable": false,
-                "default": null,
-                "extra": "auto_increment"
-            },
-            "round_no": {
-                "type": "varchar(30)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "repno": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "no": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hn": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "an": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "cid": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "pt_name": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "datetimeadm": {
-                "type": "datetime",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "vstdate": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "vsttime": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "datetimedch": {
-                "type": "datetime",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dchdate": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dchtime": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "projcode": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "adjrw": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "charge": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "act": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_room": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_instument": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_drug": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_treatment": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_car": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_waitdch": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_other": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_total": {
-                "type": "double",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "stm_filename": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_no": {
-                "type": "varchar(20)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receipt_date": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receipt_by": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "created_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updated_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "indexes": {
-            "PRIMARY": [
-                {
-                    "column": "id",
-                    "unique": true
-                }
-            ],
-            "an": [
-                {
-                    "column": "an",
-                    "unique": false
-                }
-            ],
-            "hn": [
-                {
-                    "column": "hn",
-                    "unique": false
-                }
-            ],
-            "cid": [
-                {
-                    "column": "cid",
-                    "unique": false
-                }
-            ],
-            "vstdate": [
-                {
-                    "column": "vstdate",
-                    "unique": false
-                }
-            ],
-            "vsttime": [
-                {
-                    "column": "vsttime",
-                    "unique": false
-                }
-            ],
-            "dchdate": [
-                {
-                    "column": "dchdate",
-                    "unique": false
-                }
-            ],
-            "dchtime": [
-                {
-                    "column": "dchtime",
-                    "unique": false
-                }
-            ],
-            "idx_vstdate_hn": [
-                {
-                    "column": "vstdate",
-                    "unique": false
-                },
-                {
-                    "column": "hn",
-                    "unique": false
-                }
-            ]
-        }
-    },
-    "stm_srtexcel": {
-        "columns": {
-            "id": {
-                "type": "bigint(20) unsigned",
-                "nullable": false,
-                "default": null,
-                "extra": "auto_increment"
-            },
-            "round_no": {
-                "type": "varchar(30)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "repno": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "no": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hn": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "an": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "cid": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "pt_name": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "datetimeadm": {
-                "type": "datetime",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "vstdate": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "vsttime": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "datetimedch": {
-                "type": "datetime",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dchdate": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dchtime": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "projcode": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "adjrw": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "charge": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "act": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_room": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_instument": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_drug": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_treatment": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_car": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_waitdch": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_other": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_total": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "stm_filename": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "created_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updated_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "indexes": {
-            "PRIMARY": [
-                {
-                    "column": "id",
-                    "unique": true
-                }
-            ],
-            "an": [
-                {
-                    "column": "an",
-                    "unique": false
-                }
-            ],
-            "hn": [
-                {
-                    "column": "hn",
-                    "unique": false
-                }
-            ],
-            "cid": [
-                {
-                    "column": "cid",
-                    "unique": false
-                }
-            ],
-            "vstdate": [
-                {
-                    "column": "vstdate",
-                    "unique": false
-                }
-            ],
-            "vsttime": [
-                {
-                    "column": "vsttime",
-                    "unique": false
-                }
-            ],
-            "dchdate": [
-                {
-                    "column": "dchdate",
-                    "unique": false
-                }
-            ],
-            "dchtime": [
-                {
-                    "column": "dchtime",
-                    "unique": false
-                }
-            ]
-        }
-    },
-    "drugcat_fdh": {
-        "columns": {
-            "id": {
-                "type": "int(11) unsigned",
-                "nullable": false,
-                "default": null,
-                "extra": "auto_increment"
-            },
-            "hospdrugcode": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "productcat": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "tmtid": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "specprep": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "genericname": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "tradename": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dfscode": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dosageform": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "strength": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "content": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "unitprice": {
-                "type": "decimal(15,4)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "distributor": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "manufacturer": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "ised": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "ndc24": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "packsize": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "packprice": {
-                "type": "decimal(15,4)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updateflag": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "datechange": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dateupdate": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dateeffective": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "date_approved": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "ised_status": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "stm_filename": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "date_import": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "filename": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hospcode": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "indexes": {
-            "PRIMARY": [
-                {
-                    "column": "id",
-                    "unique": true
-                }
-            ],
-            "hospdrugcode": [
-                {
-                    "column": "hospdrugcode",
-                    "unique": false
-                }
-            ]
-        }
-    },
-    "labcat_nhso": {
-        "columns": {
-            "lccode": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "billgroup": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "cscode": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "tmlt": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "loinc": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "panel": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "name": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "sflag": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "chargecat": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "unitprice": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "benefitplan": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "reimbprice": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updateflag": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updatebeg": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updateend": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "rpdatebeg": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "rpdateend": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dateupd": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hcode": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "message": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "stm_filename": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "indexes": []
-    },
-    "labcat_chi": {
-        "columns": {
-            "lccode": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "billgroup": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "cscode": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "tmlt": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "loinc": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "panel": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "name": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "sflag": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "chargecat": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "unitprice": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "benefitplan": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "reimbprice": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updateflag": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updatebeg": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updateend": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "rpdatebeg": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "rpdateend": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dateupd": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hcode": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "message": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "stm_filename": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "indexes": []
-    },
-    "labcat_fdh": {
-        "columns": {
-            "id": {
-                "type": "int(11) unsigned",
-                "nullable": false,
-                "default": null,
-                "extra": "auto_increment"
-            },
-            "benefitplan": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "cscode": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "name": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "unit": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "unitprice": {
-                "type": "double(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "gyear": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updatebeg": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updateend": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updateflag": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "tmlt": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "tmlt_name": {
-                "type": "text",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "lccode": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "loinc": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "exception": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "stm_filename": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "created_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updated_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "indexes": {
-            "PRIMARY": [
-                {
-                    "column": "id",
-                    "unique": true
-                }
-            ],
-            "lccode": [
-                {
-                    "column": "lccode",
-                    "unique": false
                 }
             ]
         }

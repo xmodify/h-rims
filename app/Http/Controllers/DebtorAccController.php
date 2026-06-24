@@ -426,7 +426,12 @@ class DebtorAccController extends Controller
                     FROM rcpt_print r 
                     JOIN hrims.debtor_1102050102_106 d ON r.vn = d.vn
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE r.bill_date BETWEEN ? AND ? AND a.rcpno IS NULL
+                    WHERE r.bill_date BETWEEN ? AND ? 
+                    AND a.rcpno IS NULL
+                    AND (
+                        d.created_at IS NULL 
+                        OR CAST(CONCAT(r.bill_date, ' ', COALESCE(NULLIF(TRIM(r.bill_time), ''), '00:00:00')) AS DATETIME) > d.created_at
+                    )
                     GROUP BY y, m
                 ", [$fiscal_start_date, $fiscal_end_date]);
                 foreach($rec_rows as $rr) $receive_map[intval(($rr->m >= 10) ? $rr->m - 9 : $rr->m + 3)] = $rr->total;
@@ -437,7 +442,12 @@ class DebtorAccController extends Controller
                     FROM rcpt_print r 
                     JOIN hrims.debtor_1102050102_107 d ON r.vn = d.an
                     LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE r.bill_date BETWEEN ? AND ? AND a.rcpno IS NULL
+                    WHERE r.bill_date BETWEEN ? AND ? 
+                    AND a.rcpno IS NULL
+                    AND (
+                        d.created_at IS NULL 
+                        OR CAST(CONCAT(r.bill_date, ' ', COALESCE(NULLIF(TRIM(r.bill_time), ''), '00:00:00')) AS DATETIME) > d.created_at
+                    )
                     GROUP BY y, m
                 ", [$fiscal_start_date, $fiscal_end_date]);
                 foreach($rec_rows as $rr) $receive_map[intval(($rr->m >= 10) ? $rr->m - 9 : $rr->m + 3)] = $rr->total;

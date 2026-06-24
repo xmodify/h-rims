@@ -7515,6 +7515,31 @@ class DebtorController extends Controller
         return redirect()->back()->with('success', 'ลบข้อมูลเรียบร้อย');
     }
 
+    public function _1102050102_106_payment_log(Request $request)
+    {
+        $start_date = $request->input('start_date');
+        $end_date = $request->input('end_date');
+
+        $data = DB::connection('hosxp')->select("
+            SELECT r.bill_date, r.rcpno, r.total_amount, d.hn, d.ptname, d.vstdate, r.bill_time
+            FROM hrims.debtor_1102050102_106 d
+            JOIN rcpt_print r ON r.vn = d.vn
+            LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
+            WHERE a.rcpno IS NULL
+            AND r.bill_date BETWEEN ? AND ?
+            AND (
+                d.created_at IS NULL 
+                OR CAST(CONCAT(r.bill_date, ' ', COALESCE(NULLIF(TRIM(r.bill_time), ''), '00:00:00')) AS DATETIME) > d.created_at
+            )
+            ORDER BY r.bill_date DESC, r.bill_time DESC
+        ", [$start_date, $end_date]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ]);
+    }
+
     ##############################################################################################################################################################
     //_1102050102_108--------------------------------------------------------------------------------------------------------------
     public function _1102050102_108(Request $request)
@@ -13609,6 +13634,31 @@ class DebtorController extends Controller
         }
 
         return redirect()->back()->with('success', 'ลบข้อมูลเรียบร้อย');
+    }
+
+    public function _1102050102_107_payment_log(Request $request)
+    {
+        $start_date = $request->input('start_date');
+        $end_date = $request->input('end_date');
+
+        $data = DB::connection('hosxp')->select("
+            SELECT r.bill_date, r.rcpno, r.total_amount, d.hn, d.ptname, d.vstdate, r.bill_time
+            FROM hrims.debtor_1102050102_107 d
+            JOIN rcpt_print r ON r.vn = d.an
+            LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
+            WHERE a.rcpno IS NULL
+            AND r.bill_date BETWEEN ? AND ?
+            AND (
+                d.created_at IS NULL 
+                OR CAST(CONCAT(r.bill_date, ' ', COALESCE(NULLIF(TRIM(r.bill_time), ''), '00:00:00')) AS DATETIME) > d.created_at
+            )
+            ORDER BY r.bill_date DESC, r.bill_time DESC
+        ", [$start_date, $end_date]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
+        ]);
     }
 
     ##############################################################################################################################################################

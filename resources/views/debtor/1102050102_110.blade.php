@@ -162,7 +162,7 @@
                                 <td align="right" style="color: #9c27b0;">{{ number_format($row->adj_inc ?? 0, 2) }}</td>
                                 <td align="right" style="color: #673ab7;">{{ number_format($row->adj_dec ?? 0, 2) }}</td>
                                 <td align="right" style="color:@if($balance < -0.01) red @elseif($balance > 0.01) green @else black @endif">{{ number_format($balance, 2) }}</td>
-                                <td align="right">{{ $row->repno ?? '' }} {{ $row->repno_ofc ?? '' }} {{ $row->rid ?? '' }} {{ $row->rid_hd ?? '' }}</td>                                                
+                                <td align="right">{{ $row->repno ?? '' }} {{ $row->repno_ofc ?? '' }} {{ $row->rid ?? '' }} {{ $row->rid_hd ?? '' }} {{ $row->rid_pvt ?? '' }}</td>                                                
                                 <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  {{-- เขียวอ่อน --}}
                                     @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" {{-- เหลือง --}}
                                     @else style="background-color: #FF7F7F;" {{-- แดง --}} @endif >

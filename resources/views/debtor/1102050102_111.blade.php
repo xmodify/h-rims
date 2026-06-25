@@ -182,7 +182,7 @@
                             @elseif($balance < -0.01) style="color:red" @endif>
                             {{ number_format($balance,2) }}
                         </td>                                                
-                        <td align="left">{{ $row->repno ?? '' }} {{ $row->cipn_rid ?? '' }} {{ $row->csop_rid ?? '' }}</td>
+                        <td align="left">{{ $row->repno ?? '' }} {{ $row->cipn_rid ?? '' }} {{ $row->csop_rid ?? '' }} {{ $row->pvt_rid ?? '' }}</td>
                         <td align="right" @if($row->days < 90) style="background-color: #90EE90;"  
                             @elseif($row->days >= 90 && $row->days <= 365) style="background-color: #FFFF99;" 
                             @else style="background-color: #FF7F7F;" @endif >

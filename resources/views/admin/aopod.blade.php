@@ -12,13 +12,15 @@
         </h4>
         
         <ul class="nav nav-pills p-1 bg-light rounded-4 shadow-sm mb-0" id="aopodTabs" role="tablist" style="max-width: 600px;">
+            @if(Auth::user()->status === 'admin')
             <li class="nav-item" role="presentation">
                 <button class="nav-link active rounded-pill fw-bold aopod-tab-success" id="sync-tab" data-bs-toggle="tab" data-bs-target="#sync-pane" type="button" role="tab" aria-controls="sync-pane" aria-selected="true" style="padding: 10px 20px;">
                     <i class="bi bi-send-fill me-2"></i>การตั้งค่าและส่งข้อมูล
                 </button>
             </li>
+            @endif
             <li class="nav-item" role="presentation">
-                <button class="nav-link rounded-pill fw-bold aopod-tab-danger" id="death-tab" data-bs-toggle="tab" data-bs-target="#death-pane" type="button" role="tab" aria-controls="death-pane" aria-selected="false" style="padding: 10px 20px;">
+                <button class="nav-link {{ Auth::user()->status !== 'admin' ? 'active' : '' }} rounded-pill fw-bold aopod-tab-danger" id="death-tab" data-bs-toggle="tab" data-bs-target="#death-pane" type="button" role="tab" aria-controls="death-pane" aria-selected="{{ Auth::user()->status !== 'admin' ? 'true' : 'false' }}" style="padding: 10px 20px;">
                     <i class="bi bi-heart-pulse-fill me-2"></i>ตรวจสอบข้อมูลการตาย
                 </button>
             </li>
@@ -27,6 +29,7 @@
 
     <div class="tab-content" id="aopodTabsContent">
         <!-- Tab 1: Sync & Logs (Existing Layout) -->
+        @if(Auth::user()->status === 'admin')
         <div class="tab-pane fade show active" id="sync-pane" role="tabpanel" aria-labelledby="sync-tab" tabindex="0">
             <div class="row">
                 <!-- Control Card -->
@@ -182,9 +185,10 @@
                 </div>
             </div>
         </div>
+        @endif
 
         <!-- Tab 2: Death Audit (New Feature) -->
-        <div class="tab-pane fade" id="death-pane" role="tabpanel" aria-labelledby="death-tab" tabindex="0">
+        <div class="tab-pane fade {{ Auth::user()->status !== 'admin' ? 'show active' : '' }}" id="death-pane" role="tabpanel" aria-labelledby="death-tab" tabindex="0">
             <!-- Control bar for Death Sync -->
             <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">

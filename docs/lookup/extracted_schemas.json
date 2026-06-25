@@ -16947,6 +16947,12 @@
                 "default": "N",
                 "extra": ""
             },
+            "allow_aopod_death": {
+                "type": "varchar(1)",
+                "nullable": false,
+                "default": "N",
+                "extra": ""
+            },
             "allow_debtor_acc": {
                 "type": "varchar(1)",
                 "nullable": false,

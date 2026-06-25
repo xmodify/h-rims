@@ -127,7 +127,7 @@ class MainSettingController extends Controller
                         'allow_home', 'allow_import', 'allow_check', 'allow_emr', 
                         'allow_claim_op', 'allow_claim_ip', 'allow_mishos', 
                         'allow_debtor', 'allow_debtor_lock', 'allow_debtor_acc', 'allow_receipt',
-                        'allow_nhso_endpoint'
+                        'allow_nhso_endpoint', 'allow_aopod_death'
                     ];
                     DB::table('users')->where('status', 'admin')->update(
                         array_fill_keys($permissionColumns, 'Y')

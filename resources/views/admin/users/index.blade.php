@@ -94,6 +94,7 @@
                                                     @if($user->allow_debtor_acc === 'Y') <span class="badge bg-info text-dark" style="font-size: 0.65rem;">ทะเบียนคุมลูกหนี้</span> @endif
                                                     @if($user->allow_receipt === 'Y') <span class="badge bg-warning text-dark border border-warning" style="font-size: 0.65rem;">ออกใบเสร็จ</span> @endif
                                                     @if($user->allow_nhso_endpoint === 'Y') <span class="badge bg-primary text-white" style="font-size: 0.65rem;">ปิดสิทธิ สปสช. (API)</span> @endif
+                                                    @if($user->allow_aopod_death === 'Y') <span class="badge bg-success text-white" style="font-size: 0.65rem;">AOPOD ข้อมูลการตาย</span> @endif
                                                 </div>
                                             @endif
                                         </td>
@@ -118,6 +119,7 @@
                                                     data-allow_receipt="{{ $user->allow_receipt }}"
                                                     data-cid="{{ $user->cid }}"
                                                     data-allow_nhso_endpoint="{{ $user->allow_nhso_endpoint }}"
+                                                    data-allow_aopod_death="{{ $user->allow_aopod_death }}"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#editModal"
                                                     title="แก้ไข">
@@ -201,6 +203,7 @@
                                                     @if($user->allow_debtor_acc === 'Y') <span class="badge bg-info text-dark" style="font-size: 0.65rem;">ทะเบียนคุมลูกหนี้</span> @endif
                                                     @if($user->allow_receipt === 'Y') <span class="badge bg-warning text-dark border border-warning" style="font-size: 0.65rem;">ออกใบเสร็จ</span> @endif
                                                     @if($user->allow_nhso_endpoint === 'Y') <span class="badge bg-primary text-white" style="font-size: 0.65rem;">ปิดสิทธิ สปสช. (API)</span> @endif
+                                                    @if($user->allow_aopod_death === 'Y') <span class="badge bg-success text-white" style="font-size: 0.65rem;">AOPOD ข้อมูลการตาย</span> @endif
                                                 </div>
                                             @endif
                                         </td>
@@ -225,6 +228,7 @@
                                                     data-allow_receipt="{{ $user->allow_receipt }}"
                                                     data-cid="{{ $user->cid }}"
                                                     data-allow_nhso_endpoint="{{ $user->allow_nhso_endpoint }}"
+                                                    data-allow_aopod_death="{{ $user->allow_aopod_death }}"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#editModal"
                                                     title="แก้ไข">
@@ -296,7 +300,7 @@
                     </div>
                     <hr class="my-4 opacity-10">
                     <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-shield-check me-2"></i>Permissions (สิทธิ์การเข้าถึง)</h6>
-                    <div class="row row-cols-2 g-3">
+                    <div class="row row-cols-md-3 row-cols-1 g-3">
                         <div class="col">
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" name="allow_home" id="add_allow_home" value="Y">
@@ -369,6 +373,14 @@
                                 <label class="form-check-label small text-primary fw-bold" for="add_allow_nhso_endpoint">ปิดสิทธิ สปสช. (API)</label>
                             </div>
                         </div>
+                        @if(\Illuminate\Support\Facades\Schema::hasTable('lookup_hospcode') && \Illuminate\Support\Facades\DB::table('lookup_hospcode')->where('hospcode', '00025')->exists())
+                            <div class="col">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" name="allow_aopod_death" id="add_allow_aopod_death" value="Y">
+                                    <label class="form-check-label small text-success fw-bold" for="add_allow_aopod_death">AOPOD ข้อมูลการตาย</label>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                     <input type="hidden" name="active" value="Y">
                 </div>
@@ -431,7 +443,7 @@
                     </div>
                     <hr class="my-4 opacity-10">
                     <h6 class="fw-bold mb-3 text-primary"><i class="bi bi-shield-check me-2"></i>Permissions (สิทธิ์การเข้าถึง)</h6>
-                    <div class="row row-cols-2 g-3">
+                    <div class="row row-cols-md-3 row-cols-1 g-3">
                         <div class="col">
                             <div class="form-check form-switch">
                                 <input class="form-check-input p_switch" type="checkbox" name="allow_home" id="edit_allow_home" value="Y">
@@ -504,6 +516,14 @@
                                 <label class="form-check-label small text-primary fw-bold" for="edit_allow_nhso_endpoint">ปิดสิทธิ สปสช. (API)</label>
                             </div>
                         </div>
+                        @if(\Illuminate\Support\Facades\Schema::hasTable('lookup_hospcode') && \Illuminate\Support\Facades\DB::table('lookup_hospcode')->where('hospcode', '00025')->exists())
+                            <div class="col">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input p_switch" type="checkbox" name="allow_aopod_death" id="edit_allow_aopod_death" value="Y">
+                                    <label class="form-check-label small text-success fw-bold" for="edit_allow_aopod_death">AOPOD ข้อมูลการตาย</label>
+                                </div>
+                            </div>
+                        @endif
                     </div>
 
                 </div>
@@ -595,6 +615,7 @@
             $('#edit_allow_debtor_acc').prop('checked', data.allow_debtor_acc === 'Y');
             $('#edit_allow_receipt').prop('checked', data.allow_receipt === 'Y');
             $('#edit_allow_nhso_endpoint').prop('checked', data.allow_nhso_endpoint === 'Y');
+            $('#edit_allow_aopod_death').prop('checked', data.allow_aopod_death === 'Y');
             $('#editCid').val(data.cid);
 
             updateActiveLabel(data.active === 'Y');

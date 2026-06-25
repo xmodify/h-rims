@@ -16,8 +16,13 @@ class IsAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-         if (Auth::check() && Auth::user()->status === 'admin') {
-            return $next($request);
+         if (Auth::check()) {
+            if (Auth::user()->status === 'admin') {
+                return $next($request);
+            }
+            if (Auth::user()->allow_aopod_death === 'Y' && ($request->is('admin/aopod') || $request->is('admin/aopod/death-check'))) {
+                return $next($request);
+            }
         }
 
         abort(403, 'Access denied');

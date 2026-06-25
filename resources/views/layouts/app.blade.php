@@ -1090,7 +1090,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item d-flex align-items-center me-2">
                             <div class="nav-version-badge">
-                                V.69-06-25 16:00
+                                V.69-06-25 16:30
                             </div>
                         </li>
                         <!-- Authentication Links -->
@@ -1147,6 +1147,8 @@
                                                 href="{{ route('admin.logs.schedule') }}">
                                                 <i class="bi bi-clock-history me-2 text-success"></i> Log Schedule
                                             </a>
+                                        @endif
+                                        @if(auth()->user()->status === 'admin' || auth()->user()->allow_aopod_death === 'Y')
                                             @if(\Illuminate\Support\Facades\Schema::hasTable('lookup_hospcode') && \Illuminate\Support\Facades\DB::table('lookup_hospcode')->where('hospcode', '00025')->exists())
                                                 <a class="dropdown-item dropdown-item-modern"
                                                     href="{{ route('admin.aopod') }}">

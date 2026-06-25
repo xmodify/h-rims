@@ -156,6 +156,13 @@ Route::match(['get', 'post'], 'import/stm_srt_detail', [ImportController::class,
 Route::match(['get', 'post'], 'import/stm_srt_detail_opd', [ImportController::class, 'stm_srt_detail_opd'])->name('stm_srt_detail_opd');
 Route::match(['get', 'post'], 'import/stm_srt_detail_ipd', [ImportController::class, 'stm_srt_detail_ipd'])->name('stm_srt_detail_ipd');
 
+Route::match(['get', 'post'], 'import/stm_pvt', [ImportController::class, 'stm_pvt'])->name('stm_pvt');
+Route::post('import/stm_pvt_save', [ImportController::class, 'stm_pvt_save']);
+Route::post('import/stm_pvt_updateReceipt', [ImportController::class, 'stm_pvt_updateReceipt']);
+Route::match(['get', 'post'], 'import/stm_pvt_detail', [ImportController::class, 'stm_pvt_detail']);
+Route::match(['get', 'post'], 'import/stm_pvt_detail_opd', [ImportController::class, 'stm_pvt_detail_opd'])->name('stm_pvt_detail_opd');
+Route::match(['get', 'post'], 'import/stm_pvt_detail_ipd', [ImportController::class, 'stm_pvt_detail_ipd'])->name('stm_pvt_detail_ipd');
+
 Route::match(['get', 'post'], 'import/stm_ofc_csop', [ImportController::class, 'stm_ofc_csop'])->name('stm_ofc_csop');
 Route::post('import/stm_ofc_csop_save', [ImportController::class, 'stm_ofc_csop_save']);
 Route::post('import/stm_ofc_csop_updateReceipt', [ImportController::class, 'stm_ofc_csop_updateReceipt']);
@@ -295,6 +302,7 @@ Route::match(['get', 'post'], 'claim_op/bkk_kidney', [ClaimOpController::class, 
 Route::match(['get', 'post'], 'claim_op/bmt', [ClaimOpController::class, 'bmt']);
 Route::match(['get', 'post'], 'claim_op/bmt_kidney', [ClaimOpController::class, 'bmt_kidney']);
 Route::match(['get', 'post'], 'claim_op/srt', [ClaimOpController::class, 'srt']);
+Route::match(['get', 'post'], 'claim_op/pvt', [ClaimOpController::class, 'pvt']);
 Route::match(['get', 'post'], 'claim_op/sss_ppfs', [ClaimOpController::class, 'sss_ppfs']);
 Route::get('claim_op/sss_ppfs/visit_details', [ClaimOpController::class, 'get_sss_ppfs_visit_details']);
 Route::match(['get', 'post'], 'claim_op/sss_fund', [ClaimOpController::class, 'sss_fund']);

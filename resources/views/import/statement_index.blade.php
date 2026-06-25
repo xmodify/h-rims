@@ -209,6 +209,31 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 9. PVT General [OP-IP] -->
+            <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                <div class="card h-100 border-0 shadow-sm stm-card card-pvt-general">
+                    <div class="card-body p-4 d-flex flex-column">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="icon-box bg-fuchsia-soft text-fuchsia me-3">
+                                <i class="bi bi-file-earmark-spreadsheet-fill fs-3" style="color: #d946ef;"></i>
+                            </div>
+                            <div>
+                                <h5 class="card-title fw-bold mb-0 text-dark">STM-PVT [OP-IP]</h5>
+                                <span class="badge bg-fuchsia-soft text-fuchsia small mt-1" style="background-color: #fdf2ff; color: #d946ef;">สิทธิ์ครูเอกชน</span>
+                            </div>
+                        </div>
+                        <p class="text-muted small flex-grow-1">
+                            ข้อมูลการชดเชยค่าบริการสิทธิ์ครูเอกชน (PVT)
+                        </p>
+                        <div class="d-grid gap-2 mt-3">
+                            <a href="{{ url('/import/stm_pvt') }}" class="btn btn-outline-pink btn-sm fw-bold d-flex align-items-center justify-content-center gap-1" style="color: #d946ef; border-color: #d946ef;">
+                                <i class="bi bi-cloud-arrow-up-fill"></i> นำเข้าข้อมูล
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -232,6 +257,7 @@
         .card-cipn { border-top: 4px solid #7c3aed !important; }
         .card-lgo { border-top: 4px solid #0891b2 !important; }
         .card-srt-general { border-top: 4px solid #64748b !important; }
+        .card-pvt-general { border-top: 4px solid #d946ef !important; }
         .card-ucs-kidney { border-top: 4px solid #0d9488 !important; }
         .card-ofc-kidney { border-top: 4px solid #db2777 !important; }
         .card-lgo-kidney { border-top: 4px solid #0284c7 !important; }
@@ -248,6 +274,7 @@
         .card-cipn:hover { border-color: #7c3aed !important; box-shadow: 0 12px 24px rgba(124, 58, 237, 0.15) !important; transform: translateY(-5px); }
         .card-lgo:hover { border-color: #0891b2 !important; box-shadow: 0 12px 24px rgba(8, 145, 178, 0.15) !important; transform: translateY(-5px); }
         .card-srt-general:hover { border-color: #64748b !important; box-shadow: 0 12px 24px rgba(100, 116, 139, 0.15) !important; transform: translateY(-5px); }
+        .card-pvt-general:hover { border-color: #d946ef !important; box-shadow: 0 12px 24px rgba(217, 70, 239, 0.15) !important; transform: translateY(-5px); }
         .card-ucs-kidney:hover { border-color: #0d9488 !important; box-shadow: 0 12px 24px rgba(13, 148, 136, 0.15) !important; transform: translateY(-5px); }
         .card-ofc-kidney:hover { border-color: #db2777 !important; box-shadow: 0 12px 24px rgba(219, 39, 119, 0.15) !important; transform: translateY(-5px); }
         .card-lgo-kidney:hover { border-color: #0284c7 !important; box-shadow: 0 12px 24px rgba(2, 132, 199, 0.15) !important; transform: translateY(-5px); }

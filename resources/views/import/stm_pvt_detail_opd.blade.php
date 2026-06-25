@@ -7,11 +7,11 @@
         <div>
             <h5 class="text-dark mb-0 fw-bold">
                 <i class="bi bi-file-earmark-text-fill text-success me-2"></i>
-                ข้อมูล Statement สวัสดิการข้าราชการ CSOP-ฟอกไต OFC
+                รายละเอียด Statement สิทธิ์ครูเอกชน PVT [OPD]
             </h5>
-            <div class="text-muted small mt-1">รายละเอียดข้อมูลการเบิกจ่ายแยกตามสถานะ</div>
+            <div class="text-muted small mt-1">รายละเอียดข้อมูลการเบิกจ่ายแยกตามสถานะ ผู้ป่วยนอก</div>
             <div class="mt-2">
-                <a href="{{ url('import/stm_ofc_csop') }}" class="btn btn-secondary btn-sm rounded-pill px-3">
+                <a href="{{ url('import/stm_pvt') }}" class="btn btn-secondary btn-sm rounded-pill px-3">
                     <i class="bi bi-arrow-left me-1"></i> ย้อนกลับ
                 </a>
             </div>
@@ -31,48 +31,32 @@
         </form>
     </div>
 
-    <!-- Tab/Filter Navigation -->
-    <div class="row mb-3">
-        <div class="col-12">
-            <ul class="nav nav-pills gap-2 bg-white p-2 rounded shadow-sm d-inline-flex" id="sysTypeTab" role="tablist" style="border: 1px solid rgba(225, 230, 235, 0.75);">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link btn btn-sm rounded-pill px-3 active" id="all-tab" data-sys-type="all" type="button" role="tab">
-                        <i class="bi bi-grid-fill me-1"></i> ทั้งหมด
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link btn btn-sm rounded-pill px-3" id="csop-tab" data-sys-type="csop" type="button" role="tab">
-                        <i class="bi bi-person-badge-fill me-1"></i> ผู้ป่วยนอกทั่วไป (CSOP)
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link btn btn-sm rounded-pill px-3" id="kidney-tab" data-sys-type="kidney" type="button" role="tab">
-                        <i class="bi bi-droplet-fill me-1 text-danger"></i> ผู้ป่วยฟอกไต (HD)
-                    </button>
-                </li>
-            </ul>
-        </div>
-    </div>
-
-    <!-- Data Table Card -->
+    <!-- OPD Data Table Card -->
     <div class="card dash-card accent-9 mb-4">
+        <div class="card-header bg-transparent border-0 pb-0 pt-4 px-4">
+            <h6 class="fw-bold text-dark mb-0"><i class="bi bi-person-badge me-2 text-primary"></i> ผู้ป่วยนอก OP</h6>
+        </div>
         <div class="card-body p-4">
             <div class="table-responsive">
-                <table id="stm_ofc_csop_list" class="table table-modern w-100">
+                <table id="stm_pvt_list" class="table table-modern w-100">
                     <thead>
                         <tr>
-                            <th>Station</th>
-                            <th>Sys</th> 
-                            <th>HN</th>
-                            <th>Hreg</th>
-                            <th>ชื่อ-สกุล</th>
-                            <th>InvNo</th>
-                            <th>vstdate</th>                    
-                            <th>ค่ารักษาที่เบิก</th> 
-                            <th>RepNo</th>
-                                <th>เลขที่ใบเสร็จ</th>
-                                <th>วันที่ออกใบเสร็จ</th>
-                                <th>ผู้ออกใบเสร็จ</th>
+                            <th class="text-center">Dep</th>
+                            <th class="text-center">REP</th> 
+                            <th class="text-center">HN</th>
+                            <th class="text-center">AN</th>
+                            <th class="text-center">ชื่อ-สกุล</th>
+                            <th class="text-center">วันเข้ารักษา</th>
+                            <th class="text-center">จำหน่าย</th>
+                            <th class="text-center">เรียกเก็บ</th>  
+                            <th class="text-center">พึงรับทั้งหมด</th>
+                            <th class="text-center">ค่ายา</th> 
+                            <th class="text-center">ค่ารักษา</th>
+                            <th class="text-center">ค่าห้อง</th>
+                            <th class="text-center">อวัยวะ</th>
+                            <th class="text-center">เลขที่ใบเสร็จ</th>
+                            <th class="text-center">วันที่ออกใบเสร็จ</th>
+                            <th class="text-center">ผู้ออกใบเสร็จ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -83,9 +67,6 @@
         </div>
     </div>
 </div>
-        </div> 
-    </div> 
-</div> 
 @endsection
 
 @push('scripts')
@@ -126,30 +107,31 @@
           }
       });
 
-      var currentSysType = 'all';
-
-      var table = $('#stm_ofc_csop_list').DataTable({
+      $('#stm_pvt_list').DataTable({
         processing: true,
         serverSide: true,
         ajax: {
-            url: "{{ route('import.stm_ofc_csopdetail') }}",
+            url: "{{ route('stm_pvt_detail_opd') }}",
             data: function (d) {
                 d.start_date = $('#start_date').val();
                 d.end_date = $('#end_date').val();
-                d.sys_type = currentSysType;
             }
         },
         columns: [
-            { data: 'station', name: 'station' },
-            { data: 'sys', name: 'sys' },
+            { data: 'dep', name: 'dep', className: 'text-center' },
+            { data: 'repno', name: 'repno', className: 'text-center' },
             { data: 'hn', name: 'hn', className: 'text-center fw-bold' },
-            { data: 'hreg', name: 'hreg', className: 'text-center small text-muted' },
+            { data: 'an', name: 'an', className: 'text-center' },
             { data: 'pt_name', name: 'pt_name' },
-            { data: 'invno', name: 'invno', className: 'text-center small' },
-            { data: 'vstdate', name: 'vstdate', className: 'text-center small text-muted' },
-            { data: 'amount', name: 'amount', className: 'text-end fw-bold text-success' },
-            { data: 'rid', name: 'rid', className: 'text-center small' }
-            , { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold small' }
+            { data: 'datetimeadm', name: 'datetimeadm', className: 'text-center small' },
+            { data: 'datetimedch', name: 'datetimedch', className: 'text-center small text-muted' },
+            { data: 'charge', name: 'charge', className: 'text-end text-muted' },
+            { data: 'receive_total', name: 'receive_total', className: 'text-end text-success fw-bold' },
+            { data: 'receive_drug', name: 'receive_drug', className: 'text-end' },
+            { data: 'receive_treatment', name: 'receive_treatment', className: 'text-end' },
+            { data: 'receive_room', name: 'receive_room', className: 'text-end' },
+            { data: 'receive_instument', name: 'receive_instument', className: 'text-end text-muted' }
+            , { data: 'receive_no', name: 'receive_no', className: 'text-center text-primary fw-bold' }
             , { data: 'receipt_date', name: 'receipt_date', className: 'text-center small' }
             , { data: 'receipt_by', name: 'receipt_by', className: 'text-center small text-muted' }
         ],
@@ -167,10 +149,9 @@
                 text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
                 className: 'btn btn-success btn-sm',
                 action: function ( e, dt, node, config ) {
-                    // Redirect to export URL with current date filters
                     var start = $('#start_date').val();
                     var end = $('#end_date').val();
-                    window.location.href = "{{ route('import.stm_ofc_csopdetail') }}?export=excel&start_date=" + start + "&end_date=" + end + "&sys_type=" + currentSysType;
+                    window.location.href = "{{ route('stm_pvt_detail_opd') }}?export=excel&start_date=" + start + "&end_date=" + end;
                 }
             }
         ],
@@ -178,22 +159,10 @@
             search: "ค้นหา:",
             lengthMenu: "แสดง _MENU_ รายการ",
             info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-            paginate: {
-              previous: "ก่อนหน้า",
-              next: "ถัดไป"
-            },
+            paginate: { previous: "ก่อนหน้า", next: "ถัดไป" },
             processing: "กำลังโหลดข้อมูล..."
         }
       });
-
-      // Handle Tab Click to Reload Table
-      $('#sysTypeTab button').on('click', function (e) {
-          e.preventDefault();
-          $('#sysTypeTab button').removeClass('active');
-          $(this).addClass('active');
-          currentSysType = $(this).data('sys-type');
-          table.ajax.reload();
-      });
     });
-  </script> 
+  </script>
 @endpush

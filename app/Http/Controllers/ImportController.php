@@ -27,6 +27,8 @@ use App\Models\Stm_bmt;
 use App\Models\Stm_bmtexcel;
 use App\Models\Stm_srt;
 use App\Models\Stm_srtexcel;
+use App\Models\Stm_pvt;
+use App\Models\Stm_pvtexcel;
 use App\Models\Stm_ofc_cipn;
 use App\Models\Stm_lgo;
 use App\Models\Stm_lgoexcel;
@@ -3720,8 +3722,661 @@ class ImportController extends Controller
         return view('import.stm_srt_detail_ipd', compact('start_date', 'end_date'));
     }
 
+    //stm_pvt-----------------------------------------------------------------------------------------------------------------------------
+    public function stm_pvt(Request $request)
+    {
+        ini_set('max_execution_time', 300);
+
+        /* ---------------- ปีงบ (dropdown) ---------------- */
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
+            ->orderByDesc('LEAVE_YEAR_ID')
+            ->limit(7)
+            ->get();
+
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');
+
+        $budget_year = $request->budget_year ?: $budget_year_now;
+
+        /* ---------------- Query หลัก ---------------- */
+        $stm_pvt = DB::select("
+            SELECT
+            IF(SUBSTRING(stm_filename,11) LIKE 'O%','OPD','IPD') AS dep,
+            stm_filename,
+            round_no,
+            COUNT(DISTINCT repno) AS repno,
+            COUNT(cid) AS count_cid,
+            SUM(adjrw) AS sum_adjrw,
+            SUM(charge) AS sum_charge,
+            SUM(act) AS sum_act,
+            SUM(receive_room) AS sum_receive_room,
+            SUM(receive_instument) AS sum_receive_instument,
+            SUM(receive_drug) AS sum_receive_drug,
+            SUM(receive_treatment) AS sum_receive_treatment,
+            SUM(receive_car) AS sum_receive_car,
+            SUM(receive_waitdch) AS sum_receive_waitdch,
+            SUM(receive_other) AS sum_receive_other,
+            SUM(receive_total) AS sum_receive_total,
+            MAX(receive_no)   AS receive_no,
+            MAX(receipt_date) AS receipt_date,
+            MAX(receipt_by)   AS receipt_by
+            FROM stm_pvt
+            WHERE (CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename), 4) AS UNSIGNED) + 543
+				+ (CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename) + 4, 2) AS UNSIGNED) >= 10)) = ?
+            GROUP BY stm_filename, round_no
+            ORDER BY CAST(SUBSTRING(stm_filename, LOCATE('20', stm_filename), 6) AS UNSIGNED ) DESC,   
+				CASE WHEN round_no IS NOT NULL AND round_no <> ''
+				THEN (CAST(LEFT(round_no,2) AS UNSIGNED) + 2500) * 100
+				+ CAST(SUBSTRING(round_no,3,2) AS UNSIGNED)  ELSE 0 END DESC,
+				stm_filename DESC, dep DESC ", [$budget_year]);
+
+        return view('import.stm_pvt', compact('stm_pvt', 'budget_year_select', 'budget_year'));
+    }
+
+    //stm_pvt_save---------------------------------------------------------------------------------------------------------------------------
+    public function stm_pvt_save(Request $request)
+    {
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
+
+        $this->validate($request, [
+            'files' => 'required|array|max:5',
+            'files.*' => 'file|extensions:xls,xlsx'
+        ]);
+
+        $uploadedFiles = $request->file('files');
+        $allFileNames = [];
+
+        Stm_pvtexcel::truncate();
+
+        DB::beginTransaction();
+        try {
+            foreach ($uploadedFiles as $the_file) {
+                $file_name = $the_file->getClientOriginalName();
+                $allFileNames[] = $file_name;
+
+                $spreadsheet = IOFactory::load($the_file->getRealPath());
+                $sheet = $spreadsheet->setActiveSheetIndex(0);
+                $row_limit = $sheet->getHighestDataRow();
+
+                $roundText = $sheet->getCell('A6')->getCalculatedValue();
+                $round_no = trim(mb_substr((string) $roundText, 13, null, 'UTF-8'));
+
+                $data = [];
+                for ($row = 12; $row <= $row_limit; $row++) {
+                    $adm = $sheet->getCell('G' . $row)->getValue();
+                    $day = substr($adm, 0, 2);
+                    $mo = substr($adm, 3, 2);
+                    $year = substr($adm, 7, 4);
+                    $tm = substr($adm, 12, 8);
+                    $datetimeadm = $year . '-' . $mo . '-' . $day . ' ' . $tm;
+
+                    $dch = $sheet->getCell('H' . $row)->getValue();
+                    $dchday = substr($dch, 0, 2);
+                    $dchmo = substr($dch, 3, 2);
+                    $dchyear = substr($dch, 7, 4);
+                    $dchtime = substr($dch, 12, 8);
+                    $datetimedch = $dchyear . '-' . $dchmo . '-' . $dchday . ' ' . $dchtime;
+
+                    $data[] = [
+                        'round_no' => $round_no,
+                        'repno' => $sheet->getCell('A' . $row)->getValue(),
+                        'no' => $sheet->getCell('B' . $row)->getValue(),
+                        'hn' => $sheet->getCell('C' . $row)->getValue(),
+                        'an' => $sheet->getCell('D' . $row)->getValue(),
+                        'cid' => $sheet->getCell('E' . $row)->getValue(),
+                        'pt_name' => $sheet->getCell('F' . $row)->getValue(),
+                        'datetimeadm' => $datetimeadm,
+                        'vstdate' => date('Y-m-d', strtotime($datetimeadm)),
+                        'vsttime' => date('H:i:s', strtotime($datetimeadm)),
+                        'datetimedch' => $datetimedch,
+                        'dchdate' => date('Y-m-d', strtotime($datetimedch)),
+                        'dchtime' => date('H:i:s', strtotime($datetimedch)),
+                        'projcode' => $sheet->getCell('I' . $row)->getValue(),
+                        'adjrw' => $sheet->getCell('J' . $row)->getValue(),
+                        'charge' => $sheet->getCell('K' . $row)->getValue(),
+                        'act' => $sheet->getCell('L' . $row)->getValue(),
+                        'receive_room' => $sheet->getCell('M' . $row)->getValue(),
+                        'receive_instument' => $sheet->getCell('N' . $row)->getValue(),
+                        'receive_drug' => $sheet->getCell('O' . $row)->getValue(),
+                        'receive_treatment' => $sheet->getCell('P' . $row)->getValue(),
+                        'receive_car' => $sheet->getCell('Q' . $row)->getValue(),
+                        'receive_waitdch' => $sheet->getCell('R' . $row)->getValue(),
+                        'receive_other' => $sheet->getCell('S' . $row)->getValue(),
+                        'receive_total' => $sheet->getCell('T' . $row)->getValue(),
+                        'stm_filename' => $file_name,
+                    ];
+                }
+
+                foreach (array_chunk($data, 1000) as $chunk) {
+                    Stm_pvtexcel::insert($chunk);
+                }
+            }
+
+            $stm_pvtexcel = Stm_pvtexcel::whereNotNull('charge')
+                ->where('charge', '<>', 'เรียกเก็บ')
+                ->get();
+
+            foreach ($stm_pvtexcel as $value) {
+                $exists = Stm_pvt::where('repno', $value->repno)
+                    ->where('no', $value->no)
+                    ->exists();
+
+                if ($exists) {
+                    Stm_pvt::where('repno', $value->repno)
+                        ->where('no', $value->no)
+                        ->update([
+                            'round_no' => $value->round_no,
+                            'datetimeadm' => $value->datetimeadm,
+                            'vstdate' => $value->vstdate,
+                            'vsttime' => $value->vsttime,
+                            'datetimedch' => $value->datetimedch,
+                            'dchdate' => $value->dchdate,
+                            'dchtime' => $value->dchtime,
+                            'charge' => $value->charge,
+                            'receive_room' => $value->receive_room,
+                            'receive_instument' => $value->receive_instument,
+                            'receive_drug' => $value->receive_drug,
+                            'receive_treatment' => $value->receive_treatment,
+                            'receive_car' => $value->receive_car,
+                            'receive_waitdch' => $value->receive_waitdch,
+                            'receive_other' => $value->receive_other,
+                            'receive_total' => $value->receive_total,
+                            'stm_filename' => $value->stm_filename,
+                        ]);
+                } else {
+                    Stm_pvt::create([
+                        'round_no' => $value->round_no,
+                        'repno' => $value->repno,
+                        'no' => $value->no,
+                        'hn' => $value->hn,
+                        'an' => $value->an,
+                        'cid' => $value->cid,
+                        'pt_name' => $value->pt_name,
+                        'datetimeadm' => $value->datetimeadm,
+                        'vstdate' => $value->vstdate,
+                        'vsttime' => $value->vsttime,
+                        'datetimedch' => $value->datetimedch,
+                        'dchdate' => $value->dchdate,
+                        'dchtime' => $value->dchtime,
+                        'projcode' => $value->projcode,
+                        'adjrw' => $value->adjrw,
+                        'charge' => $value->charge,
+                        'act' => $value->act,
+                        'receive_room' => $value->receive_room,
+                        'receive_instument' => $value->receive_instument,
+                        'receive_drug' => $value->receive_drug,
+                        'receive_treatment' => $value->receive_treatment,
+                        'receive_car' => $value->receive_car,
+                        'receive_waitdch' => $value->receive_waitdch,
+                        'receive_other' => $value->receive_other,
+                        'receive_total' => $value->receive_total,
+                        'stm_filename' => $value->stm_filename,
+                    ]);
+                }
+            }
+
+            DB::commit();
+
+            Stm_pvtexcel::truncate();
+
+            return redirect()
+                ->route('stm_pvt')
+                ->with('stm_success', implode(', ', $allFileNames));
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return back()->withErrors('There was a problem uploading the data!');
+        }
+    }
+
+    //stm_pvt_updateReceipt------------------------------------------------------------------------------------------------------------- 
+    public function stm_pvt_updateReceipt(Request $request)
+    {
+        $request->validate([
+            'round_no' => 'required',
+            'receive_no' => 'required|max:20',
+            'receipt_date' => 'required|date',
+        ]);
+
+        DB::table('stm_pvt')
+            ->where('round_no', $request->round_no)
+            ->update([
+                'receive_no' => $request->receive_no,
+                'receipt_date' => $request->receipt_date,
+                'receipt_by' => auth()->user()->name ?? 'system',
+                'updated_at' => now(),
+            ]);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'ออกใบเสร็จเรียบร้อยแล้ว',
+            'round_no' => $request->round_no,
+            'receive_no' => $request->receive_no,
+            'receipt_date' => $request->receipt_date,
+        ]);
+    }
+
+    //stm_pvt_detail----------------------------------------------------------------------------------------------------------------
+    public function stm_pvt_detail(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d', strtotime("first day of this month"));
+        $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));
+
+        if ($request->ajax() || $request->export == 'excel') {
+            $type = $request->type; // 'opd' or 'ipd'
+
+            $query = DB::table('stm_pvt')
+                ->select(
+                    DB::raw('IF(SUBSTRING(stm_filename,11) LIKE "O%","OPD","IPD") AS dep'),
+                    'stm_filename',
+                    'repno',
+                    'hn',
+                    'an',
+                    'pt_name',
+                    'datetimeadm',
+                    'datetimedch',
+                    'adjrw',
+                    'charge',
+                    'act',
+                    'receive_room',
+                    'receive_instument',
+                    'receive_drug',
+                    'receive_treatment',
+                    'receive_car',
+                    'receive_waitdch',
+                    'receive_other',
+                    'receive_total',
+                    'receive_no',
+                    'receipt_date',
+                    'receipt_by'
+                );
+
+            if ($type == 'opd') {
+                $query->whereRaw('DATE(datetimeadm) BETWEEN ? AND ?', [$start_date, $end_date])
+                    ->whereRaw('SUBSTRING(stm_filename,11) LIKE "O%"');
+            } else { // ipd
+                $query->whereRaw('DATE(datetimedch) BETWEEN ? AND ?', [$start_date, $end_date])
+                    ->whereRaw('SUBSTRING(stm_filename,11) LIKE "I%"');
+            }
+
+            // Searching
+            if ($request->has('search') && !empty($request->search['value'])) {
+                $search = $request->search['value'];
+                $query->where(function ($q) use ($search) {
+                    $q->where('hn', 'like', "%$search%")
+                        ->orWhere('an', 'like', "%$search%")
+                        ->orWhere('pt_name', 'like', "%$search%")
+                        ->orWhere('stm_filename', 'like', "%$search%");
+                });
+            }
+
+            // Group By
+            $query->groupBy('stm_filename', 'repno', 'hn', 'datetimeadm');
+
+            // Export Excel
+            if ($request->export == 'excel') {
+                $data = $query->orderBy('dep', 'desc')->orderBy('repno')->get();
+
+                $spreadsheet = new Spreadsheet();
+                $sheet = $spreadsheet->getActiveSheet();
+
+                $headers = ['Dep', 'Filename', 'REP', 'HN', 'AN', 'ชื่อ-สกุล', 'วันเข้ารักษา', 'จำหน่าย', 'เรียกเก็บ', 'พึงรับทั้งหมด', 'ค่ายา', 'ค่ารักษา', 'ค่าห้อง', 'อวัยวะ', 'Receipt No', 'Date', 'By'];
+                $sheet->fromArray($headers, null, 'A1');
+
+                $row = 2;
+                foreach ($data as $item) {
+                    $sheet->setCellValue('A' . $row, $item->dep);
+                    $sheet->setCellValue('B' . $row, $item->stm_filename);
+                    $sheet->setCellValue('C' . $row, $item->repno);
+                    $sheet->setCellValueExplicit('D' . $row, $item->hn, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    $sheet->setCellValueExplicit('E' . $row, $item->an, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    $sheet->setCellValue('F' . $row, $item->pt_name);
+                    $sheet->setCellValue('G' . $row, $item->datetimeadm);
+                    $sheet->setCellValue('H' . $row, $item->datetimedch);
+                    $sheet->setCellValue('I' . $row, $item->charge);
+                    $sheet->setCellValue('J' . $row, $item->receive_total);
+                    $sheet->setCellValue('K' . $row, $item->receive_drug);
+                    $sheet->setCellValue('L' . $row, $item->receive_treatment);
+                    $sheet->setCellValue('M' . $row, $item->receive_room);
+                    $sheet->setCellValue('N' . $row, $item->receive_instument);
+                    $sheet->setCellValue('O' . $row, $item->receive_no);
+                    $sheet->setCellValue('P' . $row, $item->receipt_date);
+                    $sheet->setCellValue('Q' . $row, $item->receipt_by);
+                    $row++;
+                }
+
+                $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+                header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                header('Content-Disposition: attachment; filename="stm_pvt_' . ($type == 'opd' ? 'OPD' : 'IPD') . '_' . date('YmdHis') . '.xlsx"');
+                $writer->save('php://output');
+                exit;
+            }
+
+            // DataTables Response
+            $recordsFiltered = $query->get()->count();
+
+            // Total Data
+            $queryTotal = DB::table('stm_pvt');
+            if ($type == 'opd') {
+                $queryTotal->whereRaw('DATE(datetimeadm) BETWEEN ? AND ?', [$start_date, $end_date])
+                    ->whereRaw('SUBSTRING(stm_filename,11) LIKE "O%"');
+            } else { // ipd
+                $queryTotal->whereRaw('DATE(datetimedch) BETWEEN ? AND ?', [$start_date, $end_date])
+                    ->whereRaw('SUBSTRING(stm_filename,11) LIKE "I%"');
+            }
+            $recordsTotal = $queryTotal->count();
+
+            // Sorting
+            if ($request->has('order')) {
+                $columns = [
+                    0 => 'dep',
+                    1 => 'stm_filename',
+                    2 => 'repno',
+                    3 => 'hn',
+                    4 => 'an',
+                    5 => 'pt_name',
+                    6 => 'datetimeadm',
+                    7 => 'datetimedch',
+                    8 => 'charge',
+                    9 => 'receive_total'
+                ];
+                foreach ($request->order as $order) {
+                    if (isset($columns[$order['column']])) {
+                        $query->orderBy($columns[$order['column']], $order['dir']);
+                    }
+                }
+            } else {
+                $query->orderBy('dep', 'desc')->orderBy('repno');
+            }
+
+            // Pagination
+            $start = $request->start ?? 0;
+            $length = $request->length ?? 50;
+            $data = $query->offset($start)->limit($length)->get();
+
+            return response()->json([
+                "draw" => intval($request->draw),
+                "recordsTotal" => $recordsTotal,
+                "recordsFiltered" => $recordsFiltered,
+                "data" => $data
+            ]);
+        }
+
+        return view('import.stm_pvt_detail', compact('start_date', 'end_date'));
+    }
+
+    public function stm_pvt_detail_opd(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d', strtotime("first day of this month"));
+        $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));
+
+        if ($request->ajax() || $request->export == 'excel') {
+            $query = DB::table('stm_pvt')
+                ->select(
+                    DB::raw('"OPD" AS dep'),
+                    'stm_filename',
+                    'repno',
+                    'hn',
+                    'an',
+                    'pt_name',
+                    'datetimeadm',
+                    'datetimedch',
+                    'adjrw',
+                    'charge',
+                    'act',
+                    'receive_room',
+                    'receive_instument',
+                    'receive_drug',
+                    'receive_treatment',
+                    'receive_car',
+                    'receive_waitdch',
+                    'receive_other',
+                    'receive_total',
+                    'receive_no',
+                    'receipt_date',
+                    'receipt_by'
+                )
+                ->whereRaw('DATE(datetimeadm) BETWEEN ? AND ?', [$start_date, $end_date])
+                ->whereRaw('SUBSTRING(stm_filename,11) LIKE "O%"');
+
+            // Searching
+            if ($request->has('search') && !empty($request->search['value'])) {
+                $search = $request->search['value'];
+                $query->where(function ($q) use ($search) {
+                    $q->where('hn', 'like', "%$search%")
+                        ->orWhere('an', 'like', "%$search%")
+                        ->orWhere('pt_name', 'like', "%$search%")
+                        ->orWhere('stm_filename', 'like', "%$search%");
+                });
+            }
+
+            // Group By
+            $query->groupBy('stm_filename', 'repno', 'hn', 'datetimeadm');
+
+            // Export Excel
+            if ($request->export == 'excel') {
+                $data = $query->orderBy('repno')->get();
+
+                $spreadsheet = new Spreadsheet();
+                $sheet = $spreadsheet->getActiveSheet();
+
+                $headers = ['Dep', 'Filename', 'REP', 'HN', 'AN', 'ชื่อ-สกุล', 'วันเข้ารักษา', 'จำหน่าย', 'เรียกเก็บ', 'พึงรับทั้งหมด', 'ค่ายา', 'ค่ารักษา', 'ค่าห้อง', 'อวัยวะ', 'Receipt No', 'Date', 'By'];
+                $sheet->fromArray($headers, null, 'A1');
+
+                $row = 2;
+                foreach ($data as $item) {
+                    $sheet->setCellValue('A' . $row, $item->dep);
+                    $sheet->setCellValue('B' . $row, $item->stm_filename);
+                    $sheet->setCellValue('C' . $row, $item->repno);
+                    $sheet->setCellValueExplicit('D' . $row, $item->hn, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    $sheet->setCellValueExplicit('E' . $row, $item->an, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    $sheet->setCellValue('F' . $row, $item->pt_name);
+                    $sheet->setCellValue('G' . $row, $item->datetimeadm);
+                    $sheet->setCellValue('H' . $row, $item->datetimedch);
+                    $sheet->setCellValue('I' . $row, $item->charge);
+                    $sheet->setCellValue('J' . $row, $item->receive_total);
+                    $sheet->setCellValue('K' . $row, $item->receive_drug);
+                    $sheet->setCellValue('L' . $row, $item->receive_treatment);
+                    $sheet->setCellValue('M' . $row, $item->receive_room);
+                    $sheet->setCellValue('N' . $row, $item->receive_instument);
+                    $sheet->setCellValue('O' . $row, $item->receive_no);
+                    $sheet->setCellValue('P' . $row, $item->receipt_date);
+                    $sheet->setCellValue('Q' . $row, $item->receipt_by);
+                    $row++;
+                }
+
+                $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+                header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                header('Content-Disposition: attachment; filename="stm_pvt_OPD_' . date('YmdHis') . '.xlsx"');
+                $writer->save('php://output');
+                exit;
+            }
+
+            // DataTables Response
+            $recordsFiltered = $query->get()->count();
+            $recordsTotal = DB::table('stm_pvt')
+                ->whereRaw('DATE(datetimeadm) BETWEEN ? AND ?', [$start_date, $end_date])
+                ->whereRaw('SUBSTRING(stm_filename,11) LIKE "O%"')
+                ->count();
+
+            // Sorting
+            if ($request->has('order')) {
+                $columns = [
+                    0 => 'dep',
+                    1 => 'stm_filename',
+                    2 => 'repno',
+                    3 => 'hn',
+                    4 => 'an',
+                    5 => 'pt_name',
+                    6 => 'datetimeadm',
+                    7 => 'datetimedch',
+                    8 => 'charge',
+                    9 => 'receive_total'
+                ];
+                foreach ($request->order as $order) {
+                    if (isset($columns[$order['column']])) {
+                        $query->orderBy($columns[$order['column']], $order['dir']);
+                    }
+                }
+            } else {
+                $query->orderBy('repno');
+            }
+
+            // Pagination
+            $start = $request->start ?? 0;
+            $length = $request->length ?? 50;
+            $data = $query->offset($start)->limit($length)->get();
+
+            return response()->json([
+                "draw" => intval($request->draw),
+                "recordsTotal" => $recordsTotal,
+                "recordsFiltered" => $recordsFiltered,
+                "data" => $data
+            ]);
+        }
+
+        return view('import.stm_pvt_detail_opd', compact('start_date', 'end_date'));
+    }
+
+    public function stm_pvt_detail_ipd(Request $request)
+    {
+        $start_date = $request->start_date ?: date('Y-m-d', strtotime("first day of this month"));
+        $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));
+
+        if ($request->ajax() || $request->export == 'excel') {
+            $query = DB::table('stm_pvt')
+                ->select(
+                    DB::raw('"IPD" AS dep'),
+                    'stm_filename',
+                    'repno',
+                    'hn',
+                    'an',
+                    'pt_name',
+                    'datetimeadm',
+                    'datetimedch',
+                    'adjrw',
+                    'charge',
+                    'act',
+                    'receive_room',
+                    'receive_instument',
+                    'receive_drug',
+                    'receive_treatment',
+                    'receive_car',
+                    'receive_waitdch',
+                    'receive_other',
+                    'receive_total',
+                    'receive_no',
+                    'receipt_date',
+                    'receipt_by'
+                )
+                ->whereRaw('DATE(datetimedch) BETWEEN ? AND ?', [$start_date, $end_date])
+                ->whereRaw('SUBSTRING(stm_filename,11) LIKE "I%"');
+
+            // Searching
+            if ($request->has('search') && !empty($request->search['value'])) {
+                $search = $request->search['value'];
+                $query->where(function ($q) use ($search) {
+                    $q->where('hn', 'like', "%$search%")
+                        ->orWhere('an', 'like', "%$search%")
+                        ->orWhere('pt_name', 'like', "%$search%")
+                        ->orWhere('stm_filename', 'like', "%$search%");
+                });
+            }
+
+            // Group By
+            $query->groupBy('stm_filename', 'repno', 'hn', 'datetimeadm');
+
+            // Export Excel
+            if ($request->export == 'excel') {
+                $data = $query->orderBy('repno')->get();
+
+                $spreadsheet = new Spreadsheet();
+                $sheet = $spreadsheet->getActiveSheet();
+
+                $headers = ['Dep', 'Filename', 'REP', 'HN', 'AN', 'ชื่อ-สกุล', 'วันเข้ารักษา', 'จำหน่าย', 'เรียกเก็บ', 'พึงรับทั้งหมด', 'ค่ายา', 'ค่ารักษา', 'ค่าห้อง', 'อวัยวะ', 'Receipt No', 'Date', 'By'];
+                $sheet->fromArray($headers, null, 'A1');
+
+                $row = 2;
+                foreach ($data as $item) {
+                    $sheet->setCellValue('A' . $row, $item->dep);
+                    $sheet->setCellValue('B' . $row, $item->stm_filename);
+                    $sheet->setCellValue('C' . $row, $item->repno);
+                    $sheet->setCellValueExplicit('D' . $row, $item->hn, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    $sheet->setCellValueExplicit('E' . $row, $item->an, \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    $sheet->setCellValue('F' . $row, $item->pt_name);
+                    $sheet->setCellValue('G' . $row, $item->datetimeadm);
+                    $sheet->setCellValue('H' . $row, $item->datetimedch);
+                    $sheet->setCellValue('I' . $row, $item->charge);
+                    $sheet->setCellValue('J' . $row, $item->receive_total);
+                    $sheet->setCellValue('K' . $row, $item->receive_drug);
+                    $sheet->setCellValue('L' . $row, $item->receive_treatment);
+                    $sheet->setCellValue('M' . $row, $item->receive_room);
+                    $sheet->setCellValue('N' . $row, $item->receive_instument);
+                    $sheet->setCellValue('O' . $row, $item->receive_no);
+                    $sheet->setCellValue('P' . $row, $item->receipt_date);
+                    $sheet->setCellValue('Q' . $row, $item->receipt_by);
+                    $row++;
+                }
+
+                $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+                header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+                header('Content-Disposition: attachment; filename="stm_pvt_IPD_' . date('YmdHis') . '.xlsx"');
+                $writer->save('php://output');
+                exit;
+            }
+
+            // DataTables Response
+            $recordsFiltered = $query->get()->count();
+            $recordsTotal = DB::table('stm_pvt')
+                ->whereRaw('DATE(datetimedch) BETWEEN ? AND ?', [$start_date, $end_date])
+                ->whereRaw('SUBSTRING(stm_filename,11) LIKE "I%"')
+                ->count();
+
+            // Sorting
+            if ($request->has('order')) {
+                $columns = [
+                    0 => 'dep',
+                    1 => 'stm_filename',
+                    2 => 'repno',
+                    3 => 'hn',
+                    4 => 'an',
+                    5 => 'pt_name',
+                    6 => 'datetimeadm',
+                    7 => 'datetimedch',
+                    8 => 'charge',
+                    9 => 'receive_total'
+                ];
+                foreach ($request->order as $order) {
+                    if (isset($columns[$order['column']])) {
+                        $query->orderBy($columns[$order['column']], $order['dir']);
+                    }
+                }
+            } else {
+                $query->orderBy('repno');
+            }
+
+            // Pagination
+            $start = $request->start ?? 0;
+            $length = $request->length ?? 50;
+            $data = $query->offset($start)->limit($length)->get();
+
+            return response()->json([
+                "draw" => intval($request->draw),
+                "recordsTotal" => $recordsTotal,
+                "recordsFiltered" => $recordsFiltered,
+                "data" => $data
+            ]);
+        }
+
+        return view('import.stm_pvt_detail_ipd', compact('start_date', 'end_date'));
+    }
+
     //stm_bmt-----------------------------------------------------------------------------------------------------------------------------
     public function stm_bmt(Request $request)
+
     {
         ini_set('max_execution_time', 300);
 
@@ -4685,6 +5340,7 @@ class ImportController extends Controller
     {
         $start_date = $request->start_date ?: date('Y-m-d', strtotime("first day of this month"));
         $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));
+        $sys_type = $request->sys_type ?: 'all';
 
         if ($request->ajax()) {
             $query = DB::table('stm_ofc_csop')
@@ -4710,6 +5366,12 @@ class ImportController extends Controller
                 )
                 ->whereBetween('vstdate', [$start_date, $end_date]);
 
+            if ($sys_type == 'csop') {
+                $query->where('sys', '<>', 'HD');
+            } elseif ($sys_type == 'kidney') {
+                $query->where('sys', '=', 'HD');
+            }
+
             // 1. Searching
             if ($request->has('search') && !empty($request->search['value'])) {
                 $search = $request->search['value'];
@@ -4724,9 +5386,17 @@ class ImportController extends Controller
 
             // Total Filtered count
             $recordsFiltered = $query->count();
-            $recordsTotal = DB::table('stm_ofc_csop')
-                ->whereBetween('vstdate', [$start_date, $end_date])
-                ->count();
+
+            $queryTotal = DB::table('stm_ofc_csop')
+                ->whereBetween('vstdate', [$start_date, $end_date]);
+
+            if ($sys_type == 'csop') {
+                $queryTotal->where('sys', '<>', 'HD');
+            } elseif ($sys_type == 'kidney') {
+                $queryTotal->where('sys', '=', 'HD');
+            }
+
+            $recordsTotal = $queryTotal->count();
 
             // 2. Ordering
             if ($request->has('order')) {
@@ -4763,14 +5433,8 @@ class ImportController extends Controller
             // Format data for DataTables
             $formattedData = [];
             foreach ($data as $row) {
-                // Determine Receipt Status/Button HTML
-                $receiptHtml = '';
-                // Note: If you want to render buttons server-side, do it here. 
-                // However, the view currently just shows text for specific columns.
-                // Let's match the view: "REC: ..."
                 $receiptHtml = 'REC: ' . $row->receive_no;
 
-                // Format numbers/dates if needed
                 $formattedData[] = [
                     'stm_filename' => $row->stm_filename,
                     'station' => $row->station,
@@ -4796,12 +5460,18 @@ class ImportController extends Controller
             ]);
         }
 
-        // Export Excel (Original Logic)
+        // Export Excel (Original Logic with Filter)
         if ($request->export == 'excel') {
-            $data = DB::table('stm_ofc_csop')
-                ->whereBetween('vstdate', [$start_date, $end_date])
-                ->orderBy('station')->orderBy('round_no')
-                ->get();
+            $queryExport = DB::table('stm_ofc_csop')
+                ->whereBetween('vstdate', [$start_date, $end_date]);
+
+            if ($sys_type == 'csop') {
+                $queryExport->where('sys', '<>', 'HD');
+            } elseif ($sys_type == 'kidney') {
+                $queryExport->where('sys', '=', 'HD');
+            }
+
+            $data = $queryExport->orderBy('station')->orderBy('round_no')->get();
 
             $spreadsheet = new Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
@@ -4838,8 +5508,9 @@ class ImportController extends Controller
             exit;
         }
 
-        return view('import.stm_ofc_csopdetail', compact('start_date', 'end_date'));
+        return view('import.stm_ofc_csopdetail', compact('start_date', 'end_date', 'sys_type'));
     }
+
     //stm_ofc_cipn--------------------------------------------------------------------------------------------------------------
     public function stm_ofc_cipn(Request $request)
     {

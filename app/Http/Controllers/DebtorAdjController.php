@@ -1630,6 +1630,17 @@ class DebtorAdjController extends Controller
                 });
         }
 
+        $stm_pvt_data = [];
+        if (!empty($hns) && !empty($vstdates)) {
+            $stm_pvt_data = DB::table('stm_pvt')
+                ->whereIn('hn', $hns)
+                ->whereIn('vstdate', $vstdates)
+                ->get()
+                ->groupBy(function($item) {
+                    return $item->hn . '_' . $item->vstdate . '_' . substr($item->vsttime, 0, 5);
+                });
+        }
+
         foreach ($rows as $row) {
             $key = $row->hn . '_' . $row->vstdate . '_' . substr($row->vsttime, 0, 5);
             $key_kidney = $row->hn . '_' . $row->vstdate;
@@ -1640,8 +1651,9 @@ class DebtorAdjController extends Controller
                 $stm_kidney_val = isset($stm_bmt_kidney_data[$key_kidney]) ? $stm_bmt_kidney_data[$key_kidney]->sum('receive_total') : 0;
             }
             $stm_srt_val = isset($stm_srt_data[$key]) ? $stm_srt_data[$key]->sum('receive_total') : 0;
+            $stm_pvt_val = isset($stm_pvt_data[$key]) ? $stm_pvt_data[$key]->sum('receive_total') : 0;
 
-            $receive = (float)$row->receive + (float)$stm_bmt_val + (float)$stm_kidney_val + (float)$stm_srt_val;
+            $receive = (float)$row->receive + (float)$stm_bmt_val + (float)$stm_kidney_val + (float)$stm_srt_val + (float)$stm_pvt_val;
 
             $diff = (float)$row->debtor - (float)$receive;
             $row->adj_inc = $diff > 0 ? $diff : 0;
@@ -3170,13 +3182,14 @@ class DebtorAdjController extends Controller
         $adjusted_count = 0;
 
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $params = array_merge($ids, $ids, $ids, $ids);
+        $params = array_merge($ids, $ids, $ids, $ids, $ids);
 
         $rows = DB::select("
             SELECT d.an, d.debtor, d.receive AS receive_manual, d.debtor_lock,
                    IFNULL(stm.receive_total, 0) AS stm_val,
                    IFNULL(k.receive_total, 0) AS kidney_val,
-                   IFNULL(srt.receive_total, 0) AS srt_val
+                   IFNULL(srt.receive_total, 0) AS srt_val,
+                   IFNULL(pvt.receive_total, 0) AS pvt_val
             FROM debtor_1102050102_111 d
             LEFT JOIN (
                 SELECT an, SUM(receive_total) AS receive_total
@@ -3197,6 +3210,12 @@ class DebtorAdjController extends Controller
                 WHERE an IN ($placeholders)
                 GROUP BY an
             ) srt ON srt.an = d.an
+            LEFT JOIN (
+                SELECT an, SUM(receive_total) AS receive_total
+                FROM hrims.stm_pvt
+                WHERE an IN ($placeholders)
+                GROUP BY an
+            ) pvt ON pvt.an = d.an
             WHERE d.an IN ($placeholders)
         ", $params);
 
@@ -3205,7 +3224,8 @@ class DebtorAdjController extends Controller
                 $receive = (float)($row->receive_manual ?? 0)
                     + (float)($row->stm_val ?? 0)
                     + (float)($row->kidney_val ?? 0)
-                    + (float)($row->srt_val ?? 0);
+                    + (float)($row->srt_val ?? 0)
+                    + (float)($row->pvt_val ?? 0);
 
                 $diff = (float)$row->debtor - (float)$receive;
                 $update_data = [

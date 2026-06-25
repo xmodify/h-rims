@@ -838,6 +838,11 @@
                                                 <i class="bi bi-train-front text-primary me-2"></i> OP-SRT การรถไฟแห่งประเทศไทย
                                             </a>
                                         </li>
+                                        <li>
+                                            <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/pvt') }}">
+                                                <i class="bi bi-file-earmark-person-fill text-primary me-2"></i> OP-PVT ครูเอกชน
+                                            </a>
+                                        </li>
                                         <!-- ชี้ขวา -->
                                         <li class="dropend position-relative">
                                             <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"

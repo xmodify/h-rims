@@ -1,0 +1,540 @@
+{
+  "description": "ICD-10 Chronic Diseases for Social Security (SSS NCD) - 26 Diseases",
+  "diseases": [
+    {
+      "id": "01",
+      "name": "โรคเบาหวาน (Diabetes mellitus)",
+      "prefixes": [
+        "E10",
+        "E11",
+        "E12",
+        "E13",
+        "E14"
+      ]
+    },
+    {
+      "id": "02",
+      "name": "โรคความดันโลหิตสูง (Hypertension)",
+      "prefixes": [
+        "I10",
+        "I11",
+        "I12",
+        "I13",
+        "I14",
+        "I15"
+      ]
+    },
+    {
+      "id": "03A",
+      "name": "โรคตับอักเสบเรื้อรัง (Chronic hepatitis)",
+      "prefixes": [
+        "K73",
+        "B18"
+      ]
+    },
+    {
+      "id": "03B",
+      "name": "โรคตับแข็ง (Cirrhosis of liver)",
+      "prefixes": [
+        "B18",
+        "K74"
+      ]
+    },
+    {
+      "id": "04",
+      "name": "โรคภาวะหัวใจล้มเหลว (Congestive Heart failure)",
+      "prefixes": [
+        "I500",
+        "I50",
+        "I500"
+      ]
+    },
+    {
+      "id": "05",
+      "name": "โรคเส้นเลือดสมองแตก/อุดตัน (Cerebrovascular accident)",
+      "prefixes": [
+        "I69"
+      ]
+    },
+    {
+      "id": "06",
+      "name": "โรคมะเร็ง (Malignancy)",
+      "prefixes": [
+        "C00",
+        "C01",
+        "C02",
+        "C03",
+        "C04",
+        "C05",
+        "C06",
+        "C07",
+        "C08",
+        "C09",
+        "C10",
+        "C11",
+        "C12",
+        "C13",
+        "C14",
+        "C15",
+        "C16",
+        "C17",
+        "C18",
+        "C19",
+        "C20",
+        "C21",
+        "C22",
+        "C23",
+        "C24",
+        "C25",
+        "C26",
+        "C27",
+        "C28",
+        "C29",
+        "C30",
+        "C31",
+        "C32",
+        "C33",
+        "C34",
+        "C35",
+        "C36",
+        "C37",
+        "C38",
+        "C39",
+        "C40",
+        "C41",
+        "C42",
+        "C43",
+        "C44",
+        "C45",
+        "C46",
+        "C47",
+        "C48",
+        "C49",
+        "C50",
+        "C51",
+        "C52",
+        "C53",
+        "C54",
+        "C55",
+        "C56",
+        "C57",
+        "C58",
+        "C59",
+        "C60",
+        "C61",
+        "C62",
+        "C63",
+        "C64",
+        "C65",
+        "C66",
+        "C67",
+        "C68",
+        "C69",
+        "C70",
+        "C71",
+        "C72",
+        "C73",
+        "C74",
+        "C75",
+        "C76",
+        "C77",
+        "C78",
+        "C79",
+        "C80",
+        "C81",
+        "C82",
+        "C83",
+        "C84",
+        "C85",
+        "C86",
+        "C87",
+        "C88",
+        "C89",
+        "C90",
+        "C91",
+        "C92",
+        "C93",
+        "C94",
+        "C95",
+        "C96",
+        "C97"
+      ]
+    },
+    {
+      "id": "07",
+      "name": "โรคภูมิคุ้มกันบกพร่อง (AIDS)",
+      "prefixes": [
+        "B20",
+        "B21",
+        "B22",
+        "B23",
+        "B24"
+      ]
+    },
+    {
+      "id": "08",
+      "name": "โรคถุงลมโป่งพอง (Emphysema)",
+      "prefixes": [
+        "J43"
+      ]
+    },
+    {
+      "id": "09",
+      "name": "โรคไตวายเรื้อรัง (Chronic renal failure)",
+      "prefixes": [
+        "N18"
+      ]
+    },
+    {
+      "id": "10",
+      "name": "โรคพาร์กินซั่น (Parkinson's disease)",
+      "prefixes": [
+        "G20",
+        "G21",
+        "G22"
+      ]
+    },
+    {
+      "id": "11",
+      "name": "โรคมายแอสทีเนีย เกรวิส (Myasthenia gravis)",
+      "prefixes": [
+        "G70"
+      ]
+    },
+    {
+      "id": "12",
+      "name": "โรคเบาจืด (Diabetes insipidus)",
+      "prefixes": [
+        "E232",
+        "N251",
+        "E232",
+        "N251"
+      ]
+    },
+    {
+      "id": "13",
+      "name": "โรคมัลติเพิล สเคลอโรสิส (Multiple sclerosis)",
+      "prefixes": [
+        "G35"
+      ]
+    },
+    {
+      "id": "14",
+      "name": "โรคไขมันในเลือดสูง (Dyslipidemia)",
+      "prefixes": [
+        "E78"
+      ]
+    },
+    {
+      "id": "15",
+      "name": "โรคข้ออักเสบรูห์มาตอยด์ (Rheumatoid arthritis)",
+      "prefixes": [
+        "M05",
+        "M06"
+      ]
+    },
+    {
+      "id": "16",
+      "name": "โรคต้อหิน (Glaucoma)",
+      "prefixes": [
+        "H40",
+        "H42"
+      ]
+    },
+    {
+      "id": "17",
+      "name": "โรคไต เนฟโฟรติค (Nephrotic syndrome)",
+      "prefixes": [
+        "N04"
+      ]
+    },
+    {
+      "id": "18",
+      "name": "โรคลูปัส (SLE)",
+      "prefixes": [
+        "M32"
+      ]
+    },
+    {
+      "id": "19",
+      "name": "โรคเลือดอะพลาสติค (Aplastic anemia)",
+      "prefixes": [
+        "D61"
+      ]
+    },
+    {
+      "id": "20",
+      "name": "โรคทาลาสซีเมีย (Thalassemia)",
+      "prefixes": [
+        "D56"
+      ]
+    },
+    {
+      "id": "21",
+      "name": "โรคฮีโมฟิลเลีย (Hemophilia)",
+      "prefixes": [
+        "D66",
+        "D67"
+      ]
+    },
+    {
+      "id": "22",
+      "name": "โรคเรื้อนกวาง (Psoriasis)",
+      "prefixes": [
+        "L40"
+      ]
+    },
+    {
+      "id": "23A",
+      "name": "Pemphigus",
+      "prefixes": [
+        "L10"
+      ]
+    },
+    {
+      "id": "23B",
+      "name": "Pemphigoid",
+      "prefixes": [
+        "L12"
+      ]
+    },
+    {
+      "id": "23C",
+      "name": "Dermatitis herpetiformis",
+      "prefixes": [
+        "L13",
+        "L130",
+        "L131",
+        "L132",
+        "L133",
+        "L134",
+        "L135",
+        "L136",
+        "L137"
+      ]
+    },
+    {
+      "id": "23D",
+      "name": "Linear immunoglobulin A (IgA) dermatosis",
+      "prefixes": [
+        "L138",
+        "L123",
+        "L138",
+        "L123"
+      ]
+    },
+    {
+      "id": "23E",
+      "name": "Epidermolysis bullosa acquisita",
+      "prefixes": [
+        "L139",
+        "L123",
+        "L139",
+        "L123"
+      ]
+    },
+    {
+      "id": "24",
+      "name": "โรคเลือด ไอทีพี (ITP)",
+      "prefixes": [
+        "D693",
+        "D693"
+      ]
+    },
+    {
+      "id": "25",
+      "name": "โรคต่อมธัยรอยด์เป็นพิษ (Thyrotoxicosis)",
+      "prefixes": [
+        "E05"
+      ]
+    },
+    {
+      "id": "26",
+      "name": "โรคจิต (Schizophrenia / Delusional disorders)",
+      "prefixes": [
+        "F20",
+        "F21",
+        "F22",
+        "F23",
+        "F24",
+        "F25",
+        "F26",
+        "F27",
+        "F28",
+        "F29"
+      ]
+    }
+  ],
+  "prefixes": {
+    "E10": true,
+    "E11": true,
+    "E12": true,
+    "E13": true,
+    "E14": true,
+    "I10": true,
+    "I11": true,
+    "I12": true,
+    "I13": true,
+    "I14": true,
+    "I15": true,
+    "K73": true,
+    "B18": true,
+    "K74": true,
+    "I500": true,
+    "I50": true,
+    "I69": true,
+    "C00": true,
+    "C01": true,
+    "C02": true,
+    "C03": true,
+    "C04": true,
+    "C05": true,
+    "C06": true,
+    "C07": true,
+    "C08": true,
+    "C09": true,
+    "C10": true,
+    "C11": true,
+    "C12": true,
+    "C13": true,
+    "C14": true,
+    "C15": true,
+    "C16": true,
+    "C17": true,
+    "C18": true,
+    "C19": true,
+    "C20": true,
+    "C21": true,
+    "C22": true,
+    "C23": true,
+    "C24": true,
+    "C25": true,
+    "C26": true,
+    "C27": true,
+    "C28": true,
+    "C29": true,
+    "C30": true,
+    "C31": true,
+    "C32": true,
+    "C33": true,
+    "C34": true,
+    "C35": true,
+    "C36": true,
+    "C37": true,
+    "C38": true,
+    "C39": true,
+    "C40": true,
+    "C41": true,
+    "C42": true,
+    "C43": true,
+    "C44": true,
+    "C45": true,
+    "C46": true,
+    "C47": true,
+    "C48": true,
+    "C49": true,
+    "C50": true,
+    "C51": true,
+    "C52": true,
+    "C53": true,
+    "C54": true,
+    "C55": true,
+    "C56": true,
+    "C57": true,
+    "C58": true,
+    "C59": true,
+    "C60": true,
+    "C61": true,
+    "C62": true,
+    "C63": true,
+    "C64": true,
+    "C65": true,
+    "C66": true,
+    "C67": true,
+    "C68": true,
+    "C69": true,
+    "C70": true,
+    "C71": true,
+    "C72": true,
+    "C73": true,
+    "C74": true,
+    "C75": true,
+    "C76": true,
+    "C77": true,
+    "C78": true,
+    "C79": true,
+    "C80": true,
+    "C81": true,
+    "C82": true,
+    "C83": true,
+    "C84": true,
+    "C85": true,
+    "C86": true,
+    "C87": true,
+    "C88": true,
+    "C89": true,
+    "C90": true,
+    "C91": true,
+    "C92": true,
+    "C93": true,
+    "C94": true,
+    "C95": true,
+    "C96": true,
+    "C97": true,
+    "B20": true,
+    "B21": true,
+    "B22": true,
+    "B23": true,
+    "B24": true,
+    "J43": true,
+    "N18": true,
+    "G20": true,
+    "G21": true,
+    "G22": true,
+    "G70": true,
+    "E232": true,
+    "N251": true,
+    "G35": true,
+    "E78": true,
+    "M05": true,
+    "M06": true,
+    "H40": true,
+    "H42": true,
+    "N04": true,
+    "M32": true,
+    "D61": true,
+    "D56": true,
+    "D66": true,
+    "D67": true,
+    "L40": true,
+    "L10": true,
+    "L12": true,
+    "L13": true,
+    "L130": true,
+    "L131": true,
+    "L132": true,
+    "L133": true,
+    "L134": true,
+    "L135": true,
+    "L136": true,
+    "L137": true,
+    "L138": true,
+    "L123": true,
+    "L139": true,
+    "D693": true,
+    "E05": true,
+    "F20": true,
+    "F21": true,
+    "F22": true,
+    "F23": true,
+    "F24": true,
+    "F25": true,
+    "F26": true,
+    "F27": true,
+    "F28": true,
+    "F29": true
+  },
+  "exclusions": [
+    "D563"
+  ]
+}

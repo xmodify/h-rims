@@ -4146,4 +4146,139 @@ class ClaimOpController extends Controller
 
         return view('claim_op.act', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'claim'));
     }
+
+    public function sss_main(Request $request)
+    {
+        ini_set('max_execution_time', 0);
+
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
+            ->orderByDesc('LEAVE_YEAR_ID')
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b = $year_data[$budget_year] ?? null;
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
+
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
+        
+        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value') ?: "''";
+        $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value') ?: "''";
+
+        $sum_month = DB::connection('hosxp')->select('
+            SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,d.receive AS receive_total
+            FROM ovst o            
+            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+            LEFT JOIN pttype p ON p.pttype=vp.pttype
+			LEFT JOIN vn_stat v ON v.vn = o.vn
+			LEFT JOIN (
+			    SELECT r.vn, SUM(r.total_amount) AS rcpt_money
+			    FROM rcpt_print r
+			    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+			    WHERE a.rcpno IS NULL
+			    GROUP BY r.vn
+			) rc ON rc.vn = o.vn
+            LEFT JOIN hrims.debtor_1102050101_301 d ON d.vn=o.vn
+            WHERE p.hipdata_code = "SSS"
+                AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
+                AND p.pttype NOT IN (' . $pttype_sss_fund . ')
+                AND p.pttype NOT IN (' . $pttype_sss_ae . ')
+                AND o.vstdate BETWEEN ? AND ?
+                GROUP BY o.vn ) AS a
+			GROUP BY YEAR(vstdate), MONTH(vstdate)
+            ORDER BY YEAR(vstdate), MONTH(vstdate) ', [$start_date_b, $end_date_b]);
+        $month = array_column($sum_month, 'month');
+        $claim_price = array_column($sum_month, 'claim_price');
+        $receive_total = array_column($sum_month, 'receive_total');
+
+        $claim = DB::connection('hosxp')->select('
+            SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
+            os.cc,
+            MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
+            v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,
+            d.receive AS receive_total
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+            LEFT JOIN pttype p ON p.pttype=vp.pttype
+            LEFT JOIN opdscreen os ON os.vn=o.vn
+            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
+            LEFT JOIN hrims.debtor_1102050101_301 d ON d.vn=o.vn
+            WHERE p.hipdata_code = "SSS"
+            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
+            AND p.pttype NOT IN (' . $pttype_sss_fund . ')
+            AND p.pttype NOT IN (' . $pttype_sss_ae . ')
+            AND o.vstdate BETWEEN ? AND ?
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date]);
+
+        $ncd_json_path = base_path('docs/lookup/icd10_sss_ncd.json');
+        $ncd_data = [];
+        if (file_exists($ncd_json_path)) {
+            $ncd_data = json_decode(file_get_contents($ncd_json_path), true);
+        }
+        $prefixes = $ncd_data['prefixes'] ?? [];
+        $exclusions = $ncd_data['exclusions'] ?? [];
+
+        foreach ($claim as $row) {
+            $pdx = strtoupper(str_replace('.', '', trim($row->pdx ?? '')));
+            $is_ncd = false;
+            if ($pdx !== '') {
+                $is_excluded = false;
+                foreach ($exclusions as $ex) {
+                    if (str_starts_with($pdx, $ex)) {
+                        $is_excluded = true;
+                        break;
+                    }
+                }
+                if (!$is_excluded) {
+                    foreach ($prefixes as $pref => $val) {
+                        if (str_starts_with($pdx, $pref)) {
+                            $is_ncd = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            $row->is_ncd = $is_ncd;
+        }
+
+        return view('claim_op.sss_main', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'claim'));
+    }
 }

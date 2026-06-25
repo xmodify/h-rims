@@ -852,6 +852,10 @@
                                             <ul class="dropdown-menu dropdown-menu-modern">
                                                 <li>
                                                     <a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('claim_op/sss_main') }}"><i class="bi bi-chevron-right text-muted me-1"></i> SS-OP ประกันสังคม เครือข่าย</a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern"
                                                         href="{{ url('claim_op/sss_ppfs') }}"><i class="bi bi-chevron-right text-muted me-1"></i> SS-OP ประกันสังคม PPFS</a>
                                                 </li>
                                                 <li>
@@ -1090,7 +1094,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item d-flex align-items-center me-2">
                             <div class="nav-version-badge">
-                                V.69-06-25 16:30
+                                V.69-06-25 17:00
                             </div>
                         </li>
                         <!-- Authentication Links -->

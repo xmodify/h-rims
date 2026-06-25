@@ -645,6 +645,12 @@ class MainSettingController extends Controller
                     $colObj = $table->bigInteger($colName);
                 }
             }
+        } elseif (strpos($type, 'tinyint') !== false) {
+            if (strpos($type, 'unsigned') !== false) {
+                $colObj = $table->tinyInteger($colName)->unsigned();
+            } else {
+                $colObj = $table->tinyInteger($colName);
+            }
         } elseif (strpos($type, 'int') !== false) {
             if (strpos($type, 'unsigned') !== false) {
                 if ($extra === 'auto_increment') {

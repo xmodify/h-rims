@@ -275,6 +275,7 @@ class AopodController extends Controller
                 'pe.death as person_death',
                 'pe.death_date as person_deathday',
                 'pe.person_id',
+                'd.hn as death_hn',
                 'd.death_date as death_table_date',
                 'd.death_diag_1 as death_table_diag',
                 'd.death_cause_text as death_table_cause'
@@ -391,8 +392,8 @@ class AopodController extends Controller
                     }
                 }
 
-                // บันทึกในตาราง death หรือไม่
-                $isDeathTableRegistered = !is_null($p->death_table_date);
+                // บันทึกในตาราง death หรือไม่ (เช็คจาก d.hn ที่ Join ติด)
+                $isDeathTableRegistered = !is_null($p->death_hn);
                 if ($isDeathTableRegistered) $deathTableCount++;
 
                 // ความสมบูรณ์ของรายนี้
@@ -412,7 +413,7 @@ class AopodController extends Controller
                     'active_clinics' => $hasClinics ? $activeClinics : 0,
                     'active_clinics_list' => $patientActiveClinics[$hn] ?? [],
                     'has_clinics' => $hasClinics,
-                    'death_table_date' => $p->death_table_date,
+                    'death_table_date' => $isDeathTableRegistered ? ($p->death_table_date ?: '1900-01-01') : null,
                     'death_table_diag' => $p->death_table_diag,
                     'death_table_cause' => $p->death_table_cause,
                     'aopod_death_date' => $aopodData['death_date'] ?? null,

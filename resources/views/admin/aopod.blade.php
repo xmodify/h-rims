@@ -303,7 +303,7 @@
                                         ];
                                         $itemJson = rawurlencode(json_encode($itemArr));
                                     @endphp
-                                    <tr class="{{ $item->is_complete ? 'opacity-75 bg-light' : '' }}">
+                                    <tr class="{{ $item->is_complete ? 'opacity-75 bg-light' : '' }}" data-item="{{ $itemJson }}">
                                         <td>
                                             <span class="fw-bold text-dark d-block">{{ $item->cid }}</span>
                                             <small class="text-muted text-uppercase">HN: {{ $item->hn }}</small>
@@ -1077,7 +1077,7 @@
                             let actionButton = `<button class="btn btn-outline-danger btn-sm px-3 rounded-pill fw-bold hover-scale" onclick="showDeathDetail('${itemJson}')"><i class="bi bi-clipboard2-pulse"></i> ดูข้อมูล</button>`;
 
                             rowsHtml += `
-                                <tr ${item.is_complete ? 'class="opacity-75 bg-light"' : ''}>
+                                <tr ${item.is_complete ? 'class="opacity-75 bg-light"' : ''} data-item="${itemJson}">
                                     <td>
                                         <span class="fw-bold text-dark d-block">${item.cid}</span>
                                         <small class="text-muted text-uppercase">HN: ${item.hn}</small>
@@ -1329,7 +1329,7 @@
         let table = $('#deathAuditTable').DataTable();
         let data = table.rows({ search: 'applied' }).data();
         let wsData = [
-            ["HN", "CID", "ชื่อ-นามสกุล", "Patient", "Person", "Clinic Member", "Death", "ผลการตรวจสอบ"]
+            ["HN", "CID", "ชื่อ-นามสกุล", "Patient", "Person", "Clinic Member", "Death", "วันที่ตาย (AOPOD)", "สาเหตุการตาย (AOPOD)", "รายละเอียดสาเหตุการตาย (AOPOD)", "สถานที่ตาย (AOPOD)", "ผลการตรวจสอบ"]
         ];
         
         data.each(function (value, index) {
@@ -1343,9 +1343,36 @@
             let person = $(cols[3]).text().trim();
             let clinic = $(cols[4]).text().trim();
             let death = $(cols[5]).text().trim();
+            
+            let itemRaw = $(rowNode).attr('data-item');
+            let item = {};
+            if (itemRaw) {
+                try {
+                    item = JSON.parse(decodeURIComponent(itemRaw));
+                } catch(e) {}
+            }
+            
+            let aopodDeathDate = item.aopod_death_date ? formatThaiDate(item.aopod_death_date) : '';
+            let aopodDeathDiag = item.aopod_death_diag || '';
+            let aopodDeathCause = item.aopod_death_cause || '';
+            let aopodDeathPlace = item.aopod_death_place || '';
+            
             let auditResult = $(cols[6]).attr('data-order') === '1' ? 'ตรงกัน' : 'ยังไม่ครบ';
             
-            wsData.push([hn, cid, fullname, patient, person, clinic, death, auditResult]);
+            wsData.push([
+                hn, 
+                cid, 
+                fullname, 
+                patient, 
+                person, 
+                clinic, 
+                death, 
+                aopodDeathDate, 
+                aopodDeathDiag, 
+                aopodDeathCause, 
+                aopodDeathPlace, 
+                auditResult
+            ]);
         });
         
         let wb = XLSX.utils.book_new();

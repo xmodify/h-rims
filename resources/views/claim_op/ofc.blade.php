@@ -979,7 +979,7 @@
               Swal.fire({
                   icon: 'success',
                   title: 'นำเข้าข้อมูลสำเร็จ!',
-                  text: `ประมวลผลไฟล์ ZIP ทั้งหมดเสร็จสิ้น (${totalZipFiles} ไฟล์ ZIP)`,
+                  text: `ประมวลผลไฟล์ ZIP ทั้งหมดเสร็จสิ้น (${totalZipFiles} ไฟล์ ZIP) รวมนำเข้าไฟล์รายงานย่อยสำเร็จ ${grandProcessedCount} ไฟล์`,
                   confirmButtonText: 'ตกลง',
                   confirmButtonColor: '#198754'
               }).then(() => {

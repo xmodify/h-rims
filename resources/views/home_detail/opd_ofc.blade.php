@@ -229,7 +229,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="zip_file" class="form-label small fw-bold text-muted">เลือกไฟล์ ZIP</label>
-                            <input class="form-control" type="file" id="zip_file" name="zip_file" accept=".zip" required>
+                            <input class="form-control" type="file" id="zip_file" name="zip_file[]" accept=".zip" multiple required>
                         </div>
                     </form>
 

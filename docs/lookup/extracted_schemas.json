@@ -9906,6 +9906,12 @@
                     "column": "vstdate",
                     "unique": false
                 }
+            ],
+            "idx_seq": [
+                {
+                    "column": "seq",
+                    "unique": false
+                }
             ]
         }
     },

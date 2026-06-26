@@ -56,22 +56,25 @@
                             <th class="text-center" rowspan="2">ชำระเอง</th>
                             <th class="text-center" rowspan="2">กองทุนอื่น</th>
                             <th class="text-center" rowspan="2">เรียกเก็บรวม</th> 
-                            <th class="text-center bg-info-soft" colspan="2">อุบัติเหตุฉุกเฉิน</th>
-                            <th class="text-center bg-primary-soft" colspan="2">ผู้ป่วยทั่วไป</th>   
+                            <th class="text-center text-success" rowspan="2">มติ CFO</th> 
+                            <th class="text-center" colspan="3" style="background-color: #f8d7da !important; color: #842029 !important;">อุบัติเหตุฉุกเฉิน</th>
+                            <th class="text-center" colspan="3" style="background-color: #fff3cd !important; color: #664d03 !important;">ผู้ป่วยทั่วไป</th>   
                         </tr>
                         <tr> 
-                            <th class="text-center bg-info-soft small">Visit</th>
-                            <th class="text-center bg-info-soft small">เรียกเก็บ</th> 
-                            <th class="text-center bg-primary-soft small">Visit</th>
-                            <th class="text-center bg-primary-soft small">เรียกเก็บ</th>   
+                            <th class="text-center small" style="background-color: #f8d7da !important; color: #842029 !important;">Visit</th>
+                            <th class="text-center small" style="background-color: #f8d7da !important; color: #842029 !important;">เรียกเก็บ</th> 
+                            <th class="text-center small" style="background-color: #f8d7da !important; color: #842029 !important;">มติ CFO</th> 
+                            <th class="text-center small" style="background-color: #fff3cd !important; color: #664d03 !important;">Visit</th>
+                            <th class="text-center small" style="background-color: #fff3cd !important; color: #664d03 !important;">เรียกเก็บ</th>   
+                            <th class="text-center small" style="background-color: #fff3cd !important; color: #664d03 !important;">มติ CFO</th>   
                         </tr>
                     </thead> 
                     <tbody>          
                         @php 
                             $total_visit = 0; $total_income = 0; $total_rcpt_money = 0; 
-                            $total_other_price = 0; $total_claim_price = 0; 
-                            $total_er_visit = 0; $total_er_price = 0; 
-                            $total_normal_visit = 0; $total_normal_price = 0;
+                            $total_other_price = 0; $total_claim_price = 0; $total_cfo_price = 0;
+                            $total_er_visit = 0; $total_er_price = 0; $total_er_cfo_price = 0;
+                            $total_normal_visit = 0; $total_normal_price = 0; $total_normal_cfo_price = 0;
                         @endphp
                         @foreach($sum as $row) 
                         <tr>
@@ -81,10 +84,13 @@
                             <td class="text-end">{{ number_format($row->rcpt_money,2) }}</td>
                             <td class="text-end">{{ number_format($row->other_price,2) }}</td>
                             <td class="text-end fw-bold text-primary">{{ number_format($row->claim_price,2) }}</td> 
+                            <td class="text-end fw-bold text-success">{{ number_format($row->cfo_price,2) }}</td> 
                             <td class="text-center bg-info-soft">{{ number_format($row->er_visit) }}</td> 
                             <td class="text-end bg-info-soft small">{{ number_format($row->er_price,2) }}</td> 
-                            <td class="text-center bg-primary-soft">{{ number_format($row->normal_visit) }}</td> 
-                            <td class="text-end bg-primary-soft small">{{ number_format($row->normal_price,2) }}</td> 
+                            <td class="text-end bg-info-soft small fw-bold text-success">{{ number_format($row->er_cfo_price,2) }}</td> 
+                            <td class="text-center bg-warning-soft">{{ number_format($row->normal_visit) }}</td> 
+                            <td class="text-end bg-warning-soft small">{{ number_format($row->normal_price,2) }}</td> 
+                            <td class="text-end bg-warning-soft small fw-bold text-success">{{ number_format($row->normal_cfo_price,2) }}</td> 
                         </tr>
                         @php 
                             $total_visit += $row->visit; 
@@ -92,10 +98,13 @@
                             $total_rcpt_money += $row->rcpt_money; 
                             $total_other_price += $row->other_price; 
                             $total_claim_price += $row->claim_price; 
+                            $total_cfo_price += $row->cfo_price;
                             $total_er_visit += $row->er_visit; 
                             $total_er_price += $row->er_price; 
+                            $total_er_cfo_price += $row->er_cfo_price;
                             $total_normal_visit += $row->normal_visit; 
                             $total_normal_price += $row->normal_price;
+                            $total_normal_cfo_price += $row->normal_cfo_price;
                         @endphp
                         @endforeach                 
                     </tbody>
@@ -107,10 +116,13 @@
                             <th class="text-end">{{ number_format($total_rcpt_money,2) }}</th>
                             <th class="text-end">{{ number_format($total_other_price,2) }}</th>
                             <th class="text-end text-primary">{{ number_format($total_claim_price,2) }}</th>
+                            <th class="text-end text-success">{{ number_format($total_cfo_price,2) }}</th>
                             <th class="text-center bg-info-soft">{{ number_format($total_er_visit) }}</th>
                             <th class="text-end bg-info-soft small">{{ number_format($total_er_price,2) }}</th>
-                            <th class="text-center bg-primary-soft">{{ number_format($total_normal_visit) }}</th>
-                            <th class="text-end bg-primary-soft small">{{ number_format($total_normal_price,2) }}</th>
+                            <th class="text-end bg-info-soft small fw-bold text-success">{{ number_format($total_er_cfo_price,2) }}</th>
+                            <th class="text-center bg-warning-soft">{{ number_format($total_normal_visit) }}</th>
+                            <th class="text-end bg-warning-soft small">{{ number_format($total_normal_price,2) }}</th>
+                            <th class="text-end bg-warning-soft small fw-bold text-success">{{ number_format($total_normal_cfo_price,2) }}</th>
                         </tr>
                     </tfoot>
                 </table>
@@ -120,11 +132,22 @@
 
     <!-- Section 2: Individual Details -->
     <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">
-        <div class="card-header bg-transparent border-0 pt-3 px-4 pb-0">
-            <h6 class="fw-bold text-dark mb-0">
-                <i class="bi bi-list-ul text-primary me-2"></i> รายละเอียดผู้มารับบริการ (Individual)
-            </h6>
-            <p class="text-muted small mt-1 mb-3">ช่วงวันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}</p>
+        <div class="card-header bg-transparent border-0 pt-3 px-4 pb-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <h6 class="fw-bold text-dark mb-0">
+                    <i class="bi bi-list-ul text-primary me-2"></i> รายละเอียดผู้มารับบริการ (Individual)
+                </h6>
+                <p id="date_range_text" class="text-muted small mt-1 mb-0">ช่วงวันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }} | UC-OP ในจังหวัด VA ทั้งหมด</p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-nowrap small fw-bold text-muted">กรอง Hmain:</span>
+                <select id="filter_hmain" class="form-select form-select-sm shadow-sm" style="width: 250px;">
+                    <option value="">ทั้งหมด</option>
+                    @foreach($sum as $row_sum)
+                        <option value="{{ $row_sum->hospmain }}">{{ $row_sum->hospmain }}</option>
+                    @endforeach
+                </select>
+            </div>
         </div>
         <div class="card-body px-4 pb-4 pt-0">
             <div class="table-responsive">            
@@ -137,11 +160,13 @@
                             <th class="text-center">HN</th>    
                             <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
                             <th class="text-center" width="10%">อาการสำคัญ</th>
-                            <th class="text-center">PDX | ICD9</th>
+                            <th class="text-center" width="6%">PDX</th>
+                            <th class="text-start" width="10%">SDX | ICD9</th>
                             <th class="text-center small">ค่ารักษา</th> 
                             <th class="text-center small">ชำระเอง</th>
                             <th class="text-center small">กองทุนอื่น</th>
                             <th class="text-center small">เรียกเก็บ</th> 
+                            <th class="text-center small">มติ CFO</th> 
                             <th class="text-center small">รายการกองทุนอื่น</th>                
                         </tr>
                     </thead> 
@@ -151,6 +176,7 @@
                             $sum_rcpt_money = 0;  
                             $sum_other_price = 0;
                             $sum_claim_price = 0; 
+                            $sum_cfo_price = 0;
                         @endphp
                         @foreach($search as $row) 
                         <tr>
@@ -176,14 +202,16 @@
                                 <div class="small text-muted">{{$row->pttype}}</div>
                             </td> 
                             <td class="text-start small text-muted text-wrap">{{ $row->cc }}</td>
-                            <td class="text-center small">
-                                <div class="fw-bold text-dark">{{ $row->pdx }}</div>
-                                <div class="text-muted" style="font-size: 0.65rem;">{{$row->icd9}}</div>
+                            <td class="text-center fw-bold text-dark small">{{ $row->pdx }}</td>
+                            <td class="text-start small">
+                                <div class="text-dark">{{ $row->sdx }}</div>
+                                <div class="text-muted" style="font-size: 0.65rem;">{{ $row->icd9 }}</div>
                             </td>
                             <td class="text-end small">{{ number_format($row->income,2) }}</td>              
                             <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
                             <td class="text-end small">{{ number_format($row->other_price,2) }}</td>
                             <td class="text-end small fw-bold text-primary">{{ number_format($row->claim_price,2) }}</td> 
+                            <td class="text-end small fw-bold text-success">{{ number_format($row->cfo_price,2) }}</td> 
                             <td class="text-start small text-muted text-wrap" style="font-size: 0.65rem;">{{ $row->other_list }}</td>      
                         </tr>
                         @php 
@@ -191,16 +219,18 @@
                             $sum_rcpt_money += $row->rcpt_money; 
                             $sum_other_price += $row->other_price; 
                             $sum_claim_price += $row->claim_price; 
+                            $sum_cfo_price += $row->cfo_price;
                         @endphp
                         @endforeach                 
                     </tbody>
                     <tfoot class="bg-light-soft">
                         <tr>
-                            <th colspan="7" class="text-end text-muted small px-3">รวมที่ค้นพบ:</th>
+                            <th colspan="8" class="text-end text-muted small px-3">รวมที่ค้นพบ:</th>
                             <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                             <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                             <th class="text-end small">{{ number_format($sum_other_price,2) }}</th>
                             <th class="text-end small fw-bold text-primary">{{ number_format($sum_claim_price,2) }}</th>
+                            <th class="text-end small fw-bold text-success">{{ number_format($sum_cfo_price,2) }}</th>
                             <th></th>
                         </tr>
                     </tfoot>
@@ -325,17 +355,18 @@
                     return cell;
                 }
 
-                // Add labels for columns A-F in Row 2 so they don't disappear after merging with Row 3
+                // Add labels for columns A-G in Row 2 so they don't disappear after merging with Row 3
                 newRow.appendChild(createCell('A2', 'Hmain', '51'));
                 newRow.appendChild(createCell('B2', 'Visit ทั้งหมด', '51'));
                 newRow.appendChild(createCell('C2', 'ค่ารักษา', '51'));
                 newRow.appendChild(createCell('D2', 'ชำระเอง', '51'));
                 newRow.appendChild(createCell('E2', 'กองทุนอื่น', '51'));
                 newRow.appendChild(createCell('F2', 'เรียกเก็บรวม', '51'));
+                newRow.appendChild(createCell('G2', 'มติ CFO', '51'));
 
-                // Append cells for G2 and I2 (the category headers) 
-                newRow.appendChild(createCell('G2', 'อุบัติเหตุฉุกเฉิน', '51'));
-                newRow.appendChild(createCell('I2', 'ผู้ป่วยทั่วไป', '51'));
+                // Append cells for H2 and K2 (the category headers) 
+                newRow.appendChild(createCell('H2', 'อุบัติเหตุฉุกเฉิน', '51'));
+                newRow.appendChild(createCell('K2', 'ผู้ป่วยทั่วไป', '51'));
 
                 sheetData.insertBefore(newRow, rows[1]);
 
@@ -361,14 +392,15 @@
                 addMergeCell('D2:D3');
                 addMergeCell('E2:E3');
                 addMergeCell('F2:F3');
-                addMergeCell('G2:H2');
-                addMergeCell('I2:J2');
+                addMergeCell('G2:G3');
+                addMergeCell('H2:J2');
+                addMergeCell('K2:M2');
             }
           }
         ]
       });
 
-      $('#t_search').DataTable({
+      var table = $('#t_search').DataTable({
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 
                 '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
@@ -383,7 +415,8 @@
               extend: 'excelHtml5',
               text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
               className: 'btn btn-success btn-sm shadow-sm',
-              title: 'รายชื่อผู้มารับบริการ UC-OP ในจังหวัด VA วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+              title: 'รายชื่อผู้มารับบริการ UC-OP ในจังหวัด VA วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}',
+              footer: true
             }
         ],
         language: {
@@ -394,7 +427,48 @@
               previous: "ก่อนหน้า",
               next: "ถัดไป"
             }
+        },
+        footerCallback: function (row, data, start, end, display) {
+            var api = this.api();
+
+            var intVal = function (i) {
+                return typeof i === 'string' ? i.replace(/[\$,]/g, '') * 1 : typeof i === 'number' ? i : 0;
+            };
+
+            var sumColumn = function(colIndex) {
+                return api
+                    .column(colIndex, { page: 'all', search: 'applied' })
+                    .data()
+                    .reduce(function (a, b) {
+                        return intVal(a) + intVal(b);
+                    }, 0);
+            };
+
+            var totalIncome = sumColumn(8);
+            var totalRcpt = sumColumn(9);
+            var totalOther = sumColumn(10);
+            var totalClaim = sumColumn(11);
+            var totalCfo = sumColumn(12);
+
+            $(api.column(8).footer()).html(totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            $(api.column(9).footer()).html(totalRcpt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            $(api.column(10).footer()).html(totalOther.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            $(api.column(11).footer()).html(totalClaim.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+            $(api.column(12).footer()).html(totalCfo.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
         }
+      });
+
+      // Filter by Hmain listbox
+      $('#filter_hmain').on('change', function() {
+          var val = $(this).val();
+          table.column(0).search(val).draw();
+          
+          var originalText = "ช่วงวันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}";
+          if (val) {
+              $('#date_range_text').text(originalText + " | Hmain: " + val);
+          } else {
+              $('#date_range_text').text(originalText + " | UC-OP ในจังหวัด VA ทั้งหมด");
+          }
       });
     });
   </script>  

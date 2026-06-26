@@ -627,20 +627,29 @@ class ClaimOpController extends Controller
 
         $sum = DB::connection('hosxp')->select('
             SELECT hospmain,COUNT(vn) AS visit,SUM(income) AS income,SUM(rcpt_money) AS rcpt_money,
-            SUM(other_price) AS other_price,SUM(claim_price) AS claim_price,
+            SUM(other_price) AS other_price,SUM(claim_price) AS claim_price,SUM(cfo_price) AS cfo_price,
             SUM(CASE WHEN pt_status ="อุบัติเหตุฉุกเฉิน" THEN 1 ELSE 0 END) AS er_visit,
             SUM(CASE WHEN pt_status ="อุบัติเหตุฉุกเฉิน" THEN claim_price ELSE 0 END) AS er_price,
+            SUM(CASE WHEN pt_status ="อุบัติเหตุฉุกเฉิน" THEN cfo_price ELSE 0 END) AS er_cfo_price,
             SUM(CASE WHEN pt_status ="ผู้ป่วยทั่วไป" THEN 1 ELSE 0 END) AS normal_visit,
-            SUM(CASE WHEN pt_status ="ผู้ป่วยทั่วไป" THEN claim_price ELSE 0 END) AS normal_price
+            SUM(CASE WHEN pt_status ="ผู้ป่วยทั่วไป" THEN claim_price ELSE 0 END) AS normal_price,
+            SUM(CASE WHEN pt_status ="ผู้ป่วยทั่วไป" THEN cfo_price ELSE 0 END) AS normal_cfo_price
 			FROM (SELECT v.vn,CONCAT(vp.hospmain," ",hc.`name`) AS hospmain,
 			    CASE WHEN er.vn IS NOT NULL AND v1.vn IS NULL THEN "อุบัติเหตุฉุกเฉิน"
 				WHEN er.vn IS NULL OR v1.vn IS NOT NULL THEN "ผู้ป่วยทั่วไป" END AS pt_status,						
 				o.vstdate,o.vsttime,p.`name` AS pttype,v.pdx,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(claim_items.other_price, 0) AS other_price,
-				v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0) AS claim_price            
+				v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0) AS claim_price,
+				CASE 
+				    WHEN er.vn IS NOT NULL AND v1.vn IS NULL THEN 
+				        IF((v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0)) > 700, 700, (v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0)))
+				    WHEN lh.hmain_sss = "Y" THEN 370
+				    ELSE 120
+				END AS cfo_price
                 FROM ovst o
 				LEFT JOIN er_regist er ON er.vn=o.vn
                 LEFT JOIN patient pt ON pt.hn=o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+                LEFT JOIN hrims.lookup_hospcode lh ON lh.hospcode = vp.hospmain
 				LEFT JOIN hospcode hc ON hc.hospcode=vp.hospmain
                 LEFT JOIN pttype p ON p.pttype=vp.pttype
                 LEFT JOIN vn_stat v ON v.vn = o.vn
@@ -662,7 +671,7 @@ class ClaimOpController extends Controller
                     AND v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0) <> 0
                     AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs =""))
                     AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10)
-                GROUP BY o.vn ORDER BY vp.hospmain,pt_status DESC,o.vstdate,o.vsttime) AS a	GROUP BY hospmain ORDER BY hospmain', [$start_date, $end_date, $start_date, $end_date]);
+                GROUP BY o.vn ORDER BY o.vstdate,o.vsttime) AS a	GROUP BY hospmain ORDER BY hospmain', [$start_date, $end_date, $start_date, $end_date]);
 
         $search = DB::connection('hosxp')->select('
             SELECT CONCAT(vp.hospmain," ",hc.`name`) AS hospmain,
@@ -670,17 +679,27 @@ class ClaimOpController extends Controller
 			WHEN er.vn IS NULL OR v1.vn IS NOT NULL THEN "ผู้ป่วยทั่วไป" 
             WHEN v.pdx IN (SELECT icd10 FROM hrims.lookup_icd10 WHERE pp = "Y" ) THEN "ส่งเสริมป้องกันโรคPP" 
 			END AS pt_status,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-			p.`name` AS pttype,os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+			p.`name` AS pttype,os.cc,v.pdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
+            v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             COALESCE(claim_items.other_price, 0) AS other_price,v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0) AS claim_price,
+            CASE 
+                WHEN er.vn IS NOT NULL AND v1.vn IS NULL THEN 
+                    IF((v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0)) > 700, 700, (v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0)))
+                WHEN lh.hmain_sss = "Y" THEN 370
+                ELSE 120
+            END AS cfo_price,
             claim_items.other_list
             FROM ovst o
 			LEFT JOIN er_regist er ON er.vn=o.vn
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+            LEFT JOIN hrims.lookup_hospcode lh ON lh.hospcode = vp.hospmain
 			LEFT JOIN hospcode hc ON hc.hospcode=vp.hospmain
             LEFT JOIN pttype p ON p.pttype=vp.pttype
             LEFT JOIN opdscreen os ON os.vn=o.vn
-            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
+            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
                 SELECT r.vn, SUM(r.total_amount) AS rcpt_money

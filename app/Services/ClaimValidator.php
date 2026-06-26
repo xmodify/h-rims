@@ -147,18 +147,16 @@ class ClaimValidator
             $warnings = $ppfs['warnings'];
         }
 
-        // 2. EDC Approve Code matching check
+        // 2. EDC Approve Code matching check (Mandatory for OFC)
         $edc_hosxp_list = array_filter(array_map('trim', explode(',', $visit->edc ?? '')));
         $edc_ktb_list = array_filter(array_map('trim', explode(',', $visit->edc_ktb ?? '')));
 
-        if (!empty($edc_hosxp_list) || !empty($edc_ktb_list)) {
-            if (empty($edc_hosxp_list)) {
-                $errors[] = "ไม่พบเลขอนุมัติ EDC ใน HOSxP";
-            } elseif (empty($edc_ktb_list)) {
-                $errors[] = "ไม่พบเลขอนุมัติ EDC ในไฟล์นำเข้า KTB (กรุณานำเข้าไฟล์ EDC)";
-            } elseif (count(array_intersect($edc_hosxp_list, $edc_ktb_list)) === 0) {
-                $errors[] = "เลขอนุมัติ EDC ใน HOSxP (" . implode(',', $edc_hosxp_list) . ") ไม่ตรงกับไฟล์นำเข้า KTB (" . implode(',', $edc_ktb_list) . ")";
-            }
+        if (empty($edc_hosxp_list)) {
+            $errors[] = "ไม่พบเลขอนุมัติ EDC ใน HOSxP";
+        } elseif (empty($edc_ktb_list)) {
+            $errors[] = "ไม่พบเลขอนุมัติ EDC ในไฟล์นำเข้า KTB (กรุณานำเข้าไฟล์ EDC)";
+        } elseif (count(array_intersect($edc_hosxp_list, $edc_ktb_list)) === 0) {
+            $errors[] = "เลขอนุมัติ EDC ใน HOSxP (" . implode(',', $edc_hosxp_list) . ") ไม่ตรงกับไฟล์นำเข้า KTB (" . implode(',', $edc_ktb_list) . ")";
         }
 
         // Basic check: auth_code

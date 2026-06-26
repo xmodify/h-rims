@@ -221,15 +221,16 @@
                                     <th class="text-center" rowspan="2">ชื่อ-สกุล | สิทธิ</th>
                                     <th class="text-center" rowspan="2">Project</th>
                                     <th class="text-center" rowspan="2">รายการต้องเรียกเก็บ</th>
-                                    <th class="text-center" colspan="5">ค่ารักษา</th>                                     
+                                    <th class="text-center" colspan="6">ค่ารักษา</th>                                     
                                     <th class="text-center bg-primary-soft" colspan="3">ข้อมูลการชดเชย</th>
                                 </tr>
                                 <tr>                                    
-                                    <th class="text-center small">รวม</th>
+                                    <th class="text-center small">รวมทั้งหมด</th>
                                     <th class="text-center small">ชำระเอง</th>                                                                  
                                     <th class="text-center small">บริการเฉพาะ</th>
                                     <th class="text-center small">PPFS</th>
                                     <th class="text-center small">สมุนไพร</th>
+                                    <th class="text-center text-primary small">รวมส่งเคลม</th>
                                     <th class="text-center bg-primary-soft small">STM ชดเชย</th> 
                                     <th class="text-center bg-primary-soft small">ผลต่าง</th> 
                                     <th class="text-center bg-primary-soft small">REP No.</th>
@@ -304,6 +305,7 @@
                                     <td class="text-end small">{{ number_format($row->uc_cr,2) }}</td> 
                                     <td class="text-end small">{{ number_format($row->ppfs,2) }}</td> 
                                     <td class="text-end small">{{ number_format($row->herb,2) }}</td> 
+                                    <td class="text-end small fw-bold text-primary">{{ number_format($row->uc_cr + $row->ppfs + $row->herb, 2) }}</td>
                                     <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : ($row->receive_total < 0 ? 'text-danger' : 'text-dark') }}">
                                         {{ number_format($row->receive_total,2) }}
                                     </td>
@@ -332,6 +334,7 @@
                                     <th class="text-end small">{{ number_format($sum_uc_cr,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_ppfs,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_herb,2) }}</th>
+                                    <th class="text-end small fw-bold text-primary">{{ number_format($sum_uc_cr + $sum_ppfs + $sum_herb, 2) }}</th>
                                     <th class="text-end small fw-bold {{ $sum_receive_total > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($sum_receive_total,2) }}</th>
                                     @php $total_diff = $sum_receive_total - $sum_uc_cr - $sum_ppfs - $sum_herb; @endphp
                                     <th class="text-end small fw-bold {{ $total_diff > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($total_diff, 2) }}</th>
@@ -1001,6 +1004,14 @@ function pushNhsoData(cid, vstdate, vn) {
             data: <?php echo json_encode($claim_price); ?>,
             backgroundColor: 'rgba(249, 115, 22, 0.6)',
             borderColor: 'rgb(249, 115, 22)',
+            borderWidth: 1,
+            borderRadius: 4
+          },
+          {
+            label: 'ส่งเคลม',
+            data: <?php echo json_encode($claim_sent_price); ?>,
+            backgroundColor: 'rgba(14, 165, 233, 0.6)',
+            borderColor: 'rgb(14, 165, 233)',
             borderWidth: 1,
             borderRadius: 4
           },

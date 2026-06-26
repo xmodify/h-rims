@@ -269,7 +269,7 @@
           let totalUpdated = 0;
           let totalErrors = 0;
 
-          const chunkSize = 50;
+          const chunkSize = 20;
 
           // Step 2: Loop and check chunk
           for (let i = 0; i < totalPatients; i += chunkSize) {

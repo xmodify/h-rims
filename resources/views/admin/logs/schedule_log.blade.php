@@ -191,10 +191,9 @@
                                                         <span class="fw-semibold text-dark">{{ $log['data']['message'] ?? 'ตรวจสอบสถานะสำเร็จ' }}</span>
                                                         <small class="text-muted mt-1">
                                                             จำนวนวันที่ตรวจย้อนหลัง: <strong class="text-primary">{{ $log['data']['checked_days'] ?? 0 }} วัน</strong> | 
-                                                            อัปเดตสถานะเคลม: <strong class="text-success">{{ $log['data']['updated_claims'] ?? 0 }} รายการ</strong>
-                                                            @if(isset($log['data']['errors']) && $log['data']['errors'] > 0)
-                                                                | พบข้อผิดพลาด: <strong class="text-danger">{{ $log['data']['errors'] }} รายการ</strong>
-                                                            @endif
+                                                            อัปเดตสถานะเคลม: <strong class="text-success">{{ $log['data']['updated_claims'] ?? 0 }} รายการ</strong> | 
+                                                            ไม่พบข้อมูล: <strong class="text-warning">{{ $log['data']['not_found_claims'] ?? 0 }} รายการ</strong> | 
+                                                            เกิดข้อผิดพลาด: <strong class="text-danger">{{ $log['data']['errors'] ?? 0 }} รายการ</strong>
                                                         </small>
                                                     </div>
                                                 @else
@@ -621,6 +620,7 @@
                                 body: JSON.stringify({
                                     checked_days: 15,
                                     updated_claims: 0,
+                                    not_found_claims: 0,
                                     errors: 0,
                                     ok: true,
                                     message: 'ตรวจสอบสถานะด้วยตนเองสำเร็จ (ไม่พบสิทธิ์บัตรทอง UCS ที่ต้องเช็คย้อนหลัง)'
@@ -673,6 +673,7 @@
 
         let totalChecked = 0;
         let totalUpdated = 0;
+        let totalNotFound = 0;
         let totalErrors = 0;
 
         function runChunk(index) {
@@ -686,6 +687,7 @@
                     body: JSON.stringify({
                         checked_days: 15,
                         updated_claims: totalUpdated,
+                        not_found_claims: totalNotFound,
                         errors: totalErrors,
                         ok: true,
                         message: 'ตรวจสอบสถานะด้วยตนเอง (Manual Check) สำเร็จ'
@@ -706,6 +708,7 @@
                         html: `เช็คสถานะการส่งเคลม FDH ย้อนหลัง 15 วันเสร็จสิ้น!<br>
                                สแกนทั้งสิ้น: <strong>${items.length} รายการ</strong><br>
                                อัปเดตสถานะใหม่: <strong class="text-success">${totalUpdated} รายการ</strong><br>
+                               ไม่พบข้อมูล: <strong class="text-warning">${totalNotFound} รายการ</strong><br>
                                พบการตอบกลับผิดพลาด: <strong class="text-danger">${totalErrors} รายการ</strong>`,
                         confirmButtonText: 'ตกลง'
                     }).then(() => {
@@ -713,15 +716,53 @@
                     });
                 })
                 .catch(err => {
-                    console.error('Chunk error:', err);
-                    totalErrors += chunks[index].length;
-                    runChunk(index + 1);
+                    console.error('Log error:', err);
+                    Swal.fire('เกิดข้อผิดพลาดในการบันทึก Log', err.message, 'error').then(() => {
+                        location.reload();
+                    });
                 });
+                return;
+            }
+
+            const progressBar = document.getElementById('swal-progress-bar');
+            const progressText = document.getElementById('swal-progress-text');
+            const pct = Math.round((index / chunks.length) * 100);
+
+            if (progressBar) {
+                progressBar.style.width = pct + '%';
+                progressBar.innerText = pct + '%';
+            }
+            if (progressText) {
+                progressText.innerText = `กำลังเชื่อมต่อกลุ่มที่ ${index + 1}/${chunks.length} (เคส ${index * chunkSize} - ${Math.min((index + 1) * chunkSize, items.length)} จากทั้งหมด ${items.length} รายการ)...`;
+            }
+
+            fetch('{{ url("api/fdh/check-chunk") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    items: chunks[index]
+                })
+            })
+            .then(r => r.json())
+            .then(res => {
+                totalChecked += res.total || 0;
+                totalUpdated += res.updated_count || 0;
+                totalNotFound += res.not_found_count || 0;
+                totalErrors += res.errors_count || 0;
+                runChunk(index + 1);
+            })
+            .catch(err => {
+                console.error('FDH Chunk error:', err);
+                totalErrors += chunks[index].length;
+                runChunk(index + 1);
+            });
         }
 
         runChunk(0);
     }
-}
 
     function testNotifyConnection() {
         Swal.fire({

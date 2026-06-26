@@ -1244,12 +1244,13 @@
         });
         if (!confirm.isConfirmed) return;
 
-        const chunkSize = 50;
+        const chunkSize = 20;
         const totalItems = items.length;
         let totalUpdated = 0;
+        let totalNotFound = 0;
         let totalErrors = 0;
         let overallSuccess = true;
-
+ 
         Swal.fire({
             title: 'กำลังดึงสถานะ FDH...',
             html: `
@@ -1267,20 +1268,20 @@
             allowOutsideClick: false,
             showConfirmButton: false
         });
-
+ 
         const logsBox = document.getElementById('fdh-progress-logs');
-
+ 
         for (let i = 0; i < totalItems; i += chunkSize) {
             const chunk = items.slice(i, i + chunkSize);
             const percent = Math.round((i / totalItems) * 100);
-
+ 
             const pText = document.getElementById('fdh-progress-text');
             const pBar  = document.getElementById('fdh-progress-bar');
             const pSub  = document.getElementById('fdh-progress-sub');
             if (pText) pText.innerHTML = `กำลังดึงข้อมูล <b>${i + chunk.length}/${totalItems}</b> รายการ`;
             if (pBar)  { pBar.style.width = `${percent}%`; pBar.innerHTML = `${percent}%`; pBar.setAttribute('aria-valuenow', percent); }
             if (pSub)  pSub.textContent = totalErrors > 0 ? `⚠️ พบข้อผิดพลาด ${totalErrors} รายการ` : '';
-
+ 
             try {
                 const res = await fetch(checkChunkUrl, {
                     method: 'POST',
@@ -1292,14 +1293,17 @@
                 });
                 const data = await res.json();
                 if (data.success) {
-                    totalUpdated += parseInt(data.updated_count) || 0;
-                    totalErrors += parseInt(data.errors_count) || 0;
-                    if (parseInt(data.errors_count) > 0) {
-                        overallSuccess = false;
-                    }
-                    
-                    if (logsBox && data.details && data.details.length > 0) {
+                    if (data.details && data.details.length > 0) {
                         data.details.forEach(detail => {
+                            if (detail.status == 200) {
+                                totalUpdated++;
+                            } else if (detail.status == 404) {
+                                totalNotFound++;
+                            } else {
+                                totalErrors++;
+                                overallSuccess = false;
+                            }
+                            
                             const ident = detail.an ? `AN: ${detail.an}` : `SEQ: ${detail.seq}`;
                             let logClass = "text-success";
                             let prefix = "✔";
@@ -1308,9 +1312,11 @@
                                 prefix = detail.status == 404 ? "⚠" : `❌[${detail.status}]`;
                             }
                             const msg = detail.status_message_th || detail.error || '';
-                            logsBox.innerHTML += `<div class="${logClass}">${prefix} HN: ${detail.hn} (${ident}) - ${msg}</div>`;
+                            if (logsBox) {
+                                logsBox.innerHTML += `<div class="${logClass}">${prefix} HN: ${detail.hn} (${ident}) - ${msg}</div>`;
+                            }
                         });
-                        logsBox.scrollTop = logsBox.scrollHeight;
+                        if (logsBox) logsBox.scrollTop = logsBox.scrollHeight;
                     }
                 } else {
                     overallSuccess = false;
@@ -1332,19 +1338,21 @@
             // หน่วงเวลาฝั่ง Client 300ms ระหว่างเรียก Chunk ถัดไป เพื่อลดภาระของ Server FDH
             await new Promise(resolve => setTimeout(resolve, 300));
         }
-
+ 
         const pBarFinal = document.getElementById('fdh-progress-bar');
         if (pBarFinal) { pBarFinal.style.width = '100%'; pBarFinal.innerHTML = '100%'; pBarFinal.setAttribute('aria-valuenow', 100); }
-
+ 
         const summaryHtml = `
             <div class="text-start p-2">
                 <b>สถานะ:</b> ${overallSuccess ? '✅ สำเร็จทั้งหมด' : '⚠️ เสร็จสิ้น แต่มีข้อผิดพลาดบางส่วน'}<br>
                 <b>รายการทั้งหมด:</b> ${totalItems} รายการ<br>
+                <hr class="my-2">
                 <b>ดึงข้อมูลสำเร็จ:</b> <span class="badge bg-success text-white">${totalUpdated}</span> รายการ<br>
+                <b>ไม่พบข้อมูล:</b> <span class="badge bg-warning text-dark">${totalNotFound}</span> รายการ<br>
                 <b>เกิดข้อผิดพลาด:</b> <span class="badge bg-danger text-white">${totalErrors}</span> รายการ
             </div>
         `;
-
+ 
         await Swal.fire({
             icon: overallSuccess ? 'success' : 'warning',
             title: 'ดึงสถานะ FDH เสร็จสิ้น',

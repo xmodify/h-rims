@@ -8328,6 +8328,7 @@ class DebtorController extends Controller
         return @$pdf->stream();
     }
     //1102050103_110_indiv_excel-------------------------------------------------------------------------------------------------------   
+
     public function _1102050102_110_indiv_excel(Request $request)
     {
         $start_date = Session::get('start_date');
@@ -8339,28 +8340,28 @@ class DebtorController extends Controller
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no, d.receive AS receive_manual, d.repno AS repno_manual,
-                    (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(pvt.receive_total,0)) AS receive,
+                    (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(csop.receive_total,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END + IFNULL(pvt.receive_total,0)) AS receive,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
-                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,kidney.repno AS rid,srt.repno AS rid_srt,NULL AS rid_hd,pvt.repno AS rid_pvt,d.debtor_lock,
-                    CONCAT_WS(CHAR(44), stm.round_no, kidney.round_no, srt.round_no, pvt.round_no) AS stm_round_no,
-                    CONCAT_WS(CHAR(44), stm.receipt_date, kidney.receipt_date, srt.receipt_date, pvt.receipt_date) AS stm_receipt_date,
-                    CONCAT_WS(CHAR(44), stm.receive_no, kidney.receive_no, srt.receive_no, pvt.receive_no) AS stm_receive_no,
-                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(kidney.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(pvt.receive_total,0)
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,kidney.repno AS rid,srt.repno AS rid_srt,hd.rid AS rid_hd,pvt.repno AS rid_pvt,d.debtor_lock,
+                    CONCAT_WS(CHAR(44), stm.repno, kidney.repno, srt.repno, csop.round_no, hd.round_no, pvt.round_no) AS stm_round_no,
+                    CONCAT_WS(CHAR(44), stm.receipt_date, kidney.receipt_date, srt.receipt_date, csop.receipt_date, hd.receipt_date, pvt.receipt_date) AS stm_receipt_date,
+                    CONCAT_WS(CHAR(44), stm.receive_no, kidney.receive_no, srt.receive_no, csop.receive_no, hd.receive_no, pvt.receive_no) AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(kidney.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(pvt.receive_total,0) + IFNULL(csop.receive_total,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END + IFNULL(pvt.receive_total,0)
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0)) >= IFNULL(d.debtor,0) - 0.01
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_110 d   
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(receive_total) AS receive_total,
-                    GROUP_CONCAT(repno) AS repno, GROUP_CONCAT(round_no) AS round_no,
+                    GROUP_CONCAT(repno) AS repno,
                     GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
                     FROM stm_bmt WHERE (an IS NULL OR an = '' OR an = '-') GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
                     AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)
                 LEFT JOIN (SELECT hn, DATE(datetimeadm) AS vstdate, SUM(receive_total) AS receive_total,
-                    GROUP_CONCAT(repno) AS repno, GROUP_CONCAT(round_no) AS round_no,
+                    GROUP_CONCAT(repno) AS repno,
                     GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
                     FROM stm_bmt_kidney GROUP BY hn, DATE(datetimeadm)) kidney ON kidney.hn = d.hn
                     AND kidney.vstdate = d.vstdate
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(receive_total) AS receive_total,
-                    GROUP_CONCAT(repno) AS repno, GROUP_CONCAT(round_no) AS round_no,
+                    GROUP_CONCAT(repno) AS repno,
                     GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
                     FROM stm_srt GROUP BY hn, vstdate, LEFT(vsttime,5)) srt ON srt.hn = d.hn
                     AND srt.vstdate = d.vstdate AND srt.vsttime = LEFT(d.vsttime,5)
@@ -8390,28 +8391,28 @@ class DebtorController extends Controller
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no, d.receive AS receive_manual, d.repno AS repno_manual,
-                    (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(pvt.receive_total,0)) AS receive,
+                    (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(csop.receive_total,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END + IFNULL(pvt.receive_total,0)) AS receive,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
-                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,kidney.repno AS rid,srt.repno AS rid_srt,NULL AS rid_hd,pvt.repno AS rid_pvt,d.debtor_lock,
-                    CONCAT_WS(CHAR(44), stm.round_no, kidney.round_no, srt.round_no, pvt.round_no) AS stm_round_no,
-                    CONCAT_WS(CHAR(44), stm.receipt_date, kidney.receipt_date, srt.receipt_date, pvt.receipt_date) AS stm_receipt_date,
-                    CONCAT_WS(CHAR(44), stm.receive_no, kidney.receive_no, srt.receive_no, pvt.receive_no) AS stm_receive_no,
-                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(kidney.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(pvt.receive_total,0)
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,kidney.repno AS rid,srt.repno AS rid_srt,hd.rid AS rid_hd,pvt.repno AS rid_pvt,d.debtor_lock,
+                    CONCAT_WS(CHAR(44), stm.repno, kidney.repno, srt.repno, csop.round_no, hd.round_no, pvt.round_no) AS stm_round_no,
+                    CONCAT_WS(CHAR(44), stm.receipt_date, kidney.receipt_date, srt.receipt_date, csop.receipt_date, hd.receipt_date, pvt.receipt_date) AS stm_receipt_date,
+                    CONCAT_WS(CHAR(44), stm.receive_no, kidney.receive_no, srt.receive_no, csop.receive_no, hd.receive_no, pvt.receive_no) AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(kidney.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(pvt.receive_total,0) + IFNULL(csop.receive_total,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END + IFNULL(pvt.receive_total,0)
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0)) >= IFNULL(d.debtor,0) - 0.01
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_110 d   
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(receive_total) AS receive_total,
-                    GROUP_CONCAT(repno) AS repno, GROUP_CONCAT(round_no) AS round_no,
+                    GROUP_CONCAT(repno) AS repno,
                     GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
                     FROM stm_bmt WHERE (an IS NULL OR an = '' OR an = '-') GROUP BY hn, vstdate, LEFT(vsttime,5)) stm ON stm.hn = d.hn
                     AND stm.vstdate = d.vstdate AND stm.vsttime = LEFT(d.vsttime,5)
                 LEFT JOIN (SELECT hn, DATE(datetimeadm) AS vstdate, SUM(receive_total) AS receive_total,
-                    GROUP_CONCAT(repno) AS repno, GROUP_CONCAT(round_no) AS round_no,
+                    GROUP_CONCAT(repno) AS repno,
                     GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
                     FROM stm_bmt_kidney GROUP BY hn, DATE(datetimeadm)) kidney ON kidney.hn = d.hn
                     AND kidney.vstdate = d.vstdate
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(receive_total) AS receive_total,
-                    GROUP_CONCAT(repno) AS repno, GROUP_CONCAT(round_no) AS round_no,
+                    GROUP_CONCAT(repno) AS repno,
                     GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
                     FROM stm_srt GROUP BY hn, vstdate, LEFT(vsttime,5)) srt ON srt.hn = d.hn
                     AND srt.vstdate = d.vstdate AND srt.vsttime = LEFT(d.vsttime,5)
@@ -8442,7 +8443,7 @@ class DebtorController extends Controller
 
     ##############################################################################################################################################################
     //_1102050102_602--------------------------------------------------------------------------------------------------------------
-    public function _1102050102_602(Request $request)
+    public function _1102050102_602(Request $request)    
     {
         set_time_limit(0);
         ini_set('memory_limit', '1024M');
@@ -14493,22 +14494,22 @@ class DebtorController extends Controller
                     d.receive AS receive_manual,d.repno AS repno_manual,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,
                     (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0) + IFNULL(k.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(cipn.receive_total,0) + IFNULL(pvt.receive_total,0)) AS receive,
                     stm.repno, cipn.rid AS cipn_rid, k.repno AS csop_rid, srt.repno AS srt_rid, pvt.repno AS pvt_rid,
-                    CONCAT_WS(CHAR(44), stm.round_no, k.round_no, srt.round_no, cipn.round_no, pvt.round_no) AS stm_round_no,
+                    CONCAT_WS(CHAR(44), stm.repno, k.repno, srt.repno, cipn.round_no, pvt.round_no) AS stm_round_no,
                     CONCAT_WS(CHAR(44), stm.receipt_date, k.receipt_date, srt.receipt_date, cipn.receipt_date, pvt.receipt_date) AS stm_receipt_date,
                     CONCAT_WS(CHAR(44), stm.receive_no, k.receive_no, srt.receive_no, cipn.receive_no, pvt.receive_no) AS stm_receive_no,
                     CASE WHEN (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0) + IFNULL(k.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(cipn.receive_total,0) + IFNULL(pvt.receive_total,0)
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_111 d    
-                LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total, GROUP_CONCAT(repno) AS repno, GROUP_CONCAT(round_no) AS round_no,
+                LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total, GROUP_CONCAT(repno) AS repno,
                     GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
                     FROM hrims.stm_bmt WHERE an IS NOT NULL AND an != "" GROUP BY an) stm ON stm.an = d.an
-                LEFT JOIN (SELECT d2.an, SUM(c.receive_total) AS receive_total, GROUP_CONCAT(c.repno) AS repno, GROUP_CONCAT(c.round_no) AS round_no,
+                LEFT JOIN (SELECT d2.an, SUM(c.receive_total) AS receive_total, GROUP_CONCAT(c.repno) AS repno,
                     GROUP_CONCAT(c.receipt_date) AS receipt_date, GROUP_CONCAT(c.receive_no) AS receive_no 
                     FROM debtor_1102050102_111 d2 
                     JOIN hrims.stm_bmt_kidney c ON c.hn = d2.hn AND c.datetimeadm BETWEEN d2.regdate AND d2.dchdate
                     GROUP BY d2.an) k ON k.an = d.an       
-                LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total, GROUP_CONCAT(repno) AS repno, GROUP_CONCAT(round_no) AS round_no,
+                LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total, GROUP_CONCAT(repno) AS repno,
                     GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
                     FROM hrims.stm_srt WHERE an IS NOT NULL AND an != "" GROUP BY an) srt ON srt.an = d.an
                 LEFT JOIN (SELECT an, SUM(gtotal) AS receive_total, GROUP_CONCAT(rid) AS rid,
@@ -14527,22 +14528,22 @@ class DebtorController extends Controller
                     d.receive AS receive_manual,d.repno AS repno_manual,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,
                     (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0) + IFNULL(k.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(cipn.receive_total,0) + IFNULL(pvt.receive_total,0)) AS receive,
                     stm.repno, cipn.rid AS cipn_rid, k.repno AS csop_rid, srt.repno AS srt_rid, pvt.repno AS pvt_rid,
-                    CONCAT_WS(CHAR(44), stm.round_no, k.round_no, srt.round_no, cipn.round_no, pvt.round_no) AS stm_round_no,
+                    CONCAT_WS(CHAR(44), stm.repno, k.repno, srt.repno, cipn.round_no, pvt.round_no) AS stm_round_no,
                     CONCAT_WS(CHAR(44), stm.receipt_date, k.receipt_date, srt.receipt_date, cipn.receipt_date, pvt.receipt_date) AS stm_receipt_date,
                     CONCAT_WS(CHAR(44), stm.receive_no, k.receive_no, srt.receive_no, cipn.receive_no, pvt.receive_no) AS stm_receive_no,
                     CASE WHEN (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0) + IFNULL(k.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(cipn.receive_total,0) + IFNULL(pvt.receive_total,0)
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0)) >= -0.01 
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.dchdate) END AS days
                 FROM debtor_1102050102_111 d    
-                LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total, GROUP_CONCAT(repno) AS repno, GROUP_CONCAT(round_no) AS round_no,
+                LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total, GROUP_CONCAT(repno) AS repno,
                     GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
                     FROM hrims.stm_bmt WHERE an IS NOT NULL AND an != "" GROUP BY an) stm ON stm.an = d.an
-                LEFT JOIN (SELECT d2.an, SUM(c.receive_total) AS receive_total, GROUP_CONCAT(c.repno) AS repno, GROUP_CONCAT(c.round_no) AS round_no,
+                LEFT JOIN (SELECT d2.an, SUM(c.receive_total) AS receive_total, GROUP_CONCAT(c.repno) AS repno,
                     GROUP_CONCAT(c.receipt_date) AS receipt_date, GROUP_CONCAT(c.receive_no) AS receive_no 
                     FROM debtor_1102050102_111 d2 
                     JOIN hrims.stm_bmt_kidney c ON c.hn = d2.hn AND c.datetimeadm BETWEEN d2.regdate AND d2.dchdate
                     GROUP BY d2.an) k ON k.an = d.an                     
-                LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total, GROUP_CONCAT(repno) AS repno, GROUP_CONCAT(round_no) AS round_no,
+                LEFT JOIN (SELECT an, SUM(receive_total) AS receive_total, GROUP_CONCAT(repno) AS repno,
                     GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
                     FROM hrims.stm_srt WHERE an IS NOT NULL AND an != "" GROUP BY an) srt ON srt.an = d.an
                 LEFT JOIN (SELECT an, SUM(gtotal) AS receive_total, GROUP_CONCAT(rid) AS rid,

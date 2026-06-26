@@ -60,8 +60,8 @@ class MishosController extends Controller
                 WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0) AS claim_price,stm.receive_total
+                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,stm.receive_total
                 FROM ovst o           
                 LEFT JOIN patient pt ON pt.hn=o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -97,12 +97,13 @@ class MishosController extends Controller
                 ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-            IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0) AS claim_price,
+            IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
             stm.receive_total,stm.repno,IF(fdh.seq IS NOT NULL,"Y","") AS claim
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -138,7 +139,7 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->checkClosedStatusOnly($search);
-        return view('mishos.ucs_ae', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        return view('mishos.ucs_ae', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_walkin(Request $request)
@@ -179,8 +180,8 @@ class MishosController extends Controller
                 WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0) AS claim_price,stm.receive_total
+                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,stm.receive_total
                 FROM ovst o           
                 LEFT JOIN patient pt ON pt.hn=o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -216,12 +217,13 @@ class MishosController extends Controller
                 ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-            IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0) AS claim_price,
+            IFNULL(inc.income,0)-IFNULL(rc.rcpt_money,0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
             stm.receive_total,stm.repno,IF(fdh.seq IS NOT NULL,"Y","") AS claim
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -257,7 +259,7 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->checkClosedStatusOnly($search);
-        return view('mishos.ucs_walkin', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        return view('mishos.ucs_walkin', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_herb(Request $request)
@@ -298,8 +300,8 @@ class MishosController extends Controller
                 WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,COALESCE(herb.claim_price, 0) AS claim_price,
+                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,COALESCE(herb.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
 				LEAST(IF(stm.receive_hc_drug=0, stm.receive_hc_hc, stm.receive_hc_drug),COALESCE(herb.claim_price,0)) AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
@@ -337,11 +339,12 @@ class MishosController extends Controller
                 ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-            p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(herb.claim_price, 0) AS claim_price,
+            p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(herb.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
             LEAST(IF(stm.receive_hc_drug = 0, stm.receive_hc_hc, stm.receive_hc_drug),COALESCE(herb.claim_price, 0)) AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -380,7 +383,7 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->checkClosedStatusOnly($search);
-        return view('mishos.ucs_herb', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        return view('mishos.ucs_herb', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_telemed(Request $request)
@@ -421,8 +424,8 @@ class MishosController extends Controller
                 WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(tele.claim_price, 0) AS claim_price,
+                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
+            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(tele.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
 				LEAST(stm.receive_op, tele.claim_price) AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
@@ -458,11 +461,12 @@ class MishosController extends Controller
                 ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(tele.claim_price, 0) AS claim_price,
+                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(tele.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 LEAST(stm.receive_op, tele.claim_price) AS receive_total,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
 				IF(fdh.seq IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -501,7 +505,7 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->checkClosedStatusOnly($search);
-        return view('mishos.ucs_telemed', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        return view('mishos.ucs_telemed', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_rider(Request $request)
@@ -542,8 +546,8 @@ class MishosController extends Controller
                 WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(rider.claim_price, 0) AS claim_price,
+                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
+            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(rider.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
 				LEAST(stm.receive_op, rider.claim_price) AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
@@ -579,11 +583,12 @@ class MishosController extends Controller
                 ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(rider.claim_price, 0) AS claim_price,
+                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(rider.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 LEAST(stm.receive_op, rider.claim_price) AS receive_total,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
 				IF(fdh.seq IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -622,7 +627,7 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->checkClosedStatusOnly($search);
-        return view('mishos.ucs_rider', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        return view('mishos.ucs_rider', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_gdm(Request $request)
@@ -663,8 +668,8 @@ class MishosController extends Controller
                 WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
+                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
+            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 stm.receive_dmis_compensate_pay AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
@@ -700,12 +705,13 @@ class MishosController extends Controller
                 ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-            COALESCE(ppfs.claim_price, 0) AS claim_price,stm.receive_dmis_compensate_pay AS receive_total,
+            COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,stm.receive_dmis_compensate_pay AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -744,7 +750,7 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->checkClosedStatusOnly($search);
-        return view('mishos.ucs_gdm', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        return view('mishos.ucs_gdm', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_drug_clopidogrel(Request $request)
@@ -786,8 +792,8 @@ class MishosController extends Controller
                 WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(drug.claim_price, 0) AS claim_price,LEAST(stm.receive_hc_drug, drug.claim_price) AS receive_total
+                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
+            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(drug.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,LEAST(stm.receive_hc_drug, drug.claim_price) AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -809,11 +815,12 @@ class MishosController extends Controller
                 ORDER BY YEAR(vstdate), MONTH(vstdate)', [$drug_clopidogrel, $start_date_b, $end_date_b, $drug_clopidogrel, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(drug.claim_price, 0) AS claim_price,
+                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(drug.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 LEAST(stm.receive_hc_drug, drug.claim_price) AS receive_total ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
                 IF(fdh.seq IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -849,7 +856,7 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $drug_clopidogrel, $start_date, $end_date, $drug_clopidogrel, $start_date, $end_date, $start_date, $end_date]);
 
         $this->checkClosedStatusOnly($search);
-        return view('mishos.ucs_drug_clopidogrel', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        return view('mishos.ucs_drug_clopidogrel', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_drug_sk(Request $request)
@@ -890,8 +897,8 @@ class MishosController extends Controller
                 WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(sk.claim_price, 0) AS claim_price,stm.receive_dmis_drug AS receive_total
+                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
+            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(sk.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,stm.receive_dmis_drug AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -926,11 +933,12 @@ class MishosController extends Controller
                 ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(sk.claim_price, 0) AS claim_price,
+                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(sk.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 stm.receive_dmis_drug AS receive_total ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
                 IF(fdh.seq IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -969,7 +977,7 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->checkClosedStatusOnly($search);
-        return view('mishos.ucs_drug_sk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        return view('mishos.ucs_drug_sk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ins(Request $request)
@@ -1010,8 +1018,8 @@ class MishosController extends Controller
                 WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ins.claim_price, 0) AS claim_price,stm.receive_inst AS receive_total
+                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
+            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ins.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,stm.receive_inst AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -1046,11 +1054,12 @@ class MishosController extends Controller
                 ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(ins.claim_price, 0) AS claim_price,
+                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(ins.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 stm.receive_inst AS receive_total ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
                 pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
                 IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -1091,7 +1100,7 @@ class MishosController extends Controller
 
         $this->validateUcsInsRows($search);
 
-        return view('mishos.ucs_ins', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        return view('mishos.ucs_ins', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_palliative(Request $request)
@@ -1132,8 +1141,8 @@ class MishosController extends Controller
                 WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,stm.receive_total
+                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price, SUM(CASE WHEN is_sent = 1 THEN IFNULL(claim_price,0) ELSE 0 END) AS claim_sent_price, SUM(IFNULL(receive_total,0)) AS receive_total
+            FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,stm.receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
                 LEFT JOIN visit_pttype vp ON vp.vn=o.vn           
@@ -1166,11 +1175,12 @@ class MishosController extends Controller
                 ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(ppfs.claim_price, 0) AS claim_price,
+                p.`name` AS pttype,vp.hospmain,v.pdx,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 stm.receive_palliative AS receive_total ,GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
                 IF(fdh.seq IS NOT NULL,"Y","") AS claim
             FROM ovst o
@@ -1209,7 +1219,7 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->checkClosedStatusOnly($search);
-        return view('mishos.ucs_palliative', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        return view('mishos.ucs_palliative', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_fp(Request $request)
@@ -1238,7 +1248,7 @@ class MishosController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d');
 
         $sum_month = DB::connection('hosxp')->select('
-            SELECT vn, vstdate, claim_price, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
+            SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
@@ -1283,20 +1293,22 @@ class MishosController extends Controller
             $monthStr = $monthNames[$m] . " " . substr($y, -2);
             $key = date('Y-m', $time);
             if (!isset($grouped[$key])) {
-                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'receive_total' => 0];
+                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
             }
             $grouped[$key]['claim_price'] += floatval($row->claim_price);
+            $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
             $grouped[$key]['receive_total'] += floatval($row->receive_total);
         }
         ksort($grouped);
         $month = array_column($grouped, 'month');
         $claim_price = array_column($grouped, 'claim_price');
+        $claim_sent_price = array_column($grouped, 'claim_sent_price');
         $receive_total = array_column($grouped, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-			COALESCE(ppfs.claim_price, 0) AS claim_price,0.00 AS receive_total,
+			COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -1340,7 +1352,7 @@ class MishosController extends Controller
         $this->validateUcsPpfsRows($search);
         $this->allocatePpfs($search, ["FP001", "FP002", "FP002_1", "FP002_2", "FP003_1", "FP003_2", "FP003_3", "FP003_4"], 'seq');
 
-        return view('mishos.ucs_ppfs_fp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        return view('mishos.ucs_ppfs_fp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_prt(Request $request)
@@ -1370,7 +1382,7 @@ class MishosController extends Controller
         $lab_prt = DB::table('main_setting')->where('name', 'lab_prt')->value('value');
 
         $sum_month = DB::connection('hosxp')->select('
-            SELECT vn, vstdate, claim_price, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
+            SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
@@ -1413,20 +1425,22 @@ class MishosController extends Controller
             $monthStr = $monthNames[$m] . " " . substr($y, -2);
             $key = date('Y-m', $time);
             if (!isset($grouped[$key])) {
-                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'receive_total' => 0];
+                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
             }
             $grouped[$key]['claim_price'] += floatval($row->claim_price);
+            $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
             $grouped[$key]['receive_total'] += floatval($row->receive_total);
         }
         ksort($grouped);
         $month = array_column($grouped, 'month');
         $claim_price = array_column($grouped, 'claim_price');
+        $claim_sent_price = array_column($grouped, 'claim_sent_price');
         $receive_total = array_column($grouped, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,lo.lab_items_name_ref,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-			COALESCE(ppfs.claim_price, 0) AS claim_price,0.00 AS receive_total,
+			COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -1468,7 +1482,7 @@ class MishosController extends Controller
         $this->validateUcsPpfsRows($search);
         $this->allocatePpfs($search, ["30014"], 'seq');
 
-        return view('mishos.ucs_ppfs_prt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        return view('mishos.ucs_ppfs_prt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_ida(Request $request)
@@ -1497,7 +1511,7 @@ class MishosController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d');
 
         $sum_month = DB::connection('hosxp')->select('
-            SELECT vn, vstdate, claim_price, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
+            SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
@@ -1540,20 +1554,22 @@ class MishosController extends Controller
             $monthStr = $monthNames[$m] . " " . substr($y, -2);
             $key = date('Y-m', $time);
             if (!isset($grouped[$key])) {
-                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'receive_total' => 0];
+                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
             }
             $grouped[$key]['claim_price'] += floatval($row->claim_price);
+            $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
             $grouped[$key]['receive_total'] += floatval($row->receive_total);
         }
         ksort($grouped);
         $month = array_column($grouped, 'month');
         $claim_price = array_column($grouped, 'claim_price');
+        $claim_sent_price = array_column($grouped, 'claim_sent_price');
         $receive_total = array_column($grouped, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-			COALESCE(ppfs.claim_price, 0) AS claim_price,0.00 AS receive_total,
+			COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -1593,7 +1609,7 @@ class MishosController extends Controller
         $this->validateUcsPpfsRows($search);
         $this->allocatePpfs($search, ["13001"], 'seq');
 
-        return view('mishos.ucs_ppfs_ida', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        return view('mishos.ucs_ppfs_ida', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_ferrofolic(Request $request)
@@ -1622,7 +1638,7 @@ class MishosController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d');
 
         $sum_month = DB::connection('hosxp')->select('
-            SELECT vn, vstdate, claim_price, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
+            SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
@@ -1665,20 +1681,22 @@ class MishosController extends Controller
             $monthStr = $monthNames[$m] . " " . substr($y, -2);
             $key = date('Y-m', $time);
             if (!isset($grouped[$key])) {
-                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'receive_total' => 0];
+                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
             }
             $grouped[$key]['claim_price'] += floatval($row->claim_price);
+            $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
             $grouped[$key]['receive_total'] += floatval($row->receive_total);
         }
         ksort($grouped);
         $month = array_column($grouped, 'month');
         $claim_price = array_column($grouped, 'claim_price');
+        $claim_sent_price = array_column($grouped, 'claim_sent_price');
         $receive_total = array_column($grouped, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-			COALESCE(ppfs.claim_price, 0) AS claim_price,0.00 AS receive_total,
+			COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -1718,7 +1736,7 @@ class MishosController extends Controller
         $this->validateUcsPpfsRows($search);
         $this->allocatePpfs($search, ["14001"], 'seq');
 
-        return view('mishos.ucs_ppfs_ferrofolic', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        return view('mishos.ucs_ppfs_ferrofolic', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_fluoride(Request $request)
@@ -1747,7 +1765,7 @@ class MishosController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d');
 
         $sum_month = DB::connection('hosxp')->select('
-            SELECT vn, vstdate, claim_price, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
+            SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
@@ -1780,20 +1798,22 @@ class MishosController extends Controller
             $monthStr = $monthNames[$m] . " " . substr($y, -2);
             $key = date('Y-m', $time);
             if (!isset($grouped[$key])) {
-                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'receive_total' => 0];
+                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
             }
             $grouped[$key]['claim_price'] += floatval($row->claim_price);
+            $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
             $grouped[$key]['receive_total'] += floatval($row->receive_total);
         }
         ksort($grouped);
         $month = array_column($grouped, 'month');
         $claim_price = array_column($grouped, 'claim_price');
+        $claim_sent_price = array_column($grouped, 'claim_sent_price');
         $receive_total = array_column($grouped, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-			COALESCE(ppfs.claim_price, 0) AS claim_price,0.00 AS receive_total,
+			COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -1833,7 +1853,7 @@ class MishosController extends Controller
         $this->validateUcsPpfsRows($search);
         $this->allocatePpfs($search, ["15001"], 'seq');
 
-        return view('mishos.ucs_ppfs_fluoride', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        return view('mishos.ucs_ppfs_fluoride', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_anc(Request $request)
@@ -1862,7 +1882,7 @@ class MishosController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d');
 
         $sum_month = DB::connection('hosxp')->select('
-            SELECT vn, vstdate, claim_price, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
+            SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
@@ -1906,20 +1926,22 @@ class MishosController extends Controller
             $monthStr = $monthNames[$m] . " " . substr($y, -2);
             $key = date('Y-m', $time);
             if (!isset($grouped[$key])) {
-                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'receive_total' => 0];
+                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
             }
             $grouped[$key]['claim_price'] += floatval($row->claim_price);
+            $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
             $grouped[$key]['receive_total'] += floatval($row->receive_total);
         }
         ksort($grouped);
         $month = array_column($grouped, 'month');
         $claim_price = array_column($grouped, 'claim_price');
+        $claim_sent_price = array_column($grouped, 'claim_sent_price');
         $receive_total = array_column($grouped, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,a.anc_service_number,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-            COALESCE(ppfs.claim_price, 0) AS claim_price,0.00 AS receive_total,
+            COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -1962,7 +1984,7 @@ class MishosController extends Controller
         $this->validateUcsPpfsRows($search);
         $this->allocatePpfs($search, ["30008", "30009", "30010", "30011", "30012", "30013"], 'seq');
 
-        return view('mishos.ucs_ppfs_anc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        return view('mishos.ucs_ppfs_anc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_postnatal(Request $request)
@@ -1991,7 +2013,7 @@ class MishosController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d');
 
         $sum_month = DB::connection('hosxp')->select('
-            SELECT vn, vstdate, claim_price, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
+            SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
@@ -2035,20 +2057,22 @@ class MishosController extends Controller
             $monthStr = $monthNames[$m] . " " . substr($y, -2);
             $key = date('Y-m', $time);
             if (!isset($grouped[$key])) {
-                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'receive_total' => 0];
+                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
             }
             $grouped[$key]['claim_price'] += floatval($row->claim_price);
+            $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
             $grouped[$key]['receive_total'] += floatval($row->receive_total);
         }
         ksort($grouped);
         $month = array_column($grouped, 'month');
         $claim_price = array_column($grouped, 'claim_price');
+        $claim_sent_price = array_column($grouped, 'claim_sent_price');
         $receive_total = array_column($grouped, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-            COALESCE(ppfs.claim_price, 0) AS claim_price,0.00 AS receive_total,
+            COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -2090,7 +2114,7 @@ class MishosController extends Controller
         $this->validateUcsPpfsRows($search);
         $this->allocatePpfs($search, ["30015", "30016"], 'seq');
 
-        return view('mishos.ucs_ppfs_postnatal', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        return view('mishos.ucs_ppfs_postnatal', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_fittest(Request $request)
@@ -2119,7 +2143,7 @@ class MishosController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d');
 
         $sum_month = DB::connection('hosxp')->select('
-            SELECT vn, vstdate, claim_price, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
+            SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
@@ -2163,20 +2187,22 @@ class MishosController extends Controller
             $monthStr = $monthNames[$m] . " " . substr($y, -2);
             $key = date('Y-m', $time);
             if (!isset($grouped[$key])) {
-                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'receive_total' => 0];
+                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
             }
             $grouped[$key]['claim_price'] += floatval($row->claim_price);
+            $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
             $grouped[$key]['receive_total'] += floatval($row->receive_total);
         }
         ksort($grouped);
         $month = array_column($grouped, 'month');
         $claim_price = array_column($grouped, 'claim_price');
+        $claim_sent_price = array_column($grouped, 'claim_sent_price');
         $receive_total = array_column($grouped, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-            COALESCE(ppfs.claim_price, 0) AS claim_price,0.00 AS receive_total,
+            COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -2218,7 +2244,7 @@ class MishosController extends Controller
         $this->validateUcsPpfsRows($search);
         $this->allocatePpfs($search, ["90005"], 'seq');
 
-        return view('mishos.ucs_ppfs_fittest', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        return view('mishos.ucs_ppfs_fittest', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_ppfs_scr(Request $request)
@@ -2247,7 +2273,7 @@ class MishosController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d');
 
         $sum_month = DB::connection('hosxp')->select('
-            SELECT vn, vstdate, claim_price, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price,
+            SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
                 LEFT JOIN patient pt ON pt.hn=o.hn
@@ -2291,20 +2317,22 @@ class MishosController extends Controller
             $monthStr = $monthNames[$m] . " " . substr($y, -2);
             $key = date('Y-m', $time);
             if (!isset($grouped[$key])) {
-                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'receive_total' => 0];
+                $grouped[$key] = ['month' => $monthStr, 'claim_price' => 0, 'claim_sent_price' => 0, 'receive_total' => 0];
             }
             $grouped[$key]['claim_price'] += floatval($row->claim_price);
+            $grouped[$key]['claim_sent_price'] += floatval($row->is_sent == 1 ? $row->claim_price : 0);
             $grouped[$key]['receive_total'] += floatval($row->receive_total);
         }
         ksort($grouped);
         $month = array_column($grouped, 'month');
         $claim_price = array_column($grouped, 'claim_price');
+        $claim_sent_price = array_column($grouped, 'claim_sent_price');
         $receive_total = array_column($grouped, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             p.`name` AS pttype,vp.hospmain,v.pdx,"" AS icd10,IFNULL(inc.income,0) AS income,IFNULL(rc.rcpt_money,0) AS rcpt_money,
-            COALESCE(ppfs.claim_price, 0) AS claim_price,0.00 AS receive_total,
+            COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,0.00 AS receive_total,
             GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,IF(fdh.seq IS NOT NULL,"Y","") AS claim,
             pt.sex, v.age_y, IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((vp.auth_code LIKE "EP%"),"Y",NULL) AS auth_code_ep
@@ -2346,7 +2374,7 @@ class MishosController extends Controller
         $this->validateUcsPpfsRows($search);
         $this->allocatePpfs($search, ["12003", "12004"], 'seq');
 
-        return view('mishos.ucs_ppfs_scr', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        return view('mishos.ucs_ppfs_scr', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
 
     public function ucs_ppfs_visit_details(\Illuminate\Http\Request $request)

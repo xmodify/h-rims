@@ -1592,76 +1592,87 @@ class DebtorAdjController extends Controller
         $adj_note = $request->bulk_adj_note ?: 'ปรับปรุงยอดเป็น 0';
         $adjusted_count = 0;
 
-        $rows = \App\Models\Debtor_1102050102_110::whereIn('vn', $ids)->where('debtor_lock', 'Y')->get();
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $params = array_merge($ids, $ids, $ids, $ids, $ids, $ids, $ids);
 
-        $hns = $rows->pluck('hn')->unique()->filter()->toArray();
-        $vstdates = $rows->pluck('vstdate')->unique()->filter()->toArray();
-
-        $stm_bmt_data = [];
-        if (!empty($hns) && !empty($vstdates)) {
-            $stm_bmt_data = DB::table('stm_bmt')
-                ->whereIn('hn', $hns)
-                ->whereIn('vstdate', $vstdates)
-                ->get()
-                ->groupBy(function($item) {
-                    return $item->hn . '_' . $item->vstdate . '_' . substr($item->vsttime, 0, 5);
-                });
-        }
-
-        $stm_bmt_kidney_data = [];
-        if (!empty($hns) && !empty($vstdates)) {
-            $stm_bmt_kidney_data = DB::table('stm_bmt_kidney')
-                ->whereIn('hn', $hns)
-                ->whereIn(DB::raw('DATE(datetimeadm)'), $vstdates)
-                ->get()
-                ->groupBy(function($item) {
-                    return $item->hn . '_' . date('Y-m-d', strtotime($item->datetimeadm));
-                });
-        }
-
-        $stm_srt_data = [];
-        if (!empty($hns) && !empty($vstdates)) {
-            $stm_srt_data = DB::table('stm_srt')
-                ->whereIn('hn', $hns)
-                ->whereIn('vstdate', $vstdates)
-                ->get()
-                ->groupBy(function($item) {
-                    return $item->hn . '_' . $item->vstdate . '_' . substr($item->vsttime, 0, 5);
-                });
-        }
-
-        $stm_pvt_data = [];
-        if (!empty($hns) && !empty($vstdates)) {
-            $stm_pvt_data = DB::table('stm_pvt')
-                ->whereIn('hn', $hns)
-                ->whereIn('vstdate', $vstdates)
-                ->get()
-                ->groupBy(function($item) {
-                    return $item->hn . '_' . $item->vstdate . '_' . substr($item->vsttime, 0, 5);
-                });
-        }
+        $rows = DB::select("
+            SELECT d.vn, d.debtor, d.debtor_lock,
+                   (
+                       IFNULL(d.receive, 0)
+                       + IFNULL(stm.receive_total, 0)
+                       + IFNULL(k.receive_total, 0)
+                       + IFNULL(srt.receive_total, 0)
+                       + IFNULL(csop.receive_total, 0)
+                       + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total, 0) ELSE 0 END
+                       + IFNULL(pvt.receive_total, 0)
+                   ) AS receive
+            FROM debtor_1102050102_110 d
+            LEFT JOIN (
+                SELECT stm.hn, DATE(stm.datetimeadm) AS vstdate, SUM(stm.receive_total) AS receive_total
+                FROM stm_bmt stm
+                JOIN debtor_1102050102_110 d2 ON d2.hn = stm.hn AND d2.vstdate = DATE(stm.datetimeadm)
+                WHERE d2.vn IN ($placeholders) AND SUBSTRING(stm.stm_filename, 11) LIKE 'O%'
+                GROUP BY stm.hn, DATE(stm.datetimeadm)
+            ) stm ON stm.hn = d.hn AND stm.vstdate = d.vstdate
+            LEFT JOIN (
+                SELECT k.hn, DATE(k.datetimeadm) AS vstdate, SUM(k.receive_total) AS receive_total
+                FROM stm_bmt_kidney k
+                JOIN debtor_1102050102_110 d2 ON d2.hn = k.hn AND d2.vstdate = DATE(k.datetimeadm)
+                WHERE d2.vn IN ($placeholders)
+                GROUP BY k.hn, DATE(k.datetimeadm)
+            ) k ON k.hn = d.hn AND k.vstdate = d.vstdate
+            LEFT JOIN (
+                SELECT srt.hn, srt.vstdate, SUM(srt.receive_total) AS receive_total
+                FROM stm_srt srt
+                JOIN debtor_1102050102_110 d2 ON d2.hn = srt.hn AND d2.vstdate = srt.vstdate
+                WHERE d2.vn IN ($placeholders)
+                GROUP BY srt.hn, srt.vstdate
+            ) srt ON srt.hn = d.hn AND srt.vstdate = d.vstdate
+            LEFT JOIN (
+                SELECT csop.hn, csop.vstdate, LEFT(csop.vsttime, 5) AS vsttime, SUM(csop.amount) AS receive_total
+                FROM stm_ofc_csop csop
+                JOIN debtor_1102050102_110 d2 ON d2.hn = csop.hn AND d2.vstdate = csop.vstdate AND LEFT(d2.vsttime, 5) = LEFT(csop.vsttime, 5)
+                WHERE d2.vn IN ($placeholders) AND csop.sys <> 'HD'
+                GROUP BY csop.hn, csop.vstdate, LEFT(csop.vsttime, 5)
+            ) csop ON csop.hn = d.hn AND csop.vstdate = d.vstdate AND csop.vsttime = LEFT(d.vsttime, 5)
+            LEFT JOIN (
+                SELECT hd.hn, hd.vstdate, SUM(hd.amount) AS receive_total
+                FROM stm_ofc_csop hd
+                JOIN debtor_1102050102_110 d2 ON d2.hn = hd.hn AND d2.vstdate = hd.vstdate
+                WHERE d2.vn IN ($placeholders) AND hd.sys = 'HD'
+                GROUP BY hd.hn, hd.vstdate
+            ) hd ON hd.hn = d.hn AND hd.vstdate = d.vstdate
+            LEFT JOIN (
+                SELECT pvt.hn, pvt.vstdate, LEFT(pvt.vsttime, 5) AS vsttime, SUM(pvt.receive_total) AS receive_total
+                FROM stm_pvt pvt
+                JOIN debtor_1102050102_110 d2 ON d2.hn = pvt.hn AND d2.vstdate = pvt.vstdate AND LEFT(d2.vsttime, 5) = LEFT(pvt.vsttime, 5)
+                WHERE d2.vn IN ($placeholders)
+                GROUP BY pvt.hn, pvt.vstdate, LEFT(pvt.vsttime, 5)
+            ) pvt ON pvt.hn = d.hn AND pvt.vstdate = d.vstdate AND pvt.vsttime = LEFT(d.vsttime, 5)
+            WHERE d.vn IN ($placeholders)
+        ", $params);
 
         foreach ($rows as $row) {
-            $key = $row->hn . '_' . $row->vstdate . '_' . substr($row->vsttime, 0, 5);
-            $key_kidney = $row->hn . '_' . $row->vstdate;
+            if ($row && $row->debtor_lock === 'Y') {
+                $receive = (float)$row->receive;
+                $diff = (float)$row->debtor - $receive;
 
-            $stm_bmt_val = isset($stm_bmt_data[$key]) ? $stm_bmt_data[$key]->sum('receive_total') : 0;
-            $stm_kidney_val = 0;
-            if ($row->kidney > 0) {
-                $stm_kidney_val = isset($stm_bmt_kidney_data[$key_kidney]) ? $stm_bmt_kidney_data[$key_kidney]->sum('receive_total') : 0;
+                $update_data = [
+                    'adj_date' => $adj_date,
+                    'adj_note' => $adj_note
+                ];
+
+                if ($diff > 0) {
+                    $update_data['adj_inc'] = $diff;
+                    $update_data['adj_dec'] = 0;
+                } else {
+                    $update_data['adj_inc'] = 0;
+                    $update_data['adj_dec'] = abs($diff);
+                }
+
+                \App\Models\Debtor_1102050102_110::where('vn', $row->vn)->update($update_data);
+                $adjusted_count++;
             }
-            $stm_srt_val = isset($stm_srt_data[$key]) ? $stm_srt_data[$key]->sum('receive_total') : 0;
-            $stm_pvt_val = isset($stm_pvt_data[$key]) ? $stm_pvt_data[$key]->sum('receive_total') : 0;
-
-            $receive = (float)$row->receive + (float)$stm_bmt_val + (float)$stm_kidney_val + (float)$stm_srt_val + (float)$stm_pvt_val;
-
-            $diff = (float)$row->debtor - (float)$receive;
-            $row->adj_inc = $diff > 0 ? $diff : 0;
-            $row->adj_dec = $diff < 0 ? abs($diff) : 0;
-            $row->adj_date = $adj_date;
-            $row->adj_note = $adj_note;
-            $row->save();
-            $adjusted_count++;
         }
 
         if ($request->ajax()) {
@@ -3182,13 +3193,14 @@ class DebtorAdjController extends Controller
         $adjusted_count = 0;
 
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $params = array_merge($ids, $ids, $ids, $ids, $ids);
+        $params = array_merge($ids, $ids, $ids, $ids, $ids, $ids);
 
         $rows = DB::select("
             SELECT d.an, d.debtor, d.receive AS receive_manual, d.debtor_lock,
                    IFNULL(stm.receive_total, 0) AS stm_val,
                    IFNULL(k.receive_total, 0) AS kidney_val,
                    IFNULL(srt.receive_total, 0) AS srt_val,
+                   IFNULL(cipn.receive_total, 0) AS cipn_val,
                    IFNULL(pvt.receive_total, 0) AS pvt_val
             FROM debtor_1102050102_111 d
             LEFT JOIN (
@@ -3211,6 +3223,12 @@ class DebtorAdjController extends Controller
                 GROUP BY an
             ) srt ON srt.an = d.an
             LEFT JOIN (
+                SELECT an, SUM(gtotal) AS receive_total
+                FROM hrims.stm_ofc_cipn
+                WHERE an IN ($placeholders)
+                GROUP BY an
+            ) cipn ON cipn.an = d.an
+            LEFT JOIN (
                 SELECT an, SUM(receive_total) AS receive_total
                 FROM hrims.stm_pvt
                 WHERE an IN ($placeholders)
@@ -3225,6 +3243,7 @@ class DebtorAdjController extends Controller
                     + (float)($row->stm_val ?? 0)
                     + (float)($row->kidney_val ?? 0)
                     + (float)($row->srt_val ?? 0)
+                    + (float)($row->cipn_val ?? 0)
                     + (float)($row->pvt_val ?? 0);
 
                 $diff = (float)$row->debtor - (float)$receive;

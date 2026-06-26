@@ -291,7 +291,9 @@ Route::match(['get', 'post'], 'claim_op/ucs_outprovince', [ClaimOpController::cl
 Route::get('claim_op/ucs_outprovince/visit_details', [ClaimOpController::class, 'get_ucs_outprovince_visit_details']);
 Route::match(['get', 'post'], 'claim_op/ucs_kidney', [ClaimOpController::class, 'ucs_kidney']);
 Route::match(['get', 'post'], 'claim_op/stp_incup', [ClaimOpController::class, 'stp_incup']);
+Route::get('claim_op/stp_incup/visit_details', [ClaimOpController::class, 'get_ucs_incup_visit_details']);
 Route::match(['get', 'post'], 'claim_op/stp_outcup', [ClaimOpController::class, 'stp_outcup']);
+Route::get('claim_op/stp_outcup/visit_details', [ClaimOpController::class, 'get_ucs_incup_visit_details']);
 Route::match(['get', 'post'], 'claim_op/ofc', [ClaimOpController::class, 'ofc']);
 Route::get('claim_op/ofc/visit_details', [ClaimOpController::class, 'get_ofc_visit_details']);
 Route::match(['get', 'post'], 'claim_op/ofc_kidney', [ClaimOpController::class, 'ofc_kidney']);

@@ -128,14 +128,15 @@ class EdcImportController extends Controller
                 $merchant_id = trim($parts[3] ?? '');
                 $terminal_id = trim($parts[6] ?? '');
                 
-                // Parse date (dd/mm/yyyy)
-                $dateStr = trim($parts[7] ?? '');
+                // Parse date (dd/mm/yyyy) using Transaction Date (index 9) instead of Post Date (index 7)
+                $dateStr = trim($parts[9] ?? '');
                 $vstdate = null;
                 if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $dateStr, $m)) {
                     $vstdate = "{$m[3]}-{$m[2]}-{$m[1]}";
                 }
 
-                $vsttime = trim($parts[8] ?? null);
+                // Parse time using Transaction Time (index 10) instead of Post Time (index 8)
+                $vsttime = trim($parts[10] ?? null);
                 if ($vsttime && strlen($vsttime) > 8) {
                     $vsttime = substr($vsttime, 0, 8);
                 }
@@ -145,13 +146,13 @@ class EdcImportController extends Controller
                 $lname = trim($parts[13] ?? '');
                 $ptname = trim($fname . ' ' . $lname);
                 $amount = floatval(trim($parts[22] ?? 0));
-                $app_code = trim($parts[23] ?? '');
-                $ref_no = trim($parts[24] ?? '');
-                $trans_type = trim($parts[25] ?? '');
-                $inv_no = trim($parts[26] ?? '');
-                $approve_code = trim($parts[27] ?? '');
-                $edc_type = trim($parts[28] ?? '');
-                $card_type = trim($parts[29] ?? '');
+                $app_code = trim($parts[26] ?? ''); // APPR. CODE (index 26)
+                $ref_no = trim($parts[27] ?? '');  // Trans Ref ID (index 27)
+                $trans_type = trim($parts[25] ?? ''); // TXNS CODE (index 25)
+                $inv_no = trim($parts[23] ?? '');  // BATCH (index 23)
+                $approve_code = trim($parts[26] ?? ''); // APPR. CODE (index 26)
+                $edc_type = trim($parts[28] ?? ''); // USER ID (index 28)
+                $card_type = trim($parts[29] ?? ''); // Card Type (index 29)
                 $note = trim($parts[30] ?? '');
 
                 if (empty($approve_code) && !empty($inv_no)) {

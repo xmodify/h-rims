@@ -670,7 +670,7 @@ class ClaimIpController extends Controller
                     END AS month,
                     i.an,
                     (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
-                    CASE WHEN i.data_exp_date IS NOT NULL OR fdh.an IS NOT NULL OR ec.an IS NOT NULL OR stm.an IS NOT NULL OR cipn.an IS NOT NULL OR csop.an IS NOT NULL
+                    CASE WHEN i.data_exp_date IS NOT NULL OR ec.an IS NOT NULL OR stm.an IS NOT NULL OR cipn.an IS NOT NULL OR csop.an IS NOT NULL
                          THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0))
                          ELSE 0 
                     END AS claim_sent_price,
@@ -714,7 +714,6 @@ class ClaimIpController extends Controller
                     AND i2.dchdate BETWEEN ? AND ?
                     GROUP BY i2.an
                 ) csop ON csop.an = i.an
-                LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
                 LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
                 WHERE i.confirm_discharge = "Y" 
                 AND i.dchdate BETWEEN ? AND ?
@@ -790,6 +789,7 @@ class ClaimIpController extends Controller
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "OFC" 
             AND (ic.an IS NULL OR (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id NOT IN ("4","5"))) 
+            AND i.data_exp_date IS NULL
             AND ec.an IS NULL
             AND stm.an IS NULL AND cipn.an IS NULL AND csop.an IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate',
@@ -859,7 +859,8 @@ class ClaimIpController extends Controller
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "OFC" 
-            AND ((ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) 
+            AND (i.data_exp_date IS NOT NULL 
+                OR (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) 
                 OR ec.an IS NOT NULL OR stm.an IS NOT NULL OR cipn.an IS NOT NULL OR csop.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate',
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]

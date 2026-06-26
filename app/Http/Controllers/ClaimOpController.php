@@ -1740,8 +1740,7 @@ class ClaimOpController extends Controller
 			    GROUP BY r.vn
 			) rc ON rc.vn = o.vn
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
-            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
-                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
+            LEFT JOIN hrims.eclaim_status ec ON ec.seq = o.vn
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
                 FROM hrims.stm_ofc 
@@ -1781,7 +1780,7 @@ class ClaimOpController extends Controller
             COALESCE(op_data.ems_price, 0) AS ems_price,
             v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(op_data.ems_price, 0) AS debtor,
             ec.status AS ec_status,
-            pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds, fdh.status_message_th AS fdh_status
+            pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1823,9 +1822,7 @@ class ClaimOpController extends Controller
                 WHERE sys <> "HD" AND vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate, LEFT(vsttime,5)
             ) csop ON csop.hn = pt.hn AND csop.vstdate = o.vstdate AND csop.vsttime = LEFT(o.vsttime,5)      
-            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
-                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
-            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
+            LEFT JOIN hrims.eclaim_status ec ON ec.seq = o.vn
             LEFT JOIN (
                 SELECT cid, vstdate, 
                        GROUP_CONCAT(DISTINCT inv_no ORDER BY inv_no SEPARATOR ",") AS edc_ktb,
@@ -1857,7 +1854,7 @@ class ClaimOpController extends Controller
             v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(op_data.ems_price, 0) AS debtor,
             IFNULL(stm.receive_total, 0) + IFNULL(csop.amount, 0) AS receive_total,
             stm_uc.receive_pp,IFNULL(stm.repno,csop.rid) AS repno,ec.status AS ec_status,
-            pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds, fdh.status_message_th AS fdh_status
+            pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1905,9 +1902,7 @@ class ClaimOpController extends Controller
                 WHERE vstdate BETWEEN ? AND ?
                 GROUP BY cid, vstdate, LEFT(vsttime,5)
             ) stm_uc ON stm_uc.cid=pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
-            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
-                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
-            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq = o.vn
+            LEFT JOIN hrims.eclaim_status ec ON ec.seq = o.vn
             LEFT JOIN (
                 SELECT cid, vstdate, 
                        GROUP_CONCAT(DISTINCT inv_no ORDER BY inv_no SEPARATOR ",") AS edc_ktb,

@@ -961,6 +961,9 @@
                         <button type="button" class="btn btn-success fw-bold px-3 shadow-sm" onclick="loadPaymentLogs()">
                             <i class="bi bi-search me-1"></i> ค้นหา
                         </button>
+                        <a id="btn-pay-print-pdf" class="btn btn-danger fw-bold px-3 shadow-sm" href="#" target="_blank">
+                            <i class="bi bi-file-pdf me-1"></i> พิมพ์ประวัติชำระหนี้ (PDF)
+                        </a>
                     </div>
                 </div>
 
@@ -1400,12 +1403,21 @@
 
     window.openPaymentModal = function() {
         $('#paymentLogModal').modal('show');
+        updatePaymentPdfUrl();
         loadPaymentLogs();
+    }
+
+    window.updatePaymentPdfUrl = function() {
+        const start = $('#pay_start_date').val();
+        const end = $('#pay_end_date').val();
+        const url = `{{ url('debtor/payment_log/1102050102_106') }}?start_date=${start}&end_date=${end}&export_type=pdf`;
+        $('#btn-pay-print-pdf').attr('href', url);
     }
 
     window.loadPaymentLogs = function() {
         const start = $('#pay_start_date').val();
         const end = $('#pay_end_date').val();
+        updatePaymentPdfUrl();
         
         if ($.fn.DataTable.isDataTable('#pay_logs_table')) {
             $('#pay_logs_table').DataTable().destroy();
@@ -1624,6 +1636,7 @@
             if (e.date) {
                 const y = e.date.getFullYear(), m = ('0' + (e.date.getMonth() + 1)).slice(-2), d = ('0' + e.date.getDate()).slice(-2);
                 $('#pay_start_date').val(y + '-' + m + '-' + d);
+                updatePaymentPdfUrl();
             }
         });
 
@@ -1638,6 +1651,7 @@
             if (e.date) {
                 const y = e.date.getFullYear(), m = ('0' + (e.date.getMonth() + 1)).slice(-2), d = ('0' + e.date.getDate()).slice(-2);
                 $('#pay_end_date').val(y + '-' + m + '-' + d);
+                updatePaymentPdfUrl();
             }
         });
     });

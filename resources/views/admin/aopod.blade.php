@@ -682,11 +682,13 @@
         return `${day} ${month} ${year}`;
     }
 
-    document.getElementById('sendAOPODBtn').addEventListener('click', function() {
-        const start = document.getElementById('start_date').value;
-        const end = document.getElementById('end_date').value;
-        const startDisplay = document.getElementById('start_date_display').value;
-        const endDisplay = document.getElementById('end_date_display').value;
+    const sendAopodBtn = document.getElementById('sendAOPODBtn');
+    if (sendAopodBtn) {
+        sendAopodBtn.addEventListener('click', function() {
+            const start = document.getElementById('start_date').value;
+            const end = document.getElementById('end_date').value;
+            const startDisplay = document.getElementById('start_date_display').value;
+            const endDisplay = document.getElementById('end_date_display').value;
 
         if (!start || !end) {
             Swal.fire({ icon: 'warning', title: 'กรุณาเลือกวันที่ให้ครบ', confirmButtonText: 'ตกลง', confirmButtonColor: '#28a745' });
@@ -855,6 +857,7 @@
             }
         });
     });
+}
 
     function startAopodManualSend() {
         Swal.fire({

@@ -7546,6 +7546,7 @@ class DebtorController extends Controller
     {
         $start_date = $request->input('start_date');
         $end_date = $request->input('end_date');
+        $export_type = $request->input('export_type');
 
         $data = DB::connection('hosxp')->select("
             SELECT r.bill_date, r.rcpno, r.total_amount, d.hn, d.ptname, d.vstdate, r.bill_time
@@ -7560,6 +7561,15 @@ class DebtorController extends Controller
             )
             ORDER BY r.bill_date DESC, r.bill_time DESC
         ", [$start_date, $end_date]);
+
+        if ($export_type === 'pdf') {
+            $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?: 'โรงพยาบาล';
+            $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '';
+            
+            $pdf = PDF::loadView('debtor.1102050102_106_payment_pdf', compact('data', 'start_date', 'end_date', 'hospital_name', 'hospital_code'))
+                ->setPaper('a4', 'portrait');
+            return $pdf->stream('payment_report_106.pdf');
+        }
 
         return response()->json([
             'success' => true,
@@ -12594,12 +12604,12 @@ class DebtorController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $debtor_search = DB::connection('hosxp')->select('
-            SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, " ", pt.lname) AS ptname,a.age_y,
+        $debtor_search = DB::connection("hosxp")->select("
+            SELECT w.name AS ward,i.hn,pt.cid,i.vn,i.an,CONCAT(pt.pname, pt.fname, ' ', pt.lname) AS ptname,a.age_y,
                 p.name AS pttype,p.hipdata_code,ip.hospmain,i.regdate,i.regtime,i.dchdate,i.dchtime,a.pdx,i.adjrw, 
                 COALESCE(orece.income,0) AS income,COALESCE(rc.rcpt_money,0) AS rcpt_money,COALESCE(orece.other_price,0) AS other,
                 COALESCE(orece.income,0)-COALESCE(rc.rcpt_money,0)-COALESCE(orece.other_price,0) AS debtor,orece.other_list,
-                ict.ipt_coll_status_type_name,i.data_ok,"ยืนยันลูกหนี้" AS status
+                ict.ipt_coll_status_type_name,i.data_ok,'ยืนยันลูกหนี้' AS status
             FROM ipt i
             LEFT JOIN patient pt ON pt.hn = i.hn
             LEFT JOIN ipt_pttype ip ON ip.an = i.an
@@ -12615,22 +12625,22 @@ class DebtorController extends Controller
                 WHERE a.rcpno IS NULL 
                 GROUP BY r.vn) rc ON rc.an = i.an
             INNER JOIN (SELECT o.an, o.pttype, SUM(o.sum_price) AS income,
-                SUM(CASE WHEN li.kidney = "Y" THEN o.sum_price ELSE 0 END) AS other_price,
-                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = "Y" THEN s.name END) AS other_list
+                SUM(CASE WHEN li.kidney = 'Y' THEN o.sum_price ELSE 0 END) AS other_price,
+                GROUP_CONCAT(DISTINCT CASE WHEN li.kidney = 'Y' THEN s.name END) AS other_list
                 FROM opitemrece o
-                INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
+                INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = 'Y' AND i2.dchdate BETWEEN ? AND ?
                 LEFT JOIN hrims.lookup_icode li ON li.icode = o.icode
                 LEFT JOIN s_drugitems s ON s.icode = o.icode
                 GROUP BY o.an, o.pttype) orece ON orece.an = i.an AND orece.pttype = ip.pttype
-            WHERE i.confirm_discharge = "Y"
-            AND p.hipdata_code = "NRH"
+            WHERE i.confirm_discharge = 'Y'
+            AND p.hipdata_code = 'NRH'
             AND i.dchdate BETWEEN ? AND ?
-            AND (ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
-                OR ip.hospmain IS NULL OR ip.hospmain ="")
+            AND (ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ='Y')
+                OR ip.hospmain IS NULL OR ip.hospmain ='')
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_504 WHERE an IS NOT NULL)
             GROUP BY i.an, ip.pttype
             ORDER BY i.ward, i.dchdate, i.an, ip.pttype
-            ', [$start_date, $end_date, $start_date, $end_date]);
+            ", [$start_date, $end_date, $start_date, $end_date]);
 
         return response()->json($debtor_search);
     }
@@ -13214,7 +13224,7 @@ class DebtorController extends Controller
         $search = $request->search ?: Session::get('search');
 
         if ($search) {
-            $debtor = DB::connection('hosxp')->select('
+            $debtor = DB::connection("hosxp")->select("
                 SELECT d.*, d.receive AS receive_manual, d.repno AS repno_manual, 
                     r.total_amount, r.rcpno, 
                     IFNULL(d.receive,0) + IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0) AS receive,
@@ -13230,10 +13240,10 @@ class DebtorController extends Controller
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn) r ON r.vn = d.an
                 LEFT JOIN (SELECT an, COUNT(an) AS visit FROM hrims.debtor_1102050102_107_tracking GROUP BY an) t ON t.an = d.an
-                WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%") OR d.an LIKE CONCAT("%", ?, "%"))
-                AND d.dchdate BETWEEN ? AND ?', [$search, $search, $search, $start_date, $end_date]);
+                WHERE (d.ptname LIKE CONCAT('%', ?, '%') OR d.hn LIKE CONCAT('%', ?, '%') OR d.an LIKE CONCAT('%', ?, '%'))
+                AND d.dchdate BETWEEN ? AND ?", [$search, $search, $search, $start_date, $end_date]);
         } else {
-            $debtor = DB::connection('hosxp')->select('
+            $debtor = DB::connection("hosxp")->select("
                 SELECT d.*, d.receive AS receive_manual, d.repno AS repno_manual, 
                     r.total_amount, r.rcpno, 
                     IFNULL(d.receive,0) + IFNULL(r.total_amount,0) - IFNULL(d.rcpt_money,0) AS receive,
@@ -13249,7 +13259,7 @@ class DebtorController extends Controller
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn) r ON r.vn = d.an
                 LEFT JOIN (SELECT an, COUNT(an) AS visit FROM hrims.debtor_1102050102_107_tracking GROUP BY an) t ON t.an = d.an
-                WHERE d.dchdate BETWEEN ? AND ?', [$start_date, $end_date]);
+                WHERE d.dchdate BETWEEN ? AND ?", [$start_date, $end_date]);
         }
 
         $count_tab1 = count($debtor);
@@ -13757,9 +13767,10 @@ class DebtorController extends Controller
     {
         $start_date = $request->input('start_date');
         $end_date = $request->input('end_date');
+        $export_type = $request->input('export_type');
 
         $data = DB::connection('hosxp')->select("
-            SELECT r.bill_date, r.rcpno, r.total_amount, d.hn, d.ptname, d.vstdate, r.bill_time
+            SELECT r.bill_date, r.rcpno, r.total_amount, d.hn, d.ptname, d.dchdate AS vstdate, r.bill_time
             FROM hrims.debtor_1102050102_107 d
             JOIN rcpt_print r ON r.vn = d.an
             LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
@@ -13771,6 +13782,15 @@ class DebtorController extends Controller
             )
             ORDER BY r.bill_date DESC, r.bill_time DESC
         ", [$start_date, $end_date]);
+
+        if ($export_type === 'pdf') {
+            $hospital_name = DB::table('main_setting')->where('name', 'hospital_name')->value('value') ?: 'โรงพยาบาล';
+            $hospital_code = DB::table('main_setting')->where('name', 'hospital_code')->value('value') ?: '';
+            
+            $pdf = PDF::loadView('debtor.1102050102_107_payment_pdf', compact('data', 'start_date', 'end_date', 'hospital_name', 'hospital_code'))
+                ->setPaper('a4', 'portrait');
+            return $pdf->stream('payment_report_107.pdf');
+        }
 
         return response()->json([
             'success' => true,

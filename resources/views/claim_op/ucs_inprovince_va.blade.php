@@ -131,7 +131,8 @@
                 <table id="t_search" class="table table-modern w-100">
                     <thead>
                         <tr> 
-                            <th class="text-center">Hmain | ประเภท</th> 
+                            <th class="text-center">Hmain</th> 
+                            <th class="text-center">ประเภท</th> 
                             <th class="text-center">วัน-เวลา | Q</th>  
                             <th class="text-center">HN</th>    
                             <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
@@ -155,7 +156,15 @@
                         <tr>
                             <td class="text-start">
                                 <div class="fw-bold small text-truncate" style="max-width: 120px;" title="{{$row->hospmain}}">{{$row->hospmain}}</div>
-                                <div class="badge bg-light text-dark fw-normal" style="font-size: 0.65rem;">{{$row->pt_status}}</div>
+                            </td>
+                            <td class="text-center">
+                                @if($row->pt_status == 'อุบัติเหตุฉุกเฉิน')
+                                    <div class="badge bg-danger-soft text-danger fw-bold" style="font-size: 0.65rem;">{{$row->pt_status}}</div>
+                                @elseif($row->pt_status == 'ผู้ป่วยทั่วไป')
+                                    <div class="badge bg-success-soft text-success fw-bold" style="font-size: 0.65rem;">{{$row->pt_status}}</div>
+                                @else
+                                    <div class="badge bg-light text-dark fw-normal" style="font-size: 0.65rem;">{{$row->pt_status}}</div>
+                                @endif
                             </td>
                             <td class="text-start">
                                 <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
@@ -187,7 +196,7 @@
                     </tbody>
                     <tfoot class="bg-light-soft">
                         <tr>
-                            <th colspan="6" class="text-end text-muted small px-3">รวมที่ค้นพบ:</th>
+                            <th colspan="7" class="text-end text-muted small px-3">รวมที่ค้นพบ:</th>
                             <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                             <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                             <th class="text-end small">{{ number_format($sum_other_price,2) }}</th>

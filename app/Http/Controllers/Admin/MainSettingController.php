@@ -108,15 +108,6 @@ class MainSettingController extends Controller
                     \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true], $output);
                     $migrate_result = $output->fetch();
 
-                    // Truncate edc_approve_list table once during upgrade structure to clean old wrong imports
-                    try {
-                        if (Schema::hasTable('edc_approve_list')) {
-                            DB::table('edc_approve_list')->truncate();
-                        }
-                    } catch (\Throwable $e) {
-                        Log::warning("Could not truncate edc_approve_list: " . $e->getMessage());
-                    }
-
                     // Load expected schemas
                     $schemas = $this->getExpectedSchemas();
 

@@ -380,7 +380,7 @@
                         </div>
                         <div class="mb-3">
                             <label for="zip_file" class="form-label small fw-bold text-muted">เลือกไฟล์ ZIP</label>
-                            <input class="form-control" type="file" id="zip_file" name="zip_file" accept=".zip" required>
+                            <input class="form-control" type="file" id="zip_file" name="zip_file[]" accept=".zip" multiple required>
                         </div>
                     </form>
 
@@ -878,9 +878,8 @@
               return;
           }
 
-          const formData = new FormData();
-          formData.append('zip_file', fileInput.files[0]);
-          formData.append('_token', "{{ csrf_token() }}");
+          const filesToUpload = Array.from(fileInput.files);
+          const totalZipFiles = filesToUpload.length;
 
           // Show progress area
           document.getElementById('edc-import-progress-area').style.display = 'block';
@@ -891,78 +890,96 @@
           const cancelBtn = document.getElementById('cancelImportBtn');
 
           logDiv.innerHTML = '';
-          progressText.innerText = 'กำลังอัปโหลดและแตกไฟล์ ZIP...';
+          progressText.innerText = 'กำลังเริ่มนำเข้า...';
           progressBar.style.width = '0%';
           progressBar.innerText = '0%';
           progressBar.setAttribute('aria-valuenow', 0);
           submitBtn.disabled = true;
           cancelBtn.disabled = true;
 
+          let grandTotalFiles = 0;
+          let grandProcessedCount = 0;
+
           try {
-              logDiv.innerHTML += `<div>📤 กำลังอัปโหลดและแตกไฟล์ ZIP...</div>`;
-              const uploadRes = await fetch("{{ route('api.import_edc_zip') }}", {
-                  method: 'POST',
-                  body: formData,
-                  headers: {
-                      'X-CSRF-TOKEN': "{{ csrf_token() }}",
-                      'Accept': 'application/json'
-                  }
-              });
-
-              const uploadData = await uploadRes.json();
-              if (!uploadRes.ok || !uploadData.success) {
-                  throw new Error(uploadData.message || 'เกิดข้อผิดพลาดในการอัปโหลดไฟล์ ZIP');
-              }
-
-              const uniqueId = uploadData.unique_id;
-              const files = uploadData.files;
-              const totalFiles = files.length;
-
-              logDiv.innerHTML += `<div class="text-success">✔ อัปโหลดสำเร็จ พบไฟล์รายงานด้านในทั้งหมด ${totalFiles} ไฟล์</div>`;
-              logDiv.scrollTop = logDiv.scrollHeight;
-
-              let processedCount = 0;
-              for (let i = 0; i < totalFiles; i++) {
-                  const fileObj = files[i];
-                  progressText.innerText = `กำลังประมวลผลไฟล์ที่ ${i + 1}/${totalFiles}: ${fileObj.name}`;
-                  logDiv.innerHTML += `<div>🚀 เริ่มนำเข้าไฟล์ ${fileObj.name}...</div>`;
+              for (let z = 0; z < totalZipFiles; z++) {
+                  const zipFile = filesToUpload[z];
+                  logDiv.innerHTML += `<div>📦 [${z + 1}/${totalZipFiles}] กำลังอัปโหลดและแตกไฟล์ ${zipFile.name}...</div>`;
+                  progressText.innerText = `กำลังอัปโหลด [${z + 1}/${totalZipFiles}]: ${zipFile.name}`;
                   logDiv.scrollTop = logDiv.scrollHeight;
 
-                  const fileFormData = new FormData();
-                  fileFormData.append('unique_id', uniqueId);
-                  fileFormData.append('file_name', fileObj.name);
+                  const formData = new FormData();
+                  formData.append('zip_file', zipFile);
+                  formData.append('_token', "{{ csrf_token() }}");
 
-                  const fileRes = await fetch("{{ route('api.import_edc_file') }}", {
+                  const uploadRes = await fetch("{{ route('api.import_edc_zip') }}", {
                       method: 'POST',
-                      body: fileFormData,
+                      body: formData,
                       headers: {
                           'X-CSRF-TOKEN': "{{ csrf_token() }}",
                           'Accept': 'application/json'
                       }
                   });
 
-                  const fileData = await fileRes.json();
-                  if (fileRes.ok && fileData.success) {
-                      processedCount++;
-                      logDiv.innerHTML += `<div class="text-success" style="margin-left: 10px;">✔ ${fileData.message}</div>`;
-                  } else {
-                      logDiv.innerHTML += `<div class="text-danger" style="margin-left: 10px;">❌ ล้มเหลว: ${fileData.message || 'เกิดข้อผิดพลาด'}</div>`;
+                  const uploadData = await uploadRes.json();
+                  if (!uploadRes.ok || !uploadData.success) {
+                      logDiv.innerHTML += `<div class="text-danger">❌ ล้มเหลวในการอ่านไฟล์ ZIP ${zipFile.name}: ${uploadData.message || 'เกิดข้อผิดพลาด'}</div>`;
+                      logDiv.scrollTop = logDiv.scrollHeight;
+                      continue;
                   }
 
-                  const percent = Math.round((processedCount / totalFiles) * 100);
-                  progressBar.style.width = `${percent}%`;
-                  progressBar.innerText = `${percent}%`;
-                  progressBar.setAttribute('aria-valuenow', percent);
+                  const uniqueId = uploadData.unique_id;
+                  const files = uploadData.files;
+                  const totalFiles = files.length;
+                  grandTotalFiles += totalFiles;
+
+                  logDiv.innerHTML += `<div class="text-success">✔ อัปโหลดสำเร็จ พบไฟล์รายงานด้านในทั้งหมด ${totalFiles} ไฟล์</div>`;
                   logDiv.scrollTop = logDiv.scrollHeight;
+
+                  for (let i = 0; i < totalFiles; i++) {
+                      const fileObj = files[i];
+                      progressText.innerText = `[ไฟล์ ZIP ${z + 1}/${totalZipFiles}] กำลังนำเข้า ${i + 1}/${totalFiles}: ${fileObj.name}`;
+                      logDiv.innerHTML += `<div>🚀 เริ่มนำเข้าไฟล์ ${fileObj.name}...</div>`;
+                      logDiv.scrollTop = logDiv.scrollHeight;
+
+                      const fileFormData = new FormData();
+                      fileFormData.append('unique_id', uniqueId);
+                      fileFormData.append('file_name', fileObj.name);
+
+                      const fileRes = await fetch("{{ route('api.import_edc_file') }}", {
+                          method: 'POST',
+                          body: fileFormData,
+                          headers: {
+                              'X-CSRF-TOKEN': "{{ csrf_token() }}",
+                              'Accept': 'application/json'
+                          }
+                      });
+
+                      const fileData = await fileRes.json();
+                      if (fileRes.ok && fileData.success) {
+                          grandProcessedCount++;
+                          logDiv.innerHTML += `<div class="text-success" style="margin-left: 10px;">✔ ${fileData.message}</div>`;
+                      } else {
+                          logDiv.innerHTML += `<div class="text-danger" style="margin-left: 10px;">❌ ล้มเหลว: ${fileData.message || 'เกิดข้อผิดพลาด'}</div>`;
+                      }
+
+                      const overallPercent = Math.round(((z / totalZipFiles) + ((i + 1) / totalFiles) / totalZipFiles) * 100);
+                      progressBar.style.width = `${overallPercent}%`;
+                      progressBar.innerText = `${overallPercent}%`;
+                      progressBar.setAttribute('aria-valuenow', overallPercent);
+                      logDiv.scrollTop = logDiv.scrollHeight;
+                  }
               }
 
-              progressText.innerText = 'นำเข้าข้อมูลเสร็จสิ้น!';
+              progressText.innerText = 'นำเข้าข้อมูลเสร็จสิ้นทั้งหมด!';
+              progressBar.style.width = `100%`;
+              progressBar.innerText = `100%`;
+              progressBar.setAttribute('aria-valuenow', 100);
               progressBar.classList.replace('bg-success', 'bg-primary');
 
               Swal.fire({
                   icon: 'success',
-                  title: 'นำเข้าเลข EDC สำเร็จ!',
-                  text: `ประมวลผลเสร็จสิ้นทั้งหมด ${processedCount} จาก ${totalFiles} ไฟล์`,
+                  title: 'นำเข้าข้อมูลสำเร็จ!',
+                  text: `ประมวลผลไฟล์ ZIP ทั้งหมดเสร็จสิ้น (${totalZipFiles} ไฟล์ ZIP)`,
                   confirmButtonText: 'ตกลง',
                   confirmButtonColor: '#198754'
               }).then(() => {

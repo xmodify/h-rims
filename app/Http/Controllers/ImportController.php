@@ -7361,6 +7361,68 @@ class ImportController extends Controller
         return view('import.stm_lgo_kidney', compact('stm_lgo_kidney', 'budget_year_select', 'budget_year'));
     }
 
+    public function stm_lgo_kidney_getChartData(Request $request)
+    {
+        $budget_year = $request->budget_year ?: DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');
+
+        if (!$budget_year) {
+            $budget_year = date('Y') + 543 + (date('m') >= 10 ? 1 : 0);
+        }
+
+        $rawData = DB::table('stm_lgo_kidney')
+            ->select(
+                DB::raw('CAST(SUBSTRING(repno, 11, 2) AS UNSIGNED) as month_no'),
+                DB::raw('SUM(compensate_kidney) as total_receive')
+            )
+            ->whereNotNull('repno')
+            ->where('repno', '<>', '')
+            ->whereRaw('((CAST(SUBSTRING(repno, 7, 2) AS UNSIGNED) + 2500) + IF(CAST(SUBSTRING(repno, 11, 2) AS UNSIGNED) >= 10, 1, 0)) = ?', [$budget_year])
+            ->groupBy('month_no')
+            ->get()
+            ->keyBy('month_no');
+
+        // Order months from Oct (10) to Sep (9)
+        $monthOrder = [10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        
+        $byShort = substr($budget_year, -2);
+        $prevByShort = substr($budget_year - 1, -2);
+
+        $monthNames = [
+            10 => 'ต.ค. ' . $prevByShort, 
+            11 => 'พ.ย. ' . $prevByShort, 
+            12 => 'ธ.ค. ' . $prevByShort,
+            1 => 'ม.ค. ' . $byShort, 
+            2 => 'ก.พ. ' . $byShort, 
+            3 => 'มี.ค. ' . $byShort,
+            4 => 'เม.ย. ' . $byShort, 
+            5 => 'พ.ค. ' . $byShort, 
+            6 => 'มิ.ย. ' . $byShort,
+            7 => 'ก.ค. ' . $byShort, 
+            8 => 'ส.ค. ' . $byShort, 
+            9 => 'ก.ย. ' . $byShort
+        ];
+
+        $labels = [];
+        $receiveTotals = [];
+
+        foreach ($monthOrder as $m) {
+            $labels[] = $monthNames[$m];
+            if (isset($rawData[$m])) {
+                $receiveTotals[] = floatval($rawData[$m]->total_receive);
+            } else {
+                $receiveTotals[] = 0.00;
+            }
+        }
+
+        return response()->json([
+            'labels' => $labels,
+            'receive_totals' => $receiveTotals
+        ]);
+    }
+
     //stm_lgo_kidney_save---------------------------------------------------------------------------------------------------------------
     public function stm_lgo_kidney_save(Request $request)
     {

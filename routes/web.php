@@ -135,6 +135,7 @@ Route::match(['get', 'post'], 'import/stm_bkk_kidneydetail', [ImportController::
 Route::match(['get', 'post'], 'import/stm_bmt_kidney', [ImportController::class, 'stm_bmt_kidney'])->name('stm_bmt_kidney');
 Route::post('import/stm_bmt_kidney_save', [ImportController::class, 'stm_bmt_kidney_save']);
 Route::post('import/stm_bmt_kidney_updateReceipt', [ImportController::class, 'stm_bmt_kidney_updateReceipt']);
+Route::get('import/stm_bmt_kidney/chart-data', [ImportController::class, 'stm_bmt_kidney_getChartData'])->name('import.stm_bmt_kidney.chart-data');
 Route::match(['get', 'post'], 'import/stm_bmt_kidneydetail', [ImportController::class, 'stm_bmt_kidneydetail'])->name('stm_bmt_kidneydetail');
 
 Route::match(['get', 'post'], 'import/stm_ofc', [ImportController::class, 'stm_ofc'])->name('stm_ofc');

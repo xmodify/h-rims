@@ -283,7 +283,7 @@ class ImportDmisController extends Controller
             }
 
             $dmisGroup = strtoupper($matches[1]);
-            $roundNo = $matches[2];
+            $roundNo = $dmisGroup . $matches[2];
 
             try {
                 $spreadsheet = IOFactory::load($file->getRealPath());

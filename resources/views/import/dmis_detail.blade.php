@@ -53,7 +53,7 @@
                         <tr>
                             <th class="text-center">วันที่รับบริการ</th>
                             <th class="text-center">ประเภทกิจกรรม</th>
-                            <th class="text-center">เลขธุรกรรม (Trans ID)</th>
+                            <th class="text-center">Trans ID</th>
                             <th class="text-center">HN</th>
                             <th class="text-center">เลขบัตรประชาชน</th>
                             <th class="text-center">ชื่อ-สกุลผู้ป่วย</th>
@@ -62,8 +62,8 @@
                             <th class="text-center">ชดเชยจริง</th>
                             <th class="text-center">Deny Code</th>
                             <th class="text-center">คำอธิบายปฏิเสธ</th>
-                            <th class="text-center">รหัสอุปกรณ์ฟื้นฟู</th>
-                            <th class="text-center">ชื่อรายการอุปกรณ์ฟื้นฟู/กิจกรรม</th>
+                            <th class="text-center">รหัสอุปกรณ์ฟื้นฟู (ถ้ามี)</th>
+                            <th class="text-center">ชื่อรายการอุปกรณ์ฟื้นฟู (ถ้ามี) /กิจกรรม</th>
                             <th class="text-center">รหัสลูกข่าย</th>
                         </tr>
                     </thead>

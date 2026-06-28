@@ -116,6 +116,7 @@ Route::post('import/dmis/updateReceipt', [ImportDmisController::class, 'updateRe
 Route::match(['get', 'post'], 'import/stm_ucs', [ImportController::class, 'stm_ucs'])->name('stm_ucs');
 Route::post('import/stm_ucs_save', [ImportController::class, 'stm_ucs_save']);
 Route::post('import/stm_ucs_updateReceipt', [ImportController::class, 'stm_ucs_updateReceipt']);
+Route::get('import/stm_ucs/chart-data', [ImportController::class, 'stm_ucs_getChartData'])->name('import.stm_ucs.chart-data');
 Route::match(['get', 'post'], 'import/stm_ucs_detail', [ImportController::class, 'stm_ucs_detail']);
 Route::match(['get', 'post'], 'import/stm_ucs_detail_opd', [ImportController::class, 'stm_ucs_detail_opd'])->name('stm_ucs_detail_opd');
 Route::match(['get', 'post'], 'import/stm_ucs_detail_ipd', [ImportController::class, 'stm_ucs_detail_ipd'])->name('stm_ucs_detail_ipd');
@@ -137,6 +138,7 @@ Route::match(['get', 'post'], 'import/stm_bmt_kidneydetail', [ImportController::
 Route::match(['get', 'post'], 'import/stm_ofc', [ImportController::class, 'stm_ofc'])->name('stm_ofc');
 Route::post('import/stm_ofc_save', [ImportController::class, 'stm_ofc_save']);
 Route::post('import/stm_ofc_updateReceipt', [ImportController::class, 'stm_ofc_updateReceipt']);
+Route::get('import/stm_ofc/chart-data', [ImportController::class, 'stm_ofc_getChartData'])->name('import.stm_ofc.chart-data');
 Route::match(['get', 'post'], 'import/stm_ofc_detail', [ImportController::class, 'stm_ofc_detail']);
 Route::match(['get', 'post'], 'import/stm_ofc_detail_opd', [ImportController::class, 'stm_ofc_detail_opd'])->name('stm_ofc_detail_opd');
 Route::match(['get', 'post'], 'import/stm_ofc_detail_ipd', [ImportController::class, 'stm_ofc_detail_ipd'])->name('stm_ofc_detail_ipd');
@@ -144,6 +146,7 @@ Route::match(['get', 'post'], 'import/stm_ofc_detail_ipd', [ImportController::cl
 Route::match(['get', 'post'], 'import/stm_bkk', [ImportController::class, 'stm_bkk'])->name('stm_bkk');
 Route::post('import/stm_bkk_save', [ImportController::class, 'stm_bkk_save']);
 Route::post('import/stm_bkk_updateReceipt', [ImportController::class, 'stm_bkk_updateReceipt']);
+Route::get('import/stm_bkk/chart-data', [ImportController::class, 'stm_bkk_getChartData'])->name('import.stm_bkk.chart-data');
 Route::match(['get', 'post'], 'import/stm_bkk_detail', [ImportController::class, 'stm_bkk_detail']);
 Route::match(['get', 'post'], 'import/stm_bkk_detail_opd', [ImportController::class, 'stm_bkk_detail_opd'])->name('stm_bkk_detail_opd');
 Route::match(['get', 'post'], 'import/stm_bkk_detail_ipd', [ImportController::class, 'stm_bkk_detail_ipd'])->name('stm_bkk_detail_ipd');

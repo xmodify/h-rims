@@ -257,8 +257,8 @@
 
 @push('scripts')
 <script>
-    // Filename validation pattern
-    const dmisPattern = /^\d{5}_[A-Z]{4}([A-Z0-9]{10})\.xlsx?$/i;
+    // Filename validation pattern, allowing suffixes like (1)
+    const dmisPattern = /^\d{5}_[A-Z]{4}([A-Z0-9]{10})\s*\(?\d*\)?\.xlsx?$/i;
 
     function showLoadingAlert() {
         Swal.fire({

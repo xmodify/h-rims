@@ -276,8 +276,8 @@ class ImportDmisController extends Controller
         foreach ($uploadedFiles as $file) {
             $fileName = $file->getClientOriginalName();
 
-            // 1. Filename validation: Must match the "By Period" pattern
-            if (!preg_match('/^\d{5}_([A-Z]{4})([A-Z0-9]{10})\.xlsx?$/i', $fileName, $matches)) {
+            // 1. Filename validation: Must match the "By Period" pattern, allowing suffixes like (1)
+            if (!preg_match('/^\d{5}_([A-Z]{4})([A-Z0-9]{10})\s*\(?\d*\)?\.xlsx?$/i', $fileName, $matches)) {
                 $failedFiles[] = "{$fileName} (รูปแบบชื่อไฟล์ไม่ถูกต้องตามเงื่อนไข By Period)";
                 continue;
             }

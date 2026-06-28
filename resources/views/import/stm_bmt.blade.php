@@ -47,6 +47,9 @@
                 <a href="{{ url('/import/stm_bmt_detail_ipd') }}" class="btn btn-danger btn-sm rounded-pill px-3">
                     <i class="bi bi-hospital me-1"></i> รายละเอียด IPD
                 </a>
+                <button type="button" class="btn btn-info btn-sm rounded-pill px-3 text-white shadow-sm" data-bs-toggle="modal" data-bs-target="#chartModal" id="btnShowChart">
+                    <i class="bi bi-bar-chart-fill me-1"></i> กราฟสรุปรายเดือน
+                </button>
             </div>
         </div>
         
@@ -127,6 +130,60 @@
                         @endforeach
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Modal: Monthly Summary Chart --}}
+<div class="modal fade" id="chartModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0" style="border-radius: 20px;">
+            <div class="modal-header border-0 pb-0">
+                <div class="d-flex align-items-center">
+                    <div class="icon-box icon-bg-1 mb-0 me-3" style="width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; background-color: #0284c7; border-radius: 12px; color: white;">
+                        <i class="bi bi-bar-chart-fill fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark" id="db_title">Dashboard</h5>
+                        <div class="text-muted small" id="db_subtitle">ยอดชดเชยสุทธิรายเดือน Statement เบิกจ่ายตรง ขสมก. BMT</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row mb-4 align-items-center">
+                    <div class="col-md-4">
+                        <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill">
+                            <i class="bi bi-calendar3 me-1"></i> ข้อมูลรายงวดรับเงิน
+                        </span>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="d-flex justify-content-end align-items-center gap-3">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-muted small text-nowrap">ปีงบประมาณ:</span>
+                                <select class="form-select shadow-sm text-center" id="modal_filter_budget_year" style="width: 170px; border-radius: 8px;">
+                                    @foreach ($budget_year_select as $row)
+                                        <option value="{{ $row->LEAVE_YEAR_ID }}"
+                                            {{ (int)$budget_year === (int)$row->LEAVE_YEAR_ID ? 'selected' : '' }}>
+                                            {{ $row->LEAVE_YEAR_NAME }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="loading_spinner" class="text-center py-5 d-none">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <div class="mt-2 text-muted">กำลังโหลดข้อมูล...</div>
+                </div>
+                <div style="height: 450px; width: 100%;" id="chart_container">
+                    <div id="monthlySummaryChart" style="height: 100%; width: 100%;"></div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light px-4 rounded-pill fw-bold" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
             </div>
         </div>
     </div>
@@ -370,6 +427,122 @@
                     }
                 }
             });
+
+            // --- Chart Modal Handling ---
+            let monthlyChart = null;
+
+            // Load ApexCharts CDN dynamically if it isn't loaded
+            if (typeof ApexCharts === 'undefined') {
+                const chartScript = document.createElement('script');
+                chartScript.src = 'https://cdn.jsdelivr.net/npm/apexcharts';
+                chartScript.onload = function() {
+                    initChartEvent();
+                };
+                document.head.appendChild(chartScript);
+            } else {
+                initChartEvent();
+            }
+
+            function initChartEvent() {
+                $('#chartModal').on('shown.bs.modal', function () {
+                    loadChartData();
+                });
+
+                $('#modal_filter_budget_year').on('change', function () {
+                    loadChartData();
+                });
+            }
+
+            function loadChartData() {
+                const budgetYear = $('#modal_filter_budget_year').val();
+                const budgetYearText = $('#modal_filter_budget_year option:selected').text().trim();
+
+                $('#db_subtitle').text(`ยอดชดเชยสุทธิรายงวด Statement เบิกจ่ายตรง ขสมก. BMT ปีงบประมาณ: ${budgetYearText}`);
+
+                $('#chart_container').addClass('d-none');
+                $('#loading_spinner').removeClass('d-none');
+
+                $.ajax({
+                    url: "{{ route('import.stm_bmt.chart-data') }}",
+                    method: "GET",
+                    data: {
+                        budget_year: budgetYear
+                    },
+                    success: function (res) {
+                        $('#loading_spinner').addClass('d-none');
+                        $('#chart_container').removeClass('d-none');
+                        renderChart(res.labels, res.receive_totals);
+                    },
+                    error: function () {
+                        $('#loading_spinner').addClass('d-none');
+                        $('#chart_container').removeClass('d-none');
+                        Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: 'ไม่สามารถดึงข้อมูลกราฟได้', confirmButtonColor: '#d33' });
+                    }
+                });
+            }
+
+            function renderChart(labels, receiveTotals) {
+                if (monthlyChart) {
+                    monthlyChart.destroy();
+                }
+
+                const options = {
+                    series: [{
+                        name: 'ชดเชยสุทธิ',
+                        data: receiveTotals
+                    }],
+                    chart: {
+                        height: 430,
+                        type: 'area',
+                        toolbar: { show: false }
+                    },
+                    markers: { size: 4 },
+                    colors: ['#10b981'],
+                    fill: {
+                        type: "gradient",
+                        gradient: {
+                            shadeIntensity: 1,
+                            opacityFrom: 0.4,
+                            opacityTo: 0.1,
+                            stops: [0, 90, 100]
+                        }
+                    },
+                    dataLabels: {
+                        enabled: true,
+                        formatter: function (val) {
+                            return new Intl.NumberFormat('th-TH').format(val);
+                        },
+                        style: {
+                            fontSize: '11px',
+                            fontWeight: 'bold'
+                        }
+                    },
+                    stroke: { 
+                        curve: 'smooth', 
+                        width: 2 
+                    },
+                    xaxis: {
+                        categories: labels
+                    },
+                    yaxis: {
+                        labels: {
+                            formatter: function (value) {
+                                return value.toLocaleString('th-TH') + ' ฿';
+                            }
+                        }
+                    },
+                    tooltip: {
+                        y: {
+                            formatter: function (val) {
+                                return new Intl.NumberFormat('th-TH').format(val) + ' บาท';
+                            }
+                        }
+                    }
+                };
+
+                monthlyChart = new ApexCharts(document.querySelector("#monthlySummaryChart"), options);
+                monthlyChart.render();
+            }
         });
     </script>
 @endpush

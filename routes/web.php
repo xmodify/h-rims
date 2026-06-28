@@ -154,6 +154,7 @@ Route::match(['get', 'post'], 'import/stm_bkk_detail_ipd', [ImportController::cl
 Route::match(['get', 'post'], 'import/stm_bmt', [ImportController::class, 'stm_bmt'])->name('stm_bmt');
 Route::post('import/stm_bmt_save', [ImportController::class, 'stm_bmt_save']);
 Route::post('import/stm_bmt_updateReceipt', [ImportController::class, 'stm_bmt_updateReceipt']);
+Route::get('import/stm_bmt/chart-data', [ImportController::class, 'stm_bmt_getChartData'])->name('import.stm_bmt.chart-data');
 Route::match(['get', 'post'], 'import/stm_bmt_detail', [ImportController::class, 'stm_bmt_detail']);
 Route::match(['get', 'post'], 'import/stm_bmt_detail_opd', [ImportController::class, 'stm_bmt_detail_opd'])->name('stm_bmt_detail_opd');
 Route::match(['get', 'post'], 'import/stm_bmt_detail_ipd', [ImportController::class, 'stm_bmt_detail_ipd'])->name('stm_bmt_detail_ipd');
@@ -185,6 +186,7 @@ Route::match(['get', 'post'], 'import/stm_ofc_cipndetail', [ImportController::cl
 Route::match(['get', 'post'], 'import/stm_lgo', [ImportController::class, 'stm_lgo'])->name('stm_lgo');
 Route::post('import/stm_lgo_save', [ImportController::class, 'stm_lgo_save']);
 Route::post('import/stm_lgo_updateReceipt', [ImportController::class, 'stm_lgo_updateReceipt']);
+Route::get('import/stm_lgo/chart-data', [ImportController::class, 'stm_lgo_getChartData'])->name('import.stm_lgo.chart-data');
 Route::match(['get', 'post'], 'import/stm_lgo_detail', [ImportController::class, 'stm_lgo_detail'])->name('stm_lgo_detail');
 Route::match(['get', 'post'], 'import/stm_lgo_detail_opd', [ImportController::class, 'stm_lgo_detail_opd'])->name('stm_lgo_detail_opd');
 Route::match(['get', 'post'], 'import/stm_lgo_detail_ipd', [ImportController::class, 'stm_lgo_detail_ipd'])->name('stm_lgo_detail_ipd');

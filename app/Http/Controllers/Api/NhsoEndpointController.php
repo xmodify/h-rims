@@ -32,8 +32,7 @@ class NhsoEndpointController extends Controller
             WHERE o.vstdate = ?
             AND (o.an = "" OR o.an IS NULL)
             AND vs.uc_money > 0
-            AND (ep.cid IS NULL OR (vp.auth_code LIKE "PP%" AND (ep.claimCode NOT LIKE "EP%" OR ep.claimCode IS NULL)))
-            AND (vp.auth_code NOT LIKE "EP%" OR vp.auth_code IS NULL)
+            AND ep.cid IS NULL
             AND pt.cid IS NOT NULL', [$vstdate]);
 
         $cids = array_column($hosxp, 'cid');
@@ -279,8 +278,7 @@ class NhsoEndpointController extends Controller
             WHERE o.vstdate = ?
             AND (o.an = "" OR o.an IS NULL)
             AND vs.uc_money > 0
-            AND (ep.cid IS NULL OR (vp.auth_code LIKE "PP%" AND (ep.claimCode NOT LIKE "EP%" OR ep.claimCode IS NULL)))
-            AND (vp.auth_code NOT LIKE "EP%" OR vp.auth_code IS NULL)
+            AND ep.cid IS NULL
             AND pt.cid IS NOT NULL', [$vstdate]);
 
         $cids = array_map(static fn($row) => $row->cid, $hosxp);
@@ -623,8 +621,7 @@ class NhsoEndpointController extends Controller
             WHERE o.vstdate = ?
             AND (o.an = "" OR o.an IS NULL)
             AND vs.uc_money > 0
-            AND (ep.cid IS NULL OR (vp.auth_code LIKE "PP%" AND (ep.claimCode NOT LIKE "EP%" OR ep.claimCode IS NULL)))
-            AND (vp.auth_code NOT LIKE "EP%" OR vp.auth_code IS NULL)
+            AND ep.cid IS NULL
             AND pt.cid IS NOT NULL', [$vstdate]);
 
         $cids = array_column($hosxp, 'cid');

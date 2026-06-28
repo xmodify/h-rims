@@ -39,13 +39,13 @@ class CheckController extends Controller
         Session::put('start_date', $start_date);
         Session::put('end_date', $end_date);
 
-        // 1. Closed Records (Visits that have an EP prefix in HOSxP or RiMS)
+        // 1. Closed Records (Visits that have an EP prefix in RiMS)
         $closed = DB::connection('hosxp')->select('
             SELECT pt.fname AS firstName, pt.lname AS lastName, pt.cid, 
                    COALESCE(ep.subInsclName, p.name) as subInsclName, ep.subInscl,
                    CONCAT(o.vstdate, " ", o.vsttime) as serviceDateTime,
                    COALESCE(ep.claimType, "") as claimType,
-                   COALESCE(ep.claimCode, vp.auth_code) as claimCode
+                   ep.claimCode as claimCode
             FROM ovst o
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1
             LEFT JOIN pttype p ON p.pttype = vp.pttype
@@ -53,7 +53,7 @@ class CheckController extends Controller
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
                  AND (ep.claim_status = "success" OR ep.claimCode LIKE "EP%")
             WHERE o.vstdate BETWEEN ? AND ?
-            AND (vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%")        
+            AND ep.claimCode LIKE "EP%"        
             AND (o.an = "" OR o.an IS NULL)
             ORDER BY o.vstdate DESC, o.vsttime DESC', [$start_date, $end_date]);
 
@@ -79,7 +79,6 @@ class CheckController extends Controller
             AND (o.an = "" OR o.an IS NULL)
             AND vs.uc_money > 0
             AND p.hipdata_code IN ("UCS","OFC","SSS","LGO","NHS","STP","BKK","BMT","SRT","KKT","PTY")
-            AND (vp.auth_code NOT LIKE "EP%" OR vp.auth_code IS NULL)
             AND ep.cid IS NULL
             AND kidney.vn IS NULL
             ORDER BY o.vstdate DESC, o.vsttime DESC', 

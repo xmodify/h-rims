@@ -62,6 +62,9 @@
                             <th class="text-center">ชดเชยจริง</th>
                             <th class="text-center">Deny Code</th>
                             <th class="text-center">คำอธิบายปฏิเสธ</th>
+                            <th class="text-center">รหัสอุปกรณ์ฟื้นฟู</th>
+                            <th class="text-center">ชื่อรายการอุปกรณ์ฟื้นฟู/กิจกรรม</th>
+                            <th class="text-center">รหัสลูกข่าย</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -136,7 +139,10 @@
                 { data: 'pay_percent', name: 'pay_percent', className: 'text-center' },
                 { data: 'receive_total', name: 'receive_total', className: 'text-end text-success fw-bold' },
                 { data: 'deny_code', name: 'deny_code', className: 'text-center' },
-                { data: 'deny_warning', name: 'deny_warning' }
+                { data: 'deny_warning', name: 'deny_warning' },
+                { data: 'rehab_code', name: 'rehab_code', className: 'text-center' },
+                { data: 'rehab_name', name: 'rehab_name' },
+                { data: 'sub_hospcode', name: 'sub_hospcode', className: 'text-center' }
             ],
             dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>t<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
             buttons: [

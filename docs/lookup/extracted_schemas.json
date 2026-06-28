@@ -17767,6 +17767,24 @@
                 "default": null,
                 "extra": ""
             },
+            "rehab_code": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rehab_name": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "sub_hospcode": {
+                "type": "varchar(5)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
             "created_at": {
                 "type": "timestamp",
                 "nullable": true,

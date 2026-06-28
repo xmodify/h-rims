@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use PhpOffice\PhpSpreadsheet\IOFactory;
+use App\Models\Stm_seamless_dmis;
 
 class ImportDmisController extends Controller
 {
@@ -61,8 +62,7 @@ class ImportDmisController extends Controller
                 ORDER BY round_no DESC, excel_filename DESC
             ", [$budget_year]);
 
-            $claim_types = DB::table('stm_seamless_dmis')
-                ->whereNotNull('claim_type_name')
+            $claim_types = Stm_seamless_dmis::whereNotNull('claim_type_name')
                 ->where('claim_type_name', '<>', '')
                 ->distinct()
                 ->orderBy('claim_type_name')
@@ -81,8 +81,7 @@ class ImportDmisController extends Controller
 
         $claim_types = [];
         if (Schema::hasTable('stm_seamless_dmis')) {
-            $claim_types = DB::table('stm_seamless_dmis')
-                ->whereNotNull('claim_type_name')
+            $claim_types = Stm_seamless_dmis::whereNotNull('claim_type_name')
                 ->where('claim_type_name', '<>', '')
                 ->distinct()
                 ->orderBy('claim_type_name')
@@ -91,7 +90,7 @@ class ImportDmisController extends Controller
         }
 
         if ($request->ajax() || $request->export == 'excel') {
-            $query = DB::table('stm_seamless_dmis')
+            $query = Stm_seamless_dmis::query()
                 ->whereDate('vstdate', '>=', $start_date)
                 ->whereDate('vstdate', '<=', $end_date);
 
@@ -106,7 +105,10 @@ class ImportDmisController extends Controller
                         ->orWhere('an', 'like', "%$search%")
                         ->orWhere('ptname', 'like', "%$search%")
                         ->orWhere('cid', 'like', "%$search%")
-                        ->orWhere('trans_id', 'like', "%$search%");
+                        ->orWhere('trans_id', 'like', "%$search%")
+                        ->orWhere('rehab_code', 'like', "%$search%")
+                        ->orWhere('rehab_name', 'like', "%$search%")
+                        ->orWhere('sub_hospcode', 'like', "%$search%");
                 });
             }
 
@@ -117,7 +119,7 @@ class ImportDmisController extends Controller
                 $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
                 $sheet = $spreadsheet->getActiveSheet();
 
-                $headers = ['วันที่รับบริการ', 'ประเภทกิจกรรม', 'เลขธุรกรรม (Trans ID)', 'HN', 'AN', 'เลขบัตรประชาชน', 'ชื่อ-สกุลผู้ป่วย', 'ยอดขอเบิก', 'ร้อยละจ่าย', 'ชดเชยจริง', 'Deny Code', 'คำอธิบายปฏิเสธ'];
+                $headers = ['วันที่รับบริการ', 'ประเภทกิจกรรม', 'เลขธุรกรรม (Trans ID)', 'HN', 'AN', 'เลขบัตรประชาชน', 'ชื่อ-สกุลผู้ป่วย', 'ยอดขอเบิก', 'ร้อยละจ่าย', 'ชดเชยจริง', 'Deny Code', 'คำอธิบายปฏิเสธ', 'รหัสอุปกรณ์ฟื้นฟู', 'ชื่อรายการอุปกรณ์ฟื้นฟู', 'รหัสหน่วยบริการลูกข่าย'];
                 $sheet->fromArray($headers, null, 'A1');
 
                 $row = 2;
@@ -134,6 +136,9 @@ class ImportDmisController extends Controller
                     $sheet->setCellValue('J' . $row, $item->receive_total);
                     $sheet->setCellValue('K' . $row, $item->deny_code ?: '-');
                     $sheet->setCellValue('L' . $row, $item->deny_warning ?: '-');
+                    $sheet->setCellValue('M' . $row, ($item->rehab_code ?? '-') ?: '-');
+                    $sheet->setCellValue('N' . $row, ($item->rehab_name ?? '-') ?: '-');
+                    $sheet->setCellValueExplicit('O' . $row, ($item->sub_hospcode ?? '-') ?: '-', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
                     $row++;
                 }
 
@@ -169,6 +174,9 @@ class ImportDmisController extends Controller
                     'receive_total' => number_format($r->receive_total, 2),
                     'deny_code' => $r->deny_code ? '<span class="badge bg-danger">' . $r->deny_code . '</span>' : '-',
                     'deny_warning' => $r->deny_warning ?: '-',
+                    'rehab_code' => ($r->rehab_code ?? '-') ?: '-',
+                    'rehab_name' => ($r->rehab_name ?? '-') ?: '-',
+                    'sub_hospcode' => ($r->sub_hospcode ?? '-') ?: '-',
                 ];
             }
 
@@ -196,8 +204,7 @@ class ImportDmisController extends Controller
 
         $claim_type = $request->claim_type;
 
-        $query = DB::table('stm_seamless_dmis')
-            ->select(
+        $query = Stm_seamless_dmis::select(
                 DB::raw('MONTH(vstdate) as month_no'),
                 DB::raw('SUM(claim_price) as total_claim'),
                 DB::raw('SUM(receive_total) as total_receive')
@@ -365,7 +372,10 @@ class ImportDmisController extends Controller
                     'deny_code' => $getCol(['หมายเหตุ', 'Deny code', 'รหัสปฏิเสธ', 'DENY CODE']),
                     'deny_warning' => $getCol(['หมายเหตุอื่นๆ', 'คำอธิบาย', 'สาเหตุ', 'รายละเอียด']),
                     'hospcode' => $getCol(['HMAIN_OP', 'HMAIN', 'HOSPCODE', 'รหัสหน่วยบริการ']),
-                    'pttype_name' => $getCol(['สิทธิการรักษาพยาบาล', 'สิทธิการรักษา', 'สิทธิ', 'สิทธิการรักษาพยาบาล'])
+                    'pttype_name' => $getCol(['สิทธิการรักษาพยาบาล', 'สิทธิการรักษา', 'สิทธิ', 'สิทธิการรักษาพยาบาล']),
+                    'rehab_code' => $getCol(['รหัสอุปกรณ์ฟื้นฟู (ถ้ามี)', 'รหัสอุปกรณ์ฟื้นฟู', 'รหัสอุปกรณ์']),
+                    'rehab_name' => $getCol(['ชื่อรายการอุปกรณ์ฟื้นฟู (ถ้ามี) / ชื่อกิจกรรม', 'ชื่อรายการอุปกรณ์ฟื้นฟู / ชื่อกิจกรรม', 'ชื่อรายการอุปกรณ์ฟื้นฟู']),
+                    'sub_hospcode' => $getCol(['รหัสหน่วยบริการลูกข่าย', 'หน่วยบริการลูกข่าย'])
                 ];
 
                 // Validate that we found at least the Trans ID column
@@ -421,20 +431,23 @@ class ImportDmisController extends Controller
                         'receive_total' => $receiveTotalVal,
                         'deny_code' => $cols['deny_code'] ? trim($sheet->getCell($cols['deny_code'] . $row)->getValue() ?? '') : null,
                         'deny_warning' => $cols['deny_warning'] ? trim($sheet->getCell($cols['deny_warning'] . $row)->getValue() ?? '') : null,
+                        'rehab_code' => $cols['rehab_code'] ? trim($sheet->getCell($cols['rehab_code'] . $row)->getValue() ?? '') : null,
+                        'rehab_name' => $cols['rehab_name'] ? trim($sheet->getCell($cols['rehab_name'] . $row)->getValue() ?? '') : null,
+                        'sub_hospcode' => $cols['sub_hospcode'] ? trim($sheet->getCell($cols['sub_hospcode'] . $row)->getValue() ?? '') : null,
                         'dmis_group' => $dmisGroup,
                         'excel_filename' => $fileName,
                         'round_no' => $roundNo,
                         'updated_at' => now()
                     ];
 
-                    $exists = DB::table('stm_seamless_dmis')->where('trans_id', $transId)->exists();
+                    $exists = Stm_seamless_dmis::where('trans_id', $transId)->exists();
                     if ($exists) {
-                        DB::table('stm_seamless_dmis')->where('trans_id', $transId)->update($data);
+                        Stm_seamless_dmis::where('trans_id', $transId)->update($data);
                         $updated++;
                     } else {
                         $data['trans_id'] = $transId;
                         $data['created_at'] = now();
-                        DB::table('stm_seamless_dmis')->insert($data);
+                        Stm_seamless_dmis::insert($data);
                         $inserted++;
                     }
                 }
@@ -469,8 +482,7 @@ class ImportDmisController extends Controller
         ]);
 
         if (Schema::hasTable('stm_seamless_dmis')) {
-            DB::table('stm_seamless_dmis')
-                ->where('round_no', $request->round_no)
+            Stm_seamless_dmis::where('round_no', $request->round_no)
                 ->update([
                     'receive_no' => $request->receive_no,
                     'receipt_date' => $request->receipt_date,

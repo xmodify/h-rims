@@ -3515,14 +3515,20 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn, COALESCE(ppfs.claim_price, 0) AS claim_price,stm.receive_total
+                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,
+                SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,
+                SUM(IFNULL(receive_total,0)) AS receive_total
+            FROM (SELECT o.vstdate,o.vsttime,o.vn, COALESCE(ppfs.claim_price, 0) AS claim_price,stm.receive_total,
+            CASE WHEN oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL THEN COALESCE(ppfs.claim_price, 0) ELSE 0 END AS claim_sent_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype            
             LEFT JOIN vn_stat v ON v.vn = o.vn           
-
+            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
+            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
+            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
+                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             INNER JOIN (
                 SELECT op.vn, SUM(op.sum_price) AS claim_price
                 FROM opitemrece op
@@ -3544,6 +3550,7 @@ class ClaimOpController extends Controller
             ORDER BY YEAR(vstdate), MONTH(vstdate) ', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
@@ -3700,7 +3707,7 @@ class ClaimOpController extends Controller
             $row->validation_warnings = $result['warnings'];
         }
 
-        return view('claim_op.sss_ppfs', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
+        return view('claim_op.sss_ppfs', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     // API: ดึงรายละเอียดการรับบริการสำหรับ Modal (Details + Validation) ของ PPFS

@@ -548,6 +548,14 @@
               borderRadius: 4
             },
             {
+              label: 'ส่งเคลม',
+              data: <?php echo json_encode($claim_sent_price); ?>,
+              backgroundColor: 'rgba(234, 179, 8, 0.6)',
+              borderColor: 'rgb(234, 179, 8)',
+              borderWidth: 1,
+              borderRadius: 4
+            },
+            {
               label: 'ชดเชย',
               data: <?php echo json_encode($receive_total); ?>,
               backgroundColor: 'rgba(16, 185, 129, 0.6)',

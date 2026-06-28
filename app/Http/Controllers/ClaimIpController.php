@@ -459,6 +459,7 @@ class ClaimIpController extends Controller
                 month,
                 COUNT(an) AS an,
                 SUM(claim_price) AS claim_price,
+                SUM(claim_sent_price) AS claim_sent_price,
                 SUM(receive_total) AS receive_total
             FROM (
                 SELECT 
@@ -478,6 +479,7 @@ class ClaimIpController extends Controller
                     END AS month,
                     i.an,
                     (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
+                    CASE WHEN i.data_exp_date IS NOT NULL OR fdh.an IS NOT NULL OR ec.an IS NOT NULL OR stm.an IS NOT NULL THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) ELSE 0 END AS claim_sent_price,
                     (IFNULL(stm.receive_total,0)) AS receive_total,
                     YEAR(i.dchdate) AS y, MONTH(i.dchdate) AS m
                 FROM ipt i            
@@ -497,6 +499,8 @@ class ClaimIpController extends Controller
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
+                LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
+                LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
                 LEFT JOIN (
                     SELECT an, SUM(receive_total) AS receive_total 
                     FROM hrims.stm_ucs 
@@ -513,6 +517,7 @@ class ClaimIpController extends Controller
 
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         // 3. Search Data (STP)
@@ -616,7 +621,7 @@ class ClaimIpController extends Controller
             AND (i.data_exp_date IS NOT NULL OR fdh.an IS NOT NULL OR ec.an IS NOT NULL OR stm.an IS NOT NULL) 
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_ip.stp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
+        return view('claim_ip.stp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ofc(Request $request)
@@ -899,6 +904,7 @@ class ClaimIpController extends Controller
                 month,
                 COUNT(an) AS an,
                 SUM(claim_price) AS claim_price,
+                SUM(claim_sent_price) AS claim_sent_price,
                 SUM(receive_total) AS receive_total
             FROM (
                 SELECT 
@@ -918,6 +924,7 @@ class ClaimIpController extends Controller
                     END AS month,
                     i.an,
                     (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
+                    CASE WHEN (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) OR stm.an IS NOT NULL OR ec.an IS NOT NULL THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) ELSE 0 END AS claim_sent_price,
                     (IFNULL(stm.receive_total,0)) AS receive_total,
                     YEAR(i.dchdate) AS y, MONTH(i.dchdate) AS m
                 FROM ipt i            
@@ -936,6 +943,9 @@ class ClaimIpController extends Controller
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
+                LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
+                LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
+                LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
                 LEFT JOIN (
                     SELECT an, SUM(compensate_treatment) AS receive_total 
                     FROM hrims.stm_lgo 
@@ -952,6 +962,7 @@ class ClaimIpController extends Controller
 
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         // 3. Search Data (LGO)
@@ -1050,7 +1061,7 @@ class ClaimIpController extends Controller
             AND ((ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) OR stm.an IS NOT NULL OR ec.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_ip.lgo', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
+        return view('claim_ip.lgo', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function bkk(Request $request)
@@ -1084,6 +1095,7 @@ class ClaimIpController extends Controller
                 month,
                 COUNT(an) AS an,
                 SUM(claim_price) AS claim_price,
+                SUM(claim_sent_price) AS claim_sent_price,
                 SUM(receive_total) AS receive_total
             FROM (
                 SELECT 
@@ -1103,6 +1115,7 @@ class ClaimIpController extends Controller
                     END AS month,
                     i.an,
                     (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
+                    CASE WHEN (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) OR stm.an IS NOT NULL OR kidney.an IS NOT NULL OR ec.an IS NOT NULL THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) ELSE 0 END AS claim_sent_price,
                     (IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0)) AS receive_total,
                     YEAR(i.dchdate) AS y, MONTH(i.dchdate) AS m
                 FROM ipt i            
@@ -1121,6 +1134,9 @@ class ClaimIpController extends Controller
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
+                LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
+                LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
+                LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
                 LEFT JOIN (
                     SELECT an, SUM(receive_total) AS receive_total 
                     FROM hrims.stm_bkk 
@@ -1147,6 +1163,7 @@ class ClaimIpController extends Controller
 
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         // 3. Search Data (BKK)
@@ -1270,7 +1287,7 @@ class ClaimIpController extends Controller
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
-        return view('claim_ip.bkk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
+        return view('claim_ip.bkk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function bmt(Request $request)
@@ -1304,6 +1321,7 @@ class ClaimIpController extends Controller
                 month,
                 COUNT(an) AS an,
                 SUM(claim_price) AS claim_price,
+                SUM(claim_sent_price) AS claim_sent_price,
                 SUM(receive_total) AS receive_total
             FROM (
                 SELECT 
@@ -1323,6 +1341,7 @@ class ClaimIpController extends Controller
                     END AS month,
                     i.an,
                     (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
+                    CASE WHEN (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) OR stm.an IS NOT NULL OR kidney.an IS NOT NULL OR ec.an IS NOT NULL THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) ELSE 0 END AS claim_sent_price,
                     (IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0)) AS receive_total,
                     YEAR(i.dchdate) AS y, MONTH(i.dchdate) AS m
                 FROM ipt i            
@@ -1342,6 +1361,9 @@ class ClaimIpController extends Controller
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
+                LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
+                LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
+                LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
                 LEFT JOIN (
                     SELECT an, SUM(receive_total) AS receive_total 
                     FROM hrims.stm_bmt 
@@ -1368,6 +1390,7 @@ class ClaimIpController extends Controller
 
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         // 3. Search Data (BMT)
@@ -1491,7 +1514,7 @@ class ClaimIpController extends Controller
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
-        return view('claim_ip.bmt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
+        return view('claim_ip.bmt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function srt(Request $request)
@@ -1525,6 +1548,7 @@ class ClaimIpController extends Controller
                 month,
                 COUNT(an) AS an,
                 SUM(claim_price) AS claim_price,
+                SUM(claim_sent_price) AS claim_sent_price,
                 SUM(receive_total) AS receive_total
             FROM (
                 SELECT 
@@ -1544,6 +1568,7 @@ class ClaimIpController extends Controller
                     END AS month,
                     i.an,
                     (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
+                    CASE WHEN (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")) OR stm.an IS NOT NULL OR ec.an IS NOT NULL THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) ELSE 0 END AS claim_sent_price,
                     IFNULL(stm.receive_total,0) AS receive_total,
                     YEAR(i.dchdate) AS y, MONTH(i.dchdate) AS m
                 FROM ipt i            
@@ -1563,6 +1588,9 @@ class ClaimIpController extends Controller
                     WHERE a.rcpno IS NULL
                     GROUP BY r.vn
                 ) rc ON rc.an = i.an
+                LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
+                LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
+                LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
                 LEFT JOIN (
                     SELECT an, SUM(receive_total) AS receive_total 
                     FROM hrims.stm_srt 
@@ -1581,6 +1609,7 @@ class ClaimIpController extends Controller
 
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         // 3. Search Data (SRT)
@@ -1688,7 +1717,7 @@ class ClaimIpController extends Controller
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
-        return view('claim_ip.srt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
+        return view('claim_ip.srt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function sss(Request $request)
@@ -1772,6 +1801,7 @@ class ClaimIpController extends Controller
 
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         // 3. Search Data (SSS)
@@ -1917,6 +1947,7 @@ class ClaimIpController extends Controller
             ORDER BY YEAR(dchdate), MONTH(dchdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
@@ -2032,6 +2063,7 @@ class ClaimIpController extends Controller
             ORDER BY YEAR(dchdate), MONTH(dchdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
@@ -2358,6 +2390,7 @@ class ClaimIpController extends Controller
             ORDER BY YEAR(dchdate), MONTH(dchdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('

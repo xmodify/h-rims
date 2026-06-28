@@ -578,6 +578,11 @@
                                                 </a>
                                             </li>
                                         @endif
+                                        <li>
+                                            <a class="dropdown-item dropdown-item-modern" href="{{ route('import.dmis') }}">
+                                                <i class="bi bi-puzzle-fill me-1 text-warning"></i> Seamless For DMIS
+                                            </a>
+                                        </li>
                                     </ul>
                                 </li>
                             @endif
@@ -1094,7 +1099,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item d-flex align-items-center me-2">
                             <div class="nav-version-badge">
-                                V.69-06-28 11:00
+                                V.69-06-28 16:00
                             </div>
                         </li>
                         <!-- Authentication Links -->

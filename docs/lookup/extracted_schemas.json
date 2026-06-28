@@ -17602,5 +17602,239 @@
                 }
             ]
         }
+    },
+    "stm_seamless_dmis": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "hospcode": {
+                "type": "varchar(5)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pttype_name": {
+                "type": "varchar(150)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "repno": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "trans_id": {
+                "type": "varchar(100)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "an": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cid": {
+                "type": "varchar(13)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ptname": {
+                "type": "varchar(250)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "send_date": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vstdate": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "claim_type_name": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "qty": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "price_unit": {
+                "type": "double(15,2)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "price_ceiling": {
+                "type": "double(15,2)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "claim_price": {
+                "type": "double(15,2)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ps_code": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pay_percent": {
+                "type": "double(15,2)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_total": {
+                "type": "double(15,2)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "deny_code": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "deny_warning": {
+                "type": "text",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dmis_group": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "excel_filename": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "round_no": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_no": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receipt_date": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receipt_by": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "trans_id": [
+                {
+                    "column": "trans_id",
+                    "unique": true
+                }
+            ],
+            "hn": [
+                {
+                    "column": "hn",
+                    "unique": false
+                }
+            ],
+            "an": [
+                {
+                    "column": "an",
+                    "unique": false
+                }
+            ],
+            "cid": [
+                {
+                    "column": "cid",
+                    "unique": false
+                }
+            ],
+            "vstdate": [
+                {
+                    "column": "vstdate",
+                    "unique": false
+                }
+            ],
+            "repno": [
+                {
+                    "column": "repno",
+                    "unique": false
+                }
+            ],
+            "dmis_group": [
+                {
+                    "column": "dmis_group",
+                    "unique": false
+                }
+            ],
+            "round_no": [
+                {
+                    "column": "round_no",
+                    "unique": false
+                }
+            ]
+        }
     }
 }

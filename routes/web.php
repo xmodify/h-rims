@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\LookupHospcodeController;
 use App\Http\Controllers\NotifyController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ImportController;
+use App\Http\Controllers\ImportDmisController;
 use App\Http\Controllers\CheckController;
 use App\Http\Controllers\CheckDrugcatController;
 use App\Http\Controllers\CheckLabcatController;
@@ -107,6 +108,11 @@ Route::match(['get', 'post'], 'ipd_finance_chk_wait_rcpt_money', [HomeController
 //Import---------------------------------------------------------------------------------------------------------------------------
 Route::get('import/statement', [ImportController::class, 'statement_index'])->name('import.statement');
 Route::get('import/statement_kidney', [ImportController::class, 'statement_kidney_index'])->name('import.statement_kidney');
+Route::match(['get', 'post'], 'import/dmis', [ImportDmisController::class, 'index'])->name('import.dmis');
+Route::match(['get', 'post'], 'import/dmis/detail', [ImportDmisController::class, 'detail'])->name('import.dmis.detail');
+Route::get('import/dmis/chart-data', [ImportDmisController::class, 'getChartData'])->name('import.dmis.chart-data');
+Route::post('import/dmis/save', [ImportDmisController::class, 'save'])->name('import.dmis.save');
+Route::post('import/dmis/updateReceipt', [ImportDmisController::class, 'updateReceipt'])->name('import.dmis.updateReceipt');
 Route::match(['get', 'post'], 'import/stm_ucs', [ImportController::class, 'stm_ucs'])->name('stm_ucs');
 Route::post('import/stm_ucs_save', [ImportController::class, 'stm_ucs_save']);
 Route::post('import/stm_ucs_updateReceipt', [ImportController::class, 'stm_ucs_updateReceipt']);
@@ -805,8 +811,8 @@ Route::prefix('api')->middleware(['auth'])->group(function () {
     Route::post('nhso_endpoint_pull', [NhsoEndpointController::class, 'pull'])->name('nhso_endpoint_pull');
     Route::post('nhso_endpoint_pull_indiv', [NhsoEndpointController::class, 'pullIndiv'])->name('nhso_endpoint_pull_indiv');
     Route::post('nhso_endpoint_push_indiv', [NhsoEndpointController::class, 'pushIndiv'])->name('api.nhso.push_indiv');
-    Route::post('import_edc_zip', [\App\Http\Controllers\EdcImportController::class, 'importZip'])->name('api.import_edc_zip');
-    Route::post('import_edc_file', [\App\Http\Controllers\EdcImportController::class, 'importFile'])->name('api.import_edc_file');
+    Route::post('import_edc_zip', [\App\Http\Controllers\ImportEdcController::class, 'importZip'])->name('api.import_edc_zip');
+    Route::post('import_edc_file', [\App\Http\Controllers\ImportEdcController::class, 'importFile'])->name('api.import_edc_file');
 });
 Route::get('mishos/ucs_ppfs/visit_details', [MishosController::class, 'ucs_ppfs_visit_details']);
 

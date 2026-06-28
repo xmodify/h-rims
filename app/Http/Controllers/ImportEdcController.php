@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use ZipArchive;
 
-class EdcImportController extends Controller
+class ImportEdcController extends Controller
 {
     public function __construct()
     {

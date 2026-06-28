@@ -1193,7 +1193,7 @@
             @if (request()->routeIs('stm_*') || request()->is('import/stm_*') || request()->is('import/stm_*/*'))
                 <div class="container-fluid px-lg-4 mb-3">
                     @php
-                        $is_kidney = request()->is('*kidney*') || request()->routeIs('*kidney*');
+                        $is_kidney = request()->is('*kidney*') || request()->is('*csop*') || request()->routeIs('*kidney*') || request()->routeIs('*csop*');
                     @endphp
                     @if ($is_kidney)
                         <div class="d-flex align-items-center gap-2 flex-wrap">

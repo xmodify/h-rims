@@ -9,7 +9,7 @@
                 <i class="bi bi-file-earmark-text-fill text-primary me-2"></i>
                 รายละเอียดธุรกรรมรายบุคคล Seamless For DMIS
             </h5>
-            <div class="text-muted small mt-1">รายละเอียดข้อมูลการเบิกจ่ายแยกตามโครงการและประเภทบริการ</div>
+            <div class="text-muted small mt-1">รายละเอียดข้อมูลการเบิกจ่ายแยกตามกองทุนและประเภทบริการ</div>
             <div class="mt-2">
                 <a href="{{ route('import.dmis') }}" class="btn btn-secondary btn-sm rounded-pill px-3">
                     <i class="bi bi-arrow-left me-1"></i> ย้อนกลับ
@@ -20,7 +20,7 @@
         <form method="POST" action="{{ route('import.dmis.detail') }}" class="m-0" id="filterForm">
             @csrf
             <div class="d-flex align-items-center gap-2 flex-wrap">
-                <span class="text-muted small">โครงการ:</span>
+                <span class="text-muted small">กองทุน:</span>
                 <select class="form-select form-select-sm" name="claim_type" id="claim_type" style="width: 250px; border-radius: 8px;">
                     <option value="">-- ทั้งหมด --</option>
                     @foreach($claim_types as $type)

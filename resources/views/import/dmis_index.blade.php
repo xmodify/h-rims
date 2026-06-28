@@ -72,7 +72,7 @@
                     <thead>
                         <tr>
                             <th class="text-center">ชื่อไฟล์นำเข้า</th>
-                            <th class="text-center">โครงการ</th>
+                            <th class="text-center">กองทุน</th>
                             <th class="text-center">จำนวนคิวส่ง</th>
                             <th class="text-center">จำนวนราย</th>
                             <th class="text-center">ยอดขอเบิก (บาท)</th>
@@ -154,7 +154,7 @@
                     <div class="col-md-8">
                         <div class="d-flex justify-content-end align-items-center gap-3">
                             <div class="d-flex align-items-center gap-2">
-                                <span class="text-muted small text-nowrap">โครงการ:</span>
+                                <span class="text-muted small text-nowrap">กองทุน:</span>
                                 <select class="form-select shadow-sm" id="modal_filter_claim_type" style="width: 350px; border-radius: 8px;">
                                     <option value="">-- ทั้งหมด --</option>
                                     @foreach($claim_types as $type)
@@ -459,7 +459,7 @@
             const budgetYearText = $('#modal_filter_budget_year option:selected').text().trim();
 
             const claimText = claimType ? claimType : 'ทั้งหมด';
-            $('#db_subtitle').text(`ระบบนำเข้าข้อมูลและติดตาม Seamless For DMIS โครงการ: ${claimText} ${budgetYearText}`);
+            $('#db_subtitle').text(`ระบบนำเข้าข้อมูลและติดตาม Seamless For DMIS กองทุน: ${claimText} ${budgetYearText}`);
 
             $('#chart_container').addClass('d-none');
             $('#loading_spinner').removeClass('d-none');

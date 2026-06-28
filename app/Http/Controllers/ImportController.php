@@ -3307,6 +3307,68 @@ class ImportController extends Controller
         return view('import.stm_srt', compact('stm_srt', 'budget_year_select', 'budget_year'));
     }
 
+    public function stm_srt_getChartData(Request $request)
+    {
+        $budget_year = $request->budget_year ?: DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');
+
+        if (!$budget_year) {
+            $budget_year = date('Y') + 543 + (date('m') >= 10 ? 1 : 0);
+        }
+
+        $rawData = DB::table('stm_srt')
+            ->select(
+                DB::raw('CAST(SUBSTRING(round_no, LOCATE("20", round_no) + 4, 2) AS UNSIGNED) as month_no'),
+                DB::raw('SUM(receive_total) as total_receive')
+            )
+            ->whereNotNull('round_no')
+            ->where('round_no', '<>', '')
+            ->whereRaw('(CAST(SUBSTRING(round_no, LOCATE("20", round_no), 4) AS UNSIGNED) + 543 + IF(CAST(SUBSTRING(round_no, LOCATE("20", round_no) + 4, 2) AS UNSIGNED) >= 10, 1, 0)) = ?', [$budget_year])
+            ->groupBy('month_no')
+            ->get()
+            ->keyBy('month_no');
+
+        // Order months from Oct (10) to Sep (9)
+        $monthOrder = [10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        
+        $byShort = substr($budget_year, -2);
+        $prevByShort = substr($budget_year - 1, -2);
+
+        $monthNames = [
+            10 => 'ต.ค. ' . $prevByShort, 
+            11 => 'พ.ย. ' . $prevByShort, 
+            12 => 'ธ.ค. ' . $prevByShort,
+            1 => 'ม.ค. ' . $byShort, 
+            2 => 'ก.พ. ' . $byShort, 
+            3 => 'มี.ค. ' . $byShort,
+            4 => 'เม.ย. ' . $byShort, 
+            5 => 'พ.ค. ' . $byShort, 
+            6 => 'มิ.ย. ' . $byShort,
+            7 => 'ก.ค. ' . $byShort, 
+            8 => 'ส.ค. ' . $byShort, 
+            9 => 'ก.ย. ' . $byShort
+        ];
+
+        $labels = [];
+        $receiveTotals = [];
+
+        foreach ($monthOrder as $m) {
+            $labels[] = $monthNames[$m];
+            if (isset($rawData[$m])) {
+                $receiveTotals[] = floatval($rawData[$m]->total_receive);
+            } else {
+                $receiveTotals[] = 0.00;
+            }
+        }
+
+        return response()->json([
+            'labels' => $labels,
+            'receive_totals' => $receiveTotals
+        ]);
+    }
+
     //stm_srt_save---------------------------------------------------------------------------------------------------------------------------
     public function stm_srt_save(Request $request)
     {
@@ -3957,6 +4019,68 @@ class ImportController extends Controller
 				stm_filename DESC, dep DESC ", [$budget_year]);
 
         return view('import.stm_pvt', compact('stm_pvt', 'budget_year_select', 'budget_year'));
+    }
+
+    public function stm_pvt_getChartData(Request $request)
+    {
+        $budget_year = $request->budget_year ?: DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');
+
+        if (!$budget_year) {
+            $budget_year = date('Y') + 543 + (date('m') >= 10 ? 1 : 0);
+        }
+
+        $rawData = DB::table('stm_pvt')
+            ->select(
+                DB::raw('CAST(SUBSTRING(round_no, LOCATE("20", round_no) + 4, 2) AS UNSIGNED) as month_no'),
+                DB::raw('SUM(receive_total) as total_receive')
+            )
+            ->whereNotNull('round_no')
+            ->where('round_no', '<>', '')
+            ->whereRaw('(CAST(SUBSTRING(round_no, LOCATE("20", round_no), 4) AS UNSIGNED) + 543 + IF(CAST(SUBSTRING(round_no, LOCATE("20", round_no) + 4, 2) AS UNSIGNED) >= 10, 1, 0)) = ?', [$budget_year])
+            ->groupBy('month_no')
+            ->get()
+            ->keyBy('month_no');
+
+        // Order months from Oct (10) to Sep (9)
+        $monthOrder = [10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        
+        $byShort = substr($budget_year, -2);
+        $prevByShort = substr($budget_year - 1, -2);
+
+        $monthNames = [
+            10 => 'ต.ค. ' . $prevByShort, 
+            11 => 'พ.ย. ' . $prevByShort, 
+            12 => 'ธ.ค. ' . $prevByShort,
+            1 => 'ม.ค. ' . $byShort, 
+            2 => 'ก.พ. ' . $byShort, 
+            3 => 'มี.ค. ' . $byShort,
+            4 => 'เม.ย. ' . $byShort, 
+            5 => 'พ.ค. ' . $byShort, 
+            6 => 'มิ.ย. ' . $byShort,
+            7 => 'ก.ค. ' . $byShort, 
+            8 => 'ส.ค. ' . $byShort, 
+            9 => 'ก.ย. ' . $byShort
+        ];
+
+        $labels = [];
+        $receiveTotals = [];
+
+        foreach ($monthOrder as $m) {
+            $labels[] = $monthNames[$m];
+            if (isset($rawData[$m])) {
+                $receiveTotals[] = floatval($rawData[$m]->total_receive);
+            } else {
+                $receiveTotals[] = 0.00;
+            }
+        }
+
+        return response()->json([
+            'labels' => $labels,
+            'receive_totals' => $receiveTotals
+        ]);
     }
 
     //stm_pvt_save---------------------------------------------------------------------------------------------------------------------------
@@ -5311,6 +5435,77 @@ class ImportController extends Controller
         return view('import.stm_ofc_csop', compact('stm_ofc_csop', 'budget_year_select', 'budget_year'));
     }
 
+    public function stm_ofc_csop_getChartData(Request $request)
+    {
+        $budget_year = $request->budget_year ?: DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');
+
+        if (!$budget_year) {
+            $budget_year = date('Y') + 543 + (date('m') >= 10 ? 1 : 0);
+        }
+
+        $sys_type = $request->sys_type ?: 'csop';
+
+        $query = DB::table('stm_ofc_csop')
+            ->select(
+                DB::raw('CAST(SUBSTRING(RIGHT(round_no, 8), 5, 2) AS UNSIGNED) as month_no'),
+                DB::raw('SUM(amount) as total_receive')
+            )
+            ->whereNotNull('round_no')
+            ->where('round_no', '<>', '');
+
+        if ($sys_type == 'kidney') {
+            $query->where('sys', '=', 'HD');
+        } else {
+            $query->where('sys', '<>', 'HD');
+        }
+
+        $rawData = $query->whereRaw('(CAST(LEFT(RIGHT(round_no, 8), 4) AS UNSIGNED) + 543 + IF(CAST(SUBSTRING(RIGHT(round_no, 8), 5, 2) AS UNSIGNED) >= 10, 1, 0)) = ?', [$budget_year])
+            ->groupBy('month_no')
+            ->get()
+            ->keyBy('month_no');
+
+        // Order months from Oct (10) to Sep (9)
+        $monthOrder = [10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        
+        $byShort = substr($budget_year, -2);
+        $prevByShort = substr($budget_year - 1, -2);
+
+        $monthNames = [
+            10 => 'ต.ค. ' . $prevByShort, 
+            11 => 'พ.ย. ' . $prevByShort, 
+            12 => 'ธ.ค. ' . $prevByShort,
+            1 => 'ม.ค. ' . $byShort, 
+            2 => 'ก.พ. ' . $byShort, 
+            3 => 'มี.ค. ' . $byShort,
+            4 => 'เม.ย. ' . $byShort, 
+            5 => 'พ.ค. ' . $byShort, 
+            6 => 'มิ.ย. ' . $byShort,
+            7 => 'ก.ค. ' . $byShort, 
+            8 => 'ส.ค. ' . $byShort, 
+            9 => 'ก.ย. ' . $byShort
+        ];
+
+        $labels = [];
+        $receiveTotals = [];
+
+        foreach ($monthOrder as $m) {
+            $labels[] = $monthNames[$m];
+            if (isset($rawData[$m])) {
+                $receiveTotals[] = floatval($rawData[$m]->total_receive);
+            } else {
+                $receiveTotals[] = 0.00;
+            }
+        }
+
+        return response()->json([
+            'labels' => $labels,
+            'receive_totals' => $receiveTotals
+        ]);
+    }
+
     //stm_ofc_csop_save-------------------------------------------------------------------------------------------------------------
     public function stm_ofc_csop_save(Request $request)
     {
@@ -5792,6 +5987,68 @@ class ImportController extends Controller
             ORDER BY CAST(RIGHT(round_no, 6) AS UNSIGNED) DESC, round_no DESC", [$budget_year]);
 
         return view('import.stm_ofc_cipn', compact('stm_ofc_cipn', 'budget_year_select', 'budget_year'));
+    }
+
+    public function stm_ofc_cipn_getChartData(Request $request)
+    {
+        $budget_year = $request->budget_year ?: DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');
+
+        if (!$budget_year) {
+            $budget_year = date('Y') + 543 + (date('m') >= 10 ? 1 : 0);
+        }
+
+        $rawData = DB::table('stm_ofc_cipn')
+            ->select(
+                DB::raw('CAST(RIGHT(round_no, 2) AS UNSIGNED) as month_no'),
+                DB::raw('SUM(gtotal) as total_receive')
+            )
+            ->whereNotNull('round_no')
+            ->where('round_no', '<>', '')
+            ->whereRaw('(CAST(LEFT(RIGHT(round_no, 6), 4) AS UNSIGNED) + 543 + IF(CAST(RIGHT(round_no, 2) AS UNSIGNED) >= 10, 1, 0)) = ?', [$budget_year])
+            ->groupBy('month_no')
+            ->get()
+            ->keyBy('month_no');
+
+        // Order months from Oct (10) to Sep (9)
+        $monthOrder = [10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        
+        $byShort = substr($budget_year, -2);
+        $prevByShort = substr($budget_year - 1, -2);
+
+        $monthNames = [
+            10 => 'ต.ค. ' . $prevByShort, 
+            11 => 'พ.ย. ' . $prevByShort, 
+            12 => 'ธ.ค. ' . $prevByShort,
+            1 => 'ม.ค. ' . $byShort, 
+            2 => 'ก.พ. ' . $byShort, 
+            3 => 'มี.ค. ' . $byShort,
+            4 => 'เม.ย. ' . $byShort, 
+            5 => 'พ.ค. ' . $byShort, 
+            6 => 'มิ.ย. ' . $byShort,
+            7 => 'ก.ค. ' . $byShort, 
+            8 => 'ส.ค. ' . $byShort, 
+            9 => 'ก.ย. ' . $byShort
+        ];
+
+        $labels = [];
+        $receiveTotals = [];
+
+        foreach ($monthOrder as $m) {
+            $labels[] = $monthNames[$m];
+            if (isset($rawData[$m])) {
+                $receiveTotals[] = floatval($rawData[$m]->total_receive);
+            } else {
+                $receiveTotals[] = 0.00;
+            }
+        }
+
+        return response()->json([
+            'labels' => $labels,
+            'receive_totals' => $receiveTotals
+        ]);
     }
 
     //stm_ofc_cipn_save-------------------------------------------------------------------------------------------------------------

@@ -1099,7 +1099,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item d-flex align-items-center me-2">
                             <div class="nav-version-badge">
-                                V.69-06-28 18:00
+                                V.69-06-28 20:00
                             </div>
                         </li>
                         <!-- Authentication Links -->
@@ -1196,9 +1196,14 @@
                         $is_kidney = request()->is('*kidney*') || request()->is('*csop*') || request()->routeIs('*kidney*') || request()->routeIs('*csop*');
                     @endphp
                     @if ($is_kidney)
-                        <a href="{{ route('import.statement_kidney') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm">
-                            <i class="bi bi-arrow-left me-1"></i> ย้อนกลับไปยัง Statement ฟอกไต Portal
-                        </a>
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <a href="{{ route('import.statement_kidney') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm">
+                                <i class="bi bi-arrow-left me-1"></i> ย้อนกลับไปยัง Statement ฟอกไต Portal
+                            </a>
+                            <a href="{{ route('import.statement') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm">
+                                <i class="bi bi-arrow-left me-1"></i> ย้อนกลับไปยัง Statement Portal
+                            </a>
+                        </div>
                     @else
                         <a href="{{ route('import.statement') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3 shadow-sm">
                             <i class="bi bi-arrow-left me-1"></i> ย้อนกลับไปยัง Statement Portal

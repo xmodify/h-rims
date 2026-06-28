@@ -162,6 +162,7 @@ Route::match(['get', 'post'], 'import/stm_bmt_detail_ipd', [ImportController::cl
 Route::match(['get', 'post'], 'import/stm_srt', [ImportController::class, 'stm_srt'])->name('stm_srt');
 Route::post('import/stm_srt_save', [ImportController::class, 'stm_srt_save']);
 Route::post('import/stm_srt_updateReceipt', [ImportController::class, 'stm_srt_updateReceipt']);
+Route::get('import/stm_srt/chart-data', [ImportController::class, 'stm_srt_getChartData'])->name('import.stm_srt.chart-data');
 Route::match(['get', 'post'], 'import/stm_srt_detail', [ImportController::class, 'stm_srt_detail']);
 Route::match(['get', 'post'], 'import/stm_srt_detail_opd', [ImportController::class, 'stm_srt_detail_opd'])->name('stm_srt_detail_opd');
 Route::match(['get', 'post'], 'import/stm_srt_detail_ipd', [ImportController::class, 'stm_srt_detail_ipd'])->name('stm_srt_detail_ipd');
@@ -169,6 +170,7 @@ Route::match(['get', 'post'], 'import/stm_srt_detail_ipd', [ImportController::cl
 Route::match(['get', 'post'], 'import/stm_pvt', [ImportController::class, 'stm_pvt'])->name('stm_pvt');
 Route::post('import/stm_pvt_save', [ImportController::class, 'stm_pvt_save']);
 Route::post('import/stm_pvt_updateReceipt', [ImportController::class, 'stm_pvt_updateReceipt']);
+Route::get('import/stm_pvt/chart-data', [ImportController::class, 'stm_pvt_getChartData'])->name('import.stm_pvt.chart-data');
 Route::match(['get', 'post'], 'import/stm_pvt_detail', [ImportController::class, 'stm_pvt_detail']);
 Route::match(['get', 'post'], 'import/stm_pvt_detail_opd', [ImportController::class, 'stm_pvt_detail_opd'])->name('stm_pvt_detail_opd');
 Route::match(['get', 'post'], 'import/stm_pvt_detail_ipd', [ImportController::class, 'stm_pvt_detail_ipd'])->name('stm_pvt_detail_ipd');
@@ -176,12 +178,14 @@ Route::match(['get', 'post'], 'import/stm_pvt_detail_ipd', [ImportController::cl
 Route::match(['get', 'post'], 'import/stm_ofc_csop', [ImportController::class, 'stm_ofc_csop'])->name('stm_ofc_csop');
 Route::post('import/stm_ofc_csop_save', [ImportController::class, 'stm_ofc_csop_save']);
 Route::post('import/stm_ofc_csop_updateReceipt', [ImportController::class, 'stm_ofc_csop_updateReceipt']);
+Route::get('import/stm_ofc_csop/chart-data', [ImportController::class, 'stm_ofc_csop_getChartData'])->name('import.stm_ofc_csop.chart-data');
 Route::match(['get', 'post'], 'import/stm_ofc_csopdetail', [ImportController::class, 'stm_ofc_csopdetail'])->name('import.stm_ofc_csopdetail');
 
 Route::match(['get', 'post'], 'import/stm_ofc_cipn', [ImportController::class, 'stm_ofc_cipn'])->name('stm_ofc_cipn');
 Route::post('import/stm_ofc_cipn_save', [ImportController::class, 'stm_ofc_cipn_save']);
 Route::post('import/stm_ofc_cipn_updateReceipt', [ImportController::class, 'stm_ofc_cipn_updateReceipt']);
-Route::match(['get', 'post'], 'import/stm_ofc_cipndetail', [ImportController::class, 'stm_ofc_cipndetail'])->name('stm_ofc_cipndetail');
+Route::get('import/stm_ofc_cipn/chart-data', [ImportController::class, 'stm_ofc_cipn_getChartData'])->name('import.stm_ofc_cipn.chart-data');
+Route::match(['get', 'post'], 'import/stm_ofc_cipndetail', [ImportController::class, 'stm_ofc_cipndetail'])->name('import.stm_ofc_cipndetail');
 
 Route::match(['get', 'post'], 'import/stm_lgo', [ImportController::class, 'stm_lgo'])->name('stm_lgo');
 Route::post('import/stm_lgo_save', [ImportController::class, 'stm_lgo_save']);

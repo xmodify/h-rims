@@ -24,6 +24,21 @@ class Nhso_Endpoint extends Model
         'sourceChannel', 
         'claimCode',  
         'claimType',                        
+        'claim_status',
+        'saved_at',
+        'nhso_response',
+        'statusAuthen',
+        'statusMessage',
+        'sex',
+        'birthDate_year',
+        'birthDate_month',
+        'nation_code',
+        'nation_descriptionTh',
+        'province_id',
+        'province_name',
+        'hcode',
+        'hname',
+        'serviceName',
     ];
     public $timestamps = false;   
 }

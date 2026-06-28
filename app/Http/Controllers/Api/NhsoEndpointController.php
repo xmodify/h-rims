@@ -47,6 +47,8 @@ class NhsoEndpointController extends Controller
             return response()->json(['status' => 'error', 'message' => 'ไม่พบ Token NHSO ในระบบ'], 500);
         }
 
+        $localHcode = DB::connection('hosxp')->table('opdconfig')->value('hospitalcode');
+
         $pulled = 0;
         $inserted = 0;
         $updated = 0;
@@ -85,8 +87,14 @@ class NhsoEndpointController extends Controller
                         $claimType = $row['service']['code'] ?? null;
                         $sourceChannel = $row['sourceChannel'] ?? '';
                         $serviceDateTime = $row['serviceDateTime'] ?? null;
+                        $apiHcode = $row['hospital']['hcode'] ?? null;
 
                         if (!$claimCode) continue;
+
+                        // ตรวจสอบ hcode ว่าตรงกับโรงพยาบาลเราหรือไม่
+                        if ($localHcode && $apiHcode && $apiHcode !== $localHcode) {
+                            continue;
+                        }
                         
                         // กรองตามเงื่อนไข: ทั่วไป/ฟอกไต เอาเฉพาะ EP, Homeward เอาเฉพาะ PP
                         $shouldPull = false;
@@ -126,6 +134,19 @@ class NhsoEndpointController extends Controller
                                 'claimType'       => $claimType,
                                 'claim_status'    => $claimStatus,
                                 'saved_at'        => now(),
+                                'nhso_response'   => json_encode($row, JSON_UNESCAPED_UNICODE),
+                                'statusAuthen'    => $result['statusAuthen'] ?? null,
+                                'statusMessage'   => $result['statusMessage'] ?? null,
+                                'sex'             => $result['sex'] ?? null,
+                                'birthDate_year'  => $result['birthDate']['year'] ?? null,
+                                'birthDate_month' => $result['birthDate']['month'] ?? null,
+                                'nation_code'     => $result['nation']['code'] ?? null,
+                                'nation_descriptionTh'=> $result['nation']['descriptionTh'] ?? null,
+                                'province_id'     => $result['province']['id'] ?? null,
+                                'province_name'   => $result['province']['name'] ?? null,
+                                'hcode'           => $row['hospital']['hcode'] ?? null,
+                                'hname'           => $row['hospital']['hname'] ?? null,
+                                'serviceName'     => $row['service']['name'] ?? null,
                             ];
                             $inserted++;
                         }
@@ -174,6 +195,8 @@ class NhsoEndpointController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Token not found'], 500);
         }
 
+        $localHcode = DB::connection('hosxp')->table('opdconfig')->value('hospitalcode');
+
         $response = Http::withToken($token)
             ->acceptJson()
             ->get("https://authenucws.nhso.go.th/authencodestatus/api/check-authen-status", [
@@ -207,8 +230,14 @@ class NhsoEndpointController extends Controller
             $sourceChannel = $row['sourceChannel'] ?? '';
             $claimCode = $row['claimCode'] ?? null;
             $claimType = $row['service']['code'] ?? null;
+            $apiHcode = $row['hospital']['hcode'] ?? null;
 
             if (!$claimCode || !$claimType) {
+                continue;
+            }
+
+            // ตรวจสอบ hcode ว่าตรงกับโรงพยาบาลเราหรือไม่
+            if ($localHcode && $apiHcode && $apiHcode !== $localHcode) {
                 continue;
             }
             // กรองตามเงื่อนไข: ทั่วไป/ฟอกไต เอาเฉพาะ EP, Homeward เอาเฉพาะ PP
@@ -245,7 +274,21 @@ class NhsoEndpointController extends Controller
             $indiv->claimType = $claimType;
             $indiv->claim_status = $claimStatus;
             $indiv->saved_at = now();
-            $indiv->nhso_response = json_encode($row);
+            $indiv->nhso_response = json_encode($row, JSON_UNESCAPED_UNICODE);
+            
+            $indiv->statusAuthen = $result['statusAuthen'] ?? null;
+            $indiv->statusMessage = $result['statusMessage'] ?? null;
+            $indiv->sex = $result['sex'] ?? null;
+            $indiv->birthDate_year = $result['birthDate']['year'] ?? null;
+            $indiv->birthDate_month = $result['birthDate']['month'] ?? null;
+            $indiv->nation_code = $result['nation']['code'] ?? null;
+            $indiv->nation_descriptionTh = $result['nation']['descriptionTh'] ?? null;
+            $indiv->province_id = $result['province']['id'] ?? null;
+            $indiv->province_name = $result['province']['name'] ?? null;
+            $indiv->hcode = $row['hospital']['hcode'] ?? null;
+            $indiv->hname = $row['hospital']['hname'] ?? null;
+            $indiv->serviceName = $row['service']['name'] ?? null;
+
             $indiv->save();
 
             $foundPiSit = true;
@@ -288,6 +331,8 @@ class NhsoEndpointController extends Controller
             return response()->json(['status' => 'error', 'message' => 'Token not found'], 500);
         }
 
+        $localHcode = DB::connection('hosxp')->table('opdconfig')->value('hospitalcode');
+
         $pulled = 0;
         $inserted = 0;
         $updated = 0;
@@ -326,9 +371,15 @@ class NhsoEndpointController extends Controller
                         $claimType = $row['service']['code'] ?? null;
                         $sourceChannel = $row['sourceChannel'] ?? '';
                         $serviceDateTime = $row['serviceDateTime'] ?? null;
+                        $apiHcode = $row['hospital']['hcode'] ?? null;
 
                         if (!$claimCode)
                             continue;
+
+                        // ตรวจสอบ hcode ว่าตรงกับโรงพยาบาลเราหรือไม่
+                        if ($localHcode && $apiHcode && $apiHcode !== $localHcode) {
+                            continue;
+                        }
 
                         // กรองตามเงื่อนไข: ทั่วไป/ฟอกไต เอาเฉพาะ EP, Homeward เอาเฉพาะ PP
                         $shouldPull = false;
@@ -368,6 +419,19 @@ class NhsoEndpointController extends Controller
                                 'claimType'       => $claimType,
                                 'claim_status'    => $claimStatus,
                                 'saved_at'        => now(),
+                                'nhso_response'   => json_encode($row, JSON_UNESCAPED_UNICODE),
+                                'statusAuthen'    => $result['statusAuthen'] ?? null,
+                                'statusMessage'   => $result['statusMessage'] ?? null,
+                                'sex'             => $result['sex'] ?? null,
+                                'birthDate_year'  => $result['birthDate']['year'] ?? null,
+                                'birthDate_month' => $result['birthDate']['month'] ?? null,
+                                'nation_code'     => $result['nation']['code'] ?? null,
+                                'nation_descriptionTh'=> $result['nation']['descriptionTh'] ?? null,
+                                'province_id'     => $result['province']['id'] ?? null,
+                                'province_name'   => $result['province']['name'] ?? null,
+                                'hcode'           => $row['hospital']['hcode'] ?? null,
+                                'hname'           => $row['hospital']['hname'] ?? null,
+                                'serviceName'     => $row['service']['name'] ?? null,
                             ];
                             $inserted++;
                         }

@@ -2391,7 +2391,7 @@ class MishosController extends Controller
                    p.name AS pttype, vp.hospmain, os.cc, (SELECT icd10 FROM ovstdiag WHERE vn = o.vn AND diagtype = "1" LIMIT 1) AS pdx,
                    v.income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                    IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
-                   IF((vp.auth_code LIKE "EP%" OR ep.claimCode LIKE "EP%" OR ep.claim_status = "success"),"Y",NULL) AS endpoint,
+                   IF((ep.claimCode LIKE "EP%" OR ep.claim_status = "success"),"Y",NULL) AS endpoint,
                    ep.claim_status,
                    fdh.status_message_th AS fdh_status,
                    vp.confirm_and_locked,
@@ -2556,7 +2556,7 @@ class MishosController extends Controller
             $row->fdh_status = $fdhStatuses[$row->seq] ?? null;
 
             $hasEp = isset($endpointsMap[$row->cid][$row->vstdate]);
-            $row->endpoint = $hasEp || (isset($row->auth_code_ep) && $row->auth_code_ep === 'Y') ? 'Y' : null;
+            $row->endpoint = $hasEp ? 'Y' : null;
 
             // Run validation
             $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
@@ -2636,7 +2636,7 @@ class MishosController extends Controller
             $row->fdh_status = $fdhStatuses[$row->seq] ?? null;
 
             $hasEp = isset($endpointsMap[$row->cid][$row->vstdate]);
-            $row->endpoint = $hasEp || (isset($row->auth_code_ep) && $row->auth_code_ep === 'Y') ? 'Y' : null;
+            $row->endpoint = $hasEp ? 'Y' : null;
 
             // Run validation
             $result = $validator->validateInsUcsOnly($row, $itemsByVn[$row->seq] ?? []);
@@ -2682,7 +2682,7 @@ class MishosController extends Controller
         foreach ($search as $row) {
             $hasEp = isset($endpointsMap[$row->cid][$row->vstdate]);
             $authCode = $authCodes[$row->seq] ?? null;
-            $row->endpoint_valid = $hasEp || (isset($authCode) && strpos($authCode, 'EP') === 0) ? true : false;
+            $row->endpoint_valid = $hasEp;
         }
     }
 

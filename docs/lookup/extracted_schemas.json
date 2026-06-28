@@ -11482,7 +11482,7 @@
     "nhso_endpoint": {
         "columns": {
             "id": {
-                "type": "int(11)",
+                "type": "bigint(20) unsigned",
                 "nullable": false,
                 "default": null,
                 "extra": "auto_increment"
@@ -11560,7 +11560,7 @@
                 "extra": ""
             },
             "claim_status": {
-                "type": "varchar(20)",
+                "type": "varchar(50)",
                 "nullable": true,
                 "default": null,
                 "extra": ""
@@ -11576,6 +11576,78 @@
                 "nullable": true,
                 "default": null,
                 "extra": ""
+            },
+            "statusAuthen": {
+                "type": "tinyint(1)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "statusMessage": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "sex": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "birthDate_year": {
+                "type": "int(11)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "birthDate_month": {
+                "type": "int(11)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "nation_code": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "nation_descriptionTh": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "province_id": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "province_name": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hcode": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hname": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "serviceName": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
             }
         },
         "indexes": {
@@ -11585,21 +11657,21 @@
                     "unique": true
                 }
             ],
-            "cid": [
+            "nhso_endpoint_cid_index": [
                 {
                     "column": "cid",
                     "unique": false
                 }
             ],
-            "claimCode": [
+            "nhso_endpoint_vstdate_index": [
                 {
-                    "column": "claimCode",
+                    "column": "vstdate",
                     "unique": false
                 }
             ],
-            "vstdate": [
+            "nhso_endpoint_claimcode_index": [
                 {
-                    "column": "vstdate",
+                    "column": "claimCode",
                     "unique": false
                 }
             ]

@@ -972,16 +972,16 @@ function showDetails(vn) {
           {
             label: 'เรียกเก็บ',
             data: <?php echo json_encode($claim_price); ?>,
-            backgroundColor: 'rgba(249, 115, 22, 0.6)',
-            borderColor: 'rgb(249, 115, 22)',
+            backgroundColor: 'rgba(185, 28, 28, 0.75)',
+            borderColor: 'rgb(185, 28, 28)',
             borderWidth: 1,
             borderRadius: 4
           },
           {
             label: 'ส่งเคลม',
             data: <?php echo json_encode($claim_sent_price); ?>,
-            backgroundColor: 'rgba(14, 165, 233, 0.6)',
-            borderColor: 'rgb(14, 165, 233)',
+            backgroundColor: 'rgba(234, 179, 8, 0.6)',
+            borderColor: 'rgb(234, 179, 8)',
             borderWidth: 1,
             borderRadius: 4
           },

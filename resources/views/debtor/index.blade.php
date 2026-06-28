@@ -773,8 +773,8 @@
                         {
                             label: 'เรียกเก็บ (Debtor)',
                             data: data.claim_price,
-                            backgroundColor: 'rgba(249, 115, 22, 0.7)',
-                            borderColor: 'rgb(249, 115, 22)',
+                            backgroundColor: 'rgba(185, 28, 28, 0.75)',
+                            borderColor: 'rgb(185, 28, 28)',
                             borderWidth: 1,
                             borderRadius: 8
                         },

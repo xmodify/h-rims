@@ -24,7 +24,7 @@
                 <i class="bi bi-activity me-1"></i> DASHBOARD OVERVIEW
               </h6>
               <small class="text-muted ms-2 fw-normal dashboard-date-info">
-                <i class="bi bi-calendar3 me-1"></i> {{DateThai(date('Y-m-d'))}} 
+                Visit ล่าสุด <i class="bi bi-calendar3 me-1"></i> {{DateThai(date('Y-m-d'))}} 
                 <i class="bi bi-clock-history ms-2 me-1"></i> {{ $latest_vsttime }}
               </small>
             </div>
@@ -155,10 +155,10 @@
         <div class="page-header-box" style="border-left-color: #198754 !important;">
           <div class="d-flex align-items-center gap-2">
             <h6 class="text-success mb-0 fw-bold">
-              <i class="bi bi-door-open me-2"></i> INPATIENT ADMISSIONS (IPD)
+              <i class="bi bi-door-open me-2"></i> INPATIENT ADMISSIONS 
             </h6>
             <small class="text-muted ms-2 fw-normal dashboard-date-info">
-              <i class="bi bi-calendar3 me-1"></i> {{DateThai(date('Y-m-d'))}}
+              Admit ล่าสุด <i class="bi bi-calendar3 me-1"></i> {{DateThai(date('Y-m-d'))}}
               <i class="bi bi-clock-history me-1"></i> {{ $latest_regtime }} 
               <span class="ms-3">ADMIT NOW: <span class="text-dark fw-bold">{{$admit_now}}</span> AN</span>
             </small>

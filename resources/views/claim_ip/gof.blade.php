@@ -402,8 +402,8 @@
             {
               label: 'เรียกเก็บ',
               data: <?php echo json_encode($claim_price); ?>,
-              backgroundColor: 'rgba(249, 115, 22, 0.6)',
-              borderColor: 'rgb(249, 115, 22)',
+              backgroundColor: 'rgba(185, 28, 28, 0.75)',
+              borderColor: 'rgb(185, 28, 28)',
               borderWidth: 1,
               borderRadius: 4
             },

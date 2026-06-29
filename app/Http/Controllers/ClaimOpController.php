@@ -2202,8 +2202,9 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
+                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,SUM(IFNULL(receive_total,0)) AS receive_total
             FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
+            CASE WHEN oe.upload_datetime IS NOT NULL OR stm.cid IS NOT NULL OR ec.hn IS NOT NULL THEN IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) ELSE 0 END AS claim_sent_price,
             IFNULL(stm.compensate_treatment,0)+IFNULL(stm_uc.receive_pp,0) AS receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -2217,6 +2218,9 @@ class ClaimOpController extends Controller
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
+            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
+                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             LEFT JOIN (
                 SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment,
                 GROUP_CONCAT(DISTINCT NULLIF(repno,"")) AS repno FROM hrims.stm_lgo 
@@ -2239,6 +2243,7 @@ class ClaimOpController extends Controller
             ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
@@ -2353,7 +2358,7 @@ class ClaimOpController extends Controller
             AND (oe.upload_datetime IS NOT NULL OR stm.cid IS NOT NULL OR ec.hn IS NOT NULL)
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_op.lgo', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
+        return view('claim_op.lgo', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function lgo_kidney(Request $request)
@@ -2513,8 +2518,9 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
+                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,SUM(IFNULL(receive_total,0)) AS receive_total
             FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
+            CASE WHEN oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL THEN IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) ELSE 0 END AS claim_sent_price,
             IFNULL(stm.receive_total,0)+IFNULL(stm_uc.receive_pp,0) AS receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -2528,6 +2534,9 @@ class ClaimOpController extends Controller
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
+            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
+                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
                 FROM hrims.stm_bkk 
@@ -2550,6 +2559,7 @@ class ClaimOpController extends Controller
             ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
@@ -2664,7 +2674,7 @@ class ClaimOpController extends Controller
             AND (oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL)
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_op.bkk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
+        return view('claim_op.bkk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
     }
 
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -2817,8 +2827,9 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
+                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,SUM(IFNULL(receive_total,0)) AS receive_total
             FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
+            CASE WHEN oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL THEN IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) ELSE 0 END AS claim_sent_price,
             IFNULL(stm.receive_total,0)+IFNULL(stm_uc.receive_pp,0) AS receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -2832,6 +2843,9 @@ class ClaimOpController extends Controller
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
+            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
+                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
                 FROM hrims.stm_bmt 
@@ -2854,6 +2868,7 @@ class ClaimOpController extends Controller
             ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
@@ -2968,7 +2983,7 @@ class ClaimOpController extends Controller
             AND (oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL)
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_op.bmt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
+        return view('claim_op.bmt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
     }
 
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -3121,8 +3136,9 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
+                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,SUM(IFNULL(receive_total,0)) AS receive_total
             FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
+            CASE WHEN oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL THEN IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) ELSE 0 END AS claim_sent_price,
             IFNULL(stm.receive_total,0)+IFNULL(stm_uc.receive_pp,0) AS receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -3136,6 +3152,9 @@ class ClaimOpController extends Controller
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
+            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
+                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
                 FROM hrims.stm_srt 
@@ -3158,6 +3177,7 @@ class ClaimOpController extends Controller
             ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
@@ -3272,7 +3292,7 @@ class ClaimOpController extends Controller
             AND (oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL)
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_op.srt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
+        return view('claim_op.srt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
     }
 
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -3318,8 +3338,9 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
+                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,SUM(IFNULL(receive_total,0)) AS receive_total
             FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
+            CASE WHEN oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL THEN IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) ELSE 0 END AS claim_sent_price,
             IFNULL(stm.receive_total,0)+IFNULL(stm_uc.receive_pp,0) AS receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -3333,6 +3354,9 @@ class ClaimOpController extends Controller
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
+            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
+                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             LEFT JOIN (
                 SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
                 FROM hrims.stm_pvt 
@@ -3355,6 +3379,7 @@ class ClaimOpController extends Controller
             ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
@@ -3469,7 +3494,7 @@ class ClaimOpController extends Controller
             AND (oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL)
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_op.pvt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
+        return view('claim_op.pvt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
 

@@ -376,7 +376,7 @@ class DebtorAccController extends Controller
                 ", [$fiscal_start_date, $fiscal_end_date]);
                 foreach($rec_rows as $rr) $receive_map[intval(($rr->m >= 10) ? $rr->m - 9 : $rr->m + 3)] = $rr->total;
 
-            } else if (in_array($acc_code, ['1102050101.401', '1102050102.110', '1102050102.803'])) {
+            } else if (in_array($acc_code, ['1102050101.401', '1102050102.803'])) {
                 $rec_rows = DB::select("
                     SELECT YEAR(r_date) as y, MONTH(r_date) as m, SUM(total) as total
                     FROM (
@@ -387,7 +387,30 @@ class DebtorAccController extends Controller
                 ", [$fiscal_start_date, $fiscal_end_date, $fiscal_start_date, $fiscal_end_date]);
                 foreach($rec_rows as $rr) $receive_map[intval(($rr->m >= 10) ? $rr->m - 9 : $rr->m + 3)] = $rr->total;
 
-            } else if (in_array($acc_code, ['1102050101.402', '1102050102.111', '1102050102.804'])) {
+            } else if ($acc_code == '1102050102.110') {
+                $rec_rows = DB::select("
+                    SELECT YEAR(r_date) as y, MONTH(r_date) as m, SUM(total) as total
+                    FROM (
+                        SELECT receipt_date as r_date, receive_total as total FROM stm_bmt s JOIN debtor_1102050102_110 d ON s.hn = d.hn AND s.vstdate = d.vstdate WHERE s.receipt_date BETWEEN ? AND ? AND SUBSTRING(s.stm_filename, 11) LIKE 'O%'
+                        UNION ALL
+                        SELECT receipt_date as r_date, receive_total as total FROM stm_bmt_kidney s JOIN debtor_1102050102_110 d ON s.hn = d.hn AND s.datetimeadm = d.vstdate WHERE s.receipt_date BETWEEN ? AND ?
+                        UNION ALL
+                        SELECT receipt_date as r_date, receive_total as total FROM stm_srt s JOIN debtor_1102050102_110 d ON s.hn = d.hn AND s.vstdate = d.vstdate WHERE s.receipt_date BETWEEN ? AND ?
+                        UNION ALL
+                        SELECT receipt_date as r_date, amount as total FROM stm_ofc_csop s JOIN debtor_1102050102_110 d ON s.hn = d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime,5) = LEFT(d.vsttime,5) WHERE s.receipt_date BETWEEN ? AND ?
+                        UNION ALL
+                        SELECT receipt_date as r_date, receive_total as total FROM stm_pvt s JOIN debtor_1102050102_110 d ON s.hn = d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime,5) = LEFT(d.vsttime,5) WHERE s.receipt_date BETWEEN ? AND ?
+                    ) t GROUP BY y, m
+                ", [
+                    $fiscal_start_date, $fiscal_end_date,
+                    $fiscal_start_date, $fiscal_end_date,
+                    $fiscal_start_date, $fiscal_end_date,
+                    $fiscal_start_date, $fiscal_end_date,
+                    $fiscal_start_date, $fiscal_end_date
+                ]);
+                foreach($rec_rows as $rr) $receive_map[intval(($rr->m >= 10) ? $rr->m - 9 : $rr->m + 3)] = $rr->total;
+
+            } else if (in_array($acc_code, ['1102050101.402', '1102050102.804'])) {
                 $rec_rows = DB::select("
                     SELECT YEAR(r_date) as y, MONTH(r_date) as m, SUM(total) as total
                     FROM (
@@ -396,6 +419,29 @@ class DebtorAccController extends Controller
                         SELECT receipt_date as r_date, gtotal as total FROM stm_ofc_cipn s JOIN $tableName d ON s.an = d.an WHERE receipt_date BETWEEN ? AND ?
                     ) t GROUP BY y, m
                 ", [$fiscal_start_date, $fiscal_end_date, $fiscal_start_date, $fiscal_end_date]);
+                foreach($rec_rows as $rr) $receive_map[intval(($rr->m >= 10) ? $rr->m - 9 : $rr->m + 3)] = $rr->total;
+
+            } else if ($acc_code == '1102050102.111') {
+                $rec_rows = DB::select("
+                    SELECT YEAR(r_date) as y, MONTH(r_date) as m, SUM(total) as total
+                    FROM (
+                        SELECT receipt_date as r_date, receive_total as total FROM stm_bmt s JOIN debtor_1102050102_111 d ON s.an = d.an WHERE s.receipt_date BETWEEN ? AND ?
+                        UNION ALL
+                        SELECT receipt_date as r_date, receive_total as total FROM stm_bmt_kidney s JOIN debtor_1102050102_111 d ON s.hn = d.hn AND s.datetimeadm BETWEEN d.regdate AND d.dchdate WHERE s.receipt_date BETWEEN ? AND ?
+                        UNION ALL
+                        SELECT receipt_date as r_date, receive_total as total FROM stm_srt s JOIN debtor_1102050102_111 d ON s.an = d.an WHERE s.receipt_date BETWEEN ? AND ?
+                        UNION ALL
+                        SELECT receipt_date as r_date, gtotal as total FROM stm_ofc_cipn s JOIN debtor_1102050102_111 d ON s.an = d.an WHERE s.receipt_date BETWEEN ? AND ?
+                        UNION ALL
+                        SELECT receipt_date as r_date, receive_total as total FROM stm_pvt s JOIN debtor_1102050102_111 d ON s.an = d.an WHERE s.receipt_date BETWEEN ? AND ?
+                    ) t GROUP BY y, m
+                ", [
+                    $fiscal_start_date, $fiscal_end_date,
+                    $fiscal_start_date, $fiscal_end_date,
+                    $fiscal_start_date, $fiscal_end_date,
+                    $fiscal_start_date, $fiscal_end_date,
+                    $fiscal_start_date, $fiscal_end_date
+                ]);
                 foreach($rec_rows as $rr) $receive_map[intval(($rr->m >= 10) ? $rr->m - 9 : $rr->m + 3)] = $rr->total;
 
             } else if ($acc_code == '1102050102.801') {

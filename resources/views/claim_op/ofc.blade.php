@@ -120,6 +120,7 @@
                                     <th class="text-center">ประสงค์เบิก</th>
                                     <th class="text-center">วัน-เวลา | Q</th>     
                                     <th class="text-center">HN</th>    
+                                    <th class="text-center">CID</th>    
                                     <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
                                     <th class="text-center">CC</th>
                                     <th class="text-center">PDX | ICD9</th>
@@ -165,6 +166,7 @@
                                         <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
                                     </td>            
                                     <td class="text-center fw-bold text-primary small">{{$row->hn}}</td> 
+                                    <td class="text-center small">{{$row->cid}}</td> 
                                     <td class="text-start">
                                         <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
                                         <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
@@ -194,7 +196,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="8" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                    <th colspan="9" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_paid_money,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
@@ -219,6 +221,7 @@
                                     <th class="text-center" rowspan="2">ประสงค์เบิก</th>
                                     <th class="text-center" rowspan="2">วัน-เวลา | Q</th>     
                                     <th class="text-center" rowspan="2">HN</th> 
+                                    <th class="text-center" rowspan="2">CID</th> 
                                     <th class="text-center" rowspan="2">ชื่อ-สกุล | สิทธิ</th>
                                     <th class="text-center" rowspan="2">PDX | ICD9</th>
                                     <th class="text-center" colspan="6">ค่ารักษา</th> 
@@ -286,6 +289,7 @@
                                         <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
                                     </td>            
                                     <td class="text-center fw-bold text-primary small">{{$row->hn}}</td> 
+                                    <td class="text-center small">{{$row->cid}}</td> 
                                     <td class="text-start">
                                         <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
                                         <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
@@ -323,7 +327,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="8" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                    <th colspan="9" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_paid_money,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>

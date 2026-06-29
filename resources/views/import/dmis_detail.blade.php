@@ -9,7 +9,7 @@
                 <i class="bi bi-file-earmark-text-fill text-primary me-2"></i>
                 รายละเอียดธุรกรรมรายบุคคล Seamless For DMIS
             </h5>
-            <div class="text-muted small mt-1">รายละเอียดข้อมูลการเบิกจ่ายแยกตามกองทุนและประเภทบริการ</div>
+            <div class="text-muted small mt-1">รายละเอียดข้อมูลการเบิกจ่ายแยกตามประเภทที่ขอเบิกและประเภทบริการ</div>
             <div class="mt-2">
                 <a href="{{ route('import.dmis') }}" class="btn btn-secondary btn-sm rounded-pill px-3">
                     <i class="bi bi-arrow-left me-1"></i> ย้อนกลับ
@@ -20,7 +20,15 @@
         <form method="POST" action="{{ route('import.dmis.detail') }}" class="m-0" id="filterForm">
             @csrf
             <div class="d-flex align-items-center gap-2 flex-wrap">
-                <span class="text-muted small">กองทุน:</span>
+                <span class="text-muted small">โครงการ:</span>
+                <select class="form-select form-select-sm" name="project" id="project" style="width: 250px; border-radius: 8px;">
+                    <option value="">-- ทั้งหมด --</option>
+                    @foreach($projects as $code => $name)
+                        <option value="{{ $code }}" {{ $project == $code ? 'selected' : '' }}>[{{ $code }}] {{ $name }}</option>
+                    @endforeach
+                </select>
+
+                <span class="text-muted small">ประเภทที่ขอเบิก:</span>
                 <select class="form-select form-select-sm" name="claim_type" id="claim_type" style="width: 250px; border-radius: 8px;">
                     <option value="">-- ทั้งหมด --</option>
                     @foreach($claim_types as $type)
@@ -51,20 +59,21 @@
                 <table id="t_dmis_detail" class="table table-modern w-100" style="font-size: 13px;">
                     <thead>
                         <tr>
-                            <th class="text-center">วันที่รับบริการ</th>
-                            <th class="text-center">ประเภทกิจกรรม</th>
-                            <th class="text-center">Trans ID</th>
-                            <th class="text-center">HN</th>
-                            <th class="text-center">เลขบัตรประชาชน</th>
-                            <th class="text-center">ชื่อ-สกุลผู้ป่วย</th>
-                            <th class="text-center">ยอดขอเบิก</th>
-                            <th class="text-center">ร้อยละจ่าย</th>
-                            <th class="text-center">ชดเชยจริง</th>
-                            <th class="text-center">Deny Code</th>
-                            <th class="text-center">คำอธิบายปฏิเสธ</th>
-                            <th class="text-center">รหัสอุปกรณ์ฟื้นฟู (ถ้ามี)</th>
-                            <th class="text-center">ชื่อรายการอุปกรณ์ฟื้นฟู (ถ้ามี) /กิจกรรม</th>
-                            <th class="text-center">รหัสลูกข่าย</th>
+                            <th class="text-center" width="8%">วันที่รับบริการ</th>
+                            <th class="text-center" width="12%">โครงการ</th>
+                            <th class="text-center" width="12%">ประเภทที่ขอเบิก</th>
+                            <th class="text-center" width="8%">Trans ID</th>
+                            <th class="text-center" width="6%">HN</th>
+                            <th class="text-center" width="8%">เลขบัตรประชาชน</th>
+                            <th class="text-center" width="10%">ชื่อ-สกุลผู้ป่วย</th>
+                            <th class="text-center" width="6%">ยอดขอเบิก</th>
+                            <th class="text-center" width="5%">ร้อยละจ่าย</th>
+                            <th class="text-center" width="6%">ชดเชยจริง</th>
+                            <th class="text-center" width="5%">Deny Code</th>
+                            <th class="text-center" width="10%">คำอธิบายปฏิเสธ</th>
+                            <th class="text-center" width="6%">รหัสอุปกรณ์ฟื้นฟู (ถ้ามี)</th>
+                            <th class="text-center" width="12%">ชื่อรายการอุปกรณ์ฟื้นฟู (ถ้ามี) /กิจกรรม</th>
+                            <th class="text-center" width="6%">รหัสลูกข่าย</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -116,6 +125,37 @@
             }
         });
 
+        // Dynamic claim types selector based on project select
+        const projectClaimTypes = @json($project_claim_types);
+        const originalClaimTypes = @json($claim_types);
+
+        $('#project').on('change', function () {
+            const selectedProject = $(this).val();
+            const claimTypeSelect = $('#claim_type');
+            const currentVal = claimTypeSelect.val();
+            
+            claimTypeSelect.html('<option value="">-- ทั้งหมด --</option>');
+            
+            let types = [];
+            if (selectedProject) {
+                types = projectClaimTypes[selectedProject] || [];
+            } else {
+                types = originalClaimTypes;
+            }
+            
+            types.forEach(function (type) {
+                claimTypeSelect.append(`<option value="${type}" ${currentVal == type ? 'selected' : ''}>${type}</option>`);
+            });
+        });
+        
+        if ($('#project').val()) {
+            $('#project').trigger('change');
+            const phpClaimType = "{{ $claim_type }}";
+            if (phpClaimType) {
+                $('#claim_type').val(phpClaimType);
+            }
+        }
+
         // Initialize DataTable
         $('#t_dmis_detail').DataTable({
             processing: true,
@@ -126,10 +166,12 @@
                     d.start_date = $('#start_date').val();
                     d.end_date = $('#end_date').val();
                     d.claim_type = $('#claim_type').val();
+                    d.project = $('#project').val();
                 }
             },
             columns: [
                 { data: 'vstdate', name: 'vstdate', className: 'text-center' },
+                { data: 'project_name', name: 'project_name' },
                 { data: 'claim_type_name', name: 'claim_type_name' },
                 { data: 'trans_id', name: 'trans_id', className: 'text-center' },
                 { data: 'hn', name: 'hn', className: 'text-center fw-bold' },
@@ -153,7 +195,8 @@
                         var start = $('#start_date').val();
                         var end = $('#end_date').val();
                         var claimType = $('#claim_type').val();
-                        window.location.href = "{{ route('import.dmis.detail') }}?export=excel&start_date=" + start + "&end_date=" + end + "&claim_type=" + encodeURIComponent(claimType);
+                        var project = $('#project').val();
+                        window.location.href = "{{ route('import.dmis.detail') }}?export=excel&start_date=" + start + "&end_date=" + end + "&claim_type=" + encodeURIComponent(claimType) + "&project=" + encodeURIComponent(project);
                     }
                 }
             ],

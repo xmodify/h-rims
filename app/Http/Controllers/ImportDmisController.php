@@ -38,17 +38,55 @@ class ImportDmisController extends Controller
             ->value('LEAVE_YEAR_ID');
 
         $budget_year = $request->budget_year ?: $budget_year_now;
+        $project = $request->project ?: '';
 
         $stm_dmis = [];
         $claim_types = [];
+        $projects = [];
         
         if (Schema::hasTable('stm_seamless_dmis')) {
+            $project_codes = Stm_seamless_dmis::whereNotNull('round_no')
+                ->where('round_no', '<>', '')
+                ->whereRaw('(YEAR(vstdate) + 543 + IF(MONTH(vstdate) >= 10, 1, 0)) = ?', [$budget_year])
+                ->distinct()
+                ->pluck(DB::raw('LEFT(round_no, 4)'))
+                ->toArray();
+
+            $project_mapping = [
+                'DNAP' => 'ระบบสารสนเทศการให้บริการผู้ติดเชื้อเอชไอวี ผู้ป่วยเอดส์ แห่งชาติ (NAP)',
+                'DCKD' => 'ระบบสารสนเทศเพื่อการให้บริการผู้ป่วยไตวายเรื้อรังระยะสุดท้าย',
+                'DMTB' => 'ระบบบริหารจัดการโรคเฉพาะ(วัณโรค)',
+                'DTLM' => 'ระบบบูรณาการการคัดกรองความผิดปกติของหญิงตั้งครรภ์และทารกแรกเกิด (โรคโลหิตจางธาลัสซีเมีย)',
+                'DDOW' => 'ระบบบูรณาการการคัดกรองความผิดปกติของหญิงตั้งครรภ์และทารกแรกเกิด (กลุ่มอาการดาวน์)',
+                'DDSA' => 'ระบบสารสนเทศการให้บริการฟื้นฟูสมรรถภาพ',
+                'DTTM' => 'ระบบบริการการแพทย์แผนไทย',
+                'DCMH' => 'ระบบบริการดูแลผู้ป่วยจิตเวชเรื้อรังในชุมชน',
+                'DMOR' => 'ระบบหมอพร้อม',
+                'DKTP' => 'Krungthai Digital Health Platform'
+            ];
+
+            foreach ($project_codes as $code) {
+                $code = trim($code);
+                if (strlen($code) === 4 && preg_match('/^[A-Za-z]+$/', $code)) {
+                    $projects[$code] = $project_mapping[$code] ?? 'ไม่ระบุโครงการ';
+                }
+            }
+
+            $where_clauses = ["(YEAR(vstdate) + 543 + IF(MONTH(vstdate) >= 10, 1, 0)) = ?"];
+            $params = [$budget_year];
+
+            if (!empty($project)) {
+                $where_clauses[] = "LEFT(round_no, 4) = ?";
+                $params[] = $project;
+            }
+
+            $where_str = implode(' AND ', $where_clauses);
+
             $stm_dmis = DB::select("
                 SELECT 
-                    excel_filename,
+                    GROUP_CONCAT(DISTINCT excel_filename ORDER BY excel_filename SEPARATOR ', ') AS excel_filename,
                     round_no,
-                    dmis_group,
-                    MAX(claim_type_name) AS claim_type_name,
+                    GROUP_CONCAT(DISTINCT claim_type_name ORDER BY claim_type_name SEPARATOR ', ') AS claim_type_name,
                     COUNT(DISTINCT repno) AS rep_count,
                     COUNT(id) AS count_rows,
                     SUM(claim_price) AS claim_price,
@@ -57,10 +95,10 @@ class ImportDmisController extends Controller
                     MAX(receipt_date) AS receipt_date,
                     MAX(receipt_by) AS receipt_by
                 FROM stm_seamless_dmis
-                WHERE (YEAR(vstdate) + 543 + IF(MONTH(vstdate) >= 10, 1, 0)) = ?
-                GROUP BY excel_filename, round_no, dmis_group
-                ORDER BY round_no DESC, excel_filename DESC
-            ", [$budget_year]);
+                WHERE {$where_str}
+                GROUP BY round_no
+                ORDER BY round_no DESC
+            ", $params);
 
             $claim_types = Stm_seamless_dmis::whereNotNull('claim_type_name')
                 ->where('claim_type_name', '<>', '')
@@ -68,9 +106,24 @@ class ImportDmisController extends Controller
                 ->orderBy('claim_type_name')
                 ->pluck('claim_type_name')
                 ->toArray();
+
+            $raw_mapping = Stm_seamless_dmis::select(DB::raw('LEFT(round_no, 4) as project_code'), 'claim_type_name')
+                ->whereNotNull('round_no')
+                ->where('round_no', '<>', '')
+                ->whereNotNull('claim_type_name')
+                ->where('claim_type_name', '<>', '')
+                ->distinct()
+                ->get();
+            
+            $project_claim_types = [];
+            foreach ($raw_mapping as $item) {
+                if (!empty($item->project_code)) {
+                    $project_claim_types[$item->project_code][] = $item->claim_type_name;
+                }
+            }
         }
 
-        return view('import.dmis_index', compact('budget_year_select', 'budget_year', 'budget_year_now', 'stm_dmis', 'claim_types'));
+        return view('import.dmis_index', compact('budget_year_select', 'budget_year', 'budget_year_now', 'stm_dmis', 'claim_types', 'projects', 'project', 'project_claim_types'));
     }
 
     public function detail(Request $request)
@@ -78,8 +131,11 @@ class ImportDmisController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d', strtotime("first day of this month"));
         $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));
         $claim_type = $request->claim_type ?: '';
+        $project = $request->project ?: '';
 
         $claim_types = [];
+        $projects = [];
+        $project_claim_types = [];
         if (Schema::hasTable('stm_seamless_dmis')) {
             $claim_types = Stm_seamless_dmis::whereNotNull('claim_type_name')
                 ->where('claim_type_name', '<>', '')
@@ -87,6 +143,48 @@ class ImportDmisController extends Controller
                 ->orderBy('claim_type_name')
                 ->pluck('claim_type_name')
                 ->toArray();
+
+            $project_codes = Stm_seamless_dmis::whereNotNull('round_no')
+                ->where('round_no', '<>', '')
+                ->whereDate('vstdate', '>=', $start_date)
+                ->whereDate('vstdate', '<=', $end_date)
+                ->distinct()
+                ->pluck(DB::raw('LEFT(round_no, 4)'))
+                ->toArray();
+
+            $project_mapping = [
+                'DNAP' => 'ระบบสารสนเทศการให้บริการผู้ติดเชื้อเอชไอวี ผู้ป่วยเอดส์ แห่งชาติ (NAP)',
+                'DCKD' => 'ระบบสารสนเทศเพื่อการให้บริการผู้ป่วยไตวายเรื้อรังระยะสุดท้าย',
+                'DMTB' => 'ระบบบริหารจัดการโรคเฉพาะ(วัณโรค)',
+                'DTLM' => 'ระบบบูรณาการการคัดกรองความผิดปกติของหญิงตั้งครรภ์และทารกแรกเกิด (โรคโลหิตจางธาลัสซีเมีย)',
+                'DDOW' => 'ระบบบูรณาการการคัดกรองความผิดปกติของหญิงตั้งครรภ์และทารกแรกเกิด (กลุ่มอาการดาวน์)',
+                'DDSA' => 'ระบบสารสนเทศการให้บริการฟื้นฟูสมรรถภาพ',
+                'DTTM' => 'ระบบบริการการแพทย์แผนไทย',
+                'DCMH' => 'ระบบบริการดูแลผู้ป่วยจิตเวชเรื้อรังในชุมชน',
+                'DMOR' => 'ระบบหมอพร้อม',
+                'DKTP' => 'Krungthai Digital Health Platform'
+            ];
+
+            foreach ($project_codes as $code) {
+                $code = trim($code);
+                if (strlen($code) === 4 && preg_match('/^[A-Za-z]+$/', $code)) {
+                    $projects[$code] = $project_mapping[$code] ?? 'ไม่ระบุโครงการ';
+                }
+            }
+
+            $raw_mapping = Stm_seamless_dmis::select(DB::raw('LEFT(round_no, 4) as project_code'), 'claim_type_name')
+                ->whereNotNull('round_no')
+                ->where('round_no', '<>', '')
+                ->whereNotNull('claim_type_name')
+                ->where('claim_type_name', '<>', '')
+                ->distinct()
+                ->get();
+            
+            foreach ($raw_mapping as $item) {
+                if (!empty($item->project_code)) {
+                    $project_claim_types[$item->project_code][] = $item->claim_type_name;
+                }
+            }
         }
 
         if ($request->ajax() || $request->export == 'excel') {
@@ -96,6 +194,10 @@ class ImportDmisController extends Controller
 
             if (!empty($claim_type)) {
                 $query->where('claim_type_name', $claim_type);
+            }
+
+            if (!empty($project)) {
+                $query->whereRaw('LEFT(round_no, 4) = ?', [$project]);
             }
 
             if ($request->has('search') && !empty($request->search['value'])) {
@@ -119,26 +221,30 @@ class ImportDmisController extends Controller
                 $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
                 $sheet = $spreadsheet->getActiveSheet();
 
-                $headers = ['วันที่รับบริการ', 'ประเภทกิจกรรม', 'เลขธุรกรรม (Trans ID)', 'HN', 'AN', 'เลขบัตรประชาชน', 'ชื่อ-สกุลผู้ป่วย', 'ยอดขอเบิก', 'ร้อยละจ่าย', 'ชดเชยจริง', 'Deny Code', 'คำอธิบายปฏิเสธ', 'รหัสอุปกรณ์ฟื้นฟู', 'ชื่อรายการอุปกรณ์ฟื้นฟู', 'รหัสหน่วยบริการลูกข่าย'];
+                $headers = ['วันที่รับบริการ', 'โครงการ', 'ประเภทที่ขอเบิก', 'เลขธุรกรรม (Trans ID)', 'HN', 'AN', 'เลขบัตรประชาชน', 'ชื่อ-สกุลผู้ป่วย', 'ยอดขอเบิก', 'ร้อยละจ่าย', 'ชดเชยจริง', 'Deny Code', 'คำอธิบายปฏิเสธ', 'รหัสอุปกรณ์ฟื้นฟู', 'ชื่อรายการอุปกรณ์ฟื้นฟู', 'รหัสหน่วยบริการลูกข่าย'];
                 $sheet->fromArray($headers, null, 'A1');
 
                 $row = 2;
                 foreach ($records as $item) {
+                    $project_code = substr($item->round_no, 0, 4);
+                    $project_name = isset($projects[$project_code]) ? '[' . $project_code . '] ' . $projects[$project_code] : 'ไม่ระบุโครงการ';
+
                     $sheet->setCellValue('A' . $row, $item->vstdate ?: '-');
-                    $sheet->setCellValue('B' . $row, $item->claim_type_name ?: '-');
-                    $sheet->setCellValueExplicit('C' . $row, $item->trans_id ?: '-', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-                    $sheet->setCellValueExplicit('D' . $row, $item->hn ?: '-', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-                    $sheet->setCellValueExplicit('E' . $row, $item->an ?: '-', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-                    $sheet->setCellValueExplicit('F' . $row, $item->cid ?: '-', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-                    $sheet->setCellValue('G' . $row, $item->ptname ?: '-');
-                    $sheet->setCellValue('H' . $row, $item->claim_price);
-                    $sheet->setCellValue('I' . $row, $item->pay_percent);
-                    $sheet->setCellValue('J' . $row, $item->receive_total);
-                    $sheet->setCellValue('K' . $row, $item->deny_code ?: '-');
-                    $sheet->setCellValue('L' . $row, $item->deny_warning ?: '-');
-                    $sheet->setCellValue('M' . $row, ($item->rehab_code ?? '-') ?: '-');
-                    $sheet->setCellValue('N' . $row, ($item->rehab_name ?? '-') ?: '-');
-                    $sheet->setCellValueExplicit('O' . $row, ($item->sub_hospcode ?? '-') ?: '-', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    $sheet->setCellValue('B' . $row, $project_name);
+                    $sheet->setCellValue('C' . $row, $item->claim_type_name ?: '-');
+                    $sheet->setCellValueExplicit('D' . $row, $item->trans_id ?: '-', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    $sheet->setCellValueExplicit('E' . $row, $item->hn ?: '-', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    $sheet->setCellValueExplicit('F' . $row, $item->an ?: '-', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    $sheet->setCellValueExplicit('G' . $row, $item->cid ?: '-', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                    $sheet->setCellValue('H' . $row, $item->ptname ?: '-');
+                    $sheet->setCellValue('I' . $row, $item->claim_price);
+                    $sheet->setCellValue('J' . $row, $item->pay_percent);
+                    $sheet->setCellValue('K' . $row, $item->receive_total);
+                    $sheet->setCellValue('L' . $row, $item->deny_code ?: '-');
+                    $sheet->setCellValue('M' . $row, $item->deny_warning ?: '-');
+                    $sheet->setCellValue('N' . $row, ($item->rehab_code ?? '-') ?: '-');
+                    $sheet->setCellValue('O' . $row, ($item->rehab_name ?? '-') ?: '-');
+                    $sheet->setCellValueExplicit('P' . $row, ($item->sub_hospcode ?? '-') ?: '-', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
                     $row++;
                 }
 
@@ -162,8 +268,12 @@ class ImportDmisController extends Controller
 
             $data = [];
             foreach ($records as $r) {
+                $project_code = substr($r->round_no, 0, 4);
+                $project_name = isset($projects[$project_code]) ? '[' . $project_code . '] ' . $projects[$project_code] : 'ไม่ระบุโครงการ';
+
                 $data[] = [
-                    'vstdate' => $r->vstdate ? date('d/m/Y', strtotime($r->vstdate)) : '-',
+                    'vstdate' => $this->toThaiShortDate($r->vstdate),
+                    'project_name' => $project_name,
                     'claim_type_name' => $r->claim_type_name ?: '-',
                     'trans_id' => $r->trans_id ?: '-',
                     'hn' => $r->hn ?: '-',
@@ -188,7 +298,7 @@ class ImportDmisController extends Controller
             ]);
         }
 
-        return view('import.dmis_detail', compact('start_date', 'end_date', 'claim_types', 'claim_type'));
+        return view('import.dmis_detail', compact('start_date', 'end_date', 'claim_types', 'claim_type', 'projects', 'project', 'project_claim_types'));
     }
 
     public function getChartData(Request $request)
@@ -203,6 +313,7 @@ class ImportDmisController extends Controller
         }
 
         $claim_type = $request->claim_type;
+        $project = $request->project;
 
         $query = Stm_seamless_dmis::select(
                 DB::raw('MONTH(vstdate) as month_no'),
@@ -213,6 +324,10 @@ class ImportDmisController extends Controller
 
         if (!empty($claim_type)) {
             $query->where('claim_type_name', $claim_type);
+        }
+
+        if (!empty($project)) {
+            $query->whereRaw('LEFT(round_no, 4) = ?', [$project]);
         }
 
         $rawData = $query->groupBy(DB::raw('MONTH(vstdate)'))->get()->keyBy('month_no');
@@ -531,5 +646,25 @@ class ImportDmisController extends Controller
         }
         
         return null;
+    }
+
+    protected function toThaiShortDate($dateStr)
+    {
+        if (empty($dateStr)) {
+            return '-';
+        }
+        
+        $months = [
+            1 => 'ม.ค.', 2 => 'ก.พ.', 3 => 'มี.ค.', 4 => 'เม.ย.', 5 => 'พ.ค.', 6 => 'มิ.ย.',
+            7 => 'ก.ค.', 8 => 'ส.ค.', 9 => 'ก.ย.', 10 => 'ต.ค.', 11 => 'พ.ย.', 12 => 'ธ.ค.'
+        ];
+        
+        $time = strtotime($dateStr);
+        $d = date('j', $time);
+        $m = intval(date('n', $time));
+        $y = intval(date('Y', $time)) + 543;
+        $y_short = substr($y, -2);
+        
+        return "{$d} {$months[$m]} {$y_short}";
     }
 }

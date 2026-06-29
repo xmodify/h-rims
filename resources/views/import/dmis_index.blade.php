@@ -47,7 +47,15 @@
 
         <form method="POST" action="{{ route('import.dmis') }}" class="m-0" id="filterForm">
             @csrf
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="text-muted small text-nowrap">โครงการ:</span>
+                <select class="form-select form-select-sm" name="project" id="project_select" style="width: 250px; border-radius: 8px;">
+                    <option value="">-- ทั้งหมด --</option>
+                    @foreach($projects as $code => $name)
+                        <option value="{{ $code }}" {{ $project == $code ? 'selected' : '' }}>[{{ $code }}] {{ $name }}</option>
+                    @endforeach
+                </select>
+
                 <span class="text-muted small text-nowrap">ปีงบประมาณ:</span>
                 <select class="form-select form-select-sm text-center" name="budget_year" id="budget_year_select" style="width: 180px; border-radius: 8px;">
                     @foreach ($budget_year_select as $row)
@@ -57,6 +65,7 @@
                         </option>
                     @endforeach
                 </select>
+
                 <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3 shadow-sm">
                     <i class="bi bi-search me-1"></i> ค้นหา
                 </button>
@@ -71,18 +80,19 @@
                 <table id="t_dmis_list" class="table table-modern w-100">
                     <thead>
                         <tr>
-                            <th class="text-center">ชื่อไฟล์นำเข้า</th>
-                            <th class="text-center">กองทุน</th>
-                            <th class="text-center">จำนวนคิวส่ง</th>
-                            <th class="text-center">จำนวนราย</th>
-                            <th class="text-center">ยอดขอเบิก (บาท)</th>
-                            <th class="text-center">ยอดชดเชยจริง (บาท)</th>
-                            <th class="text-center">งวด/เลขที่เบิกจ่าย</th>
-                            <th class="text-center">เลขที่ใบเสร็จ</th>
-                            <th class="text-center">วันที่ออกใบเสร็จ</th>
-                            <th class="text-center">ผู้ออกใบเสร็จ</th>
+                            <th class="text-center" width="15%">ชื่อไฟล์นำเข้า</th>
+                            <th class="text-center" width="15%">โครงการ</th>
+                            <th class="text-center" width="20%">ประเภทที่ขอเบิก</th>
+                            <th class="text-center" width="6%">จำนวนคิวส่ง</th>
+                            <th class="text-center" width="6%">จำนวนราย</th>
+                            <th class="text-center" width="8%">ยอดขอเบิก (บาท)</th>
+                            <th class="text-center" width="8%">ยอดชดเชยจริง (บาท)</th>
+                            <th class="text-center" width="10%">งวด/เลขที่เบิกจ่าย</th>
+                            <th class="text-center" width="8%">เลขที่ใบเสร็จ</th>
+                            <th class="text-center" width="8%">วันที่ออกใบเสร็จ</th>
+                            <th class="text-center" width="8%">ผู้ออกใบเสร็จ</th>
                             @if(Auth::user()->allow_receipt == 'Y')
-                                <th class="text-center" width="10%">การจัดการ</th>
+                                <th class="text-center" width="8%">การจัดการ</th>
                             @endif
                         </tr>
                     </thead>
@@ -90,10 +100,11 @@
                         @foreach($stm_dmis as $row)
                         <tr data-group="{{ $row->claim_type_name }}">
                             <td class="small fw-bold text-dark">{{ $row->excel_filename }}</td>
-                            <td class="text-center">
-                                <span class="badge bg-light text-primary border">
-                                    {{ $row->claim_type_name }}
-                                </span>
+                            <td class="small text-dark">
+                                {{ isset($projects[substr($row->round_no, 0, 4)]) ? '[' . substr($row->round_no, 0, 4) . '] ' . $projects[substr($row->round_no, 0, 4)] : 'ไม่ระบุโครงการ' }}
+                            </td>
+                            <td class="small text-dark">
+                                {{ $row->claim_type_name }}
                             </td>
                             <td class="text-center fw-bold text-muted">{{ number_format($row->rep_count) }}</td>
                             <td class="text-end fw-bold">{{ number_format($row->count_rows) }}</td>
@@ -145,35 +156,35 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">
-                <div class="row mb-4 align-items-center">
-                    <div class="col-md-4">
-                        <span class="badge bg-primary-subtle text-primary px-3 py-2 rounded-pill">
-                            <i class="bi bi-calendar3 me-1"></i> ข้อมูลรายเดือน
-                        </span>
+                <div class="d-flex justify-content-start align-items-center gap-3 flex-wrap mb-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-muted small text-nowrap">โครงการ:</span>
+                        <select class="form-select shadow-sm" id="modal_filter_project" style="width: 320px; border-radius: 8px;">
+                            <option value="">-- ทั้งหมด --</option>
+                            @foreach($projects as $code => $name)
+                                <option value="{{ $code }}">[{{ $code }}] {{ $name }}</option>
+                            @endforeach
+                        </select>
                     </div>
-                    <div class="col-md-8">
-                        <div class="d-flex justify-content-end align-items-center gap-3">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="text-muted small text-nowrap">กองทุน:</span>
-                                <select class="form-select shadow-sm" id="modal_filter_claim_type" style="width: 350px; border-radius: 8px;">
-                                    <option value="">-- ทั้งหมด --</option>
-                                    @foreach($claim_types as $type)
-                                        <option value="{{ $type }}">{{ $type }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="text-muted small text-nowrap">ปีงบประมาณ:</span>
-                                <select class="form-select shadow-sm text-center" id="modal_filter_budget_year" style="width: 170px; border-radius: 8px;">
-                                    @foreach ($budget_year_select as $row)
-                                        <option value="{{ $row->LEAVE_YEAR_ID }}"
-                                            {{ (int)$budget_year_now === (int)$row->LEAVE_YEAR_ID ? 'selected' : '' }}>
-                                            {{ $row->LEAVE_YEAR_NAME }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-muted small text-nowrap">ประเภทที่ขอเบิก:</span>
+                        <select class="form-select shadow-sm" id="modal_filter_claim_type" style="width: 320px; border-radius: 8px;">
+                            <option value="">-- ทั้งหมด --</option>
+                            @foreach($claim_types as $type)
+                                <option value="{{ $type }}">{{ $type }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-muted small text-nowrap">ปีงบประมาณ:</span>
+                        <select class="form-select shadow-sm text-center" id="modal_filter_budget_year" style="width: 175px; border-radius: 8px;">
+                            @foreach ($budget_year_select as $row)
+                                <option value="{{ $row->LEAVE_YEAR_ID }}"
+                                    {{ (int)$budget_year_now === (int)$row->LEAVE_YEAR_ID ? 'selected' : '' }}>
+                                    {{ $row->LEAVE_YEAR_NAME }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
                 <div id="loading_spinner" class="text-center py-5 d-none">
@@ -443,8 +454,32 @@
             initChartEvent();
         }
 
+        const projectClaimTypes = @json($project_claim_types);
+        const originalClaimTypes = @json($claim_types);
+
         function initChartEvent() {
             $('#chartModal').on('shown.bs.modal', function () {
+                loadChartData();
+            });
+
+            $('#modal_filter_project').on('change', function () {
+                const selectedProject = $(this).val();
+                const claimTypeSelect = $('#modal_filter_claim_type');
+                const currentVal = claimTypeSelect.val();
+                
+                claimTypeSelect.html('<option value="">-- ทั้งหมด --</option>');
+                
+                let types = [];
+                if (selectedProject) {
+                    types = projectClaimTypes[selectedProject] || [];
+                } else {
+                    types = originalClaimTypes;
+                }
+                
+                types.forEach(function (type) {
+                    claimTypeSelect.append(`<option value="${type}" ${currentVal == type ? 'selected' : ''}>${type}</option>`);
+                });
+                
                 loadChartData();
             });
 
@@ -456,10 +491,11 @@
         function loadChartData() {
             const claimType = $('#modal_filter_claim_type').val();
             const budgetYear = $('#modal_filter_budget_year').val();
+            const project = $('#modal_filter_project').val();
             const budgetYearText = $('#modal_filter_budget_year option:selected').text().trim();
 
             const claimText = claimType ? claimType : 'ทั้งหมด';
-            $('#db_subtitle').text(`ระบบนำเข้าข้อมูลและติดตาม Seamless For DMIS กองทุน: ${claimText} ${budgetYearText}`);
+            $('#db_subtitle').text(`ระบบนำเข้าข้อมูลและติดตาม Seamless For DMIS ประเภทที่ขอเบิก: ${claimText} ${budgetYearText}`);
 
             $('#chart_container').addClass('d-none');
             $('#loading_spinner').removeClass('d-none');
@@ -469,7 +505,8 @@
                 method: "GET",
                 data: {
                     budget_year: budgetYear,
-                    claim_type: claimType
+                    claim_type: claimType,
+                    project: project
                 },
                 success: function (res) {
                     $('#loading_spinner').addClass('d-none');

@@ -128,17 +128,30 @@ class ImportEdcController extends Controller
                 $merchant_id = trim($parts[3] ?? '');
                 $terminal_id = trim($parts[6] ?? '');
                 
-                // Parse date (dd/mm/yyyy) using Transaction Date (index 9) instead of Post Date (index 7)
-                $dateStr = trim($parts[9] ?? '');
+                // Parse date (dd/mm/yyyy) using Transaction Date (index 7) instead of Post Date (index 9)
+                $dateStr = trim($parts[7] ?? '');
                 $vstdate = null;
                 if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $dateStr, $m)) {
                     $vstdate = "{$m[3]}-{$m[2]}-{$m[1]}";
                 }
 
-                // Parse time using Transaction Time (index 10) instead of Post Time (index 8)
-                $vsttime = trim($parts[10] ?? null);
+                // Parse time using Transaction Time (index 8) instead of Post Time (index 10)
+                $vsttime = trim($parts[8] ?? null);
                 if ($vsttime && strlen($vsttime) > 8) {
                     $vsttime = substr($vsttime, 0, 8);
+                }
+
+                // Parse Post Date (dd/mm/yyyy) using index 9
+                $postDateStr = trim($parts[9] ?? '');
+                $post_date = null;
+                if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $postDateStr, $m)) {
+                    $post_date = "{$m[3]}-{$m[2]}-{$m[1]}";
+                }
+
+                // Parse Post Time using index 10
+                $post_time = trim($parts[10] ?? null);
+                if ($post_time && strlen($post_time) > 8) {
+                    $post_time = substr($post_time, 0, 8);
                 }
 
                 $cid = trim($parts[11] ?? '');
@@ -171,6 +184,8 @@ class ImportEdcController extends Controller
                     [
                         'ptname' => $ptname,
                         'vsttime' => $vsttime,
+                        'post_date' => $post_date,
+                        'post_time' => $post_time,
                         'amount' => $amount,
                         'app_code' => $app_code,
                         'ref_no' => $ref_no,

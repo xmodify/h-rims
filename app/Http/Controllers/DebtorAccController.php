@@ -391,17 +391,20 @@ class DebtorAccController extends Controller
                 $rec_rows = DB::select("
                     SELECT YEAR(r_date) as y, MONTH(r_date) as m, SUM(total) as total
                     FROM (
-                        SELECT receipt_date as r_date, receive_total as total FROM stm_bmt s JOIN debtor_1102050102_110 d ON s.hn = d.hn AND s.vstdate = d.vstdate WHERE s.receipt_date BETWEEN ? AND ? AND SUBSTRING(s.stm_filename, 11) LIKE 'O%'
+                        SELECT receipt_date as r_date, receive_total as total FROM stm_bmt s JOIN debtor_1102050102_110 d ON s.hn = d.hn AND s.vstdate = d.vstdate WHERE s.receipt_date BETWEEN ? AND ? AND SUBSTRING(s.stm_filename, 11) LIKE 'O%' AND d.ofc > 0
                         UNION ALL
-                        SELECT receipt_date as r_date, receive_total as total FROM stm_bmt_kidney s JOIN debtor_1102050102_110 d ON s.hn = d.hn AND s.datetimeadm = d.vstdate WHERE s.receipt_date BETWEEN ? AND ?
+                        SELECT receipt_date as r_date, receive_total as total FROM stm_bmt_kidney s JOIN debtor_1102050102_110 d ON s.hn = d.hn AND s.datetimeadm = d.vstdate WHERE s.receipt_date BETWEEN ? AND ? AND d.kidney > 0
                         UNION ALL
-                        SELECT receipt_date as r_date, receive_total as total FROM stm_srt s JOIN debtor_1102050102_110 d ON s.hn = d.hn AND s.vstdate = d.vstdate WHERE s.receipt_date BETWEEN ? AND ?
+                        SELECT receipt_date as r_date, receive_total as total FROM stm_srt s JOIN debtor_1102050102_110 d ON s.hn = d.hn AND s.vstdate = d.vstdate WHERE s.receipt_date BETWEEN ? AND ? AND d.ofc > 0
                         UNION ALL
-                        SELECT receipt_date as r_date, amount as total FROM stm_ofc_csop s JOIN debtor_1102050102_110 d ON s.hn = d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime,5) = LEFT(d.vsttime,5) WHERE s.receipt_date BETWEEN ? AND ?
+                        SELECT receipt_date as r_date, amount as total FROM stm_ofc_csop s JOIN debtor_1102050102_110 d ON s.hn = d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime,5) = LEFT(d.vsttime,5) WHERE s.receipt_date BETWEEN ? AND ? AND s.sys <> 'HD' AND d.ofc > 0
                         UNION ALL
-                        SELECT receipt_date as r_date, receive_total as total FROM stm_pvt s JOIN debtor_1102050102_110 d ON s.hn = d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime,5) = LEFT(d.vsttime,5) WHERE s.receipt_date BETWEEN ? AND ?
+                        SELECT receipt_date as r_date, amount as total FROM stm_ofc_csop s JOIN debtor_1102050102_110 d ON s.hn = d.hn AND s.vstdate = d.vstdate WHERE s.receipt_date BETWEEN ? AND ? AND s.sys = 'HD' AND d.kidney > 0
+                        UNION ALL
+                        SELECT receipt_date as r_date, receive_total as total FROM stm_pvt s JOIN debtor_1102050102_110 d ON s.hn = d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime,5) = LEFT(d.vsttime,5) WHERE s.receipt_date BETWEEN ? AND ? AND d.ofc > 0
                     ) t GROUP BY y, m
                 ", [
+                    $fiscal_start_date, $fiscal_end_date,
                     $fiscal_start_date, $fiscal_end_date,
                     $fiscal_start_date, $fiscal_end_date,
                     $fiscal_start_date, $fiscal_end_date,
@@ -448,9 +451,9 @@ class DebtorAccController extends Controller
                 $rec_rows = DB::select("
                     SELECT YEAR(r_date) as y, MONTH(r_date) as m, SUM(total) as total
                     FROM (
-                        SELECT receipt_date as r_date, compensate_treatment as total FROM stm_lgo s JOIN debtor_1102050102_801 d ON s.hn = d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime,5) = LEFT(d.vsttime,5) WHERE receipt_date BETWEEN ? AND ?
+                        SELECT receipt_date as r_date, compensate_treatment as total FROM stm_lgo s JOIN debtor_1102050102_801 d ON s.hn = d.hn AND s.vstdate = d.vstdate AND LEFT(s.vsttime,5) = LEFT(d.vsttime,5) AND d.lgo > 0 WHERE receipt_date BETWEEN ? AND ?
                         UNION ALL
-                        SELECT receipt_date as r_date, compensate_kidney as total FROM stm_lgo_kidney s JOIN debtor_1102050102_801 d ON s.hn = d.hn AND s.datetimeadm = d.vstdate WHERE receipt_date BETWEEN ? AND ?
+                        SELECT receipt_date as r_date, compensate_kidney as total FROM stm_lgo_kidney s JOIN debtor_1102050102_801 d ON s.hn = d.hn AND s.datetimeadm = d.vstdate AND d.kidney > 0 WHERE receipt_date BETWEEN ? AND ?
                     ) t GROUP BY y, m
                 ", [$fiscal_start_date, $fiscal_end_date, $fiscal_start_date, $fiscal_end_date]);
                 foreach($rec_rows as $rr) $receive_map[intval(($rr->m >= 10) ? $rr->m - 9 : $rr->m + 3)] = $rr->total;

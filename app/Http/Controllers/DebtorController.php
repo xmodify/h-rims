@@ -657,7 +657,9 @@ class DebtorController extends Controller
             WHERE d.vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050101_401 = DB::select("
             SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,
-                SUM(IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(csop.amount,0)
+                SUM(IFNULL(d.receive,0)
+                + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END
+                + CASE WHEN d.ofc > 0 THEN IFNULL(csop.amount,0) ELSE 0 END
                 + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END) AS receive
             FROM debtor_1102050101_401 d 
             LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total
@@ -705,7 +707,14 @@ class DebtorController extends Controller
             WHERE vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050102_110 = DB::select('
             SELECT COUNT(DISTINCT a.vn) AS anvn,SUM(a.debtor) AS debtor,SUM(a.receive) AS receive
-            FROM (SELECT d.vn,d.debtor,IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(k.receive_total,0)+IFNULL(srt.receive_total,0)+IFNULL(csop.receive_total,0)+CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END+IFNULL(pvt.receive_total,0) AS receive
+            FROM (SELECT d.vn,d.debtor,
+                IFNULL(d.receive,0)
+                + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END
+                + CASE WHEN d.kidney > 0 THEN IFNULL(k.receive_total,0) ELSE 0 END
+                + CASE WHEN d.ofc > 0 THEN IFNULL(srt.receive_total,0) ELSE 0 END
+                + CASE WHEN d.ofc > 0 THEN IFNULL(csop.receive_total,0) ELSE 0 END
+                + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END
+                + CASE WHEN d.ofc > 0 THEN IFNULL(pvt.receive_total,0) ELSE 0 END AS receive
             FROM debtor_1102050102_110 d
             LEFT JOIN (SELECT hn,DATE(datetimeadm) AS vstdate,SUM(receive_total) AS receive_total
                 FROM stm_bmt WHERE SUBSTRING(stm_filename,11) LIKE "O%" GROUP BY hn,DATE(datetimeadm)) stm ON stm.hn = d.hn
@@ -729,7 +738,7 @@ class DebtorController extends Controller
             WHERE vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050102_801 = DB::select('
             SELECT COUNT(DISTINCT a.vn) AS anvn,SUM(a.debtor) AS debtor,SUM(a.receive) AS receive
-                FROM (SELECT d.vn,d.debtor,IFNULL(s.compensate_treatment,0)+ CASE WHEN d.kidney > 0
+                FROM (SELECT d.vn,d.debtor,CASE WHEN d.lgo > 0 THEN IFNULL(s.compensate_treatment,0) ELSE 0 END + CASE WHEN d.kidney > 0
                 THEN IFNULL(k.compensate_kidney,0) ELSE 0 END AS receive
             FROM debtor_1102050102_801 d   
             LEFT JOIN (SELECT hn,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment
@@ -740,7 +749,10 @@ class DebtorController extends Controller
             WHERE d.vstdate BETWEEN ? AND ?) a', [$start_date, $end_date]);
         $_1102050102_803 = DB::select('
             SELECT COUNT(DISTINCT a.vn) AS anvn,SUM(a.debtor) AS debtor,SUM(a.receive) AS receive
-            FROM (SELECT d.vn,d.debtor,IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+IFNULL(k.receive_total,0) AS receive
+            FROM (SELECT d.vn,d.debtor,
+                IFNULL(d.receive,0)
+                + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END
+                + CASE WHEN d.kidney > 0 THEN IFNULL(k.receive_total,0) ELSE 0 END AS receive
             FROM debtor_1102050102_803 d
             LEFT JOIN (SELECT hn,DATE(datetimeadm) AS vstdate,SUM(receive_total) AS receive_total
                 FROM stm_bkk WHERE SUBSTRING(stm_filename,11) LIKE "O%" GROUP BY hn,DATE(datetimeadm)) stm ON stm.hn = d.hn
@@ -5304,14 +5316,23 @@ class DebtorController extends Controller
                     d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note, 
-                    (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
-                    + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
-                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,stm.repno,csop.rid,hd.rid_hd,d.debtor_lock,
-                    CONCAT_WS(CHAR(44), stm.round_no, csop.round_no, hd.round_no) AS stm_round_no,
-                    CONCAT_WS(CHAR(44), stm.receipt_date, csop.receipt_date, hd.receipt_date) AS stm_receipt_date,
-                    CONCAT_WS(CHAR(44), stm.receive_no, csop.receive_no, hd.receive_no) AS stm_receive_no,
-                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(csop.amount,0)
-                    + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END) >= IFNULL(d.debtor,0) - 0.01
+                    (IFNULL(d.receive,0) 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(csop.amount,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,
+                    CASE WHEN d.ofc > 0 THEN stm.repno ELSE NULL END AS repno,
+                    CASE WHEN d.ofc > 0 THEN csop.rid ELSE NULL END AS rid,
+                    CASE WHEN d.kidney > 0 THEN hd.rid_hd ELSE NULL END AS rid_hd,
+                    d.debtor_lock,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.round_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.round_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.round_no ELSE NULL END) AS stm_round_no,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receipt_date ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.receipt_date ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.receipt_date ELSE NULL END) AS stm_receipt_date,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receive_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.receive_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.receive_no ELSE NULL END) AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0)
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(csop.amount,0) ELSE 0 END
+                    + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END) >= IFNULL(d.debtor,0) - 0.01
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_401 d   
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(receive_total) AS receive_total,
@@ -5343,14 +5364,23 @@ class DebtorController extends Controller
                     d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
-                    (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
-                    + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
-                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,stm.repno,csop.rid,hd.rid_hd,d.debtor_lock,
-                    CONCAT_WS(CHAR(44), stm.round_no, csop.round_no, hd.round_no) AS stm_round_no,
-                    CONCAT_WS(CHAR(44), stm.receipt_date, csop.receipt_date, hd.receipt_date) AS stm_receipt_date,
-                    CONCAT_WS(CHAR(44), stm.receive_no, csop.receive_no, hd.receive_no) AS stm_receive_no,
-                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(csop.amount,0)
-                    + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END) >= IFNULL(d.debtor,0) - 0.01
+                    (IFNULL(d.receive,0) 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(csop.amount,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,
+                    CASE WHEN d.ofc > 0 THEN stm.repno ELSE NULL END AS repno,
+                    CASE WHEN d.ofc > 0 THEN csop.rid ELSE NULL END AS rid,
+                    CASE WHEN d.kidney > 0 THEN hd.rid_hd ELSE NULL END AS rid_hd,
+                    d.debtor_lock,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.round_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.round_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.round_no ELSE NULL END) AS stm_round_no,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receipt_date ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.receipt_date ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.receipt_date ELSE NULL END) AS stm_receipt_date,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receive_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.receive_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.receive_no ELSE NULL END) AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0)
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(csop.amount,0) ELSE 0 END
+                    + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END) >= IFNULL(d.debtor,0) - 0.01
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050101_401 d   
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(receive_total) AS receive_total,
@@ -5635,9 +5665,11 @@ class DebtorController extends Controller
         $end_date = Session::get('end_date');
         $debtor = DB::select("
             SELECT vstdate,COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,
-                SUM(IFNULL(receive,0)+IFNULL(receive_total,0)+IFNULL(csop_amount,0)
+                SUM(IFNULL(receive,0)
+                + CASE WHEN ofc > 0 THEN IFNULL(receive_total,0) ELSE 0 END
+                + CASE WHEN ofc > 0 THEN IFNULL(csop_amount,0) ELSE 0 END
                 + CASE WHEN kidney > 0 THEN IFNULL(hd_amount,0) ELSE 0 END) AS receive
-            FROM (SELECT d.vstdate,d.vn,d.kidney,d.debtor,d.receive,stm.receive_total,
+            FROM (SELECT d.vstdate,d.vn,d.kidney,d.ofc,d.debtor,d.receive,stm.receive_total,
                     csop.amount AS csop_amount,hd.amount AS hd_amount
                 FROM debtor_1102050101_401 d   
                 LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total
@@ -5667,14 +5699,23 @@ class DebtorController extends Controller
                 d.income,d.rcpt_money,d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,
                 d.charge,d.receive_date,d.receive_no,
                 d.adj_inc, d.adj_dec, d.adj_date, d.adj_note, 
-                (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0)
-                + IFNULL(csop.amount,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
-                IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,stm.repno,csop.rid,hd.rid_hd,d.debtor_lock,
-                CONCAT_WS(CHAR(44), stm.round_no, csop.round_no, hd.round_no) AS stm_round_no,
-                CONCAT_WS(CHAR(44), stm.receipt_date, csop.receipt_date, hd.receipt_date) AS stm_receipt_date,
-                CONCAT_WS(CHAR(44), stm.receive_no, csop.receive_no, hd.receive_no) AS stm_receive_no,
-                CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(csop.amount,0)
-                + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END) >= IFNULL(d.debtor,0) - 0.01
+                (IFNULL(d.receive,0) 
+                + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END
+                + CASE WHEN d.ofc > 0 THEN IFNULL(csop.amount,0) ELSE 0 END 
+                + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END ) AS receive,
+                IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,
+                CASE WHEN d.ofc > 0 THEN stm.repno ELSE NULL END AS repno,
+                CASE WHEN d.ofc > 0 THEN csop.rid ELSE NULL END AS rid,
+                CASE WHEN d.kidney > 0 THEN hd.rid_hd ELSE NULL END AS rid_hd,
+                d.debtor_lock,
+                CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.round_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.round_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.round_no ELSE NULL END) AS stm_round_no,
+                CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receipt_date ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.receipt_date ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.receipt_date ELSE NULL END) AS stm_receipt_date,
+                CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receive_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.receive_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.receive_no ELSE NULL END) AS stm_receive_no,
+                CASE WHEN (IFNULL(d.receive,0)
+                + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END
+                + CASE WHEN d.ofc > 0 THEN IFNULL(csop.amount,0) ELSE 0 END
+                + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) 
+                + CASE WHEN d.kidney > 0 THEN IFNULL(hd.amount,0) ELSE 0 END) >= IFNULL(d.debtor,0) - 0.01
                 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
             FROM debtor_1102050101_401 d   
             LEFT JOIN (SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(receive_total) AS receive_total,
@@ -7925,13 +7966,31 @@ class DebtorController extends Controller
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no, d.receive AS receive_manual, d.repno AS repno_manual,
-                    (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(csop.receive_total,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END + IFNULL(pvt.receive_total,0)) AS receive,
+                    (IFNULL(d.receive,0) 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(kidney.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(srt.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(csop.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(pvt.receive_total,0) ELSE 0 END) AS receive,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
-                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,kidney.repno AS rid,srt.repno AS rid_srt,hd.rid AS rid_hd,pvt.repno AS rid_pvt,d.debtor_lock,
-                    CONCAT_WS(CHAR(44), stm.repno, kidney.repno, srt.repno, csop.round_no, hd.round_no, pvt.round_no) AS stm_round_no,
-                    CONCAT_WS(CHAR(44), stm.receipt_date, kidney.receipt_date, srt.receipt_date, csop.receipt_date, hd.receipt_date, pvt.receipt_date) AS stm_receipt_date,
-                    CONCAT_WS(CHAR(44), stm.receive_no, kidney.receive_no, srt.receive_no, csop.receive_no, hd.receive_no, pvt.receive_no) AS stm_receive_no,
-                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(kidney.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(pvt.receive_total,0) + IFNULL(csop.receive_total,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END + IFNULL(pvt.receive_total,0)
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,
+                    CASE WHEN d.ofc > 0 THEN stm.repno ELSE NULL END AS repno_ofc,
+                    CASE WHEN d.kidney > 0 THEN kidney.repno ELSE NULL END AS rid,
+                    CASE WHEN d.ofc > 0 THEN srt.repno ELSE NULL END AS rid_srt,
+                    CASE WHEN d.kidney > 0 THEN hd.rid ELSE NULL END AS rid_hd,
+                    CASE WHEN d.ofc > 0 THEN pvt.repno ELSE NULL END AS rid_pvt,
+                    d.debtor_lock,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.repno ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.repno ELSE NULL END, CASE WHEN d.ofc > 0 THEN srt.repno ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.round_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.round_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN pvt.round_no ELSE NULL END) AS stm_round_no,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receipt_date ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.receipt_date ELSE NULL END, CASE WHEN d.ofc > 0 THEN srt.receipt_date ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.receipt_date ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.receipt_date ELSE NULL END, CASE WHEN d.ofc > 0 THEN pvt.receipt_date ELSE NULL END) AS stm_receipt_date,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receive_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.receive_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN srt.receive_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.receive_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.receive_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN pvt.receive_no ELSE NULL END) AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0)
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(kidney.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(srt.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(csop.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(pvt.receive_total,0) ELSE 0 END
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0)) >= IFNULL(d.debtor,0) - 0.01
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_110 d   
@@ -7975,13 +8034,31 @@ class DebtorController extends Controller
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no, d.receive AS receive_manual, d.repno AS repno_manual,
-                    (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(csop.receive_total,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END + IFNULL(pvt.receive_total,0)) AS receive,
+                    (IFNULL(d.receive,0) 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(kidney.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(srt.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(csop.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(pvt.receive_total,0) ELSE 0 END) AS receive,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
-                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,kidney.repno AS rid,srt.repno AS rid_srt,hd.rid AS rid_hd,pvt.repno AS rid_pvt,d.debtor_lock,
-                    CONCAT_WS(CHAR(44), stm.repno, kidney.repno, srt.repno, csop.round_no, hd.round_no, pvt.round_no) AS stm_round_no,
-                    CONCAT_WS(CHAR(44), stm.receipt_date, kidney.receipt_date, srt.receipt_date, csop.receipt_date, hd.receipt_date, pvt.receipt_date) AS stm_receipt_date,
-                    CONCAT_WS(CHAR(44), stm.receive_no, kidney.receive_no, srt.receive_no, csop.receive_no, hd.receive_no, pvt.receive_no) AS stm_receive_no,
-                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(kidney.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(pvt.receive_total,0) + IFNULL(csop.receive_total,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END + IFNULL(pvt.receive_total,0)
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,
+                    CASE WHEN d.ofc > 0 THEN stm.repno ELSE NULL END AS repno_ofc,
+                    CASE WHEN d.kidney > 0 THEN kidney.repno ELSE NULL END AS rid,
+                    CASE WHEN d.ofc > 0 THEN srt.repno ELSE NULL END AS rid_srt,
+                    CASE WHEN d.kidney > 0 THEN hd.rid ELSE NULL END AS rid_hd,
+                    CASE WHEN d.ofc > 0 THEN pvt.repno ELSE NULL END AS rid_pvt,
+                    d.debtor_lock,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.repno ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.repno ELSE NULL END, CASE WHEN d.ofc > 0 THEN srt.repno ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.round_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.round_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN pvt.round_no ELSE NULL END) AS stm_round_no,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receipt_date ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.receipt_date ELSE NULL END, CASE WHEN d.ofc > 0 THEN srt.receipt_date ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.receipt_date ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.receipt_date ELSE NULL END, CASE WHEN d.ofc > 0 THEN pvt.receipt_date ELSE NULL END) AS stm_receipt_date,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receive_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.receive_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN srt.receive_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.receive_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.receive_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN pvt.receive_no ELSE NULL END) AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0)
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(kidney.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(srt.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(csop.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(pvt.receive_total,0) ELSE 0 END
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0)) >= IFNULL(d.debtor,0) - 0.01
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_110 d   
@@ -8298,8 +8375,14 @@ class DebtorController extends Controller
         $end_date = Session::get('end_date');
         $debtor = DB::select("
             SELECT vstdate,COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,
-                SUM(IFNULL(receive,0)+IFNULL(receive_total,0)+IFNULL(k_receive_total,0)+IFNULL(srt_receive_total,0)+IFNULL(csop_receive_total,0)+CASE WHEN kidney > 0 THEN IFNULL(hd_receive_total,0) ELSE 0 END+IFNULL(pvt_receive_total,0)) AS receive
-            FROM (SELECT d.vstdate,d.vn,d.kidney,d.debtor,d.receive,stm.receive_total,
+                SUM(IFNULL(receive,0)
+                + CASE WHEN ofc > 0 THEN IFNULL(receive_total,0) ELSE 0 END
+                + CASE WHEN kidney > 0 THEN IFNULL(k_receive_total,0) ELSE 0 END
+                + CASE WHEN ofc > 0 THEN IFNULL(srt_receive_total,0) ELSE 0 END
+                + CASE WHEN ofc > 0 THEN IFNULL(csop_receive_total,0) ELSE 0 END
+                + CASE WHEN kidney > 0 THEN IFNULL(hd_receive_total,0) ELSE 0 END
+                + CASE WHEN ofc > 0 THEN IFNULL(pvt_receive_total,0) ELSE 0 END) AS receive
+            FROM (SELECT d.vstdate,d.vn,d.kidney,d.ofc,d.debtor,d.receive,stm.receive_total,
                     k.receive_total AS k_receive_total, srt.receive_total AS srt_receive_total,
                     csop.receive_total AS csop_receive_total, hd.receive_total AS hd_receive_total, pvt.receive_total AS pvt_receive_total
                 FROM debtor_1102050102_110 d   
@@ -8340,13 +8423,31 @@ class DebtorController extends Controller
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no, d.receive AS receive_manual, d.repno AS repno_manual,
-                    (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(csop.receive_total,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END + IFNULL(pvt.receive_total,0)) AS receive,
+                    (IFNULL(d.receive,0) 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(kidney.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(srt.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(csop.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(pvt.receive_total,0) ELSE 0 END) AS receive,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
-                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,kidney.repno AS rid,srt.repno AS rid_srt,hd.rid AS rid_hd,pvt.repno AS rid_pvt,d.debtor_lock,
-                    CONCAT_WS(CHAR(44), stm.repno, kidney.repno, srt.repno, csop.round_no, hd.round_no, pvt.round_no) AS stm_round_no,
-                    CONCAT_WS(CHAR(44), stm.receipt_date, kidney.receipt_date, srt.receipt_date, csop.receipt_date, hd.receipt_date, pvt.receipt_date) AS stm_receipt_date,
-                    CONCAT_WS(CHAR(44), stm.receive_no, kidney.receive_no, srt.receive_no, csop.receive_no, hd.receive_no, pvt.receive_no) AS stm_receive_no,
-                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(kidney.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(pvt.receive_total,0) + IFNULL(csop.receive_total,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END + IFNULL(pvt.receive_total,0)
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,
+                    CASE WHEN d.ofc > 0 THEN stm.repno ELSE NULL END AS repno_ofc,
+                    CASE WHEN d.kidney > 0 THEN kidney.repno ELSE NULL END AS rid,
+                    CASE WHEN d.ofc > 0 THEN srt.repno ELSE NULL END AS rid_srt,
+                    CASE WHEN d.kidney > 0 THEN hd.rid ELSE NULL END AS rid_hd,
+                    CASE WHEN d.ofc > 0 THEN pvt.repno ELSE NULL END AS rid_pvt,
+                    d.debtor_lock,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.repno ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.repno ELSE NULL END, CASE WHEN d.ofc > 0 THEN srt.repno ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.round_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.round_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN pvt.round_no ELSE NULL END) AS stm_round_no,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receipt_date ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.receipt_date ELSE NULL END, CASE WHEN d.ofc > 0 THEN srt.receipt_date ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.receipt_date ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.receipt_date ELSE NULL END, CASE WHEN d.ofc > 0 THEN pvt.receipt_date ELSE NULL END) AS stm_receipt_date,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receive_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.receive_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN srt.receive_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.receive_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.receive_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN pvt.receive_no ELSE NULL END) AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0)
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(kidney.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(srt.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(csop.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(pvt.receive_total,0) ELSE 0 END
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0)) >= IFNULL(d.debtor,0) - 0.01
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_110 d   
@@ -8391,13 +8492,31 @@ class DebtorController extends Controller
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no, d.receive AS receive_manual, d.repno AS repno_manual,
-                    (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(csop.receive_total,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END + IFNULL(pvt.receive_total,0)) AS receive,
+                    (IFNULL(d.receive,0) 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(kidney.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(srt.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(csop.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(pvt.receive_total,0) ELSE 0 END) AS receive,
                     d.adj_inc, d.adj_dec, d.adj_date, d.adj_note,
-                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,kidney.repno AS rid,srt.repno AS rid_srt,hd.rid AS rid_hd,pvt.repno AS rid_pvt,d.debtor_lock,
-                    CONCAT_WS(CHAR(44), stm.repno, kidney.repno, srt.repno, csop.round_no, hd.round_no, pvt.round_no) AS stm_round_no,
-                    CONCAT_WS(CHAR(44), stm.receipt_date, kidney.receipt_date, srt.receipt_date, csop.receipt_date, hd.receipt_date, pvt.receipt_date) AS stm_receipt_date,
-                    CONCAT_WS(CHAR(44), stm.receive_no, kidney.receive_no, srt.receive_no, csop.receive_no, hd.receive_no, pvt.receive_no) AS stm_receive_no,
-                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(kidney.receive_total,0) + IFNULL(srt.receive_total,0) + IFNULL(pvt.receive_total,0) + IFNULL(csop.receive_total,0) + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END + IFNULL(pvt.receive_total,0)
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,
+                    CASE WHEN d.ofc > 0 THEN stm.repno ELSE NULL END AS repno_ofc,
+                    CASE WHEN d.kidney > 0 THEN kidney.repno ELSE NULL END AS rid,
+                    CASE WHEN d.ofc > 0 THEN srt.repno ELSE NULL END AS rid_srt,
+                    CASE WHEN d.kidney > 0 THEN hd.rid ELSE NULL END AS rid_hd,
+                    CASE WHEN d.ofc > 0 THEN pvt.repno ELSE NULL END AS rid_pvt,
+                    d.debtor_lock,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.repno ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.repno ELSE NULL END, CASE WHEN d.ofc > 0 THEN srt.repno ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.round_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.round_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN pvt.round_no ELSE NULL END) AS stm_round_no,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receipt_date ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.receipt_date ELSE NULL END, CASE WHEN d.ofc > 0 THEN srt.receipt_date ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.receipt_date ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.receipt_date ELSE NULL END, CASE WHEN d.ofc > 0 THEN pvt.receipt_date ELSE NULL END) AS stm_receipt_date,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receive_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.receive_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN srt.receive_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN csop.receive_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN hd.receive_no ELSE NULL END, CASE WHEN d.ofc > 0 THEN pvt.receive_no ELSE NULL END) AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0)
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(kidney.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(srt.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(csop.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(hd.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(pvt.receive_total,0) ELSE 0 END
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0)) >= IFNULL(d.debtor,0) - 0.01
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_110 d   
@@ -8788,15 +8907,20 @@ class DebtorController extends Controller
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,
                     d.rcpt_money,d.lgo,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,
-                    d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,IFNULL(s.compensate_treatment,0) AS receive_lgo,
+                    d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,
+                    CASE WHEN d.lgo > 0 THEN IFNULL(s.compensate_treatment,0) ELSE 0 END AS receive_lgo,
                     CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END AS receive_kidney,
-                    IFNULL(su.receive_pp,0) AS receive_ppfs,IFNULL(d.receive,0) + IFNULL(s.compensate_treatment,0)
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,
+                    IFNULL(d.receive,0) + CASE WHEN d.lgo > 0 THEN IFNULL(s.compensate_treatment,0) ELSE 0 END
                     + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END AS receive,
-                    d.status,s.repno,sk.repno AS rid,d.debtor_lock,
-                    IFNULL(s.round_no, sk.round_no) AS stm_round_no,
-                    IFNULL(s.receipt_date, sk.receipt_date) AS stm_receipt_date,
-                    IFNULL(s.receive_no, sk.receive_no) AS stm_receive_no,
-                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(s.compensate_treatment,0)
+                    d.status,
+                    CASE WHEN d.lgo > 0 THEN s.repno ELSE NULL END AS repno,
+                    CASE WHEN d.kidney > 0 THEN sk.repno ELSE NULL END AS rid,
+                    d.debtor_lock,
+                    CASE WHEN d.lgo > 0 THEN s.round_no WHEN d.kidney > 0 THEN sk.round_no ELSE NULL END AS stm_round_no,
+                    CASE WHEN d.lgo > 0 THEN s.receipt_date WHEN d.kidney > 0 THEN sk.receipt_date ELSE NULL END AS stm_receipt_date,
+                    CASE WHEN d.lgo > 0 THEN s.receive_no WHEN d.kidney > 0 THEN sk.receive_no ELSE NULL END AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0) + CASE WHEN d.lgo > 0 THEN IFNULL(s.compensate_treatment,0) ELSE 0 END
                     + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END) 
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.01 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_801 d  
@@ -8817,15 +8941,20 @@ class DebtorController extends Controller
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,
                     d.rcpt_money,d.lgo,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,
-                    d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,IFNULL(s.compensate_treatment,0) AS receive_lgo,
+                    d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,
+                    CASE WHEN d.lgo > 0 THEN IFNULL(s.compensate_treatment,0) ELSE 0 END AS receive_lgo,
                     CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END AS receive_kidney,
-                    IFNULL(su.receive_pp,0) AS receive_ppfs,IFNULL(d.receive,0) + IFNULL(s.compensate_treatment,0)
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,
+                    IFNULL(d.receive,0) + CASE WHEN d.lgo > 0 THEN IFNULL(s.compensate_treatment,0) ELSE 0 END
                     + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END AS receive,
-                    d.status,s.repno,sk.repno AS rid,d.debtor_lock,
-                    IFNULL(s.round_no, sk.round_no) AS stm_round_no,
-                    IFNULL(s.receipt_date, sk.receipt_date) AS stm_receipt_date,
-                    IFNULL(s.receive_no, sk.receive_no) AS stm_receive_no,
-                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(s.compensate_treatment,0)
+                    d.status,
+                    CASE WHEN d.lgo > 0 THEN s.repno ELSE NULL END AS repno,
+                    CASE WHEN d.kidney > 0 THEN sk.repno ELSE NULL END AS rid,
+                    d.debtor_lock,
+                    CASE WHEN d.lgo > 0 THEN s.round_no WHEN d.kidney > 0 THEN sk.round_no ELSE NULL END AS stm_round_no,
+                    CASE WHEN d.lgo > 0 THEN s.receipt_date WHEN d.kidney > 0 THEN sk.receipt_date ELSE NULL END AS stm_receipt_date,
+                    CASE WHEN d.lgo > 0 THEN s.receive_no WHEN d.kidney > 0 THEN sk.receive_no ELSE NULL END AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0) + CASE WHEN d.lgo > 0 THEN IFNULL(s.compensate_treatment,0) ELSE 0 END
                     + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END) 
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.01 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_801 d   
@@ -9124,7 +9253,7 @@ class DebtorController extends Controller
         $end_date = Session::get('end_date');
         $debtor = DB::select("
             SELECT a.vstdate,COUNT(DISTINCT a.vn) AS anvn,SUM(a.debtor) AS debtor,SUM(a.receive) AS receive
-                FROM (SELECT d.vn,d.vstdate,d.debtor,IFNULL(s.compensate_treatment,0)+CASE WHEN d.kidney > 0
+                FROM (SELECT d.vn,d.vstdate,d.debtor,CASE WHEN d.lgo > 0 THEN IFNULL(s.compensate_treatment,0) ELSE 0 END + CASE WHEN d.kidney > 0
                 THEN IFNULL(k.receive_total,0) ELSE 0 END AS receive
             FROM debtor_1102050102_801 d   
             LEFT JOIN (SELECT cid,vstdate,LEFT(vsttime,5) AS vsttime5,SUM(compensate_treatment) AS compensate_treatment
@@ -9150,15 +9279,20 @@ class DebtorController extends Controller
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,
                     d.rcpt_money,d.lgo,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,
-                    d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,IFNULL(s.compensate_treatment,0) AS receive_lgo,
+                    d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,
+                    CASE WHEN d.lgo > 0 THEN IFNULL(s.compensate_treatment,0) ELSE 0 END AS receive_lgo,
                     CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END AS receive_kidney,
-                    IFNULL(su.receive_pp,0) AS receive_ppfs,IFNULL(d.receive,0) + IFNULL(s.compensate_treatment,0)
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,
+                    IFNULL(d.receive,0) + CASE WHEN d.lgo > 0 THEN IFNULL(s.compensate_treatment,0) ELSE 0 END
                     + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END AS receive,
-                    d.status,s.repno,sk.repno AS rid,d.debtor_lock,
-                    IFNULL(s.round_no, sk.round_no) AS stm_round_no,
-                    IFNULL(s.receipt_date, sk.receipt_date) AS stm_receipt_date,
-                    IFNULL(s.receive_no, sk.receive_no) AS stm_receive_no,
-                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(s.compensate_treatment,0)
+                    d.status,
+                    CASE WHEN d.lgo > 0 THEN s.repno ELSE NULL END AS repno,
+                    CASE WHEN d.kidney > 0 THEN sk.repno ELSE NULL END AS rid,
+                    d.debtor_lock,
+                    CASE WHEN d.lgo > 0 THEN s.round_no WHEN d.kidney > 0 THEN sk.round_no ELSE NULL END AS stm_round_no,
+                    CASE WHEN d.lgo > 0 THEN s.receipt_date WHEN d.kidney > 0 THEN sk.receipt_date ELSE NULL END AS stm_receipt_date,
+                    CASE WHEN d.lgo > 0 THEN s.receive_no WHEN d.kidney > 0 THEN sk.receive_no ELSE NULL END AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0) + CASE WHEN d.lgo > 0 THEN IFNULL(s.compensate_treatment,0) ELSE 0 END
                     + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END) 
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.01 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_801 d  
@@ -9179,15 +9313,20 @@ class DebtorController extends Controller
             $debtor = DB::select("
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code,d.pttype,d.hospmain,d.pdx,d.income,
                     d.rcpt_money,d.lgo,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,d.charge,d.receive_date,
-                    d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,IFNULL(s.compensate_treatment,0) AS receive_lgo,
+                    d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,
+                    CASE WHEN d.lgo > 0 THEN IFNULL(s.compensate_treatment,0) ELSE 0 END AS receive_lgo,
                     CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END AS receive_kidney,
-                    IFNULL(su.receive_pp,0) AS receive_ppfs,IFNULL(d.receive,0) + IFNULL(s.compensate_treatment,0)
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,
+                    IFNULL(d.receive,0) + CASE WHEN d.lgo > 0 THEN IFNULL(s.compensate_treatment,0) ELSE 0 END
                     + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END AS receive,
-                    d.status,s.repno,sk.repno AS rid,d.debtor_lock,
-                    IFNULL(s.round_no, sk.round_no) AS stm_round_no,
-                    IFNULL(s.receipt_date, sk.receipt_date) AS stm_receipt_date,
-                    IFNULL(s.receive_no, sk.receive_no) AS stm_receive_no,
-                    CASE WHEN (IFNULL(d.receive,0) + IFNULL(s.compensate_treatment,0)
+                    d.status,
+                    CASE WHEN d.lgo > 0 THEN s.repno ELSE NULL END AS repno,
+                    CASE WHEN d.kidney > 0 THEN sk.repno ELSE NULL END AS rid,
+                    d.debtor_lock,
+                    CASE WHEN d.lgo > 0 THEN s.round_no WHEN d.kidney > 0 THEN sk.round_no ELSE NULL END AS stm_round_no,
+                    CASE WHEN d.lgo > 0 THEN s.receipt_date WHEN d.kidney > 0 THEN sk.receipt_date ELSE NULL END AS stm_receipt_date,
+                    CASE WHEN d.lgo > 0 THEN s.receive_no WHEN d.kidney > 0 THEN sk.receive_no ELSE NULL END AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0) + CASE WHEN d.lgo > 0 THEN IFNULL(s.compensate_treatment,0) ELSE 0 END
                     + CASE WHEN d.kidney > 0 THEN IFNULL(sk.receive_total,0) ELSE 0 END) 
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0) - IFNULL(d.debtor,0) >= -0.01 THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_801 d  
@@ -9226,12 +9365,19 @@ class DebtorController extends Controller
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,
-                    (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0)) AS receive,
-                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,kidney.repno AS rid,NULL AS rid_hd,pvt.repno AS rid_pvt,d.debtor_lock,
-                    CONCAT_WS(CHAR(44), stm.repno, kidney.repno) AS stm_round_no,
-                    CONCAT_WS(CHAR(44), stm.receipt_date, kidney.receipt_date) AS stm_receipt_date,
-                    CONCAT_WS(CHAR(44), stm.receive_no, kidney.receive_no) AS stm_receive_no,
-                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(kidney.receive_total,0)
+                    (IFNULL(d.receive,0) 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(kidney.receive_total,0) ELSE 0 END) AS receive,
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,
+                    CASE WHEN d.ofc > 0 THEN stm.repno ELSE NULL END AS repno_ofc,
+                    CASE WHEN d.kidney > 0 THEN kidney.repno ELSE NULL END AS rid,
+                    NULL AS rid_hd,pvt.repno AS rid_pvt,d.debtor_lock,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.repno ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.repno ELSE NULL END) AS stm_round_no,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receipt_date ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.receipt_date ELSE NULL END) AS stm_receipt_date,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receive_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.receive_no ELSE NULL END) AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0)
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(kidney.receive_total,0) ELSE 0 END
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0)) >= IFNULL(d.debtor,0) - 0.01
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_803 d   
@@ -9262,12 +9408,19 @@ class DebtorController extends Controller
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,
-                    (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0)) AS receive,
-                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,kidney.repno AS rid,NULL AS rid_hd,pvt.repno AS rid_pvt,d.debtor_lock,
-                    CONCAT_WS(CHAR(44), stm.repno, kidney.repno) AS stm_round_no,
-                    CONCAT_WS(CHAR(44), stm.receipt_date, kidney.receipt_date) AS stm_receipt_date,
-                    CONCAT_WS(CHAR(44), stm.receive_no, kidney.receive_no) AS stm_receive_no,
-                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(kidney.receive_total,0)
+                    (IFNULL(d.receive,0) 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(kidney.receive_total,0) ELSE 0 END) AS receive,
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,
+                    CASE WHEN d.ofc > 0 THEN stm.repno ELSE NULL END AS repno_ofc,
+                    CASE WHEN d.kidney > 0 THEN kidney.repno ELSE NULL END AS rid,
+                    NULL AS rid_hd,pvt.repno AS rid_pvt,d.debtor_lock,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.repno ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.repno ELSE NULL END) AS stm_round_no,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receipt_date ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.receipt_date ELSE NULL END) AS stm_receipt_date,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receive_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.receive_no ELSE NULL END) AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0)
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(kidney.receive_total,0) ELSE 0 END
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0)) >= IFNULL(d.debtor,0) - 0.01
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_803 d   
@@ -9571,8 +9724,10 @@ class DebtorController extends Controller
         $end_date = Session::get('end_date');
         $debtor = DB::select("
             SELECT vstdate,COUNT(DISTINCT vn) AS anvn,SUM(debtor) AS debtor,
-                SUM(IFNULL(receive,0)+IFNULL(receive_total,0)+IFNULL(k_receive_total,0)) AS receive
-            FROM (SELECT d.vstdate,d.vn,d.kidney,d.debtor,d.receive,stm.receive_total,
+                SUM(IFNULL(receive,0)
+                + CASE WHEN ofc > 0 THEN IFNULL(receive_total,0) ELSE 0 END
+                + CASE WHEN kidney > 0 THEN IFNULL(k_receive_total,0) ELSE 0 END) AS receive
+            FROM (SELECT d.vstdate,d.vn,d.kidney,d.ofc,d.debtor,d.receive,stm.receive_total,
                     k.receive_total AS k_receive_total
                 FROM debtor_1102050102_803 d   
                 LEFT JOIN (SELECT hn, DATE(datetimeadm) AS vstdate, SUM(receive_total) AS receive_total
@@ -9599,12 +9754,19 @@ class DebtorController extends Controller
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,
-                    (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0)) AS receive,
-                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,kidney.repno AS rid,NULL AS rid_hd,pvt.repno AS rid_pvt,d.debtor_lock,
-                    CONCAT_WS(CHAR(44), stm.round_no, kidney.round_no) AS stm_round_no,
-                    CONCAT_WS(CHAR(44), stm.receipt_date, kidney.receipt_date) AS stm_receipt_date,
-                    CONCAT_WS(CHAR(44), stm.receive_no, kidney.receive_no) AS stm_receive_no,
-                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(kidney.receive_total,0)
+                    (IFNULL(d.receive,0) 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(kidney.receive_total,0) ELSE 0 END) AS receive,
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,
+                    CASE WHEN d.ofc > 0 THEN stm.repno ELSE NULL END AS repno_ofc,
+                    CASE WHEN d.kidney > 0 THEN kidney.repno ELSE NULL END AS rid,
+                    NULL AS rid_hd,pvt.repno AS rid_pvt,d.debtor_lock,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.repno ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.repno ELSE NULL END) AS stm_round_no,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receipt_date ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.receipt_date ELSE NULL END) AS stm_receipt_date,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receive_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.receive_no ELSE NULL END) AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0)
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(kidney.receive_total,0) ELSE 0 END
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0)) >= IFNULL(d.debtor,0) - 0.01
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_803 d   
@@ -9635,12 +9797,19 @@ class DebtorController extends Controller
                 SELECT d.vn,d.vstdate,d.vsttime,d.hn,d.cid,d.ptname,d.hipdata_code, d.pttype,d.hospmain,d.pdx,
                     d.income,d.rcpt_money, d.ofc,d.kidney,d.ppfs,d.other,d.debtor,d.receive AS receive_manual, d.repno AS repno_manual,d.charge_date,d.charge_no,
                     d.charge,d.receive_date,d.receive_no,d.adj_inc,d.adj_dec,d.adj_date,d.adj_note,
-                    (IFNULL(d.receive,0) + IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0)) AS receive,
-                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,stm.repno AS repno_ofc,kidney.repno AS rid,NULL AS rid_hd,pvt.repno AS rid_pvt,d.debtor_lock,
-                    CONCAT_WS(CHAR(44), stm.round_no, kidney.round_no) AS stm_round_no,
-                    CONCAT_WS(CHAR(44), stm.receipt_date, kidney.receipt_date) AS stm_receipt_date,
-                    CONCAT_WS(CHAR(44), stm.receive_no, kidney.receive_no) AS stm_receive_no,
-                    CASE WHEN (IFNULL(d.receive,0)+IFNULL(stm.receive_total,0)+ IFNULL(kidney.receive_total,0)
+                    (IFNULL(d.receive,0) 
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END 
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(kidney.receive_total,0) ELSE 0 END) AS receive,
+                    IFNULL(su.receive_pp,0) AS receive_ppfs,d.status,d.repno,
+                    CASE WHEN d.ofc > 0 THEN stm.repno ELSE NULL END AS repno_ofc,
+                    CASE WHEN d.kidney > 0 THEN kidney.repno ELSE NULL END AS rid,
+                    NULL AS rid_hd,pvt.repno AS rid_pvt,d.debtor_lock,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.repno ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.repno ELSE NULL END) AS stm_round_no,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receipt_date ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.receipt_date ELSE NULL END) AS stm_receipt_date,
+                    CONCAT_WS(CHAR(44), CASE WHEN d.ofc > 0 THEN stm.receive_no ELSE NULL END, CASE WHEN d.kidney > 0 THEN kidney.receive_no ELSE NULL END) AS stm_receive_no,
+                    CASE WHEN (IFNULL(d.receive,0)
+                    + CASE WHEN d.ofc > 0 THEN IFNULL(stm.receive_total,0) ELSE 0 END
+                    + CASE WHEN d.kidney > 0 THEN IFNULL(kidney.receive_total,0) ELSE 0 END
                     + IFNULL(d.adj_inc,0) - IFNULL(d.adj_dec,0)) >= IFNULL(d.debtor,0) - 0.01
                     THEN 0 ELSE DATEDIFF(CURDATE(), d.vstdate) END AS days
                 FROM debtor_1102050102_803 d   

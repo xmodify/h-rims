@@ -47,7 +47,7 @@ class ImportDmisController extends Controller
         if (Schema::hasTable('stm_seamless_dmis')) {
             $project_codes = Stm_seamless_dmis::whereNotNull('round_no')
                 ->where('round_no', '<>', '')
-                ->whereRaw('(YEAR(vstdate) + 543 + IF(MONTH(vstdate) >= 10, 1, 0)) = ?', [$budget_year])
+                ->whereRaw('(2500 + CAST(SUBSTRING(round_no, 5, 2) AS UNSIGNED)) = ?', [$budget_year])
                 ->distinct()
                 ->pluck(DB::raw('LEFT(round_no, 4)'))
                 ->toArray();
@@ -72,7 +72,7 @@ class ImportDmisController extends Controller
                 }
             }
 
-            $where_clauses = ["(YEAR(vstdate) + 543 + IF(MONTH(vstdate) >= 10, 1, 0)) = ?"];
+            $where_clauses = ["(2500 + CAST(SUBSTRING(round_no, 5, 2) AS UNSIGNED)) = ?"];
             $params = [$budget_year];
 
             if (!empty($project)) {
@@ -102,7 +102,7 @@ class ImportDmisController extends Controller
 
             $claim_types = Stm_seamless_dmis::whereNotNull('claim_type_name')
                 ->where('claim_type_name', '<>', '')
-                ->whereRaw('(YEAR(vstdate) + 543 + IF(MONTH(vstdate) >= 10, 1, 0)) = ?', [$budget_year])
+                ->whereRaw('(2500 + CAST(SUBSTRING(round_no, 5, 2) AS UNSIGNED)) = ?', [$budget_year])
                 ->distinct()
                 ->orderBy('claim_type_name')
                 ->pluck('claim_type_name')
@@ -113,7 +113,7 @@ class ImportDmisController extends Controller
                 ->where('round_no', '<>', '')
                 ->whereNotNull('claim_type_name')
                 ->where('claim_type_name', '<>', '')
-                ->whereRaw('(YEAR(vstdate) + 543 + IF(MONTH(vstdate) >= 10, 1, 0)) = ?', [$budget_year])
+                ->whereRaw('(2500 + CAST(SUBSTRING(round_no, 5, 2) AS UNSIGNED)) = ?', [$budget_year])
                 ->distinct()
                 ->get();
             
@@ -326,7 +326,7 @@ class ImportDmisController extends Controller
                 DB::raw('SUM(claim_price) as total_claim'),
                 DB::raw('SUM(receive_total) as total_receive')
             )
-            ->whereRaw('(YEAR(vstdate) + 543 + IF(MONTH(vstdate) >= 10, 1, 0)) = ?', [$budget_year]);
+            ->whereRaw('(2500 + CAST(SUBSTRING(round_no, 5, 2) AS UNSIGNED)) = ?', [$budget_year]);
 
         if (!empty($claim_type)) {
             $query->where('claim_type_name', $claim_type);
@@ -374,10 +374,68 @@ class ImportDmisController extends Controller
             }
         }
 
+        // Get projects for this budget year dynamically
+        $project_codes = Stm_seamless_dmis::whereNotNull('round_no')
+            ->where('round_no', '<>', '')
+            ->whereRaw('(2500 + CAST(SUBSTRING(round_no, 5, 2) AS UNSIGNED)) = ?', [$budget_year])
+            ->distinct()
+            ->pluck(DB::raw('LEFT(round_no, 4)'))
+            ->toArray();
+
+        $project_mapping = [
+            'DNAP' => 'ระบบสารสนเทศการให้บริการผู้ติดเชื้อเอชไอวี ผู้ป่วยเอดส์ แห่งชาติ (NAP)',
+            'DCKD' => 'ระบบสารสนเทศเพื่อการให้บริการผู้ป่วยไตวายเรื้อรังระยะสุดท้าย',
+            'DMTB' => 'ระบบบริหารจัดการโรคเฉพาะ(วัณโรค)',
+            'DTLM' => 'ระบบบูรณาการการคัดกรองความผิดปกติของหญิงตั้งครรภ์และทารกแรกเกิด (โรคโลหิตจางธาลัสซีเมีย)',
+            'DDOW' => 'ระบบบูรณาการการคัดกรองความผิดปกติของหญิงตั้งครรภ์และทารกแรกเกิด (กลุ่มอาการดาวน์)',
+            'DDSA' => 'ระบบสารสนเทศการให้บริการฟื้นฟูสมรรถภาพ',
+            'DTTM' => 'ระบบบริการการแพทย์แผนไทย',
+            'DCMH' => 'ระบบบริการดูแลผู้ป่วยจิตเวชเรื้อรังในชุมชน',
+            'DMOR' => 'ระบบหมอพร้อม',
+            'DKTP' => 'Krungthai Digital Health Platform'
+        ];
+
+        $projects = [];
+        foreach ($project_codes as $code) {
+            $code = trim($code);
+            if (strlen($code) === 4 && preg_match('/^[A-Za-z]+$/', $code)) {
+                $projects[$code] = $project_mapping[$code] ?? 'ไม่ระบุโครงการ';
+            }
+        }
+
+        // Get claim types for this budget year dynamically
+        $claim_types = Stm_seamless_dmis::whereNotNull('claim_type_name')
+            ->where('claim_type_name', '<>', '')
+            ->whereRaw('(2500 + CAST(SUBSTRING(round_no, 5, 2) AS UNSIGNED)) = ?', [$budget_year])
+            ->distinct()
+            ->orderBy('claim_type_name')
+            ->pluck('claim_type_name')
+            ->toArray();
+
+        // Get project to claim types mapping for this budget year dynamically
+        $raw_mapping = Stm_seamless_dmis::select(DB::raw('LEFT(round_no, 4) as project_code'), 'claim_type_name')
+            ->whereNotNull('round_no')
+            ->where('round_no', '<>', '')
+            ->whereNotNull('claim_type_name')
+            ->where('claim_type_name', '<>', '')
+            ->whereRaw('(2500 + CAST(SUBSTRING(round_no, 5, 2) AS UNSIGNED)) = ?', [$budget_year])
+            ->distinct()
+            ->get();
+        
+        $project_claim_types = [];
+        foreach ($raw_mapping as $item) {
+            if (!empty($item->project_code)) {
+                $project_claim_types[$item->project_code][] = $item->claim_type_name;
+            }
+        }
+
         return response()->json([
             'labels' => $labels,
             'claim_prices' => $claimPrices,
-            'receive_totals' => $receiveTotals
+            'receive_totals' => $receiveTotals,
+            'projects' => $projects,
+            'claim_types' => $claim_types,
+            'project_claim_types' => $project_claim_types
         ]);
     }
 
@@ -480,8 +538,8 @@ class ImportDmisController extends Controller
                     'an' => $getCol(['AN', 'An', 'รหัส AN']),
                     'cid' => $getCol(['VCTID,NAPNumber,PID', 'PID', 'เลขประจำตัวประชาชน', 'CID', 'บัตรประชาชน', 'เลขบัตรประชาชน', 'เลขประจำตัวบัตรประชาชน']),
                     'ptname' => $getCol(['ชื่อ-สกุล', 'ชื่อ-นามสกุล', 'ชื่อผู้ป่วย', 'ชื่อ', 'ชื่อ นามสกุล', 'ชื่อ - นามสกุล']),
-                    'send_date' => $getCol(['วันที่ส่งข้อมูล', 'วันที่ส่ง', 'วันที่ส่งออก']),
-                    'vstdate' => $getCol(['วันที่รับบริการ', 'วันที่เข้ารักษา', 'วันที่รับบริการ/วันที่เข้ารักษา', 'วันรับบริการ']),
+                    'send_date' => $getCol(['วันที่ส่งข้อมูล', 'วันที่ส่ง', 'วันที่ส่งออก', 'วันที่ลงทะเบียน']),
+                    'vstdate' => $getCol(['วันที่รับบริการ', 'วันที่เข้ารักษา', 'วันที่รับบริการ/วันที่เข้ารักษา', 'วันที่เข้ารักษา/วันที่รับบริการ', 'วันรับบริการ']),
                     'claim_type_name' => $getCol(['รายการประเภทที่ขอเบิก', 'รายการประเภทที่ขอ', 'ประเภทบริการ']),
                     'qty' => $getCol(['จำนวน', 'จำนวนครั้ง']),
                     'price_unit' => $getCol(['ราคาต่อหน่วย', 'อัตราจ่าย']),
@@ -492,7 +550,7 @@ class ImportDmisController extends Controller
                     'receive_total' => $getCol(['ชดเชย', 'ยอดชดเชย', 'เงินชดเชย', 'จ่ายจริง', 'รวมเงินชดเชย', 'รวมเงินที่จ่ายชดเชย']),
                     'deny_code' => $getCol(['หมายเหตุ', 'Deny code', 'รหัสปฏิเสธ', 'DENY CODE']),
                     'deny_warning' => $getCol(['หมายเหตุอื่นๆ', 'คำอธิบาย', 'สาเหตุ', 'รายละเอียด']),
-                    'hospcode' => $getCol(['HMAIN_OP', 'HMAIN', 'HOSPCODE', 'รหัสหน่วยบริการ']),
+                    'hospcode' => $getCol(['HMAIN_OP', 'HMAIN', 'HOSPCODE', 'รหัสหน่วยบริการ', 'HCODE']),
                     'pttype_name' => $getCol(['สิทธิการรักษาพยาบาล', 'สิทธิการรักษา', 'สิทธิ', 'สิทธิการรักษาพยาบาล']),
                     'rehab_code' => $getCol(['รหัสอุปกรณ์ฟื้นฟู (ถ้ามี)', 'รหัสอุปกรณ์ฟื้นฟู', 'รหัสอุปกรณ์']),
                     'rehab_name' => $getCol(['ชื่อรายการอุปกรณ์ฟื้นฟู (ถ้ามี) / ชื่อกิจกรรม', 'ชื่อรายการอุปกรณ์ฟื้นฟู / ชื่อกิจกรรม', 'ชื่อรายการอุปกรณ์ฟื้นฟู']),
@@ -628,7 +686,9 @@ class ImportDmisController extends Controller
         }
         
         $value = trim($value);
-        if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $value, $matches)) {
+        
+        // Match DD/MM/YYYY with optional time
+        if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?$/', $value, $matches)) {
             $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
             $month = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
             $year = intval($matches[3]);
@@ -637,9 +697,36 @@ class ImportDmisController extends Controller
             }
             return "{$year}-{$month}-{$day}";
         }
+
+        // Match YYYY/MM/DD with optional time
+        if (preg_match('/^(\d{4})\/(\d{1,2})\/(\d{1,2})(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?$/', $value, $matches)) {
+            $year = intval($matches[1]);
+            if ($year > 2400) {
+                $year -= 543;
+            }
+            $month = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
+            $day = str_pad($matches[3], 2, '0', STR_PAD_LEFT);
+            return "{$year}-{$month}-{$day}";
+        }
         
-        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-            return $value;
+        // Match YYYY-MM-DD with optional time
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?$/', $value, $matches)) {
+            $year = intval($matches[1]);
+            if ($year > 2400) {
+                $year -= 543;
+            }
+            return "{$year}-{$matches[2]}-{$matches[3]}";
+        }
+
+        // Match DD-MM-YYYY with optional time
+        if (preg_match('/^(\d{1,2})-(\d{1,2})-(\d{4})(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?$/', $value, $matches)) {
+            $day = str_pad($matches[1], 2, '0', STR_PAD_LEFT);
+            $month = str_pad($matches[2], 2, '0', STR_PAD_LEFT);
+            $year = intval($matches[3]);
+            if ($year > 2400) {
+                $year -= 543;
+            }
+            return "{$year}-{$month}-{$day}";
         }
 
         if (is_numeric($value)) {

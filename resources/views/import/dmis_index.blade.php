@@ -454,8 +454,8 @@
             initChartEvent();
         }
 
-        const projectClaimTypes = @json($project_claim_types);
-        const originalClaimTypes = @json($claim_types);
+        let projectClaimTypes = @json($project_claim_types);
+        let originalClaimTypes = @json($claim_types);
 
         function initChartEvent() {
             $('#chartModal').on('shown.bs.modal', function () {
@@ -483,12 +483,19 @@
                 loadChartData();
             });
 
-            $('#modal_filter_claim_type, #modal_filter_budget_year').on('change', function () {
+            $('#modal_filter_claim_type').on('change', function () {
                 loadChartData();
+            });
+
+            $('#modal_filter_budget_year').on('change', function () {
+                // Reset other selections when budget year changes in modal
+                $('#modal_filter_project').val('');
+                $('#modal_filter_claim_type').val('');
+                loadChartData(true);
             });
         }
 
-        function loadChartData() {
+        function loadChartData(isYearChange = false) {
             const claimType = $('#modal_filter_claim_type').val();
             const budgetYear = $('#modal_filter_budget_year').val();
             const project = $('#modal_filter_project').val();
@@ -512,6 +519,25 @@
                     $('#loading_spinner').addClass('d-none');
                     $('#chart_container').removeClass('d-none');
                     renderChart(res.labels, res.claim_prices, res.receive_totals);
+
+                    if (isYearChange) {
+                        projectClaimTypes = res.project_claim_types;
+                        originalClaimTypes = res.claim_types;
+
+                        // Rebuild project select options
+                        const projectSelect = $('#modal_filter_project');
+                        projectSelect.html('<option value="">-- ทั้งหมด --</option>');
+                        Object.keys(res.projects).forEach(key => {
+                            projectSelect.append(`<option value="${key}">[${key}] ${res.projects[key]}</option>`);
+                        });
+
+                        // Rebuild claim type select options
+                        const claimTypeSelect = $('#modal_filter_claim_type');
+                        claimTypeSelect.html('<option value="">-- ทั้งหมด --</option>');
+                        res.claim_types.forEach(type => {
+                            claimTypeSelect.append(`<option value="${type}">${type}</option>`);
+                        });
+                    }
                 },
                 error: function () {
                     $('#loading_spinner').addClass('d-none');

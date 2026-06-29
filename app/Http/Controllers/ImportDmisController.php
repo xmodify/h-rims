@@ -102,6 +102,7 @@ class ImportDmisController extends Controller
 
             $claim_types = Stm_seamless_dmis::whereNotNull('claim_type_name')
                 ->where('claim_type_name', '<>', '')
+                ->whereRaw('(YEAR(vstdate) + 543 + IF(MONTH(vstdate) >= 10, 1, 0)) = ?', [$budget_year])
                 ->distinct()
                 ->orderBy('claim_type_name')
                 ->pluck('claim_type_name')
@@ -112,6 +113,7 @@ class ImportDmisController extends Controller
                 ->where('round_no', '<>', '')
                 ->whereNotNull('claim_type_name')
                 ->where('claim_type_name', '<>', '')
+                ->whereRaw('(YEAR(vstdate) + 543 + IF(MONTH(vstdate) >= 10, 1, 0)) = ?', [$budget_year])
                 ->distinct()
                 ->get();
             
@@ -139,6 +141,8 @@ class ImportDmisController extends Controller
         if (Schema::hasTable('stm_seamless_dmis')) {
             $claim_types = Stm_seamless_dmis::whereNotNull('claim_type_name')
                 ->where('claim_type_name', '<>', '')
+                ->whereDate('vstdate', '>=', $start_date)
+                ->whereDate('vstdate', '<=', $end_date)
                 ->distinct()
                 ->orderBy('claim_type_name')
                 ->pluck('claim_type_name')
@@ -177,6 +181,8 @@ class ImportDmisController extends Controller
                 ->where('round_no', '<>', '')
                 ->whereNotNull('claim_type_name')
                 ->where('claim_type_name', '<>', '')
+                ->whereDate('vstdate', '>=', $start_date)
+                ->whereDate('vstdate', '<=', $end_date)
                 ->distinct()
                 ->get();
             

@@ -456,6 +456,7 @@
                         <div class="fw-bold text-primary mb-2 small"><i class="bi bi-person-fill me-1"></i>ข้อมูลผู้ป่วย</div>
                         <table class="table table-sm table-borderless mb-0 small">
                           <tr><th class="text-muted" style="width:35%">HN</th><td class="fw-bold">${visit.hn}</td></tr>
+                          <tr><th class="text-muted">CID</th><td>${visit.cid ?? '-'}</td></tr>
                           <tr><th class="text-muted">ชื่อ-สกุล</th><td>${visit.ptname}</td></tr>
                           <tr><th class="text-muted">สิทธิ์</th><td>${visit.pttype ?? '-'}</td></tr>
                           <tr><th class="text-muted">เพศ/อายุ</th><td>${visit.sex == '1' ? 'ชาย' : (visit.sex == '2' ? 'หญิง' : visit.sex)} / ${visit.age_y ?? '-'} ปี</td></tr>

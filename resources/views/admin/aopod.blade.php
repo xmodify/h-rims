@@ -313,14 +313,14 @@
                                             <small class="text-muted text-uppercase">HN: {{ $item->hn }}</small>
                                         </td>
                                         <td class="fw-semibold text-dark">{{ $item->fullname }}</td>
-                                        <td class="text-center" data-order="{{ $item->patient_death === 'Y' ? '1' : '2' }}">
+                                        <td class="text-center" data-order="{{ $item->patient_death === 'Y' ? '2' : '1' }}">
                                             @if($item->patient_death === 'Y')
                                                 <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 rounded-pill small d-inline-flex align-items-center"><i class="bi bi-check-circle-fill me-1"></i> ตาย</span>
                                             @else
                                                 <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1.5 rounded-pill small d-inline-flex align-items-center"><i class="bi bi-x-circle-fill me-1"></i> ยังไม่ตาย</span>
                                             @endif
                                         </td>
-                                        <td class="text-center" data-order="{{ $item->person_death === 'Y' ? '1' : (($item->person_death === 'N/A' || is_null($item->person_death)) ? '2' : '3') }}">
+                                        <td class="text-center" data-order="{{ $item->person_death === 'Y' ? '2' : (($item->person_death === 'N/A' || is_null($item->person_death)) ? '3' : '1') }}">
                                             @if($item->person_death === 'N/A' || is_null($item->person_death))
                                                 <span class="badge bg-secondary-subtle text-secondary px-2.5 py-1.5 rounded-pill small d-inline-flex align-items-center"><i class="bi bi-dash-circle me-1"></i> นอกเขต</span>
                                             @elseif($item->person_death === 'Y')
@@ -329,7 +329,7 @@
                                                 <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1.5 rounded-pill small d-inline-flex align-items-center"><i class="bi bi-x-circle-fill me-1"></i> ยังไม่ตาย</span>
                                             @endif
                                         </td>
-                                        <td class="text-center" data-order="{{ !$item->has_clinics ? '2' : ($item->active_clinics === 0 ? '1' : '3') }}">
+                                        <td class="text-center" data-order="{{ !$item->has_clinics ? '3' : ($item->active_clinics === 0 ? '2' : '1') }}">
                                             @if(!$item->has_clinics)
                                                 <span class="badge bg-secondary-subtle text-secondary px-2.5 py-1.5 rounded-pill small d-inline-flex align-items-center"><i class="bi bi-dash-circle me-1"></i> ไม่มีคลินิก</span>
                                             @elseif($item->active_clinics === 0)
@@ -338,14 +338,14 @@
                                                 <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1.5 rounded-pill small d-inline-flex align-items-center hover-scale" style="cursor: pointer;" onclick="showActiveClinics('{{ $itemJson }}')" title="คลิกเพื่อดูรายละเอียดคลินิก"><i class="bi bi-x-circle-fill me-1"></i> ยังไม่ตาย (ค้าง {{ $item->active_clinics }} คลินิก)</span>
                                             @endif
                                         </td>
-                                        <td class="text-center" data-order="{{ $item->death_table_date ? '1' : '2' }}">
+                                        <td class="text-center" data-order="{{ $item->death_table_date ? '2' : '1' }}">
                                             @if($item->death_table_date)
                                                 <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 rounded-pill small d-inline-flex align-items-center"><i class="bi bi-check-circle-fill me-1"></i> ลงทะเบียนแล้ว</span>
                                             @else
                                                 <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1.5 rounded-pill small d-inline-flex align-items-center"><i class="bi bi-x-circle-fill me-1"></i> ยังไม่ลง</span>
                                             @endif
                                         </td>
-                                        <td class="text-center" data-order="{{ $item->is_complete ? '1' : '2' }}">
+                                        <td class="text-center" data-order="{{ $item->is_complete ? '2' : '1' }}">
                                             @if($item->is_complete)
                                                 <i class="bi bi-check-circle-fill text-success fs-4" title="ข้อมูลตรงกัน"></i>
                                             @else
@@ -474,10 +474,10 @@
                             </div>
                         </div>
                         <div class="col-md-12">
-                            <label class="form-label small fw-bold text-muted text-uppercase">รายละเอียดสาเหตุการตาย</label>
+                            <label class="form-label small fw-bold text-muted text-uppercase">ชื่อสาเหตุหลักการเสียชีวิต (ตาม HOSxP)</label>
                             <div class="input-group input-group-sm shadow-sm">
-                                <input type="text" class="form-control bg-white" id="modalDeathCause" readonly>
-                                <button class="btn btn-secondary text-white" type="button" onclick="copyModalField('modalDeathCause')"><i class="bi bi-copy"></i> คัดลอก</button>
+                                <input type="text" class="form-control bg-white fw-semibold text-success" id="modalDeathCauseText" readonly>
+                                <button class="btn btn-secondary text-white" type="button" onclick="copyModalField('modalDeathCauseText')"><i class="bi bi-copy"></i> คัดลอก</button>
                             </div>
                         </div>
                         <div class="col-md-12">
@@ -535,20 +535,6 @@
 
 @push('scripts')
 <script>
-    jQuery.extend( jQuery.fn.dataTableExt.oSort, {
-        "status-audit-asc": function ( a, b ) {
-            let map = { '1': 1, '3': 2, '2': 3 };
-            let valA = map[a] || 99;
-            let valB = map[b] || 99;
-            return valA - valB;
-        },
-        "status-audit-desc": function ( a, b ) {
-            let map = { '3': 1, '1': 2, '2': 3 };
-            let valA = map[a] || 99;
-            let valB = map[b] || 99;
-            return valA - valB;
-        }
-    } );
 
     function copyToClipboard(elementId) {
         var copyText = document.getElementById(elementId);
@@ -618,9 +604,6 @@
                 language: {
                     url: 'https://cdn.datatables.net/plug-ins/1.10.24/i18n/Thai.json'
                 },
-                columnDefs: [
-                    { type: 'status-audit', targets: [2, 3, 4] }
-                ],
                 initComplete: function(settings, json) {
                     if (!$('#exportExcelBtn').length) {
                         $('#deathAuditTable_filter').append('<button type="button" id="exportExcelBtn" onclick="exportTableToExcel()" class="btn btn-success btn-sm ms-2 py-1.5 px-3 rounded-pill fw-bold hover-scale shadow-sm"><i class="bi bi-file-earmark-excel-fill me-1"></i> Excel</button>');
@@ -1033,52 +1016,53 @@
                             let patientOrder = '';
                             if (item.patient_death === 'Y') {
                                 patientCell = `<span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 rounded-pill small d-inline-flex align-items-center"><i class="bi bi-check-circle-fill me-1"></i> ตาย</span>`;
-                                patientOrder = '1';
+                                patientOrder = '2';
                             } else {
                                 patientCell = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1.5 rounded-pill small d-inline-flex align-items-center"><i class="bi bi-x-circle-fill me-1"></i> ยังไม่ตาย</span>`;
-                                patientOrder = '2';
+                                patientOrder = '1';
                             }
 
                             let personCell = '';
                             let personOrder = '';
                             if (item.person_death === 'N/A') {
                                 personCell = `<span class="badge bg-secondary-subtle text-secondary px-2.5 py-1.5 rounded-pill small d-inline-flex align-items-center"><i class="bi bi-dash-circle me-1"></i> นอกเขต</span>`;
-                                personOrder = '2';
+                                personOrder = '3';
                             } else if (item.person_death === 'Y') {
                                 personCell = `<span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 rounded-pill small d-inline-flex align-items-center"><i class="bi bi-check-circle-fill me-1"></i> ตาย</span>`;
-                                personOrder = '1';
+                                personOrder = '2';
                             } else {
                                 personCell = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1.5 rounded-pill small d-inline-flex align-items-center"><i class="bi bi-x-circle-fill me-1"></i> ยังไม่ตาย</span>`;
-                                personOrder = '3';
+                                personOrder = '1';
                             }
 
                             let clinicCell = '';
                             let clinicOrder = '';
                             if (!item.has_clinics) {
                                 clinicCell = `<span class="badge bg-secondary-subtle text-secondary px-2.5 py-1.5 rounded-pill small d-inline-flex align-items-center"><i class="bi bi-dash-circle me-1"></i> ไม่มีคลินิก</span>`;
-                                clinicOrder = '2';
+                                clinicOrder = '3';
                             } else if (item.active_clinics === 0) {
                                 clinicCell = `<span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 rounded-pill small d-inline-flex align-items-center"><i class="bi bi-check-circle-fill me-1"></i> ตาย</span>`;
-                                clinicOrder = '1';
+                                clinicOrder = '2';
                             } else {
                                 let itemJson = encodeURIComponent(JSON.stringify(item));
                                 clinicCell = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1.5 rounded-pill small d-inline-flex align-items-center hover-scale" style="cursor: pointer;" onclick="showActiveClinics('${itemJson}')" title="คลิกเพื่อดูรายละเอียดคลินิก"><i class="bi bi-x-circle-fill me-1"></i> ยังไม่ตาย (ค้าง ${item.active_clinics} คลินิก)</span>`;
-                                clinicOrder = '3';
+                                clinicOrder = '1';
                             }
 
                             let deathCell = '';
                             let deathOrder = '';
                             if (item.death_table_date) {
                                 deathCell = `<span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 rounded-pill small d-inline-flex align-items-center"><i class="bi bi-check-circle-fill me-1"></i> ลงทะเบียนแล้ว</span>`;
-                                deathOrder = '1';
+                                deathOrder = '2';
                             } else {
                                 deathCell = `<span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2.5 py-1.5 rounded-pill small d-inline-flex align-items-center"><i class="bi bi-x-circle-fill me-1"></i> ยังไม่ลง</span>`;
-                                deathOrder = '2';
+                                deathOrder = '1';
                             }
 
                             let statusCell = item.is_complete 
                                 ? '<i class="bi bi-check-circle-fill text-success fs-4" title="ข้อมูลตรงกัน"></i>' 
                                 : '<i class="bi bi-x-circle-fill text-danger fs-4" title="ยังไม่ครบ"></i>';
+                            let statusOrder = item.is_complete ? '2' : '1';
 
                             let itemJson = encodeURIComponent(JSON.stringify(item));
                             let actionButton = `<button class="btn btn-outline-danger btn-sm px-3 rounded-pill fw-bold hover-scale" onclick="showDeathDetail('${itemJson}')"><i class="bi bi-clipboard2-pulse"></i> ดูข้อมูล</button>`;
@@ -1094,7 +1078,7 @@
                                     <td class="text-center" data-order="${personOrder}">${personCell}</td>
                                     <td class="text-center" data-order="${clinicOrder}">${clinicCell}</td>
                                     <td class="text-center" data-order="${deathOrder}">${deathCell}</td>
-                                    <td class="text-center" data-order="${item.is_complete ? '1' : '2'}">${statusCell}</td>
+                                    <td class="text-center" data-order="${statusOrder}">${statusCell}</td>
                                     <td class="text-center">${actionButton}</td>
                                 </tr>
                             `;
@@ -1155,9 +1139,6 @@
                         language: {
                             url: 'https://cdn.datatables.net/plug-ins/1.10.24/i18n/Thai.json'
                         },
-                        columnDefs: [
-                            { type: 'status-audit', targets: [2, 3, 4] }
-                        ],
                         initComplete: function(settings, json) {
                             if (!$('#exportExcelBtn').length) {
                                 $('#deathAuditTable_filter').append('<button type="button" id="exportExcelBtn" onclick="exportTableToExcel()" class="btn btn-success btn-sm ms-2 py-1.5 px-3 rounded-pill fw-bold hover-scale shadow-sm"><i class="bi bi-file-earmark-excel-fill me-1"></i> Excel</button>');
@@ -1195,6 +1176,74 @@
         });
     }
 
+    const diseaseGroups = {
+        '1': 'โรคติดเชื้อและปรสิตบางโรค',
+        '2': 'เนื้องอก (รวมมะเร็ง)',
+        '3': 'โรคเลือดและอวัยวะสร้างเลือดและภาวะบางอย่างที่เกี่ยวกับกลไกภูมิคุ้มกัน',
+        '4': 'โรคของระบบต่อมไร้ท่อ โภชนาการ และเมตาบอลิซึม',
+        '5': 'โรคจิตและพฤติกรรมผิดปกติ',
+        '6': 'โรคของระบบประสาท',
+        '7': 'โรคของตาและส่วนประกอบของตา',
+        '8': 'โรคของหูและปุ่มกกหู',
+        '9': 'โรคของระบบไหลเวียนโลหิต',
+        '10': 'โรคของระบบหายใจ',
+        '11': 'โรคของระบบย่อยอาหาร',
+        '12': 'โรคของผิวหนังและเนื้อเยื่อใต้ผิวหนัง',
+        '13': 'โรคของระบบกล้ามเนื้อ เส้นเอ็น และกระดูกและเนื้อยึดเสริม',
+        '14': 'โรคของระบบปัสสาวะและอวัยวะสืบพันธุ์',
+        '15': 'การตั้งครรภ์ การคลอด และระยะหลังคลอด',
+        '16': 'ภาวะเฉพาะในระยะเริ่มแรกของชีวิต (Perinatal)',
+        '17': 'รูปวิปริตแต่กำเนิด รูปทรงผิดปกติและโครโมโซมผิดปกติ',
+        '18': 'อาการ แสดง และสิ่งผิดปกติทางคลินิกและห้องปฏิบัติการที่ไม่จำแนกไว้ที่อื่น',
+        '19': 'การบาดเจ็บ เป็นพิษ และผลสืบเนื่องจากสาเหตุภายนอก',
+        '20': 'สาเหตุภายนอกของการเจ็บป่วยและการตาย (เช่น อุบัติเหตุจราจร)',
+        '21': 'ปัจจัยที่มีผลต่อสถานะสุขภาพและการรับบริการสาธารณสุข / สาเหตุภายนอกอื่นๆ'
+    };
+
+    function getDiseaseGroupCode(icd10) {
+        if (!icd10) return '';
+        icd10 = icd10.trim().toUpperCase();
+        if (icd10.length === 0) return '';
+        let char = icd10.charAt(0);
+        
+        let numStr = icd10.substring(1);
+        let num = parseInt(numStr, 10);
+        if (isNaN(num)) {
+            // ลองตัดตัวอักษรท้ายสุดออกถ้าเป็นรหัสย่อย เช่น X70.9 -> X709 -> num อาจจะได้
+            let match = numStr.match(/^\d+/);
+            if (match) {
+                num = parseInt(match[0], 10);
+            } else {
+                num = 0;
+            }
+        }
+        
+        if (char === 'A' || char === 'B') return '1';
+        if (char === 'C' || (char === 'D' && num >= 0 && num <= 48)) return '2';
+        if (char === 'D' && num >= 50 && num <= 89) return '3';
+        if (char === 'E') return '4';
+        if (char === 'F') return '5';
+        if (char === 'G') return '6';
+        if (char === 'H' && num >= 0 && num <= 59) return '7';
+        if (char === 'H' && num >= 60 && num <= 95) return '8';
+        if (char === 'I') return '9';
+        if (char === 'J') return '10';
+        if (char === 'K') return '11';
+        if (char === 'L') return '12';
+        if (char === 'M') return '13';
+        if (char === 'N') return '14';
+        if (char === 'O') return '15';
+        if (char === 'P') return '16';
+        if (char === 'Q') return '17';
+        if (char === 'R') return '18';
+        if (char === 'S' || char === 'T') return '19';
+        if (char === 'V') return '20';
+        if (char === 'W' || char === 'X' || char === 'Y') return '21';
+        if (char === 'Z') return '21';
+        
+        return '';
+    }
+
     function showDeathDetail(itemJson) {
         let item = JSON.parse(decodeURIComponent(itemJson));
         $('#modalFullname').val(item.fullname);
@@ -1202,7 +1251,13 @@
         $('#modalHn').val(item.hn);
         $('#modalDeathDate').val(formatThaiDate(item.aopod_death_date));
         $('#modalDeathDiag').val(item.aopod_death_diag);
-        $('#modalDeathCause').val(item.aopod_death_cause);
+        
+        // Map ICD-10 to 21 disease groups
+        let groupCode = getDiseaseGroupCode(item.aopod_death_diag);
+        let groupName = diseaseGroups[groupCode] || 'ไม่พบการจัดกลุ่มโรค';
+        
+        $('#modalDeathCauseText').val(groupName);
+        
         $('#modalDeathPlace').val(item.aopod_death_place || 'โรงพยาบาลทั่วไป');
         
         $('#deathDetailModal').modal('show');

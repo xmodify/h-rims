@@ -14271,7 +14271,7 @@ class DebtorController extends Controller
         $end_date = Session::get('end_date');
         $debtor = DB::select('
             SELECT dchdate AS vstdate,COUNT(DISTINCT an) AS anvn,SUM(debtor) AS debtor,SUM(receive) AS receive
-            FROM Debtor_1102050102_109 
+            FROM debtor_1102050102_109 
             WHERE dchdate BETWEEN ? AND ?
             GROUP BY dchdate ORDER BY dchdate', [$start_date, $end_date]);
 

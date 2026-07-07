@@ -1,3 +1,6 @@
+@php
+    $is_ssop_licensed = \App\Services\LicenseService::isLicensed();
+@endphp
 @extends('layouts.app')
 
 @section('content')
@@ -84,6 +87,11 @@
                             <button type="button" class="btn btn-outline-primary px-3 shadow-sm" onclick="$('#importFeedbackModal').modal('show'); loadFeedbackList();">
                                 <i class="bi bi-file-earmark-zip me-1"></i> นำเข้าตอบกลับโรคเรื้อรัง
                             </button>
+                            @if($is_ssop_licensed)
+                            <button type="button" class="btn btn-outline-success px-3 shadow-sm" onclick="exportSelectedSSOP()">
+                                <i class="bi bi-box-arrow-up-fill me-1"></i> ส่งออก SSOP (.zip)
+                            </button>
+                            @endif
                         </div>
                     </form>
                 </div>
@@ -95,7 +103,10 @@
                 <table id="t_claim" class="table table-modern w-100">
                     <thead>
                         <tr>
-                            <th class="text-center">#</th>                      
+                            @if($is_ssop_licensed)
+                            <th class="text-center" width="3%"><input type="checkbox" id="select_all_claims"></th>
+                            @endif
+                                                  
                             <th class="text-center">สถานะ</th>                      
                             <th class="text-center">วัน-เวลา | Q</th>     
                             <th class="text-center">HN</th>    
@@ -119,7 +130,12 @@
                         @endphp
                         @foreach($claim as $row) 
                         <tr>
-                            <td class="text-center text-muted small">{{ $count }}</td>
+                            @if($is_ssop_licensed)
+                            <td class="text-center">
+                                <input type="checkbox" class="claim-select-check" value="{{ $row->vn }}">
+                            </td>
+                            @endif
+                            
                             <td class="text-center" data-status="{{ $row->chronic_status }}" data-order="{{ $row->chronic_status === 'red' ? '2' : ($row->chronic_status === 'green' ? '1' : '0') }}">
                                 @if($row->chronic_status === 'green')
                                     <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->vn }}')" title="ผ่านเกณฑ์: มีรหัสโรคและยาเรื้อรังคู่กัน">
@@ -300,6 +316,223 @@
         </div>
     </div>
 
+    <!-- SSOP Export Conditions Modal -->
+    <div class="modal fade" id="ssopExportModal" tabindex="-1" aria-labelledby="ssopExportModalLabel" aria-hidden="true" style="z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow border-0">
+                <div class="modal-header bg-success text-white py-3">
+                    <h5 class="modal-title fw-bold" id="ssopExportModalLabel">
+                        <i class="bi bi-box-arrow-up-fill me-2"></i> เงื่อนไขการส่งออกข้อมูล SSOP
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label for="export_session_id" class="form-label fw-bold">เลขรอบการส่งออก (Session ID)</label>
+                        <input type="number" class="form-control form-control-lg fw-bold text-center" id="export_session_id" placeholder="ตัวอย่าง 6906" min="1" max="99999">
+                        <div class="form-text text-muted small mt-1"><i class="bi bi-info-circle-fill me-1"></i> ระบบจะสุ่มเลขรอบเริ่มต้นให้ แนะนำให้ปรับแต่งไม่ให้ซ้ำกับรอบที่ส่งไปแล้ว</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="export_station_id" class="form-label fw-bold">รหัสเครื่องส่ง (Station ID)</label>
+                        <input type="text" class="form-control form-control-lg fw-bold text-center" id="export_station_id" value="01" placeholder="ตัวอย่าง 01" maxlength="5">
+                        <div class="form-text text-muted small mt-1"><i class="bi bi-info-circle-fill me-1"></i> โดยทั่วไปใช้รหัสเครื่องหลักคือ 01</div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2 px-4 d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">ยกเลิก</button>
+                    <button type="button" class="btn btn-success px-4" onclick="previewSSOPExport()">
+                        <i class="bi bi-eye me-1"></i> ดำเนินการและพรีวิวข้อมูล
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SSOP Export Preview Modal -->
+    <div class="modal fade" id="ssopPreviewModal" tabindex="-1" aria-labelledby="ssopPreviewModalLabel" aria-hidden="true" style="z-index: 1060;">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content shadow border-0">
+                <div class="modal-header bg-success text-white py-3">
+                    <h5 class="modal-title fw-bold" id="ssopPreviewModalLabel">
+                        <i class="bi bi-file-earmark-check-fill me-2"></i> ตรวจสอบความถูกต้องของข้อมูลก่อนส่งออก SSOP
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Tabs Header -->
+                    <ul class="nav nav-tabs nav-justified mb-3" id="previewTab" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active fw-bold text-success" id="prev-billtran-tab" data-bs-toggle="tab" data-bs-target="#prev-billtran" type="button" role="tab" aria-controls="prev-billtran" aria-selected="true">
+                                <i class="bi bi-file-earmark-spreadsheet me-1"></i> BILLTRAN (ข้อมูลใบเสร็จ)
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-success" id="prev-billdisp-tab" data-bs-toggle="tab" data-bs-target="#prev-billdisp" type="button" role="tab" aria-controls="prev-billdisp" aria-selected="false">
+                                <i class="bi bi-capsule me-1"></i> BILLDISP (ข้อมูลจ่ายยา)
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-success" id="prev-opservices-tab" data-bs-toggle="tab" data-bs-target="#prev-opservices" type="button" role="tab" aria-controls="prev-opservices" aria-selected="false">
+                                <i class="bi bi-clipboard-pulse me-1"></i> OPServices (ข้อมูลบริการ)
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <!-- Tabs Content -->
+                    <div class="tab-content" id="previewTabContent">
+                        <!-- Tab 1: BILLTRAN -->
+                        <div class="tab-pane fade show active" id="prev-billtran" role="tabpanel" aria-labelledby="prev-billtran-tab">
+                            <div class="mb-3">
+                                <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-billtran">
+                                    <thead class="table-dark sticky-top">
+                                        <tr>
+                                            <th>ตรวจสอบ</th>
+                                            <th>Type</th>
+                                            <th>DocNo</th>
+                                            <th>InvDate</th>
+                                            <th>Hcode</th>
+                                            <th>InvNo</th>
+                                            <th>SubID</th>
+                                            <th>HN</th>
+                                            <th>MemberNo</th>
+                                            <th class="text-end">Amount</th>
+                                            <th class="text-end">Paid</th>
+                                            <th>PaidExtra</th>
+                                            <th>Status</th>
+                                            <th>CID</th>
+                                            <th>Name</th>
+                                            <th>MainHosp</th>
+                                            <th>Spclty</th>
+                                            <th class="text-end">ClaimAmt</th>
+                                            <th>ExtraAmt</th>
+                                            <th>PaidOther</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="preview-billtran-tbody"></tbody>
+                                </table>
+                            </div>
+                            <div class="card border-0 bg-light">
+                                <div class="card-header border-0 bg-light p-0">
+                                    <button class="btn btn-sm btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#raw-billtran-collapse">
+                                        <span><i class="bi bi-file-earmark-code me-1"></i> ดูไฟล์ข้อความดิบ (Raw XML)</span>
+                                        <i class="bi bi-chevron-down"></i>
+                                    </button>
+                                </div>
+                                <div class="collapse" id="raw-billtran-collapse">
+                                    <div class="card-body p-2 position-relative">
+                                        <button class="btn btn-xs btn-secondary position-absolute end-0 top-0 m-2 btn-copy-xml" data-target="preview-billtran-raw" style="font-size: 0.7rem; z-index:10;"><i class="bi bi-clipboard"></i> Copy</button>
+                                        <textarea class="form-control text-monospace bg-dark text-light p-3 small" id="preview-billtran-raw" rows="8" readonly style="font-family: Consolas, monospace; font-size:0.75rem;"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab 2: BILLDISP -->
+                        <div class="tab-pane fade" id="prev-billdisp" role="tabpanel" aria-labelledby="prev-billdisp-tab">
+                            <div class="mb-3">
+                                <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-billdisp">
+                                    <thead class="table-dark sticky-top">
+                                        <tr>
+                                            <th>ตรวจสอบ</th>
+                                            <th>Hcode</th>
+                                            <th>DispID</th>
+                                            <th>PrescNo</th>
+                                            <th>HN</th>
+                                            <th>CID</th>
+                                            <th>DispDate</th>
+                                            <th>DispTime</th>
+                                            <th>LicenseNo</th>
+                                            <th>ItemType</th>
+                                            <th class="text-end">UnitPrice</th>
+                                            <th class="text-end">TotalAmt</th>
+                                            <th>PaidAmt</th>
+                                            <th>ExtraAmt</th>
+                                            <th>Location</th>
+                                            <th>Plan</th>
+                                            <th class="text-center">Qty</th>
+                                            <th>VisitNo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="preview-billdisp-tbody"></tbody>
+                                </table>
+                            </div>
+                            <div class="card border-0 bg-light">
+                                <div class="card-header border-0 bg-light p-0">
+                                    <button class="btn btn-sm btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#raw-billdisp-collapse">
+                                        <span><i class="bi bi-file-earmark-code me-1"></i> ดูไฟล์ข้อความดิบ (Raw XML)</span>
+                                        <i class="bi bi-chevron-down"></i>
+                                    </button>
+                                </div>
+                                <div class="collapse" id="raw-billdisp-collapse">
+                                    <div class="card-body p-2 position-relative">
+                                        <button class="btn btn-xs btn-secondary position-absolute end-0 top-0 m-2 btn-copy-xml" data-target="preview-billdisp-raw" style="font-size: 0.7rem; z-index:10;"><i class="bi bi-clipboard"></i> Copy</button>
+                                        <textarea class="form-control text-monospace bg-dark text-light p-3 small" id="preview-billdisp-raw" rows="8" readonly style="font-family: Consolas, monospace; font-size:0.75rem;"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab 3: OPServices -->
+                        <div class="tab-pane fade" id="prev-opservices" role="tabpanel" aria-labelledby="prev-opservices-tab">
+                            <div class="mb-3">
+                                <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-opservices">
+                                    <thead class="table-dark sticky-top">
+                                        <tr>
+                                            <th>ตรวจสอบ</th>
+                                            <th>InvoiceNo</th>
+                                            <th>VisitNo</th>
+                                            <th>CareType</th>
+                                            <th>Hcode</th>
+                                            <th>HN</th>
+                                            <th>CID</th>
+                                            <th>PtType</th>
+                                            <th>Clinic</th>
+                                            <th>ReferIn</th>
+                                            <th>ReferOut</th>
+                                            <th>Expire</th>
+                                            <th>DoctorLic</th>
+                                            <th>ServiceSub</th>
+                                            <th>StartDT</th>
+                                            <th>EndDT</th>
+                                            <th>Ex1</th>
+                                            <th>Ex2</th>
+                                            <th>Ex3</th>
+                                            <th>PaidAmt</th>
+                                            <th>Eligible</th>
+                                            <th>Ex4</th>
+                                            <th>Seq</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="preview-opservices-tbody"></tbody>
+                                </table>
+                            </div>
+                            <div class="card border-0 bg-light">
+                                <div class="card-header border-0 bg-light p-0">
+                                    <button class="btn btn-sm btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#raw-opservices-collapse">
+                                        <span><i class="bi bi-file-earmark-code me-1"></i> ดูไฟล์ข้อความดิบ (Raw XML)</span>
+                                        <i class="bi bi-chevron-down"></i>
+                                    </button>
+                                </div>
+                                <div class="collapse" id="raw-opservices-collapse">
+                                    <div class="card-body p-2 position-relative">
+                                        <button class="btn btn-xs btn-secondary position-absolute end-0 top-0 m-2 btn-copy-xml" data-target="preview-opservices-raw" style="font-size: 0.7rem; z-index:10;"><i class="bi bi-clipboard"></i> Copy</button>
+                                        <textarea class="form-control text-monospace bg-dark text-light p-3 small" id="preview-opservices-raw" rows="8" readonly style="font-family: Consolas, monospace; font-size:0.75rem;"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2 px-4 d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+                    <button type="button" class="btn btn-success px-4" onclick="triggerActualDownload()">
+                        <i class="bi bi-cloud-arrow-down-fill me-1"></i> ยืนยันส่งออก
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script>
   function showLoading() {
       Swal.fire({
@@ -387,9 +620,10 @@
       };
 
       $('#t_claim').DataTable({
-        order: [[1, 'desc']],
+        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"]],
+        order: [[{{ $is_ssop_licensed ? 1 : 0 }}, 'desc']],
         columnDefs: [
-            { targets: 1, orderDataType: 'dom-status', orderSequence: ['desc', 'asc'] }
+            { targets: {{ $is_ssop_licensed ? 1 : 0 }}, orderDataType: 'dom-status', orderSequence: ['desc', 'asc'] }
         ],
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 
@@ -407,11 +641,13 @@
               className: 'btn btn-success btn-sm shadow-sm',
               title: 'รายชื่อผู้มารับบริการ SS-OP ประกันสังคม เครือข่าย วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}',
               exportOptions: {
-                  columns: [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                  columns: {!! $is_ssop_licensed ? '[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]' : '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]' !!},
                   format: {
                       body: function (data, row, column, node) {
                           var $cell = $(node);
-                          if (column === 5 || column === 6) {
+                          var chronicColIdx = {{ $is_ssop_licensed ? 5 : 4 }};
+                          var drugColIdx = {{ $is_ssop_licensed ? 6 : 5 }};
+                          if (column === chronicColIdx || column === drugColIdx) {
                               return $cell.find('.d-none').text().trim() === 'Y' ? 'Y' : '';
                           }
                           var cleanText = $cell.text().replace(/\s+/g, ' ').trim();
@@ -712,7 +948,7 @@
                 // Re-initialize DataTables with pageLength 10
                 const dtConfig = {
                     pageLength: 10,
-                    lengthMenu: [10, 25, 50, 100],
+                    lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"]],
                     language: {
                         search: "ค้นหา:",
                         lengthMenu: "แสดง _MENU_ รายการ",
@@ -759,6 +995,316 @@
         const shortYear = year.toString().slice(-2);
         return `${day} ${shortMonths[month]} ${shortYear}`;
     }
+
+    // Select all / Deselect all claims
+    $(document).on('change', '#select_all_claims', function() {
+        $('.claim-select-check').prop('checked', this.checked);
+    });
+
+    function exportSelectedSSOP() {
+        var selectedVns = [];
+        $('.claim-select-check:checked').each(function() {
+            selectedVns.push($(this).val());
+        });
+
+        if (selectedVns.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'คำเตือน',
+                text: 'กรุณาเลือกอย่างน้อย 1 รายการเพื่อส่งออก',
+                confirmButtonColor: '#3085d6'
+            });
+            return;
+        }
+
+        // Set default random session ID
+        var randomSess = Math.floor(Math.random() * (9999 - 1000 + 1)) + 1000;
+        $('#export_session_id').val(randomSess);
+        $('#export_station_id').val('01');
+
+        // Open modal
+        $('#ssopExportModal').modal('show');
+    }
+
+    function previewSSOPExport() {
+        var selectedVns = [];
+        $('.claim-select-check:checked').each(function() {
+            selectedVns.push($(this).val());
+        });
+
+        var sessionId = $('#export_session_id').val().trim();
+        var stationId = $('#export_station_id').val().trim();
+
+        if (!sessionId) {
+            Swal.fire({ icon: 'warning', title: 'กรุณากรอก Session ID' });
+            return;
+        }
+        if (!stationId) {
+            Swal.fire({ icon: 'warning', title: 'กรุณากรอก Station ID' });
+            return;
+        }
+
+        $('#ssopExportModal').modal('hide');
+
+        Swal.fire({
+            title: 'กำลังประมวลผลข้อมูล...',
+            text: 'กรุณารอสักครู่ขณะระบบดึงและตรวจสอบข้อมูลพรีวิว',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Destroy existing DataTables if initialized to prevent error
+        if ($.fn.DataTable.isDataTable('#table-prev-billtran')) { $('#table-prev-billtran').DataTable().destroy(); }
+        if ($.fn.DataTable.isDataTable('#table-prev-billdisp')) { $('#table-prev-billdisp').DataTable().destroy(); }
+        if ($.fn.DataTable.isDataTable('#table-prev-opservices')) { $('#table-prev-opservices').DataTable().destroy(); }
+
+        $.ajax({
+            url: "{{ url('claim_op/sss_export_preview') }}",
+            method: 'POST',
+            data: {
+                _token: "{{ csrf_token() }}",
+                vns: selectedVns,
+                session_id: sessionId,
+                station_id: stationId
+            },
+            success: function(response) {
+                console.log("AJAX Success response:", response);
+                Swal.close();
+                if (response.success) {
+                    // 1. Populate BILLTRAN Table & Raw XML
+                    $('#preview-billtran-raw').val(response.billtran_raw);
+                    var html1 = '';
+                    response.billtran_table.forEach(function(fields) {
+                        if (fields.length < 10) return;
+                        var vn = fields[19]; // Appended VN
+                        var val = response.validation[vn] || { billtran_ok: true, billtran_err: '' };
+                        var statusBadge = val.billtran_ok 
+                            ? '<span class="badge bg-success" style="font-size:0.75rem;"><i class="bi bi-check-circle-fill"></i> ผ่าน</span>'
+                            : `<span class="badge bg-danger" style="font-size:0.75rem; cursor:pointer;" title="${val.billtran_err}"><i class="bi bi-exclamation-triangle-fill"></i> ไม่ผ่าน</span>`;
+                        
+                        html1 += `<tr>
+                            <td>${statusBadge}</td>
+                            <td>${fields[0] || ''}</td>
+                            <td>${fields[1] || ''}</td>
+                            <td>${fields[2] || ''}</td>
+                            <td>${fields[3] || ''}</td>
+                            <td>${fields[4] || ''}</td>
+                            <td>${fields[5] || ''}</td>
+                            <td>${fields[6] || ''}</td>
+                            <td>${fields[7] || ''}</td>
+                            <td class="text-end fw-bold">${fields[8] || '0.00'}</td>
+                            <td class="text-end text-muted">${fields[9] || '0.00'}</td>
+                            <td>${fields[10] || ''}</td>
+                            <td><span class="badge bg-success">${fields[11] || ''}</span></td>
+                            <td>${fields[12] || ''}</td>
+                            <td class="fw-bold">${fields[13] || ''}</td>
+                            <td>${fields[14] || ''}</td>
+                            <td>${fields[15] || ''}</td>
+                            <td class="text-end text-primary fw-bold">${fields[16] || '0.00'}</td>
+                            <td>${fields[17] || ''}</td>
+                            <td>${fields[18] || '0.00'}</td>
+                        </tr>`;
+                    });
+                    $('#preview-billtran-tbody').html(html1);
+
+                    // 2. Populate BILLDISP Table & Raw XML
+                    $('#preview-billdisp-raw').val(response.billdisp_raw);
+                    var html2 = '';
+                    response.billdisp_table.forEach(function(fields) {
+                        if (fields.length < 10) return;
+                        var vn = fields[16]; // VisitNo
+                        var val = response.validation[vn] || { billdisp_ok: true, billdisp_err: '' };
+                        var statusBadge = val.billdisp_ok 
+                            ? '<span class="badge bg-success" style="font-size:0.75rem;"><i class="bi bi-check-circle-fill"></i> ผ่าน</span>'
+                            : `<span class="badge bg-danger" style="font-size:0.75rem; cursor:pointer;" title="${val.billdisp_err}"><i class="bi bi-exclamation-triangle-fill"></i> ไม่ผ่าน</span>`;
+
+                        html2 += `<tr>
+                            <td>${statusBadge}</td>
+                            <td>${fields[0] || ''}</td>
+                            <td class="fw-bold text-primary">${fields[1] || ''}</td>
+                            <td>${fields[2] || ''}</td>
+                            <td>${fields[3] || ''}</td>
+                            <td>${fields[4] || ''}</td>
+                            <td>${fields[5] || ''}</td>
+                            <td>${fields[6] || ''}</td>
+                            <td>${fields[7] || ''}</td>
+                            <td><span class="badge bg-secondary">${fields[8] || ''}</span></td>
+                            <td class="text-end">${fields[9] || '0.00'}</td>
+                            <td class="text-end fw-bold">${fields[10] || '0.00'}</td>
+                            <td>${fields[11] || '0.00'}</td>
+                            <td>${fields[12] || '0.00'}</td>
+                            <td>${fields[13] || ''}</td>
+                            <td>${fields[14] || ''}</td>
+                            <td class="text-center fw-bold">${fields[15] || '0'}</td>
+                            <td>${fields[16] || ''}</td>
+                        </tr>`;
+                    });
+                    
+                    $('#preview-billdisp-tbody').html(html2);
+
+                    // 3. Populate OPServices Table & Raw XML
+                    $('#preview-opservices-raw').val(response.opservices_raw);
+                    var html3 = '';
+                    response.opservices_table.forEach(function(fields) {
+                        if (fields.length < 10) return;
+                        var vn = fields[1]; // VisitNo
+                        var val = response.validation[vn] || { opservices_ok: true, opservices_err: '' };
+                        var statusBadge = val.opservices_ok 
+                            ? '<span class="badge bg-success" style="font-size:0.75rem;"><i class="bi bi-check-circle-fill"></i> ผ่าน</span>'
+                            : `<span class="badge bg-danger" style="font-size:0.75rem; cursor:pointer;" title="${val.opservices_err}"><i class="bi bi-exclamation-triangle-fill"></i> ไม่ผ่าน</span>`;
+
+                        html3 += `<tr>
+                            <td>${statusBadge}</td>
+                            <td>${fields[0] || ''}</td>
+                            <td>${fields[1] || ''}</td>
+                            <td><span class="badge bg-info">${fields[2] || ''}</span></td>
+                            <td>${fields[3] || ''}</td>
+                            <td>${fields[4] || ''}</td>
+                            <td>${fields[5] || ''}</td>
+                            <td>${fields[6] || ''}</td>
+                            <td>${fields[7] || ''}</td>
+                            <td>${fields[8] || ''}</td>
+                            <td>${fields[9] || ''}</td>
+                            <td>${fields[10] || ''}</td>
+                            <td>${fields[11] || ''}</td>
+                            <td>${fields[12] || ''}</td>
+                            <td>${fields[13] || ''}</td>
+                            <td>${fields[14] || ''}</td>
+                            <td>${fields[15] || ''}</td>
+                            <td>${fields[16] || ''}</td>
+                            <td>${fields[17] || ''}</td>
+                            <td>${fields[18] || '0.00'}</td>
+                            <td><span class="badge bg-success">${fields[19] || ''}</span></td>
+                            <td>${fields[20] || ''}</td>
+                            <td>${fields[21] || ''}</td>
+                        </tr>`;
+                    });
+                    $('#preview-opservices-tbody').html(html3);
+
+                    // Initialize DataTables for Preview Tables
+                    const prevDtConfig = {
+                        pageLength: 10,
+                        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"]],
+                        language: {
+                            search: "ค้นหา:",
+                            lengthMenu: "แสดง _MENU_ รายการ",
+                            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                            paginate: {
+                                previous: "ก่อนหน้า",
+                                next: "ถัดไป"
+                            }
+                        },
+                        scrollY: "300px",
+                        scrollCollapse: true,
+                        scrollX: true,
+                        autoWidth: false
+                    };
+                    $('#table-prev-billtran').DataTable(prevDtConfig);
+                    $('#table-prev-billdisp').DataTable(prevDtConfig);
+                    $('#table-prev-opservices').DataTable(prevDtConfig);
+
+                    // Open Preview Modal
+                    $('#ssopPreviewModal').modal('show');
+                } else {
+                    Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: response.error || 'ไม่สามารถประมวลผลข้อมูลพรีวิวได้' });
+                }
+            },
+            error: function(xhr) {
+                console.error("AJAX Error details:", xhr.status, xhr.statusText, xhr.responseText);
+                Swal.close();
+                var msg = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : ('เกิดข้อผิดพลาดในการเชื่อมต่อ (สถานะ: ' + xhr.status + ' ' + xhr.statusText + ')');
+                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: msg });
+            }
+        });
+    }
+
+    function triggerActualDownload() {
+        var selectedVns = [];
+        $('.claim-select-check:checked').each(function() {
+            selectedVns.push($(this).val());
+        });
+
+        var sessionId = $('#export_session_id').val().trim();
+        var stationId = $('#export_station_id').val().trim();
+
+        $('#ssopPreviewModal').modal('hide');
+
+        Swal.fire({
+            title: 'กำลังสร้างไฟล์...',
+            text: 'กรุณารอสักครู่ขณะสร้างไฟล์ Zip เพื่อดาวน์โหลด',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Standard POST form submit to trigger file download
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = "{{ url('claim_op/sss_export_ssop') }}";
+        
+        // CSRF Token
+        var csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_token';
+        csrfInput.value = "{{ csrf_token() }}";
+        form.appendChild(csrfInput);
+
+        // Session ID & Station ID
+        var sessInput = document.createElement('input');
+        sessInput.type = 'hidden';
+        sessInput.name = 'session_id';
+        sessInput.value = sessionId;
+        form.appendChild(sessInput);
+
+        var statInput = document.createElement('input');
+        statInput.type = 'hidden';
+        statInput.name = 'station_id';
+        statInput.value = stationId;
+        form.appendChild(statInput);
+
+        // Selected VNs
+        selectedVns.forEach(function(vn) {
+            var vnInput = document.createElement('input');
+            vnInput.type = 'hidden';
+            vnInput.name = 'vns[]';
+            vnInput.value = vn;
+            form.appendChild(vnInput);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+
+        setTimeout(function() {
+            Swal.close();
+        }, 2000);
+    }
+
+    // Copy XML text to clipboard
+    $(document).on('click', '.btn-copy-xml', function() {
+        var targetId = $(this).attr('data-target');
+        var textarea = document.getElementById(targetId);
+        textarea.select();
+        document.execCommand('copy');
+        
+        var $btn = $(this);
+        $btn.html('<i class="bi bi-check2"></i> Copied!').removeClass('btn-secondary').addClass('btn-success');
+        setTimeout(function() {
+            $btn.html('<i class="bi bi-clipboard"></i> Copy').removeClass('btn-success').addClass('btn-secondary');
+        }, 2000);
+    });
+
+    // Auto adjust columns for hidden tables inside preview modal on shown
+    $('#ssopPreviewModal').on('shown.bs.modal', function () {
+        $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+    });
+
+    $('#previewTab button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+        $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+    });
   </script>
 @endpush
 

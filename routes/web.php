@@ -332,6 +332,8 @@ Route::match(['get', 'post'], 'claim_op/sss_main', [ClaimOpController::class, 's
 Route::get('claim_op/sss_detail', [ClaimOpController::class, 'sss_detail']);
 Route::post('claim_op/sss_chronic_import', [ClaimOpController::class, 'sss_chronic_import']);
 Route::get('claim_op/sss_chronic_feedback_list', [ClaimOpController::class, 'sss_chronic_feedback_list']);
+Route::post('claim_op/sss_export_ssop', [\App\Http\Controllers\SssExportController::class, 'sss_export_ssop'])->middleware('hosp_license');
+Route::post('claim_op/sss_export_preview', [\App\Http\Controllers\SssExportController::class, 'sss_export_preview'])->middleware('hosp_license');
 Route::match(['get', 'post'], 'claim_op/sss_kidney', [ClaimOpController::class, 'sss_kidney']);
 Route::match(['get', 'post'], 'claim_op/sss_hc', [ClaimOpController::class, 'sss_hc']);
 Route::match(['get', 'post'], 'claim_op/rcpt', [ClaimOpController::class, 'rcpt']);

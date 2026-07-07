@@ -849,6 +849,10 @@
                                             </a>
                                         </li>
                                         <!-- ชี้ขวา -->
+                                        @php
+                                            $is_ssop_licensed = \App\Services\LicenseService::isLicensed();
+                                            view()->share('is_ssop_licensed', $is_ssop_licensed);
+                                        @endphp
                                         <li class="dropend position-relative">
                                             <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
                                                 data-bs-toggle="dropdown">

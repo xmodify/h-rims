@@ -1,6 +1,12 @@
 @extends('layouts.app')
 
 @section('content')
+@php
+    $validCodes = [
+        'UCS', 'WEL', 'OFC', 'LGO', 'SSS', 'STP', 'NHS', 'BKK', 'BMT', 'SRT', 'KKT', 'PTY',
+        'A1', 'CSH', 'A9', 'INS', 'GOF', 'NRD', 'NRH', 'SSI', 'PVT', 'FWF'
+    ];
+@endphp
 
 <div class="container-fluid px-lg-4">
     <!-- Page Header -->
@@ -55,7 +61,15 @@
                             <td class="text-start">{{$row->name}}</td>            
                             <td class="text-start small">{{ $row->paidst }}</td>
                             <td class="text-center">{{$row->export_eclaim}}</td>
-                            <td class="text-center">{{$row->hipdata_code}}</td> 
+                            <td class="text-center">
+                                @if(empty($row->hipdata_code))
+                                    <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>ว่าง (ไม่ได้ระบุ)</span>
+                                @elseif(!in_array(strtoupper(trim($row->hipdata_code)), $validCodes))
+                                    <span class="badge bg-danger" title="รหัสไม่ตรงกับระบบเรียกเก็บ">{{$row->hipdata_code}} <i class="bi bi-x-circle ms-1"></i></span>
+                                @else
+                                    <span class="badge bg-success-soft text-success">{{$row->hipdata_code}}</span>
+                                @endif
+                            </td> 
                             <td class="text-center">{{$row->pttype_std_code}}</td>
                             <td class="text-start small text-muted">{{$row->pttype_price_group_name}}</td>
                             <td class="text-start small">{{$row->pi_name}}</td>  
@@ -104,7 +118,15 @@
                             <td class="text-start">{{$row->name}}</td>            
                             <td class="text-start small">{{ $row->paidst }}</td>
                             <td class="text-center">{{$row->export_eclaim}}</td>
-                            <td class="text-center">{{$row->hipdata_code}}</td> 
+                            <td class="text-center">
+                                @if(empty($row->hipdata_code))
+                                    <span class="badge bg-danger-soft text-danger"><i class="bi bi-exclamation-triangle me-1"></i>ว่าง</span>
+                                @elseif(!in_array(strtoupper(trim($row->hipdata_code)), $validCodes))
+                                    <span class="badge bg-danger-soft text-danger" title="รหัสไม่ตรงกับระบบเรียกเก็บ">{{$row->hipdata_code}}</span>
+                                @else
+                                    <span class="badge bg-light text-dark border">{{$row->hipdata_code}}</span>
+                                @endif
+                            </td> 
                             <td class="text-center">{{$row->pttype_std_code}}</td>
                             <td class="text-start small text-muted">{{$row->pttype_price_group_name}}</td>
                             <td class="text-start small">{{$row->pi_name}}</td>  

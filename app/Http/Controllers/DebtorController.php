@@ -154,7 +154,7 @@ class DebtorController extends Controller
                     WHEN p.hipdata_code = 'GOF' THEN 'เบิกต้นสังกัด'
                     WHEN p.hipdata_code = 'LGO' THEN 'อปท.'
                     WHEN p.hipdata_code = 'NRD' THEN 'ต่างด้าวไม่ขึ้นทะเบียน'
-                    WHEN p.hipdata_code = 'NRH' THEN 'ต่างด้าวขึ้นทะเบียน'
+                    WHEN p.hipdata_code IN ('NRH','FWF') THEN 'ต่างด้าวขึ้นทะเบียน'
                     WHEN p.hipdata_code = 'OFC' THEN 'กรมบัญชีกลาง'
                     WHEN p.hipdata_code = 'SSI' THEN 'ปกส.ทุพพลภาพ'
                     WHEN p.hipdata_code = 'SSS' THEN 'ปกส.'
@@ -252,7 +252,7 @@ class DebtorController extends Controller
                     WHEN p.hipdata_code = 'GOF' THEN 'เบิกต้นสังกัด'
                     WHEN p.hipdata_code = 'LGO' THEN 'อปท.'
                     WHEN p.hipdata_code = 'NRD' THEN 'ต่างด้าวไม่ขึ้นทะเบียน'
-                    WHEN p.hipdata_code = 'NRH' THEN 'ต่างด้าวขึ้นทะเบียน'
+                    WHEN p.hipdata_code IN ('NRH','FWF') THEN 'ต่างด้าวขึ้นทะเบียน'
                     WHEN p.hipdata_code = 'OFC' THEN 'กรมบัญชีกลาง'
                     WHEN p.hipdata_code = 'SSI' THEN 'ปกส.ทุพพลภาพ'
                     WHEN p.hipdata_code = 'SSS' THEN 'ปกส.'
@@ -5831,7 +5831,7 @@ class DebtorController extends Controller
             WHERE (o.an IS NULL OR o.an = "")
             AND o.vstdate BETWEEN ? AND ?
             AND (IFNULL(total.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(total.other_price,0)) > 0
-            AND p.hipdata_code = "NRH"    
+            AND p.hipdata_code IN ("NRH","FWF")    
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_501 WHERE vn IS NOT NULL)
             GROUP BY o.vn, vp.pttype
@@ -5886,7 +5886,7 @@ class DebtorController extends Controller
             WHERE (o.an IS NULL OR o.an = "")
             AND o.vstdate BETWEEN ? AND ?
             AND (IFNULL(total.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(total.other_price,0)) > 0
-            AND p.hipdata_code = "NRH"    
+            AND p.hipdata_code IN ("NRH","FWF")    
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_501 WHERE vn IS NOT NULL)
             AND o.vn IN (' . $checkbox_string . ')
@@ -6126,7 +6126,7 @@ class DebtorController extends Controller
             WHERE (o.an IS NULL OR o.an = "")
             AND o.vstdate BETWEEN ? AND ?
             AND (IFNULL(total.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(total.other_price,0)) > 0
-            AND p.hipdata_code = "NRH"    
+            AND p.hipdata_code IN ("NRH","FWF")    
             AND (vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
                 OR vp.hospmain IS NULL OR vp.hospmain ="")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_503 WHERE vn IS NOT NULL)
@@ -6183,7 +6183,7 @@ class DebtorController extends Controller
             WHERE (o.an IS NULL OR o.an = "")
             AND o.vstdate BETWEEN ? AND ?
             AND (IFNULL(total.income,0)-IFNULL(rc.rcpt_money,0)-IFNULL(total.other_price,0)) > 0
-            AND p.hipdata_code = "NRH"    
+            AND p.hipdata_code IN ("NRH","FWF")    
             AND (vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
                 OR vp.hospmain IS NULL OR vp.hospmain ="")
             AND o.vn NOT IN (SELECT vn FROM hrims.debtor_1102050101_503 WHERE vn IS NOT NULL)
@@ -12482,7 +12482,7 @@ class DebtorController extends Controller
                 LEFT JOIN s_drugitems s ON s.icode = o.icode
                 GROUP BY o.an, o.pttype) orece ON orece.an = i.an AND orece.pttype = ip.pttype
             WHERE i.confirm_discharge = "Y"
-            AND p.hipdata_code = "NRH"
+            AND p.hipdata_code IN ("NRH","FWF")
             AND i.dchdate BETWEEN ? AND ?
             AND ip.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_502 WHERE an IS NOT NULL)
@@ -12537,7 +12537,7 @@ class DebtorController extends Controller
                 LEFT JOIN s_drugitems s ON s.icode = o.icode
                 GROUP BY o.an, o.pttype) orece ON orece.an = i.an AND orece.pttype = ip.pttype
             WHERE i.confirm_discharge = "Y"
-            AND p.hipdata_code = "NRH"
+            AND p.hipdata_code IN ("NRH","FWF")
             AND i.dchdate BETWEEN ? AND ?
             AND ip.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             AND i.an NOT IN (SELECT an FROM hrims.debtor_1102050101_502 WHERE an IS NOT NULL)
@@ -12803,7 +12803,7 @@ class DebtorController extends Controller
                 LEFT JOIN s_drugitems s ON s.icode = o.icode
                 GROUP BY o.an, o.pttype) orece ON orece.an = i.an AND orece.pttype = ip.pttype
             WHERE i.confirm_discharge = 'Y'
-            AND p.hipdata_code = 'NRH'
+            AND p.hipdata_code IN ('NRH','FWF')
             AND i.dchdate BETWEEN ? AND ?
             AND (ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ='Y')
                 OR ip.hospmain IS NULL OR ip.hospmain ='')
@@ -12864,7 +12864,7 @@ class DebtorController extends Controller
                 LEFT JOIN s_drugitems s ON s.icode = o.icode
                 GROUP BY o.an, o.pttype) orece ON orece.an = i.an AND orece.pttype = ip.pttype
             WHERE i.confirm_discharge = "Y"
-            AND p.hipdata_code = "NRH"
+            AND p.hipdata_code IN ("NRH","FWF")
             AND i.dchdate BETWEEN ? AND ?
             AND (ip.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
                 OR ip.hospmain IS NULL OR ip.hospmain ="")

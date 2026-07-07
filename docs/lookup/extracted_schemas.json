@@ -1,4 +1,112 @@
 {
+    "sss_chronic_feedback": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "rep_file": {
+                "type": "varchar(100)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "repline": {
+                "type": "int(11)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hcode": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hmain": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "invno": {
+                "type": "varchar(30)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pid": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dttran": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "section_type": {
+                "type": "varchar(10)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "dx": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "drug": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "sss_chronic_feedback_hn_index": [
+                {
+                    "column": "hn",
+                    "unique": false
+                }
+            ],
+            "sss_chronic_feedback_dttran_index": [
+                {
+                    "column": "dttran",
+                    "unique": false
+                }
+            ]
+        }
+    },
     "aopod_death_list": {
         "columns": {
             "id": {

@@ -81,6 +81,9 @@
                             <button onclick="fetchData()" type="submit" class="btn btn-success px-3 shadow-sm">
                                 <i class="bi bi-table me-1"></i> โหลด indiv
                             </button>
+                            <button type="button" class="btn btn-outline-primary px-3 shadow-sm" onclick="$('#importFeedbackModal').modal('show'); loadFeedbackList();">
+                                <i class="bi bi-file-earmark-zip me-1"></i> นำเข้าตอบกลับโรคเรื้อรัง
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -203,6 +206,100 @@
         </div>
     </div>
 
+    <!-- Modal นำเข้าและตรวจสอบผลตอบกลับโรคเรื้อรัง -->
+    <div class="modal fade" id="importFeedbackModal" tabindex="-1" aria-labelledby="importFeedbackModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white py-3">
+                    <h6 class="modal-title font-weight-bold" id="importFeedbackModalLabel">
+                        <i class="bi bi-file-earmark-zip me-2"></i>นำเข้าและตรวจสอบผลตอบกลับโรคเรื้อรัง สกส.
+                    </h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- ส่วนหัวการนำเข้าและผลตอบกลับแบบกระชับ -->
+                    <div class="d-flex align-items-center gap-3 mb-4 p-2 bg-light rounded border shadow-sm">
+                        <div>
+                            <input type="file" id="zip_file_input" style="display: none;" accept=".zip" multiple onchange="uploadFeedbackZip()">
+                            <button type="button" class="btn btn-primary px-3 shadow-sm" onclick="document.getElementById('zip_file_input').click()">
+                                <i class="bi bi-cloud-arrow-up-fill me-1"></i> เลือกไฟล์ ZIP และนำเข้าข้อมูล
+                            </button>
+                        </div>
+                        <h6 class="text-dark font-weight-bold mb-0">
+                            <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> รายการที่ไม่ผ่านการอนุมัติล่าสุด (จากข้อมูลตอบกลับ)
+                        </h6>
+                    </div>
+                    
+                    <ul class="nav nav-tabs" id="feedbackTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active fw-bold text-danger" id="tab21-tab" data-bs-toggle="tab" data-bs-target="#tab21-panel" type="button" role="tab" aria-controls="tab21-panel" aria-selected="true">
+                                ตอนที่ 2.1 ผู้ป่วยอยู่ในบัญชีโรคเรื้อรังแล้ว (Dx หรือ Drug ไม่ตรง)
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-warning" id="tab22-tab" data-bs-toggle="tab" data-bs-target="#tab22-panel" type="button" role="tab" aria-controls="tab22-panel" aria-selected="false">
+                                ตอนที่ 2.2 ผู้ป่วยยังไม่อยู่ในบัญชีโรคเรื้อรัง
+                            </button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content border border-top-0 p-3 bg-white rounded-bottom" id="feedbackTabsContent">
+                        <!-- Tab 2.1 -->
+                        <div class="tab-pane fade show active" id="tab21-panel" role="tabpanel" aria-labelledby="tab21-tab">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-striped align-middle" id="table-feedback-21">
+                                    <thead class="table-dark small">
+                                        <tr>
+                                            <th>วันที่รับบริการ</th>
+                                            <th>HN</th>
+                                            <th>ชื่อ-สกุล</th>
+                                            <th>เลขบัตรประชาชน</th>
+                                            <th>รหัสวินิจฉัย (Dx)</th>
+                                            <th>รหัสยา (Drug)</th>
+                                            <th>ไฟล์อ้างอิง</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="feedback-21-body" class="small">
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted py-4">กำลังโหลดข้อมูล...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab 2.2 -->
+                        <div class="tab-pane fade" id="tab22-panel" role="tabpanel" aria-labelledby="tab22-tab">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-striped align-middle" id="table-feedback-22">
+                                    <thead class="table-dark small">
+                                        <tr>
+                                            <th>วันที่รับบริการ</th>
+                                            <th>HN</th>
+                                            <th>ชื่อ-สกุล</th>
+                                            <th>เลขบัตรประชาชน</th>
+                                            <th>รหัสวินิจฉัย (Dx)</th>
+                                            <th>รหัสยา (Drug)</th>
+                                            <th>ไฟล์อ้างอิง</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="feedback-22-body" class="small">
+                                        <tr>
+                                            <td colspan="7" class="text-center text-muted py-4">กำลังโหลดข้อมูล...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script>
   function showLoading() {
       Swal.fire({
@@ -224,6 +321,11 @@
 @push('scripts')  
   <script>
     $(document).ready(function () {
+
+      // Adjust DataTables column width on tab change (fix display bugs in hidden tabs)
+      $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+          $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+      });
 
       // Initialize Datepicker Thai
       $('.datepicker_th').datepicker({
@@ -352,10 +454,12 @@
                     : '<span class="badge bg-danger ms-2"><i class="bi bi-exclamation-triangle-fill"></i> ไม่พบยาโรคเรื้อรัง</span>';
 
                 let validationStatusHtml = '';
-                if (visit.is_ncd && hasChronicDrug) {
-                    validationStatusHtml = '<div class="alert alert-success d-flex align-items-center mb-3"><i class="bi bi-check-circle-fill me-2 fs-5"></i> ข้อมูลสอดคล้อง (มีรหัสวินิจฉัยและยาโรคเรื้อรังครบถ้วน)</div>';
+                if (visit.is_ncd && visit.has_matching_category) {
+                    validationStatusHtml = '<div class="alert alert-success d-flex align-items-center mb-3"><i class="bi bi-check-circle-fill me-2 fs-5"></i> ข้อมูลสอดคล้อง (มีรหัสวินิจฉัยและยาโรคเรื้อรังครบถ้วนตรงตามกลุ่มโรค)</div>';
+                } else if (visit.is_exempted_ncd) {
+                    validationStatusHtml = '<div class="alert alert-success d-flex align-items-center mb-3"><i class="bi bi-check-circle-fill me-2 fs-5"></i> ข้อมูลสอดคล้อง (ได้รับการยกเว้นเกณฑ์การจ่ายยาสำหรับกลุ่มโรคตับ/หัวใจล้มเหลว/มะเร็ง/โรคเลือด/ทาลัสซีเมีย)</div>';
                 } else if (visit.is_ncd || hasChronicDrug) {
-                    validationStatusHtml = '<div class="alert alert-danger d-flex align-items-center mb-3"><i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i> ข้อมูลไม่สอดคล้อง (กรุณาตรวจสอบการบันทึกรหัสโรคและการจ่ายยา)</div>';
+                    validationStatusHtml = '<div class="alert alert-danger d-flex align-items-center mb-3"><i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i> ข้อมูลไม่สอดคล้อง (กรุณาตรวจสอบการจับคู่รหัสโรคและยา หรือการส่งข้อมูล)</div>';
                 } else {
                     validationStatusHtml = '<div class="alert alert-secondary d-flex align-items-center mb-3"><i class="bi bi-info-circle-fill me-2 fs-5"></i> ทั่วไป (ไม่เข้าเกณฑ์โรคเรื้อรัง ปกส.)</div>';
                 }
@@ -445,6 +549,215 @@
             .fail(function(xhr) {
                 body.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>เกิดข้อผิดพลาด: ${xhr.responseJSON?.error || 'ไม่สามารถโหลดข้อมูลได้'}</div>`;
             });
+    }
+
+    async function uploadFeedbackZip() {
+        const fileInput = document.getElementById('zip_file_input');
+        if (!fileInput.files || fileInput.files.length === 0) {
+            return;
+        }
+        
+        const files = Array.from(fileInput.files);
+        const totalFiles = files.length;
+        let successCount = 0;
+        let failCount = 0;
+        let learnedTpu = 0;
+        let learnedDx = 0;
+        let errorMessages = [];
+
+        Swal.fire({
+            title: 'กำลังนำเข้าข้อมูล...',
+            html: `<div class="progress mb-3" style="height: 22px;">
+                      <div id="import-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                   </div>
+                   <div id="import-progress-text" class="small text-muted fw-bold">กำลังเตรียมอัปโหลด...</div>`,
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        for (let i = 0; i < totalFiles; i++) {
+            const file = files[i];
+            const percent = Math.round((i / totalFiles) * 100);
+            
+            // Update progress UI
+            $('#import-progress-bar').css('width', percent + '%').attr('aria-valuenow', percent).text(percent + '%');
+            $('#import-progress-text').html(`กำลังนำเข้าไฟล์ที่ ${i + 1} จาก ${totalFiles}: <br><span class="text-primary">${file.name}</span>`);
+
+            const formData = new FormData();
+            formData.append('zip_file', file);
+            formData.append('_token', '{{ csrf_token() }}');
+
+            try {
+                const response = await $.ajax({
+                    url: "{{ url('claim_op/sss_chronic_import') }}",
+                    type: "POST",
+                    data: formData,
+                    processData: false,
+                    contentType: false
+                });
+
+                successCount++;
+                if (response.message) {
+                    const tpuMatch = response.message.match(/เรียนรู้รหัสยาใหม่ (\d+)/);
+                    const dxMatch = response.message.match(/รหัสโรคใหม่ (\d+)/);
+                    if (tpuMatch) learnedTpu += parseInt(tpuMatch[1]);
+                    if (dxMatch) learnedDx += parseInt(dxMatch[1]);
+                }
+                if (response.warnings && response.warnings.length > 0) {
+                    response.warnings.forEach(warn => {
+                        errorMessages.push(`⚠️ ไฟล์ ${file.name} - ${warn}`);
+                    });
+                }
+            } catch (xhr) {
+                failCount++;
+                let err = `ไฟล์ ${file.name}`;
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    err += `: ${xhr.responseJSON.message}`;
+                } else {
+                    err += ': เกิดข้อผิดพลาดในการเชื่อมต่อ';
+                }
+                errorMessages.push(err);
+            }
+        }
+
+        // Set progress to 100% when finished
+        $('#import-progress-bar').css('width', '100%').attr('aria-valuenow', 100).text('100%').removeClass('bg-primary').addClass('bg-success');
+        $('#import-progress-text').text('เสร็จสิ้นการทำงาน');
+
+        // Show final report
+        let reportHtml = `<div class="text-start p-2 border rounded bg-light small mb-2">
+            <div class="mb-1 text-success">✔️ สำเร็จ: <strong>${successCount} ไฟล์</strong></div>`;
+        if (failCount > 0) {
+            reportHtml += `<div class="mb-1 text-danger">❌ ล้มเหลว: <strong>${failCount} ไฟล์</strong></div>`;
+        }
+        reportHtml += `<div class="mb-1 text-dark">💊 เรียนรู้รหัสยาใหม่สะสม: <strong>${learnedTpu} รายการ</strong></div>
+            <div class="text-dark">🦠 เรียนรู้รหัสโรคใหม่สะสม: <strong>${learnedDx} รหัส</strong></div>
+        </div>`;
+        
+        if (errorMessages.length > 0) {
+            reportHtml += `<div class="text-start"><strong class="text-danger small">รายละเอียดข้อผิดพลาด / คำเตือน:</strong>
+            <div class="text-danger mt-1 small p-2 border rounded bg-white" style="max-height: 120px; overflow-y: auto;">
+                ${errorMessages.join('<br>')}
+            </div></div>`;
+        }
+
+        Swal.fire({
+            icon: (failCount === 0 && errorMessages.length === 0) ? 'success' : (successCount > 0 ? 'warning' : 'error'),
+            title: 'นำเข้าข้อมูลตอบกลับโรคเรื้อรังเสร็จสิ้น',
+            html: reportHtml,
+            confirmButtonText: 'ตกลง'
+        }).then(() => {
+            location.reload();
+        });
+    }
+
+    function loadFeedbackList() {
+        const body21 = document.getElementById('feedback-21-body');
+        const body22 = document.getElementById('feedback-22-body');
+        
+        // Destroy existing DataTables if initialized
+        if ($.fn.DataTable.isDataTable('#table-feedback-21')) {
+            $('#table-feedback-21').DataTable().destroy();
+        }
+        if ($.fn.DataTable.isDataTable('#table-feedback-22')) {
+            $('#table-feedback-22').DataTable().destroy();
+        }
+
+        body21.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-arrow-repeat spin me-2"></i>กำลังโหลด...</td></tr>';
+        body22.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-arrow-repeat spin me-2"></i>กำลังโหลด...</td></tr>';
+
+        $.get("{{ url('claim_op/sss_chronic_feedback_list') }}")
+            .done(function(data) {
+                // Populate Tab 2.1
+                let html21 = '';
+                if (data.list21 && data.list21.length > 0) {
+                    data.list21.forEach(row => {
+                        html21 += `
+                            <tr>
+                                <td>${formatThaiShortDate(row.dttran)}</td>
+                                <td><strong>${row.hn}</strong></td>
+                                <td>${row.ptname || '-'}</td>
+                                <td><code>${row.pid || '-'}</code></td>
+                                <td><span class="badge bg-danger text-light">${row.dx || '-'}</span></td>
+                                <td><span class="badge bg-warning text-dark">${row.drug || '-'}</span></td>
+                                <td class="text-muted small">${row.rep_file}</td>
+                            </tr>
+                        `;
+                    });
+                }
+                body21.innerHTML = html21 || '<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบรายการผลตอบกลับประเภท 2.1</td></tr>';
+
+                // Populate Tab 2.2
+                let html22 = '';
+                if (data.list22 && data.list22.length > 0) {
+                    data.list22.forEach(row => {
+                        html22 += `
+                            <tr>
+                                <td>${formatThaiShortDate(row.dttran)}</td>
+                                <td><strong>${row.hn}</strong></td>
+                                <td>${row.ptname || '-'}</td>
+                                <td><code>${row.pid || '-'}</code></td>
+                                <td><span class="badge bg-danger text-light">${row.dx || '-'}</span></td>
+                                <td><span class="badge bg-warning text-dark">${row.drug || '-'}</span></td>
+                                <td class="text-muted small">${row.rep_file}</td>
+                            </tr>
+                        `;
+                    });
+                }
+                body22.innerHTML = html22 || '<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบรายการผลตอบกลับประเภท 2.2</td></tr>';
+
+                // Re-initialize DataTables with pageLength 10
+                const dtConfig = {
+                    pageLength: 10,
+                    lengthMenu: [10, 25, 50, 100],
+                    language: {
+                        search: "ค้นหา:",
+                        lengthMenu: "แสดง _MENU_ รายการ",
+                        info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                        paginate: {
+                            previous: "ก่อนหน้า",
+                            next: "ถัดไป"
+                        }
+                    }
+                };
+
+                if (data.list21 && data.list21.length > 0) {
+                    $('#table-feedback-21').DataTable(dtConfig);
+                }
+                if (data.list22 && data.list22.length > 0) {
+                    $('#table-feedback-22').DataTable(dtConfig);
+                }
+
+                // Force column adjustment after rendering
+                setTimeout(() => {
+                    $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+                }, 150);
+            })
+            .fail(function() {
+                body21.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
+                body22.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
+            });
+    }
+
+    function formatThaiShortDate(dateStr) {
+        if (!dateStr) return '-';
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return dateStr;
+        
+        const year = parseInt(parts[0]) + 543;
+        const month = parseInt(parts[1]);
+        const day = parseInt(parts[2]);
+        
+        const shortMonths = [
+            '', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+            'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
+        ];
+        
+        const shortYear = year.toString().slice(-2);
+        return `${day} ${shortMonths[month]} ${shortYear}`;
     }
   </script>
 @endpush

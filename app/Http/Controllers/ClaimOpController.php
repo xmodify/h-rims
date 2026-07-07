@@ -4325,7 +4325,7 @@ class ClaimOpController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date]);
 
-        $ncd_json_path = base_path('docs/lookup/icd10_sss_ncd.json');
+        $ncd_json_path = base_path('docs/lookup/icd10_sss_chronic.json');
         $ncd_data = [];
         if (file_exists($ncd_json_path)) {
             $ncd_data = json_decode(file_get_contents($ncd_json_path), true);
@@ -4334,14 +4334,10 @@ class ClaimOpController extends Controller
         $exclusions = $ncd_data['exclusions'] ?? [];
 
         $tmt_json_path = base_path('docs/lookup/tmt_sss_chronic.json');
-        $gp_codes = [];
-        $gpu_codes = [];
-        $tpu_codes = [];
+        $tmt_diseases = [];
         if (file_exists($tmt_json_path)) {
             $tmt_data = json_decode(file_get_contents($tmt_json_path), true);
-            $gp_codes = $tmt_data['gp_codes'] ?? [];
-            $gpu_codes = $tmt_data['gpu_codes'] ?? [];
-            $tpu_codes = $tmt_data['tpu_codes'] ?? [];
+            $tmt_diseases = $tmt_data['diseases'] ?? [];
         }
 
         $vns = array_column($claim, 'vn');
@@ -4385,7 +4381,9 @@ class ClaimOpController extends Controller
                 }
             }
 
+            $row_diag_cats = [];
             $is_ncd = false;
+            $is_exempted_ncd = false;
             foreach ($diags as $diag) {
                 $is_excluded = false;
                 foreach ($exclusions as $ex) {
@@ -4395,30 +4393,52 @@ class ClaimOpController extends Controller
                     }
                 }
                 if (!$is_excluded) {
-                    foreach ($prefixes as $pref => $val) {
-                        if (str_starts_with($diag, $pref)) {
-                            $is_ncd = true;
-                            break 2;
+                    foreach ($ncd_data['diseases'] ?? [] as $dis) {
+                        $dis_id = $dis['id'];
+                        foreach ($dis['prefixes'] as $pref) {
+                            if (str_starts_with($diag, $pref)) {
+                                $is_ncd = true;
+                                $base_cat = substr($dis_id, 0, 2);
+                                $row_diag_cats[$base_cat] = true;
+                                if (in_array($dis_id, ['03', '03A', '03B', '04', '06', '19', '20'])) {
+                                    $is_exempted_ncd = true;
+                                }
+                            }
                         }
                     }
                 }
             }
             $row->is_ncd = $is_ncd;
-
+            $row->is_exempted_ncd = $is_exempted_ncd;
+ 
             $visit_drugs = $drugs_by_vn[$row->vn] ?? [];
+            $row_drug_cats = [];
             $has_chronic_drug = false;
             foreach ($visit_drugs as $drug) {
-                $is_gp = !empty($drug->gp_code) && in_array($drug->gp_code, $gp_codes);
-                $is_gpu = !empty($drug->gpu_code) && in_array($drug->gpu_code, $gpu_codes);
-                $is_tpu = !empty($drug->tmtid) && in_array($drug->tmtid, $tpu_codes);
-                if ($is_gp || $is_gpu || $is_tpu) {
+                $drug_matched = false;
+                foreach ($tmt_diseases as $dis) {
+                    $dis_id = $dis['id'];
+                    $is_gp = !empty($drug->gp_code) && in_array($drug->gp_code, $dis['gp_codes'] ?? []);
+                    $is_gpu = !empty($drug->gpu_code) && in_array($drug->gpu_code, $dis['gpu_codes'] ?? []);
+                    $is_tpu = !empty($drug->tmtid) && in_array($drug->tmtid, $dis['tpu_codes'] ?? []);
+                    if ($is_gp || $is_gpu || $is_tpu) {
+                        $base_cat = substr($dis_id, 0, 2);
+                        $row_drug_cats[$base_cat] = true;
+                        $drug_matched = true;
+                    }
+                }
+                if ($drug_matched) {
                     $has_chronic_drug = true;
-                    break;
                 }
             }
             $row->has_chronic_drug = $has_chronic_drug;
+ 
+            $intersect = array_intersect(array_keys($row_diag_cats), array_keys($row_drug_cats));
+            $row->has_matching_category = !empty($intersect);
 
-            if ($row->is_ncd && $row->has_chronic_drug) {
+            if ($row->is_ncd && $row->has_matching_category) {
+                $row->chronic_status = 'green';
+            } elseif ($row->is_exempted_ncd) {
                 $row->chronic_status = 'green';
             } elseif ($row->is_ncd || $row->has_chronic_drug) {
                 $row->chronic_status = 'red';
@@ -4485,26 +4505,24 @@ class ClaimOpController extends Controller
         ", [$vn]);
 
         $tmt_json_path = base_path('docs/lookup/tmt_sss_chronic.json');
-        $gp_codes = [];
-        $gpu_codes = [];
-        $tpu_codes = [];
+        $tmt_diseases = [];
         if (file_exists($tmt_json_path)) {
             $tmt_data = json_decode(file_get_contents($tmt_json_path), true);
-            $gp_codes = $tmt_data['gp_codes'] ?? [];
-            $gpu_codes = $tmt_data['gpu_codes'] ?? [];
-            $tpu_codes = $tmt_data['tpu_codes'] ?? [];
+            $tmt_diseases = $tmt_data['diseases'] ?? [];
         }
 
-        $ncd_json_path = base_path('docs/lookup/icd10_sss_ncd.json');
+        $ncd_json_path = base_path('docs/lookup/icd10_sss_chronic.json');
         $ncd_data = [];
         if (file_exists($ncd_json_path)) {
             $ncd_data = json_decode(file_get_contents($ncd_json_path), true);
         }
-        $prefixes = $ncd_data['prefixes'] ?? [];
         $exclusions = $ncd_data['exclusions'] ?? [];
 
         $is_ncd = false;
         $is_pdx_ncd = false;
+        $is_exempted_ncd = false;
+        $visit_diag_cats = [];
+
         foreach ($diagnoses as $d) {
             $is_ncd_item = false;
             if ($d->diagtype != '2') {
@@ -4518,14 +4536,21 @@ class ClaimOpController extends Controller
                         }
                     }
                     if (!$is_excluded) {
-                        foreach ($prefixes as $pref => $val) {
-                            if (str_starts_with($diag, $pref)) {
-                                $is_ncd_item = true;
-                                $is_ncd = true;
-                                if ($d->diagtype == '1') {
-                                    $is_pdx_ncd = true;
+                        foreach ($ncd_data['diseases'] ?? [] as $dis) {
+                            $dis_id = $dis['id'];
+                            foreach ($dis['prefixes'] as $pref) {
+                                if (str_starts_with($diag, $pref)) {
+                                    $is_ncd_item = true;
+                                    $is_ncd = true;
+                                    $base_cat = substr($dis_id, 0, 2);
+                                    $visit_diag_cats[$base_cat] = true;
+                                    if ($d->diagtype == '1') {
+                                        $is_pdx_ncd = true;
+                                    }
+                                    if (in_array($dis_id, ['03', '03A', '03B', '04', '06', '19', '20'])) {
+                                        $is_exempted_ncd = true;
+                                    }
                                 }
-                                break;
                             }
                         }
                     }
@@ -4535,21 +4560,335 @@ class ClaimOpController extends Controller
         }
         $visit->is_ncd = $is_ncd;
         $visit->is_pdx_ncd = $is_pdx_ncd;
+        $visit->is_exempted_ncd = $is_exempted_ncd;
 
+        $visit_drug_cats = [];
         foreach ($drugs as $drug) {
-            $is_gp = !empty($drug->gp_code) && in_array($drug->gp_code, $gp_codes);
-            $is_gpu = !empty($drug->gpu_code) && in_array($drug->gpu_code, $gpu_codes);
-            $is_tpu = !empty($drug->tmtid) && in_array($drug->tmtid, $tpu_codes);
-            $drug->is_chronic = $is_gp || $is_gpu || $is_tpu;
+            $drug_matched = false;
+            foreach ($tmt_diseases as $dis) {
+                $dis_id = $dis['id'];
+                $is_gp = !empty($drug->gp_code) && in_array($drug->gp_code, $dis['gp_codes'] ?? []);
+                $is_gpu = !empty($drug->gpu_code) && in_array($drug->gpu_code, $dis['gpu_codes'] ?? []);
+                $is_tpu = !empty($drug->tmtid) && in_array($drug->tmtid, $dis['tpu_codes'] ?? []);
+                if ($is_gp || $is_gpu || $is_tpu) {
+                    $base_cat = substr($dis_id, 0, 2);
+                    $visit_drug_cats[$base_cat] = true;
+                    $drug_matched = true;
+                }
+            }
+            $drug->is_chronic = $drug_matched;
         }
+
+        $intersect = array_intersect(array_keys($visit_diag_cats), array_keys($visit_drug_cats));
+        $visit->has_matching_category = !empty($intersect);
 
         return response()->json([
             'visit' => $visit,
             'diagnoses' => $diagnoses,
-            'drugs' => $drugs,
-            'gp_codes' => $gp_codes,
-            'gpu_codes' => $gpu_codes,
-            'tpu_codes' => $tpu_codes
+            'drugs' => $drugs
+        ]);
+    }
+
+    public function sss_chronic_import(Request $request)
+    {
+        $request->validate([
+            'zip_file' => 'required|file|mimes:zip',
+        ]);
+
+        $file = $request->file('zip_file');
+        $uniqueId = uniqid('sss_chronic_');
+        $extractPath = storage_path('app/tmp_sss_chronic_import/' . $uniqueId);
+
+        try {
+            $zip = new \ZipArchive();
+            if ($zip->open($file->getRealPath()) !== true) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ไฟล์ ZIP เสียหาย (ไม่สามารถเปิดไฟล์ได้)'
+                ], 400);
+            }
+
+            if (!\File::exists($extractPath)) {
+                \File::makeDirectory($extractPath, 0755, true);
+            }
+
+            $zip->extractTo($extractPath);
+            $zip->close();
+        } catch (\Throwable $e) {
+            if (\File::exists($extractPath)) {
+                \File::deleteDirectory($extractPath);
+            }
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาดในการแตกไฟล์ ZIP: ' . $e->getMessage()
+            ], 400);
+        }
+
+        try {
+            $files = \File::files($extractPath);
+        } catch (\Throwable $e) {
+            if (\File::exists($extractPath)) {
+                \File::deleteDirectory($extractPath);
+            }
+            return response()->json([
+                'success' => false,
+                'message' => 'ไม่สามารถอ่านไฟล์ด้านใน ZIP ได้: ' . $e->getMessage()
+            ], 400);
+        }
+        $processedCount = 0;
+        $newTpuCount = 0;
+        $newDxCount = 0;
+        $warnings = [];
+
+        $new_tpu_entries = [];
+        $new_dx_entries = [];
+
+        foreach ($files as $f) {
+            if (strtolower($f->getExtension()) === 'txt') {
+                try {
+                    $fileName = $f->getFilename();
+                    // Prevent duplicate data by deleting existing records of the same file name first
+                    DB::table('sss_chronic_feedback')->where('rep_file', $fileName)->delete();
+                    $contentBytes = \File::get($f->getRealPath());
+                    
+                    // Convert encoding from Windows-874 to UTF-8
+                    $content = @iconv('Windows-874', 'UTF-8//IGNORE', $contentBytes);
+                    if ($content === false || ($content === '' && $contentBytes !== '')) {
+                        try {
+                            $supported = mb_list_encodings();
+                            $from_enc = 'auto';
+                            if (in_array('Windows-874', $supported)) {
+                                $from_enc = 'Windows-874';
+                            } elseif (in_array('TIS-620', $supported)) {
+                                $from_enc = 'TIS-620';
+                            } elseif (in_array('ISO-8859-11', $supported)) {
+                                $from_enc = 'ISO-8859-11';
+                            }
+                            $content = mb_convert_encoding($contentBytes, 'UTF-8', $from_enc);
+                        } catch (\Throwable $e) {
+                            $content = $contentBytes;
+                        }
+                    }
+
+                    $lines = explode("\n", $content);
+                    $current_section = null;
+
+                    foreach ($lines as $line) {
+                        $line = trim($line);
+                        if (empty($line)) {
+                            continue;
+                        }
+
+                        // Identify current section
+                        if (str_contains($line, 'ตอนที่ 1')) {
+                            $current_section = '1';
+                            continue;
+                        } elseif (str_contains($line, 'ตอนที่ 2.1')) {
+                            $current_section = '2.1';
+                            continue;
+                        } elseif (str_contains($line, 'ตอนที่ 2.2')) {
+                            $current_section = '2.2';
+                            continue;
+                        }
+
+                        // Parse data row using CSV reader
+                        $parts = str_getcsv($line);
+                        if (count($parts) >= 10 && is_numeric(trim($parts[0]))) {
+                            $repline = trim($parts[1]);
+                            $hcode = trim($parts[2]);
+                            $hmain = trim($parts[3]);
+                            $invno = trim($parts[4]);
+                            $hn = trim($parts[5]);
+                            $pid = trim($parts[6]);
+                            $dttran = trim($parts[7]);
+                            $dx = trim($parts[8]);
+                            $drug = trim($parts[9]);
+
+                            if ($current_section !== null) {
+                                // Insert to database (using DB query builder)
+                                DB::table('sss_chronic_feedback')->insert([
+                                    'rep_file' => $fileName,
+                                    'repline' => is_numeric($repline) ? (int)$repline : null,
+                                    'hcode' => $hcode,
+                                    'hmain' => $hmain,
+                                    'invno' => $invno,
+                                    'hn' => $hn,
+                                    'pid' => $pid,
+                                    'dttran' => $dttran,
+                                    'section_type' => $current_section,
+                                    'dx' => $dx,
+                                    'drug' => $drug,
+                                    'created_at' => now(),
+                                    'updated_at' => now()
+                                ]);
+                                $processedCount++;
+
+                                // Auto-learning logic for Section 1 (ตอนที่ 1)
+                                if ($current_section === '1') {
+                                    // Extract TMT drug codes with category mapping
+                                    if (preg_match('/^(\d+)\s*\(([^)]+)\)/', $drug, $drugMatches)) {
+                                        $cat_str = str_pad(ltrim($drugMatches[1], '0'), 2, '0', STR_PAD_LEFT);
+                                        $codes = explode(',', $drugMatches[2]);
+                                        foreach ($codes as $c) {
+                                            $c = trim($c);
+                                            if (is_numeric($c)) {
+                                                $new_tpu_entries[] = [
+                                                    'cat' => $cat_str,
+                                                    'tpu' => $c
+                                                ];
+                                            }
+                                        }
+                                    }
+
+                                    // Extract ICD-10 disease codes
+                                    if (preg_match('/^(\d+)\s*\(([^)]+)\)/', $dx, $dxMatches)) {
+                                        $cat_str = str_pad(ltrim($dxMatches[1], '0'), 2, '0', STR_PAD_LEFT);
+                                        $icd_codes = explode(',', $dxMatches[2]);
+                                        foreach ($icd_codes as $icd) {
+                                            $icd = strtoupper(str_replace('.', '', trim($icd)));
+                                            if ($icd !== '') {
+                                                $new_dx_entries[] = [
+                                                    'cat' => $cat_str,
+                                                    'icd' => $icd
+                                                ];
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (\Throwable $txtException) {
+                    $warnings[] = "ไฟล์ย่อย " . $f->getFilename() . " ผิดพลาด: " . $txtException->getMessage();
+                    continue;
+                }
+            }
+        }
+
+        // Clean up temporary extracted directory
+        \File::deleteDirectory($extractPath);
+
+        // Update tmt_sss_chronic.json with new drug codes
+        $tmt_json_path = base_path('docs/lookup/tmt_sss_chronic.json');
+        if (file_exists($tmt_json_path) && !empty($new_tpu_entries)) {
+            $tmt_data = json_decode(file_get_contents($tmt_json_path), true);
+            $diseases = $tmt_data['diseases'] ?? [];
+            $updated = false;
+            foreach ($new_tpu_entries as $entry) {
+                $cat = $entry['cat'];
+                $tpu = $entry['tpu'];
+                foreach ($diseases as &$dis) {
+                    $dis_id_prefix = substr($dis['id'], 0, 2);
+                    if (str_pad($dis_id_prefix, 2, '0', STR_PAD_LEFT) === $cat) {
+                        if (!in_array($tpu, $dis['tpu_codes'] ?? [])) {
+                            $dis['tpu_codes'][] = $tpu;
+                            $newTpuCount++;
+                            $updated = true;
+                        }
+                    }
+                }
+            }
+            if ($updated) {
+                $tmt_data['diseases'] = $diseases;
+                file_put_contents($tmt_json_path, json_encode($tmt_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            }
+        }
+
+        // Update icd10_sss_chronic.json with new disease codes
+        $ncd_json_path = base_path('docs/lookup/icd10_sss_chronic.json');
+        if (file_exists($ncd_json_path) && !empty($new_dx_entries)) {
+            $ncd_data = json_decode(file_get_contents($ncd_json_path), true);
+            $diseases = $ncd_data['diseases'] ?? [];
+            $root_prefixes = $ncd_data['prefixes'] ?? [];
+            $ncd_updated = false;
+
+            foreach ($new_dx_entries as $entry) {
+                $cat = $entry['cat'];
+                $icd = $entry['icd'];
+
+                foreach ($diseases as &$dis) {
+                    $dis_id_prefix = substr($dis['id'], 0, 2);
+                    if (str_pad($dis_id_prefix, 2, '0', STR_PAD_LEFT) === $cat) {
+                        if (!in_array($icd, $dis['prefixes'])) {
+                            $dis['prefixes'][] = $icd;
+                            $ncd_updated = true;
+                        }
+                    }
+                }
+
+                if (!isset($root_prefixes[$icd])) {
+                    $root_prefixes[$icd] = true;
+                    $newDxCount++;
+                    $ncd_updated = true;
+                }
+            }
+
+            if ($ncd_updated) {
+                $ncd_data['diseases'] = $diseases;
+                $ncd_data['prefixes'] = $root_prefixes;
+                file_put_contents($ncd_json_path, json_encode($ncd_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "นำเข้าข้อมูลสำเร็จ นำเข้าได้ทั้งหมด {$processedCount} รายการ (เรียนรู้รหัสยาใหม่ {$newTpuCount} ตัว, รหัสโรคใหม่ {$newDxCount} รหัส)",
+            'warnings' => $warnings
+        ]);
+    }
+
+    public function sss_chronic_feedback_list()
+    {
+        $list21 = DB::table('sss_chronic_feedback')
+            ->where('section_type', '2.1')
+            ->orderByDesc('dttran')
+            ->limit(300)
+            ->get();
+
+        $list22 = DB::table('sss_chronic_feedback')
+            ->where('section_type', '2.2')
+            ->orderByDesc('dttran')
+            ->limit(300)
+            ->get();
+
+        // Filter out from list22 any patient who is already in list21 (by PID)
+        $pidsIn21 = $list21->pluck('pid')->filter()->unique()->toArray();
+        $filteredList22 = [];
+        foreach ($list22 as $row) {
+            if (!empty($row->pid) && in_array($row->pid, $pidsIn21)) {
+                continue; // Skip as they are already registered (exist in 2.1)
+            }
+            $filteredList22[] = $row;
+        }
+        $list22 = collect($filteredList22);
+
+        $hns = $list21->pluck('hn')->merge($list22->pluck('hn'))->unique()->filter()->toArray();
+
+        $patients = [];
+        if (!empty($hns)) {
+            try {
+                $patients = DB::connection('hosxp')->table('patient')
+                    ->select('hn', DB::raw("CONCAT(pname, fname, ' ', lname) AS ptname"))
+                    ->whereIn('hn', $hns)
+                    ->get()
+                    ->keyBy('hn')
+                    ->toArray();
+            } catch (\Throwable $e) {
+                // If hosxp connection fails, fallback gracefully without patient names
+            }
+        }
+
+        foreach ($list21 as $row) {
+            $row->ptname = isset($patients[$row->hn]) ? $patients[$row->hn]->ptname : '-';
+        }
+
+        foreach ($list22 as $row) {
+            $row->ptname = isset($patients[$row->hn]) ? $patients[$row->hn]->ptname : '-';
+        }
+
+        return response()->json([
+            'list21' => $list21,
+            'list22' => $list22
         ]);
     }
 }

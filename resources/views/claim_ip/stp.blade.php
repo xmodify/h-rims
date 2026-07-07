@@ -84,233 +84,143 @@
                     </form>
                 </div>
             </div>
-            <ul class="nav nav-tabs-modern" id="pills-tab" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="search-tab" data-bs-toggle="pill" data-bs-target="#search" type="button" role="tab">
-                        <i class="bi bi-clock-history me-1"></i> รอส่ง Claim
-                    </button>
-                </li>       
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="claim-tab" data-bs-toggle="pill" data-bs-target="#claim" type="button" role="tab">
-                        <i class="bi bi-send-check me-1"></i> ส่ง Claim
-                    </button>
-                </li>
-            </ul>
         </div>
+        
         <div class="card-body px-4 pb-4 pt-0">
-            <div class="tab-content" id="myTabContent">
-                <!-- Tab 1: Waiting for Claim -->
-                <div class="tab-pane fade show active" id="search" role="tabpanel">
-                    <div class="table-responsive">            
-                        <table id="t_search" class="table table-modern w-100">
-                            <thead>
-                                <tr>
-                                    <th class="text-center">#</th>                      
-                                    <th class="text-center">Action</th>              
-                                    <th class="text-center">Claim Status</th>
-                                    <th class="text-center">ตึก</th>
-                                    <th class="text-center">Admit</th>
-                                    <th class="text-center">D/C</th>
-                                    <th class="text-center">HN</th>
-                                    <th class="text-center">CID</th>
-                                    <th class="text-center">AN</th>
-                                    <th class="text-center">ชื่อ-สกุล</th>
-                                    <th class="text-center">สิทธิ</th>
-                                    <th class="text-center">อายุ</th>
-                                    <th class="text-center" width="15%">วินิจฉัยแพทย์</th>
-                                    <th class="text-center">ICD10,ICD9</th>
-                                    <th class="text-center">ค่ารักษา</th>  
-                                    <th class="text-center">ชำระเอง</th>
-                                    <th class="text-center text-primary">เรียกเก็บ</th>
-                                    <th class="text-center">Refer</th>  
-                                    <th class="text-center">AdjRW</th>
-                                    <th class="text-center">สถานะ</th>
-                                    <th class="text-center">Authen</th>      
-                                    <th class="text-center">สรุป Chart</th>
-                                    <th class="text-center">พร้อมส่ง</th>
-                                </tr>
-                            </thead> 
-                            <tbody> 
-                                @php 
-                                    $count = 1; 
-                                    $sum_income = 0; 
-                                    $sum_rcpt_money = 0; 
-                                    $sum_claim_price = 0; 
-                                @endphp
-                                @foreach($search as $row) 
-                                <tr>
-                                    <td class="text-center text-muted small">{{ $count }}</td>   
-                                    <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-success px-2 py-0 border-2 fw-bold" style="font-size: 0.7rem;" onclick="checkFdh('{{ $row->hn }}','{{ $row->an }}')">FDH</button>
-                                    </td>    
-                                    <td class="text-start">                                        
-                                        <div class="text-muted" style="font-size: 0.7rem;">FDH: <span class="fw-bold">{{ $row->fdh_status }}</span></div>
-                                        <div class="text-muted" style="font-size: 0.7rem;">E-Claim: <span class="fw-bold">{{ $row->ec_status }}</span></div>
-                                    </td>
-                                    <td class="text-center small">{{$row->ward}}</td>
-                                    <td class="text-center small">{{ DateThai($row->regdate) }}</td>
-                                    <td class="text-center small">{{ DateThai($row->dchdate) }}</td>
-                                    <td class="text-center small">{{$row->hn}}</td>
-                                    <td class="text-center small">{{$row->cid}}</td>
-                                    <td class="text-center small">{{$row->an}}</td>
-                                    <td class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</td>
-                                    <td class="text-start small text-muted text-truncate" style="max-width: 150px;">[{{$row->hospmain}}] {{$row->pttype}}</td> 
-                                    <td class="text-center small">{{ $row->age_y }}</td>
-                                    <td class="text-start small text-muted text-wrap">{{ $row->diag_text_list }}</td>
-                                    <td class="text-center small">
-                                        <div class="fw-bold text-dark">{{ $row->icd10 }}</div>
-                                        <div class="text-muted" style="font-size: 0.65rem;">{{$row->icd9}}</div>
-                                    </td>
-                                    <td class="text-end small">{{ number_format($row->income,2) }}</td>
-                                    <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
-                                    <td class="text-end fw-bold text-primary small">{{ number_format($row->claim_price,2) }}</td> 
-                                    <td class="text-end small">{{ $row->refer }}</td>
-                                    <td class="text-center small">{{ $row->adjrw }}</td>
-                                    <td class="text-start small">{{ $row->ipt_coll_status_type_name }}</td>
-                                    <td class="text-center">
-                                        <span class="badge {{ $row->auth_code == 'Y' ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger' }} py-0 px-1">{{ $row->auth_code }}</span>
-                                    </td>     
-                                    <td class="text-center">
-                                        <span class="badge {{ $row->dch_sum == 'Y' ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger' }} py-0 px-1">{{ $row->dch_sum }}</span>
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge {{ $row->data_ok == 'Y' ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger' }} py-0 px-1">{{ $row->data_ok }}</span>
-                                    </td>                 
-                                </tr>
-                                @php 
-                                    $count++; 
-                                    $sum_income += $row->income; 
-                                    $sum_rcpt_money += $row->rcpt_money; 
-                                    $sum_claim_price += $row->claim_price; 
-                                @endphp
-                                @endforeach                 
-                            </tbody>
-                            <tfoot class="bg-light-soft">
-                                <tr>
-                                    <th colspan="14" class="text-end text-muted small px-3">รวม:</th>
-                                    <th class="text-end small">{{ number_format($sum_income,2) }}</th>
-                                    <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
-                                    <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>
-                                    <th colspan="6"></th>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>          
-                </div>  
-
-                <!-- Tab 2: Claims Sent -->
-                <div class="tab-pane fade" id="claim" role="tabpanel">
-                    <div class="table-responsive">            
-                        <table id="t_claim" class="table table-modern w-100">
-                            <thead>
-                                <tr>
-                                    <th class="text-center">#</th>
-                                    <th class="text-center">Action</th>              
-                                    <th class="text-center">Claim Status</th>
-                                    <th class="text-center">ตึก</th>
-                                    <th class="text-center">Admit</th>
-                                    <th class="text-center">D/C</th>
-                                    <th class="text-center">HN</th>
-                                    <th class="text-center">CID</th>
-                                    <th class="text-center">AN</th>
-                                    <th class="text-center">ชื่อ-สกุล</th>
-                                    <th class="text-center">สิทธิ</th>
-                                    <th class="text-center">อายุ</th>
-                                    <th class="text-center" width="15%">วินิจฉัยแพทย์</th>
-                                    <th class="text-center">ICD10,ICD9</th>
-                                    <th class="text-center">ค่ารักษา</th>  
-                                    <th class="text-center">ชำระเอง</th>
-                                    <th class="text-center text-primary">เรียกเก็บ</th>
-                                    <th class="text-center">Refer</th>  
-                                    <th class="text-center">AdjRW</th>
-                                    <th class="text-center">สถานะ</th>
-                                    <th class="text-center small text-muted">ส่ง Claim</th>
-                                    <th class="text-center small text-danger">Error</th>
-                                    <th class="text-center bg-primary-soft small">อัตราจ่าย/Rw</th>
-                                    <th class="text-center bg-primary-soft small">ชดเชย Rw</th>
-                                    <th class="text-center bg-primary-soft small">ชดเชย Other</th>
-                                    <th class="text-center bg-primary-soft small">ชดเชยทั้งหมด</th> 
-                                    <th class="text-center bg-primary-soft small">ส่วนต่าง</th> 
-                                    <th class="text-center bg-primary-soft small">REP No.</th> 
-                                </tr>
-                            </thead> 
-                            <tbody> 
-                                @php 
-                                    $count = 1; 
-                                    $sum_income = 0; 
-                                    $sum_rcpt_money = 0; 
-                                    $sum_claim_price = 0; 
-                                    $sum_receive_rw = 0;
-                                    $sum_receive_total = 0;
-                                @endphp
-                                @foreach($claim as $row) 
-                                <tr>
-                                    <td class="text-center text-muted small">{{ $count }}</td>                                  
-                                    <td class="text-center">
-                                        <button class="btn btn-sm btn-outline-success px-2 py-0 border-2 fw-bold" style="font-size: 0.7rem;" onclick="checkFdh('{{ $row->hn }}','{{ $row->an }}')">FDH</button>
-                                    </td>    
-                                    <td class="text-start">                                        
-                                        <div class="text-muted" style="font-size: 0.7rem;">FDH: <span class="fw-bold">{{ $row->fdh_status }}</span></div>
-                                        <div class="text-muted" style="font-size: 0.7rem;">E-Claim: <span class="fw-bold">{{ $row->ec_status }}</span></div>
-                                    </td>
-                                    <td class="text-center small">{{$row->ward}}</td>
-                                    <td class="text-center small">{{ DateThai($row->regdate) }}</td>
-                                    <td class="text-center small">{{ DateThai($row->dchdate) }}</td>
-                                    <td class="text-center small">{{$row->hn}}</td>
-                                    <td class="text-center small">{{$row->cid}}</td>
-                                    <td class="text-center small">{{$row->an}}</td>
-                                    <td class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</td>
-                                    <td class="text-start small text-muted text-truncate" style="max-width: 150px;">[{{$row->hospmain}}] {{$row->pttype}}</td> 
-                                    <td class="text-center small">{{ $row->age_y }}</td>
-                                    <td class="text-start small text-muted text-wrap">{{ $row->diag_text_list }}</td>
-                                    <td class="text-center small">
-                                        <div class="fw-bold text-dark">{{ $row->icd10 }}</div>
-                                        <div class="text-muted" style="font-size: 0.65rem;">{{$row->icd9}}</div>
-                                    </td>
-                                    <td class="text-end small">{{ number_format($row->income,2) }}</td>
-                                    <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
-                                    <td class="text-end fw-bold text-primary small">{{ number_format($row->claim_price,2) }}</td> 
-                                    <td class="text-end small">{{ $row->refer }}</td>
-                                    <td class="text-center small">{{ $row->adjrw }}</td>
-                                    <td class="text-start small">{{ $row->ipt_coll_status_type_name }}</td> 
-                                    <td class="text-center small">{{ DateThai($row->fdh) }}</td>
-                                    <td class="text-center small text-danger">{{ $row->rep_error }}</td>
-                                    <td class="text-end small">{{ number_format($row->fund_ip_payrate,2) }}</td>        
-                                    <td class="text-end small">{{ number_format($row->receive_ip_compensate_pay,2) }}</td>
-                                    <td class="text-end small">{{ number_format($row->receive_total-$row->receive_ip_compensate_pay,2) }}</td>
-                                    <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($row->receive_total,2) }}</td>
-                                    <td class="text-end small fw-bold {{ ($row->receive_total-$row->claim_price) > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($row->receive_total-$row->claim_price,2) }}</td>
-                                    <td class="text-center small text-muted">{{ $row->repno }}</td>
-                                </tr>
-                                @php 
-                                    $count++; 
-                                    $sum_income += $row->income; 
-                                    $sum_rcpt_money += $row->rcpt_money; 
-                                    $sum_claim_price += $row->claim_price; 
-                                    $sum_receive_rw += $row->receive_ip_compensate_pay;
-                                    $sum_receive_total += $row->receive_total;
-                                @endphp
-                                @endforeach                 
-                            </tbody>
-                            <tfoot class="bg-light-soft">
-                                <tr>
-                                    <th colspan="14" class="text-end text-muted small px-3">รวม:</th>
-                                    <th class="text-end small">{{ number_format($sum_income,2) }}</th>
-                                    <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
-                                    <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>
-                                    <th colspan="6"></th>
-                                    <th class="text-end small">{{ number_format($sum_receive_rw,2)}}</th>
-                                    <th class="text-end small">{{ number_format($sum_receive_total-$sum_receive_rw,2)}}</th>
-                                    <th class="text-end small fw-bold {{ $sum_receive_total > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($sum_receive_total,2) }}</th>
-                                    <th class="text-end small fw-bold {{ ($sum_receive_total-$sum_claim_price) > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($sum_receive_total-$sum_claim_price, 2) }}</th>
-                                    <th></th>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>          
-                </div> 
-            </div>
+            <div class="table-responsive">            
+                <table id="t_visits" class="table table-modern w-100">
+                    <thead>
+                        <tr>
+                            <th class="text-center">#</th>                      
+                            <th class="text-center">Action</th>              
+                            <th class="text-center">สถานะส่งเคลม</th>
+                            <th class="text-center">Claim Status</th>
+                            <th class="text-center">ตึก</th>
+                            <th class="text-center">Admit</th>
+                            <th class="text-center">D/C</th>
+                            <th class="text-center">HN</th>
+                            <th class="text-center">CID</th>
+                            <th class="text-center">AN</th>
+                            <th class="text-center">ชื่อ-สกุล</th>
+                            <th class="text-center">สิทธิ</th>
+                            <th class="text-center">อายุ</th>
+                            <th class="text-center" width="15%">วินิจฉัยแพทย์</th>
+                            <th class="text-center">ICD10,ICD9</th>
+                            <th class="text-center">ค่ารักษา</th>  
+                            <th class="text-center">ชำระเอง</th>
+                            <th class="text-center text-primary">เรียกเก็บ</th>
+                            <th class="text-center">Refer</th>  
+                            <th class="text-center">AdjRW</th>
+                            <th class="text-center">สถานะ</th>
+                            <th class="text-center small text-muted">ส่ง Claim</th>
+                            <th class="text-center small text-danger">Error</th>
+                            <th class="text-center bg-primary-soft small">อัตราจ่าย/Rw</th>
+                            <th class="text-center bg-primary-soft small">ชดเชย Rw</th>
+                            <th class="text-center bg-primary-soft small">ชดเชย Other</th>
+                            <th class="text-center bg-primary-soft small">ชดเชยทั้งหมด</th> 
+                            <th class="text-center bg-primary-soft small">ส่วนต่าง</th> 
+                            <th class="text-center bg-primary-soft small">REP No.</th> 
+                            <th class="text-center">Authen</th>      
+                            <th class="text-center">สรุป Chart</th>
+                            <th class="text-center">พร้อมส่ง</th>
+                        </tr>
+                    </thead> 
+                    <tbody> 
+                        @php 
+                            $count = 1; 
+                            $sum_income = 0; 
+                            $sum_rcpt_money = 0; 
+                            $sum_claim_price = 0; 
+                            $sum_receive_rw = 0;
+                            $sum_receive_total = 0;
+                        @endphp
+                        @foreach($visits as $row) 
+                        <tr>
+                            <td class="text-center text-muted small">{{ $count }}</td>   
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-outline-success px-2 py-0 border-2 fw-bold" style="font-size: 0.7rem;" onclick="checkFdh('{{ $row->hn }}','{{ $row->an }}')">FDH</button>
+                            </td>    
+                            <td class="text-center" data-order="{{ $row->is_sent == 'Y' ? 1 : 0 }}">
+                                @if($row->is_sent == 'Y')
+                                    <span class="badge bg-success py-1 px-2"><i class="bi bi-send-check me-1"></i>ส่งเคลมแล้ว</span>
+                                @else
+                                    <span class="badge bg-warning text-dark py-1 px-2"><i class="bi bi-clock-history me-1"></i>รอส่งเคลม</span>
+                                @endif
+                            </td>
+                            <td class="text-start">                                        
+                                <div class="text-muted" style="font-size: 0.7rem;">FDH: <span class="fw-bold">{{ $row->fdh_status }}</span></div>
+                                <div class="text-muted" style="font-size: 0.7rem;">E-Claim: <span class="fw-bold">{{ $row->ec_status }}</span></div>
+                            </td>
+                            <td class="text-center small">{{$row->ward}}</td>
+                            <td class="text-center small">{{ DateThai($row->regdate) }}</td>
+                            <td class="text-center small">{{ DateThai($row->dchdate) }}</td>
+                            <td class="text-center small">{{$row->hn}}</td>
+                            <td class="text-center small">{{$row->cid}}</td>
+                            <td class="text-center small">{{$row->an}}</td>
+                            <td class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</td>
+                            <td class="text-start small text-muted text-truncate" style="max-width: 150px;">[{{$row->hospmain}}] {{$row->pttype}}</td> 
+                            <td class="text-center small">{{ $row->age_y }}</td>
+                            <td class="text-start small text-muted text-wrap">{{ $row->diag_text_list }}</td>
+                            <td class="text-center small">
+                                <div class="fw-bold text-dark">{{ $row->icd10 }}</div>
+                                <div class="text-muted" style="font-size: 0.65rem;">{{$row->icd9}}</div>
+                            </td>
+                            <td class="text-end small">{{ number_format($row->income,2) }}</td>
+                            <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
+                            <td class="text-end fw-bold text-primary small">{{ number_format($row->claim_price,2) }}</td> 
+                            <td class="text-end small">{{ $row->refer }}</td>
+                            <td class="text-center small">{{ $row->adjrw }}</td>
+                            <td class="text-start small">{{ $row->ipt_coll_status_type_name }}</td>
+                            <td class="text-center small">{{ $row->is_sent == 'Y' && isset($row->fdh) ? DateThai($row->fdh) : '-' }}</td>
+                            <td class="text-center small text-danger">{{ $row->rep_error ?? '-' }}</td>
+                            <td class="text-end small">{{ $row->is_sent == 'Y' && isset($row->fund_ip_payrate) ? number_format($row->fund_ip_payrate,2) : '-' }}</td>        
+                            <td class="text-end small">{{ $row->is_sent == 'Y' && isset($row->receive_ip_compensate_pay) ? number_format($row->receive_ip_compensate_pay,2) : '-' }}</td>
+                            <td class="text-end small">{{ $row->is_sent == 'Y' && isset($row->receive_total) && isset($row->receive_ip_compensate_pay) ? number_format($row->receive_total - $row->receive_ip_compensate_pay,2) : '-' }}</td>
+                            <td class="text-end small fw-bold {{ $row->is_sent == 'Y' && ($row->receive_total ?? 0) > 0 ? 'text-success' : 'text-danger' }}">
+                                {{ $row->is_sent == 'Y' && isset($row->receive_total) ? number_format($row->receive_total,2) : '-' }}
+                            </td>
+                            <td class="text-end small fw-bold {{ $row->is_sent == 'Y' && (($row->receive_total ?? 0) - $row->claim_price) > 0 ? 'text-success' : 'text-danger' }}">
+                                {{ $row->is_sent == 'Y' && isset($row->receive_total) ? number_format($row->receive_total - $row->claim_price,2) : '-' }}
+                            </td>
+                            <td class="text-center small text-muted">{{ $row->repno ?? '-' }}</td>
+                            <td class="text-center">
+                                <span class="badge {{ $row->auth_code == 'Y' ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger' }} py-0 px-1">{{ $row->auth_code }}</span>
+                            </td>     
+                            <td class="text-center">
+                                <span class="badge {{ $row->dch_sum == 'Y' ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger' }} py-0 px-1">{{ $row->dch_sum }}</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge {{ $row->data_ok == 'Y' ? 'bg-success-soft text-success' : 'bg-danger-soft text-danger' }} py-0 px-1">{{ $row->data_ok }}</span>
+                            </td>                 
+                        </tr>
+                        @php 
+                            $count++; 
+                            $sum_income += $row->income; 
+                            $sum_rcpt_money += $row->rcpt_money; 
+                            $sum_claim_price += $row->claim_price; 
+                            $sum_receive_rw += ($row->receive_ip_compensate_pay ?? 0);
+                            $sum_receive_total += ($row->receive_total ?? 0);
+                        @endphp
+                        @endforeach                 
+                    </tbody>
+                    <tfoot class="bg-light-soft">
+                        <tr>
+                            <th colspan="15" class="text-end text-muted small px-3">รวมทั้งหมด:</th>
+                            <th class="text-end small">{{ number_format($sum_income,2) }}</th>
+                            <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
+                            <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>
+                            <th colspan="5"></th>
+                            <th class="text-end small">{{ number_format($sum_receive_rw,2) }}</th>
+                            <th class="text-end small">{{ number_format($sum_receive_total - $sum_receive_rw,2) }}</th>
+                            <th class="text-end small fw-bold text-success">{{ number_format($sum_receive_total,2) }}</th>
+                            <th class="text-end small fw-bold text-success">{{ number_format($sum_receive_total - $sum_claim_price, 2) }}</th>
+                            <th colspan="4"></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>          
         </div>
+    </div>
   {{-- ✅ FDH Check Claim --}}
   <script>
     function checkFdh(hn, an) {
@@ -372,23 +282,13 @@
 
     async function checkFdhBulk(e) {
         if (e) e.preventDefault();
-        const searchItems = {!! json_encode(array_map(function($row) {
+        const items = {!! json_encode(array_map(function($row) {
             return [
                 'hn' => $row->hn,
                 'seq' => '',
                 'an' => $row->an
             ];
-        }, $search)) !!};
-
-        const claimItems = {!! json_encode(array_map(function($row) {
-            return [
-                'hn' => $row->hn,
-                'seq' => '',
-                'an' => $row->an
-            ];
-        }, $claim)) !!};
-
-        const items = [...searchItems, ...claimItems];
+        }, $visits)) !!};
 
         if (!items || items.length === 0) {
             Swal.fire({ icon: 'warning', title: 'ไม่พบรายการผู้ป่วยในหน้านี้', confirmButtonColor: '#0dcaf0' });
@@ -396,7 +296,6 @@
         }
 
         await runFdhBulkCheck(items, "{{ csrf_token() }}", "{{ url('/api/fdh/check-chunk') }}", function() {
-            localStorage.setItem('active_tab', '#search');
             fetchData();
             $('#form_indiv').submit();
         });
@@ -468,8 +367,8 @@
           }
       });
 
-      // Table 1: Waiting for Claim
-      $('#t_search').DataTable({
+      // Table: Visits
+      $('#t_visits').DataTable({
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 
                 '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
@@ -484,37 +383,7 @@
               extend: 'excelHtml5',
               text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
               className: 'btn btn-success btn-sm shadow-sm',
-              title: 'รายชื่อผู้มารับบริการ IP-STP บุคคลที่มีปัญหาสถานะและสิทธิ รอส่ง Claim วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
-            }
-        ],
-        language: {
-            search: "ค้นหา:",
-            lengthMenu: "แสดง _MENU_ รายการ",
-            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-            paginate: {
-              previous: "ก่อนหน้า",
-              next: "ถัดไป"
-            }
-        }
-      });
-
-      // Table 2: Sent Claim
-      $('#t_claim').DataTable({
-        dom: '<"row mb-3"' +
-                '<"col-md-6"l>' + 
-                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
-              '>' +
-              'rt' +
-              '<"row mt-3"' +
-                '<"col-md-6"i>' + 
-                '<"col-md-6"p>' + 
-              '>',
-        buttons: [
-            {
-              extend: 'excelHtml5',
-              text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
-              className: 'btn btn-success btn-sm shadow-sm',
-              title: 'รายชื่อผู้มารับบริการ IP-STP บุคคลที่มีปัญหาสถานะและสิทธิ ส่ง Claim วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+              title: 'รายชื่อผู้มารับบริการ IP-STP บุคคลที่มีปัญหาสถานะและสิทธิ วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
             }
         ],
         language: {

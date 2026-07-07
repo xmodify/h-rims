@@ -190,11 +190,16 @@ class ClaimValidator
     {
         $errors = [];
 
-        if (empty($billedItems)) {
-            return [
-                'errors'   => ["ไม่พบรายการยาหรือเวชภัณฑ์ที่เข้าข่ายการเคลม (PPFS)"],
-                'warnings' => [],
-            ];
+        $hasPpfs = false;
+        foreach ($billedItems as $item) {
+            if (($item->ppfs ?? '') === 'Y') {
+                $hasPpfs = true;
+                break;
+            }
+        }
+
+        if (!$hasPpfs) {
+            return ['errors' => [], 'warnings' => []];
         }
 
         [$sex, $age, $diagnoses, $procedures] = $this->extractPatientContext($visit);

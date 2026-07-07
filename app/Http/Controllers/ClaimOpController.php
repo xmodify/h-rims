@@ -523,7 +523,8 @@ class ClaimOpController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
-            SELECT vp.confirm_and_locked,vp.request_funds,
+            SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            vp.confirm_and_locked,vp.request_funds,
             o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             o.vn AS seq,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
@@ -1271,67 +1272,17 @@ class ClaimOpController extends Controller
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
-        $search = DB::connection('hosxp')->select('
+        $visits = DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
-            CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
-            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,claim_items.claim_list,
-            v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,
-            fdh.status_message_th AS fdh_status,ec.status AS ec_status
-            FROM ovst o
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-            LEFT JOIN opdscreen os ON os.vn=o.vn
-            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
-            LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
-            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
-            LEFT JOIN (
-                SELECT op.vn, 
-                    GROUP_CONCAT(DISTINCT IFNULL(d.`name`,n.`name`)) AS claim_list
-                FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs = "Y"
-                LEFT JOIN nondrugitems n ON n.icode=op.icode
-                LEFT JOIN drugitems d ON d.icode=op.icode
-                WHERE op.vstdate BETWEEN ? AND ?
-                GROUP BY op.vn
-            ) claim_items ON claim_items.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
-            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
-                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
-            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
-            LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
-            LEFT JOIN ( 
-                SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
-                GROUP_CONCAT(DISTINCT repno) AS repno FROM hrims.stm_ucs
-                WHERE vstdate BETWEEN ? AND ?
-                GROUP BY cid, vstdate, LEFT(TIME(datetimeadm),5)
-            ) stm ON stm.cid = pt.cid 
-                AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
-            WHERE (o.an ="" OR o.an IS NULL) 
-            AND o.vstdate BETWEEN ? AND ?
-            AND p.hipdata_code = "STP" 
-            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
-            AND oe.moph_finance_upload_status IS NULL AND rep.vn IS NULL AND stm.cid IS NULL AND fdh.seq IS NULL AND ec.hn IS NULL
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
-
-        $claim = DB::connection('hosxp')->select('
-            SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
-            IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
-            vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
+            CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
             v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
-            claim_items.claim_list,o.vn AS seq,
+            claim_items.claim_list,
             COALESCE(claim_items.ppfs, 0) AS ppfs,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,rep.rep_eclaim_detail_nhso AS rep_nhso,
             rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno,
-            fdh.status_message_th AS fdh_status,ec.status AS ec_status
+            fdh.status_message_th AS fdh_status,ec.status AS ec_status,
+            IF(oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR stm.cid IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL, "Y", "N") AS is_sent
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1374,11 +1325,10 @@ class ClaimOpController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND p.hipdata_code = "STP" 
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
-            AND (oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR stm.cid IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL)
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         // ── Batch load claim items for all VNs ──────────────────────────────
-        $allVns = array_merge(array_column($search, 'seq'), array_column($claim, 'seq'));
+        $allVns = array_column($visits, 'seq');
         $itemsByVn = [];
         if (!empty($allVns)) {
             $rawItems = DB::connection('hosxp')
@@ -1410,14 +1360,7 @@ class ClaimOpController extends Controller
 
         // ── Run ClaimValidator on each row ──────────────────────────────────
         $validator = new \App\Services\ClaimValidator();
-        foreach ($search as $row) {
-            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
-            $row->is_valid           = $result['is_valid'];
-            $row->endpoint_valid     = $result['endpoint_valid'];
-            $row->validation_errors  = $result['errors'];
-            $row->validation_warnings = $result['warnings'];
-        }
-        foreach ($claim as $row) {
+        foreach ($visits as $row) {
             $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
@@ -1425,7 +1368,7 @@ class ClaimOpController extends Controller
             $row->validation_warnings = $result['warnings'];
         }
 
-        return view('claim_op.stp_incup', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
+        return view('claim_op.stp_incup', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'visits'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function stp_outcup(Request $request)
@@ -1512,73 +1455,17 @@ class ClaimOpController extends Controller
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
-        $search = DB::connection('hosxp')->select('
+        $visits = DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
             v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.refer, 0) AS refer,
-            op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
-            fdh.status_message_th AS fdh_status,ec.status AS ec_status
-            FROM ovst o
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN er_regist e ON e.vn=o.vn 
-            LEFT JOIN er_pt_type et ON et.er_pt_type=e.er_pt_type AND et.ucae IN ("A","E")
-            LEFT JOIN pttype p ON p.pttype=vp.pttype
-            LEFT JOIN opdscreen os ON os.vn=o.vn
-            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
-            LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
-            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
-            LEFT JOIN (
-                SELECT op.vn, 
-                    SUM(CASE WHEN n.nhso_adp_code IN ("S1801","S1802") THEN op.sum_price ELSE 0 END) AS refer,
-                    GROUP_CONCAT(DISTINCT CASE WHEN n.nhso_adp_code IN ("WALKIN","UCEP24") THEN n.nhso_adp_code END) AS project,
-                    MAX(CASE WHEN li.kidney = "Y" THEN 1 ELSE 0 END) AS is_kidney
-                FROM opitemrece op
-                LEFT JOIN nondrugitems n ON n.icode=op.icode 
-                LEFT JOIN hrims.lookup_icode li ON li.icode=op.icode
-                WHERE op.vstdate BETWEEN ? AND ?
-                GROUP BY op.vn
-            ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
-            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
-                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
-            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
-            LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
-            LEFT JOIN ( 
-                SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
-                GROUP_CONCAT(DISTINCT repno) AS repno FROM hrims.stm_ucs
-                WHERE vstdate BETWEEN ? AND ?
-                GROUP BY cid, vstdate, LEFT(TIME(datetimeadm),5)
-            ) stm ON stm.cid = pt.cid 
-                AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
-            WHERE (o.an ="" OR o.an IS NULL) 
-            AND p.hipdata_code = "STP" 
-            AND o.vstdate BETWEEN ? AND ?
-            AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
-            AND COALESCE(op_data.is_kidney, 0) = 0 
-            AND oe.moph_finance_upload_status IS NULL 
-            AND rep.vn IS NULL 
-            AND stm.cid IS NULL AND fdh.seq IS NULL AND ec.hn IS NULL
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
-
-        $claim = DB::connection('hosxp')->select('
-            SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
-            IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
-            vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
-            CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.refer, 0) AS refer,
+            IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
             op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
             rep.rep_eclaim_detail_nhso AS rep_nhso,rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno,
-            fdh.status_message_th AS fdh_status,ec.status AS ec_status
+            fdh.status_message_th AS fdh_status,ec.status AS ec_status,
+            IF(oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR stm.cid IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL, "Y", "N") AS is_sent
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1624,11 +1511,10 @@ class ClaimOpController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
             AND COALESCE(op_data.is_kidney, 0) = 0 
-            AND (oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR stm.cid IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL)
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         // ── Batch load claim items for all VNs ──────────────────────────────
-        $allVns = array_merge(array_column($search, 'seq'), array_column($claim, 'seq'));
+        $allVns = array_column($visits, 'seq');
         $itemsByVn = [];
         if (!empty($allVns)) {
             $rawItems = DB::connection('hosxp')
@@ -1660,14 +1546,7 @@ class ClaimOpController extends Controller
 
         // ── Run ClaimValidator on each row ──────────────────────────────────
         $validator = new \App\Services\ClaimValidator();
-        foreach ($search as $row) {
-            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
-            $row->is_valid           = $result['is_valid'];
-            $row->endpoint_valid     = $result['endpoint_valid'];
-            $row->validation_errors  = $result['errors'];
-            $row->validation_warnings = $result['warnings'];
-        }
-        foreach ($claim as $row) {
+        foreach ($visits as $row) {
             $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
@@ -1675,7 +1554,7 @@ class ClaimOpController extends Controller
             $row->validation_warnings = $result['warnings'];
         }
 
-        return view('claim_op.stp_outcup', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
+        return view('claim_op.stp_outcup', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'visits'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ofc(Request $request)

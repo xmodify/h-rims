@@ -89,248 +89,131 @@
                     </form>
                 </div>
             </div>
-            <ul class="nav nav-tabs-modern" id="pills-tab" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="search-tab" data-bs-toggle="pill" data-bs-target="#search" type="button" role="tab">
-                        <i class="bi bi-clock-history me-1"></i> รอส่ง Claim
-                    </button>
-                </li>       
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="claim-tab" data-bs-toggle="pill" data-bs-target="#claim" type="button" role="tab">
-                        <i class="bi bi-send-check me-1"></i> ส่ง Claim แล้ว
-                    </button>
-                </li>
-            </ul>
         </div>
         <div class="card-body px-4 pb-4 pt-0">
-            <div class="tab-content" id="myTabContent">
-                <!-- Tab 1: Waiting for Claim -->
-                <div class="tab-pane fade show active" id="search" role="tabpanel">
-                    <div class="table-responsive">            
-                        <table id="t_search" class="table table-modern w-100">
-                            <thead>
-                                <tr>
-                                    <th class="text-center">#</th> 
-                                    <th class="text-center">สถานะ</th>
-                                    <th class="text-center">เบิก/ส่ง</th>
-                                    <th class="text-center">วัน-เวลา | Q</th>     
-                                    <th class="text-center">HN</th>    
-                                    <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
-                                    <th class="text-center">ER | Proj | AE</th>  
-                                    <th class="text-center">ค่ารถ Refer</th>
-                                    <th class="text-center">ค่ารักษา</th> 
-                                    <th class="text-center">ชำระเอง</th>
-                                    <th class="text-center text-primary">เรียกเก็บ</th> 
-                                </tr>
-                            </thead> 
-                            <tbody> 
-                                @php 
-                                    $count = 1; 
-                                    $sum_income = 0; 
-                                    $sum_rcpt_money = 0; 
-                                    $sum_refer = 0;
-                                    $sum_claim_price = 0; 
-                                @endphp
-                                @foreach($search as $row) 
-                                <tr>
-                                    <td class="text-center text-muted small">{{ $count }}</td>
-                                    <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
-                                        @if(!$row->is_valid)
-                                            <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด">
-                                                <i class="bi bi-eye-fill"></i>
-                                            </button>
-                                        @elseif(!empty($row->validation_warnings))
-                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด">
-                                                <i class="bi bi-eye-fill"></i>
-                                            </button>
-                                        @elseif($row->endpoint_valid)
-                                            <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด">
-                                                <i class="bi bi-eye-fill"></i>
-                                            </button>
+            <div class="table-responsive">            
+                <table id="t_visits" class="table table-modern w-100">
+                    <thead>
+                        <tr>
+                            <th class="text-center">#</th> 
+                            <th class="text-center">สถานะ</th>
+                            <th class="text-center">สถานะส่งเคลม</th>
+                            <th class="text-center">เบิก/ส่ง</th>
+                            <th class="text-center">วัน-เวลา | Q</th>     
+                            <th class="text-center">HN</th>    
+                            <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
+                            <th class="text-center">ER | Proj | AE</th>  
+                            <th class="text-center">ค่ารถ Refer</th>
+                            <th class="text-center">ค่ารักษา</th> 
+                            <th class="text-center">ชำระเอง</th>
+                            <th class="text-center text-primary">เรียกเก็บ</th> 
+                            <th class="text-center bg-primary-soft">ชดเชย</th> 
+                            <th class="text-center bg-primary-soft">REP No.</th>
+                        </tr>
+                    </thead> 
+                    <tbody> 
+                        @php 
+                            $count = 1; 
+                            $sum_income = 0; 
+                            $sum_rcpt_money = 0; 
+                            $sum_refer = 0;
+                            $sum_claim_price = 0; 
+                            $sum_receive_total = 0;
+                        @endphp
+                        @foreach($visits as $row) 
+                        <tr>
+                            <td class="text-center text-muted small">{{ $count }}</td>
+                            <td class="text-center" id="td-status-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
+                                @if(!$row->is_valid)
+                                    <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด">
+                                        <i class="bi bi-eye-fill"></i>
+                                    </button>
+                                @elseif(!empty($row->validation_warnings))
+                                    <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด">
+                                        <i class="bi bi-eye-fill"></i>
+                                    </button>
+                                @elseif($row->endpoint_valid)
+                                    <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด">
+                                        <i class="bi bi-eye-fill"></i>
+                                    </button>
+                                @else
+                                    <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด">
+                                        <i class="bi bi-eye-fill"></i>
+                                    </button>
+                                @endif
+                            </td>
+                            <td class="text-center" data-order="{{ $row->is_sent == 'Y' ? 1 : 0 }}">
+                                @if($row->is_sent == 'Y')
+                                    <span class="badge bg-success py-1 px-2"><i class="bi bi-send-check me-1"></i>ส่งเคลมแล้ว</span>
+                                @else
+                                    <span class="badge bg-warning text-dark py-1 px-2"><i class="bi bi-clock-history me-1"></i>รอส่งเคลม</span>
+                                @endif
+                            </td>
+                            <td class="text-start ps-3" data-order="{{ $row->confirm_and_locked == 'Y' ? '2' : '1' }}">
+                                <div class="d-flex flex-column align-items-start gap-1">
+                                    <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
+                                        <span class="text-muted">ประสงค์เบิก:</span>
+                                        @if($row->request_funds == 'Y')
+                                            <i class="bi bi-check-circle-fill text-success" title="ประสงค์เบิก Y"></i>
                                         @else
-                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด">
-                                                <i class="bi bi-eye-fill"></i>
-                                            </button>
+                                            <i class="bi bi-x-circle-fill text-danger" title="ไม่ประสงค์เบิก N"></i>
                                         @endif
-                                    </td>
-                                    <td class="text-start ps-3" data-order="{{ $row->confirm_and_locked == 'Y' ? '2' : '1' }}">
-                                        <div class="d-flex flex-column align-items-start gap-1">
-                                            <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
-                                                <span class="text-muted">ประสงค์เบิก:</span>
-                                                @if($row->request_funds == 'Y')
-                                                    <i class="bi bi-check-circle-fill text-success" title="ประสงค์เบิก Y"></i>
-                                                @else
-                                                    <i class="bi bi-x-circle-fill text-danger" title="ไม่ประสงค์เบิก N"></i>
-                                                @endif
-                                            </div>
-                                            <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
-                                                <span class="text-muted">พร้อมส่ง:</span>
-                                                @if($row->confirm_and_locked == 'Y')
-                                                    <i class="bi bi-check-circle-fill text-success" title="พร้อมส่ง Y"></i>
-                                                @else
-                                                    <i class="bi bi-x-circle-fill text-danger" title="ยังไม่พร้อมส่ง N"></i>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="text-start">
-                                        <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
-                                        <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
-                                    </td>            
-                                    <td class="text-center fw-bold text-primary small">{{$row->hn}}</td> 
-                                    <td class="text-start">
-                                        <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
-                                        <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">[{{$row->hospmain}}] {{$row->pttype}}</div>
-                                    </td> 
-                                    <td class="text-center small">
-                                        <div class="badge bg-light text-dark fw-normal">{{ $row->er }}</div>
-                                        <div class="text-muted" style="font-size: 0.65rem;">{{ $row->project }} | {{ $row->ae }}</div>
-                                    </td>
-                                    <td class="text-end small">{{ number_format($row->refer,2) }}</td>
-                                    <td class="text-end small">{{ number_format($row->income,2) }}</td>              
-                                    <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
-                                    <td class="text-end fw-bold text-primary">{{ number_format($row->claim_price,2) }}</td> 
-                                  </tr>
-                                @php 
-                                    $count++; 
-                                    $sum_income += $row->income; 
-                                    $sum_rcpt_money += $row->rcpt_money; 
-                                    $sum_refer += $row->refer;
-                                    $sum_claim_price += $row->claim_price; 
-                                @endphp
-                                @endforeach                 
-                            </tbody>
-                            <tfoot class="bg-light-soft">
-                                <tr>
-                                    <th colspan="7" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
-                                    <th class="text-end small">{{ number_format($sum_refer,2) }}</th>
-                                    <th class="text-end small">{{ number_format($sum_income,2) }}</th>
-                                    <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
-                                    <th class="text-end fw-bold text-primary">{{ number_format($sum_claim_price,2) }}</th>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>          
-                </div>  
-                <!-- Tab 2: Claims Sent -->
-                <div class="tab-pane fade" id="claim" role="tabpanel">
-                    <div class="table-responsive">            
-                        <table id="t_claim" class="table table-modern w-100">
-                            <thead>
-                                <tr>
-                                    <th class="text-center">#</th>  
-                                    <th class="text-center">สถานะ</th>
-                                    <th class="text-center">เบิก/ส่ง</th>
-                                    <th class="text-center">วัน-เวลา | Q</th>     
-                                    <th class="text-center">HN</th> 
-                                    <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
-                                    <th class="text-center">ER | Proj | AE</th>
-                                    <th class="text-center">ค่ารถ Refer</th>
-                                    <th class="text-center">ค่ารักษา</th>                                     
-                                    <th class="text-center">ชำระเอง</th>
-                                    <th class="text-center text-primary">เรียกเก็บ</th>
-                                    <th class="text-center bg-primary-soft">ชดเชย</th> 
-                                    <th class="text-center bg-primary-soft">REP No.</th>
-                                </tr>
-                            </thead> 
-                            <tbody> 
-                                @php 
-                                    $count = 1; 
-                                    $sum_income = 0; 
-                                    $sum_rcpt_money = 0; 
-                                    $sum_refer = 0;
-                                    $sum_claim_price = 0; 
-                                    $sum_receive_total = 0; 
-                                @endphp
-                                @foreach($claim as $row) 
-                                <tr>
-                                    <td class="text-center text-muted small">{{ $count }}</td>
-                                    <td class="text-center" id="td-status-claim-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
-                                        @if(!$row->is_valid)
-                                            <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด">
-                                                <i class="bi bi-eye-fill"></i>
-                                            </button>
-                                        @elseif(!empty($row->validation_warnings))
-                                             <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด">
-                                                 <i class="bi bi-eye-fill"></i>
-                                             </button>
-                                        @elseif($row->endpoint_valid)
-                                            <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด">
-                                                <i class="bi bi-eye-fill"></i>
-                                            </button>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
+                                        <span class="text-muted">พร้อมส่ง:</span>
+                                        @if($row->confirm_and_locked == 'Y')
+                                            <i class="bi bi-check-circle-fill text-success" title="พร้อมส่ง Y"></i>
                                         @else
-                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด">
-                                                <i class="bi bi-eye-fill"></i>
-                                            </button>
+                                            <i class="bi bi-x-circle-fill text-danger" title="ยังไม่พร้อมส่ง N"></i>
                                         @endif
-                                    </td>
-                                    <td class="text-start ps-3" data-order="{{ $row->confirm_and_locked == 'Y' ? '2' : '1' }}">
-                                        <div class="d-flex flex-column align-items-start gap-1">
-                                            <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
-                                                <span class="text-muted">ประสงค์เบิก:</span>
-                                                @if($row->request_funds == 'Y')
-                                                    <i class="bi bi-check-circle-fill text-success" title="ประสงค์เบิก Y"></i>
-                                                @else
-                                                    <i class="bi bi-x-circle-fill text-danger" title="ไม่ประสงค์เบิก N"></i>
-                                                @endif
-                                            </div>
-                                            <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
-                                                <span class="text-muted">พร้อมส่ง:</span>
-                                                @if($row->confirm_and_locked == 'Y')
-                                                    <i class="bi bi-check-circle-fill text-success" title="พร้อมส่ง Y"></i>
-                                                @else
-                                                    <i class="bi bi-x-circle-fill text-danger" title="ยังไม่พร้อมส่ง N"></i>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="text-start">
-                                        <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
-                                        <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
-                                    </td>            
-                                    <td class="text-center fw-bold text-primary small">{{$row->hn}}</td>
-                                    <td class="text-start">
-                                        <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
-                                        <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">[{{$row->hospmain}}] {{$row->pttype}}</div>
-                                    </td> 
-                                    <td class="text-center small">
-                                        <div class="badge bg-light text-dark fw-normal">{{ $row->er }}</div>
-                                        <div class="text-muted" style="font-size: 0.65rem;">{{ $row->project }} | {{ $row->ae }}</div>
-                                    </td>
-                                    <td class="text-end small">{{ number_format($row->refer,2) }}</td>
-                                    <td class="text-end small">{{ number_format($row->income,2) }}</td>              
-                                    <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>                                      
-                                    <td class="text-end small fw-bold text-primary">{{ number_format($row->income-$row->rcpt_money, 2) }}</td>
-                                    <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : ($row->receive_total < 0 ? 'text-danger' : 'text-dark') }}">
-                                        {{ number_format($row->receive_total,2) }}
-                                    </td>
-                                    <td class="text-center small text-muted">{{ $row->repno }}</td>
-                                </tr>
-                                @php 
-                                    $count++; 
-                                    $sum_income += $row->income; 
-                                    $sum_rcpt_money += $row->rcpt_money; 
-                                    $sum_refer += $row->refer;
-                                    $sum_claim_price += ($row->income-$row->rcpt_money); 
-                                    $sum_receive_total += $row->receive_total; 
-                                @endphp
-                                @endforeach                 
-                            </tbody>
-                            <tfoot class="bg-light-soft">
-                                <tr>
-                                    <th colspan="7" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
-                                    <th class="text-end small">{{ number_format($sum_refer,2) }}</th>
-                                    <th class="text-end small">{{ number_format($sum_income,2) }}</th>
-                                    <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
-                                    <th class="text-end small fw-bold text-primary">{{ number_format($sum_claim_price, 2) }}</th>
-                                    <th class="text-end small fw-bold {{ $sum_receive_total > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($sum_receive_total,2) }}</th>
-                                    <th></th>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>          
-                </div> 
-            </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-start">
+                                <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
+                                <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
+                            </td>            
+                            <td class="text-center fw-bold text-primary small">{{$row->hn}}</td> 
+                            <td class="text-start">
+                                <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
+                                <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">[{{$row->hospmain}}] {{$row->pttype}}</div>
+                            </td> 
+                            <td class="text-center small">
+                                <div class="badge bg-light text-dark fw-normal">{{ $row->er }}</div>
+                                <div class="text-muted" style="font-size: 0.65rem;">{{ $row->project }} | {{ $row->ae }}</div>
+                            </td>
+                            <td class="text-end small">{{ number_format($row->refer,2) }}</td>
+                            <td class="text-end small">{{ number_format($row->income,2) }}</td>              
+                            <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
+                            <td class="text-end fw-bold text-primary">{{ number_format($row->claim_price,2) }}</td> 
+                            <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : ($row->receive_total < 0 ? 'text-danger' : 'text-dark') }}">
+                                {{ $row->receive_total ? number_format($row->receive_total,2) : '-' }}
+                            </td>
+                            <td class="text-center small text-muted">{{ $row->repno ?? '-' }}</td>
+                        </tr>
+                        @php 
+                            $count++; 
+                            $sum_income += $row->income; 
+                            $sum_rcpt_money += $row->rcpt_money; 
+                            $sum_refer += $row->refer;
+                            $sum_claim_price += $row->claim_price; 
+                            $sum_receive_total += ($row->receive_total ?? 0);
+                        @endphp
+                        @endforeach                 
+                    </tbody>
+                    <tfoot class="bg-light-soft">
+                        <tr>
+                            <th colspan="8" class="text-end text-muted small px-3">รวมทั้งหมด:</th>
+                            <th class="text-end small">{{ number_format($sum_refer,2) }}</th>
+                            <th class="text-end small">{{ number_format($sum_income,2) }}</th>
+                            <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
+                            <th class="text-end fw-bold text-primary">{{ number_format($sum_claim_price,2) }}</th>
+                            <th class="text-end fw-bold text-success">{{ number_format($sum_receive_total,2) }}</th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>          
         </div>
     </div>
 
@@ -351,23 +234,13 @@
 
   async function checkFdhBulk(e) {
       e.preventDefault();
-      const searchItems = {!! json_encode(array_map(function($row) {
+      const items = {!! json_encode(array_map(function($row) {
           return [
               'hn' => $row->hn,
               'seq' => $row->seq,
               'an' => ''
           ];
-      }, $search)) !!};
-
-      const claimItems = {!! json_encode(array_map(function($row) {
-          return [
-              'hn' => $row->hn,
-              'seq' => $row->seq,
-              'an' => ''
-          ];
-      }, $claim)) !!};
-
-      const items = [...searchItems, ...claimItems];
+      }, $visits)) !!};
 
       if (!items || items.length === 0) {
           Swal.fire({ icon: 'warning', title: 'ไม่พบรายการผู้ป่วยในหน้านี้', confirmButtonColor: '#0dcaf0' });
@@ -375,7 +248,6 @@
       }
 
       await runFdhBulkCheck(items, "{{ csrf_token() }}", "{{ url('/api/fdh/check-chunk') }}", function() {
-          localStorage.setItem('active_tab', '#search');
           $('#form_indiv').submit();
       });
   }
@@ -557,13 +429,8 @@
                       timer: 1500,
                       showConfirmButton: false
                   }).then(() => {
-                      if (isSearchTab) {
-                          localStorage.setItem('active_tab', '#claim');
-                          fetchData();
-                          $('#form_indiv').submit();
-                      } else {
-                          showDetails(seq);
-                      }
+                      fetchData();
+                      $('#form_indiv').submit();
                   });
                   return;
               }
@@ -726,17 +593,11 @@ function showDetails(vn) {
 
             const dataOrder = !v.is_valid ? '0' : (isEndpointDone && !hasWarnings ? '2' : '1');
 
-            const searchRow = document.getElementById(`td-status-search-${vn}`);
-            const claimRow  = document.getElementById(`td-status-claim-${vn}`);
-            if (searchRow) {
-                searchRow.innerHTML = makeCellHtml(v.is_valid, isEndpointDone, hasWarnings);
-                searchRow.setAttribute('data-order', dataOrder);
-                $('#t_search').DataTable().cell(searchRow).invalidate().draw(false);
-            }
-            if (claimRow) {
-                claimRow.innerHTML = makeCellHtml(v.is_valid, isEndpointDone, hasWarnings);
-                claimRow.setAttribute('data-order', dataOrder);
-                $('#t_claim').DataTable().cell(claimRow).invalidate().draw(false);
+            const statusRow = document.getElementById(`td-status-${vn}`);
+            if (statusRow) {
+                statusRow.innerHTML = makeCellHtml(v.is_valid, isEndpointDone, hasWarnings);
+                statusRow.setAttribute('data-order', dataOrder);
+                $('#t_visits').DataTable().cell(statusRow).invalidate().draw(false);
             }
 
             let endpointBtn = '';
@@ -900,7 +761,7 @@ function showDetails(vn) {
           }
       });
 
-      var dt_search = $('#t_search').DataTable({
+      var dt_visits = $('#t_visits').DataTable({
         autoWidth: false,
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 
@@ -916,7 +777,7 @@ function showDetails(vn) {
               extend: 'excelHtml5',
               text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
               className: 'btn btn-success btn-sm',
-              title: 'รายชื่อผู้มารับบริการ STP-OP นอก CUP รอส่ง Claim วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+              title: 'รายชื่อผู้มารับบริการ STP-OP นอก CUP วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
             }
         ],
         language: {
@@ -929,50 +790,6 @@ function showDetails(vn) {
             }
         }
       });
-
-      var dt_claim = $('#t_claim').DataTable({
-        autoWidth: false,
-        dom: '<"row mb-3"' +
-                '<"col-md-6"l>' + 
-                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
-              '>' +
-              'rt' +
-              '<"row mt-3"' +
-                '<"col-md-6"i>' + 
-                '<"col-md-6"p>' + 
-              '>',
-        buttons: [
-            {
-              extend: 'excelHtml5',
-              text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
-              className: 'btn btn-success btn-sm',
-              title: 'รายชื่อผู้มารับบริการ STP-OP นอก CUP ส่ง Claim วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
-            }
-        ],
-        language: {
-            search: "ค้นหา:",
-            lengthMenu: "แสดง _MENU_ รายการ",
-            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-            paginate: {
-              previous: "ก่อนหน้า",
-              next: "ถัดไป"
-            }
-        }
-      });
-
-      $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function () {
-          dt_search.columns.adjust().draw(false);
-          dt_claim.columns.adjust().draw(false);
-      });
-
-      var activeTab = localStorage.getItem('active_tab');
-      if (activeTab) {
-          var tabEl = document.querySelector(`button[data-bs-target="${activeTab}"]`);
-          if (tabEl) {
-              tabEl.click();
-          }
-          localStorage.removeItem('active_tab');
-      }
     });
   </script>
 @endpush

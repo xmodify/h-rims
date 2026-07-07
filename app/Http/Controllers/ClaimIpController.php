@@ -520,66 +520,17 @@ class ClaimIpController extends Controller
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
-        // 3. Search Data (STP)
-        $search = DB::connection('hosxp')->select('
+        // 3. Visits Data (STP Combined)
+        $visits = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,pt.cid,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
                 a.age_y,p.`name` AS pttype,ip.hospmain,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
                 CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,i.data_ok ,
-                fdh.status_message_th AS fdh_status,ec.status AS ec_status
-            FROM ipt i 
-            LEFT JOIN patient pt ON pt.hn=i.hn
-            LEFT JOIN ipt_pttype ip ON ip.an=i.an
-            LEFT JOIN pttype p ON p.pttype=ip.pttype
-            LEFT JOIN ward w ON w.ward=i.ward
-            LEFT JOIN an_stat a ON a.an=i.an
-            LEFT JOIN (
-                SELECT o.an,o.pttype,SUM(o.sum_price) AS income
-                FROM opitemrece o
-                INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
-                GROUP BY o.an, o.pttype
-            ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
-            LEFT JOIN ipt_accident ia ON ia.an=i.an
-            LEFT JOIN referout r ON r.vn=i.an
-            LEFT JOIN iptdiag id ON id.an=i.an AND id.diagtype = 1
-            LEFT JOIN iptoprt idx ON idx.an=i.an
-            LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
-            LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
-            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
-            LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
-            LEFT JOIN (
-                SELECT an FROM hrims.stm_ucs 
-                WHERE an IN (SELECT an FROM ipt WHERE dchdate BETWEEN ? AND ? AND confirm_discharge = "Y")
-                GROUP BY an
-            ) stm ON stm.an = i.an
-            WHERE i.confirm_discharge = "Y" 
-            AND i.dchdate BETWEEN ? AND ?
-            AND p.hipdata_code = "STP" 
-            AND i.data_exp_date IS NULL
-            AND fdh.an IS NULL
-            AND ec.an IS NULL
-            AND stm.an IS NULL
-            GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
-
-        // 4. Claimed Data (STP)
-        $claim = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,pt.cid,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
-                a.age_y,p.`name` AS pttype,ip.hospmain,a.diag_text_list,id.icd10,idx.icd9,
-                IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
-                IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
                 rep.rep_eclaim_detail_error_code AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
-                fdh.status_message_th AS fdh_status,ec.status AS ec_status
+                fdh.status_message_th AS fdh_status,ec.status AS ec_status,
+                IF(i.data_exp_date IS NOT NULL OR fdh.an IS NOT NULL OR ec.an IS NOT NULL OR stm.an IS NOT NULL, "Y", "N") AS is_sent
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
@@ -618,10 +569,9 @@ class ClaimIpController extends Controller
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code = "STP" 
-            AND (i.data_exp_date IS NOT NULL OR fdh.an IS NOT NULL OR ec.an IS NOT NULL OR stm.an IS NOT NULL) 
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_ip.stp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
+        return view('claim_ip.stp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'visits'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ofc(Request $request)

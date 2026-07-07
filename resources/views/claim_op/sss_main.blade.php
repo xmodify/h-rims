@@ -194,7 +194,7 @@
                     </tbody>
                     <tfoot class="bg-light-soft">
                         <tr>
-                            <th colspan="10" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                            <th colspan="{{ $is_ssop_licensed ? 10 : 9 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                             <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                             <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                             <th class="text-end fw-bold text-primary">{{ number_format($sum_claim_price,2) }}</th>

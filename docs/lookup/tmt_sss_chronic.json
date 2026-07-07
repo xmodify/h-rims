@@ -1,0 +1,26 @@
+{
+  "description": "Approved TMT codes for Social Security (SSS) Chronic Disease Medications",
+  "comment": "Includes GP (Generic Product) codes, GPU (Generic Product Unit) codes, and TPU (Trade Product Unit) codes.",
+  "gp_codes": [
+    "210448",
+    "210447",
+    "210356",
+    "210355",
+    "375005",
+    "375004"
+  ],
+  "gpu_codes": [
+    "200119",
+    "200118",
+    "200057",
+    "200056",
+    "380293",
+    "380292"
+  ],
+  "tpu_codes": [
+    "108562",
+    "226262",
+    "374764",
+    "1006051"
+  ]
+}

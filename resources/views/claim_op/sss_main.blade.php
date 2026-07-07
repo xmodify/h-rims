@@ -93,11 +93,13 @@
                     <thead>
                         <tr>
                             <th class="text-center">#</th>                      
+                            <th class="text-center">สถานะ</th>                      
                             <th class="text-center">วัน-เวลา | Q</th>     
                             <th class="text-center">HN</th>    
                             <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
                             <th class="text-center" width="15%">อาการสำคัญ</th>
                             <th class="text-center" width="8%">โรคเรื้อรัง</th>
+                            <th class="text-center" width="8%">ยาโรคเรื้อรัง</th>
                             <th class="text-end px-3" width="6%">PDX</th>
                             <th class="text-start px-3" width="10%">SDX | ICD9</th>
                             <th class="text-center">ค่ารักษา</th> 
@@ -115,6 +117,21 @@
                         @foreach($claim as $row) 
                         <tr>
                             <td class="text-center text-muted small">{{ $count }}</td>
+                            <td class="text-center" data-status="{{ $row->chronic_status }}" data-order="{{ $row->chronic_status === 'red' ? '2' : ($row->chronic_status === 'green' ? '1' : '0') }}">
+                                @if($row->chronic_status === 'green')
+                                    <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->vn }}')" title="ผ่านเกณฑ์: มีรหัสโรคและยาเรื้อรังคู่กัน">
+                                        <i class="bi bi-eye-fill"></i>
+                                    </button>
+                                @elseif($row->chronic_status === 'red')
+                                    <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->vn }}')" title="ไม่สอดคล้อง: ขาดรหัสโรคหรือยาโรคเรื้อรัง">
+                                        <i class="bi bi-eye-fill"></i>
+                                    </button>
+                                @else
+                                    <button class="btn btn-sm btn-outline-secondary px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->vn }}')" title="ดูรายละเอียด">
+                                        <i class="bi bi-eye-fill"></i>
+                                    </button>
+                                @endif
+                            </td>
                             <td class="text-start">
                                 <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
                                 <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
@@ -128,6 +145,15 @@
                             <td class="text-center">
                                 @if($row->is_ncd)
                                     <span class="d-none">Y</span><i class="bi bi-check-circle-fill text-success" title="เป็นโรคเรื้อรัง"></i>
+                                @else
+                                    <span class="d-none"></span>
+                                @endif
+                            </td>
+                            <td class="text-center">
+                                @if($row->has_chronic_drug)
+                                    <span class="d-none">Y</span><i class="bi bi-check-circle-fill text-success" title="ได้รับยาโรคเรื้อรัง"></i>
+                                @else
+                                    <span class="d-none"></span>
                                 @endif
                             </td>
                             <td class="text-end fw-bold text-dark small px-3">{{ $row->pdx }}</td>
@@ -149,7 +175,7 @@
                     </tbody>
                     <tfoot class="bg-light-soft">
                         <tr>
-                            <th colspan="8" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                            <th colspan="10" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                             <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                             <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                             <th class="text-end fw-bold text-primary">{{ number_format($sum_claim_price,2) }}</th>
@@ -157,6 +183,23 @@
                     </tfoot>
                 </table>
             </div>          
+        </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-primary text-white py-3">
+                    <h6 class="modal-title fw-bold mb-0">
+                        <i class="bi bi-info-circle-fill me-2"></i>รายละเอียดการรับบริการและตรวจสอบสิทธิ์
+                    </h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4" id="detailsModalBody">
+                    <!-- Dynamic Content -->
+                </div>
+            </div>
         </div>
     </div>
 
@@ -225,7 +268,27 @@
           }
       });
 
+      $.fn.dataTable.ext.order['dom-status'] = function (settings, col) {
+          return this.api().column(col, {order:'index'}).nodes().map(function (td, i) {
+              var status = $(td).attr('data-status');
+              var sort = settings.aaSorting[0];
+              var dir = (sort && sort[0] === col) ? sort[1] : 'desc';
+              
+              if (status === 'red') {
+                  return dir === 'desc' ? 2 : -1;
+              } else if (status === 'green') {
+                  return dir === 'desc' ? 1 : -2;
+              } else {
+                  return 0;
+              }
+          });
+      };
+
       $('#t_claim').DataTable({
+        order: [[1, 'desc']],
+        columnDefs: [
+            { targets: 1, orderDataType: 'dom-status', orderSequence: ['desc', 'asc'] }
+        ],
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 
                 '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
@@ -242,13 +305,15 @@
               className: 'btn btn-success btn-sm shadow-sm',
               title: 'รายชื่อผู้มารับบริการ SS-OP ประกันสังคม เครือข่าย วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}',
               exportOptions: {
-                  columns: ':visible',
+                  columns: [0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
                   format: {
                       body: function (data, row, column, node) {
-                          if (column === 5) {
-                              return $(node).find('.d-none').text().trim() === 'Y' ? 'Y' : '';
+                          var $cell = $(node);
+                          if (column === 5 || column === 6) {
+                              return $cell.find('.d-none').text().trim() === 'Y' ? 'Y' : '';
                           }
-                          return data;
+                          var cleanText = $cell.text().replace(/\s+/g, ' ').trim();
+                          return cleanText;
                       }
                   }
               }
@@ -265,6 +330,122 @@
         }
       });
     });
+
+    function showDetails(vn) {
+        const body = document.getElementById('detailsModalBody');
+        body.innerHTML = '<div class="text-center text-muted py-4"><i class="bi bi-arrow-repeat spin me-2"></i>กำลังโหลด...</div>';
+        $('#detailsModal').modal('show');
+
+        $.get("{{ url('claim_op/sss_detail') }}", { vn: vn })
+            .done(function(data) {
+                const visit = data.visit;
+                const drugs = data.drugs;
+                const diagnoses = data.diagnoses;
+                
+                let pdxBadge = visit.is_pdx_ncd 
+                    ? '<span class="badge bg-success ms-2"><i class="bi bi-check-circle-fill"></i> เป็นโรคเรื้อรัง (NCD)</span>' 
+                    : '<span class="badge bg-secondary ms-2"><i class="bi bi-info-circle"></i> ไม่ใช่โรคเรื้อรัง</span>';
+
+                let hasChronicDrug = drugs.some(d => d.is_chronic);
+                let drugBadge = hasChronicDrug
+                    ? '<span class="badge bg-success ms-2"><i class="bi bi-check-circle-fill"></i> ได้รับยาโรคเรื้อรัง</span>'
+                    : '<span class="badge bg-danger ms-2"><i class="bi bi-exclamation-triangle-fill"></i> ไม่พบยาโรคเรื้อรัง</span>';
+
+                let validationStatusHtml = '';
+                if (visit.is_ncd && hasChronicDrug) {
+                    validationStatusHtml = '<div class="alert alert-success d-flex align-items-center mb-3"><i class="bi bi-check-circle-fill me-2 fs-5"></i> ข้อมูลสอดคล้อง (มีรหัสวินิจฉัยและยาโรคเรื้อรังครบถ้วน)</div>';
+                } else if (visit.is_ncd || hasChronicDrug) {
+                    validationStatusHtml = '<div class="alert alert-danger d-flex align-items-center mb-3"><i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i> ข้อมูลไม่สอดคล้อง (กรุณาตรวจสอบการบันทึกรหัสโรคและการจ่ายยา)</div>';
+                } else {
+                    validationStatusHtml = '<div class="alert alert-secondary d-flex align-items-center mb-3"><i class="bi bi-info-circle-fill me-2 fs-5"></i> ทั่วไป (ไม่เข้าเกณฑ์โรคเรื้อรัง ปกส.)</div>';
+                }
+
+                let pdxList = [];
+                let sdxList = [];
+                let icd9List = [];
+
+                diagnoses.forEach(d => {
+                    let badge = d.is_chronic 
+                        ? '<span class="badge bg-success ms-1 small"><i class="bi bi-check-circle-fill me-1"></i>โรคเรื้อรัง</span>' 
+                        : '';
+                    if (d.diagtype == '1') {
+                        pdxList.push(`<strong class="text-danger">${d.icd10}</strong>${badge}`);
+                    } else if (d.diagtype == '2') {
+                        icd9List.push(`<span class="text-dark">${d.icd10}</span>`);
+                    } else {
+                        sdxList.push(`<span class="text-dark fw-bold">${d.icd10}</span>${badge}`);
+                    }
+                });
+
+                let pdxHtml = pdxList.join(', ') || '-';
+                let sdxHtml = sdxList.join(', ') || '-';
+                let icd9Html = icd9List.join(', ') || '-';
+
+                let html = `
+                    ${validationStatusHtml}
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-primary mb-2"><i class="bi bi-person-fill me-1"></i> ข้อมูลผู้ป่วย</h6>
+                            <table class="table table-sm table-bordered">
+                                <tr><th class="bg-light" width="30%">HN</th><td>${visit.hn}</td></tr>
+                                <tr><th class="bg-light">ชื่อ-สกุล</th><td>${visit.ptname}</td></tr>
+                                <tr><th class="bg-light">เลขบัตร</th><td>${visit.cid}</td></tr>
+                                <tr><th class="bg-light">สิทธิการรักษา</th><td>${visit.pttype_name}</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold text-primary mb-2"><i class="bi bi-clipboard-pulse me-1"></i> ข้อมูลบริการ</h6>
+                            <table class="table table-sm table-bordered">
+                                <tr><th class="bg-light" width="30%">วันที่รับบริการ</th><td>${visit.vstdate} ${visit.vsttime}</td></tr>
+                                <tr><th class="bg-light">อาการสำคัญ</th><td>${visit.cc || '-'}</td></tr>
+                                <tr><th class="bg-light">PDX</th><td>${pdxHtml}</td></tr>
+                                <tr><th class="bg-light">SDX</th><td>${sdxHtml}</td></tr>
+                                <tr><th class="bg-light">ICD-9</th><td>${icd9Html}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h6 class="fw-bold text-primary mb-2 d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-capsule-therapeutic me-1"></i> รายการยาที่ได้รับและตรวจสอบ TMT</span>
+                            ${drugBadge}
+                        </h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ชื่อยา</th>
+                                        <th class="text-center" width="10%">จำนวน</th>
+                                        <th class="text-end" width="15%">ราคา</th>
+                                        <th class="text-center" width="20%">รหัส TMT</th>
+                                        <th class="text-center" width="15%">สถานะ ปกส.</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${drugs.map(d => `
+                                        <tr class="${d.is_chronic ? 'table-success-soft' : ''}">
+                                            <td>${d.name}</td>
+                                            <td class="text-center">${d.qty}</td>
+                                            <td class="text-end">${parseFloat(d.sum_price).toFixed(2)}</td>
+                                            <td class="text-center"><code>${d.tmtid || '-'}</code></td>
+                                            <td class="text-center">
+                                                ${d.is_chronic 
+                                                    ? '<span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i> ยาโรคเรื้อรัง</span>' 
+                                                    : '<span class="text-muted small">-</span>'}
+                                            </td>
+                                        </tr>
+                                    `).join('') || '<tr><td colspan="5" class="text-muted text-center py-3">ไม่พบรายการจ่ายยา</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                body.innerHTML = html;
+            })
+            .fail(function(xhr) {
+                body.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>เกิดข้อผิดพลาด: ${xhr.responseJSON?.error || 'ไม่สามารถโหลดข้อมูลได้'}</div>`;
+            });
+    }
   </script>
 @endpush
 

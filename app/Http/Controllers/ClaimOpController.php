@@ -4296,7 +4296,7 @@ class ClaimOpController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $claim = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
+            SELECT o.vn,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,
             MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
@@ -4333,29 +4333,223 @@ class ClaimOpController extends Controller
         $prefixes = $ncd_data['prefixes'] ?? [];
         $exclusions = $ncd_data['exclusions'] ?? [];
 
+        $tmt_json_path = base_path('docs/lookup/tmt_sss_chronic.json');
+        $gp_codes = [];
+        $gpu_codes = [];
+        $tpu_codes = [];
+        if (file_exists($tmt_json_path)) {
+            $tmt_data = json_decode(file_get_contents($tmt_json_path), true);
+            $gp_codes = $tmt_data['gp_codes'] ?? [];
+            $gpu_codes = $tmt_data['gpu_codes'] ?? [];
+            $tpu_codes = $tmt_data['tpu_codes'] ?? [];
+        }
+
+        $vns = array_column($claim, 'vn');
+        $drugs_by_vn = [];
+        if (!empty($vns)) {
+            $placeholders = implode(',', array_fill(0, count($vns), '?'));
+            $drugs = DB::connection('hosxp')->select("
+                SELECT op.vn, op.icode, sd.name, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
+                       gt.gpu_code, gg.gp_code
+                FROM opitemrece op
+                INNER JOIN s_drugitems sd ON sd.icode = op.icode
+                LEFT JOIN hrims.drugcat_chi nd ON nd.hospdrugcode = op.icode 
+                    AND nd.date_approved = (
+                        SELECT MAX(nd1.date_approved) 
+                        FROM hrims.drugcat_chi nd1 
+                        WHERE nd.hospdrugcode = nd1.hospdrugcode 
+                        AND nd1.updateflag IN ('A','U','E')
+                    )
+                LEFT JOIN tmt_gpu_to_tpu gt ON gt.tpu_code = COALESCE(nd.tmtid, sd.sks_drug_code)
+                LEFT JOIN tmt_gp_to_gpu gg ON gg.gpu_code = gt.gpu_code
+                WHERE op.vn IN ($placeholders)
+                AND op.icode LIKE '1%'
+            ", $vns);
+            foreach ($drugs as $d) {
+                $drugs_by_vn[$d->vn][] = $d;
+            }
+        }
+
         foreach ($claim as $row) {
-            $pdx = strtoupper(str_replace('.', '', trim($row->pdx ?? '')));
+            $diags = [];
+            if (!empty($row->pdx)) {
+                $diags[] = strtoupper(str_replace('.', '', trim($row->pdx)));
+            }
+            if (!empty($row->sdx)) {
+                $sdx_list = explode(',', $row->sdx);
+                foreach ($sdx_list as $s) {
+                    $s_clean = strtoupper(str_replace('.', '', trim($s)));
+                    if ($s_clean !== '') {
+                        $diags[] = $s_clean;
+                    }
+                }
+            }
+
             $is_ncd = false;
-            if ($pdx !== '') {
+            foreach ($diags as $diag) {
                 $is_excluded = false;
                 foreach ($exclusions as $ex) {
-                    if (str_starts_with($pdx, $ex)) {
+                    if (str_starts_with($diag, $ex)) {
                         $is_excluded = true;
                         break;
                     }
                 }
                 if (!$is_excluded) {
                     foreach ($prefixes as $pref => $val) {
-                        if (str_starts_with($pdx, $pref)) {
+                        if (str_starts_with($diag, $pref)) {
                             $is_ncd = true;
-                            break;
+                            break 2;
                         }
                     }
                 }
             }
             $row->is_ncd = $is_ncd;
+
+            $visit_drugs = $drugs_by_vn[$row->vn] ?? [];
+            $has_chronic_drug = false;
+            foreach ($visit_drugs as $drug) {
+                $is_gp = !empty($drug->gp_code) && in_array($drug->gp_code, $gp_codes);
+                $is_gpu = !empty($drug->gpu_code) && in_array($drug->gpu_code, $gpu_codes);
+                $is_tpu = !empty($drug->tmtid) && in_array($drug->tmtid, $tpu_codes);
+                if ($is_gp || $is_gpu || $is_tpu) {
+                    $has_chronic_drug = true;
+                    break;
+                }
+            }
+            $row->has_chronic_drug = $has_chronic_drug;
+
+            if ($row->is_ncd && $row->has_chronic_drug) {
+                $row->chronic_status = 'green';
+            } elseif ($row->is_ncd || $row->has_chronic_drug) {
+                $row->chronic_status = 'red';
+            } else {
+                $row->chronic_status = 'grey';
+            }
         }
 
         return view('claim_op.sss_main', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'claim'));
+    }
+
+    public function sss_detail(Request $request)
+    {
+        $vn = $request->vn;
+        if (empty($vn)) {
+            return response()->json(['error' => 'Invalid VN'], 400);
+        }
+
+        $visit = DB::connection('hosxp')->selectOne('
+            SELECT o.vstdate, o.vsttime, pt.hn, CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, pt.cid,
+                   p.name AS pttype_name, os.cc, v.pdx, v.income, IFNULL(rc.rcpt_money, 0) AS rcpt_money
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN opdscreen os ON os.vn = o.vn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
+            WHERE o.vn = ?
+        ', [$vn]);
+
+        if (!$visit) {
+            return response()->json(['error' => 'Visit not found'], 404);
+        }
+
+        $diagnoses = DB::connection('hosxp')->select('
+            SELECT icd10, diagtype 
+            FROM ovstdiag 
+            WHERE vn = ?
+        ', [$vn]);
+
+        $drugs = DB::connection('hosxp')->select("
+            SELECT op.icode, sd.name, op.qty, op.sum_price, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
+                   gt.gpu_code, gg.gp_code
+            FROM opitemrece op
+            INNER JOIN s_drugitems sd ON sd.icode = op.icode
+            LEFT JOIN hrims.drugcat_chi nd ON nd.hospdrugcode = op.icode 
+                AND nd.date_approved = (
+                    SELECT MAX(nd1.date_approved) 
+                    FROM hrims.drugcat_chi nd1 
+                    WHERE nd.hospdrugcode = nd1.hospdrugcode 
+                    AND nd1.updateflag IN ('A','U','E')
+                )
+            LEFT JOIN tmt_gpu_to_tpu gt ON gt.tpu_code = COALESCE(nd.tmtid, sd.sks_drug_code)
+            LEFT JOIN tmt_gp_to_gpu gg ON gg.gpu_code = gt.gpu_code
+            WHERE op.vn = ?
+            AND op.icode LIKE '1%'
+        ", [$vn]);
+
+        $tmt_json_path = base_path('docs/lookup/tmt_sss_chronic.json');
+        $gp_codes = [];
+        $gpu_codes = [];
+        $tpu_codes = [];
+        if (file_exists($tmt_json_path)) {
+            $tmt_data = json_decode(file_get_contents($tmt_json_path), true);
+            $gp_codes = $tmt_data['gp_codes'] ?? [];
+            $gpu_codes = $tmt_data['gpu_codes'] ?? [];
+            $tpu_codes = $tmt_data['tpu_codes'] ?? [];
+        }
+
+        $ncd_json_path = base_path('docs/lookup/icd10_sss_ncd.json');
+        $ncd_data = [];
+        if (file_exists($ncd_json_path)) {
+            $ncd_data = json_decode(file_get_contents($ncd_json_path), true);
+        }
+        $prefixes = $ncd_data['prefixes'] ?? [];
+        $exclusions = $ncd_data['exclusions'] ?? [];
+
+        $is_ncd = false;
+        $is_pdx_ncd = false;
+        foreach ($diagnoses as $d) {
+            $is_ncd_item = false;
+            if ($d->diagtype != '2') {
+                $diag = strtoupper(str_replace('.', '', trim($d->icd10 ?? '')));
+                if ($diag !== '') {
+                    $is_excluded = false;
+                    foreach ($exclusions as $ex) {
+                        if (str_starts_with($diag, $ex)) {
+                            $is_excluded = true;
+                            break;
+                        }
+                    }
+                    if (!$is_excluded) {
+                        foreach ($prefixes as $pref => $val) {
+                            if (str_starts_with($diag, $pref)) {
+                                $is_ncd_item = true;
+                                $is_ncd = true;
+                                if ($d->diagtype == '1') {
+                                    $is_pdx_ncd = true;
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            $d->is_chronic = $is_ncd_item;
+        }
+        $visit->is_ncd = $is_ncd;
+        $visit->is_pdx_ncd = $is_pdx_ncd;
+
+        foreach ($drugs as $drug) {
+            $is_gp = !empty($drug->gp_code) && in_array($drug->gp_code, $gp_codes);
+            $is_gpu = !empty($drug->gpu_code) && in_array($drug->gpu_code, $gpu_codes);
+            $is_tpu = !empty($drug->tmtid) && in_array($drug->tmtid, $tpu_codes);
+            $drug->is_chronic = $is_gp || $is_gpu || $is_tpu;
+        }
+
+        return response()->json([
+            'visit' => $visit,
+            'diagnoses' => $diagnoses,
+            'drugs' => $drugs,
+            'gp_codes' => $gp_codes,
+            'gpu_codes' => $gpu_codes,
+            'tpu_codes' => $tpu_codes
+        ]);
     }
 }

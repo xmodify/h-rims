@@ -4304,7 +4304,8 @@ class ClaimOpController extends Controller
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
             v.income, v.uc_money, IFNULL(rc.rcpt_money, 0) AS rcpt_money, v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,
             d.receive AS receive_total,
-            v.debt_id_list, osb.invno AS sss_invno, osb.billno AS sss_billno
+            v.debt_id_list, osb.invno AS sss_invno, osb.billno AS sss_billno,
+            IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -4321,6 +4322,7 @@ class ClaimOpController extends Controller
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
             LEFT JOIN hrims.debtor_1102050101_301 d ON d.vn=o.vn
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             WHERE p.hipdata_code = "SSS"
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
             AND p.pttype NOT IN (' . $pttype_sss_fund . ')
@@ -4500,15 +4502,34 @@ class ClaimOpController extends Controller
                 }
             }
             
-            // Set REP Error and STM paid
-            $row->rep_error = $rep_errors[$row->vn] ?? null;
+            // Set REP Error, Warning and STM paid
+            $raw_rep = $rep_errors[$row->vn] ?? null;
+            $row->rep_error = null;
+            $row->rep_warning = null;
+            if ($raw_rep) {
+                $codes = array_filter(array_map('trim', explode(',', $raw_rep)));
+                $err_codes = [];
+                $warn_codes = [];
+                foreach ($codes as $c) {
+                    if (str_starts_with(strtoupper($c), 'W')) {
+                        $warn_codes[] = $c;
+                    } else {
+                        $err_codes[] = $c;
+                    }
+                }
+                $row->rep_error = !empty($err_codes) ? implode(', ', $err_codes) : null;
+                $row->rep_warning = !empty($warn_codes) ? implode(', ', $warn_codes) : null;
+            }
             $row->stm_pay = $stm_pays[$row->vn] ?? null;
 
-            // Determine eye status color based solely on HOSxP pre-export validation checks
-            if (!empty($invoice_no) && $invoice_no !== '0' && $invoice_no !== '0.00' && $has_pdx && $has_claim_money && $has_valid_cid && $has_valid_hmain && $has_valid_dates) {
-                $row->claim_status = 'green';
-            } else {
+            // Determine eye status color: red (errors), yellow (warnings/not closed), green (all good & closed)
+            $is_valid = (!empty($invoice_no) && $invoice_no !== '0' && $invoice_no !== '0.00' && $has_pdx && $has_claim_money && $has_valid_cid && $has_valid_hmain && $has_valid_dates);
+            if (!$is_valid || !empty($row->rep_error)) {
                 $row->claim_status = 'red';
+            } elseif ($row->endpoint !== 'Y' || !empty($row->rep_warning)) {
+                $row->claim_status = 'yellow';
+            } else {
+                $row->claim_status = 'green';
             }
 
         }
@@ -4524,10 +4545,11 @@ class ClaimOpController extends Controller
         }
 
         $visit = DB::connection('hosxp')->selectOne('
-            SELECT o.vstdate, o.vsttime, pt.hn, CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, pt.cid,
-                   p.name AS pttype_name, os.cc, v.pdx, v.income, v.uc_money, IFNULL(rc.rcpt_money, 0) AS rcpt_money,
-                   v.debt_id_list, osb.invno AS sss_invno, osb.billno AS sss_billno,
-                   vp.begin_date, vp.expire_date, vp.hospmain, vp.hospsub, vp.pttypeno
+            SELECT o.vstdate, o.vsttime, pt.hn, pt.sex, v.age_y, CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, pt.cid,
+                   p.name AS pttype_name, p.hipdata_code, os.cc, v.pdx, v.income, v.uc_money, IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+                   rc.rcpno_list, v.debt_id_list, osb.invno AS sss_invno, osb.billno AS sss_billno,
+                   vp.begin_date, vp.expire_date, vp.hospmain, vp.hospsub, vp.pttypeno,
+                   IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
@@ -4536,12 +4558,13 @@ class ClaimOpController extends Controller
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN ovst_sss_billtran osb ON osb.vn = o.vn
             LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money, GROUP_CONCAT(r.rcpno) AS rcpno_list
                 FROM rcpt_print r
                 LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             WHERE o.vn = ?
         ', [$vn]);
 
@@ -4559,11 +4582,16 @@ class ClaimOpController extends Controller
             SELECT op.icode, sd.name, op.qty, op.sum_price, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
                    gt.gpu_code, gg.gp_code, op.drugusage,
                    CONCAT(IFNULL(du.name1,''), ' ', IFNULL(du.name2,''), ' ', IFNULL(du.name3,'')) AS drugusage_text,
-                   sd.sks_product_category_id, di.capacity_name, di.capacity_qty
+                   sd.sks_product_category_id, di.capacity_name, di.capacity_qty,
+                   op.paidst AS paids, pst.name AS paids_name,
+                   op.pttype, ptt.name AS pttype_name, ni.nhso_adp_code
             FROM opitemrece op
             INNER JOIN s_drugitems sd ON sd.icode = op.icode
             LEFT JOIN drugitems di ON di.icode = op.icode
             LEFT JOIN drugusage du ON du.drugusage = op.drugusage
+            LEFT JOIN nondrugitems ni ON ni.icode = op.icode
+            LEFT JOIN paidst pst ON pst.paidst = op.paidst
+            LEFT JOIN pttype ptt ON ptt.pttype = op.pttype
             LEFT JOIN hrims.drugcat_chi nd ON nd.hospdrugcode = op.icode 
                 AND nd.date_approved = (
                     SELECT MAX(nd1.date_approved) 

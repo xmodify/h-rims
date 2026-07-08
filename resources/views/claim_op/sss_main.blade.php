@@ -1565,16 +1565,7 @@
                     errors.push("ยอดเงินเรียกเก็บ (uc_money) น้อยกว่าหรือเท่ากับ 0 บาท (ไม่มีค่าใช้จ่ายที่จะเรียกเก็บ)");
                 }
 
-                // BILLDISP checks (Missing TMT codes)
-                let missing_tmt = false;
-                drugs.forEach(function(d) {
-                    if (!d.tmtid) {
-                        missing_tmt = true;
-                    }
-                });
-                if (missing_tmt) {
-                    errors.push("มียาบางรายการไม่มีรหัสมาตรฐาน TMT");
-                }
+
 
                 // Status Badge
                 const isValid = errors.length === 0;

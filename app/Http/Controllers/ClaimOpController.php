@@ -4492,8 +4492,7 @@ class ClaimOpController extends Controller
             // Check drug errors
             $has_drug_error = false;
             foreach ($visit_drugs as $drug) {
-                if (empty($drug->tmtid) || trim($drug->tmtid) === '-' ||
-                    empty($drug->capacity_name) || empty($drug->capacity_qty) || floatval($drug->capacity_qty) <= 0 ||
+                if (empty($drug->capacity_name) || empty($drug->capacity_qty) || floatval($drug->capacity_qty) <= 0 ||
                     empty($drug->sks_product_category_id) || intval($drug->sks_product_category_id) <= 0 ||
                     empty($drug->drugusage) || empty($drug->qty) || floatval($drug->qty) <= 0) {
                     $has_drug_error = true;

@@ -4774,62 +4774,7 @@ class ClaimOpController extends Controller
             }
         }
 
-        // 4. Audit R-codes for Drugs
-        foreach ($drugs as $drug) {
-            if (!str_starts_with($drug->icode, '1')) {
-                continue;
-            }
-            // Audit R51: Missing TMT code
-            if (empty($drug->tmtid) || trim($drug->tmtid) === '-') {
-                $pre_audits[] = [
-                    'code' => 'R51',
-                    'title' => 'ไม่พบรหัสยามาตรฐานไทย (TMT)',
-                    'desc' => 'ยา <b>' . $drug->name . '</b> (icode: ' . $drug->icode . ') ไม่มีรหัส TMT บันทึกไว้ใน Drug Catalog ของโรงพยาบาล',
-                    'status' => 'danger'
-                ];
-            }
-            
-            // Audit R22: Missing capacity info (pack size)
-            if (empty($drug->capacity_name) || empty($drug->capacity_qty) || floatval($drug->capacity_qty) <= 0) {
-                $pre_audits[] = [
-                    'code' => 'R22',
-                    'title' => 'ขาดข้อมูลขนาดบรรจุ (Missing Pack Size)',
-                    'desc' => 'ยา <b>' . $drug->name . '</b> (icode: ' . $drug->icode . ') ไม่ได้ระบุขนาดบรรจุ (capacity_name หรือ capacity_qty เป็นค่าว่างหรือ 0) ในทะเบียนยา HOSxP',
-                    'status' => 'danger'
-                ];
-            }
-
-            // Audit R17/R59: Missing Product Category (PrdCat)
-            if (empty($drug->sks_product_category_id) || intval($drug->sks_product_category_id) <= 0) {
-                $pre_audits[] = [
-                    'code' => 'R59',
-                    'title' => 'ไม่กำหนดกลุ่มประเภทผลิตภัณฑ์สิทธิ ปกส. (Missing PrdCat)',
-                    'desc' => 'ยา <b>' . $drug->name . '</b> (icode: ' . $drug->icode . ') ไม่ได้ตั้งค่าประเภทผลิตภัณฑ์ ปกส. (sks_product_category_id) ในทะเบียนยา HOSxP',
-                    'status' => 'danger'
-                ];
-            }
-
-            // Audit R24: Missing drug usage / dosage instructions
-            if (empty($drug->drugusage)) {
-                $pre_audits[] = [
-                    'code' => 'R24',
-                    'title' => 'ขาดวิธีการใช้ยา (Dispensing Usage)',
-                    'desc' => 'ยา <b>' . $drug->name . '</b> ไม่ได้ระบุวิธีการสั่งใช้ยาใน HOSxP (ฟิลด์ drugusage ว่าง)',
-                    'status' => 'danger'
-                ];
-            }
-
-            // Audit R60: Quantity is 0 or negative
-            if (empty($drug->qty) || floatval($drug->qty) <= 0) {
-                $pre_audits[] = [
-                    'code' => 'R60',
-                    'title' => 'จำนวนที่จ่ายยาไม่ถูกต้อง (Qty <= 0)',
-                    'desc' => 'สั่งจ่ายยา <b>' . $drug->name . '</b> โดยระบุจำนวนยาเป็น 0 หรือค่าติดลบ',
-                    'status' => 'danger'
-                ];
-            }
-        }
-
+        
         return response()->json([
             'visit' => $visit,
             'diagnoses' => $diagnoses,

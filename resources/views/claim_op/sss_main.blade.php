@@ -1773,9 +1773,9 @@
                         <div class="d-flex align-items-center gap-3">
                             <span><i class="bi bi-wallet2 me-1 text-primary"></i> ค่ารักษาทั้งหมด: <strong class="text-dark">${inc.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> บาท</span>
                             <span class="text-muted">|</span>
-                            <span><i class="bi bi-cash-coin me-1 text-success"></i> ชำระแล้ว: <strong class="text-success">${paid.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> บาท</span>
-                            <span class="text-muted">|</span>
                             <span><i class="bi bi-hourglass-split me-1 text-danger"></i> ต้องชำระ: <strong class="text-danger">${remain.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> บาท</span>
+                            <span class="text-muted">|</span>
+                            <span><i class="bi bi-cash-coin me-1 text-success"></i> ชำระแล้ว: <strong class="text-success">${paid.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> บาท</span>
                             <span class="text-muted">|</span>
                             <span><i class="bi bi-file-earmark-medical me-1 text-info"></i> ลูกหนี้สิทธิ: <strong class="text-info">${claim.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> บาท</span>
                         </div>

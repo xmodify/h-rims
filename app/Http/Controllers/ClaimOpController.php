@@ -4551,7 +4551,7 @@ class ClaimOpController extends Controller
             SELECT o.vstdate, o.vsttime, pt.hn, pt.sex, v.age_y, CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, pt.cid,
                    p.name AS pttype_name, p.hipdata_code, os.cc, v.pdx, v.income, v.uc_money, IFNULL(rc.rcpt_money, 0) AS rcpt_money,
                    rc.rcpno_list, v.debt_id_list, osb.invno AS sss_invno, osb.billno AS sss_billno,
-                   vp.begin_date, vp.expire_date, vp.hospmain, vp.hospsub, vp.pttypeno,
+                   vp.begin_date, vp.expire_date, vp.hospmain, vp.hospsub, vp.pttypeno, v.paid_money, v.remain_money,
                    IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn

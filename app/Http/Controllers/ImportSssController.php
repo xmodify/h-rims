@@ -650,7 +650,7 @@ class ImportSssController extends Controller
      */
     public function get_feedback_list(Request $request)
     {
-        $type = $request->type ?: '2.1';
+        $type = $request->type;
 
         if ($type === 'rep') {
             // Fetch rejected REP claims
@@ -671,13 +671,57 @@ class ImportSssController extends Controller
             return response()->json(['success' => true, 'data' => $data]);
 
         } else {
-            // Fetch Chronic feedback (2.1 or 2.2)
-            $data = DB::table('sss_chronic')
-                ->where('section_type', $type)
-                ->orderByDesc('id')
-                ->limit(500)
+            // Default: Fetch chronic feedback list21 and list22 for the chronic feedback modal
+            $list21 = DB::table('sss_chronic')
+                ->where('section_type', '2.1')
+                ->orderByDesc('dttran')
+                ->limit(300)
                 ->get();
-            return response()->json(['success' => true, 'data' => $data]);
+
+            $list22 = DB::table('sss_chronic')
+                ->where('section_type', '2.2')
+                ->orderByDesc('dttran')
+                ->limit(300)
+                ->get();
+
+            // Filter out from list22 any patient who is already in list21 (by PID)
+            $pidsIn21 = $list21->pluck('pid')->filter()->unique()->toArray();
+            $filteredList22 = [];
+            foreach ($list22 as $row) {
+                if (!empty($row->pid) && in_array($row->pid, $pidsIn21)) {
+                    continue;
+                }
+                $filteredList22[] = $row;
+            }
+            $list22 = collect($filteredList22);
+
+            $hns = $list21->pluck('hn')->merge($list22->pluck('hn'))->unique()->filter()->toArray();
+
+            $patients = [];
+            if (!empty($hns)) {
+                try {
+                    $patients = DB::connection('hosxp')->table('patient')
+                        ->select('hn', DB::raw("CONCAT(pname, fname, ' ', lname) AS ptname"))
+                        ->whereIn('hn', $hns)
+                        ->get()
+                        ->keyBy('hn')
+                        ->toArray();
+                } catch (\Throwable $e) {
+                }
+            }
+
+            foreach ($list21 as $row) {
+                $row->ptname = isset($patients[$row->hn]) ? $patients[$row->hn]->ptname : '-';
+            }
+            foreach ($list22 as $row) {
+                $row->ptname = isset($patients[$row->hn]) ? $patients[$row->hn]->ptname : '-';
+            }
+
+            return response()->json([
+                'success' => true,
+                'list21' => $list21,
+                'list22' => $list22
+            ]);
         }
     }
 }

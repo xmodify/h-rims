@@ -85,7 +85,7 @@
                                 <i class="bi bi-table me-1"></i> โหลด indiv
                             </button>
                             <button type="button" class="btn btn-outline-primary px-3 shadow-sm" onclick="$('#importFeedbackModal').modal('show'); loadFeedbackList();">
-                                <i class="bi bi-file-earmark-zip me-1"></i> นำเข้าตอบกลับโรคเรื้อรัง
+                                <i class="bi bi-file-earmark-zip me-1"></i> นำเข้าข้อมูลตอบกลับ
                             </button>
                             @if($is_ssop_licensed)
                             <button type="button" class="btn btn-outline-success px-3 shadow-sm" onclick="exportSelectedSSOP()">
@@ -228,28 +228,42 @@
         </div>
     </div>
 
-    <!-- Modal นำเข้าและตรวจสอบผลตอบกลับโรคเรื้อรัง -->
+    <!-- Modal นำเข้าและตรวจสอบผลตอบกลับ -->
     <div class="modal fade" id="importFeedbackModal" tabindex="-1" aria-labelledby="importFeedbackModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header bg-primary text-white py-3">
                     <h6 class="modal-title font-weight-bold" id="importFeedbackModalLabel">
-                        <i class="bi bi-file-earmark-zip me-2"></i>นำเข้าและตรวจสอบผลตอบกลับโรคเรื้อรัง สกส.
+                        <i class="bi bi-file-earmark-zip me-2"></i>นำเข้าและตรวจสอบผลตอบกลับ สกส. (SSOP / โรคเรื้อรัง / STM)
                     </h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-4">
                     <!-- ส่วนหัวการนำเข้าและผลตอบกลับแบบกระชับ -->
-                    <div class="d-flex align-items-center gap-3 mb-4 p-2 bg-light rounded border shadow-sm">
-                        <div>
-                            <input type="file" id="zip_file_input" style="display: none;" accept=".zip" multiple onchange="uploadFeedbackZip()">
-                            <button type="button" class="btn btn-primary px-3 shadow-sm" onclick="document.getElementById('zip_file_input').click()">
-                                <i class="bi bi-cloud-arrow-up-fill me-1"></i> เลือกไฟล์ ZIP และนำเข้าข้อมูล
-                            </button>
+                    <div class="p-3 mb-4 bg-light rounded border shadow-sm">
+                        <div class="d-flex flex-wrap gap-3 align-items-center justify-content-center justify-content-md-start">
+                            <!-- ปุ่มที่ 1: นำเข้าข้อมูล REP -->
+                            <div>
+                                <input type="file" id="zip_file_rep" style="display: none;" accept=".zip" multiple onchange="uploadSssZip('rep')">
+                                <button type="button" class="btn btn-primary px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" onclick="document.getElementById('zip_file_rep').click()">
+                                    <i class="bi bi-file-earmark-arrow-up fs-5"></i> นำเข้าข้อมูล REP
+                                </button>
+                            </div>
+                            <!-- ปุ่มที่ 2: นำเข้าข้อมูล STM -->
+                            <div>
+                                <input type="file" id="zip_file_stm" style="display: none;" accept=".zip" multiple onchange="uploadSssZip('stm')">
+                                <button type="button" class="btn btn-success px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" onclick="document.getElementById('zip_file_stm').click()">
+                                    <i class="bi bi-file-earmark-check fs-5"></i> นำเข้าข้อมูล STM
+                                </button>
+                            </div>
+                            <!-- ปุ่มที่ 3: นำเข้าข้อมูลโรคเรื้อรัง -->
+                            <div>
+                                <input type="file" id="zip_file_chronic" style="display: none;" accept=".zip" multiple onchange="uploadSssZip('chronic')">
+                                <button type="button" class="btn btn-info text-white px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" onclick="document.getElementById('zip_file_chronic').click()">
+                                    <i class="bi bi-file-medical fs-5"></i> นำเข้าข้อมูลโรคเรื้อรัง
+                                </button>
+                            </div>
                         </div>
-                        <h6 class="text-dark font-weight-bold mb-0">
-                            <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> รายการที่ไม่ผ่านการอนุมัติล่าสุด (จากข้อมูลตอบกลับ)
-                        </h6>
                     </div>
                     
                     <ul class="nav nav-tabs" id="feedbackTabs" role="tablist">
@@ -644,7 +658,15 @@
 
 @push('scripts')  
   <script>
+    var shouldReloadOnModalClose = false;
+
     $(document).ready(function () {
+      // Reload main page only when the import modal is closed and we have successfully uploaded files
+      $('#importFeedbackModal').on('hidden.bs.modal', function () {
+          if (shouldReloadOnModalClose) {
+              location.reload();
+          }
+      });
 
       // Adjust DataTables column width on tab change (fix display bugs in hidden tabs)
       $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
@@ -878,14 +900,63 @@
             });
     }
 
-    async function uploadFeedbackZip() {
-        const fileInput = document.getElementById('zip_file_input');
+    async function uploadSssZip(type) {
+        let inputId = 'zip_file_rep';
+        let url = "{{ url('claim_op/sss_rep_import') }}";
+        let title = 'นำเข้าข้อมูล REP';
+        let isChronic = false;
+        
+        if (type === 'chronic') {
+            inputId = 'zip_file_chronic';
+            url = "{{ url('claim_op/sss_chronic_import') }}";
+            title = 'นำเข้าข้อมูลโรคเรื้อรัง';
+            isChronic = true;
+        } else if (type === 'stm') {
+            inputId = 'zip_file_stm';
+            url = "{{ url('claim_op/sss_stm_import') }}";
+            title = 'นำเข้าข้อมูล STM';
+        }
+
+        const fileInput = document.getElementById(inputId);
         if (!fileInput.files || fileInput.files.length === 0) {
             return;
         }
         
         const files = Array.from(fileInput.files);
         const totalFiles = files.length;
+
+        // Validate file types before starting upload
+        for (let i = 0; i < totalFiles; i++) {
+            const file = files[i];
+            const nameUpper = file.name.toUpperCase();
+            
+            // Detect actual type
+            let detectedType = null;
+            if (nameUpper.includes('BIL') || nameUpper.includes('SOCDBIL')) {
+                detectedType = 'rep';
+            } else if (nameUpper.includes('STM') || nameUpper.includes('SOGNSTM')) {
+                detectedType = 'stm';
+            } else if (nameUpper.includes('ACD') || nameUpper.includes('SOCDACD') || nameUpper.includes('REPACD') || nameUpper.includes('REPACDP') || nameUpper.includes('CHRONIC')) {
+                detectedType = 'chronic';
+            } else if (nameUpper.includes('REP')) {
+                detectedType = 'rep';
+            }
+
+            if (type !== detectedType) {
+                let expectedText = 'REP';
+                if (type === 'chronic') expectedText = 'โรคเรื้อรัง';
+                if (type === 'stm') expectedText = 'การจ่ายเงิน (STM)';
+
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เลือกไฟล์ผิดประเภท',
+                    text: `ไฟล์ "${file.name}" ไม่ใช่ไฟล์${expectedText} กรุณาเลือกไฟล์ให้ถูกต้อง`
+                });
+                fileInput.value = '';
+                return;
+            }
+        }
+
         let successCount = 0;
         let failCount = 0;
         let learnedTpu = 0;
@@ -893,7 +964,7 @@
         let errorMessages = [];
 
         Swal.fire({
-            title: 'กำลังนำเข้าข้อมูล...',
+            title: `กำลัง${title}...`,
             html: `<div class="progress mb-3" style="height: 22px;">
                       <div id="import-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
                    </div>
@@ -919,7 +990,7 @@
 
             try {
                 const response = await $.ajax({
-                    url: "{{ url('claim_op/sss_chronic_import') }}",
+                    url: url,
                     type: "POST",
                     data: formData,
                     processData: false,
@@ -927,7 +998,7 @@
                 });
 
                 successCount++;
-                if (response.message) {
+                if (isChronic && response.message) {
                     const tpuMatch = response.message.match(/เรียนรู้รหัสยาใหม่ (\d+)/);
                     const dxMatch = response.message.match(/รหัสโรคใหม่ (\d+)/);
                     if (tpuMatch) learnedTpu += parseInt(tpuMatch[1]);
@@ -960,9 +1031,11 @@
         if (failCount > 0) {
             reportHtml += `<div class="mb-1 text-danger">❌ ล้มเหลว: <strong>${failCount} ไฟล์</strong></div>`;
         }
-        reportHtml += `<div class="mb-1 text-dark">💊 เรียนรู้รหัสยาใหม่สะสม: <strong>${learnedTpu} รายการ</strong></div>
-            <div class="text-dark">🦠 เรียนรู้รหัสโรคใหม่สะสม: <strong>${learnedDx} รหัส</strong></div>
-        </div>`;
+        if (isChronic) {
+            reportHtml += `<div class="mb-1 text-dark">💊 เรียนรู้รหัสยาใหม่สะสม: <strong>${learnedTpu} รายการ</strong></div>
+                <div class="text-dark">🦠 เรียนรู้รหัสโรคใหม่สะสม: <strong>${learnedDx} รหัส</strong></div>`;
+        }
+        reportHtml += `</div>`;
         
         if (errorMessages.length > 0) {
             reportHtml += `<div class="text-start"><strong class="text-danger small">รายละเอียดข้อผิดพลาด / คำเตือน:</strong>
@@ -973,11 +1046,15 @@
 
         Swal.fire({
             icon: (failCount === 0 && errorMessages.length === 0) ? 'success' : (successCount > 0 ? 'warning' : 'error'),
-            title: 'นำเข้าข้อมูลตอบกลับโรคเรื้อรังเสร็จสิ้น',
+            title: `นำเข้าไฟล์เสร็จสิ้น`,
             html: reportHtml,
             confirmButtonText: 'ตกลง'
         }).then(() => {
-            location.reload();
+            fileInput.value = '';
+            if (successCount > 0) {
+                shouldReloadOnModalClose = true;
+                loadFeedbackList();
+            }
         });
     }
 

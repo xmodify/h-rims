@@ -1,0 +1,44 @@
+--- PAGE 1 ---
+ส ำนักสำรสนเทศบริกำรสุขภำพ  14  กุมภำพันธ์ 2561 
+เอกสารแก ้ ไขโครงสร ้ างข ้ อมูล SSOP หน้า 2 
+ 
+เดิม 
+<?xml version="1.0" encoding="windows-874"?>  
+<ClaimRec System="OP" PayPlan="SS" Version="0.93"> 
+<HCODE>HospCode</HCODE> 
+<HNAME>HospName</HNAME> 
+<DATETIME>GenDT</DATETIME> 
+<SESSNO>SessionId</SESSNO> 
+<RECCOUNT>RecordCount</RECCOUNT> 
+<BILLTRAN> 
+1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19&eol 
+ {1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19&eol} 
+</BILLTRAN> 
+<BillItems> 
+1|2|3|4|5|6|7|8|9|10|11|12|13&eol 
+{1|2|3|4|5|6|7|8|9|10|11|12|13&eol} 
+</BillItems> 
+</ClaimRec> 
+<?EndNote Checksum=”MD5HashValue”?> 
+ 
+แก ้ เป็น  
+<?xml version="1.0" encoding="windows-874"?>  
+<ClaimRec System="OP" PayPlan="SS" Version="0.93"> 
+<Header> 
+<HCODE>HospCode</HCODE> 
+<HNAME>HospName</HNAME> 
+<DATETIME>GenDT</DATETIME> 
+<SESSNO>SessionId</SESSNO> 
+<RECCOUNT>RecordCount</RECCOUNT> 
+</Header> 
+<BILLTRAN> 
+1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19&eol 
+ {1|2|3|4|5|6|7|8|9|10|11|12|13|14|15|16|17|18|19&eol} 
+</BILLTRAN> 
+<BillItems> 
+1|2|3|4|5|6|7|8|9|10|11|12|13&eol 
+{1|2|3|4|5|6|7|8|9|10|11|12|13&eol} 
+</BillItems> 
+</ClaimRec> 
+<?EndNote Checksum=”MD5HashValue”?> 
+ 

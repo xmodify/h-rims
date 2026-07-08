@@ -1384,7 +1384,12 @@ class ImportController extends Controller
                     $charge_total = floatval(str_replace(',', '', $sheet->getCell('P' . $row)->getValue() ?? 0));
                     $epo1_amt = floatval(str_replace(',', '', $sheet->getCell('R' . $row)->getValue() ?? 0));
                     $epo2_amt = floatval(str_replace(',', '', $sheet->getCell('T' . $row)->getValue() ?? 0));
-                    $receive_total = $charge_total + $epo1_amt + $epo2_amt;
+                    
+                    // The total paid/reimbursed amount (ยอดชดเชยรวม) is in column AN ('เงิน' column at the end of the row)
+                    $receive_total = floatval(str_replace(',', '', $sheet->getCell('AN' . $row)->getValue() ?? 0));
+                    if ($receive_total <= 0) {
+                        $receive_total = $charge_total + $epo1_amt + $epo2_amt;
+                    }
 
                     $epo1_name = $sheet->getCell('Q' . $row)->getValue();
                     $epo2_name = $sheet->getCell('S' . $row)->getValue();

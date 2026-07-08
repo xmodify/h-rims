@@ -105,7 +105,7 @@ class HomeController extends Controller
                 IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""), "Y", "N") as auth_code_flag,
                 (SELECT "Y" FROM rcpt_debt WHERE vn = o.vn AND LENGTH(sss_approval_code) > 0 AND (status <> "ABORT" OR status IS NULL) LIMIT 1) AS has_rcpt_debt,
                 MAX(CASE WHEN (vp.Claim_Code IS NOT NULL AND vp.Claim_Code <> "") OR (eal.approve_code IS NOT NULL AND eal.approve_code <> "") THEN "Y" ELSE "N" END) as claim_code_flag,
-                IF(((ep.claim_status IN ("success") OR ep.claimCode LIKE "EP%") OR ((ep.claim_status IN ("success") OR ep.claimCode LIKE "PP%") AND ep.claimType = "PG0140001")),"Y",NULL) AS endpoint
+                IF((ep.claim_status IN ("success") OR ep.claimCode LIKE "EP%"),"Y",NULL) AS endpoint
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype_number = 1

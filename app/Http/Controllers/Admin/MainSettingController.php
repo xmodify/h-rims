@@ -104,6 +104,9 @@ class MainSettingController extends Controller
                     // ==========================================
                     // STEP 1: Artisan Migrate & Verify All Tables Schema from extracted_schemas.json
                     // ==========================================
+                    // Drop legacy sss_chronic_feedback table if exists
+                    \Illuminate\Support\Facades\Schema::dropIfExists('sss_chronic_feedback');
+
                     $output = new \Symfony\Component\Console\Output\BufferedOutput();
                     \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true], $output);
                     $migrate_result = $output->fetch();

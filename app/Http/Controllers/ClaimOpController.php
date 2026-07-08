@@ -4297,6 +4297,7 @@ class ClaimOpController extends Controller
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vn,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
+            pt.cid, vp.begin_date, vp.expire_date,
             os.cc,
             MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
@@ -4344,13 +4345,18 @@ class ClaimOpController extends Controller
 
         $vns = array_column($claim, 'vn');
         $drugs_by_vn = [];
+        $rep_errors = [];
+        $stm_pays = [];
+
         if (!empty($vns)) {
             $placeholders = implode(',', array_fill(0, count($vns), '?'));
             $drugs = DB::connection('hosxp')->select("
                 SELECT op.vn, op.icode, sd.name, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
-                       gt.gpu_code, gg.gp_code
+                       gt.gpu_code, gg.gp_code, sd.sks_product_category_id, di.capacity_name, di.capacity_qty,
+                       op.drugusage, op.qty
                 FROM opitemrece op
                 INNER JOIN s_drugitems sd ON sd.icode = op.icode
+                LEFT JOIN drugitems di ON di.icode = op.icode
                 LEFT JOIN hrims.drugcat_chi nd ON nd.hospdrugcode = op.icode 
                     AND nd.date_approved = (
                         SELECT MAX(nd1.date_approved) 
@@ -4361,11 +4367,22 @@ class ClaimOpController extends Controller
                 LEFT JOIN tmt_gpu_to_tpu gt ON gt.tpu_code = COALESCE(nd.tmtid, sd.sks_drug_code)
                 LEFT JOIN tmt_gp_to_gpu gg ON gg.gpu_code = gt.gpu_code
                 WHERE op.vn IN ($placeholders)
-                AND op.icode LIKE '1%'
             ", $vns);
             foreach ($drugs as $d) {
                 $drugs_by_vn[$d->vn][] = $d;
             }
+
+            // Fetch REP errors matching actual HOSxP vns
+            $rep_errors = DB::table('sss_ssop_rep')
+                ->whereIn('vn', $vns)
+                ->pluck('error_codes', 'vn')
+                ->toArray();
+
+            // Fetch STM paid amount matching actual HOSxP vns
+            $stm_pays = DB::table('sss_ssop_stm')
+                ->whereIn('vn', $vns)
+                ->pluck('total', 'vn')
+                ->toArray();
         }
 
         foreach ($claim as $row) {
@@ -4448,16 +4465,53 @@ class ClaimOpController extends Controller
                 $row->chronic_status = 'grey';
             }
 
-            // Calculate general readiness claim_status based ONLY on: InvoiceNo, PDX, and uc_money > 0
+            // Calculate general readiness claim_status based on: InvoiceNo, PDX, uc_money > 0, CID, Hmain, and Drug Audits
             $invoice_no = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
             $has_pdx = !empty($row->pdx);
             $has_claim_money = floatval($row->uc_money) > 0;
+            $has_valid_cid = !empty($row->cid) && strlen(trim($row->cid)) === 13;
             
-            if (!empty($invoice_no) && $invoice_no !== '0' && $invoice_no !== '0.00' && $has_pdx && $has_claim_money) {
+            // Check C07: Hospital Main in network
+            $has_valid_hmain = false;
+            if (!empty($row->hospmain)) {
+                $has_valid_hmain = DB::table('lookup_hospcode')
+                    ->where('hospcode', $row->hospmain)
+                    ->where('hmain_sss', 'Y')
+                    ->exists();
+            }
+
+            // Check C02: Visit date within coverage range
+            $has_valid_dates = true;
+            if (!empty($row->begin_date) && strtotime($row->vstdate) < strtotime($row->begin_date)) {
+                $has_valid_dates = false;
+            }
+            if (!empty($row->expire_date) && strtotime($row->vstdate) > strtotime($row->expire_date)) {
+                $has_valid_dates = false;
+            }
+            
+            // Check drug errors
+            $has_drug_error = false;
+            foreach ($visit_drugs as $drug) {
+                if (empty($drug->tmtid) || trim($drug->tmtid) === '-' ||
+                    empty($drug->capacity_name) || empty($drug->capacity_qty) || floatval($drug->capacity_qty) <= 0 ||
+                    empty($drug->sks_product_category_id) || intval($drug->sks_product_category_id) <= 0 ||
+                    empty($drug->drugusage) || empty($drug->qty) || floatval($drug->qty) <= 0) {
+                    $has_drug_error = true;
+                    break;
+                }
+            }
+            
+            // Set REP Error and STM paid
+            $row->rep_error = $rep_errors[$row->vn] ?? null;
+            $row->stm_pay = $stm_pays[$row->vn] ?? null;
+
+            // Determine eye status color based solely on HOSxP pre-export validation checks
+            if (!empty($invoice_no) && $invoice_no !== '0' && $invoice_no !== '0.00' && $has_pdx && $has_claim_money && $has_valid_cid && $has_valid_hmain && $has_valid_dates) {
                 $row->claim_status = 'green';
             } else {
                 $row->claim_status = 'red';
             }
+
         }
 
         return view('claim_op.sss_main', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'claim'));
@@ -4473,7 +4527,8 @@ class ClaimOpController extends Controller
         $visit = DB::connection('hosxp')->selectOne('
             SELECT o.vstdate, o.vsttime, pt.hn, CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, pt.cid,
                    p.name AS pttype_name, os.cc, v.pdx, v.income, v.uc_money, IFNULL(rc.rcpt_money, 0) AS rcpt_money,
-                   v.debt_id_list, osb.invno AS sss_invno, osb.billno AS sss_billno
+                   v.debt_id_list, osb.invno AS sss_invno, osb.billno AS sss_billno,
+                   vp.begin_date, vp.expire_date, vp.hospmain, vp.hospsub, vp.pttypeno
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
@@ -4503,9 +4558,13 @@ class ClaimOpController extends Controller
 
         $drugs = DB::connection('hosxp')->select("
             SELECT op.icode, sd.name, op.qty, op.sum_price, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
-                   gt.gpu_code, gg.gp_code
+                   gt.gpu_code, gg.gp_code, op.drugusage,
+                   CONCAT(IFNULL(du.name1,''), ' ', IFNULL(du.name2,''), ' ', IFNULL(du.name3,'')) AS drugusage_text,
+                   sd.sks_product_category_id, di.capacity_name, di.capacity_qty
             FROM opitemrece op
             INNER JOIN s_drugitems sd ON sd.icode = op.icode
+            LEFT JOIN drugitems di ON di.icode = op.icode
+            LEFT JOIN drugusage du ON du.drugusage = op.drugusage
             LEFT JOIN hrims.drugcat_chi nd ON nd.hospdrugcode = op.icode 
                 AND nd.date_approved = (
                     SELECT MAX(nd1.date_approved) 
@@ -4516,7 +4575,6 @@ class ClaimOpController extends Controller
             LEFT JOIN tmt_gpu_to_tpu gt ON gt.tpu_code = COALESCE(nd.tmtid, sd.sks_drug_code)
             LEFT JOIN tmt_gp_to_gpu gg ON gg.gpu_code = gt.gpu_code
             WHERE op.vn = ?
-            AND op.icode LIKE '1%'
         ", [$vn]);
 
         $tmt_json_path = base_path('docs/lookup/tmt_sss_chronic.json');
@@ -4597,10 +4655,154 @@ class ClaimOpController extends Controller
         $intersect = array_intersect(array_keys($visit_diag_cats), array_keys($visit_drug_cats));
         $visit->has_matching_category = !empty($intersect);
 
+        // Fetch REP errors (Only from the latest imported REP file to avoid showing historical errors from old export runs)
+        $latest_rep = DB::table('sss_ssop_rep')->where('vn', $vn)->orderBy('id', 'desc')->first();
+        $rep_rows = [];
+        if ($latest_rep) {
+            $rep_rows = DB::table('sss_ssop_rep')
+                ->where('vn', $vn)
+                ->where('rep_file', $latest_rep->rep_file)
+                ->get();
+        }
+        $dict_path = base_path('docs/lookup/sss_error_codes.json');
+        $dict = [];
+        if (file_exists($dict_path)) {
+            $dict = json_decode(file_get_contents($dict_path), true);
+        }
+
+        $rep_feedbacks = [];
+        $unique_feedbacks = []; // Avoid duplicate codes in display
+        foreach ($rep_rows as $rr) {
+            $codes = array_filter(array_map('trim', explode(',', $rr->error_codes)));
+            foreach ($codes as $code) {
+                $upCode = strtoupper($code);
+                $key = $upCode;
+                if (!isset($unique_feedbacks[$key])) {
+                    $is_warning = str_starts_with($upCode, 'W');
+                    $unique_feedbacks[$key] = [
+                        'code' => $code,
+                        'type' => $is_warning ? 'warning' : 'error',
+                        'desc' => $dict[$upCode] ?? 'ไม่พบรายละเอียดข้อผิดพลาดในคู่มือ สกส.',
+                        'file' => $rr->rep_file
+                    ];
+                }
+            }
+        }
+        $rep_feedbacks = array_values($unique_feedbacks);
+
+        // Pre-audit validation before export (Predict C-code rejections)
+        $pre_audits = [];
+
+        // 1. Audit C01: Check Citizen ID (CID)
+        if (empty($visit->cid) || strlen(trim($visit->cid)) !== 13) {
+            $pre_audits[] = [
+                'code' => 'C01',
+                'title' => 'ไม่มีสิทธิประกันสังคม / ข้อมูลสิทธิไม่สมบูรณ์',
+                'desc' => 'ไม่พบเลขบัตรประชาชน (CID) หรือความยาวเลขบัตรไม่ครบ 13 หลัก',
+                'status' => 'danger'
+            ];
+        }
+
+        // 2. Audit C02: Check privilege validity dates
+        if (!empty($visit->begin_date) && strtotime($visit->vstdate) < strtotime($visit->begin_date)) {
+            $pre_audits[] = [
+                'code' => 'C02',
+                'title' => 'วันที่รักษา (dttran) ไม่มีสิทธิประกันสังคม',
+                'desc' => 'วันที่มารับบริการ (' . DateThai($visit->vstdate) . ') ก่อนวันเริ่มต้นคุ้มครองของสิทธิ (' . DateThai($visit->begin_date) . ')',
+                'status' => 'danger'
+            ];
+        }
+        if (!empty($visit->expire_date) && strtotime($visit->vstdate) > strtotime($visit->expire_date)) {
+            $pre_audits[] = [
+                'code' => 'C02',
+                'title' => 'วันที่รักษา (dttran) ไม่มีสิทธิประกันสังคม',
+                'desc' => 'วันที่มารับบริการ (' . DateThai($visit->vstdate) . ') เกินกำหนดวันหมดอายุคุ้มครองของสิทธิ (' . DateThai($visit->expire_date) . ')',
+                'status' => 'danger'
+            ];
+        }
+
+        // 3. Audit C07: Check Main Hospital Code (Hmain)
+        if (empty($visit->hospmain)) {
+            $pre_audits[] = [
+                'code' => 'C07',
+                'title' => 'รหัสสถานพยาบาลหลักไม่ถูกต้อง',
+                'desc' => 'ไม่ระบุรหัสโรงพยาบาลหลัก (Hmain) ในหน้าประวัติสิทธิการรักษาของคนไข้ จำเป็นต้องระบุรหัส 5 หลักเพื่อใช้ในการส่งออกและชดเชยค่าบริการ',
+                'status' => 'danger'
+            ];
+        } else {
+            $hmain_valid = DB::table('lookup_hospcode')
+                ->where('hospcode', $visit->hospmain)
+                ->where('hmain_sss', 'Y')
+                ->exists();
+            if (!$hmain_valid) {
+                $pre_audits[] = [
+                    'code' => 'C07',
+                    'title' => 'รหัสสถานพยาบาลหลักไม่อยู่ในเครือข่าย',
+                    'desc' => 'รหัสโรงพยาบาลหลัก (' . $visit->hospmain . ') ไม่ได้ขึ้นทะเบียนเป็นโรงพยาบาลหลักร่วมเครือข่ายของเรา อาจส่งผลให้เบิกสิทธิปกติไม่ผ่าน (ยกเว้นเป็นกรณีฉุกเฉินส่งต่อ)',
+                    'status' => 'warning'
+                ];
+            }
+        }
+
+        // 4. Audit R-codes for Drugs
+        foreach ($drugs as $drug) {
+            // Audit R51: Missing TMT code
+            if (empty($drug->tmtid) || trim($drug->tmtid) === '-') {
+                $pre_audits[] = [
+                    'code' => 'R51',
+                    'title' => 'ไม่พบรหัสยามาตรฐานไทย (TMT)',
+                    'desc' => 'ยา <b>' . $drug->name . '</b> (icode: ' . $drug->icode . ') ไม่มีรหัส TMT บันทึกไว้ใน Drug Catalog ของโรงพยาบาล',
+                    'status' => 'danger'
+                ];
+            }
+            
+            // Audit R22: Missing capacity info (pack size)
+            if (empty($drug->capacity_name) || empty($drug->capacity_qty) || floatval($drug->capacity_qty) <= 0) {
+                $pre_audits[] = [
+                    'code' => 'R22',
+                    'title' => 'ขาดข้อมูลขนาดบรรจุ (Missing Pack Size)',
+                    'desc' => 'ยา <b>' . $drug->name . '</b> (icode: ' . $drug->icode . ') ไม่ได้ระบุขนาดบรรจุ (capacity_name หรือ capacity_qty เป็นค่าว่างหรือ 0) ในทะเบียนยา HOSxP',
+                    'status' => 'danger'
+                ];
+            }
+
+            // Audit R17/R59: Missing Product Category (PrdCat)
+            if (empty($drug->sks_product_category_id) || intval($drug->sks_product_category_id) <= 0) {
+                $pre_audits[] = [
+                    'code' => 'R59',
+                    'title' => 'ไม่กำหนดกลุ่มประเภทผลิตภัณฑ์สิทธิ ปกส. (Missing PrdCat)',
+                    'desc' => 'ยา <b>' . $drug->name . '</b> (icode: ' . $drug->icode . ') ไม่ได้ตั้งค่าประเภทผลิตภัณฑ์ ปกส. (sks_product_category_id) ในทะเบียนยา HOSxP',
+                    'status' => 'danger'
+                ];
+            }
+
+            // Audit R24: Missing drug usage / dosage instructions
+            if (empty($drug->drugusage)) {
+                $pre_audits[] = [
+                    'code' => 'R24',
+                    'title' => 'ขาดวิธีการใช้ยา (Dispensing Usage)',
+                    'desc' => 'ยา <b>' . $drug->name . '</b> ไม่ได้ระบุวิธีการสั่งใช้ยาใน HOSxP (ฟิลด์ drugusage ว่าง)',
+                    'status' => 'danger'
+                ];
+            }
+
+            // Audit R60: Quantity is 0 or negative
+            if (empty($drug->qty) || floatval($drug->qty) <= 0) {
+                $pre_audits[] = [
+                    'code' => 'R60',
+                    'title' => 'จำนวนที่จ่ายยาไม่ถูกต้อง (Qty <= 0)',
+                    'desc' => 'สั่งจ่ายยา <b>' . $drug->name . '</b> โดยระบุจำนวนยาเป็น 0 หรือค่าติดลบ',
+                    'status' => 'danger'
+                ];
+            }
+        }
+
         return response()->json([
             'visit' => $visit,
             'diagnoses' => $diagnoses,
-            'drugs' => $drugs
+            'drugs' => $drugs,
+            'rep_feedbacks' => $rep_feedbacks,
+            'pre_audits' => $pre_audits
         ]);
     }
 
@@ -4663,7 +4865,7 @@ class ClaimOpController extends Controller
                 try {
                     $fileName = $f->getFilename();
                     // Prevent duplicate data by deleting existing records of the same file name first
-                    DB::table('sss_chronic_feedback')->where('rep_file', $fileName)->delete();
+                    DB::table('sss_chronic')->where('rep_file', $fileName)->delete();
                     $contentBytes = \File::get($f->getRealPath());
                     
                     // Convert encoding from Windows-874 to UTF-8
@@ -4721,7 +4923,7 @@ class ClaimOpController extends Controller
 
                             if ($current_section !== null) {
                                 // Insert to database (using DB query builder)
-                                DB::table('sss_chronic_feedback')->insert([
+                                DB::table('sss_chronic')->insert([
                                     'rep_file' => $fileName,
                                     'repline' => is_numeric($repline) ? (int)$repline : null,
                                     'hcode' => $hcode,
@@ -4852,15 +5054,15 @@ class ClaimOpController extends Controller
         ]);
     }
 
-    public function sss_chronic_feedback_list()
+    public function sss_chronic_list()
     {
-        $list21 = DB::table('sss_chronic_feedback')
+        $list21 = DB::table('sss_chronic')
             ->where('section_type', '2.1')
             ->orderByDesc('dttran')
             ->limit(300)
             ->get();
 
-        $list22 = DB::table('sss_chronic_feedback')
+        $list22 = DB::table('sss_chronic')
             ->where('section_type', '2.2')
             ->orderByDesc('dttran')
             ->limit(300)

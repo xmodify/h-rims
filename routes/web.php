@@ -27,6 +27,7 @@ use App\Http\Controllers\DebtorController;
 use App\Http\Controllers\DebtorAccController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Api\NhsoEndpointController;
+use App\Http\Controllers\ImportSssController;
 
 /*
 |--------------------------------------------------------------------------
@@ -330,8 +331,10 @@ Route::get('claim_op/sss_ppfs/visit_details', [ClaimOpController::class, 'get_ss
 Route::match(['get', 'post'], 'claim_op/sss_fund', [ClaimOpController::class, 'sss_fund']);
 Route::match(['get', 'post'], 'claim_op/sss_main', [ClaimOpController::class, 'sss_main']);
 Route::get('claim_op/sss_detail', [ClaimOpController::class, 'sss_detail']);
-Route::post('claim_op/sss_chronic_import', [ClaimOpController::class, 'sss_chronic_import']);
-Route::get('claim_op/sss_chronic_feedback_list', [ClaimOpController::class, 'sss_chronic_feedback_list']);
+    Route::post('claim_op/sss_chronic_import', [ImportSssController::class, 'import_chronic']);
+    Route::post('claim_op/sss_rep_import', [ImportSssController::class, 'import_rep']);
+    Route::post('claim_op/sss_stm_import', [ImportSssController::class, 'import_stm']);
+    Route::get('claim_op/sss_chronic_feedback_list', [ImportSssController::class, 'get_feedback_list']);
 Route::post('claim_op/sss_export_ssop', [\App\Http\Controllers\SssExportController::class, 'sss_export_ssop'])->middleware('hosp_license');
 Route::post('claim_op/sss_export_preview', [\App\Http\Controllers\SssExportController::class, 'sss_export_preview'])->middleware('hosp_license');
 Route::match(['get', 'post'], 'claim_op/sss_kidney', [ClaimOpController::class, 'sss_kidney']);

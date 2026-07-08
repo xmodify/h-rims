@@ -366,20 +366,35 @@
                 </div>
                 <div class="modal-body p-4">
                     <!-- Tabs Header -->
-                    <ul class="nav nav-tabs nav-justified mb-3" id="previewTab" role="tablist">
+                    <ul class="nav nav-tabs mb-3" id="previewTab" role="tablist" style="font-size: 0.85rem;">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active fw-bold text-success" id="prev-billtran-tab" data-bs-toggle="tab" data-bs-target="#prev-billtran" type="button" role="tab" aria-controls="prev-billtran" aria-selected="true">
-                                <i class="bi bi-file-earmark-spreadsheet me-1"></i> BILLTRAN (ข้อมูลใบเสร็จ)
+                            <button class="nav-link active fw-bold text-primary" id="prev-billtran-tab" data-bs-toggle="tab" data-bs-target="#prev-billtran" type="button" role="tab" aria-controls="prev-billtran" aria-selected="true">
+                                <i class="bi bi-file-earmark-spreadsheet me-1"></i> BILLTRAN
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-primary" id="prev-billitems-tab" data-bs-toggle="tab" data-bs-target="#prev-billitems-panel" type="button" role="tab" aria-controls="prev-billitems-panel" aria-selected="false">
+                                <i class="bi bi-list-stars me-1"></i> BillItems
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link fw-bold text-success" id="prev-billdisp-tab" data-bs-toggle="tab" data-bs-target="#prev-billdisp" type="button" role="tab" aria-controls="prev-billdisp" aria-selected="false">
-                                <i class="bi bi-capsule me-1"></i> BILLDISP (ข้อมูลจ่ายยา)
+                                <i class="bi bi-capsule me-1"></i> BILLDISP
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link fw-bold text-success" id="prev-opservices-tab" data-bs-toggle="tab" data-bs-target="#prev-opservices" type="button" role="tab" aria-controls="prev-opservices" aria-selected="false">
-                                <i class="bi bi-clipboard-pulse me-1"></i> OPServices (ข้อมูลบริการ)
+                            <button class="nav-link fw-bold text-success" id="prev-dispenseditems-tab" data-bs-toggle="tab" data-bs-target="#prev-dispenseditems-panel" type="button" role="tab" aria-controls="prev-dispenseditems-panel" aria-selected="false">
+                                <i class="bi bi-capsules me-1"></i> DispensedItems
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-info" id="prev-opservices-tab" data-bs-toggle="tab" data-bs-target="#prev-opservices" type="button" role="tab" aria-controls="prev-opservices" aria-selected="false">
+                                <i class="bi bi-clipboard-pulse me-1"></i> OPServices
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-info" id="prev-opdx-tab" data-bs-toggle="tab" data-bs-target="#prev-opdx-panel" type="button" role="tab" aria-controls="prev-opdx-panel" aria-selected="false">
+                                <i class="bi bi-activity me-1"></i> OPDx
                             </button>
                         </li>
                     </ul>
@@ -419,7 +434,7 @@
                             <div class="card border-0 bg-light">
                                 <div class="card-header border-0 bg-light p-0">
                                     <button class="btn btn-sm btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#raw-billtran-collapse">
-                                        <span><i class="bi bi-file-earmark-code me-1"></i> ดูไฟล์ข้อความดิบ (Raw XML)</span>
+                                        <span><i class="bi bi-file-earmark-code me-1"></i> ดูไฟล์ข้อความดิบ BILLTRAN.txt (Raw XML)</span>
                                         <i class="bi bi-chevron-down"></i>
                                     </button>
                                 </div>
@@ -432,7 +447,33 @@
                             </div>
                         </div>
 
-                        <!-- Tab 2: BILLDISP -->
+                        <!-- Tab 2: BillItems -->
+                        <div class="tab-pane fade" id="prev-billitems-panel" role="tabpanel" aria-labelledby="prev-billitems-tab">
+                            <div class="mb-3">
+                                <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-billitems">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>InvoiceNo</th>
+                                            <th>SvDate</th>
+                                            <th>BillGr</th>
+                                            <th>ItemCode</th>
+                                            <th>TMTID</th>
+                                            <th>ItemName</th>
+                                            <th class="text-center">Qty</th>
+                                            <th class="text-end">UnitPrice</th>
+                                            <th class="text-end">ChargeAmt</th>
+                                            <th class="text-end">ClaimUP</th>
+                                            <th class="text-end">ClaimAmt</th>
+                                            <th>DispID/RefID</th>
+                                            <th>ClaimCat</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="preview-billitems-tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab 3: BILLDISP -->
                         <div class="tab-pane fade" id="prev-billdisp" role="tabpanel" aria-labelledby="prev-billdisp-tab">
                             <div class="mb-3">
                                 <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-billdisp">
@@ -463,7 +504,7 @@
                             <div class="card border-0 bg-light">
                                 <div class="card-header border-0 bg-light p-0">
                                     <button class="btn btn-sm btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#raw-billdisp-collapse">
-                                        <span><i class="bi bi-file-earmark-code me-1"></i> ดูไฟล์ข้อความดิบ (Raw XML)</span>
+                                        <span><i class="bi bi-file-earmark-code me-1"></i> ดูไฟล์ข้อความดิบ BILLDISP.txt (Raw XML)</span>
                                         <i class="bi bi-chevron-down"></i>
                                     </button>
                                 </div>
@@ -476,7 +517,36 @@
                             </div>
                         </div>
 
-                        <!-- Tab 3: OPServices -->
+                        <!-- Tab 4: DispensedItems -->
+                        <div class="tab-pane fade" id="prev-dispenseditems-panel" role="tabpanel" aria-labelledby="prev-dispenseditems-tab">
+                            <div class="mb-3">
+                                <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-dispenseditems">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>DispID</th>
+                                            <th>PrdCat</th>
+                                            <th>icode</th>
+                                            <th>TMTID</th>
+                                            <th>PackSize</th>
+                                            <th>DrugName</th>
+                                            <th>Unit</th>
+                                            <th>SigCode</th>
+                                            <th>SigText</th>
+                                            <th class="text-center">Qty</th>
+                                            <th class="text-end">UnitPrice</th>
+                                            <th class="text-end">ChargeAmt</th>
+                                            <th class="text-end">ClaimUP</th>
+                                            <th class="text-end">ClaimAmt</th>
+                                            <th>ClaimCat</th>
+                                            <th>RefID</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="preview-dispenseditems-tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab 5: OPServices -->
                         <div class="tab-pane fade" id="prev-opservices" role="tabpanel" aria-labelledby="prev-opservices-tab">
                             <div class="mb-3">
                                 <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-opservices">
@@ -512,7 +582,7 @@
                             <div class="card border-0 bg-light">
                                 <div class="card-header border-0 bg-light p-0">
                                     <button class="btn btn-sm btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#raw-opservices-collapse">
-                                        <span><i class="bi bi-file-earmark-code me-1"></i> ดูไฟล์ข้อความดิบ (Raw XML)</span>
+                                        <span><i class="bi bi-file-earmark-code me-1"></i> ดูไฟล์ข้อความดิบ OPServices.txt (Raw XML)</span>
                                         <i class="bi bi-chevron-down"></i>
                                     </button>
                                 </div>
@@ -522,6 +592,24 @@
                                         <textarea class="form-control text-monospace bg-dark text-light p-3 small" id="preview-opservices-raw" rows="8" readonly style="font-family: Consolas, monospace; font-size:0.75rem;"></textarea>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        <!-- Tab 6: OPDx -->
+                        <div class="tab-pane fade" id="prev-opdx-panel" role="tabpanel" aria-labelledby="prev-opdx-tab">
+                            <div class="mb-3">
+                                <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-opdx">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Class</th>
+                                            <th>SVRefID (VN)</th>
+                                            <th>DiagType</th>
+                                            <th>DiagCodeType</th>
+                                            <th>DiagCode</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="preview-opdx-tbody"></tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -1060,8 +1148,11 @@
 
         // Destroy existing DataTables if initialized to prevent error
         if ($.fn.DataTable.isDataTable('#table-prev-billtran')) { $('#table-prev-billtran').DataTable().destroy(); }
+        if ($.fn.DataTable.isDataTable('#table-prev-billitems')) { $('#table-prev-billitems').DataTable().destroy(); }
         if ($.fn.DataTable.isDataTable('#table-prev-billdisp')) { $('#table-prev-billdisp').DataTable().destroy(); }
+        if ($.fn.DataTable.isDataTable('#table-prev-dispenseditems')) { $('#table-prev-dispenseditems').DataTable().destroy(); }
         if ($.fn.DataTable.isDataTable('#table-prev-opservices')) { $('#table-prev-opservices').DataTable().destroy(); }
+        if ($.fn.DataTable.isDataTable('#table-prev-opdx')) { $('#table-prev-opdx').DataTable().destroy(); }
 
         $.ajax({
             url: "{{ url('claim_op/sss_export_preview') }}",
@@ -1076,16 +1167,11 @@
                 console.log("AJAX Success response:", response);
                 Swal.close();
                 if (response.success) {
-                    // 1. Populate BILLTRAN Table & Raw XML
+                    // 1. Populate BILLTRAN & BillItems Table & Raw XML
                     $('#preview-billtran-raw').val(response.billtran_raw);
                     var html1 = '';
                     response.billtran_table.forEach(function(fields) {
                         if (fields.length < 10) return;
-                        var vn = fields[19]; // Appended VN
-                        var val = response.validation[vn] || { billtran_ok: true, billtran_err: '' };
-                        var statusBadge = val.billtran_ok 
-                            ? '<span class="badge bg-success" style="font-size:0.75rem;"><i class="bi bi-check-circle-fill"></i> ผ่าน</span>'
-                            : `<span class="badge bg-danger" style="font-size:0.75rem; cursor:pointer;" title="${val.billtran_err}"><i class="bi bi-exclamation-triangle-fill"></i> ไม่ผ่าน</span>`;
                         
                         html1 += `<tr>
                             <td>${fields[0] || ''}</td>
@@ -1111,17 +1197,32 @@
                     });
                     $('#preview-billtran-tbody').html(html1);
 
-                    // 2. Populate BILLDISP Table & Raw XML
+                    var html_items = '';
+                    response.billitems_table.forEach(function(fields) {
+                        if (fields.length < 5) return;
+                        html_items += `<tr>
+                            <td class="fw-bold">${fields[0] || ''}</td>
+                            <td>${fields[1] || ''}</td>
+                            <td><span class="badge bg-info">${fields[2] || ''}</span></td>
+                            <td>${fields[3] || ''}</td>
+                            <td>${fields[4] || ''}</td>
+                            <td>${fields[5] || ''}</td>
+                            <td class="text-center fw-bold">${fields[6] || '0'}</td>
+                            <td class="text-end">${fields[7] || '0.00'}</td>
+                            <td class="text-end fw-bold">${fields[8] || '0.00'}</td>
+                            <td class="text-end text-muted">${fields[9] || '0.00'}</td>
+                            <td class="text-end fw-bold text-success">${fields[10] || '0.00'}</td>
+                            <td>${fields[11] || ''}</td>
+                            <td>${fields[12] || ''}</td>
+                        </tr>`;
+                    });
+                    $('#preview-billitems-tbody').html(html_items);
+
+                    // 2. Populate BILLDISP & DispensedItems Table & Raw XML
                     $('#preview-billdisp-raw').val(response.billdisp_raw);
                     var html2 = '';
                     response.billdisp_table.forEach(function(fields) {
                         if (fields.length < 10) return;
-                        var vn = fields[16]; // VisitNo
-                        var val = response.validation[vn] || { billdisp_ok: true, billdisp_err: '' };
-                        var statusBadge = val.billdisp_ok 
-                            ? '<span class="badge bg-success" style="font-size:0.75rem;"><i class="bi bi-check-circle-fill"></i> ผ่าน</span>'
-                            : `<span class="badge bg-danger" style="font-size:0.75rem; cursor:pointer;" title="${val.billdisp_err}"><i class="bi bi-exclamation-triangle-fill"></i> ไม่ผ่าน</span>`;
-
                         html2 += `<tr>
                             <td>${fields[0] || ''}</td>
                             <td class="fw-bold text-primary">${fields[1] || ''}</td>
@@ -1142,20 +1243,37 @@
                             <td>${fields[16] || ''}</td>
                         </tr>`;
                     });
-                    
                     $('#preview-billdisp-tbody').html(html2);
 
-                    // 3. Populate OPServices Table & Raw XML
+                    var html_dispensed = '';
+                    response.dispenseditems_table.forEach(function(fields) {
+                        if (fields.length < 5) return;
+                        html_dispensed += `<tr>
+                            <td class="fw-bold text-primary">${fields[0] || ''}</td>
+                            <td>${fields[1] || ''}</td>
+                            <td>${fields[2] || ''}</td>
+                            <td>${fields[3] || ''}</td>
+                            <td>${fields[4] || ''}</td>
+                            <td>${fields[5] || ''}</td>
+                            <td>${fields[6] || ''}</td>
+                            <td>${fields[7] || ''}</td>
+                            <td><small class="text-muted">${fields[8] || ''}</small></td>
+                            <td class="text-center fw-bold">${fields[9] || '0'}</td>
+                            <td class="text-end">${fields[10] || '0.00'}</td>
+                            <td class="text-end fw-bold">${fields[11] || '0.00'}</td>
+                            <td class="text-end text-muted">${fields[12] || '0.00'}</td>
+                            <td class="text-end fw-bold text-success">${fields[13] || '0.00'}</td>
+                            <td>${fields[14] || ''}</td>
+                            <td>${fields[15] || ''}</td>
+                        </tr>`;
+                    });
+                    $('#preview-dispenseditems-tbody').html(html_dispensed);
+
+                    // 3. Populate OPServices & OPDx Table & Raw XML
                     $('#preview-opservices-raw').val(response.opservices_raw);
                     var html3 = '';
                     response.opservices_table.forEach(function(fields) {
                         if (fields.length < 10) return;
-                        var vn = fields[1]; // VisitNo
-                        var val = response.validation[vn] || { opservices_ok: true, opservices_err: '' };
-                        var statusBadge = val.opservices_ok 
-                            ? '<span class="badge bg-success" style="font-size:0.75rem;"><i class="bi bi-check-circle-fill"></i> ผ่าน</span>'
-                            : `<span class="badge bg-danger" style="font-size:0.75rem; cursor:pointer;" title="${val.opservices_err}"><i class="bi bi-exclamation-triangle-fill"></i> ไม่ผ่าน</span>`;
-
                         html3 += `<tr>
                             <td>${fields[0] || ''}</td>
                             <td>${fields[1] || ''}</td>
@@ -1183,6 +1301,22 @@
                     });
                     $('#preview-opservices-tbody').html(html3);
 
+                    var html_opdx = '';
+                    response.opdx_table.forEach(function(fields) {
+                        if (fields.length < 4) return;
+                        var typeBadge = fields[2] == '1' 
+                            ? '<span class="badge bg-danger">โรคหลัก (PDX)</span>'
+                            : '<span class="badge bg-secondary">โรคร่วม/อื่น ๆ</span>';
+                        html_opdx += `<tr>
+                            <td>${fields[0] || ''}</td>
+                            <td class="fw-bold">${fields[1] || ''}</td>
+                            <td>${typeBadge}</td>
+                            <td><span class="badge bg-info">${fields[3] || ''}</span></td>
+                            <td class="fw-bold text-dark">${fields[4] || ''}</td>
+                        </tr>`;
+                    });
+                    $('#preview-opdx-tbody').html(html_opdx);
+
                     // Initialize DataTables for Preview Tables
                     const prevDtConfig = {
                         pageLength: 10,
@@ -1202,8 +1336,11 @@
                         autoWidth: false
                     };
                     $('#table-prev-billtran').DataTable(prevDtConfig);
+                    $('#table-prev-billitems').DataTable(prevDtConfig);
                     $('#table-prev-billdisp').DataTable(prevDtConfig);
+                    $('#table-prev-dispenseditems').DataTable(prevDtConfig);
                     $('#table-prev-opservices').DataTable(prevDtConfig);
+                    $('#table-prev-opdx').DataTable(prevDtConfig);
 
                     // Open Preview Modal
                     $('#ssopPreviewModal').modal('show');
@@ -1435,30 +1572,32 @@
                   </div>`;
 
                 // Drugs Section
-                html += `
-                  <!-- Drugs Section -->
-                  <div class="col-12 mt-2">
-                    <div class="fw-bold small text-dark mb-2"><i class="bi bi-capsule me-1"></i>รายการสั่งจ่ายยาโรคเรื้อรัง (Chronic Drugs)</div>
-                    <table class="table table-sm table-hover align-middle mb-0 small border">
-                      <thead class="table-dark">
-                        <tr>
-                          <th>ชื่อยา</th>
-                          <th class="text-center">จำนวน</th>
-                          <th class="text-end">ราคารวม</th>
-                          <th>รหัสมาตรฐาน TMT</th>
-                        </tr>
-                      </thead>
-                      <tbody>`;
+                let drugsList = drugs.filter(d => d.icode.startsWith('1'));
+                let servicesList = drugs.filter(d => !d.icode.startsWith('1'));
 
-                if (drugs.length === 0) {
-                    html += `<tr><td colspan="4" class="text-center text-muted py-3">ไม่พบรายการสั่งยาใน Visit นี้</td></tr>`;
+                let drugsRows = '';
+                if (drugsList.length === 0) {
+                    drugsRows = '<tr><td colspan="4" class="text-center text-muted py-3">ไม่พบรายการสั่งยาใน Visit นี้</td></tr>';
                 } else {
-                    drugs.forEach(function(d) {
+                    drugsList.forEach(function(d) {
                         let tmtDisplay = d.tmtid 
                             ? `<span class="badge bg-success fw-bold">${d.tmtid}</span>`
                             : `<span class="badge bg-danger"><i class="bi bi-exclamation-triangle-fill"></i> ไม่มีรหัส TMT</span>`;
-                        html += `<tr>
-                          <td>${d.name}</td>
+                            
+                        let sigtext = d.drugusage_text ? d.drugusage_text.trim() : '';
+                        let prdcatInt = parseInt(d.sks_product_category_id);
+                        if (prdcatInt >= 1 && prdcatInt <= 5) {
+                            if (!sigtext) {
+                                sigtext = 'ตามแพทย์สั่ง';
+                            }
+                        }
+
+                        drugsRows += `<tr>
+                          <td>
+                            <div class="fw-bold text-dark">${d.name}</div>
+                            <div class="text-muted small mb-1" style="font-size: 0.75rem;"><i class="bi bi-info-circle me-1"></i>วิธีใช้: ${sigtext || '-'}</div>
+                            <div class="text-muted small" style="font-size: 0.7rem;">icode: ${d.icode}</div>
+                          </td>
                           <td class="text-center fw-bold">${d.qty}</td>
                           <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
                           <td>${tmtDisplay}</td>
@@ -1466,7 +1605,74 @@
                     });
                 }
 
-                html += `</tbody></table></div></div>`;
+                let servicesRows = '';
+                if (servicesList.length === 0) {
+                    servicesRows = '<tr><td colspan="4" class="text-center text-muted py-3">ไม่พบรายการค่าบริการ/รักษาพยาบาลใน Visit นี้</td></tr>';
+                } else {
+                    servicesList.forEach(function(d) {
+                        servicesRows += `<tr>
+                          <td>
+                            <div class="fw-bold text-dark">${d.name}</div>
+                            <div class="text-muted small" style="font-size: 0.7rem;">icode: ${d.icode}</div>
+                          </td>
+                          <td class="text-center fw-bold">${d.qty}</td>
+                          <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
+                          <td><span class="text-muted">-</span></td>
+                        </tr>`;
+                    });
+                }
+
+                html += `
+                  <!-- Split Tabs for Drugs and Services -->
+                  <div class="col-12 mt-3">
+                    <ul class="nav nav-tabs nav-tabs-custom mb-2" id="modalDetailTabs" role="tablist" style="font-size: 0.85rem;">
+                      <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-bold text-primary" id="modal-drugs-tab" data-bs-toggle="tab" data-bs-target="#modal-drugs-panel" type="button" role="tab" aria-controls="modal-drugs-panel" aria-selected="true">
+                          <i class="bi bi-capsule me-1"></i>รายการสั่งจ่ายยา
+                        </button>
+                      </li>
+                      <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold text-success" id="modal-services-tab" data-bs-toggle="tab" data-bs-target="#modal-services-panel" type="button" role="tab" aria-controls="modal-services-panel" aria-selected="false">
+                          <i class="bi bi-list-check me-1"></i>ค่าบริการและค่ารักษาพยาบาล
+                        </button>
+                      </li>
+                    </ul>
+                    <div class="tab-content" id="modalDetailTabsContent">
+                      <!-- Drugs Panel -->
+                      <div class="tab-pane fade show active" id="modal-drugs-panel" role="tabpanel" aria-labelledby="modal-drugs-tab">
+                        <table class="table table-sm table-hover align-middle mb-0 small border">
+                          <thead class="table-dark">
+                            <tr>
+                              <th>ชื่อยา/เวชภัณฑ์</th>
+                              <th class="text-center" width="10%">จำนวน</th>
+                              <th class="text-end" width="15%">ราคารวม (บาท)</th>
+                              <th width="25%">รหัสมาตรฐาน TMT</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${drugsRows}
+                          </tbody>
+                        </table>
+                      </div>
+                      <!-- Services Panel -->
+                      <div class="tab-pane fade" id="modal-services-panel" role="tabpanel" aria-labelledby="modal-services-tab">
+                        <table class="table table-sm table-hover align-middle mb-0 small border">
+                          <thead class="table-dark">
+                            <tr>
+                              <th>ชื่อบริการ/ค่ารักษาพยาบาล</th>
+                              <th class="text-center" width="10%">จำนวน</th>
+                              <th class="text-end" width="15%">ราคารวม (บาท)</th>
+                              <th width="25%">รหัสอ้างอิง</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${servicesRows}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>`;
 
                 body.innerHTML = html;
             })

@@ -44,7 +44,9 @@ class SssExportController extends Controller
         ", $vns);
         $visits = collect($visits); // Convert to Collection to preserve helper methods
 
-        // 1. Generate BILLTRAN content
+        $visits_map = $visits->keyBy('vn');
+
+        // 1. Generate BILLTRAN & BillItems content
         $billtran_rows = [];
         foreach ($visits as $row) {
             $invoice_no = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
@@ -60,6 +62,72 @@ class SssExportController extends Controller
             
             $billtran_rows[] = "01||{$row->vstdate} {$row->vsttime}|{$hcode}|{$invoice_no}|{$sub_id}|{$row->hn}||{$income}|{$paid}||A|{$row->cid}|{$ptname}|{$row->hospmain}|{$spclty}|{$claim}||0.00";
         }
+
+        // Fetch BillItems (Raw SQL for all items/charges prescribed in these visits)
+        $billitems_rows = [];
+        $billitems_raw = DB::connection('hosxp')->select("
+            SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price, op.income, op.hos_guid,
+                   sd.name AS drug_name, n.name AS nondrug_name,
+                   COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid
+            FROM opitemrece op
+            LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+            LEFT JOIN nondrugitems n ON n.icode = op.icode
+            LEFT JOIN hrims.drugcat_chi nd ON nd.hospdrugcode = op.icode 
+                AND nd.date_approved = (
+                    SELECT MAX(nd1.date_approved) 
+                    FROM hrims.drugcat_chi nd1 
+                    WHERE nd.hospdrugcode = nd1.hospdrugcode 
+                    AND nd1.updateflag IN ('A','U','E')
+                )
+            WHERE op.vn IN ($visits_placeholders)
+        ", $vns);
+
+        $map_income_to_ssop_group = function($inc) {
+            $inc = str_pad($inc, 2, '0', STR_PAD_LEFT);
+            switch ($inc) {
+                case '01': return '1';
+                case '02': return '2';
+                case '03':
+                case '04':
+                case '17': return '3'; // Drugs
+                case '05': return '5'; // Supplies
+                case '06': return '6'; // Blood
+                case '07': return '7'; // Lab
+                case '08': return '8'; // X-ray
+                case '09': return '9'; // Special diagnostics
+                case '10': return 'A'; // Equipment
+                case '11': return 'B'; // Anesthesia/Procedures
+                case '12':
+                case '18': return 'C'; // Nursing & service fees
+                case '13': return 'D'; // Dental
+                case '14': return 'E'; // Physical therapy
+                case '15': return 'F'; // Alternative medicine
+                default: return 'G';   // Other
+            }
+        };
+
+        foreach ($billitems_raw as $item) {
+            $v = $visits_map->get($item->vn);
+            if (!$v) continue;
+            $invoice_no = !empty($v->sss_invno) ? $v->sss_invno : (!empty($v->debt_id_list) ? $v->debt_id_list : '');
+            $billgr = $map_income_to_ssop_group($item->income);
+            $name = trim($item->drug_name ?: $item->nondrug_name ?: '');
+            $qty = number_format($item->qty, 0, '.', '');
+            $unitprice = number_format($item->unitprice, 2, '.', '');
+            $sum_price = number_format($item->sum_price, 2, '.', '');
+            
+            // RefID/DispID: If in s_drugitems, use rx_no_invoice_no, else use vn
+            if (!empty($item->drug_name)) {
+                $rx_no = !empty($item->hos_guid) ? substr(preg_replace('/[^0-9]/', '', $item->hos_guid), 0, 9) : $item->vn;
+                if (empty($rx_no)) $rx_no = $item->vn;
+                $disp_id = "{$rx_no}_{$invoice_no}";
+            } else {
+                $disp_id = $item->vn;
+            }
+
+            $billitems_rows[] = "{$invoice_no}|{$v->vstdate}|{$billgr}|{$item->icode}|{$item->tmtid}|{$name}|{$qty}|{$unitprice}|{$sum_price}|{$unitprice}|{$sum_price}|{$disp_id}|OP1";
+        }
+
         $billtran_count = count($billtran_rows);
         $billtran_xml = '<?xml version="1.0" encoding="windows-874"?>' . "\n" .
             '<ClaimRec System="OP" PayPlan="SS" Version="0.93" Prgs="HX">' . "\n" .
@@ -73,17 +141,28 @@ class SssExportController extends Controller
             '<BillTran>' . "\n" .
             implode("\n", $billtran_rows) . "\n" .
             '</BillTran>' . "\n" .
+            '<BillItems>' . "\n" .
+            implode("\n", $billitems_rows) . "\n" .
+            '</BillItems>' . "\n" .
             '</ClaimRec>';
 
-        // 2. Generate BILLDISP content
+        // 2. Generate BILLDISP & DispensedItems content
         $billdisp_rows = [];
-        // Fetch drug items (Raw SQL for easy debugging/copy-pasting in Navicat)
-        $disp_placeholders = implode(',', array_fill(0, count($vns), '?'));
+        $dispensed_rows = [];
+        $disp_sessions = [];
+
+        // Fetch drug items (excluding icode LIKE '1%' to warn about bad registration items in s_drugitems)
         $disp_items = DB::connection('hosxp')->select("
             SELECT op.vn, op.icode, op.qty, op.sum_price, op.unitprice, op.hos_guid, op.rxtime,
-                   COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid
+                   COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
+                   sd.name, sd.sks_product_category_id,
+                   di.capacity_name, di.capacity_qty,
+                   op.drugusage, du.opi_usage_code, du.opi_unit_name,
+                   CONCAT(IFNULL(du.name1,''), ' ', IFNULL(du.name2,''), ' ', IFNULL(du.name3,'')) AS drugusage_text
             FROM opitemrece op
             INNER JOIN s_drugitems sd ON sd.icode = op.icode
+            LEFT JOIN drugitems di ON di.icode = op.icode
+            LEFT JOIN drugusage du ON du.drugusage = op.drugusage
             LEFT JOIN hrims.drugcat_chi nd ON nd.hospdrugcode = op.icode 
                 AND nd.date_approved = (
                     SELECT MAX(nd1.date_approved) 
@@ -91,11 +170,8 @@ class SssExportController extends Controller
                     WHERE nd.hospdrugcode = nd1.hospdrugcode 
                     AND nd1.updateflag IN ('A','U','E')
                 )
-            WHERE op.vn IN ($disp_placeholders)
-            AND op.icode LIKE '1%'
+            WHERE op.vn IN ($visits_placeholders)
         ", $vns);
-
-        $visits_map = $visits->keyBy('vn');
 
         foreach ($disp_items as $item) {
             $v = $visits_map->get($item->vn);
@@ -103,21 +179,47 @@ class SssExportController extends Controller
 
             $invoice_no = !empty($v->sss_invno) ? $v->sss_invno : (!empty($v->debt_id_list) ? $v->debt_id_list : '');
             $rx_no = !empty($item->hos_guid) ? substr(preg_replace('/[^0-9]/', '', $item->hos_guid), 0, 9) : $item->vn;
-            if (empty($rx_no)) {
-                $rx_no = $item->vn;
-            }
+            if (empty($rx_no)) $rx_no = $item->vn;
             $disp_id = "{$rx_no}_{$invoice_no}";
+
+            // Group Dispensing rows by unique disp_id
+            if (!isset($disp_sessions[$disp_id])) {
+                $disp_date = "{$v->vstdate}T{$v->vsttime}";
+                $end_date = "{$v->vstdate}T" . (!empty($item->rxtime) ? $item->rxtime : date('H:i:s', strtotime($v->vsttime . ' + 30 minutes')));
+                $license = !empty($v->rx_license_no) ? $v->rx_license_no : '-';
+                
+                // Count items in this session
+                $session_items = array_filter($disp_items, function($x) use ($item, $rx_no) {
+                    $x_rx_no = !empty($x->hos_guid) ? substr(preg_replace('/[^0-9]/', '', $x->hos_guid), 0, 9) : $x->vn;
+                    return $x->vn === $item->vn && $x_rx_no === $rx_no;
+                });
+                $session_count = count($session_items);
+                $session_sum = array_sum(array_column($session_items, 'sum_price'));
+                $total_amt = number_format($session_sum, 2, '.', '');
+                
+                $billdisp_rows[] = "{$hcode}|{$disp_id}|{$rx_no}|{$v->hn}|{$v->cid}|{$disp_date}|{$end_date}|{$license}|2|{$total_amt}|{$total_amt}|0.00|0.00|HP|SS|{$session_count}|{$v->vn}|";
+                $disp_sessions[$disp_id] = true;
+            }
+
+            $prdcat = !empty($item->sks_product_category_id) ? $item->sks_product_category_id : '';
+            $tmtid = !empty($item->tmtid) ? $item->tmtid : '';
+            $sigcode = !empty($item->opi_usage_code) ? str_pad($item->opi_usage_code, 7, '0', STR_PAD_LEFT) . ':0000000' : '0000000:0000000';
+            $sigtext = !empty($item->drugusage_text) ? trim($item->drugusage_text) : '';
             
-            $disp_date = "{$v->vstdate}T{$v->vsttime}";
-            $end_date = "{$v->vstdate}T" . (!empty($item->rxtime) ? $item->rxtime : date('H:i:s', strtotime($v->vsttime . ' + 30 minutes')));
-            
-            $license = !empty($v->rx_license_no) ? $v->rx_license_no : '-';
+            // Fallback to 'ตามแพทย์สั่ง' for PrdCat 1-5 (drugs) if sigtext is empty
+            $prdcat_int = intval($prdcat);
+            if ($prdcat_int >= 1 && $prdcat_int <= 5) {
+                if (empty($sigtext)) {
+                    $sigtext = 'ตามแพทย์สั่ง';
+                }
+            }
             $qty = number_format($item->qty, 0, '.', '');
             $unit_price = number_format($item->unitprice, 2, '.', '');
             $total_amt = number_format($item->sum_price, 2, '.', '');
-            
-            $billdisp_rows[] = "{$hcode}|{$disp_id}|{$rx_no}|{$v->hn}|{$v->cid}|{$disp_date}|{$end_date}|{$license}|2|{$unit_price}|{$total_amt}|0.00|0.00|HP|SS|{$qty}|{$v->vn}|";
+
+            $dispensed_rows[] = "{$disp_id}|{$prdcat}|{$item->icode}|{$tmtid}|{$item->capacity_name}|{$item->name}|{$item->opi_unit_name}|{$sigcode}|{$sigtext}|{$qty}|{$unit_price}|{$total_amt}|{$unit_price}|{$total_amt}||OD|||";
         }
+
         $billdisp_count = count($billdisp_rows);
         $billdisp_xml = '<?xml version="1.0" encoding="windows-874"?>' . "\n" .
             '<ClaimRec System="OP" PayPlan="SS" Version="0.93" Prgs="HX">' . "\n" .
@@ -131,34 +233,36 @@ class SssExportController extends Controller
             '<Dispensing>' . "\n" .
             implode("\n", $billdisp_rows) . "\n" .
             '</Dispensing>' . "\n" .
+            '<DispensedItems>' . "\n" .
+            implode("\n", $dispensed_rows) . "\n" .
+            '</DispensedItems>' . "\n" .
             '</ClaimRec>';
 
-        // 3. Generate OPServices content
+        // 3. Generate OPServices & OPDx content
         $opservices_rows = [];
+        $opdx_rows = [];
+
         foreach ($visits as $row) {
             $invoice_no = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
             $start_dt = "{$row->vstdate}T{$row->vsttime}";
             $end_dt = "{$row->vstdate}T" . date('H:i:s', strtotime($row->vsttime . ' + 2 hours'));
             
-            // Fetch diagnosis (Raw SQL for easy debugging/copy-pasting in Navicat)
+            // Fetch diagnosis
             $diags = DB::connection('hosxp')->select("
                 SELECT icd10, diagtype 
                 FROM ovstdiag 
                 WHERE vn = ?
             ", [$row->vn]);
                 
-            $pdx = '';
-            $sdx_list = [];
             foreach ($diags as $d) {
-                if ($d->diagtype == '1') {
-                    $pdx = $d->icd10;
-                } else {
-                    $sdx_list[] = $d->icd10;
-                }
+                $icd_type = (str_starts_with(strtoupper($d->icd10), 'K') || preg_match('/^U[567]/i', $d->icd10)) ? 'TT' : 'IT';
+                $clean_diag = str_replace('.', '', trim($d->icd10));
+                $opdx_rows[] = "EC|{$row->vn}|{$d->diagtype}|{$icd_type}|{$clean_diag}|";
             }
             
             $opservices_rows[] = "{$invoice_no}|{$row->vn}|EC|{$hcode}|{$row->hn}|{$row->cid}|1|01|9|9||-|99|{$start_dt}|{$end_dt}||||0.00|Y||OP1";
         }
+
         $opservices_count = count($opservices_rows);
         $opservices_xml = '<?xml version="1.0" encoding="windows-874"?>' . "\n" .
             '<ClaimRec System="OP" PayPlan="SS" Version="0.93" Prgs="HX">' . "\n" .
@@ -167,12 +271,14 @@ class SssExportController extends Controller
             "<HNAME>{$hname}</HNAME>\n" .
             "<DATETIME>{$datetime_iso}</DATETIME>\n" .
             "<SESSNO>{$sess_no}</SESSNO>\n" .
-            "<RECCOUNT>{$opservices_count}</RECCOUNT>
-" .
+            "<RECCOUNT>{$opservices_count}</RECCOUNT>\n" .
             '</Header>' . "\n" .
             '<OPServices>' . "\n" .
             implode("\n", $opservices_rows) . "\n" .
             '</OPServices>' . "\n" .
+            '<OPDx>' . "\n" .
+            implode("\n", $opdx_rows) . "\n" .
+            '</OPDx>' . "\n" .
             '</ClaimRec>';
 
         return [
@@ -184,8 +290,11 @@ class SssExportController extends Controller
             'billdisp_xml' => $billdisp_xml,
             'opservices_xml' => $opservices_xml,
             'billtran_rows' => $billtran_rows,
+            'billitems_rows' => $billitems_rows,
             'billdisp_rows' => $billdisp_rows,
+            'dispensed_rows' => $dispensed_rows,
             'opservices_rows' => $opservices_rows,
+            'opdx_rows' => $opdx_rows,
             'visits_list' => $visits->toArray(),
             'disp_items' => $disp_items
         ];
@@ -205,13 +314,17 @@ class SssExportController extends Controller
 
         $data = $this->generate_ssop_raw_data($vns, $sess_no, $station_id);
 
-        // Convert pipe-delimited rows to array of fields for UI preview
-        // Also append VN at the end of each row for mapping
         $billtran_table = [];
         foreach ($data['billtran_rows'] as $idx => $row) {
             $fields = explode('|', $row);
             $fields[] = $data['visits_list'][$idx]->vn ?? '';
             $billtran_table[] = $fields;
+        }
+
+        $billitems_table = [];
+        foreach ($data['billitems_rows'] as $row) {
+            $fields = explode('|', $row);
+            $billitems_table[] = $fields;
         }
 
         $billdisp_table = [];
@@ -220,13 +333,25 @@ class SssExportController extends Controller
             $billdisp_table[] = $fields;
         }
 
+        $dispenseditems_table = [];
+        foreach ($data['dispensed_rows'] as $row) {
+            $fields = explode('|', $row);
+            $dispenseditems_table[] = $fields;
+        }
+
         $opservices_table = [];
         foreach ($data['opservices_rows'] as $row) {
             $fields = explode('|', $row);
             $opservices_table[] = $fields;
         }
 
-        // Perform backend validation to detect missing required fields and output to frontend
+        $opdx_table = [];
+        foreach ($data['opdx_rows'] as $row) {
+            $fields = explode('|', $row);
+            $opdx_table[] = $fields;
+        }
+
+        // Perform backend validation to detect missing required fields
         $validation = [];
         foreach ($data['visits_list'] as $row) {
             $vn = $row->vn;
@@ -303,8 +428,11 @@ class SssExportController extends Controller
             'billdisp_raw' => $data['billdisp_xml'],
             'opservices_raw' => $data['opservices_xml'],
             'billtran_table' => $billtran_table,
+            'billitems_table' => $billitems_table,
             'billdisp_table' => $billdisp_table,
+            'dispenseditems_table' => $dispenseditems_table,
             'opservices_table' => $opservices_table,
+            'opdx_table' => $opdx_table,
             'validation' => $validation
         ]);
     }

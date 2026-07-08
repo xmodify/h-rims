@@ -1767,7 +1767,7 @@
                     const inc = parseFloat(visit.income || 0);
                     const paid = parseFloat(visit.rcpt_money || 0);
                     const claim = parseFloat(visit.uc_money || 0);
-                    const remain = inc - paid - claim;
+                    const remain = parseFloat(visit.paid_money || 0);
                     
                     footerSummary.innerHTML = `
                         <div class="d-flex align-items-center gap-3">

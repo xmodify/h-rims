@@ -257,7 +257,10 @@
                 <div class="modal-body p-4" id="detailsModalBody">
                     <!-- Dynamic Content -->
                 </div>
-                <div class="modal-footer bg-light py-2">
+                <div class="modal-footer bg-light py-2 px-3 d-flex justify-content-between align-items-center">
+                    <div id="detailsModalFooterSummary" class="text-start d-flex gap-3 text-muted small" style="font-size: 11.5px;">
+                        <!-- Will be populated dynamically in JS -->
+                    </div>
                     <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">
                         <i class="bi bi-x-circle me-1"></i>ปิดหน้าต่าง
                     </button>
@@ -1757,6 +1760,27 @@
                 </div>`;
 
                 body.innerHTML = html;
+
+                // Update footer financial summary dynamically
+                const footerSummary = document.getElementById('detailsModalFooterSummary');
+                if (footerSummary) {
+                    const inc = parseFloat(visit.income || 0);
+                    const paid = parseFloat(visit.rcpt_money || 0);
+                    const claim = parseFloat(visit.uc_money || 0);
+                    const remain = inc - paid - claim;
+                    
+                    footerSummary.innerHTML = `
+                        <div class="d-flex align-items-center gap-3">
+                            <span><i class="bi bi-wallet2 me-1 text-primary"></i> ค่ารักษาทั้งหมด: <strong class="text-dark">${inc.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> บาท</span>
+                            <span class="text-muted">|</span>
+                            <span><i class="bi bi-cash-coin me-1 text-success"></i> ชำระแล้ว: <strong class="text-success">${paid.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> บาท</span>
+                            <span class="text-muted">|</span>
+                            <span><i class="bi bi-hourglass-split me-1 text-danger"></i> ต้องชำระ: <strong class="text-danger">${remain.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> บาท</span>
+                            <span class="text-muted">|</span>
+                            <span><i class="bi bi-file-earmark-medical me-1 text-info"></i> ลูกหนี้สิทธิ: <strong class="text-info">${claim.toLocaleString('th-TH', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> บาท</span>
+                        </div>
+                    `;
+                }
 
                 // Destroy existing DataTables if already initialized to prevent error
                 if ($.fn.DataTable.isDataTable('#modal-drugs-table')) {

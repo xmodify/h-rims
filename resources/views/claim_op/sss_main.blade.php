@@ -823,237 +823,6 @@
       });
     });
 
-    function showDetails(vn) {
-        const body = document.getElementById('detailsModalBody');
-        body.innerHTML = '<div class="text-center text-muted py-4"><i class="bi bi-arrow-repeat spin me-2"></i>กำลังโหลด...</div>';
-        $('#detailsModal').modal('show');
-
-        $.get("{{ url('claim_op/sss_detail') }}", { vn: vn })
-            .done(function(data) {
-                const visit = data.visit;
-                const diagnoses = data.diagnoses;
-                const drugs = data.drugs;
-                const feedbacks = data.rep_feedbacks || [];
-
-                let pdx = visit.pdx || '-';
-                let sec_diags = [];
-                let procedures = [];
-                let has_pdx = false;
-
-                diagnoses.forEach(function(d) {
-                    if (d.diagtype == '2') {
-                        procedures.push(d.icd10);
-                    } else if (d.diagtype != '1') {
-                        sec_diags.push(d.icd10);
-                    }
-                    if (d.diagtype == '1') {
-                        has_pdx = true;
-                    }
-                });
-
-                // NHSO Endpoint privilege status button
-                let endpointBtn = '';
-                if (visit.endpoint === 'Y') {
-                    endpointBtn = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>ปิดสิทธิแล้ว (สปสช.)</span>`;
-                } else {
-                    endpointBtn = `<button onclick="pullNhsoData('${visit.vstdate}', '${visit.cid}', '${vn}')" class="btn btn-warning btn-sm py-1 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-cloud-download-fill me-1"></i>ดึงข้อมูล (Pull)</button>`;
-                }
-
-                let receiptText = parseFloat(visit.rcpt_money) > 0 && visit.rcpno_list 
-                    ? ` (${visit.rcpno_list})` 
-                    : '';
-
-                let invoice_no = visit.sss_invno && visit.sss_invno !== '0' ? visit.sss_invno : (visit.debt_id_list && visit.debt_id_list !== '0' ? visit.debt_id_list : '');
-
-                // Validation errors
-                const errors = [];
-                if (!invoice_no || invoice_no === '0' || invoice_no === 0) {
-                    errors.push("ไม่พบเลขใบแจ้งหนี้ (InvoiceNo) กรุณากดออกใบแจ้งหนี้ in HOSxP");
-                }
-                if (!visit.cid || visit.cid.length !== 13) {
-                    errors.push("เลขบัตรประชาชน (CID) ว่างหรือความยาวไม่ครบ 13 หลัก");
-                }
-                if (!visit.hn) {
-                    errors.push("ไม่พบ HN");
-                }
-                if (!has_pdx) {
-                    errors.push("ไม่พบรหัสวินิจฉัยโรคหลัก (PDX) กรุณาบันทึกแพทย์ผู้ตรวจโรค");
-                }
-                const uc_money = parseFloat(visit.uc_money || 0);
-                if (uc_money <= 0) {
-                    errors.push("ยอดเงินเรียกเก็บ (uc_money) น้อยกว่าหรือเท่ากับ 0 บาท");
-                }
-
-                const hasRepError = feedbacks.some(f => f.type === 'error');
-                const hasRepWarning = feedbacks.some(f => f.type === 'warning');
-
-                // Determine validation status alert banner
-                let validationStatusHtml = '';
-                if (errors.length > 0 || hasRepError) {
-                    // RED Status Alert
-                    const allErrors = [...errors];
-                    feedbacks.filter(f => f.type === 'error').forEach(f => {
-                        allErrors.push(`[REP Error] ${f.code}: ${f.desc}`);
-                    });
-                    validationStatusHtml = `
-                    <div class="col-12 mb-2">
-                      <div class="alert alert-danger py-2 px-3 mb-1 border-0 shadow-sm d-flex align-items-start small" style="background-color: #fef2f2; color: #991b1b; border-left: 5px solid #dc2626 !important;">
-                        <i class="bi bi-exclamation-triangle-fill me-2 mt-1" style="font-size: 1.1rem; color: #dc2626;"></i>
-                        <div>
-                          <div class="fw-bold mb-1 text-dark">สถานะ: ไม่ผ่านเกณฑ์ส่งออก (มีข้อผิดพลาดที่ต้องแก้ไข)</div>
-                          <ul class="mb-0 ps-3 text-danger">
-                            ${allErrors.map(err => `<li>${err}</li>`).join('')}
-                          </ul>
-                        </div>
-                      </div>
-                    </div>`;
-                } else if (visit.endpoint !== 'Y' || hasRepWarning) {
-                    // YELLOW Status Alert
-                    const allWarnings = [];
-                    if (visit.endpoint !== 'Y') {
-                        allWarnings.push("สิทธิ์การรักษายังไม่ได้ปิดสิทธิ์ในระบบ สปสช. (กรุณากดดึงข้อมูลหรือปิดสิทธิ์)");
-                    }
-                    feedbacks.filter(f => f.type === 'warning').forEach(f => {
-                        allWarnings.push(`[REP Warning] ${f.code}: ${f.desc}`);
-                    });
-                    validationStatusHtml = `
-                    <div class="col-12 mb-2">
-                      <div class="alert alert-warning py-2 px-3 mb-1 border-0 shadow-sm d-flex align-items-start small" style="background-color: #fffbeb; color: #92400e; border-left: 5px solid #d97706 !important;">
-                        <i class="bi bi-exclamation-circle-fill me-2 mt-1" style="font-size: 1.1rem; color: #d97706;"></i>
-                        <div>
-                          <div class="fw-bold mb-1 text-dark">สถานะ: ข้อมูลผ่านเกณฑ์ แต่มีข้อแนะนำ/ยังไม่ได้ปิดสิทธิ (สปสช.)</div>
-                          <ul class="mb-0 ps-3 text-warning" style="color: #92400e !important;">
-                            ${allWarnings.map(warn => `<li>${warn}</li>`).join('')}
-                          </ul>
-                        </div>
-                      </div>
-                    </div>`;
-                } else {
-                    // GREEN Status Alert
-                    validationStatusHtml = `
-                    <div class="col-12 mb-2">
-                      <div class="alert alert-success py-2 px-3 mb-1 border-0 shadow-sm d-flex align-items-start small" style="background-color: #f0fdf4; color: #166534; border-left: 5px solid #16a34a !important;">
-                        <i class="bi bi-check-circle-fill me-2 mt-1" style="font-size: 1.1rem; color: #16a34a;"></i>
-                        <div>
-                          <div class="fw-bold mb-1 text-dark">สถานะ: ข้อมูลพร้อมส่งออก (ผ่านเกณฑ์และปิดสิทธิเรียบร้อย)</div>
-                          <div class="text-muted">ข้อมูลการรับบริการถูกต้อง ครบถ้วน และปิดสิทธิเรียบร้อยแล้ว</div>
-                        </div>
-                      </div>
-                    </div>`;
-                }
-
-                let html = `
-                    ${validationStatusHtml}
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-6">
-                            <h6 class="fw-bold text-primary mb-2"><i class="bi bi-person-fill me-1"></i> ข้อมูลผู้ป่วย</h6>
-                            <table class="table table-sm table-bordered">
-                                <tr><th class="bg-light" width="30%">HN</th><td>${visit.hn}</td></tr>
-                                <tr><th class="bg-light">ชื่อ-สกุล</th><td>${visit.ptname}</td></tr>
-                                <tr><th class="bg-light">เลขบัตร</th><td>${visit.cid}</td></tr>
-                                <tr><th class="bg-light">สิทธิการรักษา</th><td>${visit.pttype_name}</td></tr>
-                            </table>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="fw-bold text-primary mb-2"><i class="bi bi-clipboard-pulse me-1"></i> ข้อมูลบริการ</h6>
-                            <table class="table table-sm table-bordered">
-                                <tr><th class="bg-light" width="30%">วันที่รับบริการ</th><td>${visit.vstdate} ${visit.vsttime}</td></tr>
-                                <tr><th class="bg-light">อาการสำคัญ</th><td>${visit.cc || '-'}</td></tr>
-                                <tr><th class="bg-light">PDX</th><td>${pdxHtml}</td></tr>
-                                <tr><th class="bg-light">SDX</th><td>${sdxHtml}</td></tr>
-                                <tr><th class="bg-light">ICD-9</th><td>${icd9Html}</td></tr>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h6 class="fw-bold text-primary mb-2 d-flex justify-content-between align-items-center">
-                            <span><i class="bi bi-capsule-therapeutic me-1"></i> รายการยาที่ได้รับและตรวจสอบ TMT</span>
-                            ${drugBadge}
-                        </h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm table-bordered">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>ชื่อยา</th>
-                                        <th class="text-center" width="10%">จำนวน</th>
-                                        <th class="text-end" width="15%">ราคา</th>
-                                        <th class="text-center" width="20%">รหัส TMT</th>
-                                        <th class="text-center" width="15%">สถานะ ปกส.</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${drugs.map(d => `
-                                        <tr class="${d.is_chronic ? 'table-success-soft' : ''}">
-                                            <td>${d.name}</td>
-                                            <td class="text-center">${d.qty}</td>
-                                            <td class="text-end">${parseFloat(d.sum_price).toFixed(2)}</td>
-                                            <td class="text-center"><code>${d.tmtid || '-'}</code></td>
-                                            <td class="text-center">
-                                                ${d.is_chronic 
-                                                    ? '<span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i> ยาโรคเรื้อรัง</span>' 
-                                                    : '<span class="text-muted small">-</span>'}
-                                            </td>
-                                        </tr>
-                                    `).join('') || '<tr><td colspan="5" class="text-muted text-center py-3">ไม่พบรายการจ่ายยา</td></tr>'}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                `;
-                body.innerHTML = html;
-
-                // Destroy existing DataTables if already initialized to prevent error
-                if ($.fn.DataTable.isDataTable('#modal-drugs-table')) {
-                    $('#modal-drugs-table').DataTable().destroy();
-                }
-                if ($.fn.DataTable.isDataTable('#modal-services-table')) {
-                    $('#modal-services-table').DataTable().destroy();
-                }
-
-                // Initialize DataTable for Drugs
-                if (drugs.filter(d => d.icode.startsWith('1')).length > 0) {
-                    $('#modal-drugs-table').DataTable({
-                        pageLength: 5,
-                        lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "ทั้งหมด"]],
-                        language: {
-                            search: "ค้นหา:",
-                            lengthMenu: "แสดง _MENU_ รายการ",
-                            info: "แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ",
-                            paginate: {
-                                previous: "ก่อนหน้า",
-                                next: "ถัดไป"
-                            }
-                        }
-                    });
-                }
-
-                // Initialize DataTable for Services
-                if (drugs.filter(d => !d.icode.startsWith('1')).length > 0) {
-                    $('#modal-services-table').DataTable({
-                        pageLength: 5,
-                        lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "ทั้งหมด"]],
-                        language: {
-                            search: "ค้นหา:",
-                            lengthMenu: "แสดง _MENU_ รายการ",
-                            info: "แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ",
-                            paginate: {
-                                previous: "ก่อนหน้า",
-                                next: "ถัดไป"
-                            }
-                        }
-                    });
-                }
-
-                // Adjust column headers on tab change to prevent distorted columns
-                $('#modalDetailTabs button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
-                    $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
-                });
-            })
-            .fail(function(xhr) {
-                body.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle-fill me-2"></i>เกิดข้อผิดพลาด: ${xhr.responseJSON?.error || 'ไม่สามารถโหลดข้อมูลได้'}</div>`;
-            });
-    }
 
     async function uploadSssZip(type) {
         let inputId = 'zip_file_rep';
@@ -1740,6 +1509,18 @@
                     errors.push("ยอดเงินเรียกเก็บ (uc_money) น้อยกว่าหรือเท่ากับ 0 บาท");
                 }
 
+                // Add backend pre-audit checks to errors/warnings
+                const preAudits = data.pre_audits || [];
+                const warnings = [];
+                
+                preAudits.forEach(audit => {
+                    if (audit.status === 'danger') {
+                        errors.push(`[${audit.code}] ${audit.title}: ${audit.desc}`);
+                    } else if (audit.status === 'warning') {
+                        warnings.push(`[${audit.code}] ${audit.title}: ${audit.desc}`);
+                    }
+                });
+
                 const hasRepError = feedbacks.some(f => f.type === 'error');
                 const hasRepWarning = feedbacks.some(f => f.type === 'warning');
 
@@ -1763,9 +1544,9 @@
                         </div>
                       </div>
                     </div>`;
-                } else if (visit.endpoint !== 'Y' || hasRepWarning) {
+                } else if (visit.endpoint !== 'Y' || hasRepWarning || warnings.length > 0) {
                     // YELLOW Status Alert
-                    const allWarnings = [];
+                    const allWarnings = [...warnings];
                     if (visit.endpoint !== 'Y') {
                         allWarnings.push("สิทธิ์การรักษายังไม่ได้ปิดสิทธิ์ในระบบ สปสช. (กรุณากดดึงข้อมูลหรือปิดสิทธิ์)");
                     }

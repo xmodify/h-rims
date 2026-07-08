@@ -107,13 +107,14 @@
                             <th class="text-center" width="3%"><input type="checkbox" id="select_all_claims"></th>
                             @endif
                                                   
-                            <th class="text-center">สถานะ</th>                      
+                            <th class="text-center">ตรวจสอบ</th>                      
                             <th class="text-center">วัน-เวลา | Q</th>     
                             <th class="text-center">HN</th>    
                             <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
                             <th class="text-center" width="15%">อาการสำคัญ</th>
                             <th class="text-center" width="8%">โรคเรื้อรัง</th>
                             <th class="text-center" width="8%">ยาโรคเรื้อรัง</th>
+                            <th class="text-center" width="9%">NCD Match</th>
                             <th class="text-end px-3" width="6%">PDX</th>
                             <th class="text-start px-3" width="10%">SDX | ICD9</th>
                             <th class="text-center">ค่ารักษา</th> 
@@ -136,17 +137,13 @@
                             </td>
                             @endif
                             
-                            <td class="text-center" data-status="{{ $row->chronic_status }}" data-order="{{ $row->chronic_status === 'red' ? '2' : ($row->chronic_status === 'green' ? '1' : '0') }}">
-                                @if($row->chronic_status === 'green')
-                                    <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->vn }}')" title="ผ่านเกณฑ์: มีรหัสโรคและยาเรื้อรังคู่กัน">
-                                        <i class="bi bi-eye-fill"></i>
-                                    </button>
-                                @elseif($row->chronic_status === 'red')
-                                    <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->vn }}')" title="ไม่สอดคล้อง: ขาดรหัสโรคหรือยาโรคเรื้อรัง">
+                            <td class="text-center" data-status="{{ $row->claim_status }}" data-order="{{ $row->claim_status === 'red' ? '1' : '0' }}">
+                                @if($row->claim_status === 'green')
+                                    <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->vn }}')" title="ความพร้อม: ข้อมูลพร้อมส่งออก (คลิกเพื่อดูรายละเอียด)">
                                         <i class="bi bi-eye-fill"></i>
                                     </button>
                                 @else
-                                    <button class="btn btn-sm btn-outline-secondary px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->vn }}')" title="ดูรายละเอียด">
+                                    <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->vn }}')" title="ความพร้อม: ข้อมูลไม่ผ่านเกณฑ์ (คลิกเพื่อดูหัวข้อที่ต้องแก้ไข)">
                                         <i class="bi bi-eye-fill"></i>
                                     </button>
                                 @endif
@@ -175,6 +172,15 @@
                                     <span class="d-none"></span>
                                 @endif
                             </td>
+                            <td class="text-center" data-order="{{ $row->chronic_status }}">
+                                @if($row->chronic_status === 'green')
+                                    <span class="badge bg-success" style="font-size:0.7rem; min-width:65px;"><i class="bi bi-check-circle-fill"></i> สอดคล้อง</span>
+                                @elseif($row->chronic_status === 'red')
+                                    <span class="badge bg-danger" style="font-size:0.7rem; min-width:65px;"><i class="bi bi-exclamation-triangle-fill"></i> ไม่สอดคล้อง</span>
+                                @else
+                                    <span class="badge bg-secondary" style="font-size:0.7rem; min-width:65px;">ทั่วไป</span>
+                                @endif
+                            </td>
                             <td class="text-end fw-bold text-dark small px-3">{{ $row->pdx }}</td>
                             <td class="text-start small px-3">
                                 <div class="text-dark">{{ $row->sdx }}</div>
@@ -194,7 +200,7 @@
                     </tbody>
                     <tfoot class="bg-light-soft">
                         <tr>
-                            <th colspan="{{ $is_ssop_licensed ? 10 : 9 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                            <th colspan="{{ $is_ssop_licensed ? 11 : 10 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                             <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                             <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                             <th class="text-end fw-bold text-primary">{{ number_format($sum_claim_price,2) }}</th>
@@ -386,7 +392,6 @@
                                 <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-billtran">
                                     <thead class="table-dark sticky-top">
                                         <tr>
-                                            <th>ตรวจสอบ</th>
                                             <th>Type</th>
                                             <th>DocNo</th>
                                             <th>InvDate</th>
@@ -433,7 +438,6 @@
                                 <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-billdisp">
                                     <thead class="table-dark sticky-top">
                                         <tr>
-                                            <th>ตรวจสอบ</th>
                                             <th>Hcode</th>
                                             <th>DispID</th>
                                             <th>PrescNo</th>
@@ -478,7 +482,6 @@
                                 <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-opservices">
                                     <thead class="table-dark sticky-top">
                                         <tr>
-                                            <th>ตรวจสอบ</th>
                                             <th>InvoiceNo</th>
                                             <th>VisitNo</th>
                                             <th>CareType</th>
@@ -641,7 +644,7 @@
               className: 'btn btn-success btn-sm shadow-sm',
               title: 'รายชื่อผู้มารับบริการ SS-OP ประกันสังคม เครือข่าย วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}',
               exportOptions: {
-                  columns: {!! $is_ssop_licensed ? '[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]' : '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]' !!},
+                  columns: {!! $is_ssop_licensed ? '[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]' : '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]' !!},
                   format: {
                       body: function (data, row, column, node) {
                           var $cell = $(node);
@@ -1085,7 +1088,6 @@
                             : `<span class="badge bg-danger" style="font-size:0.75rem; cursor:pointer;" title="${val.billtran_err}"><i class="bi bi-exclamation-triangle-fill"></i> ไม่ผ่าน</span>`;
                         
                         html1 += `<tr>
-                            <td>${statusBadge}</td>
                             <td>${fields[0] || ''}</td>
                             <td>${fields[1] || ''}</td>
                             <td>${fields[2] || ''}</td>
@@ -1121,7 +1123,6 @@
                             : `<span class="badge bg-danger" style="font-size:0.75rem; cursor:pointer;" title="${val.billdisp_err}"><i class="bi bi-exclamation-triangle-fill"></i> ไม่ผ่าน</span>`;
 
                         html2 += `<tr>
-                            <td>${statusBadge}</td>
                             <td>${fields[0] || ''}</td>
                             <td class="fw-bold text-primary">${fields[1] || ''}</td>
                             <td>${fields[2] || ''}</td>
@@ -1156,7 +1157,6 @@
                             : `<span class="badge bg-danger" style="font-size:0.75rem; cursor:pointer;" title="${val.opservices_err}"><i class="bi bi-exclamation-triangle-fill"></i> ไม่ผ่าน</span>`;
 
                         html3 += `<tr>
-                            <td>${statusBadge}</td>
                             <td>${fields[0] || ''}</td>
                             <td>${fields[1] || ''}</td>
                             <td><span class="badge bg-info">${fields[2] || ''}</span></td>
@@ -1323,8 +1323,8 @@
                 const errors = [];
                 const invoice_no = visit.sss_invno ? visit.sss_invno : (visit.debt_id_list ? visit.debt_id_list : '');
                 
-                // BILLTRAN checks
-                if (!invoice_no) {
+                // BILLTRAN checks (Treat 0 or '0' as empty)
+                if (!invoice_no || invoice_no === '0' || invoice_no === 0 || invoice_no === '0.00') {
                     errors.push("ไม่พบเลขใบแจ้งหนี้ (InvoiceNo) กรุณากดออกใบแจ้งหนี้ใน HOSxP");
                 }
                 if (!visit.cid || visit.cid.length !== 13) {
@@ -1345,12 +1345,10 @@
                     errors.push("ไม่พบรหัสวินิจฉัยโรคหลัก (PDX) กรุณาบันทึกแพทย์ผู้ตรวจโรค");
                 }
 
-                // Chronic matching checks
-                if (!visit.is_ncd) {
-                    errors.push("ผลการวินิจฉัยไม่พบรหัสโรคเรื้อรังที่เข้าเกณฑ์ SSOP");
-                }
-                if (visit.is_ncd && !visit.has_matching_category) {
-                    errors.push("ไม่พบการสอดคล้อง (Mismatch) ระหว่างรหัสโรคและหมวดหมู่ยาเรื้อรัง");
+                // Claim money checks (uc_money <= 0)
+                const uc_money = parseFloat(visit.uc_money || 0);
+                if (uc_money <= 0) {
+                    errors.push("ยอดเงินเรียกเก็บ (uc_money) น้อยกว่าหรือเท่ากับ 0 บาท (ไม่มีค่าใช้จ่ายที่จะเรียกเก็บ)");
                 }
 
                 // BILLDISP checks (Missing TMT codes)
@@ -1370,47 +1368,49 @@
                     ? '<span class="badge bg-success ms-2"><i class="bi bi-check-circle-fill"></i> พร้อมส่งออก (ผ่านเกณฑ์)</span>'
                     : '<span class="badge bg-danger ms-2"><i class="bi bi-exclamation-triangle-fill"></i> ไม่ผ่านเกณฑ์ (' + errors.length + ' ข้อ)</span>';
 
+                let warningHtml = '';
+                if (errors.length > 0) {
+                    warningHtml = `
+                    <div class="col-12">
+                      <div class="alert alert-danger py-2 px-3 mb-1 border-0 shadow-sm d-flex align-items-start small" style="background-color: #fef2f2; color: #991b1b; border-left: 5px solid #dc2626 !important;">
+                        <i class="bi bi-exclamation-triangle-fill me-2 mt-1" style="font-size: 1.1rem; color: #dc2626;"></i>
+                        <div>
+                          <div class="fw-bold mb-1 text-dark">เงื่อนไขที่ไม่พร้อมส่งออก (สาเหตุที่รูปตาขึ้นสีแดง):</div>
+                          <ul class="mb-0 ps-3">
+                            ${errors.map(err => `<li>${err}</li>`).join('')}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>`;
+                }
+
+                let pdx = visit.pdx || '-';
+                let sec_diags = [];
+                let procedures = [];
+
+                diagnoses.forEach(function(d) {
+                    if (d.diagtype == '2') {
+                        procedures.push(d.icd10);
+                    } else if (d.diagtype != '1') {
+                        sec_diags.push(d.icd10);
+                    }
+                });
+
                 let html = `
                 <div class="row g-3">
-                  <!-- Validation Card -->
-                  <div class="col-12">
-                    <div class="card border-0 shadow-sm" style="background-color: ${isValid ? '#f0fdf4' : '#fef2f2'}; border-left: 5px solid ${isValid ? '#16a34a' : '#dc2626'} !important; border: 1px solid ${isValid ? '#dcfce7' : '#fee2e2'};">
-                      <div class="card-body py-2 px-3">
-                        <div class="fw-bold text-dark mb-1 small d-flex align-items-center">
-                          <i class="bi ${isValid ? 'bi-check-circle-fill text-success' : 'bi-exclamation-triangle-fill text-danger'} me-2"></i>
-                          ผลการตรวจสอบสิทธิ์และโครงสร้างข้อมูล SSOP ${statusBadge}
-                        </div>
-                        ${isValid 
-                          ? '<div class="text-success small">ข้อมูลพร้อมสำหรับการส่งออกไฟล์ SSOP .txt</div>' 
-                          : '<ul class="mb-0 text-danger small ps-3">' + errors.map(err => `<li>${err}</li>`).join('') + '</ul>'
-                        }
-                      </div>
-                    </div>
-                  </div>
+                  ${warningHtml}
 
-                  <!-- Patient Info -->
+                  <!-- Patient & Financial Info -->
                   <div class="col-md-6">
                     <div class="card border-0 bg-light h-100">
                       <div class="card-body py-2 px-3">
-                        <div class="fw-bold text-primary mb-2 small"><i class="bi bi-person-fill me-1"></i>ข้อมูลผู้ป่วย</div>
+                        <div class="fw-bold text-primary mb-2 small"><i class="bi bi-person-fill me-1"></i>ข้อมูลผู้ป่วยและสิทธิ์การเงิน</div>
                         <table class="table table-sm table-borderless mb-0 small">
                           <tr><th class="text-muted" style="width:35%">HN</th><td class="fw-bold text-dark">${visit.hn}</td></tr>
                           <tr><th class="text-muted">CID</th><td class="text-dark">${visit.cid ?? '-'}</td></tr>
                           <tr><th class="text-muted">ชื่อ-สกุล</th><td class="text-dark">${visit.ptname}</td></tr>
                           <tr><th class="text-muted">สิทธิ์การรักษา</th><td class="text-dark">${visit.pttype_name ?? '-'}</td></tr>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Visit/Billing Info -->
-                  <div class="col-md-6">
-                    <div class="card border-0 bg-light h-100">
-                      <div class="card-body py-2 px-3">
-                        <div class="fw-bold text-primary mb-2 small"><i class="bi bi-receipt me-1"></i>ข้อมูลการเงินและบริการ</div>
-                        <table class="table table-sm table-borderless mb-0 small">
-                          <tr><th class="text-muted" style="width:35%">วันที่รับบริการ</th><td class="text-dark">${visit.vstdate} ${visit.vsttime}</td></tr>
-                          <tr><th class="text-muted">เลขใบแจ้งหนี้</th><td class="fw-bold ${invoice_no ? 'text-success' : 'text-danger'}">${invoice_no ? invoice_no : 'ไม่มี (VN: ' + vn + ')'}</td></tr>
+                          <tr><th class="text-muted">เลขใบแจ้งหนี้</th><td class="fw-bold ${invoice_no && invoice_no !== '0' ? 'text-success' : 'text-danger'}">${invoice_no && invoice_no !== '0' ? invoice_no : 'ไม่มี (VN: ' + vn + ')'}</td></tr>
                           <tr><th class="text-muted">รวมค่ารักษา</th><td class="text-dark">${parseFloat(visit.income).toFixed(2)} บาท</td></tr>
                           <tr><th class="text-muted">ชำระเงินจริง</th><td class="text-dark">${parseFloat(visit.rcpt_money).toFixed(2)} บาท</td></tr>
                         </table>
@@ -1418,32 +1418,21 @@
                     </div>
                   </div>
 
-                  <!-- Diagnosis Section -->
-                  <div class="col-12">
-                    <div class="fw-bold small text-dark mb-2"><i class="bi bi-clipboard2-pulse me-1"></i>รหัสการวินิจฉัยโรค (Diagnoses)</div>
-                    <table class="table table-sm table-hover align-middle mb-0 small border">
-                      <thead class="table-dark">
-                        <tr>
-                          <th>ประเภท</th>
-                          <th>รหัส ICD10</th>
-                          <th>โรคเรื้อรัง (NCD)</th>
-                        </tr>
-                      </thead>
-                      <tbody>`;
-
-                diagnoses.forEach(function(d) {
-                    let typeText = d.diagtype == '1' ? '<span class="badge bg-danger">วินิจฉัยหลัก (PDX)</span>' : '<span class="badge bg-secondary">วินิจฉัยร่วม (SDX)</span>';
-                    let chronicBadge = d.is_chronic 
-                        ? '<span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> เข้าเกณฑ์ NCD</span>' 
-                        : '<span class="text-muted">-</span>';
-                    html += `<tr>
-                      <td>${typeText}</td>
-                      <td class="fw-bold text-primary">${d.icd10}</td>
-                      <td>${chronicBadge}</td>
-                    </tr>`;
-                });
-
-                html += `</tbody></table></div>`;
+                  <!-- Clinical Info -->
+                  <div class="col-md-6">
+                    <div class="card border-0 bg-light h-100">
+                      <div class="card-body py-2 px-3">
+                        <div class="fw-bold text-primary mb-2 small"><i class="bi bi-clipboard2-pulse me-1"></i>ข้อมูลทางคลินิก</div>
+                        <table class="table table-sm table-borderless mb-0 small">
+                          <tr><th class="text-muted" style="width:35%">วันที่รับบริการ</th><td class="text-dark">${visit.vstdate} ${visit.vsttime}</td></tr>
+                          <tr><th class="text-muted">CC</th><td class="text-dark">${visit.cc ?? '-'}</td></tr>
+                          <tr><th class="text-muted">PDX</th><td class="fw-bold text-danger">${pdx}</td></tr>
+                          <tr><th class="text-muted">SDX</th><td class="text-dark">${sec_diags.join(', ') || '-'}</td></tr>
+                          <tr><th class="text-muted">ICD-9</th><td class="text-dark">${procedures.join(', ') || '-'}</td></tr>
+                        </table>
+                      </div>
+                    </div>
+                  </div>`;
 
                 // Drugs Section
                 html += `

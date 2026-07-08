@@ -4301,8 +4301,9 @@ class ClaimOpController extends Controller
             MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
-            v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,
-            d.receive AS receive_total
+            v.income, v.uc_money, IFNULL(rc.rcpt_money, 0) AS rcpt_money, v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,
+            d.receive AS receive_total,
+            v.debt_id_list, osb.invno AS sss_invno, osb.billno AS sss_billno
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -4310,6 +4311,7 @@ class ClaimOpController extends Controller
             LEFT JOIN opdscreen os ON os.vn=o.vn
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN ovst_sss_billtran osb ON osb.vn = o.vn
             LEFT JOIN (
                 SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r
@@ -4445,6 +4447,17 @@ class ClaimOpController extends Controller
             } else {
                 $row->chronic_status = 'grey';
             }
+
+            // Calculate general readiness claim_status based ONLY on: InvoiceNo, PDX, and uc_money > 0
+            $invoice_no = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
+            $has_pdx = !empty($row->pdx);
+            $has_claim_money = floatval($row->uc_money) > 0;
+            
+            if (!empty($invoice_no) && $invoice_no !== '0' && $invoice_no !== '0.00' && $has_pdx && $has_claim_money) {
+                $row->claim_status = 'green';
+            } else {
+                $row->claim_status = 'red';
+            }
         }
 
         return view('claim_op.sss_main', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'claim'));
@@ -4459,7 +4472,7 @@ class ClaimOpController extends Controller
 
         $visit = DB::connection('hosxp')->selectOne('
             SELECT o.vstdate, o.vsttime, pt.hn, CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, pt.cid,
-                   p.name AS pttype_name, os.cc, v.pdx, v.income, IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+                   p.name AS pttype_name, os.cc, v.pdx, v.income, v.uc_money, IFNULL(rc.rcpt_money, 0) AS rcpt_money,
                    v.debt_id_list, osb.invno AS sss_invno, osb.billno AS sss_billno
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn

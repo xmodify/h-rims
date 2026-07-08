@@ -1454,6 +1454,13 @@
         const body = document.getElementById('detailsModalBody');
         if (!body) return;
         body.innerHTML = '<div class="text-center text-muted py-4"><i class="bi bi-arrow-repeat spin me-2"></i>กำลังโหลด...</div>';
+        
+        // Clear footer summary immediately to prevent showing previous patient's details
+        const footerSummary = document.getElementById('detailsModalFooterSummary');
+        if (footerSummary) {
+            footerSummary.innerHTML = '';
+        }
+        
         $('#detailsModal').modal('show');
 
         $.get("{{ url('claim_op/sss_detail') }}", { vn: vn })

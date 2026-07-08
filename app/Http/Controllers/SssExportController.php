@@ -46,10 +46,24 @@ class SssExportController extends Controller
 
         $visits_map = $visits->keyBy('vn');
 
+        // Query REP invoices to match against multiple HOSxP invoices
+        $vns_list = $visits->pluck('vn')->toArray();
+        $rep_invs_by_vn = [];
+        if (!empty($vns_list)) {
+            $rep_records = DB::table('sss_ssop_rep')
+                ->whereIn('vn', $vns_list)
+                ->select('vn', 'invno')
+                ->get();
+            foreach ($rep_records as $r) {
+                $rep_invs_by_vn[$r->vn][] = trim($r->invno);
+            }
+        }
+
         // 1. Generate BILLTRAN & BillItems content
         $billtran_rows = [];
         foreach ($visits as $row) {
-            $invoice_no = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
+            $raw_invo = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
+            $invoice_no = $this->resolve_invoice_no($row->vn, $raw_invo, $rep_invs_by_vn);
             $sub_id = !empty($row->sss_billno) ? $row->sss_billno : '';
             $ptname = trim($row->pname . $row->fname . ' ' . $row->lname);
             $spclty = !empty($row->spclty) ? str_pad($row->spclty, 2, '0', STR_PAD_LEFT) : '01';
@@ -109,7 +123,8 @@ class SssExportController extends Controller
         foreach ($billitems_raw as $item) {
             $v = $visits_map->get($item->vn);
             if (!$v) continue;
-            $invoice_no = !empty($v->sss_invno) ? $v->sss_invno : (!empty($v->debt_id_list) ? $v->debt_id_list : '');
+            $raw_invo = !empty($v->sss_invno) ? $v->sss_invno : (!empty($v->debt_id_list) ? $v->debt_id_list : '');
+            $invoice_no = $this->resolve_invoice_no($v->vn, $raw_invo, $rep_invs_by_vn);
             $billgr = $map_income_to_ssop_group($item->income);
             $name = trim($item->drug_name ?: $item->nondrug_name ?: '');
             $qty = number_format($item->qty, 0, '.', '');
@@ -177,7 +192,8 @@ class SssExportController extends Controller
             $v = $visits_map->get($item->vn);
             if (!$v) continue;
 
-            $invoice_no = !empty($v->sss_invno) ? $v->sss_invno : (!empty($v->debt_id_list) ? $v->debt_id_list : '');
+            $raw_invo = !empty($v->sss_invno) ? $v->sss_invno : (!empty($v->debt_id_list) ? $v->debt_id_list : '');
+            $invoice_no = $this->resolve_invoice_no($v->vn, $raw_invo, $rep_invs_by_vn);
             $rx_no = !empty($item->hos_guid) ? substr(preg_replace('/[^0-9]/', '', $item->hos_guid), 0, 9) : $item->vn;
             if (empty($rx_no)) $rx_no = $item->vn;
             $disp_id = "{$rx_no}_{$invoice_no}";
@@ -243,7 +259,8 @@ class SssExportController extends Controller
         $opdx_rows = [];
 
         foreach ($visits as $row) {
-            $invoice_no = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
+            $raw_invo = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
+            $invoice_no = $this->resolve_invoice_no($row->vn, $raw_invo, $rep_invs_by_vn);
             $start_dt = "{$row->vstdate}T{$row->vsttime}";
             $end_dt = "{$row->vstdate}T" . date('H:i:s', strtotime($row->vsttime . ' + 2 hours'));
             
@@ -351,13 +368,26 @@ class SssExportController extends Controller
             $opdx_table[] = $fields;
         }
 
+        // Query REP invoices for validation matching
+        $rep_invs_by_vn = [];
+        if (!empty($vns)) {
+            $rep_records = DB::table('sss_ssop_rep')
+                ->whereIn('vn', $vns)
+                ->select('vn', 'invno')
+                ->get();
+            foreach ($rep_records as $r) {
+                $rep_invs_by_vn[$r->vn][] = trim($r->invno);
+            }
+        }
+
         // Perform backend validation to detect missing required fields
         $validation = [];
         foreach ($data['visits_list'] as $row) {
             $vn = $row->vn;
             $errors = [];
 
-            $invoice_no = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
+            $raw_invo = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
+            $invoice_no = $this->resolve_invoice_no($vn, $raw_invo, $rep_invs_by_vn);
             
             // 1. BILLTRAN checks
             if (empty($invoice_no)) {
@@ -478,4 +508,39 @@ class SssExportController extends Controller
 
         return response()->download($zip_path)->deleteFileAfterSend(true);
     }
+
+    /**
+     * Resolve single invoice number from HOSxP and REP records
+     */
+    private function resolve_invoice_no($vn, $raw_invo, $rep_invs_by_vn = [])
+    {
+        if (empty($raw_invo)) {
+            return '';
+        }
+        
+        $h_invoices = [];
+        foreach (explode(',', $raw_invo) as $part) {
+            foreach (explode('.', $part) as $subpart) {
+                $trimmed = trim($subpart);
+                if ($trimmed !== '') {
+                    $h_invoices[] = $trimmed;
+                }
+            }
+        }
+        
+        if (count($h_invoices) <= 1) {
+            return !empty($h_invoices) ? $h_invoices[0] : '';
+        }
+        
+        if (isset($rep_invs_by_vn[$vn])) {
+            foreach ($h_invoices as $h_inv) {
+                if (in_array($h_inv, $rep_invs_by_vn[$vn])) {
+                    return $h_inv;
+                }
+            }
+        }
+        
+        return $h_invoices[0];
+    }
+
 }

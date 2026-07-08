@@ -774,6 +774,9 @@
         lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"]],
         order: [[{{ $is_ssop_licensed ? 1 : 0 }}, 'desc']],
         columnDefs: [
+            @if($is_ssop_licensed)
+            { targets: 0, orderable: false, searchable: false },
+            @endif
             { targets: {{ $is_ssop_licensed ? 1 : 0 }}, orderDataType: 'dom-status', orderSequence: ['desc', 'asc'] }
         ],
         dom: '<"row mb-3"' +
@@ -1316,9 +1319,11 @@
         return `${day} ${shortMonths[month]} ${shortYear}`;
     }
 
-    // Select all / Deselect all claims
+    // Select all / Deselect all claims (handles all paginated rows in DataTable)
     $(document).on('change', '#select_all_claims', function() {
-        $('.claim-select-check').prop('checked', this.checked);
+        var table = $('#t_claim').DataTable();
+        var rows = table.rows({ search: 'applied' }).nodes();
+        $('.claim-select-check', rows).prop('checked', this.checked);
     });
 
     function exportSelectedSSOP() {

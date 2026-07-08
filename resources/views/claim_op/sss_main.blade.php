@@ -1305,6 +1305,186 @@
     $('#previewTab button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
         $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
     });
+
+    // Custom showDetails function to display SSOP validation checks on the eye button
+    window.showDetails = function(vn) {
+        const body = document.getElementById('detailsModalBody');
+        if (!body) return;
+        body.innerHTML = '<div class="text-center text-muted py-4"><i class="bi bi-arrow-repeat spin me-2"></i>กำลังโหลด...</div>';
+        $('#detailsModal').modal('show');
+
+        $.get("{{ url('claim_op/sss_detail') }}", { vn: vn })
+            .done(function(data) {
+                const visit = data.visit;
+                const diagnoses = data.diagnoses;
+                const drugs = data.drugs;
+
+                // 1. Run Validation Checks
+                const errors = [];
+                const invoice_no = visit.sss_invno ? visit.sss_invno : (visit.debt_id_list ? visit.debt_id_list : '');
+                
+                // BILLTRAN checks
+                if (!invoice_no) {
+                    errors.push("ไม่พบเลขใบแจ้งหนี้ (InvoiceNo) กรุณากดออกใบแจ้งหนี้ใน HOSxP");
+                }
+                if (!visit.cid || visit.cid.length !== 13) {
+                    errors.push("เลขบัตรประชาชน (CID) ว่างหรือความยาวไม่ครบ 13 หลัก");
+                }
+                if (!visit.hn) {
+                    errors.push("ไม่พบ HN");
+                }
+
+                // OPServices checks
+                let has_pdx = false;
+                diagnoses.forEach(function(d) {
+                    if (d.diagtype == '1') {
+                        has_pdx = true;
+                    }
+                });
+                if (!has_pdx) {
+                    errors.push("ไม่พบรหัสวินิจฉัยโรคหลัก (PDX) กรุณาบันทึกแพทย์ผู้ตรวจโรค");
+                }
+
+                // Chronic matching checks
+                if (!visit.is_ncd) {
+                    errors.push("ผลการวินิจฉัยไม่พบรหัสโรคเรื้อรังที่เข้าเกณฑ์ SSOP");
+                }
+                if (visit.is_ncd && !visit.has_matching_category) {
+                    errors.push("ไม่พบการสอดคล้อง (Mismatch) ระหว่างรหัสโรคและหมวดหมู่ยาเรื้อรัง");
+                }
+
+                // BILLDISP checks (Missing TMT codes)
+                let missing_tmt = false;
+                drugs.forEach(function(d) {
+                    if (!d.tmtid) {
+                        missing_tmt = true;
+                    }
+                });
+                if (missing_tmt) {
+                    errors.push("มียาบางรายการไม่มีรหัสมาตรฐาน TMT");
+                }
+
+                // Status Badge
+                const isValid = errors.length === 0;
+                const statusBadge = isValid
+                    ? '<span class="badge bg-success ms-2"><i class="bi bi-check-circle-fill"></i> พร้อมส่งออก (ผ่านเกณฑ์)</span>'
+                    : '<span class="badge bg-danger ms-2"><i class="bi bi-exclamation-triangle-fill"></i> ไม่ผ่านเกณฑ์ (' + errors.length + ' ข้อ)</span>';
+
+                let html = `
+                <div class="row g-3">
+                  <!-- Validation Card -->
+                  <div class="col-12">
+                    <div class="card border-0 shadow-sm" style="background-color: ${isValid ? '#f0fdf4' : '#fef2f2'}; border-left: 5px solid ${isValid ? '#16a34a' : '#dc2626'} !important; border: 1px solid ${isValid ? '#dcfce7' : '#fee2e2'};">
+                      <div class="card-body py-2 px-3">
+                        <div class="fw-bold text-dark mb-1 small d-flex align-items-center">
+                          <i class="bi ${isValid ? 'bi-check-circle-fill text-success' : 'bi-exclamation-triangle-fill text-danger'} me-2"></i>
+                          ผลการตรวจสอบสิทธิ์และโครงสร้างข้อมูล SSOP ${statusBadge}
+                        </div>
+                        ${isValid 
+                          ? '<div class="text-success small">ข้อมูลพร้อมสำหรับการส่งออกไฟล์ SSOP .txt</div>' 
+                          : '<ul class="mb-0 text-danger small ps-3">' + errors.map(err => `<li>${err}</li>`).join('') + '</ul>'
+                        }
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Patient Info -->
+                  <div class="col-md-6">
+                    <div class="card border-0 bg-light h-100">
+                      <div class="card-body py-2 px-3">
+                        <div class="fw-bold text-primary mb-2 small"><i class="bi bi-person-fill me-1"></i>ข้อมูลผู้ป่วย</div>
+                        <table class="table table-sm table-borderless mb-0 small">
+                          <tr><th class="text-muted" style="width:35%">HN</th><td class="fw-bold text-dark">${visit.hn}</td></tr>
+                          <tr><th class="text-muted">CID</th><td class="text-dark">${visit.cid ?? '-'}</td></tr>
+                          <tr><th class="text-muted">ชื่อ-สกุล</th><td class="text-dark">${visit.ptname}</td></tr>
+                          <tr><th class="text-muted">สิทธิ์การรักษา</th><td class="text-dark">${visit.pttype_name ?? '-'}</td></tr>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Visit/Billing Info -->
+                  <div class="col-md-6">
+                    <div class="card border-0 bg-light h-100">
+                      <div class="card-body py-2 px-3">
+                        <div class="fw-bold text-primary mb-2 small"><i class="bi bi-receipt me-1"></i>ข้อมูลการเงินและบริการ</div>
+                        <table class="table table-sm table-borderless mb-0 small">
+                          <tr><th class="text-muted" style="width:35%">วันที่รับบริการ</th><td class="text-dark">${visit.vstdate} ${visit.vsttime}</td></tr>
+                          <tr><th class="text-muted">เลขใบแจ้งหนี้</th><td class="fw-bold ${invoice_no ? 'text-success' : 'text-danger'}">${invoice_no ? invoice_no : 'ไม่มี (VN: ' + vn + ')'}</td></tr>
+                          <tr><th class="text-muted">รวมค่ารักษา</th><td class="text-dark">${parseFloat(visit.income).toFixed(2)} บาท</td></tr>
+                          <tr><th class="text-muted">ชำระเงินจริง</th><td class="text-dark">${parseFloat(visit.rcpt_money).toFixed(2)} บาท</td></tr>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Diagnosis Section -->
+                  <div class="col-12">
+                    <div class="fw-bold small text-dark mb-2"><i class="bi bi-clipboard2-pulse me-1"></i>รหัสการวินิจฉัยโรค (Diagnoses)</div>
+                    <table class="table table-sm table-hover align-middle mb-0 small border">
+                      <thead class="table-dark">
+                        <tr>
+                          <th>ประเภท</th>
+                          <th>รหัส ICD10</th>
+                          <th>โรคเรื้อรัง (NCD)</th>
+                        </tr>
+                      </thead>
+                      <tbody>`;
+
+                diagnoses.forEach(function(d) {
+                    let typeText = d.diagtype == '1' ? '<span class="badge bg-danger">วินิจฉัยหลัก (PDX)</span>' : '<span class="badge bg-secondary">วินิจฉัยร่วม (SDX)</span>';
+                    let chronicBadge = d.is_chronic 
+                        ? '<span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> เข้าเกณฑ์ NCD</span>' 
+                        : '<span class="text-muted">-</span>';
+                    html += `<tr>
+                      <td>${typeText}</td>
+                      <td class="fw-bold text-primary">${d.icd10}</td>
+                      <td>${chronicBadge}</td>
+                    </tr>`;
+                });
+
+                html += `</tbody></table></div>`;
+
+                // Drugs Section
+                html += `
+                  <!-- Drugs Section -->
+                  <div class="col-12 mt-2">
+                    <div class="fw-bold small text-dark mb-2"><i class="bi bi-capsule me-1"></i>รายการสั่งจ่ายยาโรคเรื้อรัง (Chronic Drugs)</div>
+                    <table class="table table-sm table-hover align-middle mb-0 small border">
+                      <thead class="table-dark">
+                        <tr>
+                          <th>ชื่อยา</th>
+                          <th class="text-center">จำนวน</th>
+                          <th class="text-end">ราคารวม</th>
+                          <th>รหัสมาตรฐาน TMT</th>
+                        </tr>
+                      </thead>
+                      <tbody>`;
+
+                if (drugs.length === 0) {
+                    html += `<tr><td colspan="4" class="text-center text-muted py-3">ไม่พบรายการสั่งยาใน Visit นี้</td></tr>`;
+                } else {
+                    drugs.forEach(function(d) {
+                        let tmtDisplay = d.tmtid 
+                            ? `<span class="badge bg-success fw-bold">${d.tmtid}</span>`
+                            : `<span class="badge bg-danger"><i class="bi bi-exclamation-triangle-fill"></i> ไม่มีรหัส TMT</span>`;
+                        html += `<tr>
+                          <td>${d.name}</td>
+                          <td class="text-center fw-bold">${d.qty}</td>
+                          <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
+                          <td>${tmtDisplay}</td>
+                        </tr>`;
+                    });
+                }
+
+                html += `</tbody></table></div></div>`;
+
+                body.innerHTML = html;
+            })
+            .fail(function(xhr) {
+                body.innerHTML = `<div class="alert alert-danger mb-0">เกิดข้อผิดพลาดในการโหลดรายละเอียด: ${xhr.statusText}</div>`;
+            });
+    };
   </script>
 @endpush
 

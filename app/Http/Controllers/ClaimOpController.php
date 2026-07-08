@@ -4459,13 +4459,15 @@ class ClaimOpController extends Controller
 
         $visit = DB::connection('hosxp')->selectOne('
             SELECT o.vstdate, o.vsttime, pt.hn, CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, pt.cid,
-                   p.name AS pttype_name, os.cc, v.pdx, v.income, IFNULL(rc.rcpt_money, 0) AS rcpt_money
+                   p.name AS pttype_name, os.cc, v.pdx, v.income, IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+                   v.debt_id_list, osb.invno AS sss_invno, osb.billno AS sss_billno
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
             LEFT JOIN pttype p ON p.pttype = vp.pttype
             LEFT JOIN opdscreen os ON os.vn = o.vn
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN ovst_sss_billtran osb ON osb.vn = o.vn
             LEFT JOIN (
                 SELECT r.vn, SUM(r.total_amount) AS rcpt_money
                 FROM rcpt_print r

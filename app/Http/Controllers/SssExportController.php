@@ -26,8 +26,8 @@ class SssExportController extends Controller
         });
 
         // Current timestamp formatted for SSOP
-        $datetime = date('Y-m-d H:i:ss');
-        $datetime_iso = date('Y-m-d\TH:i:ss');
+        $datetime = date('Y-m-d H:i:s');
+        $datetime_iso = date('Y-m-d\TH:i:s');
         $date_suffix = date('Ymd');
 
         // Fetch visits (Raw SQL with LEFT JOIN ovst_sss_billtran to pull actual HOSxP invoice numbers)
@@ -74,7 +74,8 @@ class SssExportController extends Controller
             $income = number_format($row->income, 2, '.', '');
             $claim = number_format($row->uc_money, 2, '.', '');
             
-            $billtran_rows[] = "01||{$row->vstdate} {$row->vsttime}|{$hcode}|{$invoice_no}|{$sub_id}|{$row->hn}||{$income}|{$paid}||{$tflag}|{$row->cid}|{$ptname}|{$row->hospmain}|{$payplan}|{$claim}||0.00";
+            $dttran = date('Y-m-d\TH:i:s', strtotime("{$row->vstdate} {$row->vsttime}"));
+            $billtran_rows[] = "01||{$dttran}|{$hcode}|{$invoice_no}|{$sub_id}|{$row->hn}||{$income}|{$paid}||{$tflag}|{$row->cid}|{$ptname}|{$row->hospmain}|{$payplan}|{$claim}||0.00";
         }
 
         // Fetch BillItems (Raw SQL for all items/charges prescribed in these visits)
@@ -150,7 +151,7 @@ class SssExportController extends Controller
             '<Header>' . "\r\n" .
             "<HCODE>{$hcode}</HCODE>\r\n" .
             "<HNAME>{$hname}</HNAME>\r\n" .
-            "<DATETIME>{$datetime}</DATETIME>\r\n" .
+            "<DATETIME>{$datetime_iso}</DATETIME>\r\n" .
             "<SESSNO>{$sess_no}</SESSNO>\r\n" .
             "<RECCOUNT>{$billtran_count}</RECCOUNT>\r\n" .
             '</Header>' . "\r\n" .
@@ -207,8 +208,9 @@ class SssExportController extends Controller
 
             // Group Dispensing rows by unique disp_id
             if (!isset($disp_sessions[$disp_id])) {
-                $disp_date = "{$v->vstdate}T{$v->vsttime}";
-                $end_date = "{$v->vstdate}T" . (!empty($item->rxtime) ? $item->rxtime : date('H:i:s', strtotime($v->vsttime . ' + 30 minutes')));
+                $disp_date = date('Y-m-d\TH:i:s', strtotime("{$v->vstdate} {$v->vsttime}"));
+                $rxtime_val = !empty($item->rxtime) ? $item->rxtime : date('H:i:s', strtotime($v->vsttime . ' + 30 minutes'));
+                $end_date = date('Y-m-d\TH:i:s', strtotime("{$v->vstdate} {$rxtime_val}"));
                 $license = !empty($v->rx_license_no) ? $v->rx_license_no : '-';
                 
                 // Count items in this session
@@ -273,8 +275,8 @@ class SssExportController extends Controller
         foreach ($visits as $row) {
             $raw_invo = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
             $invoice_no = $this->resolve_invoice_no($row->vn, $raw_invo, $rep_invs_by_vn);
-            $start_dt = "{$row->vstdate}T{$row->vsttime}";
-            $end_dt = "{$row->vstdate}T" . date('H:i:s', strtotime($row->vsttime . ' + 2 hours'));
+            $start_dt = date('Y-m-d\TH:i:s', strtotime("{$row->vstdate} {$row->vsttime}"));
+            $end_dt = date('Y-m-d\TH:i:s', strtotime("{$row->vstdate} {$row->vsttime} + 2 hours"));
             
             // Fetch diagnosis
             $diags = DB::connection('hosxp')->select("

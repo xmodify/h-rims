@@ -646,6 +646,138 @@ class ImportSssController extends Controller
     }
 
     /**
+     * Import Chronic Disease Registered Patient Database ZIP (ACDCONF excel inside)
+     */
+    public function import_chronic_register(Request $request)
+    {
+        $request->validate([
+            'zip_file' => 'required|file|mimes:zip',
+        ]);
+
+        $file = $request->file('zip_file');
+        $uniqueId = uniqid('sss_chronic_reg_');
+        $extractPath = storage_path('app/tmp_sss_chronic_reg_import/' . $uniqueId);
+
+        try {
+            $zip = new ZipArchive();
+            if ($zip->open($file->getRealPath()) !== true) {
+                return response()->json(['success' => false, 'message' => 'ไฟล์ ZIP เสียหาย (ไม่สามารถเปิดไฟล์ได้)'], 400);
+            }
+            if (!File::exists($extractPath)) {
+                File::makeDirectory($extractPath, 0755, true);
+            }
+            $zip->extractTo($extractPath);
+            $zip->close();
+        } catch (\Throwable $e) {
+            if (File::exists($extractPath)) {
+                File::deleteDirectory($extractPath);
+            }
+            return response()->json(['success' => false, 'message' => 'เกิดข้อผิดพลาดในการแตกไฟล์ ZIP: ' . $e->getMessage()], 400);
+        }
+
+        try {
+            $files = File::files($extractPath);
+            $processedCount = 0;
+            $acdconf_file = null;
+
+            foreach ($files as $f) {
+                $fileName = $f->getFilename();
+                $ext = strtolower($f->getExtension());
+                if (str_contains(strtoupper($fileName), 'ACDCONF') && ($ext === 'xlsx' || $ext === 'xls')) {
+                    $acdconf_file = $f;
+                    break;
+                }
+            }
+
+            if (!$acdconf_file) {
+                $foundFiles = [];
+                foreach ($files as $f) {
+                    $foundFiles[] = $f->getFilename();
+                }
+                $filesStr = !empty($foundFiles) ? ' (พบไฟล์ด้านใน: ' . implode(', ', $foundFiles) . ')' : ' (ไม่พบไฟล์ใดๆ ด้านใน ZIP)';
+                File::deleteDirectory($extractPath);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ไม่พบไฟล์บัญชีโรคเรื้อรัง (ACDCONF) ภายในไฟล์ ZIP' . $filesStr
+                ], 400);
+            }
+
+            $fileName = $acdconf_file->getFilename();
+            DB::table('sss_chronic_register')->where('import_file', $fileName)->delete();
+
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($acdconf_file->getRealPath());
+            $sheet = $spreadsheet->getActiveSheet();
+            $rows = $sheet->toArray(null, true, true, true);
+
+            $inserts = [];
+            $lineCount = 0;
+            foreach ($rows as $row) {
+                $lineCount++;
+                if ($lineCount <= 2) {
+                    continue; // Skip header rows
+                }
+
+                $cid = isset($row['E']) ? trim($row['E']) : null;
+                if (empty($cid) || !is_numeric($cid)) {
+                    continue;
+                }
+
+                $type = isset($row['B']) ? trim($row['B']) : null;
+                $chronic_code = isset($row['C']) ? trim($row['C']) : null;
+                $case_id = isset($row['D']) ? trim($row['D']) : null;
+
+                $first_date = null;
+                if (!empty($row['F'])) {
+                    $rawDate = trim($row['F']);
+                    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawDate)) {
+                        $first_date = $rawDate;
+                    } else {
+                        try {
+                            $first_date = date('Y-m-d', strtotime($rawDate));
+                        } catch (\Throwable $ex) {}
+                    }
+                }
+
+                $confirm_round = isset($row['O']) ? trim($row['O']) : null;
+
+                $inserts[] = [
+                    'import_file' => $fileName,
+                    'type' => $type,
+                    'chronic_code' => $chronic_code,
+                    'case_id' => $case_id,
+                    'cid' => $cid,
+                    'first_date' => $first_date,
+                    'confirm_round' => $confirm_round,
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+                $processedCount++;
+
+                if (count($inserts) >= 100) {
+                    DB::table('sss_chronic_register')->insert($inserts);
+                    $inserts = [];
+                }
+            }
+
+            if (!empty($inserts)) {
+                DB::table('sss_chronic_register')->insert($inserts);
+            }
+
+            File::deleteDirectory($extractPath);
+            return response()->json([
+                'success' => true,
+                'message' => "นำเข้าบัญชีการยืนยันโรคเรื้อรัง (ACDCONF) สำเร็จเรียบร้อยแล้ว (ประมวลผลทั้งหมด $processedCount รายการ)"
+            ]);
+
+        } catch (\Throwable $e) {
+            if (File::exists($extractPath)) {
+                File::deleteDirectory($extractPath);
+            }
+            return response()->json(['success' => false, 'message' => 'เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
      * Unified list helper to fetch feedback tables data
      */
     public function get_feedback_list(Request $request)
@@ -684,13 +816,24 @@ class ImportSssController extends Controller
                 ->limit(300)
                 ->get();
 
-            // Filter out from list22 any patient who is already in list21 (by PID)
+            // Filter out from list22 any patient who is already in list21 (by PID) or already registered in sss_chronic_register
             $pidsIn21 = $list21->pluck('pid')->filter()->unique()->toArray();
             $filteredList22 = [];
             foreach ($list22 as $row) {
                 if (!empty($row->pid) && in_array($row->pid, $pidsIn21)) {
                     continue;
                 }
+                
+                if (!empty($row->pid)) {
+                    // Check if already registered in the chronic registry (at all)
+                    $is_registered = DB::table('sss_chronic_register')
+                        ->where('cid', $row->pid)
+                        ->exists();
+                    if ($is_registered) {
+                        continue; // Skip since registered
+                    }
+                }
+                
                 $filteredList22[] = $row;
             }
             $list22 = collect($filteredList22);

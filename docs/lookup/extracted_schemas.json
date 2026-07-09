@@ -9334,7 +9334,26 @@
                 "extra": ""
             }
         },
-        "indexes": []
+        "indexes": {
+            "drugcat_chi_hospdrugcode_index": [
+                {
+                    "column": "hospdrugcode",
+                    "unique": false
+                }
+            ],
+            "drugcat_chi_date_approved_index": [
+                {
+                    "column": "date_approved",
+                    "unique": false
+                }
+            ],
+            "drugcat_chi_updateflag_index": [
+                {
+                    "column": "updateflag",
+                    "unique": false
+                }
+            ]
+        }
     },
     "drugcat_fdh": {
         "columns": {
@@ -18234,6 +18253,90 @@
             "sss_chronic_dttran_index": [
                 {
                     "column": "dttran",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "sss_chronic_register": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "import_file": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "type": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "chronic_code": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "case_id": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cid": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "first_date": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "confirm_round": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "sss_chronic_register_cid_index": [
+                {
+                    "column": "cid",
+                    "unique": false
+                }
+            ],
+            "sss_chronic_register_code_index": [
+                {
+                    "column": "chronic_code",
                     "unique": false
                 }
             ]

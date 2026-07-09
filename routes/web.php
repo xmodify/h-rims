@@ -332,6 +332,7 @@ Route::match(['get', 'post'], 'claim_op/sss_fund', [ClaimOpController::class, 's
 Route::match(['get', 'post'], 'claim_op/sss_main', [ClaimOpController::class, 'sss_main']);
 Route::get('claim_op/sss_detail', [ClaimOpController::class, 'sss_detail']);
     Route::post('claim_op/sss_chronic_import', [ImportSssController::class, 'import_chronic']);
+    Route::post('claim_op/sss_chronic_register_import', [ImportSssController::class, 'import_chronic_register']);
     Route::post('claim_op/sss_rep_import', [ImportSssController::class, 'import_rep']);
     Route::post('claim_op/sss_stm_import', [ImportSssController::class, 'import_stm']);
     Route::get('claim_op/sss_chronic_feedback_list', [ImportSssController::class, 'get_feedback_list']);

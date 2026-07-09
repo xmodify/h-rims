@@ -82,10 +82,11 @@ class SssExportController extends Controller
         $billitems_raw = DB::connection('hosxp')->select("
             SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price, op.income, op.hos_guid,
                    sd.name AS drug_name, n.name AS nondrug_name,
-                   COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid
+                   COALESCE(nd.tmtid, di.sks_drug_code) AS tmtid
             FROM opitemrece op
             LEFT JOIN s_drugitems sd ON sd.icode = op.icode
             LEFT JOIN nondrugitems n ON n.icode = op.icode
+            LEFT JOIN drugitems di ON di.icode = op.icode
             LEFT JOIN hrims.drugcat_chi nd ON nd.hospdrugcode = op.icode 
                 AND nd.date_approved = (
                     SELECT MAX(nd1.date_approved) 
@@ -174,7 +175,7 @@ class SssExportController extends Controller
         // Fetch drug items (excluding icode LIKE '1%' to warn about bad registration items in s_drugitems)
         $disp_items = DB::connection('hosxp')->select("
             SELECT op.vn, op.icode, op.qty, op.sum_price, op.unitprice, op.hos_guid, op.rxtime,
-                   COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
+                   COALESCE(nd.tmtid, di.sks_drug_code) AS tmtid,
                    sd.name, sd.sks_product_category_id,
                    di.capacity_name, di.capacity_qty,
                    op.drugusage, du.opi_usage_code, du.opi_unit_name,
@@ -191,6 +192,7 @@ class SssExportController extends Controller
                     AND nd1.updateflag IN ('A','U','E')
                 )
             WHERE op.vn IN ($visits_placeholders)
+            AND op.icode LIKE '1%'
         ", $vns);
 
         foreach ($disp_items as $item) {

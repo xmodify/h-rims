@@ -335,6 +335,13 @@
                                     <i class="bi bi-file-medical fs-5"></i> นำเข้าข้อมูลโรคเรื้อรัง
                                 </button>
                             </div>
+                            <!-- ปุ่มที่ 4: นำเข้าบัญชีโรคเรื้อรัง -->
+                            <div>
+                                <input type="file" id="zip_file_chronic_reg" style="display: none;" accept=".zip" multiple onchange="uploadSssZip('chronic_reg')">
+                                <button type="button" class="btn btn-warning text-dark px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" onclick="document.getElementById('zip_file_chronic_reg').click()">
+                                    <i class="bi bi-journal-medical fs-5"></i> นำเข้าบัญชีโรคเรื้อรัง
+                                </button>
+                            </div>
                         </div>
                     </div>
                     
@@ -897,6 +904,10 @@
             url = "{{ url('claim_op/sss_chronic_import') }}";
             title = 'นำเข้าข้อมูลโรคเรื้อรัง';
             isChronic = true;
+        } else if (type === 'chronic_reg') {
+            inputId = 'zip_file_chronic_reg';
+            url = "{{ url('claim_op/sss_chronic_register_import') }}";
+            title = 'นำเข้าบัญชีโรคเรื้อรัง';
         } else if (type === 'stm') {
             inputId = 'zip_file_stm';
             url = "{{ url('claim_op/sss_stm_import') }}";
@@ -922,15 +933,18 @@
                 detectedType = 'rep';
             } else if (nameUpper.includes('STM') || nameUpper.includes('SOGNSTM')) {
                 detectedType = 'stm';
+            } else if (nameUpper.includes('ACDCONF')) {
+                detectedType = 'chronic_reg';
             } else if (nameUpper.includes('ACD') || nameUpper.includes('SOCDACD') || nameUpper.includes('REPACD') || nameUpper.includes('REPACDP') || nameUpper.includes('CHRONIC')) {
-                detectedType = 'chronic';
+                detectedType = (type === 'chronic_reg') ? 'chronic_reg' : 'chronic';
             } else if (nameUpper.includes('REP')) {
                 detectedType = 'rep';
             }
 
             if (type !== detectedType) {
                 let expectedText = 'REP';
-                if (type === 'chronic') expectedText = 'โรคเรื้อรัง';
+                if (type === 'chronic') expectedText = 'โรคเรื้อรัง (ผลตอบกลับ)';
+                if (type === 'chronic_reg') expectedText = 'บัญชีผู้ป่วยโรคเรื้อรัง (ACDCONF)';
                 if (type === 'stm') expectedText = 'การจ่ายเงิน (STM)';
 
                 Swal.fire({
@@ -1497,11 +1511,7 @@
                     }
 
                     // Reset active tab to the first tab (Pre-Audit)
-                    var tabEl = document.querySelector('#prev-audit-tab');
-                    if (tabEl) {
-                        var tab = new bootstrap.Tab(tabEl);
-                        tab.show();
-                    }
+                    $('#prev-audit-tab').tab('show');
 
                     // Open Preview Modal
                     $('#ssopPreviewModal').modal('show');

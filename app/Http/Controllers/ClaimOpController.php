@@ -4532,9 +4532,9 @@ class ClaimOpController extends Controller
 
             // Determine eye status color: red (errors), yellow (warnings/not closed), green (all good & closed)
             $is_valid = (!empty($invoice_no) && $invoice_no !== '0' && $invoice_no !== '0.00' && $has_pdx && $has_claim_money && $has_valid_cid && $has_valid_hmain && $has_valid_dates);
-            if (!$is_valid || !empty($row->rep_error)) {
+            if (!$is_valid) {
                 $row->claim_status = 'red';
-            } elseif ($row->endpoint !== 'Y' || !empty($row->rep_warning)) {
+            } elseif ($row->endpoint !== 'Y') {
                 $row->claim_status = 'yellow';
             } else {
                 $row->claim_status = 'green';

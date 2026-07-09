@@ -35,10 +35,13 @@ class SssExportController extends Controller
         $visits = DB::connection('hosxp')->select("
             SELECT o.vn, o.vstdate, o.vsttime, o.hn, pt.pname, pt.fname, pt.lname, pt.cid, 
                    v.income, v.paid_money, v.remain_money, v.uc_money, v.spclty, v.hospmain, v.debt_id_list, v.rx_license_no,
-                   osb.invno AS sss_invno, osb.billno AS sss_billno
+                   osb.invno AS sss_invno, osb.billno AS sss_billno,
+                   pu.pttype_upp_type_code AS payplan
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = o.pttype
+            LEFT JOIN pttype_upp_type pu ON pu.pttype_upp_type_id = p.pttype_upp_type_id
             LEFT JOIN ovst_sss_billtran osb ON osb.vn = o.vn
             WHERE o.vn IN ($visits_placeholders)
         ", $vns);
@@ -66,15 +69,12 @@ class SssExportController extends Controller
             $invoice_no = $this->resolve_invoice_no($row->vn, $raw_invo, $rep_invs_by_vn);
             $sub_id = !empty($row->sss_billno) ? $row->sss_billno : '';
             $ptname = trim($row->pname . $row->fname . ' ' . $row->lname);
-            $spclty = !empty($row->spclty) ? str_pad($row->spclty, 2, '0', STR_PAD_LEFT) : '01';
-            if ($spclty === '01') {
-                $spclty = '80';
-            }
+            $payplan = !empty($row->payplan) ? trim($row->payplan) : '80';
             $paid = number_format($row->paid_money, 2, '.', '');
             $income = number_format($row->income, 2, '.', '');
             $claim = number_format($row->uc_money, 2, '.', '');
             
-            $billtran_rows[] = "01||{$row->vstdate} {$row->vsttime}|{$hcode}|{$invoice_no}|{$sub_id}|{$row->hn}||{$income}|{$paid}||A|{$row->cid}|{$ptname}|{$row->hospmain}|{$spclty}|{$claim}||0.00";
+            $billtran_rows[] = "01||{$row->vstdate} {$row->vsttime}|{$hcode}|{$invoice_no}|{$sub_id}|{$row->hn}||{$income}|{$paid}||A|{$row->cid}|{$ptname}|{$row->hospmain}|{$payplan}|{$claim}||0.00";
         }
 
         // Fetch BillItems (Raw SQL for all items/charges prescribed in these visits)
@@ -144,22 +144,27 @@ class SssExportController extends Controller
         }
 
         $billtran_count = count($billtran_rows);
-        $billtran_xml = '<?xml version="1.0" encoding="windows-874"?>' . "\n" .
-            '<ClaimRec System="OP" PayPlan="SS" Version="0.93" Prgs="HX">' . "\n" .
-            '<Header>' . "\n" .
-            "<HCODE>{$hcode}</HCODE>\n" .
-            "<HNAME>{$hname}</HNAME>\n" .
-            "<DATETIME>{$datetime}</DATETIME>\n" .
-            "<SESSNO>{$sess_no}</SESSNO>\n" .
-            "<RECCOUNT>{$billtran_count}</RECCOUNT>\n" .
-            '</Header>' . "\n" .
-            '<BillTran>' . "\n" .
-            implode("\n", $billtran_rows) . "\n" .
-            '</BillTran>' . "\n" .
-            '<BillItems>' . "\n" .
-            implode("\n", $billitems_rows) . "\n" .
-            '</BillItems>' . "\n" .
-            '</ClaimRec>';
+        $billtran_xml = '<?xml version="1.0" encoding="windows-874"?>' . "\r\n" .
+            '<ClaimRec System="OP" PayPlan="SS" Version="0.93" Prgs="HX">' . "\r\n" .
+            '<Header>' . "\r\n" .
+            "<HCODE>{$hcode}</HCODE>\r\n" .
+            "<HNAME>{$hname}</HNAME>\r\n" .
+            "<DATETIME>{$datetime}</DATETIME>\r\n" .
+            "<SESSNO>{$sess_no}</SESSNO>\r\n" .
+            "<RECCOUNT>{$billtran_count}</RECCOUNT>\r\n" .
+            '</Header>' . "\r\n" .
+            '<BILLTRAN>' . "\r\n" .
+            implode("\r\n", $billtran_rows) . "\r\n" .
+            '</BILLTRAN>' . "\r\n" .
+            '<BillItems>' . "\r\n" .
+            implode("\r\n", $billitems_rows) . "\r\n" .
+            '</BillItems>' . "\r\n" .
+            '</ClaimRec>' . "\r\n";
+
+        // Convert to TIS-620 and compute Checksum MD5
+        $billtran_tis = iconv('UTF-8', 'TIS-620//IGNORE', $billtran_xml);
+        $billtran_md5 = strtoupper(md5($billtran_tis));
+        $billtran_xml .= '<?EndNote Checksum="' . $billtran_md5 . '"?>' . "\r\n";
 
         // 2. Generate BILLDISP & DispensedItems content
         $billdisp_rows = [];
@@ -194,8 +199,8 @@ class SssExportController extends Controller
 
             $raw_invo = !empty($v->sss_invno) ? $v->sss_invno : (!empty($v->debt_id_list) ? $v->debt_id_list : '');
             $invoice_no = $this->resolve_invoice_no($v->vn, $raw_invo, $rep_invs_by_vn);
-            $rx_no = !empty($item->hos_guid) ? substr(preg_replace('/[^0-9]/', '', $item->hos_guid), 0, 9) : $item->vn;
-            if (empty($rx_no)) $rx_no = $item->vn;
+            $rx_no = !empty($item->hos_guid) ? substr(preg_replace('/[^0-9]/', '', $item->hos_guid), 0, 9) : $v->vn;
+            if (empty($rx_no)) $rx_no = $v->vn;
             $disp_id = "{$rx_no}_{$invoice_no}";
 
             // Group Dispensing rows by unique disp_id
@@ -237,22 +242,27 @@ class SssExportController extends Controller
         }
 
         $billdisp_count = count($billdisp_rows);
-        $billdisp_xml = '<?xml version="1.0" encoding="windows-874"?>' . "\n" .
-            '<ClaimRec System="OP" PayPlan="SS" Version="0.93" Prgs="HX">' . "\n" .
-            '<Header>' . "\n" .
-            "<HCODE>{$hcode}</HCODE>\n" .
-            "<HNAME>{$hname}</HNAME>\n" .
-            "<DATETIME>{$datetime_iso}</DATETIME>\n" .
-            "<SESSNO>{$sess_no}</SESSNO>\n" .
-            "<RECCOUNT>{$billdisp_count}</RECCOUNT>\n" .
-            '</Header>' . "\n" .
-            '<Dispensing>' . "\n" .
-            implode("\n", $billdisp_rows) . "\n" .
-            '</Dispensing>' . "\n" .
-            '<DispensedItems>' . "\n" .
-            implode("\n", $dispensed_rows) . "\n" .
-            '</DispensedItems>' . "\n" .
-            '</ClaimRec>';
+        $billdisp_xml = '<?xml version="1.0" encoding="windows-874"?>' . "\r\n" .
+            '<ClaimRec System="OP" PayPlan="SS" Version="0.93" Prgs="HX">' . "\r\n" .
+            '<Header>' . "\r\n" .
+            "<HCODE>{$hcode}</HCODE>\r\n" .
+            "<HNAME>{$hname}</HNAME>\r\n" .
+            "<DATETIME>{$datetime_iso}</DATETIME>\r\n" .
+            "<SESSNO>{$sess_no}</SESSNO>\r\n" .
+            "<RECCOUNT>{$billdisp_count}</RECCOUNT>\r\n" .
+            '</Header>' . "\r\n" .
+            '<Dispensing>' . "\r\n" .
+            implode("\r\n", $billdisp_rows) . "\r\n" .
+            '</Dispensing>' . "\r\n" .
+            '<DispensedItems>' . "\r\n" .
+            implode("\r\n", $dispensed_rows) . "\r\n" .
+            '</DispensedItems>' . "\r\n" .
+            '</ClaimRec>' . "\r\n";
+
+        // Convert to TIS-620 and compute Checksum MD5
+        $billdisp_tis = iconv('UTF-8', 'TIS-620//IGNORE', $billdisp_xml);
+        $billdisp_md5 = strtoupper(md5($billdisp_tis));
+        $billdisp_xml .= '<?EndNote Checksum="' . $billdisp_md5 . '"?>' . "\r\n";
 
         // 3. Generate OPServices & OPDx content
         $opservices_rows = [];
@@ -281,22 +291,27 @@ class SssExportController extends Controller
         }
 
         $opservices_count = count($opservices_rows);
-        $opservices_xml = '<?xml version="1.0" encoding="windows-874"?>' . "\n" .
-            '<ClaimRec System="OP" PayPlan="SS" Version="0.93" Prgs="HX">' . "\n" .
-            '<Header>' . "\n" .
-            "<HCODE>{$hcode}</HCODE>\n" .
-            "<HNAME>{$hname}</HNAME>\n" .
-            "<DATETIME>{$datetime_iso}</DATETIME>\n" .
-            "<SESSNO>{$sess_no}</SESSNO>\n" .
-            "<RECCOUNT>{$opservices_count}</RECCOUNT>\n" .
-            '</Header>' . "\n" .
-            '<OPServices>' . "\n" .
-            implode("\n", $opservices_rows) . "\n" .
-            '</OPServices>' . "\n" .
-            '<OPDx>' . "\n" .
-            implode("\n", $opdx_rows) . "\n" .
-            '</OPDx>' . "\n" .
-            '</ClaimRec>';
+        $opservices_xml = '<?xml version="1.0" encoding="windows-874"?>' . "\r\n" .
+            '<ClaimRec System="OP" PayPlan="SS" Version="0.93" Prgs="HX">' . "\r\n" .
+            '<Header>' . "\r\n" .
+            "<HCODE>{$hcode}</HCODE>\r\n" .
+            "<HNAME>{$hname}</HNAME>\r\n" .
+            "<DATETIME>{$datetime_iso}</DATETIME>\r\n" .
+            "<SESSNO>{$sess_no}</SESSNO>\r\n" .
+            "<RECCOUNT>{$opservices_count}</RECCOUNT>\r\n" .
+            '</Header>' . "\r\n" .
+            '<OPServices>' . "\r\n" .
+            implode("\r\n", $opservices_rows) . "\r\n" .
+            '</OPServices>' . "\r\n" .
+            '<OPDx>' . "\r\n" .
+            implode("\r\n", $opdx_rows) . "\r\n" .
+            '</OPDx>' . "\r\n" .
+            '</ClaimRec>' . "\r\n";
+
+        // Convert to TIS-620 and compute Checksum MD5
+        $opservices_tis = iconv('UTF-8', 'TIS-620//IGNORE', $opservices_xml);
+        $opservices_md5 = strtoupper(md5($opservices_tis));
+        $opservices_xml .= '<?EndNote Checksum="' . $opservices_md5 . '"?>' . "\r\n";
 
         return [
             'hcode' => $hcode,
@@ -443,6 +458,8 @@ class SssExportController extends Controller
             }
 
             $validation[$vn] = [
+                'hn' => $row->hn,
+                'name' => trim($row->pname . $row->fname . ' ' . $row->lname),
                 'billtran_ok' => empty($errors['billtran']),
                 'billtran_err' => implode(', ', $errors['billtran'] ?? []),
                 'billdisp_ok' => empty($errors['billdisp']),

@@ -99,6 +99,32 @@
         </div>
 
         <div class="card-body px-4 pb-4 pt-0">
+            <!-- Filter & Selection Section -->
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3 border-bottom pb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fw-bold text-muted small text-nowrap"><i class="bi bi-funnel-fill text-secondary me-1"></i>ตัวกรองข้อมูล:</span>
+                    <div class="btn-group btn-group-sm shadow-sm" role="group">
+                        <input type="radio" class="btn-check" name="rep_filter" id="rep_filter_all" value="all" checked autocomplete="off" onchange="applyRepFilter()">
+                        <label class="btn btn-outline-secondary px-3 fw-bold" for="rep_filter_all">แสดงทั้งหมด</label>
+
+                        <input type="radio" class="btn-check" name="rep_filter" id="rep_filter_error" value="error" autocomplete="off" onchange="applyRepFilter()">
+                        <label class="btn btn-outline-danger px-3 fw-bold" for="rep_filter_error">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i> เฉพาะ REP Error
+                        </label>
+
+                        <input type="radio" class="btn-check" name="rep_filter" id="rep_filter_has_invoice" value="has_invoice" autocomplete="off" onchange="applyRepFilter()">
+                        <label class="btn btn-outline-success px-3 fw-bold" for="rep_filter_has_invoice">
+                            <i class="bi bi-file-earmark-check-fill me-1"></i> เฉพาะมี Invoice
+                        </label>
+
+                        <input type="radio" class="btn-check" name="rep_filter" id="rep_filter_no_invoice" value="no_invoice" autocomplete="off" onchange="applyRepFilter()">
+                        <label class="btn btn-outline-warning px-3 fw-bold" for="rep_filter_no_invoice">
+                            <i class="bi bi-file-earmark-x-fill me-1"></i> เฉพาะไม่มี Invoice
+                        </label>
+                    </div>
+                </div>
+            </div>
+
             <div class="table-responsive">            
                 <table id="t_claim" class="table table-modern w-100">
                     <thead>
@@ -109,8 +135,9 @@
                                                   
                             <th class="text-center">ตรวจสอบ</th>                      
                             <th class="text-center" width="8%">InvoiceNo</th>                      
-                            <th class="text-center">วัน-เวลา | Q</th>     
+                            <th class="text-center" width="10%">วัน-เวลา | Q</th>     
                             <th class="text-center">HN</th>    
+                            <th class="text-center">CID</th>    
                             <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
                             <th class="text-center" width="15%">อาการสำคัญ</th>
                             <th class="text-center" width="8%">โรคเรื้อรัง</th>
@@ -133,10 +160,13 @@
                             $sum_claim_price = 0; 
                         @endphp
                         @foreach($claim as $row) 
-                        <tr>
+                        @php
+                            $has_invoice = (($row->sss_invno && $row->sss_invno !== '0') || ($row->debt_id_list && $row->debt_id_list !== '0')) ? 'true' : 'false';
+                        @endphp
+                        <tr data-has-error="{{ $row->rep_error ? 'true' : 'false' }}" data-has-invoice="{{ $has_invoice }}">
                             @if($is_ssop_licensed)
                             <td class="text-center">
-                                <input type="checkbox" class="claim-select-check" value="{{ $row->vn }}">
+                                <input type="checkbox" class="claim-select-check" value="{{ $row->vn }}" data-has-error="{{ $row->rep_error ? 'true' : 'false' }}">
                             </td>
                             @endif
                             
@@ -166,10 +196,11 @@
                                 @endif
                             </td>
                             <td class="text-start">
-                                <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
-                                <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
+                                <div class="small fw-bold text-nowrap">{{ DateThai($row->vstdate) }}</div>
+                                <div class="text-muted text-nowrap" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
                             </td>            
                             <td class="text-center fw-bold text-primary small">{{$row->hn}}</td> 
+                            <td class="text-center small text-muted text-nowrap">{{$row->cid}}</td> 
                             <td class="text-start">
                                 <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
                                 <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
@@ -423,7 +454,12 @@
                     <!-- Tabs Header -->
                     <ul class="nav nav-tabs mb-3" id="previewTab" role="tablist" style="font-size: 0.85rem;">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active fw-bold text-primary" id="prev-billtran-tab" data-bs-toggle="tab" data-bs-target="#prev-billtran" type="button" role="tab" aria-controls="prev-billtran" aria-selected="true">
+                            <button class="nav-link active fw-bold text-danger" id="prev-audit-tab" data-bs-toggle="tab" data-bs-target="#prev-audit" type="button" role="tab" aria-controls="prev-audit" aria-selected="true">
+                                <i class="bi bi-shield-fill-exclamation me-1"></i> ผลตรวจสอบ (Pre-Audit)
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-primary" id="prev-billtran-tab" data-bs-toggle="tab" data-bs-target="#prev-billtran" type="button" role="tab" aria-controls="prev-billtran" aria-selected="false">
                                 <i class="bi bi-file-earmark-spreadsheet me-1"></i> BILLTRAN
                             </button>
                         </li>
@@ -456,31 +492,54 @@
                     
                     <!-- Tabs Content -->
                     <div class="tab-content" id="previewTabContent">
+                        <!-- Tab 0: Pre-Audit Validation -->
+                        <div class="tab-pane fade show active" id="prev-audit" role="tabpanel" aria-labelledby="prev-audit-tab">
+                            <div class="alert alert-warning py-2 px-3 mb-3 d-flex align-items-center gap-2" style="font-size:0.85rem;">
+                                <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                                <span>รายการแจ้งเตือนด้านล่างนี้เป็นการตรวจสอบความสมบูรณ์ของข้อมูลเบื้องต้นก่อนการส่งออกจริง หากพบข้อผิดพลาดควรทำการแก้ไขก่อนดำเนินการส่งออก</span>
+                            </div>
+                            <div class="table-responsive mb-3" style="max-height:400px; overflow-y:auto;">
+                                <table class="table table-hover table-striped align-middle mb-0 small w-100" id="table-prev-audit">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th width="12%">HN</th>
+                                            <th width="20%">ชื่อ-สกุล</th>
+                                            <th width="15%">ไฟล์ที่มีปัญหา</th>
+                                            <th class="text-danger">รายละเอียดข้อผิดพลาด (ต้องแก้ไข)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="preview-audit-tbody">
+                                        <!-- Will be populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
                         <!-- Tab 1: BILLTRAN -->
-                        <div class="tab-pane fade show active" id="prev-billtran" role="tabpanel" aria-labelledby="prev-billtran-tab">
+                        <div class="tab-pane fade" id="prev-billtran" role="tabpanel" aria-labelledby="prev-billtran-tab">
                             <div class="mb-3">
                                 <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-billtran">
                                     <thead class="table-dark sticky-top">
                                         <tr>
-                                            <th>Type</th>
-                                            <th>DocNo</th>
-                                            <th>InvDate</th>
+                                            <th>Station</th>
+                                            <th>Authcode</th>
+                                            <th>DTtran</th>
                                             <th>Hcode</th>
-                                            <th>InvNo</th>
-                                            <th>SubID</th>
+                                            <th>Invno</th>
+                                            <th>Billno</th>
                                             <th>HN</th>
                                             <th>MemberNo</th>
                                             <th class="text-end">Amount</th>
                                             <th class="text-end">Paid</th>
-                                            <th>PaidExtra</th>
-                                            <th>Status</th>
-                                            <th>CID</th>
+                                            <th>VerCode</th>
+                                            <th>Tflag</th>
+                                            <th>Pid</th>
                                             <th>Name</th>
-                                            <th>MainHosp</th>
-                                            <th>Spclty</th>
+                                            <th>HMain</th>
+                                            <th>PayPlan</th>
                                             <th class="text-end">ClaimAmt</th>
-                                            <th>ExtraAmt</th>
-                                            <th>PaidOther</th>
+                                            <th>OtherPayplan</th>
+                                            <th>OtherPay</th>
                                         </tr>
                                     </thead>
                                     <tbody id="preview-billtran-tbody"></tbody>
@@ -508,18 +567,18 @@
                                 <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-billitems">
                                     <thead class="table-dark">
                                         <tr>
-                                            <th>InvoiceNo</th>
+                                            <th>Invno</th>
                                             <th>SvDate</th>
-                                            <th>BillGr</th>
-                                            <th>ItemCode</th>
-                                            <th>TMTID</th>
-                                            <th>ItemName</th>
-                                            <th class="text-center">Qty</th>
-                                            <th class="text-end">UnitPrice</th>
+                                            <th>BillMuad</th>
+                                            <th>LCCode</th>
+                                            <th>STDCode</th>
+                                            <th>Desc</th>
+                                            <th class="text-center">QTY</th>
+                                            <th class="text-end">UP</th>
                                             <th class="text-end">ChargeAmt</th>
                                             <th class="text-end">ClaimUP</th>
-                                            <th class="text-end">ClaimAmt</th>
-                                            <th>DispID/RefID</th>
+                                            <th class="text-end">ClaimAmount</th>
+                                            <th>SvRefID</th>
                                             <th>ClaimCat</th>
                                         </tr>
                                     </thead>
@@ -534,23 +593,23 @@
                                 <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-billdisp">
                                     <thead class="table-dark sticky-top">
                                         <tr>
-                                            <th>Hcode</th>
-                                            <th>DispID</th>
-                                            <th>PrescNo</th>
+                                            <th>ProviderID</th>
+                                            <th>Dispid</th>
+                                            <th>Invno</th>
                                             <th>HN</th>
-                                            <th>CID</th>
-                                            <th>DispDate</th>
-                                            <th>DispTime</th>
-                                            <th>LicenseNo</th>
-                                            <th>ItemType</th>
-                                            <th class="text-end">UnitPrice</th>
-                                            <th class="text-end">TotalAmt</th>
-                                            <th>PaidAmt</th>
-                                            <th>ExtraAmt</th>
-                                            <th>Location</th>
-                                            <th>Plan</th>
-                                            <th class="text-center">Qty</th>
-                                            <th>VisitNo</th>
+                                            <th>PID</th>
+                                            <th>Prescdt</th>
+                                            <th>Dispdt</th>
+                                            <th>Prescb</th>
+                                            <th>Itemcnt</th>
+                                            <th class="text-end">ChargeAmt</th>
+                                            <th class="text-end">ClaimAmt</th>
+                                            <th>Paid</th>
+                                            <th>OtherPay</th>
+                                            <th>Reimburser</th>
+                                            <th>BenefitPlan</th>
+                                            <th class="text-center">DispeStat</th>
+                                            <th>SvID</th>
                                         </tr>
                                     </thead>
                                     <tbody id="preview-billdisp-tbody"></tbody>
@@ -580,20 +639,20 @@
                                         <tr>
                                             <th>DispID</th>
                                             <th>PrdCat</th>
-                                            <th>icode</th>
-                                            <th>TMTID</th>
-                                            <th>PackSize</th>
-                                            <th>DrugName</th>
-                                            <th>Unit</th>
-                                            <th>SigCode</th>
-                                            <th>SigText</th>
-                                            <th class="text-center">Qty</th>
+                                            <th>Hospdrgid</th>
+                                            <th>DrgID</th>
+                                            <th>dfsCode</th>
+                                            <th>dfsText</th>
+                                            <th>Packsize</th>
+                                            <th>sigCode</th>
+                                            <th>sigText</th>
+                                            <th class="text-center">Quantity</th>
                                             <th class="text-end">UnitPrice</th>
                                             <th class="text-end">ChargeAmt</th>
-                                            <th class="text-end">ClaimUP</th>
-                                            <th class="text-end">ClaimAmt</th>
-                                            <th>ClaimCat</th>
-                                            <th>RefID</th>
+                                            <th class="text-end">ReimbPrice</th>
+                                            <th class="text-end">ReimbAmt</th>
+                                            <th>PrdSeCode</th>
+                                            <th>ClaimCont</th>
                                         </tr>
                                     </thead>
                                     <tbody id="preview-dispenseditems-tbody"></tbody>
@@ -607,27 +666,27 @@
                                 <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-opservices">
                                     <thead class="table-dark sticky-top">
                                         <tr>
-                                            <th>InvoiceNo</th>
-                                            <th>VisitNo</th>
-                                            <th>CareType</th>
+                                            <th>InvNo</th>
+                                            <th>SvID</th>
+                                            <th>Class</th>
                                             <th>Hcode</th>
                                             <th>HN</th>
-                                            <th>CID</th>
-                                            <th>PtType</th>
+                                            <th>PID</th>
+                                            <th>CareType</th>
                                             <th>Clinic</th>
                                             <th>ReferIn</th>
                                             <th>ReferOut</th>
                                             <th>Expire</th>
-                                            <th>DoctorLic</th>
-                                            <th>ServiceSub</th>
-                                            <th>StartDT</th>
+                                            <th>DocNo</th>
+                                            <th>ServSub</th>
+                                            <th>SvDT</th>
                                             <th>EndDT</th>
-                                            <th>Ex1</th>
-                                            <th>Ex2</th>
-                                            <th>Ex3</th>
-                                            <th>PaidAmt</th>
+                                            <th>ExClass</th>
+                                            <th>ExTx</th>
+                                            <th>ExAmt</th>
+                                            <th>Paid</th>
                                             <th>Eligible</th>
-                                            <th>Ex4</th>
+                                            <th>ExSp</th>
                                             <th>Seq</th>
                                         </tr>
                                     </thead>
@@ -657,9 +716,9 @@
                                     <thead class="table-dark">
                                         <tr>
                                             <th>Class</th>
-                                            <th>SVRefID (VN)</th>
+                                            <th>SvID</th>
                                             <th>DiagType</th>
-                                            <th>DiagCodeType</th>
+                                            <th>DiagCls</th>
                                             <th>DiagCode</th>
                                         </tr>
                                     </thead>
@@ -1098,6 +1157,39 @@
         $('.claim-select-check', rows).prop('checked', this.checked);
     });
 
+    // Custom Datatable Search for REP Error and Invoice Filters
+    $.fn.dataTable.ext.search.push(
+        function(settings, data, dataIndex) {
+            if (settings.nTable.id !== 't_claim') return true;
+            
+            var filterVal = $('input[name="rep_filter"]:checked').val() || 'all';
+            var rowNode = settings.aoData[dataIndex].nTr;
+            if (filterVal === 'error') {
+                return $(rowNode).attr('data-has-error') === 'true';
+            } else if (filterVal === 'has_invoice') {
+                return $(rowNode).attr('data-has-invoice') === 'true';
+            } else if (filterVal === 'no_invoice') {
+                return $(rowNode).attr('data-has-invoice') === 'false';
+            }
+            return true;
+        }
+    );
+
+    function applyRepFilter() {
+        $('#t_claim').DataTable().draw();
+    }
+
+    function selectRepErrorsOnly() {
+        var table = $('#t_claim').DataTable();
+        var rows = table.rows({ search: 'applied' }).nodes();
+        // Uncheck all first
+        $('.claim-select-check', rows).prop('checked', false);
+        // Check only those with rep error
+        $('.claim-select-check[data-has-error="true"]', rows).prop('checked', true);
+        // Deselect the "select all" header checkbox to be safe
+        $('#select_all_claims').prop('checked', false);
+    }
+
     function exportSelectedSSOP() {
         var selectedVns = [];
         $('.claim-select-check:checked').each(function() {
@@ -1153,6 +1245,7 @@
         });
 
         // Destroy existing DataTables if initialized to prevent error
+        if ($.fn.DataTable.isDataTable('#table-prev-audit')) { $('#table-prev-audit').DataTable().destroy(); }
         if ($.fn.DataTable.isDataTable('#table-prev-billtran')) { $('#table-prev-billtran').DataTable().destroy(); }
         if ($.fn.DataTable.isDataTable('#table-prev-billitems')) { $('#table-prev-billitems').DataTable().destroy(); }
         if ($.fn.DataTable.isDataTable('#table-prev-billdisp')) { $('#table-prev-billdisp').DataTable().destroy(); }
@@ -1173,6 +1266,44 @@
                 console.log("AJAX Success response:", response);
                 Swal.close();
                 if (response.success) {
+                    // Populate Pre-Audit Table
+                    var html_audit = '';
+                    var hasAnyErrors = false;
+                    Object.keys(response.validation).forEach(function(vn) {
+                        var val = response.validation[vn];
+                        var errorsList = [];
+                        if (!val.billtran_ok) {
+                            errorsList.push({ file: 'BILLTRAN', err: val.billtran_err });
+                        }
+                        if (!val.billdisp_ok) {
+                            errorsList.push({ file: 'BILLDISP', err: val.billdisp_err });
+                        }
+                        if (!val.opservices_ok) {
+                            errorsList.push({ file: 'OPServices', err: val.opservices_err });
+                        }
+
+                        if (errorsList.length > 0) {
+                            hasAnyErrors = true;
+                            errorsList.forEach(function(e) {
+                                html_audit += `<tr>
+                                    <td><strong class="text-primary">${val.hn || ''}</strong></td>
+                                    <td>${val.name || ''}</td>
+                                    <td><span class="badge bg-danger text-white fw-bold">${e.file}</span></td>
+                                    <td class="text-danger fw-bold"><i class="bi bi-x-circle-fill me-1"></i> ${e.err}</td>
+                                </tr>`;
+                            });
+                        }
+                    });
+
+                    if (!hasAnyErrors) {
+                        html_audit = `<tr>
+                            <td colspan="4" class="text-center py-4 text-success fw-bold">
+                                <i class="bi bi-check-circle-fill fs-4 me-2"></i>ผ่านการตรวจสอบโครงสร้างพื้นฐานทั้งหมด (ไม่พบข้อผิดพลาด)
+                            </td>
+                        </tr>`;
+                    }
+                    $('#preview-audit-tbody').html(html_audit);
+
                     // 1. Populate BILLTRAN & BillItems Table & Raw XML
                     $('#preview-billtran-raw').val(response.billtran_raw);
                     var html1 = '';
@@ -1347,6 +1478,30 @@
                     $('#table-prev-dispenseditems').DataTable(prevDtConfig);
                     $('#table-prev-opservices').DataTable(prevDtConfig);
                     $('#table-prev-opdx').DataTable(prevDtConfig);
+
+                    if (hasAnyErrors) {
+                        $('#table-prev-audit').DataTable({
+                            pageLength: 10,
+                            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"]],
+                            language: {
+                                search: "ค้นหา:",
+                                lengthMenu: "แสดง _MENU_ รายการ",
+                                info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                                paginate: {
+                                    previous: "ก่อนหน้า",
+                                    next: "ถัดไป"
+                                }
+                            },
+                            autoWidth: false
+                        });
+                    }
+
+                    // Reset active tab to the first tab (Pre-Audit)
+                    var tabEl = document.querySelector('#prev-audit-tab');
+                    if (tabEl) {
+                        var tab = new bootstrap.Tab(tabEl);
+                        tab.show();
+                    }
 
                     // Open Preview Modal
                     $('#ssopPreviewModal').modal('show');
@@ -1531,17 +1686,10 @@
                     }
                 });
 
-                const hasRepError = feedbacks.some(f => f.type === 'error');
-                const hasRepWarning = feedbacks.some(f => f.type === 'warning');
-
                 // Determine validation status alert banner
                 let statusHtml = '';
-                if (errors.length > 0 || hasRepError) {
+                if (errors.length > 0) {
                     // RED Status Alert
-                    const allErrors = [...errors];
-                    feedbacks.filter(f => f.type === 'error').forEach(f => {
-                        allErrors.push(`[REP Error] ${f.code}: ${f.desc}`);
-                    });
                     statusHtml = `
                     <div class="col-12 mb-2">
                       <div class="alert alert-danger py-2 px-3 border-0 shadow-sm d-flex align-items-start small" style="background-color: #fef2f2; color: #991b1b; border-left: 5px solid #dc2626 !important;">
@@ -1549,20 +1697,17 @@
                         <div>
                           <div class="fw-bold mb-1 text-dark">สถานะ: ไม่ผ่านเกณฑ์ส่งออก (มีข้อผิดพลาดที่ต้องแก้ไข)</div>
                           <ul class="mb-0 ps-3 text-danger">
-                            ${allErrors.map(err => `<li>${err}</li>`).join('')}
+                            ${errors.map(err => `<li>${err}</li>`).join('')}
                           </ul>
                         </div>
                       </div>
                     </div>`;
-                } else if (visit.endpoint !== 'Y' || hasRepWarning || warnings.length > 0) {
+                } else if (visit.endpoint !== 'Y' || warnings.length > 0) {
                     // YELLOW Status Alert
                     const allWarnings = [...warnings];
                     if (visit.endpoint !== 'Y') {
                         allWarnings.push("สิทธิ์การรักษายังไม่ได้ปิดสิทธิ์ในระบบ สปสช. (กรุณากดดึงข้อมูลหรือปิดสิทธิ์)");
                     }
-                    feedbacks.filter(f => f.type === 'warning').forEach(f => {
-                        allWarnings.push(`[REP Warning] ${f.code}: ${f.desc}`);
-                    });
                     statusHtml = `
                     <div class="col-12 mb-2">
                       <div class="alert alert-warning py-2 px-3 border-0 shadow-sm d-flex align-items-start small" style="background-color: #fffbeb; color: #92400e; border-left: 5px solid #d97706 !important;">

@@ -199,6 +199,14 @@ class LookupIcodeController extends Controller
 
         $item->update($data);
 
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'แก้ไขข้อมูลสำเร็จ',
+                'item' => $item
+            ]);
+        }
+
         return redirect()->route('admin.lookup_icode.index')->with('success', 'แก้ไขข้อมูลสำเร็จ');
     }
 

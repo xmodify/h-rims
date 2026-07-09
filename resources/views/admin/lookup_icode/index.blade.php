@@ -152,10 +152,10 @@
                                                             $hosxpPrice = $hosxp_prices[$item->icode] ?? 0;
                                                             $isMatch = (abs($ucsPrice - $hosxpPrice) < 0.1);
                                                         @endphp
-                                                        <tr>
+                                                        <tr class="tr-icode-{{ $item->icode }}">
                                                             <td class="ps-4 fw-bold text-dark">{{ $item->icode }}</td>
                                                             <td>
-                                                                <div class="text-truncate" style="max-width: 300px;" title="{{ $item->name }}">
+                                                                <div class="text-truncate col-name" style="max-width: 300px;" title="{{ $item->name }}">
                                                                     {{ $item->name }}
                                                                 </div>
                                                             </td>
@@ -165,7 +165,7 @@
                                                                 </span>
                                                             </td>
                                                             <td class="text-center">
-                                                                <span class="badge bg-light text-dark border">{{ $item->nhso_adp_code ?? '-' }}</span>
+                                                                <span class="badge bg-light text-dark border col-adp">{{ $item->nhso_adp_code ?? '-' }}</span>
                                                             </td>
                                                             <td class="text-end">
                                                                 @if($hosxpPrice > 0)
@@ -201,7 +201,7 @@
                                                                 @endif
                                                             </td>
                                                             <td class="text-center">
-                                                                <div class="d-flex justify-content-center gap-1">
+                                                                <div class="d-flex justify-content-center gap-1 col-flags-container">
                                                                     @if($item->uc_cr === 'Y') <span class="badge rounded-pill bg-primary" title="UC_CR">UC-CR</span> @endif
                                                                     @if($item->ppfs === 'Y') 
                                                                         @if(in_array($item->nhso_adp_code, $valid_ppfs_adps))
@@ -271,10 +271,10 @@
                                                             $insRuleOther = $ins_rules[$item->nhso_adp_code] ?? null;
                                                             $ucsPriceOther = $insRuleOther['prices']['UCS'] ?? 0;
                                                         @endphp
-                                                        <tr>
+                                                        <tr class="tr-icode-{{ $item->icode }}">
                                                             <td class="ps-4 fw-bold text-dark">{{ $item->icode }}</td>
                                                             <td>
-                                                                <div class="text-truncate" style="max-width: 280px;" title="{{ $item->name }}">
+                                                                <div class="text-truncate col-name" style="max-width: 280px;" title="{{ $item->name }}">
                                                                     {{ $item->name }}
                                                                 </div>
                                                             </td>
@@ -284,10 +284,10 @@
                                                                 </span>
                                                             </td>
                                                             <td class="text-center">
-                                                                <span class="badge bg-light text-dark border">{{ $item->nhso_adp_code ?? '-' }}</span>
+                                                                <span class="badge bg-light text-dark border col-adp">{{ $item->nhso_adp_code ?? '-' }}</span>
                                                             </td>
                                                             <td class="text-center">
-                                                                <div class="d-flex justify-content-center gap-1">
+                                                                <div class="d-flex justify-content-center gap-1 col-flags-container">
                                                                     @if($item->uc_cr === 'Y') <span class="badge rounded-pill bg-primary" title="UC_CR">UC-CR</span> @endif
                                                                     @if($item->ppfs === 'Y') 
                                                                         @if(in_array($item->nhso_adp_code, $valid_ppfs_adps))
@@ -355,15 +355,15 @@
                                     </thead>
                                     <tbody>
                                         @foreach ($pane['data'] as $item)
-                                            <tr>
+                                            <tr class="tr-icode-{{ $item->icode }}">
                                                 <td class="ps-4 fw-bold text-dark">{{ $item->icode }}</td>
                                                 <td>
-                                                    <div class="text-truncate" style="max-width: 300px;" title="{{ $item->name }}">
+                                                    <div class="text-truncate col-name" style="max-width: 300px;" title="{{ $item->name }}">
                                                         {{ $item->name }}
                                                     </div>
                                                 </td>
                                                 <td class="text-center">
-                                                    <span class="badge bg-light text-dark border">{{ $item->nhso_adp_code ?? '-' }}</span>
+                                                    <span class="badge bg-light text-dark border col-adp">{{ $item->nhso_adp_code ?? '-' }}</span>
                                                 </td>
                                                 @if($pane['id'] === 'ssshc')
                                                     @php
@@ -379,7 +379,7 @@
                                                     </td>
                                                 @endif
                                                 <td class="text-center">
-                                                    <div class="d-flex justify-content-center gap-1">
+                                                    <div class="d-flex justify-content-center gap-1 col-flags-container">
                                                         @if($item->uc_cr === 'Y') <span class="badge rounded-pill bg-primary" title="UC_CR">UC-CR</span> @endif
                                                         @if($item->ppfs === 'Y') 
                                                             @if(in_array($item->nhso_adp_code, $valid_ppfs_adps))
@@ -828,6 +828,98 @@
             $('#editems').prop('checked', data.ems === 'Y');
             $('#editsss_hc').prop('checked', data.sss_hc === 'Y');
             $('#editForm').attr('action', "{{ url('admin/lookup_icode') }}/" + data.icode);
+        });
+
+        // AJAX update for Edit Form
+        $('#editForm').on('submit', function (e) {
+            e.preventDefault();
+            const form = this;
+            const actionUrl = $(form).attr('action');
+
+            Swal.fire({
+                title: 'กำลังอัปเดตข้อมูล...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            $.ajax({
+                url: actionUrl,
+                type: 'POST',
+                data: $(form).serialize(),
+                success: function (response) {
+                    Swal.close();
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'สำเร็จ!',
+                            text: response.message || 'แก้ไขข้อมูลสำเร็จ',
+                            timer: 1500,
+                            showConfirmButton: false,
+                            borderRadius: '15px'
+                        }).then(() => {
+                            $('#editModal').modal('hide');
+                            const item = response.item;
+                            
+                            // Rebuild flags badges HTML
+                            let flagsHtml = '';
+                            if (item.uc_cr === 'Y') flagsHtml += '<span class="badge rounded-pill bg-primary me-1" title="UC_CR">UC-CR</span>';
+                            if (item.ppfs === 'Y') {
+                                const validPpfsAdps = @json($valid_ppfs_adps);
+                                if (validPpfsAdps.includes(item.nhso_adp_code)) {
+                                    flagsHtml += '<span class="badge rounded-pill bg-success me-1" title="PPFS">PPFS</span>';
+                                } else {
+                                    flagsHtml += '<span class="d-inline-flex align-items-center me-1"><i class="bi bi-x-circle-fill text-danger me-1" title="ไม่มีรหัส ADP นี้ใน claims/ppfs_rules.php"></i><span class="badge rounded-pill bg-success" title="PPFS">PPFS</span></span>';
+                                }
+                            }
+                            if (item.herb32 === 'Y') flagsHtml += '<span class="badge rounded-pill bg-warning text-dark me-1" title="Herb32">สมุนไพร</span>';
+                            if (item.kidney === 'Y') flagsHtml += '<span class="badge rounded-pill bg-info text-white me-1" title="Kidney">ฟอกไต HD</span>';
+                            if (item.ems === 'Y') flagsHtml += '<span class="badge rounded-pill bg-danger me-1" title="EMS">EMS</span>';
+                            if (item.sss_hc === 'Y') flagsHtml += '<span class="badge rounded-pill text-white me-1" style="background-color: #6366f1;" title="SSS_HC">SSS-HC</span>';
+
+                            // Find and update all rows matching the class
+                            $(`.tr-icode-${item.icode}`).each(function() {
+                                const row = $(this);
+                                // Update Name
+                                row.find('.col-name').text(item.name).attr('title', item.name);
+                                // Update ADP
+                                row.find('.col-adp').text(item.nhso_adp_code || '-');
+                                // Update Flags
+                                row.find('.col-flags-container').html(flagsHtml);
+                                
+                                // Update data attributes of btn-edit
+                                const btnEdit = row.find('.btn-edit');
+                                btnEdit.data('name', item.name);
+                                btnEdit.data('nhso_adp_code', item.nhso_adp_code);
+                                btnEdit.data('uc_cr', item.uc_cr);
+                                btnEdit.data('ppfs', item.ppfs);
+                                btnEdit.data('herb32', item.herb32);
+                                btnEdit.data('kidney', item.kidney);
+                                btnEdit.data('ems', item.ems);
+                                btnEdit.data('sss_hc', item.sss_hc);
+                                
+                                // Invalidate Datatable row so search/sort knows the new values
+                                $('.datatable-icode').each(function() {
+                                    const table = $(this).DataTable();
+                                    if (table.row(row).length) {
+                                        table.row(row).invalidate().draw(false);
+                                    }
+                                });
+                            });
+                        });
+                    }
+                },
+                error: function (xhr) {
+                    Swal.close();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด!',
+                        text: xhr.responseJSON?.message || 'ไม่สามารถแก้ไขข้อมูลได้',
+                        borderRadius: '15px'
+                    });
+                }
+            });
         });
 
         // SweetAlert ยืนยันนำเข้าข้อมูลพร้อมแสดง Progress Bar %

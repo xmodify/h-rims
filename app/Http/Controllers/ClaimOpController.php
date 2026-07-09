@@ -4269,8 +4269,9 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,d.receive AS receive_total
+                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,SUM(IFNULL(receive_total,0)) AS receive_total
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,d.receive AS receive_total,
+                  CASE WHEN rep.vn IS NOT NULL THEN (v.income-IFNULL(rc.rcpt_money, 0)) ELSE 0 END AS claim_sent_price
             FROM ovst o            
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
@@ -4283,6 +4284,9 @@ class ClaimOpController extends Controller
 			    GROUP BY r.vn
 			) rc ON rc.vn = o.vn
             LEFT JOIN hrims.debtor_1102050101_301 d ON d.vn=o.vn
+            LEFT JOIN (
+                SELECT vn FROM hrims.sss_ssop_rep GROUP BY vn
+            ) rep ON rep.vn = o.vn
             WHERE p.hipdata_code = "SSS"
                 AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
                 AND p.pttype NOT IN (' . $pttype_sss_fund . ')
@@ -4293,6 +4297,7 @@ class ClaimOpController extends Controller
             ORDER BY YEAR(vstdate), MONTH(vstdate) ', [$start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
+        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
         $claim = DB::connection('hosxp')->select('
@@ -4537,7 +4542,7 @@ class ClaimOpController extends Controller
 
         }
 
-        return view('claim_op.sss_main', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'claim'));
+        return view('claim_op.sss_main', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'claim'));
     }
 
     public function sss_detail(Request $request)

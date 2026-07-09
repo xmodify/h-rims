@@ -436,6 +436,15 @@
                         <input type="text" class="form-control form-control-lg fw-bold text-center" id="export_station_id" value="01" placeholder="ตัวอย่าง 01" maxlength="5">
                         <div class="form-text text-muted small mt-1"><i class="bi bi-info-circle-fill me-1"></i> โดยทั่วไปใช้รหัสเครื่องหลักคือ 01</div>
                     </div>
+                    <div class="mb-3">
+                        <label for="export_tflag" class="form-label fw-bold">ประเภทการนำส่ง (Transaction Flag)</label>
+                        <select class="form-select form-select-lg fw-bold" id="export_tflag">
+                            <option value="A" selected>A - ขอเบิกใหม่ (ค่าเริ่มต้น)</option>
+                            <option value="E">E - แก้ไขรายการ</option>
+                            <option value="D">D - ยกเลิกรายการ</option>
+                        </select>
+                        <div class="form-text text-muted small mt-1"><i class="bi bi-info-circle-fill me-1"></i> โดยทั่วไปเลือก A สำหรับการขอเบิกใหม่ หรือ E เมื่อต้องการส่งข้อมูลแก้ไขรายการเดิม</div>
+                    </div>
                 </div>
                 <div class="modal-footer bg-light py-2 px-4 d-flex justify-content-between">
                     <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">ยกเลิก</button>
@@ -1237,6 +1246,7 @@
 
         var sessionId = $('#export_session_id').val().trim();
         var stationId = $('#export_station_id').val().trim();
+        var tflag = $('#export_tflag').val();
 
         if (!sessionId) {
             Swal.fire({ icon: 'warning', title: 'กรุณากรอก Session ID' });
@@ -1274,7 +1284,8 @@
                 _token: "{{ csrf_token() }}",
                 vns: selectedVns,
                 session_id: sessionId,
-                station_id: stationId
+                station_id: stationId,
+                tflag: tflag
             },
             success: function(response) {
                 console.log("AJAX Success response:", response);
@@ -1560,7 +1571,6 @@
         csrfInput.value = "{{ csrf_token() }}";
         form.appendChild(csrfInput);
 
-        // Session ID & Station ID
         var sessInput = document.createElement('input');
         sessInput.type = 'hidden';
         sessInput.name = 'session_id';
@@ -1572,6 +1582,12 @@
         statInput.name = 'station_id';
         statInput.value = stationId;
         form.appendChild(statInput);
+
+        var tflagInput = document.createElement('input');
+        tflagInput.type = 'hidden';
+        tflagInput.name = 'tflag';
+        tflagInput.value = $('#export_tflag').val();
+        form.appendChild(tflagInput);
 
         // Selected VNs
         selectedVns.forEach(function(vn) {

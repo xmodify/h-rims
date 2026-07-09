@@ -13,7 +13,7 @@ class SssExportController extends Controller
     /**
      * Helper to generate raw SSOP data (raw XML strings and rows)
      */
-    private function generate_ssop_raw_data($vns, $sess_no, $station_id)
+    private function generate_ssop_raw_data($vns, $sess_no, $station_id, $tflag = 'A')
     {
         $hcode = LicenseService::getCurrentHospcode() ?: '10989';
         
@@ -74,7 +74,7 @@ class SssExportController extends Controller
             $income = number_format($row->income, 2, '.', '');
             $claim = number_format($row->uc_money, 2, '.', '');
             
-            $billtran_rows[] = "01||{$row->vstdate} {$row->vsttime}|{$hcode}|{$invoice_no}|{$sub_id}|{$row->hn}||{$income}|{$paid}||A|{$row->cid}|{$ptname}|{$row->hospmain}|{$payplan}|{$claim}||0.00";
+            $billtran_rows[] = "01||{$row->vstdate} {$row->vsttime}|{$hcode}|{$invoice_no}|{$sub_id}|{$row->hn}||{$income}|{$paid}||{$tflag}|{$row->cid}|{$ptname}|{$row->hospmain}|{$payplan}|{$claim}||0.00";
         }
 
         // Fetch BillItems (Raw SQL for all items/charges prescribed in these visits)
@@ -346,7 +346,8 @@ class SssExportController extends Controller
         $sess_no = $request->input('session_id') ?: rand(1000, 9999);
         $station_id = $request->input('station_id') ?: '01';
 
-        $data = $this->generate_ssop_raw_data($vns, $sess_no, $station_id);
+        $tflag = $request->input('tflag') ?: 'A';
+        $data = $this->generate_ssop_raw_data($vns, $sess_no, $station_id, $tflag);
 
         $billtran_table = [];
         foreach ($data['billtran_rows'] as $idx => $row) {
@@ -499,7 +500,8 @@ class SssExportController extends Controller
         $sess_no = $request->input('session_id') ?: rand(1000, 9999);
         $station_id = $request->input('station_id') ?: '01';
 
-        $data = $this->generate_ssop_raw_data($vns, $sess_no, $station_id);
+        $tflag = $request->input('tflag') ?: 'A';
+        $data = $this->generate_ssop_raw_data($vns, $sess_no, $station_id, $tflag);
 
         // Encode all to TIS-620 using iconv
         $billtran_encoded = iconv('UTF-8', 'TIS-620//IGNORE', $data['billtran_xml']);

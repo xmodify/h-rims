@@ -27,7 +27,7 @@ class CheckEclaimController extends Controller
     // หน้าจอหลัก eclaim_status
     public function eclaim_status(Request $request)
     {
-        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-d');
+        $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-01');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         // อัปเดตค่าเก็บใน Session เผื่อครั้งถัดไป
         Session::put('start_date', $start_date);

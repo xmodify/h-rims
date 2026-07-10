@@ -963,7 +963,7 @@
                                         <!-- เมนูอื่น -->
                                         <li>
                                             <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/gof') }}">
-                                                <i class="bi bi-mortarboard text-secondary me-2"></i> IP-GOF หน่วยงานรัฐ
+                                                <i class="bi bi-mortarboard text-secondary me-2"></i> IP-เบิกต้นสังกัด
                                             </a>
                                             <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_ip/rcpt') }}">
                                                 <i class="bi bi-cash-coin text-success me-2"></i> IP-ชำระเงิน
@@ -1103,7 +1103,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item d-flex align-items-center me-2">
                             <div class="nav-version-badge">
-                                V.69-07-09 17:00
+                                V.69-07-10 10:00
                             </div>
                         </li>
                         <!-- Authentication Links -->

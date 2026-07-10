@@ -1883,7 +1883,7 @@ class ClaimIpController extends Controller
                 SELECT op.an, SUM(op.sum_price) AS claim_price
                 FROM opitemrece op
                 INNER JOIN nondrugitems n ON op.icode = n.icode 
-                INNER JOIN hrims.lookup_adp_sss a ON a.`code`=n.nhso_adp_code AND a.dateexp > DATE(NOW())
+                INNER JOIN hrims.lookup_sss_equipdev_aipn a ON a.`code`=n.nhso_adp_code AND a.dateexp > DATE(NOW())
                 INNER JOIN ipt i2 ON i2.an = op.an
                 WHERE i2.dchdate BETWEEN ? AND ?
                 AND op.paidst = "02"
@@ -1933,7 +1933,7 @@ class ClaimIpController extends Controller
                     SUM(op.sum_price) AS claim_price
                 FROM opitemrece op
                 INNER JOIN nondrugitems n ON op.icode = n.icode 
-                INNER JOIN hrims.lookup_adp_sss adp ON adp.`code`=n.nhso_adp_code AND adp.dateexp > DATE(NOW())
+                INNER JOIN hrims.lookup_sss_equipdev_aipn adp ON adp.`code`=n.nhso_adp_code AND adp.dateexp > DATE(NOW())
                 LEFT JOIN s_drugitems sd ON sd.icode = op.icode
                 INNER JOIN ipt i4 ON i4.an = op.an
                 WHERE i4.dchdate BETWEEN ? AND ?
@@ -2007,7 +2007,7 @@ class ClaimIpController extends Controller
             LEFT JOIN hrims.debtor_1102050102_109 d ON d.an = i.an
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
-            AND p.hipdata_code IN ("GOF","WVO")         
+            AND p.hipdata_code IN ("BFC","GOF","WVO")         
             GROUP BY i.an ) AS a
 			GROUP BY YEAR(dchdate), MONTH(dchdate)
             ORDER BY YEAR(dchdate), MONTH(dchdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
@@ -2050,7 +2050,7 @@ class ClaimIpController extends Controller
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
-            AND p.hipdata_code IN ("GOF","WVO") 
+            AND p.hipdata_code IN ("BFC","GOF","WVO") 
             AND (ic.an IS NULL OR (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id NOT IN ("4","5"))) 
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date]);
 
@@ -2087,7 +2087,7 @@ class ClaimIpController extends Controller
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id            
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
-            AND p.hipdata_code IN ("GOF","WVO") 
+            AND p.hipdata_code IN ("BFC","GOF","WVO") 
             AND ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date]);
 

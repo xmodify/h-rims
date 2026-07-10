@@ -7,7 +7,7 @@
         <div>
             <h4 class="text-primary mb-0 fw-bold">
                 <i class="bi bi-wallet2 me-2"></i>
-                สถิติการชดเชยค่าบริการ IP-GOF หน่วยงานรัฐ
+                สถิติการชดเชยค่าบริการ IP-เบิกต้นสังกัด
             </h4>
         </div>
         
@@ -55,7 +55,7 @@
             <div class="d-flex justify-content-between align-items-end mb-3">
                 <div class="d-flex align-items-center gap-3">
                     <h6 class="fw-bold text-dark mb-0">
-                        <i class="bi bi-people-fill text-primary me-2"></i>รายชื่อผู้มารับบริการ IP-GOF หน่วยงานรัฐ
+                        <i class="bi bi-people-fill text-primary me-2"></i>รายชื่อผู้มารับบริการ IP-เบิกต้นสังกัด
                     </h6>
                     <span class="text-muted small">
                         วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}
@@ -344,7 +344,7 @@
               extend: 'excelHtml5',
               text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
               className: 'btn btn-success btn-sm shadow-sm',
-              title: 'รายชื่อผู้มารับบริการ IP-GOF หน่วยงานรัฐ รอส่ง Claim วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+              title: 'รายชื่อผู้มารับบริการ IP-เบิกต้นสังกัด รอส่ง Claim วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
             }
         ],
         language: {
@@ -374,7 +374,7 @@
               extend: 'excelHtml5',
               text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
               className: 'btn btn-success btn-sm shadow-sm',
-              title: 'รายชื่อผู้มารับบริการ IP-GOF หน่วยงานรัฐ ส่ง Claim วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+              title: 'รายชื่อผู้มารับบริการ IP-เบิกต้นสังกัด ส่ง Claim วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
             }
         ],
         language: {

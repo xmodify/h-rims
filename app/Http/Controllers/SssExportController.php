@@ -287,13 +287,13 @@ class SssExportController extends Controller
                 WHERE vn = ?
             ", [$row->vn]);
                 
-            foreach ($diags as $d) {
-                if ($d->diagtype == '2') {
-                    $icd_type = 'IN';
-                } else {
-                    $icd_type = (str_starts_with(strtoupper($d->icd10), 'K') || preg_match('/^U[567]/i', $d->icd10)) ? 'TT' : 'IT';
+             foreach ($diags as $d) {
+                $diag_code = trim($d->icd10);
+                if (empty($diag_code) || preg_match('/^[0-9]/', $diag_code)) {
+                    continue;
                 }
-                $clean_diag = str_replace('.', '', trim($d->icd10));
+                $icd_type = (str_starts_with(strtoupper($diag_code), 'K') || preg_match('/^U[567]/i', $diag_code)) ? 'TT' : 'IT';
+                $clean_diag = str_replace('.', '', $diag_code);
                 $opdx_rows[] = "EC|{$row->vn}|{$d->diagtype}|{$icd_type}|{$clean_diag}|";
             }
             

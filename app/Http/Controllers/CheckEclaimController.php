@@ -33,31 +33,51 @@ class CheckEclaimController extends Controller
         Session::put('start_date', $start_date);
         Session::put('end_date', $end_date);
 
+        // ดึงรายการ hipdata ทั้งหมดที่มีในตารางมาทำตัวกรอง
+        $hipdata_list = DB::table('eclaim_status')
+            ->distinct()
+            ->whereNotNull('hipdata')
+            ->where('hipdata', '<>', '')
+            ->orderBy('hipdata')
+            ->pluck('hipdata');
+
+        $hipdata = $request->has('hipdata') ? $request->hipdata : Session::get('eclaim_hipdata');
+        Session::put('eclaim_hipdata', $hipdata);
+
         // ดึงข้อมูลจากฐานข้อมูล (ดึงรวมทั้ง OPD และ IPD จากตารางเดียวเลย เพราะเราบันทึกรวมกันมารอไว้แล้ว)
-        $sql = DB::table('eclaim_status')
-            ->where(function ($query) use ($start_date, $end_date) {
-                $query->whereBetween('vstdate', [$start_date, $end_date])
+        $query = DB::table('eclaim_status')
+            ->where(function ($q) use ($start_date, $end_date) {
+                $q->whereBetween('vstdate', [$start_date, $end_date])
                     ->orWhereBetween('dchdate', [$start_date, $end_date]);
-            })
-            ->orderBy('vstdate', 'desc')
-            ->get();
+            });
+
+        if (!empty($hipdata)) {
+            $query->where('hipdata', $hipdata);
+        }
+
+        $sql = $query->orderBy('vstdate', 'desc')->get();
 
         // คำนวณยอดรวมแยกตามสถานะ (ตัวเลขตัวแรกของ status: 0, 1, 2, 3, 4)
-        $summary = DB::table('eclaim_status')
+        $sumQuery = DB::table('eclaim_status')
             ->select(
                 DB::raw('SUBSTRING(status, 1, 1) as status_code'),
                 DB::raw('COUNT(*) as count'),
                 DB::raw('SUM(claim_amount) as sum_amount')
             )
-            ->where(function ($query) use ($start_date, $end_date) {
-                $query->whereBetween('vstdate', [$start_date, $end_date])
+            ->where(function ($q) use ($start_date, $end_date) {
+                $q->whereBetween('vstdate', [$start_date, $end_date])
                     ->orWhereBetween('dchdate', [$start_date, $end_date]);
-            })
-            ->groupBy(DB::raw('SUBSTRING(status, 1, 1)'))
+            });
+
+        if (!empty($hipdata)) {
+            $sumQuery->where('hipdata', $hipdata);
+        }
+
+        $summary = $sumQuery->groupBy(DB::raw('SUBSTRING(status, 1, 1)'))
             ->get()
             ->keyBy('status_code');
 
-        return view('check.eclaim_status', compact('start_date', 'end_date', 'sql', 'summary'));
+        return view('check.eclaim_status', compact('start_date', 'end_date', 'sql', 'summary', 'hipdata_list', 'hipdata'));
     }
 
     // ฟังก์ชันรับการ Import Excel

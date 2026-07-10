@@ -26,6 +26,13 @@
                     <input type="hidden" id="end_date" name="end_date" value="{{ $end_date }}">
                     <input type="text" id="end_date_picker" class="form-control datepicker_th text-center" readonly style="width: 130px; cursor: pointer;">
                     
+                    <select name="hipdata" class="form-select border-start-0 text-center" style="max-width: 150px; cursor: pointer;">
+                        <option value="">-- ทุกกลุ่มสิทธิ --</option>
+                        @foreach($hipdata_list as $hd)
+                            <option value="{{ $hd }}" {{ $hipdata == $hd ? 'selected' : '' }}>{{ $hd }}</option>
+                        @endforeach
+                    </select>
+
                     <button type="submit" class="btn btn-primary px-3 shadow-sm hover-scale">
                         <i class="bi bi-search me-1"></i> ค้นหา
                     </button>

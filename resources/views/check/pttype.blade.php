@@ -39,6 +39,7 @@
                         <tr>
                             <th class="text-center" colspan="8">ตาราง pttype (HOSxP)</th>
                             <th class="text-center" colspan="2" style="background-color: #e0f2fe; border-bottom-color: #bae6fd !important;">ตาราง provis_instype</th>                
+                            <th class="text-center" style="background-color: #f5f5f5;">ตรวจสอบ</th>
                         </tr>
                         <tr>
                             <th class="text-center">สปสช</th>  
@@ -51,10 +52,27 @@
                             <th class="text-center">กลุ่มราคา</th>
                             <th class="text-center" style="background-color: #f0f9ff">ชื่อสิทธิ</th>
                             <th class="text-center" style="background-color: #f0f9ff">รหัสส่งออก</th>
+                            <th class="text-center" style="background-color: #fafafa;">ผลการตรวจสอบ</th>
                         </tr>
                     </thead> 
                     <tbody> 
                         @foreach($pttype as $row) 
+                        @php
+                            $statusHtml = '';
+                            if (empty($row->pi_name)) {
+                                $statusHtml = '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>ไม่ได้เชื่อมรหัสมาตรฐาน (nhso_code)</span>';
+                            } elseif (empty($row->pttype_std_code)) {
+                                $statusHtml = '<span class="badge bg-danger"><i class="bi bi-x-circle me-1"></i>ไม่ได้ระบุรหัสส่งออกใน HOSxP</span>';
+                            } elseif (strtoupper(trim($row->hipdata_code)) === 'UCS' && $row->pttype_std_code !== '0100') {
+                                $statusHtml = '<span class="badge bg-danger" title="สิทธิหลักประกันสุขภาพ (UCS) รหัสส่งออกต้องเป็น 0100"><i class="bi bi-exclamation-octagon me-1"></i>รหัสส่งออกต้องเป็น 0100</span>';
+                            } elseif ($row->pttype_std_code !== $row->pi_pttype_std_code) {
+                                $statusHtml = '<span class="badge bg-danger" title="รหัสส่งออกของสิทธิใน HOSxP ไม่ตรงกับรหัสกลุ่มของตารางมาตรฐาน provis_instype"><i class="bi bi-exclamation-octagon me-1"></i>รหัสส่งออกไม่ตรงกัน</span>';
+                            } elseif (empty($row->hipdata_code) || !in_array(strtoupper(trim($row->hipdata_code)), $validCodes)) {
+                                $statusHtml = '<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>รหัส Hipdata ไม่ถูกต้อง</span>';
+                            } else {
+                                $statusHtml = '<span class="badge bg-success-soft text-success"><i class="bi bi-check-circle me-1"></i>ปกติ</span>';
+                            }
+                        @endphp
                         <tr>
                             <td class="text-center"><span class="badge bg-light text-dark border">{{$row->nhso_subinscl}}</span></td> 
                             <td class="text-center fw-bold">{{$row->pttype}}</td>                                
@@ -74,6 +92,7 @@
                             <td class="text-start small text-muted">{{$row->pttype_price_group_name}}</td>
                             <td class="text-start small">{{$row->pi_name}}</td>  
                             <td class="text-center small">{{$row->pi_pttype_std_code}}</td>
+                            <td class="text-start small">{!! $statusHtml !!}</td>
                         </tr>
                         @endforeach                 
                     </tbody>

@@ -288,7 +288,11 @@ class SssExportController extends Controller
             ", [$row->vn]);
                 
             foreach ($diags as $d) {
-                $icd_type = (str_starts_with(strtoupper($d->icd10), 'K') || preg_match('/^U[567]/i', $d->icd10)) ? 'TT' : '10';
+                if ($d->diagtype == '2') {
+                    $icd_type = 'IN';
+                } else {
+                    $icd_type = (str_starts_with(strtoupper($d->icd10), 'K') || preg_match('/^U[567]/i', $d->icd10)) ? 'TT' : 'IT';
+                }
                 $clean_diag = str_replace('.', '', trim($d->icd10));
                 $opdx_rows[] = "EC|{$row->vn}|{$d->diagtype}|{$icd_type}|{$clean_diag}|";
             }

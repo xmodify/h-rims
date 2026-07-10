@@ -36,13 +36,15 @@ class SssExportController extends Controller
             SELECT o.vn, o.vstdate, o.vsttime, o.hn, pt.pname, pt.fname, pt.lname, pt.cid, 
                    v.income, v.paid_money, v.remain_money, v.uc_money, v.spclty, v.hospmain, v.debt_id_list, v.rx_license_no,
                    osb.invno AS sss_invno, osb.billno AS sss_billno,
-                   pu.pttype_upp_type_code AS payplan
+                   pu.pttype_upp_type_code AS payplan,
+                   doc.licenseno AS doctor_license
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN pttype p ON p.pttype = o.pttype
             LEFT JOIN pttype_upp_type pu ON pu.pttype_upp_type_id = p.pttype_upp_type_id
             LEFT JOIN ovst_sss_billtran osb ON osb.vn = o.vn
+            LEFT JOIN doctor doc ON doc.code = o.dx_doctor
             WHERE o.vn IN ($visits_placeholders)
         ", $vns);
         $visits = collect($visits); // Convert to Collection to preserve helper methods
@@ -83,7 +85,7 @@ class SssExportController extends Controller
         $billitems_raw = DB::connection('hosxp')->select("
             SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price, op.income, op.hos_guid,
                    sd.name AS drug_name, n.name AS nondrug_name,
-                   COALESCE(nd.tmtid, di.sks_drug_code) AS tmtid
+                   COALESCE(nd.tmtid, di.sks_drug_code, n.nhso_adp_code) AS tmtid
             FROM opitemrece op
             LEFT JOIN s_drugitems sd ON sd.icode = op.icode
             LEFT JOIN nondrugitems n ON n.icode = op.icode
@@ -211,7 +213,7 @@ class SssExportController extends Controller
                 $disp_date = date('Y-m-d\TH:i:s', strtotime("{$v->vstdate} {$v->vsttime}"));
                 $rxtime_val = !empty($item->rxtime) ? $item->rxtime : date('H:i:s', strtotime($v->vsttime . ' + 30 minutes'));
                 $end_date = date('Y-m-d\TH:i:s', strtotime("{$v->vstdate} {$rxtime_val}"));
-                $license = !empty($v->rx_license_no) ? $v->rx_license_no : '-';
+                $license = !empty($v->rx_license_no) ? $v->rx_license_no : (!empty($v->doctor_license) ? $v->doctor_license : '-');
                 
                 // Count items in this session
                 $session_items = array_filter($disp_items, function($x) use ($item, $rx_no) {
@@ -222,7 +224,7 @@ class SssExportController extends Controller
                 $session_sum = array_sum(array_column($session_items, 'sum_price'));
                 $total_amt = number_format($session_sum, 2, '.', '');
                 
-                $billdisp_rows[] = "{$hcode}|{$disp_id}|{$rx_no}|{$v->hn}|{$v->cid}|{$disp_date}|{$end_date}|{$license}|2|{$total_amt}|{$total_amt}|0.00|0.00|HP|SS|{$session_count}|{$v->vn}|";
+                $billdisp_rows[] = "{$hcode}|{$disp_id}|{$invoice_no}|{$v->hn}|{$v->cid}|{$disp_date}|{$end_date}|{$license}|2|{$total_amt}|{$total_amt}|0.00|0.00|HP|SS|{$session_count}|{$v->vn}|";
                 $disp_sessions[$disp_id] = true;
             }
 
@@ -286,12 +288,13 @@ class SssExportController extends Controller
             ", [$row->vn]);
                 
             foreach ($diags as $d) {
-                $icd_type = (str_starts_with(strtoupper($d->icd10), 'K') || preg_match('/^U[567]/i', $d->icd10)) ? 'TT' : 'IT';
+                $icd_type = (str_starts_with(strtoupper($d->icd10), 'K') || preg_match('/^U[567]/i', $d->icd10)) ? 'TT' : '10';
                 $clean_diag = str_replace('.', '', trim($d->icd10));
                 $opdx_rows[] = "EC|{$row->vn}|{$d->diagtype}|{$icd_type}|{$clean_diag}|";
             }
             
-            $opservices_rows[] = "{$invoice_no}|{$row->vn}|EC|{$hcode}|{$row->hn}|{$row->cid}|1|01|9|9||-|99|{$start_dt}|{$end_dt}||||0.00|Y||OP1";
+            $doc_license = !empty($row->doctor_license) ? $row->doctor_license : (!empty($row->rx_license_no) ? $row->rx_license_no : '-');
+            $opservices_rows[] = "{$invoice_no}|{$row->vn}|EC|{$hcode}|{$row->hn}|{$row->cid}|1|01|9|9||{$doc_license}|99|{$start_dt}|{$end_dt}||||0.00|Y||OP1";
         }
 
         $opservices_count = count($opservices_rows);

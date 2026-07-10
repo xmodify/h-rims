@@ -16,7 +16,7 @@
         <div class="d-flex flex-column flex-md-row align-items-md-center gap-3">
             <form method="POST" action="{{ url('check/eclaim_status') }}" class="d-flex align-items-center gap-2 m-0">
                 @csrf
-                <div class="input-group input-group-sm">
+                <div class="input-group input-group-sm" style="width: auto;">
                     <span class="input-group-text bg-white border-end-0"><i class="bi bi-calendar3"></i></span>
                     <input type="hidden" id="start_date" name="start_date" value="{{ $start_date }}">
                     <input type="text" id="start_date_picker" class="form-control datepicker_th border-start-0 text-center" readonly style="width: 130px; cursor: pointer;">
@@ -25,18 +25,48 @@
                     
                     <input type="hidden" id="end_date" name="end_date" value="{{ $end_date }}">
                     <input type="text" id="end_date_picker" class="form-control datepicker_th text-center" readonly style="width: 130px; cursor: pointer;">
-                    
-                    <select name="hipdata" class="form-select border-start-0 text-center" style="max-width: 150px; cursor: pointer;">
-                        <option value="">-- ทุกกลุ่มสิทธิ --</option>
-                        @foreach($hipdata_list as $hd)
-                            <option value="{{ $hd }}" {{ $hipdata == $hd ? 'selected' : '' }}>{{ $hd }}</option>
-                        @endforeach
-                    </select>
-
-                    <button type="submit" class="btn btn-primary px-3 shadow-sm hover-scale">
-                        <i class="bi bi-search me-1"></i> ค้นหา
-                    </button>
                 </div>
+
+                @php
+                    $hipdata_names = [
+                        'UCS' => 'UCS สิทธิ UC',
+                        'OFC' => 'OFC ข้าราชการ',
+                        'SSS' => 'SSS ประกันสังคม',
+                        'LGO' => 'LGO อปท',
+                        'NHS' => 'NHS สิทธิ สปสช.',
+                        'STP' => 'STP บุคคลผู้มีปัญหาสถานะและสิทธิ',
+                        'BKK' => 'BKK ข้าราชการ กรุงเทพมหานคร',
+                        'BMT' => 'BMT สิทธิองค์การขนส่งมวลชนกรุงเทพ',
+                        'SRT' => 'SRT สิทธิการรถไฟแห่งประเทศไทย',
+                        'KKT' => 'KKT สิทธิการเคหะแห่งชาติ',
+                        'PTY' => 'PTY สิทธิเมืองพัทยา',
+                        'WEL' => 'WEL สิทธิบัตรสวัสดิการ',
+                        'PVT' => 'PVT สิทธิครูเอกชน',
+                    ];
+
+                    $sortOrder = ['UCS', 'OFC', 'SSS', 'LGO', 'NHS', 'STP', 'BKK', 'BMT', 'SRT', 'PVT'];
+                    $sorted_hipdata_list = collect($hipdata_list)->sortBy(function($item) use ($sortOrder) {
+                        $item_upper = strtoupper(trim($item));
+                        $index = array_search($item_upper, $sortOrder);
+                        return $index === false ? 999 : $index;
+                    })->values()->all();
+                @endphp
+
+                <select name="hipdata" class="form-select form-select-sm text-start" style="width: 280px; cursor: pointer;">
+                    <option value="">-- ทุกกลุ่มสิทธิประโยชน์ --</option>
+                    @foreach($sorted_hipdata_list as $hd)
+                        @php
+                            $hd_upper = strtoupper(trim($hd));
+                        @endphp
+                        <option value="{{ $hd }}" {{ $hipdata == $hd ? 'selected' : '' }}>
+                            {{ $hipdata_names[$hd_upper] ?? $hd }}
+                        </option>
+                    @endforeach
+                </select>
+
+                <button type="submit" class="btn btn-primary btn-sm px-3 shadow-sm hover-scale">
+                    <i class="bi bi-search me-1"></i> ค้นหา
+                </button>
             </form>
             
             <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 shadow-sm hover-scale" data-bs-toggle="modal" data-bs-target="#ExtensionInfoModal">

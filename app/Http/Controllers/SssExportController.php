@@ -44,7 +44,7 @@ class SssExportController extends Controller
             LEFT JOIN pttype p ON p.pttype = o.pttype
             LEFT JOIN pttype_upp_type pu ON pu.pttype_upp_type_id = p.pttype_upp_type_id
             LEFT JOIN ovst_sss_billtran osb ON osb.vn = o.vn
-            LEFT JOIN doctor doc ON doc.code = o.dx_doctor
+            LEFT JOIN doctor doc ON doc.code = o.doctor
             WHERE o.vn IN ($visits_placeholders)
         ", $vns);
         $visits = collect($visits); // Convert to Collection to preserve helper methods

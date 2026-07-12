@@ -5337,6 +5337,9 @@ class ClaimOpController extends Controller
         // 4. Audit ICD10 CHI: Check if diagnosis codes are valid
         $validator = new \App\Services\ClaimValidator();
         foreach ($diagnoses as $d) {
+            if (($d->diagtype ?? '') == '2') {
+                continue;
+            }
             $is_primary = ($d->diagtype == '1');
             $res = $validator->validateIcd10Chi($d->icd10 ?? '', $is_primary ? '1' : '2');
             if (!$res['is_valid']) {

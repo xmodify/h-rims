@@ -11107,6 +11107,12 @@
                     "column": "sss_hc",
                     "unique": false
                 }
+            ],
+            "lookup_icode_nhso_adp_code_index": [
+                {
+                    "column": "nhso_adp_code",
+                    "unique": false
+                }
             ]
         }
     },

@@ -438,13 +438,11 @@ class LookupIcodeController extends Controller
             SELECT icode, name, nhso_adp_code 
             FROM nondrugitems 
             WHERE (icode LIKE ? OR name LIKE ? OR nhso_adp_code LIKE ?) 
-            AND istatus = "Y"
             AND icode NOT IN (SELECT icode FROM hrims.lookup_icode)
             UNION
             SELECT icode, name, nhso_adp_code 
             FROM drugitems 
             WHERE (icode LIKE ? OR name LIKE ? OR nhso_adp_code LIKE ?) 
-            AND istatus = "Y"
             AND icode NOT IN (SELECT icode FROM hrims.lookup_icode)
             LIMIT 50';
 

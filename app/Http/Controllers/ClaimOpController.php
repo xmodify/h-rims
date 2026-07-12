@@ -3456,12 +3456,12 @@ class ClaimOpController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $search = DB::connection('hosxp')->select('
-            SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            SELECT o.vn AS seq, pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds, IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
             IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
-            op_data.ppfs_list,v.income,
+            op_data.ppfs_list,v.income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
             IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -3511,12 +3511,13 @@ class ClaimOpController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
-            SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
+            SELECT o.vn AS seq, pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds, IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
             IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
-            oe.upload_datetime AS ecliam,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            oe.upload_datetime AS ecliam,v.income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
+            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
             v.income-IFNULL(rc.rcpt_money, 0) AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -3568,6 +3569,44 @@ class ClaimOpController extends Controller
             AND COALESCE(op_data.is_kidney, 0) = 0 
             AND (oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR ec.hn IS NOT NULL)
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
+        // ── Batch load claim items for all VNs ──────────────────────────────
+        $allVns = array_merge(array_column($search, 'seq'), array_column($claim, 'seq'));
+        $itemsByVn = [];
+        if (!empty($allVns)) {
+            $rawItems = DB::connection('hosxp')
+                ->select('
+                    SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
+                           li.ppfs, li.ems,
+                           IFNULL(n.name, d.name) AS name
+                    FROM opitemrece op
+                    INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                    LEFT JOIN nondrugitems n ON n.icode = op.icode
+                    LEFT JOIN drugitems d ON d.icode = op.icode
+                    WHERE op.vn IN (' . implode(',', array_fill(0, count($allVns), '?')) . ')
+                    AND (li.ppfs = "Y" OR li.ems = "Y")',
+                $allVns);
+            foreach ($rawItems as $item) {
+                $itemsByVn[$item->vn][] = $item;
+            }
+        }
+
+        // ── Run ClaimValidator on each row ──────────────────────────────────
+        $validator = new \App\Services\ClaimValidator();
+        foreach ($search as $row) {
+            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? [], ['ppfs', 'endpoint']);
+            $row->is_valid           = $result['is_valid'];
+            $row->endpoint_valid     = $result['endpoint_valid'];
+            $row->validation_errors  = $result['errors'];
+            $row->validation_warnings = $result['warnings'];
+        }
+        foreach ($claim as $row) {
+            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? [], ['ppfs', 'endpoint']);
+            $row->is_valid           = $result['is_valid'];
+            $row->endpoint_valid     = $result['endpoint_valid'];
+            $row->validation_errors  = $result['errors'];
+            $row->validation_warnings = $result['warnings'];
+        }
 
         return view('claim_op.srt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
     }

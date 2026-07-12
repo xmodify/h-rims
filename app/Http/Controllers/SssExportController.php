@@ -626,7 +626,12 @@ class SssExportController extends Controller
                 return $item->vn === $vn;
             });
             foreach ($vn_disp_items as $item) {
-                if (!str_starts_with($item->icode, '3') && empty($item->tmtid)) {
+                $item_prdcat = !empty($item->sks_product_category_id) ? (string)$item->sks_product_category_id : '';
+                if (empty($item_prdcat) && !str_starts_with($item->icode, '3')) {
+                    $item_prdcat = '1';
+                }
+                // Only require TMT for Modern Medicine (prdcat = 1)
+                if ($item_prdcat === '1' && empty($item->tmtid)) {
                     $errors['billdisp'][] = "ยา icode {$item->icode} ไม่มีรหัสมาตรฐาน TMT";
                 }
             }

@@ -2027,7 +2027,7 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vn, COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(csop.amount, 0) + COALESCE(stm.receive_total, 0) AS receive_total 
+            FROM (SELECT o.vstdate,o.vn, COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(csop.amount, 0) AS receive_total 
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -2049,17 +2049,11 @@ class ClaimOpController extends Controller
                 WHERE sys = "HD" AND vstdate BETWEEN ? AND ?
                 GROUP BY hn, vstdate
             ) csop ON csop.hn = pt.hn AND csop.vstdate = o.vstdate 
-            LEFT JOIN (
-                SELECT hn, vstdate, SUM(receive_total) AS receive_total
-                FROM hrims.stm_ofc 
-                WHERE vstdate BETWEEN ? AND ?
-                GROUP BY hn, vstdate
-            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate
             WHERE p.hipdata_code = "OFC" 
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
-            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
         $receive_total = array_column($sum_month, 'receive_total');
@@ -2068,7 +2062,7 @@ class ClaimOpController extends Controller
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
-            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(csop.amount, 0) + COALESCE(stm.receive_total, 0) AS receive_total ,csop.rid AS repno
+            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(csop.amount, 0) AS receive_total ,csop.rid AS repno
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -2100,18 +2094,16 @@ class ClaimOpController extends Controller
             LEFT JOIN (SELECT hn, vstdate, SUM(amount) AS amount,MAX(rid) AS rid
                 FROM hrims.stm_ofc_csop WHERE sys = "HD" AND vstdate BETWEEN ? AND ? GROUP BY hn, vstdate) csop ON csop.hn = pt.hn
                 AND csop.vstdate = o.vstdate 
-            LEFT JOIN (SELECT hn, vstdate, SUM(receive_total) AS receive_total FROM hrims.stm_ofc WHERE vstdate BETWEEN ? AND ? GROUP BY hn, vstdate) stm ON stm.hn = pt.hn
-                AND stm.vstdate = o.vstdate
             WHERE p.hipdata_code = "OFC" 
             AND o.vstdate BETWEEN ? AND ?
-            AND csop.hn IS NULL AND stm.hn IS NULL
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            AND csop.hn IS NULL
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
-            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(csop.amount, 0) + COALESCE(stm.receive_total, 0) AS receive_total ,csop.rid AS repno
+            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(csop.amount, 0) AS receive_total ,csop.rid AS repno
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -2143,12 +2135,10 @@ class ClaimOpController extends Controller
             LEFT JOIN (SELECT hn, vstdate, SUM(amount) AS amount,MAX(rid) AS rid
                 FROM hrims.stm_ofc_csop WHERE sys = "HD" AND vstdate BETWEEN ? AND ? GROUP BY hn, vstdate) csop ON csop.hn = pt.hn
                 AND csop.vstdate = o.vstdate 
-            LEFT JOIN (SELECT hn, vstdate, SUM(receive_total) AS receive_total FROM hrims.stm_ofc WHERE vstdate BETWEEN ? AND ? GROUP BY hn, vstdate) stm ON stm.hn = pt.hn
-                AND stm.vstdate = o.vstdate
             WHERE p.hipdata_code = "OFC" 
             AND o.vstdate BETWEEN ? AND ?
-            AND (csop.hn IS NOT NULL OR stm.hn IS NOT NULL)
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            AND csop.hn IS NOT NULL
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         return view('claim_op.ofc_kidney', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'search', 'claim', 'month', 'claim_price', 'receive_total'));
     }
@@ -3120,31 +3110,29 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vn, COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) + COALESCE(stm_main.receive_total, 0) AS receive_total
+            FROM (SELECT o.vstdate,o.vn, COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype            
             LEFT JOIN vn_stat v ON v.vn = o.vn                 
             INNER JOIN (
-                SELECT op.vn, SUM(op.sum_price) AS claim_price
+                SELECT op.vn, SUM(CASE WHEN li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS claim_price
                 FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.kidney = "Y"
+                LEFT JOIN nondrugitems n ON n.icode = op.icode
+                LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
+                HAVING MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) = 1
             ) kidney_items ON kidney_items.vn = o.vn           
             LEFT JOIN (
                 SELECT cid,datetimeadm,sum(receive_total) AS receive_total,repno FROM hrims.stm_bmt_kidney
                 WHERE datetimeadm BETWEEN ? AND ? GROUP BY cid,datetimeadm
             ) stm ON stm.cid=pt.cid AND stm.datetimeadm = o.vstdate
-            LEFT JOIN (
-                SELECT cid,vstdate,sum(receive_total) AS receive_total FROM hrims.stm_bmt
-                WHERE vstdate BETWEEN ? AND ? GROUP BY cid,vstdate
-            ) stm_main ON stm_main.cid=pt.cid AND stm_main.vstdate = o.vstdate
             WHERE p.hipdata_code = "BMT" AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
-            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
         $receive_total = array_column($sum_month, 'receive_total');
@@ -3153,7 +3141,7 @@ class ClaimOpController extends Controller
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
-            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) + COALESCE(stm_main.receive_total, 0) AS receive_total ,stm.repno
+            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -3184,17 +3172,15 @@ class ClaimOpController extends Controller
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN (SELECT cid,datetimeadm,sum(receive_total) AS receive_total,repno FROM hrims.stm_bmt_kidney
                 WHERE datetimeadm BETWEEN ? AND ? GROUP BY cid,datetimeadm) stm ON stm.cid=pt.cid AND stm.datetimeadm = o.vstdate
-            LEFT JOIN (SELECT cid,vstdate,sum(receive_total) AS receive_total FROM hrims.stm_bmt
-                WHERE vstdate BETWEEN ? AND ? GROUP BY cid,vstdate) stm_main ON stm_main.cid=pt.cid AND stm_main.vstdate = o.vstdate
             WHERE p.hipdata_code = "BMT" AND o.vstdate BETWEEN ? AND ?
-            AND stm.cid IS NULL AND stm_main.cid IS NULL
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            AND stm.cid IS NULL
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
-            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) + COALESCE(stm_main.receive_total, 0) AS receive_total ,stm.repno
+            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -3225,11 +3211,9 @@ class ClaimOpController extends Controller
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             LEFT JOIN (SELECT cid,datetimeadm,sum(receive_total) AS receive_total,repno FROM hrims.stm_bmt_kidney
                 WHERE datetimeadm BETWEEN ? AND ? GROUP BY cid,datetimeadm) stm ON stm.cid=pt.cid AND stm.datetimeadm = o.vstdate
-            LEFT JOIN (SELECT cid,vstdate,sum(receive_total) AS receive_total FROM hrims.stm_bmt
-                WHERE vstdate BETWEEN ? AND ? GROUP BY cid,vstdate) stm_main ON stm_main.cid=pt.cid AND stm_main.vstdate = o.vstdate
             WHERE p.hipdata_code = "BMT" AND o.vstdate BETWEEN ? AND ?
-            AND (stm.cid IS NOT NULL OR stm_main.cid IS NOT NULL)
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+            AND stm.cid IS NOT NULL
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         return view('claim_op.bmt_kidney', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
     }

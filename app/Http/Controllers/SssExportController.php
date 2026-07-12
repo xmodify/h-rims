@@ -30,17 +30,18 @@ class SssExportController extends Controller
         $datetime_iso = date('Y-m-d\TH:i:s');
         $date_suffix = date('Ymd');
 
-        // Fetch visits (Raw SQL with LEFT JOIN ovst_sss_billtran to pull actual HOSxP invoice numbers)
+        // Fetch visits (Raw SQL with LEFT JOIN visit_pttype to pull actual HOSxP main hospital codes)
         $visits_placeholders = implode(',', array_fill(0, count($vns), '?'));
         $visits = DB::connection('hosxp')->select("
             SELECT o.vn, o.vstdate, o.vsttime, o.hn, pt.pname, pt.fname, pt.lname, pt.cid, 
-                   v.income, v.paid_money, v.remain_money, v.uc_money, v.spclty, v.hospmain, v.debt_id_list, v.rx_license_no,
+                   v.income, v.paid_money, v.remain_money, v.uc_money, v.spclty, COALESCE(vp.hospmain, v.hospmain) AS hospmain, v.debt_id_list, v.rx_license_no,
                    osb.invno AS sss_invno, osb.billno AS sss_billno,
                    pu.pttype_upp_type_code AS payplan,
                    doc.licenseno AS doctor_license
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
             LEFT JOIN pttype p ON p.pttype = o.pttype
             LEFT JOIN pttype_upp_type pu ON pu.pttype_upp_type_id = p.pttype_upp_type_id
             LEFT JOIN ovst_sss_billtran osb ON osb.vn = o.vn
@@ -64,24 +65,7 @@ class SssExportController extends Controller
             }
         }
 
-        // 1. Generate BILLTRAN & BillItems content
-        $billtran_rows = [];
-        foreach ($visits as $row) {
-            $raw_invo = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
-            $invoice_no = $this->resolve_invoice_no($row->vn, $raw_invo, $rep_invs_by_vn);
-            $sub_id = !empty($row->sss_billno) ? $row->sss_billno : '';
-            $ptname = trim($row->pname . $row->fname . ' ' . $row->lname);
-            $payplan = !empty($row->payplan) ? trim($row->payplan) : '80';
-            $paid = number_format($row->paid_money, 2, '.', '');
-            $income = number_format($row->income, 2, '.', '');
-            $claim = number_format($row->uc_money, 2, '.', '');
-            
-            $dttran = date('Y-m-d\TH:i:s', strtotime("{$row->vstdate} {$row->vsttime}"));
-            $billtran_rows[] = "01||{$dttran}|{$hcode}|{$invoice_no}|{$sub_id}|{$row->hn}||{$income}|{$paid}||{$tflag}|{$row->cid}|{$ptname}|{$row->hospmain}|{$payplan}|{$claim}||0.00";
-        }
-
         // Fetch BillItems (Raw SQL for all items/charges prescribed in these visits)
-        $billitems_rows = [];
         $billitems_raw = DB::connection('hosxp')->select("
             SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price, op.income, op.hos_guid,
                    sd.name AS drug_name, n.name AS nondrug_name,
@@ -100,7 +84,6 @@ class SssExportController extends Controller
                 )
             WHERE op.vn IN ($visits_placeholders)
         ", $vns);
-
 
         $map_income_to_ssop_group = function($inc) {
             $inc = str_pad($inc, 2, '0', STR_PAD_LEFT);
@@ -126,28 +109,66 @@ class SssExportController extends Controller
             }
         };
 
+        // 1. Generate BILLTRAN & BillItems content
+        $billitems_rows = [];
+        $billitems_by_vn = [];
         foreach ($billitems_raw as $item) {
-            $v = $visits_map->get($item->vn);
-            if (!$v) continue;
-            $raw_invo = !empty($v->sss_invno) ? $v->sss_invno : (!empty($v->debt_id_list) ? $v->debt_id_list : '');
-            $invoice_no = $this->resolve_invoice_no($v->vn, $raw_invo, $rep_invs_by_vn);
-            $billgr = $map_income_to_ssop_group($item->income);
-            $name = trim($item->drug_name ?: $item->nondrug_name ?: '');
-            $qty = number_format($item->qty, 0, '.', '');
-            $unitprice = number_format($item->unitprice, 2, '.', '');
-            $sum_price = number_format($item->sum_price, 2, '.', '');
+            $billitems_by_vn[$item->vn][] = $item;
+        }
+
+        $billtran_rows = [];
+        foreach ($visits as $row) {
+            $raw_invo = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
+            $invoice_no = $this->resolve_invoice_no($row->vn, $raw_invo, $rep_invs_by_vn);
+            $sub_id = !empty($row->sss_billno) ? $row->sss_billno : '';
+            $ptname = trim($row->pname . $row->fname . ' ' . $row->lname);
+            $payplan = !empty($row->payplan) ? trim($row->payplan) : '80';
+            $paid_val = (float)$row->paid_money;
+            $paid = number_format($paid_val, 2, '.', '');
             
-            // RefID/DispID: If in category 3 (drugs) or category 5 (supplies), use rx_no_invoice_no, else use vn
-            if ($billgr === '3' || $billgr === '5') {
-                $rx_no = !empty($item->hos_guid) ? substr(preg_replace('/[^0-9]/', '', $item->hos_guid), 0, 9) : $item->vn;
-                if (empty($rx_no)) $rx_no = $item->vn;
-                $disp_id = "{$rx_no}_{$invoice_no}";
-            } else {
-                $disp_id = $item->vn;
+            $visit_items = $billitems_by_vn[$row->vn] ?? [];
+            $total_charge = 0.0;
+            $total_claim = 0.0;
+            
+            // Distribute paid_money across items
+            $paid_to_deduct = $paid_val;
+            
+            foreach ($visit_items as $item) {
+                $billgr = $map_income_to_ssop_group($item->income);
+                $name = trim($item->drug_name ?: $item->nondrug_name ?: '');
+                
+                $qty = max(1, intval($item->qty));
+                $unitprice = number_format($item->unitprice, 2, '.', '');
+                
+                $charge_amt = (float)$qty * (float)$unitprice;
+                
+                $deduct = min($paid_to_deduct, $charge_amt);
+                $claim_amt_val = $charge_amt - $deduct;
+                $paid_to_deduct -= $deduct;
+                
+                $sum_charge = number_format($charge_amt, 2, '.', '');
+                $sum_claim = number_format($claim_amt_val, 2, '.', '');
+                
+                $total_charge += $charge_amt;
+                $total_claim += $claim_amt_val;
+                
+                // RefID/DispID: If in category 3 (drugs) or category 5 (supplies), use rx_no_invoice_no, else use vn
+                if ($billgr === '3' || $billgr === '5') {
+                    $rx_no = !empty($item->hos_guid) ? substr(preg_replace('/[^0-9]/', '', $item->hos_guid), 0, 9) : $item->vn;
+                    if (empty($rx_no)) $rx_no = $item->vn;
+                    $disp_id = "{$rx_no}_{$invoice_no}";
+                } else {
+                    $disp_id = $item->vn;
+                }
+
+                $billitems_rows[] = "{$invoice_no}|{$row->vstdate}|{$billgr}|{$item->icode}|{$item->tmtid}|{$name}|{$qty}|{$unitprice}|{$sum_charge}|{$unitprice}|{$sum_claim}|{$disp_id}|OP1";
             }
-
-            $billitems_rows[] = "{$invoice_no}|{$v->vstdate}|{$billgr}|{$item->icode}|{$item->tmtid}|{$name}|{$qty}|{$unitprice}|{$sum_price}|{$unitprice}|{$sum_price}|{$disp_id}|OP1";
-
+            
+            $income = number_format($total_charge, 2, '.', '');
+            $claim = number_format($total_claim, 2, '.', '');
+            
+            $dttran = date('Y-m-d\TH:i:s', strtotime("{$row->vstdate} {$row->vsttime}"));
+            $billtran_rows[] = "01||{$dttran}|{$hcode}|{$invoice_no}|{$sub_id}|{$row->hn}||{$income}|{$paid}||{$tflag}|{$row->cid}|{$ptname}|{$row->hospmain}|{$payplan}|{$claim}||0.00";
         }
 
         $billtran_count = count($billtran_rows);
@@ -178,7 +199,7 @@ class SssExportController extends Controller
         $dispensed_rows = [];
         $disp_sessions = [];
 
-        // Fetch drug and supply items (excluding icode LIKE '1%' to warn about bad registration items in s_drugitems)
+        // Fetch drug and supply items matching the group 3 and 5 items in BillItems
         $disp_items = DB::connection('hosxp')->select("
             SELECT op.vn, op.icode, op.qty, op.sum_price, op.unitprice, op.hos_guid, op.rxtime,
                    op.income,
@@ -203,7 +224,7 @@ class SssExportController extends Controller
                     AND nd1.updateflag IN ('A','U','E')
                 )
             WHERE op.vn IN ($visits_placeholders)
-            AND (op.icode LIKE '1%' OR op.income = '05')
+            AND op.income IN ('03', '04', '05', '17')
         ", $vns);
 
 
@@ -230,7 +251,13 @@ class SssExportController extends Controller
                     return $x->vn === $item->vn && $x_rx_no === $rx_no;
                 });
                 $session_count = count($session_items);
-                $session_sum = array_sum(array_column($session_items, 'sum_price'));
+                
+                $session_sum = 0.0;
+                foreach ($session_items as $x) {
+                    $x_qty = max(1, intval($x->qty));
+                    $x_up = number_format($x->unitprice, 2, '.', '');
+                    $session_sum += (float)$x_qty * (float)$x_up;
+                }
                 $total_amt = number_format($session_sum, 2, '.', '');
                 
                 // SSOP Dispensing row layout: hcode|disp_id|invoice_no|hn|cid|disp_date|end_date|license|Itemcnt|total_amt|total_amt|0.00|0.00|HP|SS|DispeStat|vn|
@@ -272,9 +299,10 @@ class SssExportController extends Controller
                 $unit_name = !empty($item->opi_unit_name) ? trim($item->opi_unit_name) : (!empty($item->units) ? trim($item->units) : 'ชิ้น');
             }
 
-            $qty = number_format($item->qty, 0, '.', '');
+            $qty = max(1, intval($item->qty));
             $unit_price = number_format($item->unitprice, 2, '.', '');
-            $total_amt = number_format($item->sum_price, 2, '.', '');
+            $total_amt_val = (float)$qty * (float)$unit_price;
+            $total_amt = number_format($total_amt_val, 2, '.', '');
 
             $dispensed_rows[] = "{$disp_id}|{$prdcat}|{$item->icode}|{$tmtid}|{$capacity_name}|{$item->name}|{$unit_name}|{$sigcode}|{$sigtext}|{$qty}|{$unit_price}|{$total_amt}|{$unit_price}|{$total_amt}||OD|||";
         }

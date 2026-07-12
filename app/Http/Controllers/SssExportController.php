@@ -30,6 +30,17 @@ class SssExportController extends Controller
         $datetime_iso = date('Y-m-d\TH:i:s');
         $date_suffix = date('Ymd');
 
+        $pttype_sss_fund_raw = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value') ?: '';
+        $pttype_sss_ae_raw = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value') ?: '';
+        $exclude_pttypes = [];
+        foreach (explode(',', $pttype_sss_fund_raw . ',' . $pttype_sss_ae_raw) as $p) {
+            $trimmed = trim($p, " \t\n\r\0\x0B'");
+            if ($trimmed !== '') {
+                $exclude_pttypes[] = $trimmed;
+            }
+        }
+        $exclude_pttypes_str = !empty($exclude_pttypes) ? "'" . implode("','", $exclude_pttypes) . "'" : "''";
+
         // Fetch visits (Raw SQL with LEFT JOIN visit_pttype to pull actual HOSxP main hospital codes)
         $visits_placeholders = implode(',', array_fill(0, count($vns), '?'));
         $visits = DB::connection('hosxp')->select("
@@ -43,7 +54,15 @@ class SssExportController extends Controller
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
-            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn AND vp.pttype = (
+                SELECT vp2.pttype 
+                FROM visit_pttype vp2
+                LEFT JOIN pttype p2 ON p2.pttype = vp2.pttype
+                WHERE vp2.vn = o.vn 
+                  AND p2.hipdata_code = 'SSS'
+                  AND vp2.pttype NOT IN ($exclude_pttypes_str)
+                LIMIT 1
+            )
             LEFT JOIN pttype p ON p.pttype = o.pttype
             LEFT JOIN pttype_upp_type pu ON pu.pttype_upp_type_id = p.pttype_upp_type_id
             LEFT JOIN ovst_sss_billtran osb ON osb.vn = o.vn

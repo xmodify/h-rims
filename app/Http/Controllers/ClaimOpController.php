@@ -4897,9 +4897,8 @@ class ClaimOpController extends Controller
             $debt_records = DB::connection('hosxp')
                 ->table('rcpt_debt as rd')
                 ->leftJoin('pttype as p', 'p.pttype', '=', 'rd.pttype')
-                ->leftJoin('pttype_upp_type as pu', 'pu.pttype_upp_type_id', '=', 'p.pttype_upp_type_id')
                 ->whereIn('rd.debt_id', $all_debt_ids)
-                ->where('pu.pttype_upp_type_code', 'SS')
+                ->where('p.hipdata_code', 'SSS')
                 ->select('rd.vn', 'rd.debt_id')
                 ->get();
             foreach ($debt_records as $r) {

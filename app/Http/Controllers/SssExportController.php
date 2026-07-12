@@ -86,9 +86,8 @@ class SssExportController extends Controller
             $debt_records = DB::connection('hosxp')
                 ->table('rcpt_debt as rd')
                 ->leftJoin('pttype as p', 'p.pttype', '=', 'rd.pttype')
-                ->leftJoin('pttype_upp_type as pu', 'pu.pttype_upp_type_id', '=', 'p.pttype_upp_type_id')
                 ->whereIn('rd.debt_id', $all_debt_ids)
-                ->where('pu.pttype_upp_type_code', 'SS')
+                ->where('p.hipdata_code', 'SSS')
                 ->select('rd.vn', 'rd.debt_id')
                 ->get();
             foreach ($debt_records as $r) {
@@ -102,9 +101,8 @@ class SssExportController extends Controller
             $vp_records = DB::connection('hosxp')
                 ->table('visit_pttype as vp')
                 ->leftJoin('pttype as p', 'p.pttype', '=', 'vp.pttype')
-                ->leftJoin('pttype_upp_type as pu', 'pu.pttype_upp_type_id', '=', 'p.pttype_upp_type_id')
                 ->whereIn('vp.vn', $vns_list)
-                ->where('pu.pttype_upp_type_code', 'SS')
+                ->where('p.hipdata_code', 'SSS')
                 ->select('vp.vn', 'vp.pttype')
                 ->get();
             foreach ($vp_records as $r) {
@@ -113,7 +111,8 @@ class SssExportController extends Controller
         }
         foreach ($visits as $row) {
             if (!isset($sss_pttypes_by_vn[$row->vn])) {
-                if (($row->payplan ?? '') === 'SS' && !empty($row->ovst_pttype)) {
+                // If row has payplan = 'SS' (or '80' depending on standard) or we can just fallback to ovst_pttype since we are exporting SSS
+                if (!empty($row->ovst_pttype)) {
                     $sss_pttypes_by_vn[$row->vn] = $row->ovst_pttype;
                 }
             }

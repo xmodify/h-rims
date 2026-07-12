@@ -33,16 +33,22 @@ class ClaimValidator
      */
     public function validate($visit, $billedItems): array
     {
+        return $this->validateUcs($visit, $billedItems);
+    }
+
+    /**
+     * @param  object $visit
+     * @param  array  $billedItems
+     * @return array  ['is_valid', 'endpoint_valid', 'errors', 'warnings']
+     */
+    public function validateUcs($visit, $billedItems): array
+    {
         $ppfs   = $this->validatePpfs($visit, (array) $billedItems);
         $insUcs = $this->validateInsUcs((array) $billedItems);
 
         $errors   = array_merge($ppfs['errors'],   $insUcs['errors']);
         $warnings = array_merge($ppfs['warnings'], $insUcs['warnings']);
 
-        // Basic check: auth_code
-        if (($visit->auth_code ?? '') !== 'Y') {
-            array_unshift($errors, "ยังไม่มีรหัส Authen Code");
-        }
 
         // Endpoint check (แยกออกจาก is_valid — UI แสดงสีเหลืองแทนสีแดง)
         $endpointOk = ($visit->endpoint ?? '') === 'Y'
@@ -71,10 +77,6 @@ class ClaimValidator
         $errors   = $ppfs['errors'];
         $warnings = $ppfs['warnings'];
 
-        // Basic check: auth_code
-        if (($visit->auth_code ?? '') !== 'Y') {
-            array_unshift($errors, "ยังไม่มีรหัส Authen Code");
-        }
 
         // Endpoint check
         $endpointOk = ($visit->endpoint ?? '') === 'Y'
@@ -103,10 +105,6 @@ class ClaimValidator
         $errors   = [];
         $warnings = $insUcs['warnings'];
 
-        // Basic check: auth_code
-        if (($visit->auth_code ?? '') !== 'Y') {
-            array_unshift($errors, "ยังไม่มีรหัส Authen Code");
-        }
 
         // Endpoint check
         $endpointOk = ($visit->endpoint ?? '') === 'Y'
@@ -130,22 +128,10 @@ class ClaimValidator
      */
     public function validateOfc($visit, $billedItems): array
     {
-        // 1. PPFS validation (only validate if there is at least one PPFS item)
-        $hasPpfs = false;
-        foreach ((array) $billedItems as $item) {
-            if (($item->ppfs ?? '') === 'Y') {
-                $hasPpfs = true;
-                break;
-            }
-        }
-
-        $errors   = [];
-        $warnings = [];
-        if ($hasPpfs) {
-            $ppfs = $this->validatePpfs($visit, (array) $billedItems);
-            $errors   = $ppfs['errors'];
-            $warnings = $ppfs['warnings'];
-        }
+        // 1. PPFS validation
+        $ppfs = $this->validatePpfs($visit, (array) $billedItems);
+        $errors   = $ppfs['errors'];
+        $warnings = $ppfs['warnings'];
 
         // 2. EDC Approve Code matching check (Mandatory for OFC)
         $edc_hosxp_list = array_filter(array_map('trim', explode(',', $visit->edc ?? '')));
@@ -159,11 +145,6 @@ class ClaimValidator
             $errors[] = "เลขอนุมัติ EDC ใน HOSxP (" . implode(',', $edc_hosxp_list) . ") ไม่ตรงกับไฟล์นำเข้า KTB (" . implode(',', $edc_ktb_list) . ")";
         }
 
-        // Basic check: auth_code
-        if (($visit->auth_code ?? '') !== 'Y') {
-            $errors[] = "ยังไม่มีรหัส Authen Code";
-        }
-
         // 3. Endpoint check (closure)
         $endpointOk = ($visit->endpoint ?? '') === 'Y';
 
@@ -172,6 +153,27 @@ class ClaimValidator
             'endpoint_valid' => $endpointOk,
             'errors'         => $errors,
             'warnings'       => $warnings,
+        ];
+    }
+
+    /**
+     * @param  object $visit
+     * @param  array  $billedItems
+     * @return array  ['is_valid', 'endpoint_valid', 'errors', 'warnings']
+     */
+    public function validateLgo($visit, $billedItems): array
+    {
+        // 1. PPFS validation
+        $ppfs = $this->validatePpfs($visit, (array) $billedItems);
+
+        // 2. Endpoint check (closure)
+        $endpointOk = ($visit->endpoint ?? '') === 'Y';
+
+        return [
+            'is_valid'       => empty($ppfs['errors']),
+            'endpoint_valid' => $endpointOk,
+            'errors'         => $ppfs['errors'],
+            'warnings'       => $ppfs['warnings'],
         ];
     }
 

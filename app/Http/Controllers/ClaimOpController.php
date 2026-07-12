@@ -263,14 +263,14 @@ class ClaimOpController extends Controller
         // ── Run ClaimValidator on each row ──────────────────────────────────
         $validator = new \App\Services\ClaimValidator();
         foreach ($search as $row) {
-            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
+            $result = $validator->validateUcs($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
             $row->validation_warnings = $result['warnings'];
         }
         foreach ($claim as $row) {
-            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
+            $result = $validator->validateUcs($row, $itemsByVn[$row->seq] ?? []);
             $row->is_valid           = $result['is_valid'];
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
@@ -368,7 +368,7 @@ class ClaimOpController extends Controller
 
         // Validate
         $validator = new \App\Services\ClaimValidator();
-        $validation = $validator->validate($visit, $items);
+        $validation = $validator->validateUcs($visit, $items);
 
         return response()->json([
             'visit'      => $visit,
@@ -995,14 +995,20 @@ class ClaimOpController extends Controller
             }
         }
 
-        // ── Run ClaimValidator on each row (only for warnings check) ───────
+        // ── Run ClaimValidator on each row ──────────────────────────────────
         $validator = new \App\Services\ClaimValidator();
         foreach ($search as $row) {
-            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
+            $result = $validator->validateUcs($row, $itemsByVn[$row->seq] ?? []);
+            $row->is_valid           = $result['is_valid'];
+            $row->endpoint_valid     = $result['endpoint_valid'];
+            $row->validation_errors  = $result['errors'];
             $row->validation_warnings = $result['warnings'];
         }
         foreach ($claim as $row) {
-            $result = $validator->validate($row, $itemsByVn[$row->seq] ?? []);
+            $result = $validator->validateUcs($row, $itemsByVn[$row->seq] ?? []);
+            $row->is_valid           = $result['is_valid'];
+            $row->endpoint_valid     = $result['endpoint_valid'];
+            $row->validation_errors  = $result['errors'];
             $row->validation_warnings = $result['warnings'];
         }
 
@@ -1080,11 +1086,9 @@ class ClaimOpController extends Controller
             LEFT JOIN pttype ptt ON ptt.pttype = op.pttype
             WHERE op.vn = ?', [$vn]);
 
-        // Validate (bypass: is_valid always true)
+        // Validate
         $validator = new \App\Services\ClaimValidator();
-        $validation = $validator->validate($visit, $items);
-        $validation['is_valid'] = true;
-        $validation['errors']   = [];
+        $validation = $validator->validateUcs($visit, $items);
 
         return response()->json([
             'visit'      => $visit,
@@ -1963,17 +1967,20 @@ class ClaimOpController extends Controller
         $items = DB::connection('hosxp')->select('
             SELECT op.icode, IFNULL(n.name, d.name) AS name,
                    op.qty, op.unitprice, op.sum_price,
-                   li.ppfs, li.ems, op.paidst, ps.name AS paidst_name
+                   li.ppfs, li.ems, op.paidst AS paids, ps.name AS paids_name,
+                   op.pttype, ptt.name AS pttype_name, n.nhso_adp_code AS nhso_adp_code
             FROM opitemrece op
             LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
             LEFT JOIN nondrugitems n ON n.icode = op.icode
             LEFT JOIN drugitems d ON d.icode = op.icode
             LEFT JOIN paidst ps ON ps.paidst = op.paidst
+            LEFT JOIN pttype ptt ON ptt.pttype = op.pttype
             WHERE op.vn = ?', [$vn]);
 
         // Validate
         $validator = new \App\Services\ClaimValidator();
-        $validation = $validator->validateOfc($visit, $items);
+        $isLgo = $request->is('*lgo*');
+        $validation = $isLgo ? $validator->validateLgo($visit, $items) : $validator->validateOfc($visit, $items);
 
         return response()->json([
             'visit'      => $visit,
@@ -2232,11 +2239,16 @@ class ClaimOpController extends Controller
         $search = DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
-            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
+            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc, eal.edc_ktb, eal.edc_ktb_with_time,
+            o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
             op_data.ppfs_list,v.income,
-            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status
+            IFNULL(v.paid_money, 0) AS paid_money,
+            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            v.income-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status,
+            pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -2274,6 +2286,13 @@ class ClaimOpController extends Controller
             ) stm ON stm.cid = pt.cid AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT cid, vstdate, 
+                       GROUP_CONCAT(DISTINCT approve_code ORDER BY approve_code SEPARATOR ",") AS edc_ktb,
+                       GROUP_CONCAT(DISTINCT CONCAT(approve_code, " (", DATE_FORMAT(vsttime, "%H:%i"), ")") ORDER BY approve_code SEPARATOR ", ") AS edc_ktb_with_time
+                FROM hrims.edc_approve_list
+                GROUP BY cid, vstdate
+            ) eal ON eal.cid = pt.cid AND eal.vstdate = o.vstdate
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code = "LGO" 
             AND o.vstdate BETWEEN ? AND ?
@@ -2287,11 +2306,16 @@ class ClaimOpController extends Controller
         $claim = DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
-            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
+            IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc, eal.edc_ktb, eal.edc_ktb_with_time,
+            o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
-            oe.upload_datetime AS ecliam,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            v.income-IFNULL(rc.rcpt_money, 0) AS debtor,stm.compensate_treatment AS receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
+            oe.upload_datetime AS ecliam,v.income,
+            IFNULL(v.paid_money, 0) AS paid_money,
+            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            v.income-IFNULL(rc.rcpt_money, 0) AS debtor,stm.compensate_treatment AS receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status,
+            pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
+            0 AS ems_price
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -2335,6 +2359,13 @@ class ClaimOpController extends Controller
             ) stm_uc ON stm_uc.cid = pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
+            LEFT JOIN (
+                SELECT cid, vstdate, 
+                       GROUP_CONCAT(DISTINCT approve_code ORDER BY approve_code SEPARATOR ",") AS edc_ktb,
+                       GROUP_CONCAT(DISTINCT CONCAT(approve_code, " (", DATE_FORMAT(vsttime, "%H:%i"), ")") ORDER BY approve_code SEPARATOR ", ") AS edc_ktb_with_time
+                FROM hrims.edc_approve_list
+                GROUP BY cid, vstdate
+            ) eal ON eal.cid = pt.cid AND eal.vstdate = o.vstdate
             WHERE (o.an ="" OR o.an IS NULL) 
             AND p.hipdata_code = "LGO" 
             AND o.vstdate BETWEEN ? AND ?
@@ -2342,6 +2373,44 @@ class ClaimOpController extends Controller
             AND COALESCE(op_data.is_kidney, 0) = 0 
             AND (oe.upload_datetime IS NOT NULL OR stm.cid IS NOT NULL OR ec.hn IS NOT NULL)
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
+        // ── Batch load claim items for all VNs ──────────────────────────────
+        $allVns = array_merge(array_column($search, 'seq'), array_column($claim, 'seq'));
+        $itemsByVn = [];
+        if (!empty($allVns)) {
+            $rawItems = DB::connection('hosxp')
+                ->select('
+                    SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
+                           li.ppfs, li.ems,
+                           IFNULL(n.name, d.name) AS name
+                    FROM opitemrece op
+                    INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                    LEFT JOIN nondrugitems n ON n.icode = op.icode
+                    LEFT JOIN drugitems d ON d.icode = op.icode
+                    WHERE op.vn IN (' . implode(',', array_fill(0, count($allVns), '?')) . ')
+                    AND (li.ppfs = "Y" OR li.ems = "Y")',
+                $allVns);
+            foreach ($rawItems as $item) {
+                $itemsByVn[$item->vn][] = $item;
+            }
+        }
+
+        // ── Run ClaimValidator on each row ──────────────────────────────────
+        $validator = new \App\Services\ClaimValidator();
+        foreach ($search as $row) {
+            $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
+            $row->is_valid           = $result['is_valid'];
+            $row->endpoint_valid     = $result['endpoint_valid'];
+            $row->validation_errors  = $result['errors'];
+            $row->validation_warnings = $result['warnings'];
+        }
+        foreach ($claim as $row) {
+            $result = $validator->validateLgo($row, $itemsByVn[$row->seq] ?? []);
+            $row->is_valid           = $result['is_valid'];
+            $row->endpoint_valid     = $result['endpoint_valid'];
+            $row->validation_errors  = $result['errors'];
+            $row->validation_warnings = $result['warnings'];
+        }
 
         return view('claim_op.lgo', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
     }

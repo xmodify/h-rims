@@ -325,6 +325,7 @@ Route::match(['get', 'post'], 'claim_op/bkk', [ClaimOpController::class, 'bkk'])
 Route::get('claim_op/bkk/visit_details', [ClaimOpController::class, 'get_ofc_visit_details']);
 Route::match(['get', 'post'], 'claim_op/bkk_kidney', [ClaimOpController::class, 'bkk_kidney']);
 Route::match(['get', 'post'], 'claim_op/bmt', [ClaimOpController::class, 'bmt']);
+Route::get('claim_op/bmt/visit_details', [ClaimOpController::class, 'get_ofc_visit_details']);
 Route::match(['get', 'post'], 'claim_op/bmt_kidney', [ClaimOpController::class, 'bmt_kidney']);
 Route::match(['get', 'post'], 'claim_op/srt', [ClaimOpController::class, 'srt']);
 Route::match(['get', 'post'], 'claim_op/pvt', [ClaimOpController::class, 'pvt']);

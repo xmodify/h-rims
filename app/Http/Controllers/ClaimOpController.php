@@ -1665,7 +1665,7 @@ class ClaimOpController extends Controller
                 SUM(IFNULL(receive_total,0)) AS receive_total
             FROM (SELECT o.vn,o.vstdate,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
             IFNULL(stm.receive_total, 0) + IFNULL(csop.amount, 0) AS receive_total,
-            CASE WHEN oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR csop.hn IS NOT NULL OR ec.hn IS NOT NULL THEN IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) ELSE 0 END AS claim_sent_price
+            CASE WHEN oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR csop.hn IS NOT NULL OR ec.seq IS NOT NULL THEN IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) ELSE 0 END AS claim_sent_price
             FROM ovst o        
 			LEFT JOIN patient pt ON pt.hn=o.hn				
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1779,7 +1779,7 @@ class ClaimOpController extends Controller
             AND oe.upload_datetime IS NULL 
             AND stm.hn IS NULL
             AND csop.hn IS NULL
-            AND ec.hn IS NULL
+            AND ec.seq IS NULL
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
@@ -1857,7 +1857,7 @@ class ClaimOpController extends Controller
             AND p.pttype NOT IN (' . $pttype_checkup . ')
             AND v.income <>"0" 
             AND COALESCE(op_data.is_kidney, 0) = 0
-            AND (oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR csop.hn IS NOT NULL OR ec.hn IS NOT NULL)
+            AND (oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR csop.hn IS NOT NULL OR ec.seq IS NOT NULL)
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         // ── Batch load claim items for all VNs ──────────────────────────────

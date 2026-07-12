@@ -2,6 +2,31 @@
 
 @section('content')
 
+<style>
+/* Custom pastel background for main tabs in claim_ip */
+#search-tab {
+    background-color: #fef2f2 !important; /* Soft pastel red/pink */
+    color: #dc2626 !important;
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+}
+#search-tab.active {
+    background-color: #dc2626 !important;
+    color: #fff !important;
+}
+
+#claim-tab {
+    background-color: #f0fdf4 !important; /* Soft pastel green */
+    color: #166534 !important;
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+}
+#claim-tab.active {
+    background-color: #166534 !important;
+    color: #fff !important;
+}
+</style>
+
     <!-- Page Header & Logic Filters -->
     <div class="page-header-box mt-2 mb-3 d-flex justify-content-between align-items-center">
         <div>

@@ -615,7 +615,15 @@ class SssExportController extends Controller
             if (empty($row->hn)) {
                 $errors['billtran'][] = "ไม่พบ HN";
             }
-            if (empty($row->uc_money) || $row->uc_money <= 0) {
+            $vn_items = array_filter($data['billitems_rows'], function($item_line) use ($invoice_no) {
+                return !empty($invoice_no) && str_starts_with($item_line, $invoice_no . '|');
+            });
+            $vn_claim_sum = 0.0;
+            foreach ($vn_items as $item_line) {
+                $item_parts = explode('|', $item_line);
+                $vn_claim_sum += (float)($item_parts[10] ?? 0.0);
+            }
+            if ($vn_claim_sum <= 0) {
                 $errors['billtran'][] = "ยอดเงินเรียกเก็บ (ClaimAmt) ต้องมากกว่า 0";
             }
 

@@ -842,7 +842,7 @@
         });
 
         // Set ข้อมูลใน Edit Modal
-        $('.btn-edit').on('click', function () {
+        $(document).on('click', '.btn-edit', function () {
             const data = $(this).data();
             $('#icode').val(data.icode);
             $('#editName').val(data.name);
@@ -1037,7 +1037,7 @@
         });
 
         // SweetAlert ยืนยันลบ
-        $('.btn-delete').on('click', function () {
+        $(document).on('click', '.btn-delete', function () {
             const form = $(this).closest('form');
             Swal.fire({
                 title: 'ยืนยันการลบ iCode?',

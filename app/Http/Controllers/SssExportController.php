@@ -116,6 +116,7 @@ class SssExportController extends Controller
             $billitems_by_vn[$item->vn][] = $item;
         }
 
+        $item_claim_map = []; // Map to share calculated claim amounts and claim unit prices with BILLDISP
         $billtran_rows = [];
         foreach ($visits as $row) {
             $raw_invo = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
@@ -146,8 +147,18 @@ class SssExportController extends Controller
                 $claim_amt_val = $charge_amt - $deduct;
                 $paid_to_deduct -= $deduct;
                 
+                $claim_up_val = $qty > 0 ? ($claim_amt_val / $qty) : 0.0;
+                
+                if (!empty($item->hos_guid)) {
+                    $item_claim_map[$item->hos_guid] = [
+                        'claim_amt' => $claim_amt_val,
+                        'claim_up' => $claim_up_val,
+                    ];
+                }
+                
                 $sum_charge = number_format($charge_amt, 2, '.', '');
                 $sum_claim = number_format($claim_amt_val, 2, '.', '');
+                $sum_claim_up = number_format($claim_up_val, 2, '.', '');
                 
                 $total_charge += $charge_amt;
                 $total_claim += $claim_amt_val;
@@ -161,7 +172,7 @@ class SssExportController extends Controller
                     $disp_id = $item->vn;
                 }
 
-                $billitems_rows[] = "{$invoice_no}|{$row->vstdate}|{$billgr}|{$item->icode}|{$item->tmtid}|{$name}|{$qty}|{$unitprice}|{$sum_charge}|{$unitprice}|{$sum_claim}|{$disp_id}|OP1";
+                $billitems_rows[] = "{$invoice_no}|{$row->vstdate}|{$billgr}|{$item->icode}|{$item->tmtid}|{$name}|{$qty}|{$unitprice}|{$sum_charge}|{$sum_claim_up}|{$sum_claim}|{$disp_id}|OP1";
             }
             
             $income = number_format($total_charge, 2, '.', '');
@@ -252,17 +263,26 @@ class SssExportController extends Controller
                 });
                 $session_count = count($session_items);
                 
-                $session_sum = 0.0;
+                $session_sum_charge = 0.0;
+                $session_sum_claim = 0.0;
                 foreach ($session_items as $x) {
                     $x_qty = max(1, intval($x->qty));
                     $x_up = number_format($x->unitprice, 2, '.', '');
-                    $session_sum += (float)$x_qty * (float)$x_up;
+                    $session_sum_charge += (float)$x_qty * (float)$x_up;
+                    
+                    $x_claim_info = $item_claim_map[$x->hos_guid] ?? null;
+                    if ($x_claim_info) {
+                        $session_sum_claim += $x_claim_info['claim_amt'];
+                    } else {
+                        $session_sum_claim += (float)$x_qty * (float)$x_up;
+                    }
                 }
-                $total_amt = number_format($session_sum, 2, '.', '');
+                $total_amt_session = number_format($session_sum_charge, 2, '.', '');
+                $total_claim_session = number_format($session_sum_claim, 2, '.', '');
                 
                 // SSOP Dispensing row layout: hcode|disp_id|invoice_no|hn|cid|disp_date|end_date|license|Itemcnt|total_amt|total_amt|0.00|0.00|HP|SS|DispeStat|vn|
                 // Swapped fields bug fixed here: put $session_count in 9th field, and 1 (DispeStat) in 16th field.
-                $billdisp_rows[] = "{$hcode}|{$disp_id}|{$invoice_no}|{$v->hn}|{$v->cid}|{$disp_date}|{$end_date}|{$license}|{$session_count}|{$total_amt}|{$total_amt}|0.00|0.00|HP|SS|1|{$v->vn}|";
+                $billdisp_rows[] = "{$hcode}|{$disp_id}|{$invoice_no}|{$v->hn}|{$v->cid}|{$disp_date}|{$end_date}|{$license}|{$session_count}|{$total_amt_session}|{$total_claim_session}|0.00|0.00|HP|SS|1|{$v->vn}|";
                 $disp_sessions[$disp_id] = true;
             }
 
@@ -304,7 +324,19 @@ class SssExportController extends Controller
             $total_amt_val = (float)$qty * (float)$unit_price;
             $total_amt = number_format($total_amt_val, 2, '.', '');
 
-            $dispensed_rows[] = "{$disp_id}|{$prdcat}|{$item->icode}|{$tmtid}|{$capacity_name}|{$item->name}|{$unit_name}|{$sigcode}|{$sigtext}|{$qty}|{$unit_price}|{$total_amt}|{$unit_price}|{$total_amt}||OD|||";
+            $claim_info = $item_claim_map[$item->hos_guid] ?? null;
+            if ($claim_info) {
+                $total_reimb_val = $claim_info['claim_amt'];
+                $reimb_price_val = $claim_info['claim_up'];
+            } else {
+                $total_reimb_val = $total_amt_val;
+                $reimb_price_val = (float)$unit_price;
+            }
+
+            $reimb_price = number_format($reimb_price_val, 2, '.', '');
+            $total_reimb = number_format($total_reimb_val, 2, '.', '');
+
+            $dispensed_rows[] = "{$disp_id}|{$prdcat}|{$item->icode}|{$tmtid}|{$capacity_name}|{$item->name}|{$unit_name}|{$sigcode}|{$sigtext}|{$qty}|{$unit_price}|{$total_amt}|{$reimb_price}|{$total_reimb}||OD|||";
         }
 
 

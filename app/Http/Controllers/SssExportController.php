@@ -10,6 +10,12 @@ use ZipArchive;
 
 class SssExportController extends Controller
 {
+    private function escape_xml($val)
+    {
+        if (empty($val)) return '';
+        return str_replace(['&', '<', '>', '"', "'"], ['&amp;', '&lt;', '&gt;', '&quot;', '&apos;'], $val);
+    }
+
     /**
      * Helper to generate raw SSOP data (raw XML strings and rows)
      */
@@ -24,6 +30,7 @@ class SssExportController extends Controller
                 return 'รพ. ';
             }
         });
+        $hname = $this->escape_xml($hname);
 
         // Current timestamp formatted for SSOP
         $datetime = date('Y-m-d H:i:s');
@@ -202,7 +209,7 @@ class SssExportController extends Controller
             $raw_invo = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
             $invoice_no = $this->resolve_invoice_no($row->vn, $raw_invo, $rep_invs_by_vn, $sss_debt_map);
             $sub_id = !empty($row->sss_billno) ? $row->sss_billno : '';
-            $ptname = trim($row->pname . $row->fname . ' ' . $row->lname);
+            $ptname = $this->escape_xml(trim($row->pname . $row->fname . ' ' . $row->lname));
             $payplan = !empty($row->payplan) ? trim($row->payplan) : '80';
             $paid_val = (float)($row->sss_paid_amount ?: 0.0);
             $paid = number_format($paid_val, 2, '.', '');
@@ -216,7 +223,7 @@ class SssExportController extends Controller
             
             foreach ($visit_items as $item) {
                 $billgr = $map_income_to_ssop_group($item->income);
-                $name = trim($item->drug_name ?: $item->nondrug_name ?: '');
+                $name = $this->escape_xml(trim($item->drug_name ?: $item->nondrug_name ?: ''));
                 
                 $qty = max(1, intval($item->qty));
                 $unitprice = number_format($item->unitprice, 2, '.', '');
@@ -400,6 +407,7 @@ class SssExportController extends Controller
             }
             
             // Resolve capacity_name and unit of measure fallbacks
+            // Resolve capacity_name and unit of measure fallbacks
             // Leaving them empty for category 5 supplies (non-drugs) to match successful files
             $is_drug = ($item->income !== '05');
             $capacity_name = '';
@@ -429,7 +437,12 @@ class SssExportController extends Controller
             $paid_for_item = $total_amt_val - $total_reimb_val;
             $item_paid = number_format($paid_for_item, 2, '.', '');
 
-            $dispensed_rows[] = "{$disp_id}|{$prdcat}|{$item->icode}|{$tmtid}|{$capacity_name}|{$item->name}|{$unit_name}|{$sigcode}|{$sigtext}|{$qty}|{$unit_price}|{$total_amt}|{$reimb_price}|{$total_reimb}|{$item_paid}|OD|||";
+            $item_name_escaped = $this->escape_xml(trim($item->name));
+            $sigtext_escaped = $this->escape_xml($sigtext);
+            $capacity_name_escaped = $this->escape_xml($capacity_name);
+            $unit_name_escaped = $this->escape_xml($unit_name);
+
+            $dispensed_rows[] = "{$disp_id}|{$prdcat}|{$item->icode}|{$tmtid}|{$capacity_name_escaped}|{$item_name_escaped}|{$unit_name_escaped}|{$sigcode}|{$sigtext_escaped}|{$qty}|{$unit_price}|{$total_amt}|{$reimb_price}|{$total_reimb}|{$item_paid}|OD|||";
         }
 
 

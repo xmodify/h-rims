@@ -2,6 +2,31 @@
 
 @section('content')
 
+<style>
+/* Custom pastel background for main tabs in sss_ppfs */
+#search-tab {
+    background-color: #fef2f2 !important; /* Soft pastel red/pink */
+    color: #dc2626 !important;
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+}
+#search-tab.active {
+    background-color: #dc2626 !important;
+    color: #fff !important;
+}
+
+#claim-tab {
+    background-color: #f0fdf4 !important; /* Soft pastel green */
+    color: #166534 !important;
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+}
+#claim-tab.active {
+    background-color: #166534 !important;
+    color: #fff !important;
+}
+</style>
+
     <!-- Page Header & Logic Filters -->
     <div class="page-header-box mt-2 mb-3 d-flex justify-content-between align-items-center">
         <div>
@@ -216,22 +241,20 @@
                                 <tr>
                                     <th class="text-center" rowspan="2">#</th>  
                                     <th class="text-center" rowspan="2">สถานะ</th>
-                                    <th class="text-center" rowspan="2">E-CLAIM</th>
+                                    <th class="text-center" rowspan="2">ERROR</th>
                                     <th class="text-center" rowspan="2">เบิก/ส่ง</th>
                                     <th class="text-center" rowspan="2" width="10%">วัน-เวลา | Q</th>     
                                     <th class="text-center" rowspan="2">HN</th> 
                                     <th class="text-center" rowspan="2">ชื่อ-สกุล | สิทธิ</th>
                                     <th class="text-center" rowspan="2">รายการต้องเรียกเก็บ</th>
                                     <th class="text-center" colspan="3">ค่ารักษา</th>                                     
-                                    <th class="text-center bg-primary-soft" colspan="5">ข้อมูลการชดเชย</th>
+                                    <th class="text-center bg-primary-soft" colspan="3">ข้อมูลการชดเชย</th>
                                 </tr>
                                 <tr>                                    
                                     <th class="text-center small">รวม</th>
                                     <th class="text-center small">ชำระเอง</th>                                                                  
                                     <th class="text-center small">PPFS</th>
-                                    <th class="text-center bg-primary-soft small px-1">Rep NHSO</th> 
-                                    <th class="text-center bg-primary-soft small px-1 text-nowrap">Error</th> 
-                                    <th class="text-center bg-primary-soft small px-1">STM ชดเชย</th> 
+                                                                        <th class="text-center bg-primary-soft small px-1">STM ชดเชย</th> 
                                     <th class="text-center bg-primary-soft small px-1">ผลต่าง</th> 
                                     <th class="text-center bg-primary-soft small px-1 text-nowrap">REP No.</th>
                                 </tr>
@@ -271,19 +294,28 @@
                                              </button>
                                         @endif
                                     </td>
-                                    <td class="text-center">
-                                        @if(substr($row->ec_status, 0, 1) == '0')
-                                            <span class="badge bg-secondary-soft text-secondary py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
-                                        @elseif(substr($row->ec_status, 0, 1) == '1')
-                                            <span class="badge bg-warning-soft text-warning py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
-                                        @elseif(substr($row->ec_status, 0, 1) == '2' || substr($row->ec_status, 0, 1) == 'M')
-                                            <span class="badge bg-danger-soft text-danger py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
-                                        @elseif(substr($row->ec_status, 0, 1) == '3')
-                                            <span class="badge bg-orange-soft text-orange py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
-                                        @elseif(substr($row->ec_status, 0, 1) == '4')    
-                                            <span class="badge bg-primary-soft text-primary py-0" style="font-size: 0.65rem;" title="{{ $row->ec_status }}">{{ $row->ec_status }}</span>
-                                        @endif
-                                    </td>
+                                                                         <td class="text-center small">
+                                         @if(!empty($row->check_detail))
+                                             @php
+                                                 $prefix = '';
+                                                 $badge_style = 'background-color: #dc3545; color: #fff;'; // Default red
+                                                 if (!empty($row->ec_status)) {
+                                                     $first_char = substr($row->ec_status, 0, 1);
+                                                     if (in_array($first_char, ['2', '3'])) {
+                                                         $prefix = $first_char . '-';
+                                                         if ($first_char === '3') {
+                                                             $badge_style = 'background-color: #fd7e14; color: #fff;'; // Orange for 3
+                                                         } else {
+                                                             $badge_style = 'background-color: #f43f5e; color: #fff;'; // Rose red for 2
+                                                         }
+                                                     }
+                                                 }
+                                             @endphp
+                                             <span class="badge fw-bold" style="font-size: 0.72rem; {{ $badge_style }}" title="พบข้อผิดพลาด e-Claim: {{ $row->check_detail }}">{{ $prefix }}{{ $row->check_detail }}</span>
+                                         @else
+                                             <span class="text-muted">-</span>
+                                         @endif
+                                     </td>
                                     <td class="text-start ps-3" data-order="{{ $row->confirm_and_locked == 'Y' ? '2' : '1' }}">
                                         <div class="d-flex flex-column align-items-start gap-1">
                                             <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
@@ -318,8 +350,8 @@
                                     <td class="text-end small">{{ number_format($row->income,2) }}</td>              
                                     <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>                                      
                                     <td class="text-end small">{{ number_format($row->ppfs,2) }}</td> 
-                                    <td class="text-end small text-primary">{{ number_format($row->rep_nhso,2) }}</td>
-                                    <td class="text-center small text-muted">{{ $row->rep_error }}</td>
+                                    
+                                    
                                     <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : ($row->receive_total < 0 ? 'text-danger' : 'text-dark') }}">
                                         {{ number_format($row->receive_total,2) }}
                                     </td>
@@ -345,8 +377,6 @@
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_ppfs,2) }}</th>
-                                    <th class="text-end small text-primary">{{ number_format($sum_rep_nhso,2) }}</th>
-                                    <th></th>
                                     <th class="text-end small fw-bold {{ $sum_receive_total > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($sum_receive_total,2) }}</th>
                                     @php $total_diff = $sum_receive_total - $sum_ppfs; @endphp
                                     <th class="text-end small fw-bold {{ $total_diff > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($total_diff, 2) }}</th>
@@ -362,7 +392,7 @@
 
     <!-- Details Modal -->
     <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header bg-primary text-white py-3">
                     <h5 class="modal-title fw-bold" id="detailsModalLabel">
@@ -660,87 +690,197 @@
 
                 let endpointBtn = '';
                 if (v.endpoint_valid) {
-                    endpointBtn = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>ปิดสิทธิแล้ว</span>`;
+                    endpointBtn = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>ปิดสิทธิแล้ว (สปสช.)</span>`;
                 } else {
                     endpointBtn = `<button onclick="pullNhsoData('${visit.vstdate}', '${visit.cid}', '${vn}')" class="btn btn-warning btn-sm py-1 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-cloud-download-fill me-1"></i>ดึงข้อมูล (Pull)</button>`;
                 }
 
+                // Calculate validation banner at the top
+                let statusHtml = '';
+                if (!v.is_valid) {
+                    statusHtml = `
+                    <div class="col-12">
+                      <div class="alert alert-danger py-2 px-3 border-0 shadow-sm d-flex align-items-start small mb-0" style="background-color: #fef2f2; color: #991b1b; border-left: 5px solid #dc2626 !important;">
+                        <i class="bi bi-x-octagon-fill me-2 mt-1" style="font-size: 1.1rem; color: #dc2626;"></i>
+                        <div>
+                          <div class="fw-bold mb-1 text-dark">สถานะ: ไม่ผ่านเกณฑ์ส่งออก (มีข้อผิดพลาดที่ต้องแก้ไข)</div>
+                          <ul class="mb-0 ps-3 text-danger" style="color: #991b1b !important;">${v.errors.map(err => `<li>${err}</li>`).join('')}</ul>
+                        </div>
+                      </div>
+                    </div>`;
+                } else if (!isEndpointDone) {
+                    statusHtml = `
+                    <div class="col-12">
+                      <div class="alert alert-warning py-2 px-3 border-0 shadow-sm d-flex align-items-start small mb-0" style="background-color: #fffbeb; color: #92400e; border-left: 5px solid #d97706 !important;">
+                        <i class="bi bi-exclamation-circle-fill me-2 mt-1" style="font-size: 1.1rem; color: #d97706;"></i>
+                        <div>
+                          <div class="fw-bold mb-1 text-dark">สถานะ: ข้อมูลผ่านเกณฑ์ แต่ยังไม่ปิดสิทธิ (สปสช.)</div>
+                          <div class="text-muted">ข้อมูลผ่านเกณฑ์การตรวจสอบแล้ว แต่กรุณากดดึงข้อมูลหรือปิดสิทธิเพื่อส่งออก</div>
+                        </div>
+                      </div>
+                    </div>`;
+                } else {
+                    statusHtml = `
+                    <div class="col-12">
+                      <div class="alert alert-success py-2 px-3 border-0 shadow-sm d-flex align-items-start small mb-0" style="background-color: #f0fdf4; color: #166534; border-left: 5px solid #16a34a !important;">
+                        <i class="bi bi-check-circle-fill me-2 mt-1" style="font-size: 1.1rem; color: #16a34a;"></i>
+                        <div>
+                          <div class="fw-bold mb-1 text-dark">สถานะ: ข้อมูลพร้อมส่งออก (ผ่านเกณฑ์และปิดสิทธิเรียบร้อย)</div>
+                          <div class="text-muted">ข้อมูลถูกต้องครบถ้วนและทำการปิดสิทธิเรียบร้อยแล้ว</div>
+                        </div>
+                      </div>
+                    </div>`;
+                }
+
                 let html = `
                 <div class="row g-3">
-                  <div class="col-md-6">
+                  <!-- Validation Status Banner -->
+                  ${statusHtml}
+
+                  <!-- คอลัมน์ที่ 1: ข้อมูลผู้ป่วย -->
+                  <div class="col-md-4">
                     <div class="card border-0 bg-light-soft h-100">
                       <div class="card-body py-2 px-3">
                         <div class="fw-bold text-primary mb-2 small"><i class="bi bi-person-fill me-1"></i>ข้อมูลผู้ป่วย</div>
-                        <table class="table table-sm table-borderless mb-0 small">
-                          <tr><th class="text-muted" style="width:35%">HN</th><td class="fw-bold">${visit.hn}</td></tr>
+                        <table class="table table-sm table-borderless mb-0 small compact-info-table">
+                          <tr><th class="text-muted" style="width:40%">HN</th><td class="fw-bold">${visit.hn}</td></tr>
                           <tr><th class="text-muted">CID</th><td>${visit.cid ?? '-'}</td></tr>
                           <tr><th class="text-muted">ชื่อ-สกุล</th><td>${visit.ptname}</td></tr>
                           <tr><th class="text-muted">สิทธิ์</th><td>${visit.pttype ?? '-'}</td></tr>
                           <tr><th class="text-muted">เพศ/อายุ</th><td>${visit.sex == '1' ? 'ชาย' : (visit.sex == '2' ? 'หญิง' : visit.sex)} / ${visit.age_y ?? '-'} ปี</td></tr>
                           <tr><th class="text-muted">ประสงค์เบิก</th><td>${visit.request_funds === 'Y' ? '<span class="badge bg-success py-0 px-2 fw-bold text-white"><i class="bi bi-check-circle-fill me-1"></i>Y</span>' : '<span class="badge bg-danger py-0 px-2 fw-bold text-white"><i class="bi bi-x-circle-fill me-1"></i>N</span>'}</td></tr>
                           <tr><th class="text-muted">พร้อมส่ง</th><td>${visit.confirm_and_locked === 'Y' ? '<span class="badge bg-success py-0 px-2 fw-bold text-white"><i class="bi bi-check-circle-fill me-1"></i>Y</span>' : '<span class="badge bg-danger py-0 px-2 fw-bold text-white"><i class="bi bi-x-circle-fill me-1"></i>N</span>'}</td></tr>
-                          <tr><th class="text-muted">สถานะปิดสิทธิ</th><td>${endpointBtn}</td></tr>
                         </table>
                       </div>
                     </div>
                   </div>
-                  <div class="col-md-6">
+
+                  <!-- คอลัมน์ที่ 2: ข้อมูลทางคลินิก -->
+                  <div class="col-md-4">
                     <div class="card border-0 bg-light-soft h-100">
                       <div class="card-body py-2 px-3">
                         <div class="fw-bold text-primary mb-2 small"><i class="bi bi-clipboard2-pulse me-1"></i>ข้อมูลทางคลินิก</div>
-                        <table class="table table-sm table-borderless mb-0 small">
+                        <table class="table table-sm table-borderless mb-0 small compact-info-table">
                           <tr><th class="text-muted" style="width:35%">วันที่</th><td>${visit.vstdate} ${visit.vsttime}</td></tr>
-                          <tr><th class="text-muted">CC</th><td>${visit.cc ?? '-'}</td></tr>
+                          <tr><th class="text-muted">CC</th><td style="word-break: break-all;">${visit.cc ?? '-'}</td></tr>
                           <tr><th class="text-muted">PDX</th><td class="fw-bold text-danger">${visit.pdx ?? '-'}</td></tr>
-                          <tr><th class="text-muted">SDX</th><td>${data.sec_diags.join(', ') || '-'}</td></tr>
-                          <tr><th class="text-muted">ICD-9</th><td>${data.procedures.join(', ') || '-'}</td></tr>
+                          <tr><th class="text-muted">SDX</th><td style="word-break: break-all;">${data.sec_diags.join(', ') || '-'}</td></tr>
+                          <tr><th class="text-muted">ICD-9</th><td style="word-break: break-all;">${data.procedures.join(', ') || '-'}</td></tr>
                         </table>
                       </div>
                     </div>
-                  </div>`;
+                  </div>
 
-                // Validation summary bar
-                if (!v.is_valid) {
-                    html += `
-                  <div class="col-12">
-                    <div class="alert alert-danger py-2 mb-0 small">
-                      <strong><i class="bi bi-x-octagon-fill me-1"></i>เงื่อนไขที่ไม่ผ่าน:</strong>
-                      <ul class="mb-0 mt-1 ps-3">`;
-                    v.errors.forEach(function(err) { html += `<li>${err}</li>`; });
-                    html += `</ul></div></div>`;
-                }
+                  <!-- คอลัมน์ที่ 3: ข้อมูลการเงิน -->
+                  <div class="col-md-4">
+                    <div class="card border-0 bg-light-soft h-100">
+                      <div class="card-body py-2 px-3">
+                        <div class="fw-bold text-primary mb-2 small"><i class="bi bi-currency-dollar me-1"></i>ข้อมูลการเงิน</div>
+                        <table class="table table-sm table-borderless mb-0 small compact-info-table">
+                          <tr><th class="text-muted" style="width:40%">ยอดค่ารักษา</th><td>${parseFloat(visit.income || 0).toFixed(2)} บาท</td></tr>
+                          <tr><th class="text-muted">ต้องชำระ/เอง</th><td>${parseFloat(visit.paid_money || 0).toFixed(2)} / ${parseFloat(visit.rcpt_money || 0).toFixed(2)} บาท</td></tr>
+                          <tr><th class="text-muted">ยอดเรียกเก็บ</th><td class="fw-bold text-primary">${parseFloat(visit.income - visit.rcpt_money).toFixed(2)} บาท</td></tr>
+                          <tr><th class="text-muted">ชดเชย NHSO</th><td class="text-success fw-bold">${parseFloat(visit.rep_nhso || 0).toFixed(2)} บาท</td></tr>
+                          <tr><th class="text-muted">ชดเชย PPFS</th><td class="text-info fw-bold">${parseFloat(visit.receive_total || 0).toFixed(2)} บาท</td></tr>
+                          <tr><th class="text-muted">สถานะปิดสิทธิ์</th><td>${endpointBtn}</td></tr>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
 
-                // Items table
-                html += `
-                  <div class="col-12">
-                    <div class="fw-bold small text-dark mb-2"><i class="bi bi-list-check me-1"></i>รายการเรียกเก็บ ${statusBadge}</div>
-                    <div class="table-responsive">
-                      <table class="table table-sm table-hover small mb-0">
-                        <thead class="table-light">
-                          <tr>
-                            <th>icode</th><th>รายการ</th><th>ประเภท</th>
-                            <th class="text-center">จำนวน</th>
-                            <th class="text-end">ราคา/หน่วย</th>
-                            <th class="text-end">รวม</th>
-                          </tr>
-                        </thead><tbody>`;
+                  <!-- ส่วนแท็บรายละเอียดรายการยา และ ค่าบริการรักษาพยาบาล -->
+                  <div class="col-12 mt-3">
+                    <ul class="nav nav-tabs nav-tabs-custom mb-2" id="modalDetailTabs" role="tablist" style="font-size: 0.85rem;">
+                      <li class="nav-item">
+                        <button class="nav-link active fw-bold text-primary" id="modal-drugs-tab" data-bs-toggle="tab" data-bs-target="#modal-drugs-panel" type="button" role="tab"><i class="bi bi-capsule me-1"></i>รายการยา</button>
+                      </li>
+                      <li class="nav-item">
+                        <button class="nav-link fw-bold text-success" id="modal-services-tab" data-bs-toggle="tab" data-bs-target="#modal-services-panel" type="button" role="tab"><i class="bi bi-list-check me-1"></i>ค่ารักษาพยาบาล</button>
+                      </li>
+                    </ul>
+                    <div class="tab-content" id="modalDetailTabsContent">
+                      <!-- แท็บรายการยา -->
+                      <div class="tab-pane fade show active" id="modal-drugs-panel" role="tabpanel" style="font-size: 12px;">
+                        <table id="modal-drugs-table" class="table table-sm table-hover align-middle mb-0 small border w-100">
+                          <thead class="table-dark">
+                            <tr>
+                              <th>ชื่อยา/เวชภัณฑ์</th>
+                              <th class="text-center" width="10%">จำนวน</th>
+                              <th class="text-end" width="12%">ราคารวม (บาท)</th>
+                              <th class="text-center" width="15%">ประเภทการชำระ</th>
+                              <th class="text-center" width="15%">สิทธิการรักษา</th>
+                              <th>รหัสมาตรฐาน TMT</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${(function() {
+                                let drugsList = items.filter(d => d.icode.startsWith('1'));
+                                if (drugsList.length === 0) {
+                                    return '<tr><td colspan="6" class="text-center text-muted py-3">ไม่พบรายการสั่งยาใน Visit นี้</td></tr>';
+                                }
+                                return drugsList.map(d => {
+                                    let tmtDisplay = d.tmt_code 
+                                        ? `<span class="badge bg-success fw-bold">${d.tmt_code}</span>`
+                                        : `<span class="badge bg-secondary-soft text-secondary">ไม่มีรหัส TMT</span>`;
+                                    return `<tr>
+                                      <td>
+                                        <div class="fw-bold text-dark">${d.name}</div>
+                                        <div class="text-muted small" style="font-size: 0.7rem;">icode: ${d.icode}</div>
+                                      </td>
+                                      <td class="text-center fw-bold">${parseFloat(d.qty).toFixed(0)}</td>
+                                      <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
+                                      <td class="text-center">${d.paids_name || d.paids || '-'}</td>
+                                      <td class="text-center">${d.pttype_name || d.pttype || '-'}</td>
+                                      <td>${tmtDisplay}</td>
+                                    </tr>`;
+                                }).join('');
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
 
-                items.forEach(function(item) {
-                    let type = '';
-                    if (item.ppfs  === 'Y') type += '<span class="badge-type badge-ppfs me-1">PPFS</span>';
-                    if (item.uc_cr === 'Y') type += '<span class="badge-type badge-uc_cr me-1">UC_CR</span>';
-                    if (item.herb32=== 'Y') type += '<span class="badge-type badge-herb me-1">Herb</span>';
-                    html += `<tr>
-                        <td class="text-muted">${item.icode}</td>
-                        <td>${item.name ?? '-'}</td>
-                        <td>${type}</td>
-                        <td class="text-center">${item.qty}</td>
-                        <td class="text-end">${parseFloat(item.unitprice).toLocaleString('th-TH',{minimumFractionDigits:2})}</td>
-                        <td class="text-end fw-bold">${parseFloat(item.sum_price).toLocaleString('th-TH',{minimumFractionDigits:2})}</td>
-                    </tr>`;
-                });
-
-                html += `</tbody></table></div></div></div>`;
+                      <!-- แท็บค่ารักษาพยาบาล -->
+                      <div class="tab-pane fade" id="modal-services-panel" role="tabpanel" style="font-size: 12px;">
+                        <table id="modal-services-table" class="table table-sm table-hover align-middle mb-0 small border w-100">
+                          <thead class="table-dark">
+                            <tr>
+                              <th>รายการค่าบริการ</th>
+                              <th class="text-center" width="10%">จำนวน</th>
+                              <th class="text-end" width="12%">ราคารวม (บาท)</th>
+                              <th class="text-center" width="15%">ประเภทการชำระ</th>
+                              <th class="text-center" width="15%">สิทธิการรักษา</th>
+                              <th class="text-center" width="12%">PPFS</th>
+                              <th>ADP Code</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            ${(function() {
+                                let servicesList = items.filter(d => !d.icode.startsWith('1'));
+                                if (servicesList.length === 0) {
+                                    return '<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบรายการค่าบริการรักษาพยาบาลใน Visit นี้</td></tr>';
+                                }
+                                return servicesList.map(d => {
+                                    let ppfsVal = d.ppfs === 'Y' ? '<i class="bi bi-check-circle-fill text-success"></i>' : '-';
+                                    return `<tr>
+                                      <td>
+                                        <div class="fw-bold text-dark">${d.name}</div>
+                                        <div class="text-muted small" style="font-size: 0.7rem;">icode: ${d.icode}</div>
+                                      </td>
+                                      <td class="text-center fw-bold">${parseFloat(d.qty).toFixed(0)}</td>
+                                      <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
+                                      <td class="text-center">${d.paids_name || d.paids || '-'}</td>
+                                      <td class="text-center">${d.pttype_name || d.pttype || '-'}</td>
+                                      <td class="text-center">${ppfsVal}</td>
+                                      <td class="font-monospace">${d.nhso_adp_code ?? '-'}</td>
+                                    </tr>`;
+                                }).join('');
+                            })()}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>`;
                 body.innerHTML = html;
             })
             .fail(function() {

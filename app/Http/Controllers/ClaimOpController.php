@@ -3946,7 +3946,7 @@ class ClaimOpController extends Controller
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
             op_data.claim_list,
             v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.claim_price, 0) AS claim_price,
-            fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,
+            fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status, MAX(ec.check_detail) AS check_detail,
             pt.sex, v.age_y
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -4006,7 +4006,7 @@ class ClaimOpController extends Controller
             v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.claim_price, 0) AS ppfs,
             rep.rep_eclaim_detail_nhso AS rep_nhso,
             rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno,
-            fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,
+            fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status, MAX(ec.check_detail) AS check_detail,
             pt.sex, v.age_y
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -4150,11 +4150,15 @@ class ClaimOpController extends Controller
         $items = DB::connection('hosxp')->select('
             SELECT op.icode, IFNULL(n.name, d.name) AS name,
                    op.qty, op.unitprice, op.sum_price,
-                   li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code
+                   li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
+                   op.paidst AS paids, ps.name AS paids_name,
+                   op.pttype, ptt.name AS pttype_name, NULL AS tmt_code
             FROM opitemrece op
             INNER JOIN hrims.lookup_icode li ON li.icode = op.icode AND li.ppfs = "Y"
             LEFT JOIN nondrugitems n ON n.icode = op.icode
             LEFT JOIN drugitems d ON d.icode = op.icode
+            LEFT JOIN paidst ps ON ps.paidst = op.paidst
+            LEFT JOIN pttype ptt ON ptt.pttype = op.pttype
             WHERE op.vn = ?
             AND op.paidst = "02"', [$vn]);
 

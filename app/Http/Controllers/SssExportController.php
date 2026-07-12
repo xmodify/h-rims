@@ -627,7 +627,13 @@ class SssExportController extends Controller
             });
             foreach ($vn_disp_items as $item) {
                 $item_prdcat = !empty($item->sks_product_category_id) ? (string)$item->sks_product_category_id : '';
-                if (empty($item_prdcat) && !str_starts_with($item->icode, '3')) {
+                if (str_starts_with($item->icode, '3')) {
+                    if ($item->income === '05') {
+                        $item_prdcat = '6';
+                    } else {
+                        $item_prdcat = '7';
+                    }
+                } elseif (empty($item_prdcat)) {
                     $item_prdcat = '1';
                 }
                 // Only require TMT for Modern Medicine (prdcat = 1)

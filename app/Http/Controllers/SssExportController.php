@@ -85,11 +85,12 @@ class SssExportController extends Controller
         $billitems_raw = DB::connection('hosxp')->select("
             SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price, op.income, op.hos_guid,
                    sd.name AS drug_name, n.name AS nondrug_name,
-                   COALESCE(nd.tmtid, di.sks_drug_code, n.nhso_adp_code) AS tmtid
+                   COALESCE(nd.tmtid, sd.sks_drug_code, d3.ref_code, di.sks_drug_code, n.nhso_adp_code) AS tmtid
             FROM opitemrece op
             LEFT JOIN s_drugitems sd ON sd.icode = op.icode
             LEFT JOIN nondrugitems n ON n.icode = op.icode
             LEFT JOIN drugitems di ON di.icode = op.icode
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode = op.icode AND d3.drugitems_ref_code_type_id = 3
             LEFT JOIN hrims.drugcat_chi nd ON nd.hospdrugcode = op.icode 
                 AND nd.date_approved = (
                     SELECT MAX(nd1.date_approved) 
@@ -99,6 +100,7 @@ class SssExportController extends Controller
                 )
             WHERE op.vn IN ($visits_placeholders)
         ", $vns);
+
 
         $map_income_to_ssop_group = function($inc) {
             $inc = str_pad($inc, 2, '0', STR_PAD_LEFT);
@@ -135,8 +137,8 @@ class SssExportController extends Controller
             $unitprice = number_format($item->unitprice, 2, '.', '');
             $sum_price = number_format($item->sum_price, 2, '.', '');
             
-            // RefID/DispID: If in s_drugitems, use rx_no_invoice_no, else use vn
-            if (!empty($item->drug_name)) {
+            // RefID/DispID: If in category 3 (drugs) or category 5 (supplies), use rx_no_invoice_no, else use vn
+            if ($billgr === '3' || $billgr === '5') {
                 $rx_no = !empty($item->hos_guid) ? substr(preg_replace('/[^0-9]/', '', $item->hos_guid), 0, 9) : $item->vn;
                 if (empty($rx_no)) $rx_no = $item->vn;
                 $disp_id = "{$rx_no}_{$invoice_no}";
@@ -145,6 +147,7 @@ class SssExportController extends Controller
             }
 
             $billitems_rows[] = "{$invoice_no}|{$v->vstdate}|{$billgr}|{$item->icode}|{$item->tmtid}|{$name}|{$qty}|{$unitprice}|{$sum_price}|{$unitprice}|{$sum_price}|{$disp_id}|OP1";
+
         }
 
         $billtran_count = count($billtran_rows);
@@ -175,18 +178,23 @@ class SssExportController extends Controller
         $dispensed_rows = [];
         $disp_sessions = [];
 
-        // Fetch drug items (excluding icode LIKE '1%' to warn about bad registration items in s_drugitems)
+        // Fetch drug and supply items (excluding icode LIKE '1%' to warn about bad registration items in s_drugitems)
         $disp_items = DB::connection('hosxp')->select("
             SELECT op.vn, op.icode, op.qty, op.sum_price, op.unitprice, op.hos_guid, op.rxtime,
-                   COALESCE(nd.tmtid, di.sks_drug_code) AS tmtid,
-                   sd.name, sd.sks_product_category_id,
+                   op.income,
+                   COALESCE(nd.tmtid, sd.sks_drug_code, d3.ref_code, di.sks_drug_code) AS tmtid,
+                   COALESCE(sd.name, n.name) AS name,
+                   COALESCE(nd.productcat, di.sks_product_category_id, sd.sks_product_category_id, '1') AS sks_product_category_id,
                    di.capacity_name, di.capacity_qty,
                    op.drugusage, du.opi_usage_code, du.opi_unit_name,
-                   CONCAT(IFNULL(du.name1,''), ' ', IFNULL(du.name2,''), ' ', IFNULL(du.name3,'')) AS drugusage_text
+                   CONCAT(IFNULL(du.name1,''), ' ', IFNULL(du.name2,''), ' ', IFNULL(du.name3,'')) AS drugusage_text,
+                   sd.units, nd.packsize
             FROM opitemrece op
-            INNER JOIN s_drugitems sd ON sd.icode = op.icode
+            LEFT JOIN s_drugitems sd ON sd.icode = op.icode
+            LEFT JOIN nondrugitems n ON n.icode = op.icode
             LEFT JOIN drugitems di ON di.icode = op.icode
             LEFT JOIN drugusage du ON du.drugusage = op.drugusage
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode = op.icode AND d3.drugitems_ref_code_type_id = 3
             LEFT JOIN hrims.drugcat_chi nd ON nd.hospdrugcode = op.icode 
                 AND nd.date_approved = (
                     SELECT MAX(nd1.date_approved) 
@@ -195,8 +203,9 @@ class SssExportController extends Controller
                     AND nd1.updateflag IN ('A','U','E')
                 )
             WHERE op.vn IN ($visits_placeholders)
-            AND op.icode LIKE '1%'
+            AND (op.icode LIKE '1%' OR op.income = '05')
         ", $vns);
+
 
         foreach ($disp_items as $item) {
             $v = $visits_map->get($item->vn);
@@ -224,7 +233,9 @@ class SssExportController extends Controller
                 $session_sum = array_sum(array_column($session_items, 'sum_price'));
                 $total_amt = number_format($session_sum, 2, '.', '');
                 
-                $billdisp_rows[] = "{$hcode}|{$disp_id}|{$invoice_no}|{$v->hn}|{$v->cid}|{$disp_date}|{$end_date}|{$license}|2|{$total_amt}|{$total_amt}|0.00|0.00|HP|SS|{$session_count}|{$v->vn}|";
+                // SSOP Dispensing row layout: hcode|disp_id|invoice_no|hn|cid|disp_date|end_date|license|Itemcnt|total_amt|total_amt|0.00|0.00|HP|SS|DispeStat|vn|
+                // Swapped fields bug fixed here: put $session_count in 9th field, and 1 (DispeStat) in 16th field.
+                $billdisp_rows[] = "{$hcode}|{$disp_id}|{$invoice_no}|{$v->hn}|{$v->cid}|{$disp_date}|{$end_date}|{$license}|{$session_count}|{$total_amt}|{$total_amt}|0.00|0.00|HP|SS|1|{$v->vn}|";
                 $disp_sessions[$disp_id] = true;
             }
 
@@ -240,12 +251,24 @@ class SssExportController extends Controller
                     $sigtext = 'ตามแพทย์สั่ง';
                 }
             }
+            
+            // Resolve capacity_name and unit of measure fallbacks
+            // Leaving them empty for category 5 supplies (non-drugs) to match successful files
+            $is_drug = ($item->income !== '05');
+            $capacity_name = '';
+            $unit_name = '';
+            if ($is_drug) {
+                $capacity_name = !empty($item->capacity_name) ? trim($item->capacity_name) : (!empty($item->packsize) ? trim($item->packsize) : (!empty($item->units) ? trim($item->units) : 'ชิ้น'));
+                $unit_name = !empty($item->opi_unit_name) ? trim($item->opi_unit_name) : (!empty($item->units) ? trim($item->units) : 'ชิ้น');
+            }
+
             $qty = number_format($item->qty, 0, '.', '');
             $unit_price = number_format($item->unitprice, 2, '.', '');
             $total_amt = number_format($item->sum_price, 2, '.', '');
 
-            $dispensed_rows[] = "{$disp_id}|{$prdcat}|{$item->icode}|{$tmtid}|{$item->capacity_name}|{$item->name}|{$item->opi_unit_name}|{$sigcode}|{$sigtext}|{$qty}|{$unit_price}|{$total_amt}|{$unit_price}|{$total_amt}||OD|||";
+            $dispensed_rows[] = "{$disp_id}|{$prdcat}|{$item->icode}|{$tmtid}|{$capacity_name}|{$item->name}|{$unit_name}|{$sigcode}|{$sigtext}|{$qty}|{$unit_price}|{$total_amt}|{$unit_price}|{$total_amt}||OD|||";
         }
+
 
         $billdisp_count = count($billdisp_rows);
         $billdisp_xml = '<?xml version="1.0" encoding="windows-874"?>' . "\r\n" .
@@ -442,7 +465,7 @@ class SssExportController extends Controller
                 return $item->vn === $vn;
             });
             foreach ($vn_disp_items as $item) {
-                if (empty($item->tmtid)) {
+                if (!str_starts_with($item->icode, '3') && empty($item->tmtid)) {
                     $errors['billdisp'][] = "ยา icode {$item->icode} ไม่มีรหัสมาตรฐาน TMT";
                 }
             }

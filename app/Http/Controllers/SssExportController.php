@@ -279,10 +279,12 @@ class SssExportController extends Controller
                 }
                 $total_amt_session = number_format($session_sum_charge, 2, '.', '');
                 $total_claim_session = number_format($session_sum_claim, 2, '.', '');
+                $total_paid_session = (float)$total_amt_session - (float)$total_claim_session;
+                $total_paid_session_str = number_format($total_paid_session, 2, '.', '');
                 
                 // SSOP Dispensing row layout: hcode|disp_id|invoice_no|hn|cid|disp_date|end_date|license|Itemcnt|total_amt|total_amt|0.00|0.00|HP|SS|DispeStat|vn|
                 // Swapped fields bug fixed here: put $session_count in 9th field, and 1 (DispeStat) in 16th field.
-                $billdisp_rows[] = "{$hcode}|{$disp_id}|{$invoice_no}|{$v->hn}|{$v->cid}|{$disp_date}|{$end_date}|{$license}|{$session_count}|{$total_amt_session}|{$total_claim_session}|0.00|0.00|HP|SS|1|{$v->vn}|";
+                $billdisp_rows[] = "{$hcode}|{$disp_id}|{$invoice_no}|{$v->hn}|{$v->cid}|{$disp_date}|{$end_date}|{$license}|{$session_count}|{$total_amt_session}|{$total_claim_session}|{$total_paid_session_str}|0.00|HP|SS|1|{$v->vn}|";
                 $disp_sessions[$disp_id] = true;
             }
 
@@ -335,8 +337,11 @@ class SssExportController extends Controller
 
             $reimb_price = number_format($reimb_price_val, 2, '.', '');
             $total_reimb = number_format($total_reimb_val, 2, '.', '');
+            
+            $paid_for_item = $total_amt_val - $total_reimb_val;
+            $item_paid = number_format($paid_for_item, 2, '.', '');
 
-            $dispensed_rows[] = "{$disp_id}|{$prdcat}|{$item->icode}|{$tmtid}|{$capacity_name}|{$item->name}|{$unit_name}|{$sigcode}|{$sigtext}|{$qty}|{$unit_price}|{$total_amt}|{$reimb_price}|{$total_reimb}||OD|||";
+            $dispensed_rows[] = "{$disp_id}|{$prdcat}|{$item->icode}|{$tmtid}|{$capacity_name}|{$item->name}|{$unit_name}|{$sigcode}|{$sigtext}|{$qty}|{$unit_price}|{$total_amt}|{$reimb_price}|{$total_reimb}|{$item_paid}|OD|||";
         }
 
 

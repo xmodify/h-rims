@@ -71,9 +71,10 @@ class SssExportController extends Controller
         $sss_debt_map = [];
         $all_debt_ids = [];
         foreach ($visits as $row) {
-            if (empty($row->sss_invno) && !empty($row->debt_id_list) && str_contains($row->debt_id_list, ',')) {
-                $ids = array_filter(array_map('trim', explode(',', $row->debt_id_list)));
-                if (count($ids) > 1) {
+            $invo_str = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
+            if (!empty($invo_str) && str_contains($invo_str, ',')) {
+                $ids = array_filter(array_map('trim', explode(',', $invo_str)));
+                if (count($ids) > 0) {
                     foreach ($ids as $id) {
                         if (is_numeric($id)) {
                             $all_debt_ids[] = (int)$id;

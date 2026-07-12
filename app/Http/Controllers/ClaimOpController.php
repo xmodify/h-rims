@@ -4882,9 +4882,10 @@ class ClaimOpController extends Controller
         $sss_debt_map = [];
         $all_debt_ids = [];
         foreach ($claim as $row) {
-            if (empty($row->sss_invno) && !empty($row->debt_id_list) && str_contains($row->debt_id_list, ',')) {
-                $ids = array_filter(array_map('trim', explode(',', $row->debt_id_list)));
-                if (count($ids) > 1) {
+            $invo_str = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
+            if (!empty($invo_str) && str_contains($invo_str, ',')) {
+                $ids = array_filter(array_map('trim', explode(',', $invo_str)));
+                if (count($ids) > 0) {
                     foreach ($ids as $id) {
                         if (is_numeric($id)) {
                             $all_debt_ids[] = (int)$id;
@@ -4957,8 +4958,20 @@ class ClaimOpController extends Controller
         }
 
         foreach ($claim as $row) {
+            $invo_str = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
             if (isset($sss_debt_map[$row->vn])) {
                 $row->sss_invno = (string)$sss_debt_map[$row->vn];
+            } elseif (!empty($invo_str) && str_contains($invo_str, ',')) {
+                $h_invoices = [];
+                foreach (explode(',', $invo_str) as $part) {
+                    $trimmed = trim($part);
+                    if ($trimmed !== '') {
+                        $h_invoices[] = $trimmed;
+                    }
+                }
+                $row->sss_invno = !empty($h_invoices) ? $h_invoices[0] : '';
+            } else {
+                $row->sss_invno = $invo_str;
             }
             $diags = [];
             if (!empty($row->pdx)) {

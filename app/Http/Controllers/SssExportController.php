@@ -99,10 +99,10 @@ class SssExportController extends Controller
                 ->whereIn('rd.debt_id', $all_debt_ids)
                 ->where('p.hipdata_code', 'SSS')
                 ->whereNotIn('rd.pttype', $exclude_pttypes)
-                ->select('rd.vn', 'rd.debt_id')
+                ->select('rd.vn', 'rd.finance_number')
                 ->get();
             foreach ($debt_records as $r) {
-                $sss_debt_map[$r->vn] = $r->debt_id;
+                $sss_debt_map[$r->vn] = $r->finance_number;
             }
         }
 

@@ -4877,6 +4877,36 @@ class ClaimOpController extends Controller
         }
 
         $vns = array_column($claim, 'vn');
+
+        // SSS Debt mapping for multiple invoices
+        $sss_debt_map = [];
+        $all_debt_ids = [];
+        foreach ($claim as $row) {
+            if (empty($row->sss_invno) && !empty($row->debt_id_list) && str_contains($row->debt_id_list, ',')) {
+                $ids = array_filter(array_map('trim', explode(',', $row->debt_id_list)));
+                if (count($ids) > 1) {
+                    foreach ($ids as $id) {
+                        if (is_numeric($id)) {
+                            $all_debt_ids[] = (int)$id;
+                        }
+                    }
+                }
+            }
+        }
+        if (!empty($all_debt_ids)) {
+            $debt_records = DB::connection('hosxp')
+                ->table('rcpt_debt as rd')
+                ->leftJoin('pttype as p', 'p.pttype', '=', 'rd.pttype')
+                ->leftJoin('pttype_upp_type as pu', 'pu.pttype_upp_type_id', '=', 'p.pttype_upp_type_id')
+                ->whereIn('rd.debt_id', $all_debt_ids)
+                ->where('pu.pttype_upp_type_code', 'SS')
+                ->select('rd.vn', 'rd.debt_id')
+                ->get();
+            foreach ($debt_records as $r) {
+                $sss_debt_map[$r->vn] = $r->debt_id;
+            }
+        }
+
         $drugs_by_vn = [];
         $rep_errors = [];
         $stm_pays = [];
@@ -4919,6 +4949,9 @@ class ClaimOpController extends Controller
         }
 
         foreach ($claim as $row) {
+            if (isset($sss_debt_map[$row->vn])) {
+                $row->sss_invno = (string)$sss_debt_map[$row->vn];
+            }
             $diags = [];
             if (!empty($row->pdx)) {
                 $diags[] = strtoupper(str_replace('.', '', trim($row->pdx)));

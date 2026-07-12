@@ -2284,3 +2284,17 @@
     });
   });
 </script>
+
+<style>
+/* Fix DataTables duplicated header/thin blue row bug when scrollX/scrollY is used */
+.dataTables_scrollBody table thead tr {
+    visibility: collapse !important;
+    height: 0 !important;
+}
+.dataTables_scrollBody table thead tr th {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    border: none !important;
+    height: 0 !important;
+}
+</style>

@@ -4894,11 +4894,20 @@ class ClaimOpController extends Controller
             }
         }
         if (!empty($all_debt_ids)) {
+            $exclude_pttypes = [];
+            foreach (explode(',', $pttype_sss_fund . ',' . $pttype_sss_ae) as $p) {
+                $trimmed = trim($p, " \t\n\r\0\x0B'");
+                if ($trimmed !== '') {
+                    $exclude_pttypes[] = $trimmed;
+                }
+            }
+
             $debt_records = DB::connection('hosxp')
                 ->table('rcpt_debt as rd')
                 ->leftJoin('pttype as p', 'p.pttype', '=', 'rd.pttype')
                 ->whereIn('rd.debt_id', $all_debt_ids)
                 ->where('p.hipdata_code', 'SSS')
+                ->whereNotIn('rd.pttype', $exclude_pttypes)
                 ->select('rd.vn', 'rd.debt_id')
                 ->get();
             foreach ($debt_records as $r) {

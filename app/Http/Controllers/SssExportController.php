@@ -83,11 +83,22 @@ class SssExportController extends Controller
             }
         }
         if (!empty($all_debt_ids)) {
+            $pttype_sss_fund_raw = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value') ?: '';
+            $pttype_sss_ae_raw = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value') ?: '';
+            $exclude_pttypes = [];
+            foreach (explode(',', $pttype_sss_fund_raw . ',' . $pttype_sss_ae_raw) as $p) {
+                $trimmed = trim($p, " \t\n\r\0\x0B'");
+                if ($trimmed !== '') {
+                    $exclude_pttypes[] = $trimmed;
+                }
+            }
+
             $debt_records = DB::connection('hosxp')
                 ->table('rcpt_debt as rd')
                 ->leftJoin('pttype as p', 'p.pttype', '=', 'rd.pttype')
                 ->whereIn('rd.debt_id', $all_debt_ids)
                 ->where('p.hipdata_code', 'SSS')
+                ->whereNotIn('rd.pttype', $exclude_pttypes)
                 ->select('rd.vn', 'rd.debt_id')
                 ->get();
             foreach ($debt_records as $r) {

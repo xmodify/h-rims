@@ -1705,10 +1705,19 @@
                 const warnings = [];
                 
                 preAudits.forEach(audit => {
+                    let msg = '';
+                    if (audit.code) {
+                        msg += `[${audit.code}] `;
+                    }
+                    if (audit.title) {
+                        msg += `${audit.title}: `;
+                    }
+                    msg += audit.desc;
+
                     if (audit.status === 'danger') {
-                        errors.push(`[${audit.code}] ${audit.title}: ${audit.desc}`);
+                        errors.push(msg);
                     } else if (audit.status === 'warning') {
-                        warnings.push(`[${audit.code}] ${audit.title}: ${audit.desc}`);
+                        warnings.push(msg);
                     }
                 });
 

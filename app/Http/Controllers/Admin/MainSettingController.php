@@ -107,6 +107,7 @@ class MainSettingController extends Controller
                     // Drop legacy tables if they exist
                     \Illuminate\Support\Facades\Schema::dropIfExists('sss_chronic_feedback');
                     \Illuminate\Support\Facades\Schema::dropIfExists('lookup_adp_sss');
+                    \Illuminate\Support\Facades\Schema::dropIfExists('lookup_icd10_chi');
 
                     $output = new \Symfony\Component\Console\Output\BufferedOutput();
                     \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true], $output);
@@ -398,6 +399,86 @@ class MainSettingController extends Controller
                         $report[] = "subinscl (ไม่พบไฟล์)";
                     }
 
+                    // --- 2.5: Import/Sync Lookup ICD10 CHI (ICD10_CHI.DBF) ---
+                    $filePathIcd10Chi = base_path('docs/lookup/ICD10_CHI.DBF');
+                    if (file_exists($filePathIcd10Chi)) {
+                        $handle = @fopen($filePathIcd10Chi, 'rb');
+                        if ($handle) {
+                            $header = fread($handle, 32);
+                            $header_info = unpack('Cversion/Cyy/Cmm/Cdd/Vnumrec/vhdrsize/vrecsize', $header);
+                            $num_records = $header_info['numrec'];
+                            $header_size = $header_info['hdrsize'];
+                            $record_size = $header_info['recsize'];
+
+                            $fields = [];
+                            while (true) {
+                                $b = fread($handle, 1);
+                                if (ord($b) === 0x0D) {
+                                    break;
+                                }
+                                $desc = $b . fread($handle, 31);
+                                $field_info = unpack('a11name/a1type/Voffset/Clength/Cdecimal', $desc);
+                                $fields[] = [
+                                    'name' => trim($field_info['name']),
+                                    'type' => $field_info['type'],
+                                    'length' => $field_info['length']
+                                ];
+                            }
+
+                            fseek($handle, $header_size);
+
+                            // Truncate before importing
+                            DB::table('lookup_icd10_chi')->truncate();
+
+                            $batchIcd = [];
+                            $insertedCountIcd = 0;
+
+                            for ($i = 0; $i < $num_records; $i++) {
+                                $record = fread($handle, $record_size);
+                                if (strlen($record) < $record_size) {
+                                    break;
+                                }
+                                if ($record[0] === '*') {
+                                    continue;
+                                }
+                                $offset = 1;
+                                $row = [];
+                                foreach ($fields as $f) {
+                                    $val = substr($record, $offset, $f['length']);
+                                    $row[$f['name']] = trim(iconv('TIS-620', 'UTF-8//IGNORE', $val));
+                                    $offset += $f['length'];
+                                }
+
+                                $batchIcd[] = [
+                                    'code' => $row['CODE'] ?? '',
+                                    'accpdx' => $row['ACCPDX'] ?? null,
+                                    'code_cat' => $row['CODE_CAT'] ?? null,
+                                    'desc' => $row['DESC'] ?? null,
+                                    'created_at' => now(),
+                                    'updated_at' => now()
+                                ];
+                                $insertedCountIcd++;
+                            }
+                            fclose($handle);
+
+                            DB::beginTransaction();
+                            try {
+                                foreach (array_chunk($batchIcd, 500) as $chunk) {
+                                    DB::table('lookup_icd10_chi')->insert($chunk);
+                                }
+                                DB::commit();
+                                $report[] = "lookup_icd10_chi ($insertedCountIcd รายการ)";
+                            } catch (\Throwable $e) {
+                                DB::rollBack();
+                                throw $e;
+                            }
+                        } else {
+                            $report[] = "lookup_icd10_chi (ไม่สามารถเปิดไฟล์)";
+                        }
+                    } else {
+                        $report[] = "lookup_icd10_chi (ไม่พบไฟล์)";
+                    }
+
                     return response()->json([
                         'success' => true,
                         'message' => "นำเข้า lookup สำเร็จ: " . implode(', ', $report)
@@ -522,9 +603,15 @@ class MainSettingController extends Controller
                 if (isset($schemaDef['indexes'])) {
                     foreach ($schemaDef['indexes'] as $indexName => $columnsInfo) {
                         if ($indexName === 'PRIMARY') {
-                            // Primary keys with multiple columns
-                            if (count($columnsInfo) > 1) {
-                                $cols = collect($columnsInfo)->pluck('column')->toArray();
+                            $cols = collect($columnsInfo)->pluck('column')->toArray();
+                            $hasAutoIncrement = false;
+                            foreach ($cols as $c) {
+                                if (isset($schemaDef['columns'][$c]['extra']) && $schemaDef['columns'][$c]['extra'] === 'auto_increment') {
+                                    $hasAutoIncrement = true;
+                                    break;
+                                }
+                            }
+                            if (!$hasAutoIncrement) {
                                 $table->primary($cols);
                             }
                             continue;
@@ -598,6 +685,18 @@ class MainSettingController extends Controller
         if (isset($schemaDef['indexes'])) {
             foreach ($schemaDef['indexes'] as $indexName => $columnsInfo) {
                 if ($indexName === 'PRIMARY') {
+                    $hasPrimary = count(DB::select("SHOW INDEX FROM `$tableName` WHERE Key_name = 'PRIMARY'")) > 0;
+                    if (!$hasPrimary) {
+                        try {
+                            Schema::table($tableName, function (Blueprint $table) use ($columnsInfo) {
+                                $cols = collect($columnsInfo)->pluck('column')->toArray();
+                                $table->primary($cols);
+                            });
+                            $updated[] = "+idx:PRIMARY";
+                        } catch (\Exception $e) {
+                            Log::warning("Could not create PRIMARY index on $tableName: " . $e->getMessage());
+                        }
+                    }
                     continue;
                 }
                 

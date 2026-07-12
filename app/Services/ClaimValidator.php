@@ -376,6 +376,41 @@ class ClaimValidator
     }
 
     /**
+     * ตรวจสอบว่า ICD-10 เป็นรหัสโรคหลักที่ถูกต้องตามตาราง lookup_icd10_chi หรือไม่
+     *
+     * @param string $diagCode
+     * @param string $diagType  '1' = PDX (โรคหลัก), อื่นๆ = SDX
+     * @return array  ['is_valid' => bool, 'message' => string]
+     */
+    public function validateIcd10Chi(string $diagCode, string $diagType = '1'): array
+    {
+        $clean = $this->normalizeCode($diagCode);
+        if (empty($clean)) {
+            return ['is_valid' => true, 'message' => ''];
+        }
+
+        $row = \Illuminate\Support\Facades\DB::table('lookup_icd10_chi')
+            ->where('code', $clean)
+            ->first();
+
+        if (!$row) {
+            return [
+                'is_valid' => false,
+                'message' => "รหัสวินิจฉัย {$diagCode} ไม่พบในบัญชีรหัสโรค สกส."
+            ];
+        }
+
+        if ($diagType === '1' && ($row->accpdx ?? '') === 'N') {
+            return [
+                'is_valid' => false,
+                'message' => "รหัสโรคหลัก {$diagCode} ไม่อนุญาตให้เป็นโรคหลัก (ACCPDX=N)"
+            ];
+        }
+
+        return ['is_valid' => true, 'message' => ''];
+    }
+
+    /**
      * Normalize medical codes: ตัดช่องว่าง จุด ขีด แปลงเป็น uppercase
      */
     private function normalizeCode(string $code): string

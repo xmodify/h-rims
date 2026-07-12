@@ -18371,5 +18371,62 @@
                 }
             ]
         }
+    },
+    "lookup_icd10_chi": {
+        "columns": {
+            "code": {
+                "type": "varchar(10)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "accpdx": {
+                "type": "varchar(5)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "code_cat": {
+                "type": "varchar(5)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "desc": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "primary_key": [
+            "code"
+        ],
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "code",
+                    "unique": true
+                }
+            ],
+            "lookup_icd10_chi_code_index": [
+                {
+                    "column": "code",
+                    "unique": false
+                }
+            ]
+        }
     }
 }

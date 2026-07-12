@@ -4946,6 +4946,7 @@ class ClaimOpController extends Controller
                 ->toArray();
         }
 
+        $validator = new \App\Services\ClaimValidator();
         foreach ($claim as $row) {
             $invo_str = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
             if (isset($sss_debt_map[$row->vn])) {
@@ -5099,8 +5100,26 @@ class ClaimOpController extends Controller
             }
             $row->stm_pay = $stm_pays[$row->vn] ?? null;
 
+            // Check ICD-10 CHI validation
+            $has_icd10_chi_error = false;
+            if (!empty($row->pdx)) {
+                $res = $validator->validateIcd10Chi($row->pdx, '1');
+                if (!$res['is_valid']) {
+                    $has_icd10_chi_error = true;
+                }
+            }
+            if (!$has_icd10_chi_error && !empty($row->sdx)) {
+                foreach (explode(',', $row->sdx) as $sdx) {
+                    $res = $validator->validateIcd10Chi($sdx, '2');
+                    if (!$res['is_valid']) {
+                        $has_icd10_chi_error = true;
+                        break;
+                    }
+                }
+            }
+
             // Determine eye status color: red (errors), yellow (warnings/not closed), green (all good & closed)
-            $is_valid = (!empty($invoice_no) && $invoice_no !== '0' && $invoice_no !== '0.00' && $has_pdx && $has_claim_money && $has_valid_cid && $has_valid_hmain && $has_valid_dates);
+            $is_valid = (!empty($invoice_no) && $invoice_no !== '0' && $invoice_no !== '0.00' && $has_pdx && $has_claim_money && $has_valid_cid && $has_valid_hmain && $has_valid_dates && !$has_icd10_chi_error);
             if (!$is_valid) {
                 $row->claim_status = 'red';
             } elseif ($row->endpoint !== 'Y') {
@@ -5259,40 +5278,7 @@ class ClaimOpController extends Controller
         $intersect = array_intersect(array_keys($visit_diag_cats), array_keys($visit_drug_cats));
         $visit->has_matching_category = !empty($intersect);
 
-        // Fetch REP errors (Only from the latest imported REP file to avoid showing historical errors from old export runs)
-        $latest_rep = DB::table('sss_ssop_rep')->where('vn', $vn)->orderBy('id', 'desc')->first();
-        $rep_rows = [];
-        if ($latest_rep) {
-            $rep_rows = DB::table('sss_ssop_rep')
-                ->where('vn', $vn)
-                ->where('rep_file', $latest_rep->rep_file)
-                ->get();
-        }
-        $dict_path = base_path('docs/lookup/sss_error_codes.json');
-        $dict = [];
-        if (file_exists($dict_path)) {
-            $dict = json_decode(file_get_contents($dict_path), true);
-        }
-
         $rep_feedbacks = [];
-        $unique_feedbacks = []; // Avoid duplicate codes in display
-        foreach ($rep_rows as $rr) {
-            $codes = array_filter(array_map('trim', explode(',', $rr->error_codes)));
-            foreach ($codes as $code) {
-                $upCode = strtoupper($code);
-                $key = $upCode;
-                if (!isset($unique_feedbacks[$key])) {
-                    $is_warning = str_starts_with($upCode, 'W');
-                    $unique_feedbacks[$key] = [
-                        'code' => $code,
-                        'type' => $is_warning ? 'warning' : 'error',
-                        'desc' => $dict[$upCode] ?? 'ไม่พบรายละเอียดข้อผิดพลาดในคู่มือ สกส.',
-                        'file' => $rr->rep_file
-                    ];
-                }
-            }
-        }
-        $rep_feedbacks = array_values($unique_feedbacks);
 
         // Pre-audit validation before export (Predict C-code rejections)
         $pre_audits = [];
@@ -5348,7 +5334,21 @@ class ClaimOpController extends Controller
             }
         }
 
-        
+        // 4. Audit ICD10 CHI: Check if diagnosis codes are valid
+        $validator = new \App\Services\ClaimValidator();
+        foreach ($diagnoses as $d) {
+            $is_primary = ($d->diagtype == '1');
+            $res = $validator->validateIcd10Chi($d->icd10 ?? '', $is_primary ? '1' : '2');
+            if (!$res['is_valid']) {
+                $pre_audits[] = [
+                    'code' => '',
+                    'title' => '',
+                    'desc' => $res['message'] . ' (กรุณาแก้ไขรหัสโรคให้ถูกต้องใน HOSxP)',
+                    'status' => 'danger'
+                ];
+            }
+        }
+
         return response()->json([
             'visit' => $visit,
             'diagnoses' => $diagnoses,

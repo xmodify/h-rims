@@ -31,87 +31,49 @@ class ClaimValidator
      * @param  array  $billedItems  ต้องมี ins_ucs ติดมาแล้ว (inject โดย Controller)
      * @return array  ['is_valid', 'endpoint_valid', 'errors', 'warnings']
      */
-    public function validate($visit, $billedItems): array
-    {
-        return $this->validateUcs($visit, $billedItems);
-    }
-
     /**
+     * Core configurable validator supporting aspect-based checks.
+     *
      * @param  object $visit
      * @param  array  $billedItems
+     * @param  array  $aspects
      * @return array  ['is_valid', 'endpoint_valid', 'errors', 'warnings']
      */
-    public function validateUcs($visit, $billedItems): array
+    public function validate($visit, $billedItems, array $aspects = []): array
     {
-        $ppfs   = $this->validatePpfs($visit, (array) $billedItems);
-        $insUcs = $this->validateInsUcs((array) $billedItems);
-
-        $errors   = array_merge($ppfs['errors'],   $insUcs['errors']);
-        $warnings = array_merge($ppfs['warnings'], $insUcs['warnings']);
-
-
-        // Endpoint check (แยกออกจาก is_valid — UI แสดงสีเหลืองแทนสีแดง)
-        $endpointOk = ($visit->endpoint ?? '') === 'Y'
-            || (!empty($visit->fdh_status) && (
-                strpos($visit->fdh_status, 'อนุมัติ') !== false ||
-                strpos($visit->fdh_status, 'สำเร็จ') !== false
-            ));
-
-        return [
-            'is_valid'       => empty($errors),
-            'endpoint_valid' => $endpointOk,
-            'errors'         => $errors,
-            'warnings'       => $warnings,
-        ];
-    }
-
-    /**
-     * @param  object $visit
-     * @param  array  $billedItems
-     * @return array  ['is_valid', 'endpoint_valid', 'errors', 'warnings']
-     */
-    public function validatePpfsOnly($visit, $billedItems): array
-    {
-        $ppfs = $this->validatePpfs($visit, (array) $billedItems);
-
-        $errors   = $ppfs['errors'];
-        $warnings = $ppfs['warnings'];
-
-
-        // Endpoint check
-        $endpointOk = ($visit->endpoint ?? '') === 'Y'
-            || (!empty($visit->fdh_status) && (
-                strpos($visit->fdh_status, 'อนุมัติ') !== false ||
-                strpos($visit->fdh_status, 'สำเร็จ') !== false
-            ));
-
-        return [
-            'is_valid'       => empty($errors),
-            'endpoint_valid' => $endpointOk,
-            'errors'         => $errors,
-            'warnings'       => $warnings,
-        ];
-    }
-
-    /**
-     * @param  object $visit
-     * @param  array  $billedItems
-     * @return array  ['is_valid', 'endpoint_valid', 'errors', 'warnings']
-     */
-    public function validateInsUcsOnly($visit, $billedItems): array
-    {
-        $insUcs = $this->validateInsUcs((array) $billedItems);
+        // Default to UCS aspects for backward compatibility if none specified
+        if (empty($aspects)) {
+            $aspects = ['ppfs', 'ins_ucs', 'endpoint'];
+        }
 
         $errors   = [];
-        $warnings = $insUcs['warnings'];
+        $warnings = [];
+        $endpointOk = true;
 
+        // 1. PPFS validation
+        if (in_array('ppfs', $aspects)) {
+            $ppfs = $this->validatePpfs($visit, (array) $billedItems);
+            $errors   = array_merge($errors, $ppfs['errors']);
+            $warnings = array_merge($warnings, $ppfs['warnings']);
+        }
 
-        // Endpoint check
-        $endpointOk = ($visit->endpoint ?? '') === 'Y'
-            || (!empty($visit->fdh_status) && (
-                strpos($visit->fdh_status, 'อนุมัติ') !== false ||
-                strpos($visit->fdh_status, 'สำเร็จ') !== false
-            ));
+        // 2. Instrument UCS validation
+        if (in_array('ins_ucs', $aspects)) {
+            $ins = $this->validateInsUcs((array) $billedItems);
+            $errors   = array_merge($errors, $ins['errors']);
+            $warnings = array_merge($warnings, $ins['warnings']);
+        }
+
+        // 3. EDC validation
+        if (in_array('edc', $aspects)) {
+            $edc = $this->validateEdc($visit);
+            $errors   = array_merge($errors, $edc['errors']);
+        }
+
+        // 4. Endpoint closure check
+        if (in_array('endpoint', $aspects)) {
+            $endpointOk = $this->validateNhsoEndpoint($visit);
+        }
 
         return [
             'is_valid'       => empty($errors),
@@ -122,18 +84,11 @@ class ClaimValidator
     }
 
     /**
-     * @param  object $visit
-     * @param  array  $billedItems
-     * @return array  ['is_valid', 'endpoint_valid', 'errors', 'warnings']
+     * ตรวจสอบเลขอนุมัติ EDC (สำหรับสิทธิ OFC)
      */
-    public function validateOfc($visit, $billedItems): array
+    public function validateEdc($visit): array
     {
-        // 1. PPFS validation
-        $ppfs = $this->validatePpfs($visit, (array) $billedItems);
-        $errors   = $ppfs['errors'];
-        $warnings = $ppfs['warnings'];
-
-        // 2. EDC Approve Code matching check (Mandatory for OFC)
+        $errors = [];
         $edc_hosxp_list = array_filter(array_map('trim', explode(',', $visit->edc ?? '')));
         $edc_ktb_list = array_filter(array_map('trim', explode(',', $visit->edc_ktb ?? '')));
 
@@ -145,36 +100,53 @@ class ClaimValidator
             $errors[] = "เลขอนุมัติ EDC ใน HOSxP (" . implode(',', $edc_hosxp_list) . ") ไม่ตรงกับไฟล์นำเข้า KTB (" . implode(',', $edc_ktb_list) . ")";
         }
 
-        // 3. Endpoint check (closure)
-        $endpointOk = ($visit->endpoint ?? '') === 'Y';
-
-        return [
-            'is_valid'       => empty($errors),
-            'endpoint_valid' => $endpointOk,
-            'errors'         => $errors,
-            'warnings'       => $warnings,
-        ];
+        return ['errors' => $errors];
     }
 
     /**
-     * @param  object $visit
-     * @param  array  $billedItems
-     * @return array  ['is_valid', 'endpoint_valid', 'errors', 'warnings']
+     * ตรวจสอบสถานะการปิดสิทธิ์ปลายทาง
      */
+    public function validateNhsoEndpoint($visit): bool
+    {
+        return ($visit->endpoint ?? '') === 'Y'
+            || (!empty($visit->fdh_status) && (
+                strpos($visit->fdh_status, 'อนุมัติ') !== false ||
+                strpos($visit->fdh_status, 'สำเร็จ') !== false
+            ));
+    }
+
+    // =========================================================================
+    // Backward compatibility wrappers
+    // =========================================================================
+
+    public function validateUcs($visit, $billedItems): array
+    {
+        return $this->validate($visit, $billedItems, ['ppfs', 'ins_ucs', 'endpoint']);
+    }
+
+    public function validatePpfsOnly($visit, $billedItems): array
+    {
+        return $this->validate($visit, $billedItems, ['ppfs', 'endpoint']);
+    }
+
+    public function validateInsUcsOnly($visit, $billedItems): array
+    {
+        return $this->validate($visit, $billedItems, ['ins_ucs', 'endpoint']);
+    }
+
+    public function validateOfc($visit, $billedItems): array
+    {
+        return $this->validate($visit, $billedItems, ['ppfs', 'edc', 'endpoint']);
+    }
+
     public function validateLgo($visit, $billedItems): array
     {
-        // 1. PPFS validation
-        $ppfs = $this->validatePpfs($visit, (array) $billedItems);
+        return $this->validate($visit, $billedItems, ['ppfs', 'endpoint']);
+    }
 
-        // 2. Endpoint check (closure)
-        $endpointOk = ($visit->endpoint ?? '') === 'Y';
-
-        return [
-            'is_valid'       => empty($ppfs['errors']),
-            'endpoint_valid' => $endpointOk,
-            'errors'         => $ppfs['errors'],
-            'warnings'       => $ppfs['warnings'],
-        ];
+    public function validateBkk($visit, $billedItems): array
+    {
+        return $this->validate($visit, $billedItems, ['ppfs', 'endpoint']);
     }
 
     // =========================================================================

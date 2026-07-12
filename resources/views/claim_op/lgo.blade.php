@@ -148,7 +148,7 @@
                                         @elseif($row->endpoint_valid)
                                             <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>
                                         @else
-                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. / EDC | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>
                                         @endif
                                     </td>
                                     <td class="text-center" data-order="{{ $row->request_funds == 'Y' ? '2' : '1' }}">
@@ -258,7 +258,7 @@
                                         @elseif($row->endpoint_valid)
                                             <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>
                                         @else
-                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. / EDC | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>
+                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>
                                         @endif
                                     </td>
                                     <td class="text-center small">
@@ -504,7 +504,7 @@
                     } else if (epDone) {
                         return `<button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
                     } else {
-                        return `<button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. / EDC | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
+                        return `<button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
                     }
                 }
 
@@ -523,7 +523,7 @@
 
                 let endpointBtn = '';
                 if (v.endpoint_valid) {
-                    endpointBtn = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>ปิดสิทธิแล้ว (สปสช. / EDC)</span>`;
+                    endpointBtn = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>ปิดสิทธิแล้ว (สปสช.)</span>`;
                 } else {
                     endpointBtn = `<button onclick="pullNhsoData('${visit.vstdate}', '${visit.cid}', '${vn}')" class="btn btn-warning btn-sm py-1 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-cloud-download-fill me-1"></i>ดึงข้อมูล (Pull)</button>`;
                 }
@@ -547,7 +547,7 @@
                       <div class="alert alert-warning py-2 px-3 border-0 shadow-sm d-flex align-items-start small mb-0" style="background-color: #fffbeb; color: #92400e; border-left: 5px solid #d97706 !important;">
                         <i class="bi bi-exclamation-circle-fill me-2 mt-1" style="font-size: 1.1rem; color: #d97706;"></i>
                         <div>
-                          <div class="fw-bold mb-1 text-dark">สถานะ: ข้อมูลผ่านเกณฑ์ แต่ยังไม่ปิดสิทธิ (สปสช. / EDC)</div>
+                          <div class="fw-bold mb-1 text-dark">สถานะ: ข้อมูลผ่านเกณฑ์ แต่ยังไม่ปิดสิทธิ (สปสช.)</div>
                           <div class="text-muted">ข้อมูลผ่านเกณฑ์การตรวจสอบแล้ว แต่กรุณากดดึงข้อมูลหรือปิดสิทธิเพื่อส่งออก</div>
                         </div>
                       </div>
@@ -616,8 +616,6 @@
                           <tr><th class="text-muted">ชดเชย LGO</th><td class="text-success fw-bold">${parseFloat(visit.receive_total || 0).toFixed(2)} บาท</td></tr>
                           <tr><th class="text-muted">ชดเชย PP</th><td class="text-info fw-bold">${parseFloat(visit.receive_pp || 0).toFixed(2)} บาท</td></tr>
                           <tr><th class="text-muted">สถานะปิดสิทธิ์</th><td>${endpointBtn}</td></tr>
-                          <tr><th class="text-muted">EDC (HOSxP)</th><td><span class="badge bg-light text-dark font-monospace">${visit.edc ?? '-'}</span></td></tr>
-                          <tr><th class="text-muted">EDC (นำเข้า KTB)</th><td><span class="badge bg-light text-dark font-monospace">${visit.edc_ktb_with_time ?? '-'}</span></td></tr>
                         </table>
                       </div>
                     </div>

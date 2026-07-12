@@ -45,7 +45,7 @@ class SssExportController extends Controller
         $visits_placeholders = implode(',', array_fill(0, count($vns), '?'));
         $visits = DB::connection('hosxp')->select("
             SELECT o.vn, o.vstdate, o.vsttime, o.hn, pt.pname, pt.fname, pt.lname, pt.cid, 
-                   v.income, v.paid_money, v.remain_money, v.uc_money, v.spclty, COALESCE(vp.hospmain, v.hospmain) AS hospmain, v.debt_id_list, v.rx_license_no,
+                   v.spclty, COALESCE(vp.hospmain, v.hospmain) AS hospmain, vp.pttype AS sss_pttype, v.debt_id_list, v.rx_license_no,
                    osb.invno AS sss_invno, osb.billno AS sss_billno,
                    pu.pttype_upp_type_code AS payplan,
                    doc.licenseno AS doctor_license,
@@ -196,6 +196,9 @@ class SssExportController extends Controller
         $item_claim_map = []; // Map to share calculated claim amounts and claim unit prices with BILLDISP
         $billtran_rows = [];
         foreach ($visits as $row) {
+            if (empty($row->sss_pttype)) {
+                continue;
+            }
             $raw_invo = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
             $invoice_no = $this->resolve_invoice_no($row->vn, $raw_invo, $rep_invs_by_vn, $sss_debt_map);
             $sub_id = !empty($row->sss_billno) ? $row->sss_billno : '';

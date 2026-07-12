@@ -4777,8 +4777,16 @@ class ClaimOpController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
         
-        $pttype_sss_fund = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value') ?: "''";
-        $pttype_sss_ae = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value') ?: "''";
+        $pttype_sss_fund_raw = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value') ?: '';
+        $pttype_sss_ae_raw = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value') ?: '';
+        $exclude_pttypes = [];
+        foreach (explode(',', $pttype_sss_fund_raw . ',' . $pttype_sss_ae_raw) as $p) {
+            $trimmed = trim($p, " \t\n\r\0\x0B'");
+            if ($trimmed !== '') {
+                $exclude_pttypes[] = $trimmed;
+            }
+        }
+        $exclude_pttypes_str = !empty($exclude_pttypes) ? "'" . implode("','", $exclude_pttypes) . "'" : "''";
 
         $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -4813,8 +4821,7 @@ class ClaimOpController extends Controller
             ) rep ON rep.vn = o.vn
             WHERE p.hipdata_code = "SSS"
                 AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
-                AND p.pttype NOT IN (' . $pttype_sss_fund . ')
-                AND p.pttype NOT IN (' . $pttype_sss_ae . ')
+                AND p.pttype NOT IN (' . $exclude_pttypes_str . ')
                 AND o.vstdate BETWEEN ? AND ?
                 GROUP BY o.vn ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
@@ -4856,8 +4863,7 @@ class ClaimOpController extends Controller
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             WHERE p.hipdata_code = "SSS"
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
-            AND p.pttype NOT IN (' . $pttype_sss_fund . ')
-            AND p.pttype NOT IN (' . $pttype_sss_ae . ')
+            AND p.pttype NOT IN (' . $exclude_pttypes_str . ')
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date]);
 

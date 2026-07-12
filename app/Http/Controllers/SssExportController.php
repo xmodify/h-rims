@@ -240,6 +240,16 @@ class SssExportController extends Controller
             }
 
             $prdcat = !empty($item->sks_product_category_id) ? $item->sks_product_category_id : '';
+            if (str_starts_with($item->icode, '3')) {
+                // If it starts with 3, it's a non-drug, so it must be 6 or 7 (never 1-5)
+                if ($item->income === '05') {
+                    $prdcat = '6';
+                } else {
+                    $prdcat = '7';
+                }
+            } elseif (empty($prdcat)) {
+                $prdcat = '1';
+            }
             $tmtid = !empty($item->tmtid) ? $item->tmtid : '';
             $sigcode = !empty($item->opi_usage_code) ? str_pad($item->opi_usage_code, 7, '0', STR_PAD_LEFT) . ':0000000' : '0000000:0000000';
             $sigtext = !empty($item->drugusage_text) ? trim($item->drugusage_text) : '';

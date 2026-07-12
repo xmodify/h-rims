@@ -4825,7 +4825,7 @@ class ClaimOpController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         $claim = DB::connection('hosxp')->select('
-            SELECT o.vn,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
+            SELECT o.vn,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain, vp.pttype AS sss_pttype,
             pt.cid, vp.begin_date, vp.expire_date,
             os.cc,
             MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
@@ -4878,41 +4878,24 @@ class ClaimOpController extends Controller
 
         $vns = array_column($claim, 'vn');
 
-        // SSS Debt mapping for multiple invoices
+        // SSS Debt mapping for multiple invoices using vn and SSS pttype
         $sss_debt_map = [];
-        $all_debt_ids = [];
+        $sss_pttypes_by_vn = [];
         foreach ($claim as $row) {
-            $invo_str = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
-            if (!empty($invo_str) && str_contains($invo_str, ',')) {
-                $ids = array_filter(array_map('trim', explode(',', $invo_str)));
-                if (count($ids) > 0) {
-                    foreach ($ids as $id) {
-                        if (is_numeric($id)) {
-                            $all_debt_ids[] = (int)$id;
-                        }
-                    }
-                }
-            }
+            $sss_pttypes_by_vn[$row->vn] = $row->sss_pttype;
         }
-        if (!empty($all_debt_ids)) {
-            $exclude_pttypes = [];
-            foreach (explode(',', $pttype_sss_fund . ',' . $pttype_sss_ae) as $p) {
-                $trimmed = trim($p, " \t\n\r\0\x0B'");
-                if ($trimmed !== '') {
-                    $exclude_pttypes[] = $trimmed;
-                }
-            }
 
+        if (!empty($vns)) {
             $debt_records = DB::connection('hosxp')
                 ->table('rcpt_debt as rd')
-                ->leftJoin('pttype as p', 'p.pttype', '=', 'rd.pttype')
-                ->whereIn('rd.debt_id', $all_debt_ids)
-                ->where('p.hipdata_code', 'SSS')
-                ->whereNotIn('rd.pttype', $exclude_pttypes)
-                ->select('rd.vn', 'rd.debt_id')
+                ->whereIn('rd.vn', $vns)
+                ->select('rd.vn', 'rd.debt_id', 'rd.pttype')
                 ->get();
             foreach ($debt_records as $r) {
-                $sss_debt_map[$r->vn] = $r->debt_id;
+                $sss_pttype = $sss_pttypes_by_vn[$r->vn] ?? null;
+                if ($sss_pttype !== null && $r->pttype === $sss_pttype) {
+                    $sss_debt_map[$r->vn] = $r->debt_id;
+                }
             }
         }
 

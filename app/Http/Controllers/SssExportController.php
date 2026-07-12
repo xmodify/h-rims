@@ -67,46 +67,6 @@ class SssExportController extends Controller
             }
         }
 
-        // Query multiple invoices from rcpt_debt to map SSS pttype invoice
-        $sss_debt_map = [];
-        $all_debt_ids = [];
-        foreach ($visits as $row) {
-            $invo_str = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
-            if (!empty($invo_str) && str_contains($invo_str, ',')) {
-                $ids = array_filter(array_map('trim', explode(',', $invo_str)));
-                if (count($ids) > 0) {
-                    foreach ($ids as $id) {
-                        if (is_numeric($id)) {
-                            $all_debt_ids[] = (int)$id;
-                        }
-                    }
-                }
-            }
-        }
-        if (!empty($all_debt_ids)) {
-            $pttype_sss_fund_raw = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value') ?: '';
-            $pttype_sss_ae_raw = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value') ?: '';
-            $exclude_pttypes = [];
-            foreach (explode(',', $pttype_sss_fund_raw . ',' . $pttype_sss_ae_raw) as $p) {
-                $trimmed = trim($p, " \t\n\r\0\x0B'");
-                if ($trimmed !== '') {
-                    $exclude_pttypes[] = $trimmed;
-                }
-            }
-
-            $debt_records = DB::connection('hosxp')
-                ->table('rcpt_debt as rd')
-                ->leftJoin('pttype as p', 'p.pttype', '=', 'rd.pttype')
-                ->whereIn('rd.debt_id', $all_debt_ids)
-                ->where('p.hipdata_code', 'SSS')
-                ->whereNotIn('rd.pttype', $exclude_pttypes)
-                ->select('rd.vn', 'rd.debt_id')
-                ->get();
-            foreach ($debt_records as $r) {
-                $sss_debt_map[$r->vn] = $r->debt_id;
-            }
-        }
-
         // Query SSS pttypes for these VNs from visit_pttype
         $sss_pttypes_by_vn = [];
         if (!empty($vns_list)) {
@@ -123,9 +83,24 @@ class SssExportController extends Controller
         }
         foreach ($visits as $row) {
             if (!isset($sss_pttypes_by_vn[$row->vn])) {
-                // If row has payplan = 'SS' (or '80' depending on standard) or we can just fallback to ovst_pttype since we are exporting SSS
                 if (!empty($row->ovst_pttype)) {
                     $sss_pttypes_by_vn[$row->vn] = $row->ovst_pttype;
+                }
+            }
+        }
+
+        // Query multiple invoices from rcpt_debt to map SSS pttype invoice using vn and SSS pttype
+        $sss_debt_map = [];
+        if (!empty($vns_list)) {
+            $debt_records = DB::connection('hosxp')
+                ->table('rcpt_debt as rd')
+                ->whereIn('rd.vn', $vns_list)
+                ->select('rd.vn', 'rd.debt_id', 'rd.pttype')
+                ->get();
+            foreach ($debt_records as $r) {
+                $sss_pttype = $sss_pttypes_by_vn[$r->vn] ?? null;
+                if ($sss_pttype !== null && $r->pttype === $sss_pttype) {
+                    $sss_debt_map[$r->vn] = $r->debt_id;
                 }
             }
         }

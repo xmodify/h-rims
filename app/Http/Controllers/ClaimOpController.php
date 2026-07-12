@@ -4831,7 +4831,9 @@ class ClaimOpController extends Controller
             MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
-            v.income, v.uc_money, IFNULL(rc.rcpt_money, 0) AS rcpt_money, v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,
+            COALESCE((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND pttype = vp.pttype), v.income) AS income, v.uc_money, 
+            IFNULL((SELECT SUM(r.total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND r.pttype = vp.pttype AND a.rcpno IS NULL), 0) AS rcpt_money, 
+            COALESCE((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND pttype = vp.pttype), v.income) - IFNULL((SELECT SUM(r.total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND r.pttype = vp.pttype AND a.rcpno IS NULL), 0) AS claim_price,
             d.receive AS receive_total,
             v.debt_id_list, osb.invno AS sss_invno, osb.billno AS sss_billno,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint

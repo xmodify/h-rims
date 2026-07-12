@@ -37,7 +37,9 @@ class SssExportController extends Controller
                    v.income, v.paid_money, v.remain_money, v.uc_money, v.spclty, COALESCE(vp.hospmain, v.hospmain) AS hospmain, v.debt_id_list, v.rx_license_no,
                    osb.invno AS sss_invno, osb.billno AS sss_billno,
                    pu.pttype_upp_type_code AS payplan,
-                   doc.licenseno AS doctor_license
+                   doc.licenseno AS doctor_license,
+                   o.pttype AS ovst_pttype,
+                   (SELECT SUM(r.total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND r.pttype = vp.pttype AND a.rcpno IS NULL) AS sss_paid_amount
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
@@ -65,9 +67,72 @@ class SssExportController extends Controller
             }
         }
 
+        // Query multiple invoices from rcpt_debt to map SSS pttype invoice
+        $sss_debt_map = [];
+        $all_debt_ids = [];
+        foreach ($visits as $row) {
+            if (empty($row->sss_invno) && !empty($row->debt_id_list) && str_contains($row->debt_id_list, ',')) {
+                $ids = array_filter(array_map('trim', explode(',', $row->debt_id_list)));
+                if (count($ids) > 1) {
+                    foreach ($ids as $id) {
+                        if (is_numeric($id)) {
+                            $all_debt_ids[] = (int)$id;
+                        }
+                    }
+                }
+            }
+        }
+        if (!empty($all_debt_ids)) {
+            $debt_records = DB::connection('hosxp')
+                ->table('rcpt_debt as rd')
+                ->leftJoin('pttype as p', 'p.pttype', '=', 'rd.pttype')
+                ->leftJoin('pttype_upp_type as pu', 'pu.pttype_upp_type_id', '=', 'p.pttype_upp_type_id')
+                ->whereIn('rd.debt_id', $all_debt_ids)
+                ->where('pu.pttype_upp_type_code', 'SS')
+                ->select('rd.vn', 'rd.debt_id')
+                ->get();
+            foreach ($debt_records as $r) {
+                $sss_debt_map[$r->vn] = $r->debt_id;
+            }
+        }
+
+        // Query SSS pttypes for these VNs from visit_pttype
+        $sss_pttypes_by_vn = [];
+        if (!empty($vns_list)) {
+            $vp_records = DB::connection('hosxp')
+                ->table('visit_pttype as vp')
+                ->leftJoin('pttype as p', 'p.pttype', '=', 'vp.pttype')
+                ->leftJoin('pttype_upp_type as pu', 'pu.pttype_upp_type_id', '=', 'p.pttype_upp_type_id')
+                ->whereIn('vp.vn', $vns_list)
+                ->where('pu.pttype_upp_type_code', 'SS')
+                ->select('vp.vn', 'vp.pttype')
+                ->get();
+            foreach ($vp_records as $r) {
+                $sss_pttypes_by_vn[$r->vn] = $r->pttype;
+            }
+        }
+        foreach ($visits as $row) {
+            if (!isset($sss_pttypes_by_vn[$row->vn])) {
+                if (($row->payplan ?? '') === 'SS' && !empty($row->ovst_pttype)) {
+                    $sss_pttypes_by_vn[$row->vn] = $row->ovst_pttype;
+                }
+            }
+        }
+
+        // Query SSS Fund and SSS AE pttypes to exclude them from main SSS claim
+        $pttype_sss_fund_raw = DB::table('main_setting')->where('name', 'pttype_sss_fund')->value('value') ?: '';
+        $pttype_sss_ae_raw = DB::table('main_setting')->where('name', 'pttype_sss_ae')->value('value') ?: '';
+        $exclude_pttypes = [];
+        foreach (explode(',', $pttype_sss_fund_raw . ',' . $pttype_sss_ae_raw) as $p) {
+            $trimmed = trim($p, " \t\n\r\0\x0B'");
+            if ($trimmed !== '') {
+                $exclude_pttypes[] = $trimmed;
+            }
+        }
+
         // Fetch BillItems (Raw SQL for all items/charges prescribed in these visits)
         $billitems_raw = DB::connection('hosxp')->select("
-            SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price, op.income, op.hos_guid,
+            SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price, op.income, op.hos_guid, op.pttype,
                    sd.name AS drug_name, n.name AS nondrug_name,
                    COALESCE(nd.tmtid, sd.sks_drug_code, d3.ref_code, di.sks_drug_code, n.nhso_adp_code) AS tmtid
             FROM opitemrece op
@@ -113,6 +178,13 @@ class SssExportController extends Controller
         $billitems_rows = [];
         $billitems_by_vn = [];
         foreach ($billitems_raw as $item) {
+            if (in_array($item->pttype, $exclude_pttypes)) {
+                continue;
+            }
+            $sss_pttype = $sss_pttypes_by_vn[$item->vn] ?? null;
+            if ($sss_pttype !== null && !empty($item->pttype) && $item->pttype !== $sss_pttype) {
+                continue;
+            }
             $billitems_by_vn[$item->vn][] = $item;
         }
 
@@ -120,11 +192,11 @@ class SssExportController extends Controller
         $billtran_rows = [];
         foreach ($visits as $row) {
             $raw_invo = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
-            $invoice_no = $this->resolve_invoice_no($row->vn, $raw_invo, $rep_invs_by_vn);
+            $invoice_no = $this->resolve_invoice_no($row->vn, $raw_invo, $rep_invs_by_vn, $sss_debt_map);
             $sub_id = !empty($row->sss_billno) ? $row->sss_billno : '';
             $ptname = trim($row->pname . $row->fname . ' ' . $row->lname);
             $payplan = !empty($row->payplan) ? trim($row->payplan) : '80';
-            $paid_val = (float)$row->paid_money;
+            $paid_val = (float)($row->sss_paid_amount ?: 0.0);
             $paid = number_format($paid_val, 2, '.', '');
             
             $visit_items = $billitems_by_vn[$row->vn] ?? [];
@@ -213,7 +285,7 @@ class SssExportController extends Controller
         // Fetch drug and supply items matching the group 3 and 5 items in BillItems
         $disp_items = DB::connection('hosxp')->select("
             SELECT op.vn, op.icode, op.qty, op.sum_price, op.unitprice, op.hos_guid, op.rxtime,
-                   op.income,
+                   op.income, op.pttype,
                    COALESCE(nd.tmtid, sd.sks_drug_code, d3.ref_code, di.sks_drug_code) AS tmtid,
                    COALESCE(sd.name, n.name) AS name,
                    COALESCE(nd.productcat, di.sks_product_category_id, sd.sks_product_category_id, '1') AS sks_product_category_id,
@@ -243,8 +315,16 @@ class SssExportController extends Controller
             $v = $visits_map->get($item->vn);
             if (!$v) continue;
 
+            if (in_array($item->pttype, $exclude_pttypes)) {
+                continue;
+            }
+            $sss_pttype = $sss_pttypes_by_vn[$item->vn] ?? null;
+            if ($sss_pttype !== null && !empty($item->pttype) && $item->pttype !== $sss_pttype) {
+                continue;
+            }
+
             $raw_invo = !empty($v->sss_invno) ? $v->sss_invno : (!empty($v->debt_id_list) ? $v->debt_id_list : '');
-            $invoice_no = $this->resolve_invoice_no($v->vn, $raw_invo, $rep_invs_by_vn);
+            $invoice_no = $this->resolve_invoice_no($v->vn, $raw_invo, $rep_invs_by_vn, $sss_debt_map);
             $rx_no = !empty($item->hos_guid) ? substr(preg_replace('/[^0-9]/', '', $item->hos_guid), 0, 9) : $v->vn;
             if (empty($rx_no)) $rx_no = $v->vn;
             $disp_id = "{$rx_no}_{$invoice_no}";
@@ -374,7 +454,7 @@ class SssExportController extends Controller
 
         foreach ($visits as $row) {
             $raw_invo = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
-            $invoice_no = $this->resolve_invoice_no($row->vn, $raw_invo, $rep_invs_by_vn);
+            $invoice_no = $this->resolve_invoice_no($row->vn, $raw_invo, $rep_invs_by_vn, $sss_debt_map);
             $start_dt = date('Y-m-d\TH:i:s', strtotime("{$row->vstdate} {$row->vsttime}"));
             $end_dt = date('Y-m-d\TH:i:s', strtotime("{$row->vstdate} {$row->vsttime} + 2 hours"));
             
@@ -437,7 +517,8 @@ class SssExportController extends Controller
             'opservices_rows' => $opservices_rows,
             'opdx_rows' => $opdx_rows,
             'visits_list' => $visits->toArray(),
-            'disp_items' => $disp_items
+            'disp_items' => $disp_items,
+            'sss_debt_map' => $sss_debt_map
         ];
     }
 
@@ -512,7 +593,7 @@ class SssExportController extends Controller
             $errors = [];
 
             $raw_invo = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
-            $invoice_no = $this->resolve_invoice_no($vn, $raw_invo, $rep_invs_by_vn);
+            $invoice_no = $this->resolve_invoice_no($vn, $raw_invo, $rep_invs_by_vn, $data['sss_debt_map'] ?? []);
             
             // 1. BILLTRAN checks
             if (empty($invoice_no)) {
@@ -640,8 +721,12 @@ class SssExportController extends Controller
     /**
      * Resolve single invoice number from HOSxP and REP records
      */
-    private function resolve_invoice_no($vn, $raw_invo, $rep_invs_by_vn = [])
+    private function resolve_invoice_no($vn, $raw_invo, $rep_invs_by_vn = [], $sss_debt_map = [])
     {
+        if (isset($sss_debt_map[$vn])) {
+            return (string)$sss_debt_map[$vn];
+        }
+
         if (empty($raw_invo)) {
             return '';
         }

@@ -53,44 +53,44 @@
         <div class="card-header bg-white border-bottom-0 pt-3 px-4">
             <ul class="nav nav-pills nav-fill gap-2 modern-tabs" id="icodeTabs" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active rounded-pill fw-bold text-dark" id="all-tab" data-bs-toggle="tab" data-bs-target="#all-pane" type="button" role="tab">
-                        <i class="bi bi-grid-fill me-1"></i> ทั้งหมด ({{ number_format($all->count()) }})
-                    </button>
+                    <a class="nav-link @if($active_tab === 'all') active @endif rounded-pill fw-bold text-dark" id="all-tab" href="{{ route('admin.lookup_icode.index', ['tab' => 'all']) }}">
+                        <i class="bi bi-grid-fill me-1"></i> ทั้งหมด ({{ number_format($counts['all']) }})
+                    </a>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill fw-bold text-primary" id="uc-tab" data-bs-toggle="tab" data-bs-target="#uc-pane" type="button" role="tab">
-                         UC-CR ({{ number_format($uc_cr->count()) }})
-                    </button>
+                    <a class="nav-link @if($active_tab === 'uc') active @endif rounded-pill fw-bold text-primary" id="uc-tab" href="{{ route('admin.lookup_icode.index', ['tab' => 'uc']) }}">
+                         UC-CR ({{ number_format($counts['uc']) }})
+                    </a>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill fw-bold text-success" id="ppfs-tab" data-bs-toggle="tab" data-bs-target="#ppfs-pane" type="button" role="tab">
-                         PPFS ({{ number_format($ppfs->count()) }})
-                    </button>
+                    <a class="nav-link @if($active_tab === 'ppfs') active @endif rounded-pill fw-bold text-success" id="ppfs-tab" href="{{ route('admin.lookup_icode.index', ['tab' => 'ppfs']) }}">
+                         PPFS ({{ number_format($counts['ppfs']) }})
+                    </a>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill fw-bold text-warning" id="herb-tab" data-bs-toggle="tab" data-bs-target="#herb-pane" type="button" role="tab">
-                         สมุนไพร ({{ number_format($herb32->count()) }})
-                    </button>
+                    <a class="nav-link @if($active_tab === 'herb') active @endif rounded-pill fw-bold text-warning" id="herb-tab" href="{{ route('admin.lookup_icode.index', ['tab' => 'herb']) }}">
+                         สมุนไพร ({{ number_format($counts['herb']) }})
+                    </a>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill fw-bold text-info" id="kidney-tab" data-bs-toggle="tab" data-bs-target="#kidney-pane" type="button" role="tab">
-                         ฟอกไต HD ({{ number_format($kidney->count()) }})
-                    </button>
+                    <a class="nav-link @if($active_tab === 'kidney') active @endif rounded-pill fw-bold text-info" id="kidney-tab" href="{{ route('admin.lookup_icode.index', ['tab' => 'kidney']) }}">
+                         ฟอกไต HD ({{ number_format($counts['kidney']) }})
+                    </a>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill fw-bold text-danger" id="ems-tab" data-bs-toggle="tab" data-bs-target="#ems-pane" type="button" role="tab">
-                         EMS ({{ number_format($ems->count()) }})
-                    </button>
+                    <a class="nav-link @if($active_tab === 'ems') active @endif rounded-pill fw-bold text-danger" id="ems-tab" href="{{ route('admin.lookup_icode.index', ['tab' => 'ems']) }}">
+                         EMS ({{ number_format($counts['ems']) }})
+                    </a>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill fw-bold" id="ssshc-tab" data-bs-toggle="tab" data-bs-target="#ssshc-pane" type="button" role="tab" style="color: #6366f1;">
-                         SSS-HC ({{ number_format($sss_hc->count()) }})
-                    </button>
+                    <a class="nav-link @if($active_tab === 'ssshc') active @endif rounded-pill fw-bold" id="ssshc-tab" href="{{ route('admin.lookup_icode.index', ['tab' => 'ssshc']) }}" style="color: #6366f1;">
+                         SSS-HC ({{ number_format($counts['ssshc']) }})
+                    </a>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill fw-bold text-danger" id="missing-tab" data-bs-toggle="tab" data-bs-target="#missing-pane" type="button" role="tab">
+                    <a class="nav-link @if($active_tab === 'missing') active @endif rounded-pill fw-bold text-danger" id="missing-tab" href="{{ route('admin.lookup_icode.index', ['tab' => 'missing']) }}">
                          📋 ตรวจสอบรหัสคู่มือ ({{ number_format($total_rules_count) }})
-                    </button>
+                    </a>
                 </li>
             </ul>
         </div>
@@ -109,7 +109,8 @@
                 @endphp
 
                 @foreach($panes as $index => $pane)
-                    <div class="tab-pane fade {{ $index === 0 ? 'show active' : '' }}" id="{{ $pane['id'] }}-pane" role="tabpanel" tabindex="0">
+                    @if($pane['id'] === $active_tab)
+                        <div class="tab-pane fade show active" id="{{ $pane['id'] }}-pane" role="tabpanel" tabindex="0">
                         @if($pane['id'] === 'uc')
                             <div class="p-3">
                                 <!-- Sub Tabs for UC-CR -->
@@ -429,9 +430,11 @@
                             </div>
                         @endif
                     </div>
+                    @endif
                 @endforeach
 
-                <div class="tab-pane fade" id="missing-pane" role="tabpanel" tabindex="0">
+                @if($active_tab === 'missing')
+                    <div class="tab-pane fade show active" id="missing-pane" role="tabpanel" tabindex="0">
                     <div class="p-4">
                         <div class="alert alert-info border-0 rounded-3 mb-4 small p-3">
                             <i class="bi bi-info-circle-fill me-2"></i> <strong>คำแนะนำ:</strong> ตารางด้านล่างนี้แสดงรายการทั้งหมดที่มีอยู่ในคู่มือการเบิกจ่าย (PPFS หรือ อุปกรณ์เทียม Instrument) เปรียบเทียบกับรายการใน HOSxP ว่ามีรหัสเบิกจ่าย (ADP Code) จับคู่อยู่หรือไม่ และมีราคาตั้งใน HOSxP เท่าใด
@@ -555,7 +558,8 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
@@ -763,7 +767,29 @@
         $('.datatable-icode').each(function() {
             $(this).DataTable({
                 pageLength: 25,
-                language: { url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/th.json' },
+                language: {
+                    emptyTable: "ไม่มีข้อมูลในตาราง",
+                    info: "แสดง _START_ ถึง _END_ จาก _TOTAL_ แถว",
+                    infoEmpty: "แสดง 0 ถึง 0 จาก 0 แถว",
+                    infoFiltered: "(กรองข้อมูล _MAX_ ทุกแถว)",
+                    infoPostFix: "",
+                    thousands: ",",
+                    lengthMenu: "แสดง _MENU_ แถว",
+                    loadingRecords: "กำลังโหลด...",
+                    processing: "กำลังดำเนินการ...",
+                    search: "ค้นหา:",
+                    zeroRecords: "ไม่พบข้อมูลที่ต้องการ",
+                    paginate: {
+                        first: "หน้าแรก",
+                        last: "หน้าสุดท้าย",
+                        next: "ถัดไป",
+                        previous: "ก่อนหน้า"
+                    },
+                    aria: {
+                        sortAscending: ": เปิดใช้งานการเรียงข้อมูลจากน้อยไปมาก",
+                        sortDescending: ": เปิดใช้งานการเรียงข้อมูลจากมากไปน้อย"
+                    }
+                },
                 order: [[0, 'asc']],
                 dom: "<'row px-4 pt-4'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
                      "<'row'<'col-sm-12'tr>>" +

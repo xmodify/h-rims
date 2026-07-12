@@ -10,142 +10,200 @@ use Illuminate\Support\Facades\Schema;
 
 class LookupIcodeController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $all = LookupIcode::all();
-        $uc_cr = $all->where('uc_cr', 'Y');
-        $ppfs = $all->where('ppfs', 'Y');
-        $herb32 = $all->where('herb32', 'Y');
-        $kidney = $all->where('kidney', 'Y');
-        $ems = $all->where('ems', 'Y');
-        $sss_hc = $all->where('sss_hc', 'Y');
+        $active_tab = $request->get('tab', 'all');
 
+        // Initialize all variables with empty defaults to prevent view errors
+        $all = collect();
+        $uc_cr = collect();
+        $ppfs = collect();
+        $herb32 = collect();
+        $kidney = collect();
+        $ems = collect();
+        $sss_hc = collect();
+        
+        $valid_ppfs_adps = [];
+        $ppfs_details = [];
+        $ins_details = [];
+        
+        $uc_cr_instrument = collect();
+        $uc_cr_other = collect();
+        $valid_ins_adps = [];
+        $ins_rules = [];
+        $hosxp_prices = [];
+        $sss_prices = [];
+
+        // Count queries for tab badges (extremely fast)
+        $counts = [
+            'all' => LookupIcode::count(),
+            'uc' => LookupIcode::where('uc_cr', 'Y')->count(),
+            'ppfs' => LookupIcode::where('ppfs', 'Y')->count(),
+            'herb' => LookupIcode::where('herb32', 'Y')->count(),
+            'kidney' => LookupIcode::where('kidney', 'Y')->count(),
+            'ems' => LookupIcode::where('ems', 'Y')->count(),
+            'ssshc' => LookupIcode::where('sss_hc', 'Y')->count(),
+        ];
+
+        // Fetch claims rule keys anyway because some flags check them (lightweight array keys)
         $ppfs_rules = require config_path('claims/ppfs_rules.php');
         $valid_ppfs_adps = array_keys($ppfs_rules);
 
-        // ดึงข้อมูล ADP จาก HOSxP สำหรับ PPFS (เฉพาะ nondrugitems ที่มีสถานะใช้งาน)
-        $hosxp_ppfs_all = DB::connection('hosxp')
-            ->table('nondrugitems')
-            ->whereIn('nhso_adp_code', $valid_ppfs_adps)
-            ->where('istatus', 'Y')
-            ->select('nhso_adp_code', 'icode', 'price')
-            ->get()
-            ->groupBy('nhso_adp_code');
-
-        $ppfs_details = [];
-        foreach ($valid_ppfs_adps as $code) {
-            $rule = $ppfs_rules[$code];
-            $hosxp_items = $hosxp_ppfs_all->get($code);
-            $found_codes = [];
-            $found_prices = [];
-            if ($hosxp_items) {
-                foreach ($hosxp_items as $h_item) {
-                    $found_codes[] = $h_item->icode;
-                    $found_prices[] = number_format($h_item->price, 2);
+        if ($active_tab === 'all') {
+            $all = LookupIcode::all();
+        } elseif ($active_tab === 'uc') {
+            $uc_cr = LookupIcode::where('uc_cr', 'Y')->get();
+            
+            if (Schema::hasTable('lookup_nhso_adp_code')) {
+                $records = DB::table('lookup_nhso_adp_code')->where('nhso_adp_type_id', 2)->get();
+                foreach ($records as $r) {
+                    $ins_rules[$r->nhso_adp_code] = [
+                        'name' => $r->nhso_adp_code_name,
+                        'category' => $r->category,
+                        'prices' => [
+                            'UCS' => floatval($r->price_ucs),
+                            'OFC' => floatval($r->price_ofc),
+                            'SSS' => floatval($r->price_sss),
+                            'LGO' => floatval($r->price_lgo),
+                            'FS' => floatval($r->price_fs),
+                            'UCEP' => floatval($r->price_ucep),
+                        ],
+                        'ins_ucs' => $r->ins_ucs,
+                        'ins_ofc' => $r->ins_ofc,
+                    ];
                 }
             }
-            $rule['source'] = 'PPFS';
-            $rule['hosxp_icode'] = !empty($found_codes) ? implode(', ', $found_codes) : 'ไม่พบ';
-            $rule['hosxp_price'] = !empty($found_prices) ? implode(', ', $found_prices) : '-';
-            $ppfs_details[$code] = $rule;
-        }
+            $all_ins_adps = array_keys($ins_rules);
+            $valid_ins_adps = array_keys(array_filter($ins_rules, fn($r) => ($r['ins_ucs'] ?? '') === 'Y'));
 
-        $ins_rules = [];
-        if (Schema::hasTable('lookup_nhso_adp_code')) {
-            $records = DB::table('lookup_nhso_adp_code')->where('nhso_adp_type_id', 2)->get();
-            foreach ($records as $r) {
-                $ins_rules[$r->nhso_adp_code] = [
-                    'name' => $r->nhso_adp_code_name,
-                    'category' => $r->category,
-                    'prices' => [
-                        'UCS' => floatval($r->price_ucs),
-                        'OFC' => floatval($r->price_ofc),
-                        'SSS' => floatval($r->price_sss),
-                        'LGO' => floatval($r->price_lgo),
-                        'FS' => floatval($r->price_fs),
-                        'UCEP' => floatval($r->price_ucep),
-                    ],
-                    'ins_ucs' => $r->ins_ucs,
-                    'ins_ofc' => $r->ins_ofc,
-                ];
-            }
-        }
-        $all_ins_adps = array_keys($ins_rules);
-        $valid_ins_adps = array_keys(array_filter($ins_rules, fn($r) => ($r['ins_ucs'] ?? '') === 'Y')); // เฉพาะที่อยู่ในประกาศ UCS จริงๆ
-
-        // ดึงข้อมูล ADP จาก HOSxP สำหรับ Instrument ทั้งหมด (เฉพาะ nondrugitems ที่มีสถานะใช้งาน)
-        $hosxp_ins_all = DB::connection('hosxp')
-            ->table('nondrugitems')
-            ->whereIn('nhso_adp_code', $all_ins_adps)
-            ->where('istatus', 'Y')
-            ->select('nhso_adp_code', 'icode', 'price')
-            ->get()
-            ->groupBy('nhso_adp_code');
-
-        $ins_details = [];
-        foreach ($all_ins_adps as $code) {
-            $rule = $ins_rules[$code];
-            $hosxp_items = $hosxp_ins_all->get($code);
-            $found_codes = [];
-            $found_prices = [];
-            if ($hosxp_items) {
-                foreach ($hosxp_items as $h_item) {
-                    $found_codes[] = $h_item->icode;
-                    $found_prices[] = number_format($h_item->price, 2);
+            $uc_cr_icodes = $uc_cr->pluck('icode')->toArray();
+            if (!empty($uc_cr_icodes)) {
+                $nondrug_prices = DB::connection('hosxp')
+                    ->table('nondrugitems')
+                    ->whereIn('icode', $uc_cr_icodes)
+                    ->select('icode', 'price')
+                    ->get();
+                foreach ($nondrug_prices as $p) {
+                    $hosxp_prices[$p->icode] = floatval($p->price);
+                }
+                
+                $drug_prices = DB::connection('hosxp')
+                    ->table('drugitems')
+                    ->whereIn('icode', $uc_cr_icodes)
+                    ->select('icode', 'unitprice as price')
+                    ->get();
+                foreach ($drug_prices as $p) {
+                    $hosxp_prices[$p->icode] = floatval($p->price);
                 }
             }
-            $rule['source'] = 'INSTRUMENT';
-            $rule['hosxp_icode'] = !empty($found_codes) ? implode(', ', $found_codes) : 'ไม่พบ';
-            $rule['hosxp_price'] = !empty($found_prices) ? implode(', ', $found_prices) : '-';
-            $ins_details[$code] = $rule;
+
+            $uc_cr_instrument = $uc_cr->filter(function($item) use ($all_ins_adps) {
+                return in_array($item->nhso_adp_code, $all_ins_adps);
+            });
+            $uc_cr_other = $uc_cr->reject(function($item) use ($all_ins_adps) {
+                return in_array($item->nhso_adp_code, $all_ins_adps);
+            });
+        } elseif ($active_tab === 'ppfs') {
+            $ppfs = LookupIcode::where('ppfs', 'Y')->get();
+        } elseif ($active_tab === 'herb') {
+            $herb32 = LookupIcode::where('herb32', 'Y')->get();
+        } elseif ($active_tab === 'kidney') {
+            $kidney = LookupIcode::where('kidney', 'Y')->get();
+        } elseif ($active_tab === 'ems') {
+            $ems = LookupIcode::where('ems', 'Y')->get();
+        } elseif ($active_tab === 'ssshc') {
+            $sss_hc = LookupIcode::where('sss_hc', 'Y')->get();
+            if (Schema::hasTable('lookup_sss_equipdev_aipn')) {
+                $sss_records = DB::table('lookup_sss_equipdev_aipn')
+                    ->where('dateexp', '>=', DB::raw('DATE(NOW())'))
+                    ->select('code', 'rate')
+                    ->get();
+                foreach ($sss_records as $r) {
+                    $sss_prices[$r->code] = floatval($r->rate);
+                }
+            }
+        } elseif ($active_tab === 'missing') {
+            // Lazy load rules check
+            if (Schema::hasTable('lookup_nhso_adp_code')) {
+                $records = DB::table('lookup_nhso_adp_code')->where('nhso_adp_type_id', 2)->get();
+                foreach ($records as $r) {
+                    $ins_rules[$r->nhso_adp_code] = [
+                        'name' => $r->nhso_adp_code_name,
+                        'category' => $r->category,
+                        'prices' => [
+                            'UCS' => floatval($r->price_ucs),
+                            'OFC' => floatval($r->price_ofc),
+                            'SSS' => floatval($r->price_sss),
+                            'LGO' => floatval($r->price_lgo),
+                            'FS' => floatval($r->price_fs),
+                            'UCEP' => floatval($r->price_ucep),
+                        ],
+                        'ins_ucs' => $r->ins_ucs,
+                        'ins_ofc' => $r->ins_ofc,
+                    ];
+                }
+            }
+            $all_ins_adps = array_keys($ins_rules);
+            $valid_ins_adps = array_keys(array_filter($ins_rules, fn($r) => ($r['ins_ucs'] ?? '') === 'Y'));
+
+            $all_search_adps = array_unique(array_merge($valid_ppfs_adps, $all_ins_adps));
+            $hosxp_items_all = collect();
+            if (!empty($all_search_adps)) {
+                $hosxp_items_all = DB::connection('hosxp')
+                    ->table('nondrugitems')
+                    ->whereIn('nhso_adp_code', $all_search_adps)
+                    ->where('istatus', 'Y')
+                    ->select('nhso_adp_code', 'icode', 'price')
+                    ->get()
+                    ->groupBy('nhso_adp_code');
+            }
+
+            foreach ($valid_ppfs_adps as $code) {
+                $rule = $ppfs_rules[$code];
+                $hosxp_items = $hosxp_items_all->get($code);
+                $found_codes = [];
+                $found_prices = [];
+                if ($hosxp_items) {
+                    foreach ($hosxp_items as $h_item) {
+                        $found_codes[] = $h_item->icode;
+                        $found_prices[] = number_format($h_item->price, 2);
+                    }
+                }
+                $rule['source'] = 'PPFS';
+                $rule['hosxp_icode'] = !empty($found_codes) ? implode(', ', $found_codes) : 'ไม่พบ';
+                $rule['hosxp_price'] = !empty($found_prices) ? implode(', ', $found_prices) : '-';
+                $ppfs_details[$code] = $rule;
+            }
+
+            foreach ($all_ins_adps as $code) {
+                $rule = $ins_rules[$code];
+                $hosxp_items = $hosxp_items_all->get($code);
+                $found_codes = [];
+                $found_prices = [];
+                if ($hosxp_items) {
+                    foreach ($hosxp_items as $h_item) {
+                        $found_codes[] = $h_item->icode;
+                        $found_prices[] = number_format($h_item->price, 2);
+                    }
+                }
+                $rule['source'] = 'INSTRUMENT';
+                $rule['hosxp_icode'] = !empty($found_codes) ? implode(', ', $found_codes) : 'ไม่พบ';
+                $rule['hosxp_price'] = !empty($found_prices) ? implode(', ', $found_prices) : '-';
+                $ins_details[$code] = $rule;
+            }
         }
 
         $total_rules_count = count($ppfs_details) + count($ins_details);
-
-        // แยก UC-CR เป็น Instrument (เฉพาะที่ UCS > 0) และ Other (ที่ไม่ใช่รหัสใน Instrument)
-        $uc_cr_icodes = $uc_cr->pluck('icode')->toArray();
-        $hosxp_prices = [];
-        if (!empty($uc_cr_icodes)) {
-            $placeholders = implode(',', array_fill(0, count($uc_cr_icodes), '?'));
-            $nondrug_prices = DB::connection('hosxp')->select(
-                "SELECT icode, price FROM nondrugitems WHERE icode IN ($placeholders)",
-                $uc_cr_icodes
-            );
-            foreach ($nondrug_prices as $p) {
-                $hosxp_prices[$p->icode] = floatval($p->price);
-            }
-            $drug_prices = DB::connection('hosxp')->select(
-                "SELECT icode, unitprice AS price FROM drugitems WHERE icode IN ($placeholders)",
-                $uc_cr_icodes
-            );
-            foreach ($drug_prices as $p) {
-                $hosxp_prices[$p->icode] = floatval($p->price);
-            }
-        }
-
-        $uc_cr_instrument = $uc_cr->filter(function($item) use ($all_ins_adps) {
-            return in_array($item->nhso_adp_code, $all_ins_adps);
-        });
-        $uc_cr_other = $uc_cr->reject(function($item) use ($all_ins_adps) {
-            return in_array($item->nhso_adp_code, $all_ins_adps);
-        });
-
-        $sss_prices = [];
-        if (Schema::hasTable('lookup_sss_equipdev_aipn')) {
-            $sss_records = DB::table('lookup_sss_equipdev_aipn')
-                ->where('dateexp', '>=', DB::raw('DATE(NOW())'))
-                ->select('code', 'rate')
-                ->get();
-            foreach ($sss_records as $r) {
-                $sss_prices[$r->code] = floatval($r->rate);
-            }
+        if ($active_tab !== 'missing') {
+            // Show rules count from rules configs when not on missing tab
+            $total_rules_count = count($valid_ppfs_adps) + count(array_keys($ins_rules));
         }
 
         return view('admin.lookup_icode.index', compact(
             'all', 'uc_cr', 'ppfs', 'herb32', 'kidney', 'ems', 'sss_hc', 
             'valid_ppfs_adps', 'ppfs_details', 'ins_details', 'total_rules_count',
             'uc_cr_instrument', 'uc_cr_other', 'valid_ins_adps', 'ins_rules',
-            'hosxp_prices', 'sss_prices'
+            'hosxp_prices', 'sss_prices', 'counts', 'active_tab'
         ));
     }
 
@@ -238,9 +296,9 @@ class LookupIcodeController extends Controller
                 ];
             }
         }
-        // นำเข้า instrument ที่อยู่ในประกาศ UCS (ins_ucs = 'Y') หรือมีราคา UCS กำหนดไว้ (price_ucs > 0)
+        // นำเข้า instrument ที่อยู่ในประกาศ UCS (ins_ucs = 'Y') เท่านั้น
         $ins_adps = array_keys(array_filter($ins_rules, fn($r) =>
-            ($r['ins_ucs'] ?? '') === 'Y' || ($r['prices']['UCS'] ?? 0) > 0
+            ($r['ins_ucs'] ?? '') === 'Y'
         ));
 
         if (empty($ins_adps)) {

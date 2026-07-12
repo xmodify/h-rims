@@ -181,7 +181,7 @@ class ClaimOpController extends Controller
             claim_items.claim_list,
             COALESCE(claim_items.uc_cr, 0) AS uc_cr,COALESCE(claim_items.ppfs, 0) AS ppfs,COALESCE(claim_items.herb, 0) AS herb,
             claim_items.project,
-            stm.receive_total,stm.repno,fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,
+            stm.receive_total,stm.repno,fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,MAX(ec.check_detail) AS check_detail,
             pt.sex, v.age_y
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
@@ -293,8 +293,8 @@ class ClaimOpController extends Controller
             SELECT o.vn, o.vstdate, o.vsttime, o.oqueue,
                    pt.hn, pt.sex, v.age_y, pt.cid,
                    CONCAT(pt.pname,pt.fname," ",pt.lname) AS ptname,
-                   p.name AS pttype, vp.hospmain, os.cc, (SELECT icd10 FROM ovstdiag WHERE vn = o.vn AND diagtype = "1" LIMIT 1) AS pdx,
-                   v.income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
+                   p.name AS pttype, p.hipdata_code, vp.hospmain, os.cc, (SELECT icd10 FROM ovstdiag WHERE vn = o.vn AND diagtype = "1" LIMIT 1) AS pdx,
+                   v.income, v.uc_money, v.debt_id_list, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                    IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
                    IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
                    ep.claim_status,
@@ -338,11 +338,17 @@ class ClaimOpController extends Controller
         $items = DB::connection('hosxp')->select('
             SELECT op.icode, IFNULL(n.name, d.name) AS name,
                    op.qty, op.unitprice, op.sum_price,
-                   li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code
+                   li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
+                   op.paidst AS paids, pst.name AS paids_name,
+                   op.pttype, ptt.name AS pttype_name,
+                   COALESCE(d3.ref_code, d.sks_drug_code) AS tmtid
             FROM opitemrece op
             INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
             LEFT JOIN nondrugitems n ON n.icode = op.icode
             LEFT JOIN drugitems d ON d.icode = op.icode
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode = op.icode AND d3.drugitems_ref_code_type_id = 3
+            LEFT JOIN paidst pst ON pst.paidst = op.paidst
+            LEFT JOIN pttype ptt ON ptt.pttype = op.pttype
             WHERE op.vn = ?
             AND (li.uc_cr = "Y" OR li.ppfs = "Y" OR li.herb32 = "Y")', [$vn]);
 
@@ -533,7 +539,7 @@ class ClaimOpController extends Controller
             claim_items.claim_list,
             COALESCE(claim_items.uc_cr, 0) AS uc_cr,COALESCE(claim_items.ppfs, 0) AS ppfs,COALESCE(claim_items.herb, 0) AS herb,
             claim_items.project,
-            stm.receive_total,stm.repno,fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,
+            stm.receive_total,stm.repno,fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,MAX(ec.check_detail) AS check_detail,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
             ep.claim_status, pt.cid,
             pt.sex, v.age_y
@@ -852,7 +858,7 @@ class ClaimOpController extends Controller
             COALESCE(op_data.other_price, 0) AS other_price,
             v.income - IFNULL(rc.rcpt_money, 0) - COALESCE(op_data.other_price, 0) AS claim_price,
             op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
-            fdh.status_message_th AS fdh_status,ec.status AS ec_status
+            fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,MAX(ec.check_detail) AS check_detail
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -912,7 +918,7 @@ class ClaimOpController extends Controller
             v.income - IFNULL(rc.rcpt_money, 0) - COALESCE(op_data.other_price, 0) AS claim_price,
             op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
             stm.receive_total,stm.repno,
-            fdh.status_message_th AS fdh_status,ec.status AS ec_status
+            fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,MAX(ec.check_detail) AS check_detail
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -1061,11 +1067,17 @@ class ClaimOpController extends Controller
         $items = DB::connection('hosxp')->select('
             SELECT op.icode, IFNULL(n.name, d.name) AS name,
                    op.qty, op.unitprice, op.sum_price,
-                   li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code, li.kidney, li.ems
+                   li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code, li.kidney, li.ems,
+                   op.paidst AS paids, pst.name AS paids_name,
+                   op.pttype, ptt.name AS pttype_name,
+                   COALESCE(d3.ref_code, d.sks_drug_code) AS tmtid
             FROM opitemrece op
             LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
             LEFT JOIN nondrugitems n ON n.icode = op.icode
             LEFT JOIN drugitems d ON d.icode = op.icode
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode = op.icode AND d3.drugitems_ref_code_type_id = 3
+            LEFT JOIN paidst pst ON pst.paidst = op.paidst
+            LEFT JOIN pttype ptt ON ptt.pttype = op.pttype
             WHERE op.vn = ?', [$vn]);
 
         // Validate (bypass: is_valid always true)
@@ -1150,6 +1162,43 @@ class ClaimOpController extends Controller
         $claim_price = array_column($sum_month, 'claim_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
+        $search = DB::connection('hosxp')->select('
+            SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
+            os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+            kidney_items.claim_list,
+            COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+            LEFT JOIN pttype p ON p.pttype=vp.pttype
+            LEFT JOIN opdscreen os ON os.vn=o.vn
+            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn        
+            INNER JOIN (
+                SELECT op.vn, 
+                    GROUP_CONCAT(DISTINCT sd.`name`) AS claim_list,
+                    SUM(op.sum_price) AS claim_price
+                FROM opitemrece op
+                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.kidney = "Y"
+                LEFT JOIN s_drugitems sd ON sd.icode=op.icode
+                WHERE op.vstdate BETWEEN ? AND ?
+                GROUP BY op.vn
+            ) kidney_items ON kidney_items.vn = o.vn
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
+            LEFT JOIN (SELECT cid,datetimeadm,sum(receive_total) AS receive_total,repno FROM hrims.stm_ucs_kidney
+                WHERE datetimeadm BETWEEN ? AND ? GROUP BY cid,datetimeadm) stm ON stm.cid=pt.cid AND stm.datetimeadm = o.vstdate
+            WHERE p.hipdata_code IN ("UCS","WEL") AND o.vstdate BETWEEN ? AND ?
+            AND stm.cid IS NULL
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
+
         $claim = DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
@@ -1184,9 +1233,10 @@ class ClaimOpController extends Controller
             LEFT JOIN (SELECT cid,datetimeadm,sum(receive_total) AS receive_total,repno FROM hrims.stm_ucs_kidney
                 WHERE datetimeadm BETWEEN ? AND ? GROUP BY cid,datetimeadm) stm ON stm.cid=pt.cid AND stm.datetimeadm = o.vstdate
             WHERE p.hipdata_code IN ("UCS","WEL") AND o.vstdate BETWEEN ? AND ?
+            AND stm.cid IS NOT NULL
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_op.ucs_kidney', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'claim'));
+        return view('claim_op.ucs_kidney', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function stp_incup(Request $request)

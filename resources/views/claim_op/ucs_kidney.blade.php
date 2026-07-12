@@ -87,91 +87,200 @@
             </div>
         </div>
 
+        <div class="px-4 mb-2">
+            <ul class="nav nav-tabs-modern" id="pills-tab" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active" id="search-tab" data-bs-toggle="pill" data-bs-target="#search" type="button" role="tab">
+                        <i class="bi bi-hourglass-split me-1"></i>รอชดเชย
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="claim-tab" data-bs-toggle="pill" data-bs-target="#claim" type="button" role="tab">
+                        <i class="bi bi-check-circle-fill me-1"></i>ชดเชยแล้ว
+                    </button>
+                </li>
+            </ul>
+        </div>
+
         <div class="card-body px-4 pb-4 pt-0">
-            <div class="table-responsive">            
-                <table id="t_claim" class="table table-modern w-100">
-                    <thead>
-                        <tr>
-                            <th class="text-center">#</th>                      
-                            <th class="text-center">วัน-เวลา | Q</th>  
-                            <th class="text-center">HN</th> 
-                            <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
-                            <th class="text-center" width="10%">อาการสำคัญ</th>
-                            <th class="text-center">PDX | ICD9</th>
-                            <th class="text-center small">ค่ารักษา</th>  
-                            <th class="text-center small">ชำระเอง</th> 
-                            <th class="text-center small">รายการที่เรียกเก็บ</th>
-                            <th class="text-center small">เรียกเก็บ</th>
-                            <th class="text-center text-primary small">ชดเชย</th> 
-                            <th class="text-center text-primary small">ผลต่าง</th> 
-                            <th class="text-center text-primary small">REP</th> 
-                        </tr>
-                    </thead> 
-                    <tbody> 
-                        @php 
-                            $count = 1; 
-                            $sum_income = 0; 
-                            $sum_rcpt_money = 0;  
-                            $sum_claim_price = 0;           
-                            $sum_receive_total = 0; 
-                        @endphp
-                        @foreach($claim as $row) 
-                        <tr>
-                            <td class="text-center text-muted small">{{ $count }}</td>                   
-                            <td class="text-start">
-                                <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
-                                <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
-                            </td>            
-                            <td class="text-center fw-bold text-primary small">{{$row->hn}}</td>
-                            <td class="text-start">
-                                <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
-                                <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}} [{{$row->hospmain}}]">
-                                    {{$row->pttype}} [{{$row->hospmain}}]
-                                </div>
-                            </td> 
-                            <td class="text-start small text-muted text-wrap">{{ $row->cc }}</td>
-                            <td class="text-center small">
-                                <div class="fw-bold text-dark">{{ $row->pdx }}</div>
-                                <div class="text-muted" style="font-size: 0.65rem;">{{$row->icd9}}</div>
-                            </td>
-                            <td class="text-end small">{{ number_format($row->income,2) }}</td>
-                            <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
-                            <td class="text-start small text-muted text-wrap" style="max-width: 120px;">{{ $row->claim_list }}</td>  
-                            <td class="text-end small fw-bold">{{ number_format($row->claim_price,2) }}</td>
-                            <td class="text-end small fw-bold @if($row->receive_total > 0) text-success @elseif($row->receive_total < 0) text-danger @endif">
-                                {{ number_format($row->receive_total,2) }}
-                            </td>
-                            <td class="text-end small fw-bold @if($row->receive_total-$row->claim_price > 0) text-success @elseif($row->receive_total-$row->claim_price < 0) text-danger @endif">
-                                {{ number_format($row->receive_total-$row->claim_price,2) }}
-                            </td>
-                            <td class="text-center small text-primary">{{ $row->repno }}</td> 
-                        </tr>
-                        @php 
-                            $count++; 
-                            $sum_income += $row->income; 
-                            $sum_rcpt_money += $row->rcpt_money; 
-                            $sum_claim_price += $row->claim_price; 
-                            $sum_receive_total += $row->receive_total; 
-                        @endphp
-                        @endforeach                 
-                    </tbody>
-                    <tfoot class="bg-light-soft">
-                        <tr>
-                            <th colspan="6" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
-                            <th class="text-end small">{{ number_format($sum_income,2) }}</th>
-                            <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
-                            <th></th>
-                            <th class="text-end small fw-bold">{{ number_format($sum_claim_price,2) }}</th>
-                            <th class="text-end small fw-bold @if($sum_receive_total > 0) text-success @elseif($sum_receive_total < 0) text-danger @endif">
-                                {{ number_format($sum_receive_total,2) }}
-                            </th>
-                            <th class="text-end small fw-bold @if($sum_receive_total-$sum_claim_price > 0) text-success @elseif($sum_receive_total-$sum_claim_price < 0) text-danger @endif">
-                                {{ number_format($sum_receive_total-$sum_claim_price,2) }}
-                            </th>
-                            <th></th>
-                        </tr>
-                    </tfoot>
-                </table>
+            <div class="tab-content" id="myTabContent">
+                <!-- Tab 1: Waiting for Compensation -->
+                <div class="tab-pane fade show active" id="search" role="tabpanel">
+                    <div class="table-responsive">            
+                        <table id="t_search" class="table table-modern w-100">
+                            <thead>
+                                <tr>
+                                    <th class="text-center">#</th>                      
+                                    <th class="text-center">วัน-เวลา | Q</th>  
+                                    <th class="text-center">HN</th> 
+                                    <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
+                                    <th class="text-center" width="10%">อาการสำคัญ</th>
+                                    <th class="text-center">PDX | ICD9</th>
+                                    <th class="text-center small">ค่ารักษา</th>  
+                                    <th class="text-center small">ชำระเอง</th> 
+                                    <th class="text-center small">รายการที่เรียกเก็บ</th>
+                                    <th class="text-center small">เรียกเก็บ</th>
+                                    <th class="text-center text-primary small">ชดเชย</th> 
+                                    <th class="text-center text-primary small">ผลต่าง</th> 
+                                    <th class="text-center text-primary small">REP</th> 
+                                </tr>
+                            </thead> 
+                            <tbody> 
+                                @php 
+                                    $count = 1; 
+                                    $sum_income = 0; 
+                                    $sum_rcpt_money = 0;  
+                                    $sum_claim_price = 0;           
+                                    $sum_receive_total = 0; 
+                                @endphp
+                                @foreach($search as $row) 
+                                <tr>
+                                    <td class="text-center text-muted small">{{ $count }}</td>                   
+                                    <td class="text-start">
+                                        <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
+                                    </td>            
+                                    <td class="text-center fw-bold text-primary small">{{$row->hn}}</td>
+                                    <td class="text-start">
+                                        <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
+                                        <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}} [{{$row->hospmain}}]">
+                                            {{$row->pttype}} [{{$row->hospmain}}]
+                                        </div>
+                                    </td> 
+                                    <td class="text-start small text-muted text-wrap">{{ $row->cc }}</td>
+                                    <td class="text-center small">
+                                        <div class="fw-bold text-dark">{{ $row->pdx }}</div>
+                                        <div class="text-muted" style="font-size: 0.65rem;">{{$row->icd9}}</div>
+                                    </td>
+                                    <td class="text-end small">{{ number_format($row->income,2) }}</td>
+                                    <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
+                                    <td class="text-start small text-muted text-wrap" style="max-width: 120px;">{{ $row->claim_list }}</td>  
+                                    <td class="text-end small fw-bold">{{ number_format($row->claim_price,2) }}</td>
+                                    <td class="text-end small fw-bold @if($row->receive_total > 0) text-success @elseif($row->receive_total < 0) text-danger @endif">
+                                        {{ number_format($row->receive_total,2) }}
+                                    </td>
+                                    <td class="text-end small fw-bold @if($row->receive_total-$row->claim_price > 0) text-success @elseif($row->receive_total-$row->claim_price < 0) text-danger @endif">
+                                        {{ number_format($row->receive_total-$row->claim_price,2) }}
+                                    </td>
+                                    <td class="text-center small text-primary">{{ $row->repno }}</td> 
+                                </tr>
+                                @php 
+                                    $count++; 
+                                    $sum_income += $row->income; 
+                                    $sum_rcpt_money += $row->rcpt_money; 
+                                    $sum_claim_price += $row->claim_price; 
+                                    $sum_receive_total += $row->receive_total; 
+                                @endphp
+                                @endforeach                 
+                            </tbody>
+                            <tfoot class="bg-light-soft">
+                                <tr>
+                                    <th colspan="6" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                    <th class="text-end small">{{ number_format($sum_income,2) }}</th>
+                                    <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
+                                    <th></th>
+                                    <th class="text-end small fw-bold">{{ number_format($sum_claim_price,2) }}</th>
+                                    <th class="text-end small fw-bold @if($sum_receive_total > 0) text-success @elseif($sum_receive_total < 0) text-danger @endif">
+                                        {{ number_format($sum_receive_total,2) }}
+                                    </th>
+                                    <th class="text-end small fw-bold @if($sum_receive_total-$sum_claim_price > 0) text-success @elseif($sum_receive_total-$sum_claim_price < 0) text-danger @endif">
+                                        {{ number_format($sum_receive_total-$sum_claim_price,2) }}
+                                    </th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Compensated -->
+                <div class="tab-pane fade" id="claim" role="tabpanel">
+                    <div class="table-responsive">            
+                        <table id="t_claim" class="table table-modern w-100">
+                            <thead>
+                                <tr>
+                                    <th class="text-center">#</th>                      
+                                    <th class="text-center">วัน-เวลา | Q</th>  
+                                    <th class="text-center">HN</th> 
+                                    <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
+                                    <th class="text-center" width="10%">อาการสำคัญ</th>
+                                    <th class="text-center">PDX | ICD9</th>
+                                    <th class="text-center small">ค่ารักษา</th>  
+                                    <th class="text-center small">ชำระเอง</th> 
+                                    <th class="text-center small">รายการที่เรียกเก็บ</th>
+                                    <th class="text-center small">เรียกเก็บ</th>
+                                    <th class="text-center text-primary small">ชดเชย</th> 
+                                    <th class="text-center text-primary small">ผลต่าง</th> 
+                                    <th class="text-center text-primary small">REP</th> 
+                                </tr>
+                            </thead> 
+                            <tbody> 
+                                @php 
+                                    $count = 1; 
+                                    $sum_income = 0; 
+                                    $sum_rcpt_money = 0;  
+                                    $sum_claim_price = 0;           
+                                    $sum_receive_total = 0; 
+                                @endphp
+                                @foreach($claim as $row) 
+                                <tr>
+                                    <td class="text-center text-muted small">{{ $count }}</td>                   
+                                    <td class="text-start">
+                                        <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
+                                    </td>            
+                                    <td class="text-center fw-bold text-primary small">{{$row->hn}}</td>
+                                    <td class="text-start">
+                                        <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
+                                        <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}} [{{$row->hospmain}}]">
+                                            {{$row->pttype}} [{{$row->hospmain}}]
+                                        </div>
+                                    </td> 
+                                    <td class="text-start small text-muted text-wrap">{{ $row->cc }}</td>
+                                    <td class="text-center small">
+                                        <div class="fw-bold text-dark">{{ $row->pdx }}</div>
+                                        <div class="text-muted" style="font-size: 0.65rem;">{{$row->icd9}}</div>
+                                    </td>
+                                    <td class="text-end small">{{ number_format($row->income,2) }}</td>
+                                    <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
+                                    <td class="text-start small text-muted text-wrap" style="max-width: 120px;">{{ $row->claim_list }}</td>  
+                                    <td class="text-end small fw-bold">{{ number_format($row->claim_price,2) }}</td>
+                                    <td class="text-end small fw-bold @if($row->receive_total > 0) text-success @elseif($row->receive_total < 0) text-danger @endif">
+                                        {{ number_format($row->receive_total,2) }}
+                                    </td>
+                                    <td class="text-end small fw-bold @if($row->receive_total-$row->claim_price > 0) text-success @elseif($row->receive_total-$row->claim_price < 0) text-danger @endif">
+                                        {{ number_format($row->receive_total-$row->claim_price,2) }}
+                                    </td>
+                                    <td class="text-center small text-primary">{{ $row->repno }}</td> 
+                                </tr>
+                                @php 
+                                    $count++; 
+                                    $sum_income += $row->income; 
+                                    $sum_rcpt_money += $row->rcpt_money; 
+                                    $sum_claim_price += $row->claim_price; 
+                                    $sum_receive_total += $row->receive_total; 
+                                @endphp
+                                @endforeach                 
+                            </tbody>
+                            <tfoot class="bg-light-soft">
+                                <tr>
+                                    <th colspan="6" class="text-end text-muted small px-3">รวมงบประมาณที่ชดเชยแล้ว:</th>
+                                    <th class="text-end small">{{ number_format($sum_income,2) }}</th>
+                                    <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
+                                    <th></th>
+                                    <th class="text-end small fw-bold">{{ number_format($sum_claim_price,2) }}</th>
+                                    <th class="text-end small fw-bold @if($sum_receive_total > 0) text-success @elseif($sum_receive_total < 0) text-danger @endif">
+                                        {{ number_format($sum_receive_total,2) }}
+                                    </th>
+                                    <th class="text-end small fw-bold @if($sum_receive_total-$sum_claim_price > 0) text-success @elseif($sum_receive_total-$sum_claim_price < 0) text-danger @endif">
+                                        {{ number_format($sum_receive_total-$sum_claim_price,2) }}
+                                    </th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -239,7 +348,8 @@
           }
       });
 
-      $('#t_claim').DataTable({
+      var dt_search = $('#t_search').DataTable({
+        autoWidth: false,
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 
                 '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
@@ -254,7 +364,7 @@
               extend: 'excelHtml5',
               text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
               className: 'btn btn-success btn-sm shadow-sm',
-              title: 'รายชื่อผู้มารับบริการ UCS ฟอกไต วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+              title: 'รายชื่อผู้มารับบริการ UCS ฟอกไต รอชดเชย วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
             }
         ],
         language: {
@@ -266,6 +376,42 @@
                 next: "ถัดไป"
             }
         }
+      });
+
+      var dt_claim = $('#t_claim').DataTable({
+        autoWidth: false,
+        dom: '<"row mb-3"' +
+                '<"col-md-6"l>' + 
+                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
+              '>' +
+              'rt' +
+              '<"row mt-3"' +
+                '<"col-md-6"i>' + 
+                '<"col-md-6"p>' + 
+              '>',
+        buttons: [
+            {
+              extend: 'excelHtml5',
+              text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+              className: 'btn btn-success btn-sm shadow-sm',
+              title: 'รายชื่อผู้มารับบริการ UCS ฟอกไต ชดเชยแล้ว วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
+            }
+        ],
+        language: {
+            search: "ค้นหา:",
+            lengthMenu: "แสดง _MENU_ รายการ",
+            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+            paginate: {
+                previous: "ก่อนหน้า",
+                next: "ถัดไป"
+            }
+        }
+      });
+
+      // แก้ตารางไม่เต็ม card เมื่อสลับ tab หรือ pill
+      $('button[data-bs-toggle="tab"], button[data-bs-toggle="pill"]').on('shown.bs.tab shown.bs.pill', function () {
+          dt_search.columns.adjust().draw(false);
+          dt_claim.columns.adjust().draw(false);
       });
     });
   </script>
@@ -342,6 +488,31 @@
     });
   });
 </script>
+
+<style>
+/* Custom pastel background for main tabs in ucs_kidney */
+#search-tab {
+    background-color: #fef2f2 !important; /* Soft pastel red/pink */
+    color: #dc2626 !important;
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+}
+#search-tab.active {
+    background-color: #dc2626 !important;
+    color: #fff !important;
+}
+
+#claim-tab {
+    background-color: #f0fdf4 !important; /* Soft pastel green */
+    color: #166534 !important;
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+}
+#claim-tab.active {
+    background-color: #166534 !important;
+    color: #fff !important;
+}
+</style>
 
 @endsection
 

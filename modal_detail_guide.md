@@ -341,3 +341,52 @@ public function sss_detail(Request $request)
     ]);
 }
 ```
+
+---
+
+## 3. ข้อพิจารณาเพิ่มเติมสำหรับระบบ UCS (สิทธิบัตรทอง / ประกันสุขภาพถ้วนหน้า)
+
+สำหรับ Modal รายละเอียดของสิทธิ UCS (เช่น หน้าจอ `claim_op/ucs_incup`) จะมีความต้องการพิเศษเพิ่มเติมดังนี้:
+
+### 1) การเงินและปุ่มส่งเคลม FDH (Financial & FDH Buttons)
+ในคอลัมน์ที่ 3 (ข้อมูลการเงิน) จะต้องรวมกล่องควบคุมสถานะและปุ่มตรวจสอบ/ส่งข้อมูลไปยังระบบ FDH (Financial Data Hub) ด้วย:
+```javascript
+let fdhBtn = '';
+if (visit.fdh_status) {
+    fdhBtn = `
+        <div class="d-inline-flex gap-2 align-items-center">
+            <span class="badge bg-success py-1 px-2 text-wrap" style="max-width:180px;">${visit.fdh_status}</span>
+            <button onclick="checkFdh('${visit.hn}', '${vn}')" class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-arrow-repeat me-1"></i>ดึงอีกครั้ง</button>
+        </div>`;
+} else {
+    fdhBtn = `
+        <div class="d-inline-flex gap-2 align-items-center">
+            <span class="badge bg-secondary py-1 px-2">ยังไม่ได้ส่งเคลม</span>
+            <button onclick="checkFdh('${visit.hn}', '${vn}')" class="btn btn-outline-info btn-sm py-0 px-2 fw-bold text-dark" style="font-size:0.75rem;"><i class="bi bi-arrow-repeat me-1"></i>ดึง/ส่ง FDH</button>
+        </div>`;
+}
+```
+และแสดงผลอยู่ถัดลงมาจากสถานะการปิดสิทธิในแถวตารางข้อมูลการเงิน:
+```html
+<tr><th class="text-muted">สถานะปิดสิทธิ</th><td>${endpointBtn}</td></tr>
+<tr><th class="text-muted">สถานะ FDH</th><td>${fdhBtn}</td></tr>
+```
+
+### 2) การดึงข้อมูล TMT ID สำหรับยาในตารางฝั่ง Backend
+สำหรับสิทธิ UCS จะไม่ดึงข้อมูลจากตาราง `hrims.drugcat_chi` แต่จะดึงรหัสมาตรฐาน TMT จาก `drugitems_ref_code` (ประเภท 3) และ `drugitems` โดยตรงดังนี้:
+```sql
+SELECT op.icode, IFNULL(n.name, d.name) AS name,
+       op.qty, op.unitprice, op.sum_price,
+       li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
+       op.paidst AS paids, pst.name AS paids_name,
+       op.pttype, ptt.name AS pttype_name,
+       COALESCE(d3.ref_code, d.sks_drug_code) AS tmtid
+FROM opitemrece op
+INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+LEFT JOIN nondrugitems n ON n.icode = op.icode
+LEFT JOIN drugitems d ON d.icode = op.icode
+LEFT JOIN drugitems_ref_code d3 ON d3.icode = op.icode AND d3.drugitems_ref_code_type_id = 3
+LEFT JOIN paidst pst ON pst.paidst = op.paidst
+LEFT JOIN pttype ptt ON ptt.pttype = op.pttype
+WHERE op.vn = ?
+```

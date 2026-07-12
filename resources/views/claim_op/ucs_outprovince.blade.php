@@ -207,6 +207,7 @@
                                 <tr>
                                     <th class="text-center" rowspan="2">#</th>  
                                     <th class="text-center" rowspan="2">สถานะ</th>
+                                    <th class="text-center" rowspan="2">Error</th>
                                     <th class="text-center" rowspan="2">เบิก/ส่ง</th>
                                     <th class="text-center" rowspan="2" width="10%">วัน-เวลา | Q</th>     
                                     <th class="text-center" rowspan="2">HN</th> 
@@ -244,6 +245,28 @@
                                             <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height:26px; min-height:26px; margin:0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ปิดสิทธิแล้ว | ดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>
                                         @else
                                             <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height:26px; min-height:26px; margin:0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ยังไม่ปิดสิทธิ สปสช. | ดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>
+                                        @endif
+                                    </td>
+                                    <td class="text-center small">
+                                        @if(!empty($row->check_detail))
+                                            @php
+                                                $prefix = '';
+                                                $badge_style = 'background-color: #dc3545; color: #fff;'; // Default red
+                                                if (!empty($row->ec_status)) {
+                                                    $first_char = substr($row->ec_status, 0, 1);
+                                                    if (in_array($first_char, ['2', '3'])) {
+                                                        $prefix = $first_char . '-';
+                                                        if ($first_char === '3') {
+                                                            $badge_style = 'background-color: #fd7e14; color: #fff;'; // Orange for 3
+                                                        } else {
+                                                            $badge_style = 'background-color: #f43f5e; color: #fff;'; // Rose red for 2
+                                                        }
+                                                    }
+                                                }
+                                            @endphp
+                                            <span class="badge fw-bold" style="font-size: 0.72rem; {{ $badge_style }}" title="พบข้อผิดพลาด e-Claim: {{ $row->check_detail }}">{{ $prefix }}{{ $row->check_detail }}</span>
+                                        @else
+                                            <span class="text-muted">-</span>
                                         @endif
                                     </td>
                                     <td class="text-start ps-3" data-order="{{ $row->confirm_and_locked == 'Y' ? '2' : '1' }}">
@@ -301,7 +324,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="7" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
+                                    <th colspan="8" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_other_price,2) }}</th>
@@ -345,6 +368,29 @@
 .badge-ppfs  { background:#fff3cd; color:#856404; }
 .badge-uc_cr { background:#cce5ff; color:#004085; }
 .badge-herb  { background:#d4edda; color:#155724; }
+
+/* Custom pastel background for main tabs in ucs_outprovince */
+#search-tab {
+    background-color: #fef2f2 !important; /* Soft pastel red/pink */
+    color: #dc2626 !important;
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+}
+#search-tab.active {
+    background-color: #dc2626 !important;
+    color: #fff !important;
+}
+
+#claim-tab {
+    background-color: #f0fdf4 !important; /* Soft pastel green */
+    color: #166534 !important;
+    border-radius: 8px 8px 0 0;
+    font-weight: 600;
+}
+#claim-tab.active {
+    background-color: #166534 !important;
+    color: #fff !important;
+}
 </style>
 
 <script>
@@ -360,6 +406,7 @@ function showDetails(vn) {
             const visit = data.visit;
             const items = data.items;
             const v     = data.validation;
+
             const isEndpointDone = v.endpoint_valid === true;
             const hasWarnings    = v.warnings && v.warnings.length > 0;
 
@@ -386,69 +433,245 @@ function showDetails(vn) {
                 ? `<div class="d-inline-flex gap-2 align-items-center"><span class="badge bg-success py-1 px-2 text-wrap" style="max-width:180px;">${visit.fdh_status}</span><button onclick="checkFdh('${visit.hn}','${vn}')" class="btn btn-outline-success btn-sm py-0 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-arrow-repeat me-1"></i>ดึงอีกครั้ง</button></div>`
                 : `<div class="d-inline-flex gap-2 align-items-center"><span class="badge bg-secondary py-1 px-2">ยังไม่ได้ส่งเคลม</span><button onclick="checkFdh('${visit.hn}','${vn}')" class="btn btn-outline-info btn-sm py-0 px-2 fw-bold text-dark" style="font-size:0.75rem;"><i class="bi bi-arrow-repeat me-1"></i>ดึง/ส่ง FDH</button></div>`;
 
+            // 1. Calculate status banner (shown at the top)
+            let statusHtml = '';
+            const warningsList = [];
+            if (!isEndpointDone) {
+                warningsList.push("สิทธิ์การรักษายังไม่ได้ปิดสิทธิ์ในระบบ สปสช. (กรุณากดดึงข้อมูลหรือปิดสิทธิ์)");
+            }
+            if (hasWarnings) {
+                v.warnings.forEach(w => warningsList.push(w));
+            }
+            
+            if (warningsList.length > 0) {
+                statusHtml = `
+                <div class="col-12">
+                  <div class="alert alert-warning py-2 px-3 border-0 shadow-sm d-flex align-items-start small mb-0" style="background-color: #fffbeb; color: #92400e; border-left: 5px solid #d97706 !important;">
+                    <i class="bi bi-exclamation-circle-fill me-2 mt-1" style="font-size: 1.1rem; color: #d97706;"></i>
+                    <div>
+                      <div class="fw-bold mb-1 text-dark">สถานะ: ข้อมูลผ่านเกณฑ์ แต่ยังไม่ปิดสิทธิ หรือมีคำเตือน</div>
+                      <ul class="mb-0 ps-3 text-warning" style="color: #92400e !important;">${warningsList.map(w => `<li>${w}</li>`).join('')}</ul>
+                    </div>
+                  </div>
+                </div>`;
+            } else {
+                statusHtml = `
+                <div class="col-12">
+                  <div class="alert alert-success py-2 px-3 border-0 shadow-sm d-flex align-items-start small mb-0" style="background-color: #f0fdf4; color: #166534; border-left: 5px solid #16a34a !important;">
+                    <i class="bi bi-check-circle-fill me-2 mt-1" style="font-size: 1.1rem; color: #16a34a;"></i>
+                    <div>
+                      <div class="fw-bold mb-1 text-dark">สถานะ: ข้อมูลพร้อมส่งออก (ผ่านเกณฑ์และปิดสิทธิเรียบร้อย)</div>
+                      <div class="text-muted">ข้อมูลถูกต้องครบถ้วนและทำการปิดสิทธิเรียบร้อยแล้ว</div>
+                    </div>
+                  </div>
+                </div>`;
+            }
+
             let html = `
             <div class="row g-3">
-              <div class="col-md-6">
+              <!-- Validation Status Banner -->
+              ${statusHtml}
+
+              <!-- คอลัมน์ที่ 1: ข้อมูลผู้ป่วย -->
+              <div class="col-md-4">
                 <div class="card border-0 bg-light-soft h-100">
                   <div class="card-body py-2 px-3">
                     <div class="fw-bold text-primary mb-2 small"><i class="bi bi-person-fill me-1"></i>ข้อมูลผู้ป่วย</div>
-                    <table class="table table-sm table-borderless mb-0 small">
-                      <tr><th class="text-muted" style="width:35%">HN</th><td class="fw-bold">${visit.hn}</td></tr>
+                    <table class="table table-sm table-borderless mb-0 small compact-info-table">
+                      <tr><th class="text-muted" style="width:40%">HN</th><td class="fw-bold">${visit.hn}</td></tr>
                       <tr><th class="text-muted">CID</th><td>${visit.cid ?? '-'}</td></tr>
                       <tr><th class="text-muted">ชื่อ-สกุล</th><td>${visit.ptname}</td></tr>
                       <tr><th class="text-muted">สิทธิ์</th><td>${visit.pttype ?? '-'}</td></tr>
                       <tr><th class="text-muted">เพศ/อายุ</th><td>${visit.sex == '1' ? 'ชาย' : (visit.sex == '2' ? 'หญิง' : visit.sex)} / ${visit.age_y ?? '-'} ปี</td></tr>
+                      <tr><th class="text-muted">ประสงค์เบิก</th><td>${visit.request_funds === 'Y' ? '<span class="badge bg-success py-0 px-2 fw-bold text-white"><i class="bi bi-check-circle-fill me-1"></i>Y</span>' : '<span class="badge bg-danger py-0 px-2 fw-bold text-white"><i class="bi bi-x-circle-fill me-1"></i>N</span>'}</td></tr>
+                      <tr><th class="text-muted">พร้อมส่ง</th><td>${visit.confirm_and_locked === 'Y' ? '<span class="badge bg-success py-0 px-2 fw-bold text-white"><i class="bi bi-check-circle-fill me-1"></i>Y</span>' : '<span class="badge bg-danger py-0 px-2 fw-bold text-white"><i class="bi bi-x-circle-fill me-1"></i>N</span>'}</td></tr>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- คอลัมน์ที่ 2: ข้อมูลทางคลินิก -->
+              <div class="col-md-4">
+                <div class="card border-0 bg-light-soft h-100">
+                  <div class="card-body py-2 px-3">
+                    <div class="fw-bold text-primary mb-2 small"><i class="bi bi-clipboard2-pulse me-1"></i>ข้อมูลทางคลินิก</div>
+                    <table class="table table-sm table-borderless mb-0 small compact-info-table">
+                      <tr><th class="text-muted" style="width:35%">วันที่</th><td>${visit.vstdate} ${visit.vsttime}</td></tr>
+                      <tr><th class="text-muted">CC</th><td style="word-break: break-all;">${visit.cc ?? '-'}</td></tr>
+                      <tr><th class="text-muted">PDX</th><td class="fw-bold text-danger">${visit.pdx ?? '-'}</td></tr>
+                      <tr><th class="text-muted">SDX</th><td style="word-break: break-all;">${data.sec_diags.join(', ') || '-'}</td></tr>
+                      <tr><th class="text-muted">ICD-9</th><td style="word-break: break-all;">${data.procedures.join(', ') || '-'}</td></tr>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <!-- คอลัมน์ที่ 3: ข้อมูลการเงิน -->
+              <div class="col-md-4">
+                <div class="card border-0 bg-light-soft h-100">
+                  <div class="card-body py-2 px-3">
+                    <div class="fw-bold text-primary mb-2 small"><i class="bi bi-currency-dollar me-1"></i>ข้อมูลการเงิน</div>
+                    <table class="table table-sm table-borderless mb-0 small compact-info-table">
+                      <tr><th class="text-muted" style="width:40%">เลขใบแจ้งหนี้</th><td class="fw-bold ${visit.debt_id_list ? 'text-success' : 'text-danger'}">${visit.debt_id_list ? visit.debt_id_list : 'ไม่มี (VN: ' + vn + ')'}</td></tr>
+                      <tr><th class="text-muted">รวมค่ารักษา</th><td>${parseFloat(visit.income || 0).toFixed(2)} บาท</td></tr>
+                      <tr><th class="text-muted">ชำระเงินสด</th><td>${parseFloat(visit.rcpt_money || 0).toFixed(2)} บาท</td></tr>
+                      <tr><th class="text-muted">ยอดเรียกเก็บ</th><td>${parseFloat(visit.claim_price || 0).toFixed(2)} บาท</td></tr>
                       <tr><th class="text-muted">สถานะปิดสิทธิ</th><td>${endpointBtn}</td></tr>
                       <tr><th class="text-muted">สถานะ FDH</th><td>${fdhBtn}</td></tr>
                     </table>
                   </div>
                 </div>
               </div>
-              <div class="col-md-6">
-                <div class="card border-0 bg-light-soft h-100">
-                  <div class="card-body py-2 px-3">
-                    <div class="fw-bold text-primary mb-2 small"><i class="bi bi-clipboard2-pulse me-1"></i>ข้อมูลทางคลินิก</div>
-                    <table class="table table-sm table-borderless mb-0 small">
-                      <tr><th class="text-muted" style="width:35%">วันที่</th><td>${visit.vstdate} ${visit.vsttime}</td></tr>
-                      <tr><th class="text-muted">CC</th><td>${visit.cc ?? '-'}</td></tr>
-                      <tr><th class="text-muted">PDX</th><td class="fw-bold text-danger">${visit.pdx ?? '-'}</td></tr>
-                      <tr><th class="text-muted">SDX</th><td>${data.sec_diags.join(', ') || '-'}</td></tr>
-                      <tr><th class="text-muted">ICD-9</th><td>${data.procedures.join(', ') || '-'}</td></tr>
+
+              <!-- ส่วนแท็บรายละเอียดรายการยา และ ค่าบริการรักษาพยาบาล -->
+              <div class="col-12 mt-3">
+                <ul class="nav nav-tabs nav-tabs-custom mb-2" id="modalDetailTabs" role="tablist" style="font-size: 0.85rem;">
+                  <li class="nav-item">
+                    <button class="nav-link active fw-bold text-primary" id="modal-drugs-tab" data-bs-toggle="tab" data-bs-target="#modal-drugs-panel" type="button" role="tab"><i class="bi bi-capsule me-1"></i>รายการยา</button>
+                  </li>
+                  <li class="nav-item">
+                    <button class="nav-link fw-bold text-success" id="modal-services-tab" data-bs-toggle="tab" data-bs-target="#modal-services-panel" type="button" role="tab"><i class="bi bi-list-check me-1"></i>ค่ารักษาพยาบาล</button>
+                  </li>
+                </ul>
+                <div class="tab-content" id="modalDetailTabsContent">
+                  <!-- แท็บรายการยา -->
+                  <div class="tab-pane fade show active" id="modal-drugs-panel" role="tabpanel" style="font-size: 12px;">
+                    <table id="modal-drugs-table" class="table table-sm table-hover align-middle mb-0 small border w-100">
+                      <thead class="table-dark">
+                        <tr>
+                          <th>ชื่อยา/เวชภัณฑ์</th>
+                          <th class="text-center" width="10%">จำนวน</th>
+                          <th class="text-end" width="12%">ราคารวม (บาท)</th>
+                          <th class="text-center" width="15%">ประเภทการชำระ</th>
+                          <th class="text-center" width="15%">สิทธิการรักษา</th>
+                          <th>รหัสมาตรฐาน TMT</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${(function() {
+                            let drugsList = items.filter(d => d.icode.startsWith('1'));
+                            if (drugsList.length === 0) {
+                                return '<tr><td colspan="6" class="text-center text-muted py-3">ไม่พบรายการสั่งยาใน Visit นี้</td></tr>';
+                            }
+                            return drugsList.map(d => {
+                                let tmtDisplay = d.tmtid 
+                                    ? `<span class="badge bg-success fw-bold">${d.tmtid}</span>`
+                                    : `<span class="badge bg-secondary-soft text-secondary">ไม่มีรหัส TMT</span>`;
+                                return `<tr>
+                                  <td>
+                                    <div class="fw-bold text-dark">${d.name}</div>
+                                    <div class="text-muted small" style="font-size: 0.7rem;">icode: ${d.icode}</div>
+                                  </td>
+                                  <td class="text-center fw-bold">${d.qty}</td>
+                                  <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
+                                  <td class="text-center">${d.paids_name || d.paids || '-'}</td>
+                                  <td class="text-center">${d.pttype_name || d.pttype || '-'}</td>
+                                  <td>${tmtDisplay}</td>
+                                </tr>`;
+                            }).join('');
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+                  <!-- แท็บค่าบริการรักษาพยาบาล -->
+                  <div class="tab-pane fade" id="modal-services-panel" role="tabpanel" style="font-size: 12px;">
+                    <table id="modal-services-table" class="table table-sm table-hover align-middle mb-0 small border w-100">
+                      <thead class="table-dark">
+                        <tr>
+                          <th>ชื่อบริการ/ค่ารักษาพยาบาล</th>
+                          <th class="text-center" width="10%">จำนวน</th>
+                          <th class="text-end" width="12%">ราคารวม (บาท)</th>
+                          <th class="text-center" width="15%">ประเภทการชำระ</th>
+                          <th class="text-center" width="15%">สิทธิการรักษา</th>
+                          <th>ADP / Kidney / EMS</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        ${(function() {
+                            let servicesList = items.filter(d => !d.icode.startsWith('1'));
+                            if (servicesList.length === 0) {
+                                return '<tr><td colspan="6" class="text-center text-muted py-3">ไม่พบรายการค่าบริการ/รักษาพยาบาลใน Visit นี้</td></tr>';
+                            }
+                            return servicesList.map(d => {
+                                let type = '';
+                                if (d.ppfs  === 'Y') type += '<span class="badge-type badge-ppfs me-1">PPFS</span>';
+                                if (d.uc_cr === 'Y') type += '<span class="badge-type badge-uc_cr me-1">UC_CR</span>';
+                                if (d.herb32=== 'Y') type += '<span class="badge-type badge-herb me-1">Herb</span>';
+                                if (d.kidney=== 'Y') type += '<span class="badge-type me-1" style="background:#f8d7da;color:#721c24;">Kidney</span>';
+                                if (d.ems=== 'Y') type += '<span class="badge-type me-1" style="background:#cfe2ff;color:#084298;">EMS</span>';
+                                
+                                const insWarn = (d.uc_cr === 'Y' && d.ins_ucs !== undefined && d.ins_ucs !== 'Y' && d.nhso_adp_code)
+                                    ? `<span class="badge bg-warning text-dark ms-1" title="ADP ${d.nhso_adp_code} ไม่อยู่ในประกาศ UCS"><i class="bi bi-exclamation-triangle-fill"></i></span>`
+                                    : '';
+                                
+                                return `<tr class="${(d.uc_cr === 'Y' && d.ins_ucs !== undefined && d.ins_ucs !== 'Y' && d.nhso_adp_code) ? 'table-warning' : ''}">
+                                  <td>
+                                    <div class="fw-bold text-dark">${d.name ?? '-'}${insWarn} ${type}</div>
+                                    <div class="text-muted small" style="font-size: 0.7rem;">icode: ${d.icode}</div>
+                                  </td>
+                                  <td class="text-center fw-bold">${d.qty}</td>
+                                  <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
+                                  <td class="text-center">${d.paids_name || d.paids || '-'}</td>
+                                  <td class="text-center">${d.pttype_name || d.pttype || '-'}</td>
+                                  <td><span class="badge bg-secondary-soft text-secondary fw-bold">${d.nhso_adp_code ?? '-'}</span></td>
+                                </tr>`;
+                            }).join('');
+                        })()}
+                      </tbody>
                     </table>
                   </div>
                 </div>
               </div>
-              <div class="col-12">
-                <div class="fw-bold small text-dark mb-2"><i class="bi bi-list-check me-1"></i>รายการ (opitemrece ทุกรายการ)</div>
-                <div class="table-responsive">
-                  <table class="table table-sm table-hover small mb-0">
-                    <thead class="table-light">
-                      <tr>
-                        <th>icode</th><th>รายการ</th><th>ประเภท</th>
-                        <th class="text-center">จำนวน</th>
-                        <th class="text-end">ราคา/หน่วย</th>
-                        <th class="text-end">รวม</th>
-                      </tr>
-                    </thead><tbody>`;
+            </div>`;
 
-            items.forEach(function(item) {
-                let type = '';
-                if (item.ppfs   === 'Y') type += '<span class="badge-type badge-ppfs me-1">PPFS</span>';
-                if (item.uc_cr  === 'Y') type += '<span class="badge-type badge-uc_cr me-1">UC_CR</span>';
-                if (item.herb32 === 'Y') type += '<span class="badge-type badge-herb me-1">Herb</span>';
-                if (item.kidney === 'Y') type += '<span class="badge-type" style="background:#f8d7da;color:#721c24;">Kidney</span>';
-                html += `<tr>
-                    <td class="text-muted">${item.icode}</td>
-                    <td>${item.name ?? '-'}</td>
-                    <td>${type || '<span class="text-muted">-</span>'}</td>
-                    <td class="text-center">${item.qty}</td>
-                    <td class="text-end">${parseFloat(item.unitprice).toLocaleString('th-TH',{minimumFractionDigits:2})}</td>
-                    <td class="text-end fw-bold">${parseFloat(item.sum_price).toLocaleString('th-TH',{minimumFractionDigits:2})}</td>
-                </tr>`;
-            });
-
-            html += `</tbody></table></div></div></div>`;
             body.innerHTML = html;
+
+            // Destroy existing DataTables if already initialized to prevent error
+            if ($.fn.DataTable.isDataTable('#modal-drugs-table')) {
+                $('#modal-drugs-table').DataTable().destroy();
+            }
+            if ($.fn.DataTable.isDataTable('#modal-services-table')) {
+                $('#modal-services-table').DataTable().destroy();
+            }
+
+            // Initialize DataTable for Drugs
+            if (items.filter(d => d.icode.startsWith('1')).length > 0) {
+                $('#modal-drugs-table').DataTable({
+                    pageLength: 5,
+                    lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "ทั้งหมด"]],
+                    language: {
+                        search: "ค้นหา:",
+                        lengthMenu: "แสดง _MENU_ รายการ",
+                        info: "แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ",
+                        paginate: {
+                            previous: "ก่อนหน้า",
+                            next: "ถัดไป"
+                        }
+                    }
+                });
+            }
+
+            // Initialize DataTable for Services
+            if (items.filter(d => !d.icode.startsWith('1')).length > 0) {
+                $('#modal-services-table').DataTable({
+                    pageLength: 5,
+                    lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "ทั้งหมด"]],
+                    language: {
+                        search: "ค้นหา:",
+                        lengthMenu: "แสดง _MENU_ รายการ",
+                        info: "แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ",
+                        paginate: {
+                            previous: "ก่อนหน้า",
+                            next: "ถัดไป"
+                        }
+                    }
+                });
+            }
+
+            // Adjust column headers on tab change to prevent distorted columns
+            $('#modalDetailTabs button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+                $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+            });
         })
         .fail(function() {
             body.innerHTML = '<div class="alert alert-warning">ไม่สามารถโหลดข้อมูลได้</div>';
@@ -764,7 +987,8 @@ function showDetails(vn) {
       });
 
 
-      $('#t_search').DataTable({
+      var dt_search = $('#t_search').DataTable({
+        autoWidth: false,
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' +
                 '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' +
@@ -790,7 +1014,8 @@ function showDetails(vn) {
         }
       });
 
-      $('#t_claim').DataTable({
+      var dt_claim = $('#t_claim').DataTable({
+        autoWidth: false,
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' +
                 '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' +
@@ -814,6 +1039,12 @@ function showDetails(vn) {
             info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
             paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
         }
+      });
+
+      // แก้ตารางไม่เต็ม card เมื่อสลับ tab หรือ pill
+      $('button[data-bs-toggle="tab"], button[data-bs-toggle="pill"]').on('shown.bs.tab shown.bs.pill', function () {
+          dt_search.columns.adjust().draw(false);
+          dt_claim.columns.adjust().draw(false);
       });
     });
   </script>

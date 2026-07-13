@@ -493,7 +493,7 @@
               $('.status-card').css('opacity', '0.5').removeClass('border-dark');
               $(this).css('opacity', '1').addClass('border-dark');
           }
-          $('#list').DataTable().draw();
+          $('#list').DataTable().ajax.reload();
       });
 
       // Tab switcher event handler
@@ -508,7 +508,7 @@
           // Reset status filter highlight when switching tabs
           window.currentStatusFilter = '';
           $('.status-card').css('opacity', '1').removeClass('border-dark');
-          $('#list').DataTable().draw();
+          $('#list').DataTable().ajax.reload();
       });
     });
 </script>

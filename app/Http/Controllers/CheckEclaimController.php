@@ -42,8 +42,21 @@ class CheckEclaimController extends Controller
                       ->orWhereBetween('dchdate', [$start_date, $end_date]);
                 });
 
+            $recordsTotal = DB::table('eclaim_status')
+                ->where(function ($q) use ($start_date, $end_date) {
+                    $q->whereBetween('vstdate', [$start_date, $end_date])
+                      ->orWhereBetween('dchdate', [$start_date, $end_date]);
+                });
+
             if (!empty($hipdata)) {
                 $query->where('hipdata', $hipdata);
+                $recordsTotal->where('hipdata', $hipdata);
+            }
+
+            // Filter by patient_type (OPD / IPD)
+            if ($request->has('patient_type') && in_array($request->patient_type, ['OPD', 'IPD'])) {
+                $query->where('patient_type', $request->patient_type);
+                $recordsTotal->where('patient_type', $request->patient_type);
             }
 
             // Global search filter (HN, AN, ptname, eclaim_no, etc.)
@@ -63,17 +76,7 @@ class CheckEclaimController extends Controller
                 $query->where('status', 'like', $request->status_filter . '%');
             }
 
-            $recordsTotal = DB::table('eclaim_status')
-                ->where(function ($q) use ($start_date, $end_date) {
-                    $q->whereBetween('vstdate', [$start_date, $end_date])
-                      ->orWhereBetween('dchdate', [$start_date, $end_date]);
-                });
-
-            if (!empty($hipdata)) {
-                $recordsTotal->where('hipdata', $hipdata);
-            }
             $recordsTotalVal = $recordsTotal->count();
-
             $recordsFiltered = $query->count();
 
             // Ordering
@@ -107,11 +110,32 @@ class CheckEclaimController extends Controller
             $length = $request->length ?? 50;
             $data = $query->offset($start)->limit($length)->get();
 
+            // Calculate dynamic summary for this patient_type and date range
+            $sumQuery = DB::table('eclaim_status')
+                ->select(
+                    DB::raw('SUBSTRING(status, 1, 1) as status_code'),
+                    DB::raw('COUNT(*) as count'),
+                    DB::raw('SUM(claim_amount) as sum_amount')
+                )
+                ->where(function ($q) use ($start_date, $end_date) {
+                    $q->whereBetween('vstdate', [$start_date, $end_date])
+                      ->orWhereBetween('dchdate', [$start_date, $end_date]);
+                });
+
+            if (!empty($hipdata)) {
+                $sumQuery->where('hipdata', $hipdata);
+            }
+            if ($request->has('patient_type') && in_array($request->patient_type, ['OPD', 'IPD'])) {
+                $sumQuery->where('patient_type', $request->patient_type);
+            }
+            $summaryData = $sumQuery->groupBy(DB::raw('SUBSTRING(status, 1, 1)'))->get()->keyBy('status_code');
+
             return response()->json([
                 "draw" => intval($request->draw),
                 "recordsTotal" => $recordsTotalVal,
                 "recordsFiltered" => $recordsFiltered,
-                "data" => $data
+                "data" => $data,
+                "summary" => $summaryData
             ]);
         }
 

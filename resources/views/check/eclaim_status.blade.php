@@ -134,6 +134,16 @@
 
     <!-- Data Table Card -->
     <div class="card dash-card border-top-0 mb-4">
+        <div class="card-header bg-white border-bottom-0 pb-0 pt-3">
+            <ul class="nav nav-tabs card-header-tabs" id="patientTypeTab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold" id="opd-tab" data-bs-toggle="tab" data-patient-type="OPD" type="button" role="tab"><i class="bi bi-person me-1"></i> ผู้ป่วยนอก (OPD)</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold" id="ipd-tab" data-bs-toggle="tab" data-patient-type="IPD" type="button" role="tab"><i class="bi bi-door-open me-1"></i> ผู้ป่วยใน (IPD)</button>
+                </li>
+            </ul>
+        </div>
         <div class="card-body p-4">
             <div class="table-responsive">            
                 <table id="list" class="table table-modern w-100">
@@ -336,6 +346,7 @@
       });
 
       window.currentStatusFilter = '';
+      window.currentPatientType = 'OPD';
 
       $('#list').DataTable({
         processing: true,
@@ -347,6 +358,7 @@
                 d.end_date = $('#end_date').val();
                 d.hipdata = $('select[name="hipdata"]').val();
                 d.status_filter = window.currentStatusFilter || '';
+                d.patient_type = window.currentPatientType || 'OPD';
             }
         },
         columns: [
@@ -452,6 +464,22 @@
         order: [[6, 'desc']] // เรียงวันที่เข้ารับบริการล่าสุดขึ้นก่อน (index 6 คือวันที่รับบริการ)
       });
 
+      // Dynamic summary card updater when AJAX receives updated stats
+      $('#list').on('xhr.dt', function (e, settings, json, xhr) {
+          if (json && json.summary) {
+              for (var i = 0; i <= 4; i++) {
+                  var code = i.toString();
+                  var item = json.summary[code];
+                  var count = item ? parseInt(item.count) : 0;
+                  var sum = item ? parseFloat(item.sum_amount || 0) : 0;
+                  
+                  var card = $('.status-card[data-status="' + code + '"]');
+                  card.find('h4').html(count.toLocaleString() + ' <small class="fs-6 fw-normal text-muted">ราย</small>');
+                  card.find('.text-primary').html(sum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' <small class="fw-normal text-muted">บาท</small>');
+              }
+          }
+      });
+
       // Filter table when clicking on status cards
       $('.status-card').on('click', function() {
           const status = $(this).data('status').toString();
@@ -464,6 +492,15 @@
               $('.status-card').css('opacity', '0.5').removeClass('border-dark');
               $(this).css('opacity', '1').addClass('border-dark');
           }
+          $('#list').DataTable().draw();
+      });
+
+      // Tab switcher event handler
+      $('#patientTypeTab button').on('shown.bs.tab', function (e) {
+          window.currentPatientType = $(this).data('patient-type');
+          // Reset status filter highlight when switching tabs
+          window.currentStatusFilter = '';
+          $('.status-card').css('opacity', '1').removeClass('border-dark');
           $('#list').DataTable().draw();
       });
     });

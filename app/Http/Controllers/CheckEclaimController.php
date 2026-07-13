@@ -30,7 +30,7 @@ class CheckEclaimController extends Controller
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-01');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
         $hipdata = $request->has('hipdata') ? $request->hipdata : Session::get('eclaim_hipdata');
-        $patient_type = $request->patient_type ?: Session::get('eclaim_patient_type') ?: 'OP';
+        $patient_type = $request->patient_type ?: 'OP';
         if ($patient_type === 'OPD') {
             $patient_type = 'OP';
         }
@@ -41,7 +41,6 @@ class CheckEclaimController extends Controller
         Session::put('start_date', $start_date);
         Session::put('end_date', $end_date);
         Session::put('eclaim_hipdata', $hipdata);
-        Session::put('eclaim_patient_type', $patient_type);
 
         if ($request->ajax()) {
             $activePatientType = $request->patient_type ?: $patient_type;

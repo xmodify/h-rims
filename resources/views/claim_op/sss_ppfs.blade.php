@@ -474,17 +474,49 @@
   function fetchData() {
       showLoading();
   }
-  function copyToClipboard(text) {
-      navigator.clipboard.writeText(text).then(() => {
-          Swal.fire({
-              icon: 'success',
-              title: 'คัดลอกแล้ว!',
-              text: 'นำไปวางในช่อง RiMS API URL ในหน้าตั้งค่าของ Extension ได้เลย',
-              timer: 2000,
-              showConfirmButton: false
-          });
-      });
-  }
+      function copyToClipboard(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(() => {
+                showSuccessAlert();
+            }).catch(err => {
+                fallbackCopyToClipboard(text);
+            });
+        } else {
+            fallbackCopyToClipboard(text);
+        }
+    }
+
+    function fallbackCopyToClipboard(text) {
+        var textArea = document.createElement("textarea");
+        textArea.value = text;
+        textArea.style.top = "0";
+        textArea.style.left = "0";
+        textArea.style.position = "fixed";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showSuccessAlert();
+        } catch (err) {
+            Swal.fire({
+                icon: 'error',
+                title: 'คัดลอกไม่สำเร็จ',
+                text: 'กรุณาคัดลอกด้วยตนเอง: ' + text
+            });
+        }
+        document.body.removeChild(textArea);
+    }
+
+    function showSuccessAlert() {
+        Swal.fire({
+            icon: 'success',
+            title: 'คัดลอกแล้ว!',
+            text: 'นำไปวางในช่อง RiMS API URL ในหน้าตั้งค่าของ Extension ได้เลย',
+            timer: 2000,
+            showConfirmButton: false
+        });
+    }
 
 
 

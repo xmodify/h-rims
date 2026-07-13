@@ -64,10 +64,8 @@ class CheckEclaimController extends Controller
 
             // Filter by patient_type (OP / IP)
             if (in_array($activePatientType, ['OP', 'IP'])) {
-                if (!$request->has('status_filter') || $request->status_filter === '') {
-                    $query->where('patient_type', $activePatientType);
-                    $recordsTotal->where('patient_type', $activePatientType);
-                }
+                $query->where('patient_type', $activePatientType);
+                $recordsTotal->where('patient_type', $activePatientType);
             }
 
             // Global search filter (HN, AN, ptname, eclaim_no, etc.)

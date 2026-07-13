@@ -20,6 +20,12 @@
         <form method="POST" enctype="multipart/form-data" class="m-0">
             @csrf
             <div class="d-flex align-items-center gap-2">
+                <span class="text-muted small">สถานที่รักษา:</span>
+                <select name="self_type" id="self_type" class="form-select form-select-sm" style="width: 180px; border-radius: 8px;">
+                    <option value="self" {{ $self_type == 'self' ? 'selected' : '' }}>เฉพาะโรงพยาบาลเรา</option>
+                    <option value="referral" {{ $self_type == 'referral' ? 'selected' : '' }}>เฉพาะส่งตัวรักษาที่อื่น</option>
+                    <option value="all" {{ $self_type == 'all' ? 'selected' : '' }}>ทั้งหมด</option>
+                </select>
                 <span class="text-muted small">วันที่:</span>
                 <input type="hidden" name="start_date" id="start_date" value="{{ $start_date }}">
                 <input type="text" id="start_date_picker" class="form-control form-control-sm datepicker_th" style="width: 120px; border-radius: 8px;" value="{{ $start_date }}" readonly>
@@ -112,6 +118,7 @@
             data: function (d) {
                 d.start_date = $('#start_date').val();
                 d.end_date = $('#end_date').val();
+                d.self_type = $('#self_type').val();
             }
         },
         columns: [
@@ -161,7 +168,8 @@
                 action: function ( e, dt, node, config ) {
                     var start = $('#start_date').val();
                     var end = $('#end_date').val();
-                    window.location.href = "{{ route('stm_sss_kidneydetail') }}?export=excel&start_date=" + start + "&end_date=" + end;
+                    var self_type = $('#self_type').val();
+                    window.location.href = "{{ route('stm_sss_kidneydetail') }}?export=excel&start_date=" + start + "&end_date=" + end + "&self_type=" + self_type;
                 }
             }
         ],
@@ -172,6 +180,10 @@
             paginate: { previous: "ก่อนหน้า", next: "ถัดไป" },
             processing: "กำลังโหลดข้อมูล..."
         }
+      });
+
+      $('#self_type').on('change', function() {
+          $('#stm_sss_kidney_list').DataTable().draw();
       });
     });
   </script> 

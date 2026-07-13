@@ -506,7 +506,7 @@ class DebtorAccController extends Controller
                     SELECT YEAR(r_date) as y, MONTH(r_date) as m, SUM(total) as total
                     FROM (
                         SELECT s.receipt_date as r_date, (IFNULL(s.amount,0)+ IFNULL(s.epopay,0) + IFNULL(s.epoadm,0)) AS total 
-                        FROM stm_sss_kidney s JOIN debtor_1102050101_309 d ON s.cid = d.cid AND s.vstdate = d.vstdate
+                        FROM stm_sss_kidney s JOIN debtor_1102050101_309 d ON s.cid = d.cid AND s.vstdate = d.vstdate AND s.hreg = s.hcode
                         WHERE s.receipt_date BETWEEN ? AND ?
                         UNION ALL
                         SELECT receive_date as r_date, receive as total FROM debtor_1102050101_309 

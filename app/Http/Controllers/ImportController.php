@@ -7726,6 +7726,7 @@ class ImportController extends Controller
             FROM stm_sss_kidney
             WHERE (CAST(LEFT(RIGHT(round_no, 8), 4) AS UNSIGNED) + 543
                 + (CAST(SUBSTRING(RIGHT(round_no, 8), 5, 2) AS UNSIGNED) >= 10)) = ?
+                AND hreg = hcode
             GROUP BY round_no
             ORDER BY round_no DESC, CAST(LEFT(RIGHT(round_no, 8), 6) AS UNSIGNED) DESC, round_no ", [$budget_year]);
 
@@ -7751,6 +7752,7 @@ class ImportController extends Controller
             ->whereNotNull('round_no')
             ->where('round_no', '<>', '')
             ->whereRaw('(CAST(LEFT(RIGHT(round_no, 8), 4) AS UNSIGNED) + 543 + IF(CAST(SUBSTRING(RIGHT(round_no, 8), 5, 2) AS UNSIGNED) >= 10, 1, 0)) = ?', [$budget_year])
+            ->whereColumn('hreg', 'hcode')
             ->groupBy('month_no')
             ->get()
             ->keyBy('month_no');
@@ -7978,6 +7980,7 @@ class ImportController extends Controller
     {
         $start_date = $request->start_date ?: date('Y-m-d', strtotime("first day of this month"));
         $end_date = $request->end_date ?: date('Y-m-d', strtotime("last day of this month"));
+        $self_type = $request->self_type ?: 'self';
 
         if ($request->ajax() || $request->export == 'excel') {
             $query = DB::table('stm_sss_kidney')
@@ -7997,6 +8000,12 @@ class ImportController extends Controller
                     'receipt_by'
                 )
                 ->whereRaw('DATE(dttran) BETWEEN ? AND ?', [$start_date, $end_date]);
+
+            if ($self_type === 'self') {
+                $query->whereColumn('hreg', 'hcode');
+            } elseif ($self_type === 'referral') {
+                $query->whereColumn('hreg', '<>', 'hcode');
+            }
 
             // Searching
             if ($request->has('search') && !empty($request->search['value'])) {
@@ -8046,9 +8055,15 @@ class ImportController extends Controller
 
             // DataTables Response
             $recordsFiltered = $query->get()->count();
-            $recordsTotal = DB::table('stm_sss_kidney')
-                ->whereRaw('DATE(dttran) BETWEEN ? AND ?', [$start_date, $end_date])
-                ->count();
+            
+            $recordsTotalQuery = DB::table('stm_sss_kidney')
+                ->whereRaw('DATE(dttran) BETWEEN ? AND ?', [$start_date, $end_date]);
+            if ($self_type === 'self') {
+                $recordsTotalQuery->whereColumn('hreg', 'hcode');
+            } elseif ($self_type === 'referral') {
+                $recordsTotalQuery->whereColumn('hreg', '<>', 'hcode');
+            }
+            $recordsTotal = $recordsTotalQuery->count();
 
             // Sorting
             if ($request->has('order')) {
@@ -8087,7 +8102,7 @@ class ImportController extends Controller
             ]);
         }
 
-        return view('import.stm_sss_kidneydetail', compact('start_date', 'end_date'));
+        return view('import.stm_sss_kidneydetail', compact('start_date', 'end_date', 'self_type'));
     }
 
     // Helper: Clean XML Spreadsheet to prevent XXE errors

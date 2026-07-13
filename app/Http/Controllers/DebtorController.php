@@ -653,7 +653,7 @@ class DebtorController extends Controller
                 SUM(IFNULL(d.receive,0)) + SUM(IFNULL(s.receive,0)) AS receive
             FROM debtor_1102050101_309 d 
             LEFT JOIN (SELECT cid,vstdate,SUM(IFNULL(amount,0)+ IFNULL(epopay,0) + IFNULL(epoadm,0)) AS receive
-                FROM stm_sss_kidney GROUP BY cid, vstdate) s ON s.cid = d.cid AND s.vstdate = d.vstdate
+                FROM stm_sss_kidney WHERE hreg = hcode GROUP BY cid, vstdate) s ON s.cid = d.cid AND s.vstdate = d.vstdate
             WHERE d.vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         $_1102050101_401 = DB::select("
             SELECT COUNT(DISTINCT d.vn) AS anvn,SUM(d.debtor) AS debtor,
@@ -796,7 +796,7 @@ class DebtorController extends Controller
             LEFT JOIN (
                 SELECT d2.an, SUM(IFNULL(s.amount,0) + IFNULL(s.epopay,0) + IFNULL(s.epoadm,0)) AS stm_receive
                 FROM debtor_1102050101_310 d2
-                JOIN stm_sss_kidney s ON s.hn = d2.hn AND s.vstdate BETWEEN d2.regdate AND d2.dchdate
+                JOIN stm_sss_kidney s ON s.hn = d2.hn AND s.vstdate BETWEEN d2.regdate AND d2.dchdate AND s.hreg = s.hcode
                 GROUP BY d2.an
             ) stm ON stm.an = d.an
             WHERE d.dchdate BETWEEN ? AND ?', [$start_date, $end_date]);
@@ -4835,7 +4835,7 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT cid,vstdate,SUM(IFNULL(amount,0)+ IFNULL(epopay,0)+ IFNULL(epoadm,0)) AS receive,
                     GROUP_CONCAT(DISTINCT rid) AS repno,
                     GROUP_CONCAT(round_no) AS round_no, GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
-                    FROM stm_sss_kidney GROUP BY cid, vstdate) s ON s.cid = d.cid AND s.vstdate = d.vstdate
+                    FROM stm_sss_kidney WHERE hreg = hcode GROUP BY cid, vstdate) s ON s.cid = d.cid AND s.vstdate = d.vstdate
                 WHERE (d.ptname LIKE CONCAT("%", ?, "%") OR d.hn LIKE CONCAT("%", ?, "%"))
                 AND d.vstdate BETWEEN ? AND ?', [$search, $search, $start_date, $end_date]);
         } else {
@@ -4851,7 +4851,7 @@ class DebtorController extends Controller
                 LEFT JOIN (SELECT cid,vstdate,SUM(IFNULL(amount,0)+ IFNULL(epopay,0)+ IFNULL(epoadm,0)) AS receive,
                     GROUP_CONCAT(DISTINCT rid) AS repno,
                     GROUP_CONCAT(round_no) AS round_no, GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
-                    FROM stm_sss_kidney GROUP BY cid, vstdate) s ON s.cid = d.cid AND s.vstdate = d.vstdate
+                    FROM stm_sss_kidney WHERE hreg = hcode GROUP BY cid, vstdate) s ON s.cid = d.cid AND s.vstdate = d.vstdate
                 WHERE d.vstdate BETWEEN ? AND ?', [$start_date, $end_date]);
         }
 
@@ -5255,7 +5255,7 @@ class DebtorController extends Controller
             d.pdx,d.hospmain,d.income,d.rcpt_money,d.kidney,d.debtor,
             s.amount+s.epopay+s.epoadm AS receive,s.rid AS repno,d.debtor_lock, d.adj_inc, d.adj_dec, d.adj_note, d.adj_date, d.debtor_change, d.charge_date, d.charge_no, d.charge, d.receive_date, d.receive_no, d.receive AS receive_manual, d.repno AS repno_manual
             FROM debtor_1102050101_309 d   
-            LEFT JOIN stm_sss_kidney s ON s.cid=d.cid AND s.vstdate = d.vstdate
+            LEFT JOIN stm_sss_kidney s ON s.cid=d.cid AND s.vstdate = d.vstdate AND s.hreg = s.hcode
             WHERE d.vstdate BETWEEN ? AND ?) AS a GROUP BY vstdate ORDER BY vsttime', [$start_date, $end_date]);
 
         $pdf = PDF::loadView('debtor.1102050101_309_daily_pdf', compact('hospital_name', 'hospital_code', 'start_date', 'end_date', 'debtor'))
@@ -5281,7 +5281,7 @@ class DebtorController extends Controller
             LEFT JOIN (SELECT cid,vstdate,SUM(IFNULL(amount,0)+ IFNULL(epopay,0)+ IFNULL(epoadm,0)) AS receive,
                 GROUP_CONCAT(DISTINCT rid) AS repno,
                 GROUP_CONCAT(round_no) AS round_no, GROUP_CONCAT(receipt_date) AS receipt_date, GROUP_CONCAT(receive_no) AS receive_no
-                FROM stm_sss_kidney GROUP BY cid, vstdate) s ON s.cid = d.cid AND s.vstdate = d.vstdate
+                FROM stm_sss_kidney WHERE hreg = hcode GROUP BY cid, vstdate) s ON s.cid = d.cid AND s.vstdate = d.vstdate
             WHERE d.vstdate BETWEEN ? AND ?
         ";
 
@@ -11925,7 +11925,7 @@ class DebtorController extends Controller
                 LEFT JOIN (
                     SELECT d2.an, SUM(IFNULL(s.amount,0) + IFNULL(s.epopay,0) + IFNULL(s.epoadm,0)) AS stm_receive
                     FROM debtor_1102050101_310 d2
-                    JOIN stm_sss_kidney s ON s.hn = d2.hn AND s.vstdate BETWEEN d2.regdate AND d2.dchdate
+                    JOIN stm_sss_kidney s ON s.hn = d2.hn AND s.vstdate BETWEEN d2.regdate AND d2.dchdate AND s.hreg = s.hcode
                     GROUP BY d2.an
                 ) stm ON stm.an = d.an
                 WHERE d.dchdate BETWEEN ? AND ?
@@ -11958,7 +11958,7 @@ class DebtorController extends Controller
                            GROUP_CONCAT(DISTINCT s.receipt_date) AS stm_receipt_date,
                            GROUP_CONCAT(DISTINCT s.receive_no) AS stm_receive_no
                     FROM debtor_1102050101_310 d2
-                    JOIN stm_sss_kidney s ON s.hn = d2.hn AND s.vstdate BETWEEN d2.regdate AND d2.dchdate
+                    JOIN stm_sss_kidney s ON s.hn = d2.hn AND s.vstdate BETWEEN d2.regdate AND d2.dchdate AND s.hreg = s.hcode
                     GROUP BY d2.an
                 ) stm ON stm.an = d.an
                 WHERE d.dchdate BETWEEN ? AND ?
@@ -11979,7 +11979,7 @@ class DebtorController extends Controller
                            GROUP_CONCAT(DISTINCT s.receipt_date) AS stm_receipt_date,
                            GROUP_CONCAT(DISTINCT s.receive_no) AS stm_receive_no
                     FROM debtor_1102050101_310 d2
-                    JOIN stm_sss_kidney s ON s.hn = d2.hn AND s.vstdate BETWEEN d2.regdate AND d2.dchdate
+                    JOIN stm_sss_kidney s ON s.hn = d2.hn AND s.vstdate BETWEEN d2.regdate AND d2.dchdate AND s.hreg = s.hcode
                     GROUP BY d2.an
                 ) stm ON stm.an = d.an
                 WHERE d.dchdate BETWEEN ? AND ?
@@ -16053,7 +16053,7 @@ class DebtorController extends Controller
                             UNION ALL
                             SELECT " . str_replace($filter_date_col, 'd.' . $date_col, $month_case) . " AS month_name, 0 AS claim_price, SUM(IFNULL(sk.amount,0)+ IFNULL(sk.epopay,0) + IFNULL(sk.epoadm,0)) AS receive_total, YEAR(d.{$date_col}) AS y, MONTH(d.{$date_col}) AS m
                             FROM stm_sss_kidney sk JOIN {$table_name} d ON sk.cid = d.cid AND sk.vstdate = d.vstdate
-                            WHERE d.{$date_col} BETWEEN ? AND ? GROUP BY y, m
+                            WHERE sk.hreg = sk.hcode AND d.{$date_col} BETWEEN ? AND ? GROUP BY y, m
                         ) AS a GROUP BY y, m ORDER BY y, m";
                 $params = [$start_date_b, $end_date_b, $start_date_b, $end_date_b];
                 break;

@@ -899,6 +899,7 @@ class DebtorAdjController extends Controller
             if (!empty($cids) && !empty($vstdates)) {
                 $stm_records = DB::table('stm_sss_kidney')
                     ->select('cid', 'vstdate', DB::raw('SUM(IFNULL(amount,0)+ IFNULL(epopay,0)+ IFNULL(epoadm,0)) as receive_sum'))
+                    ->whereColumn('hreg', 'hcode')
                     ->whereIn('cid', $cids)
                     ->whereIn('vstdate', $vstdates)
                     ->groupBy('cid', 'vstdate')
@@ -2476,7 +2477,7 @@ class DebtorAdjController extends Controller
                    (IFNULL(d.receive, 0) + IFNULL(
                        (SELECT SUM(IFNULL(s.amount,0) + IFNULL(s.epopay,0) + IFNULL(s.epoadm,0))
                         FROM stm_sss_kidney s
-                        WHERE s.hn = d.hn AND s.vstdate BETWEEN d.regdate AND d.dchdate
+                        WHERE s.hn = d.hn AND s.vstdate BETWEEN d.regdate AND d.dchdate AND s.hreg = s.hcode
                        ), 0
                    )) AS receive,
                    d.adj_inc, d.adj_dec, d.adj_date, d.adj_note
@@ -2526,7 +2527,7 @@ class DebtorAdjController extends Controller
                    (
                        SELECT SUM(IFNULL(s.amount,0) + IFNULL(s.epopay,0) + IFNULL(s.epoadm,0))
                        FROM stm_sss_kidney s
-                       WHERE s.hn = d.hn AND s.vstdate BETWEEN d.regdate AND d.dchdate
+                       WHERE s.hn = d.hn AND s.vstdate BETWEEN d.regdate AND d.dchdate AND s.hreg = s.hcode
                    ) AS stm_receive
             FROM debtor_1102050101_310 d
             WHERE d.an IN ($placeholders)

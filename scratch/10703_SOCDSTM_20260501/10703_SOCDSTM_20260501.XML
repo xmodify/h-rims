@@ -1,0 +1,2532 @@
+<?xml version = "1.0" encoding="UTF-8" standalone="yes"?>
+<?xml-stylesheet type="text/xsl" href="soctstm2025.xsl"?>
+<STMSTM>
+<stmAccountID>SOCD</stmAccountID>
+<hcode id = "EA0010703">10703</hcode>
+<hname>โรงพยาบาลอำนาจเจริญ</hname>
+<AccPeriod>260501</AccPeriod>>
+<STMdoc>10703_SOCDSTM_20260501</STMdoc>
+<dateStart>13  เมษายน  2569</dateStart>
+<dateEnd>26  เมษายน  2569</dateEnd>
+<dateData>18  พฤษภาคม  2569</dateData>
+<dateIssue>20  พฤษภาคม  2569</dateIssue>
+<acount>54</acount>
+<amount>94875.0000</amount>
+<thamount>เก้าหมื่นสี่พันแปดร้อยเจ็ดสิบห้าบาทถ้วน</thamount>
+<STMdat code ='HD' name ="รายการผู้ป่วยนอก"  desc1 = "ประเภทโรคไตวายเรื้อรัง"  desc = "บริการผู้ป่วยของไตเทียม" >
+ <amount>94875.0000</amount>
+<atotal>54</atotal>
+<dat  code ="B"   type = "HD"  desc = "ค่าฟอกเลือดล้างไต" desc1 ="">
+<count   hold = "0"  wait = "1"  bill ="53" >54</count>
+<total   hold = "0.0000"  wait = "0.0000"  bill ="79500.0000" >79500.0000</total>
+<paycount type ='S'>53</paycount>
+<paycount type ='H'>0</paycount>
+<paycount type ='W'>1</paycount>
+</dat>
+<dat  code ="E"   type = "EPO"  desc = "ค่ารักษาพยาบาลส่วนเบิกเพิ่ม" desc1 ="">
+<count   desc = "จำนวนรายการส่วนเบิกเพิ่ม">42</count>
+<total  desc ="ยอดเบิกเพิ่ม">15375.0000</total>
+<payable code = 'E' type ='EPOPAY'>13275.00</payable >
+<payable code = 'E' type ='EPOADM'>2100.00</payable >
+</dat>
+</STMdat>
+<HDBills>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000023382</hn>
+<name>เพียร สีฟ้า</name>
+<pid>3341600612841</pid>
+<benefit  main = "S" sub ="" marker ="" />
+<wkno>0705</wkno>
+<hds>3</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "4500.0000">4500.0000</hdcharge>
+<payable>4500.0000</payable>
+<outstanding>0.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp></cohosp>
+<EPO>
+<effHDs>3</effHDs>
+<effHCT>24</effHCT>
+<epoPay limit ="1125.00"  charge = "885.00" allow ="885.00">885.00</epoPay>
+<epoAdm>150.00</epoAdm>
+<stat></stat>
+</EPO>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000023382</hn>
+<invno>859653537</invno>
+<dttran>2026-04-13T06:05:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4850</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="24" last ="0">24</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000023382</hn>
+<invno>860235269</invno>
+<dttran>2026-04-15T06:00:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4852</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="24" last ="0">24</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000023382</hn>
+<invno>860258652</invno>
+<dttran>2026-04-17T06:00:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4852</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="24" last ="0">24</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000023382</hn>
+<name>เพียร สีฟ้า</name>
+<pid>3341600612841</pid>
+<benefit  main = "S" sub ="" marker ="" />
+<wkno>0706</wkno>
+<hds>3</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "4500.0000">4500.0000</hdcharge>
+<payable>4500.0000</payable>
+<outstanding>0.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp></cohosp>
+<EPO>
+<effHDs>3</effHDs>
+<effHCT>24</effHCT>
+<epoPay limit ="1125.00"  charge = "885.00" allow ="885.00">885.00</epoPay>
+<epoAdm>150.00</epoAdm>
+<stat></stat>
+</EPO>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000023382</hn>
+<invno>860349385</invno>
+<dttran>2026-04-20T06:00:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4853</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="24" last ="0">24</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000023382</hn>
+<invno>860462883</invno>
+<dttran>2026-04-22T06:00:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4854</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="24" last ="0">24</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000023382</hn>
+<invno>860730598</invno>
+<dttran>2026-04-24T06:00:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4856</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="24" last ="0">24</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000237903</hn>
+<name>อำนาจ สันศรี</name>
+<pid>3341600089773</pid>
+<benefit  main = "S" sub ="" marker ="" />
+<wkno>0705</wkno>
+<hds>3</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "4500.0000">4500.0000</hdcharge>
+<payable>4500.0000</payable>
+<outstanding>0.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp></cohosp>
+<EPO>
+<effHDs>2</effHDs>
+<effHCT>17</effHCT>
+<epoPay limit ="1125.00"  charge = "885.00" allow ="885.00">885.00</epoPay>
+<epoAdm>100.00</epoAdm>
+<stat></stat>
+</EPO>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000237903</hn>
+<invno>859653591</invno>
+<dttran>2026-04-13T06:00:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4850</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>8000.00</EPOiu>
+<EPOpay  charge ="590.00"  pay ="590.00">590.00</EPOpay>
+<HCT cur ="17" last ="0">17</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "2.00">8000</iu>
+<item  code = "01" >590.00</item>
+<epoPay limit = "670.00" charge = "590.00"  allow ="590.00">590.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000237903</hn>
+<invno>860235382</invno>
+<dttran>2026-04-15T06:00:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4852</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="17" last ="0">17</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000237903</hn>
+<invno>860258553</invno>
+<dttran>2026-04-17T06:00:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4852</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat></EPOstat>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000237903</hn>
+<name>อำนาจ สันศรี</name>
+<pid>3341600089773</pid>
+<benefit  main = "S" sub ="" marker ="" />
+<wkno>0706</wkno>
+<hds>3</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "4500.0000">4500.0000</hdcharge>
+<payable>4500.0000</payable>
+<outstanding>0.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp></cohosp>
+<EPO>
+<effHDs>2</effHDs>
+<effHCT>17</effHCT>
+<epoPay limit ="1125.00"  charge = "885.00" allow ="885.00">885.00</epoPay>
+<epoAdm>100.00</epoAdm>
+<stat></stat>
+</EPO>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000237903</hn>
+<invno>860349448</invno>
+<dttran>2026-04-20T06:00:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4853</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>8000.00</EPOiu>
+<EPOpay  charge ="590.00"  pay ="590.00">590.00</EPOpay>
+<HCT cur ="17" last ="0">17</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "2.00">8000</iu>
+<item  code = "01" >590.00</item>
+<epoPay limit = "670.00" charge = "590.00"  allow ="590.00">590.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000237903</hn>
+<invno>860462984</invno>
+<dttran>2026-04-22T05:50:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4854</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="17" last ="0">17</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000237903</hn>
+<invno>860734169</invno>
+<dttran>2026-04-24T14:30:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4856</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat></EPOstat>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000250501</hn>
+<name>มานุช ผลทวี</name>
+<pid>5341600118541</pid>
+<benefit  main = "S" sub ="" marker ="" />
+<wkno>0705</wkno>
+<hds>3</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "4500.0000">4500.0000</hdcharge>
+<payable>4500.0000</payable>
+<outstanding>0.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp></cohosp>
+<EPO>
+<effHDs>2</effHDs>
+<effHCT>36</effHCT>
+<epoPay limit ="1125.00"  charge = "590.00" allow ="590.00">590.00</epoPay>
+<epoAdm>100.00</epoAdm>
+<stat></stat>
+</EPO>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000250501</hn>
+<invno>859653864</invno>
+<dttran>2026-04-13T06:00:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4850</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="36" last ="0">36</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000250501</hn>
+<invno>860235318</invno>
+<dttran>2026-04-15T05:55:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4852</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="36" last ="0">36</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000250501</hn>
+<invno>860258604</invno>
+<dttran>2026-04-17T06:00:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4852</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat></EPOstat>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000250501</hn>
+<name>มานุช ผลทวี</name>
+<pid>5341600118541</pid>
+<benefit  main = "S" sub ="" marker ="" />
+<wkno>0706</wkno>
+<hds>3</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "4500.0000">4500.0000</hdcharge>
+<payable>4500.0000</payable>
+<outstanding>0.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp></cohosp>
+<EPO>
+<effHDs>2</effHDs>
+<effHCT>36</effHCT>
+<epoPay limit ="1125.00"  charge = "590.00" allow ="590.00">590.00</epoPay>
+<epoAdm>100.00</epoAdm>
+<stat></stat>
+</EPO>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000250501</hn>
+<invno>860349573</invno>
+<dttran>2026-04-20T06:00:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4853</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="36" last ="0">36</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000250501</hn>
+<invno>860462927</invno>
+<dttran>2026-04-22T05:55:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4854</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="36" last ="0">36</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000250501</hn>
+<invno>860730560</invno>
+<dttran>2026-04-24T05:55:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4856</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat></EPOstat>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000308244</hn>
+<name>สุนันท์ แซ่หว่อง</name>
+<pid>3730100827291</pid>
+<benefit  main = "S" sub ="" marker ="" />
+<wkno>0705</wkno>
+<hds>3</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "4500.0000">4500.0000</hdcharge>
+<payable>4500.0000</payable>
+<outstanding>0.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp></cohosp>
+<EPO>
+<effHDs>3</effHDs>
+<effHCT>31</effHCT>
+<epoPay limit ="1125.00"  charge = "885.00" allow ="885.00">885.00</epoPay>
+<epoAdm>150.00</epoAdm>
+<stat></stat>
+</EPO>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000308244</hn>
+<invno>859655180</invno>
+<dttran>2026-04-13T14:25:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4850</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="31" last ="0">31</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000308244</hn>
+<invno>860251818</invno>
+<dttran>2026-04-16T14:30:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4852</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="31" last ="0">31</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000308244</hn>
+<invno>860341129</invno>
+<dttran>2026-04-18T14:20:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4853</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="31" last ="0">31</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000308244</hn>
+<name>สุนันท์ แซ่หว่อง</name>
+<pid>3730100827291</pid>
+<benefit  main = "S" sub ="" marker ="" />
+<wkno>0706</wkno>
+<hds>3</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "4500.0000">4500.0000</hdcharge>
+<payable>4500.0000</payable>
+<outstanding>0.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp></cohosp>
+<EPO>
+<effHDs>3</effHDs>
+<effHCT>31</effHCT>
+<epoPay limit ="1125.00"  charge = "885.00" allow ="885.00">885.00</epoPay>
+<epoAdm>150.00</epoAdm>
+<stat></stat>
+</EPO>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000308244</hn>
+<invno>860365356</invno>
+<dttran>2026-04-21T14:15:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4853</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="31" last ="0">31</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000308244</hn>
+<invno>860654813</invno>
+<dttran>2026-04-23T14:15:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4856</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="31" last ="0">31</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000308244</hn>
+<invno>861055544</invno>
+<dttran>2026-04-25T14:30:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4857</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="31" last ="0">31</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000325589</hn>
+<name>ธีระพงษ์ สดสูง</name>
+<pid>3341600270770</pid>
+<benefit  main = "S" sub ="" marker ="" />
+<wkno>0705</wkno>
+<hds>2</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "3000.0000">3000.0000</hdcharge>
+<payable>3000.0000</payable>
+<outstanding>1500.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp></cohosp>
+<EPO/>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>01</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000325589</hn>
+<invno>860055310</invno>
+<dttran>2026-04-16T17:20:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4851</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>CIS</HDflag>
+<paychk>1</paychk>
+<EPOstat></EPOstat>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>01</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000325589</hn>
+<invno>860243001</invno>
+<dttran>2026-04-17T18:00:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4853</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>CIS</HDflag>
+<paychk>1</paychk>
+<EPOstat></EPOstat>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000325589</hn>
+<name>ธีระพงษ์ สดสูง</name>
+<pid>3341600270770</pid>
+<benefit  main = "S" sub ="" marker ="" />
+<wkno>0706</wkno>
+<hds>1</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "1500.0000">1500.0000</hdcharge>
+<payable>1500.0000</payable>
+<outstanding>3000.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp>1</cohosp>
+<EPO/>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>01</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000325589</hn>
+<invno>860552397</invno>
+<dttran>2026-04-20T17:35:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4855</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat></EPOstat>
+</TBill>
+<TBill self ="N"  Img ="N">
+<hcode>42151</hcode>
+<station>01</station>
+<wkno>0706</wkno>
+<hreg>42151</hreg>
+<hn>000420</hn>
+<invno>860659131</invno>
+<dttran>2026-04-24T16:00:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>1624</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat></EPOstat>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000332286</hn>
+<name>หนูแย้ม สีเขียว</name>
+<pid>3341300311632</pid>
+<benefit  main = "S" sub ="C" marker ="" />
+<wkno>0705</wkno>
+<hds>3</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "6000.0000">6000.0000</hdcharge>
+<payable>4500.0000</payable>
+<outstanding>0.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp></cohosp>
+<EPO/>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>01</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000332286</hn>
+<invno>859751843</invno>
+<dttran>2026-04-14T08:30:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>2000.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4850</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat></EPOstat>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>01</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000332286</hn>
+<invno>860054851</invno>
+<dttran>2026-04-16T08:40:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>2000.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4851</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat></EPOstat>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>01</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000332286</hn>
+<invno>860455822</invno>
+<dttran>2026-04-18T08:40:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>2000.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4854</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat></EPOstat>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000332286</hn>
+<name>หนูแย้ม สีเขียว</name>
+<pid>3341300311632</pid>
+<benefit  main = "S" sub ="C" marker ="" />
+<wkno>0706</wkno>
+<hds>1</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "2000.0000">2000.0000</hdcharge>
+<payable>0.0000</payable>
+<outstanding>4500.0000</outstanding>
+<stat  code = "P" id ="0" />
+<cohosp></cohosp>
+<EPO/>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>01</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000332286</hn>
+<invno>860659246</invno>
+<dttran>2026-04-21T08:35:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>2000.0000</hdcharge>
+<amount>0.0000</amount>
+<paid>0.0000</paid>
+<rid>4856</rid>
+<accp code = "1">260501</accp>
+<cstat>H</cstat>
+<pstat>1</pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat></EPOstat>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000361969</hn>
+<name>สุภาพร ไชยพงษ์</name>
+<pid>1341600258501</pid>
+<benefit  main = "S" sub ="" marker ="" />
+<wkno>0705</wkno>
+<hds>3</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "4500.0000">4500.0000</hdcharge>
+<payable>4500.0000</payable>
+<outstanding>0.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp></cohosp>
+<EPO>
+<effHDs>3</effHDs>
+<effHCT>32</effHCT>
+<epoPay limit ="1125.00"  charge = "885.00" allow ="885.00">885.00</epoPay>
+<epoAdm>150.00</epoAdm>
+<stat></stat>
+</EPO>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000361969</hn>
+<invno>860065015</invno>
+<dttran>2026-04-14T14:30:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4851</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="32" last ="0">32</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000361969</hn>
+<invno>860246893</invno>
+<dttran>2026-04-16T10:25:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4852</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="32" last ="0">32</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000361969</hn>
+<invno>860341065</invno>
+<dttran>2026-04-18T14:30:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4853</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="32" last ="0">32</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000361969</hn>
+<name>สุภาพร ไชยพงษ์</name>
+<pid>1341600258501</pid>
+<benefit  main = "S" sub ="" marker ="" />
+<wkno>0706</wkno>
+<hds>3</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "4500.0000">4500.0000</hdcharge>
+<payable>4500.0000</payable>
+<outstanding>0.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp></cohosp>
+<EPO>
+<effHDs>3</effHDs>
+<effHCT>32</effHCT>
+<epoPay limit ="1125.00"  charge = "885.00" allow ="885.00">885.00</epoPay>
+<epoAdm>150.00</epoAdm>
+<stat></stat>
+</EPO>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000361969</hn>
+<invno>860364568</invno>
+<dttran>2026-04-21T10:25:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4853</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="32" last ="0">32</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000361969</hn>
+<invno>860654855</invno>
+<dttran>2026-04-23T14:25:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4856</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="32" last ="0">32</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000361969</hn>
+<invno>861055465</invno>
+<dttran>2026-04-25T14:30:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4857</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="32" last ="0">32</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000412702</hn>
+<name>สมปอง สำราญสุข</name>
+<pid>3340600211241</pid>
+<benefit  main = "S" sub ="" marker ="" />
+<wkno>0705</wkno>
+<hds>3</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "4500.0000">4500.0000</hdcharge>
+<payable>4500.0000</payable>
+<outstanding>0.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp></cohosp>
+<EPO>
+<effHDs>3</effHDs>
+<effHCT>32</effHCT>
+<epoPay limit ="1125.00"  charge = "885.00" allow ="885.00">885.00</epoPay>
+<epoAdm>150.00</epoAdm>
+<stat></stat>
+</EPO>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000412702</hn>
+<invno>860064952</invno>
+<dttran>2026-04-14T14:05:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4851</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="32" last ="0">32</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000412702</hn>
+<invno>860251744</invno>
+<dttran>2026-04-16T14:30:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4852</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="32" last ="0">32</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000412702</hn>
+<invno>860341219</invno>
+<dttran>2026-04-18T14:20:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4853</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="32" last ="0">32</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000412702</hn>
+<name>สมปอง สำราญสุข</name>
+<pid>3340600211241</pid>
+<benefit  main = "S" sub ="" marker ="" />
+<wkno>0706</wkno>
+<hds>2</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "3000.0000">3000.0000</hdcharge>
+<payable>3000.0000</payable>
+<outstanding>1500.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp></cohosp>
+<EPO>
+<effHDs>2</effHDs>
+<effHCT>32</effHCT>
+<epoPay limit ="1125.00"  charge = "590.00" allow ="590.00">590.00</epoPay>
+<epoAdm>100.00</epoAdm>
+<stat></stat>
+</EPO>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000412702</hn>
+<invno>860365325</invno>
+<dttran>2026-04-21T14:10:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4853</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="32" last ="0">32</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000412702</hn>
+<invno>861055580</invno>
+<dttran>2026-04-25T14:20:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4857</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="32" last ="0">32</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000434787</hn>
+<name>วันชนะ แก้วอุดร</name>
+<pid>3341600101951</pid>
+<benefit  main = "S" sub ="" marker ="" />
+<wkno>0705</wkno>
+<hds>2</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "3000.0000">3000.0000</hdcharge>
+<payable>3000.0000</payable>
+<outstanding>1500.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp></cohosp>
+<EPO>
+<effHDs>2</effHDs>
+<effHCT>25</effHCT>
+<epoPay limit ="1125.00"  charge = "885.00" allow ="885.00">885.00</epoPay>
+<epoAdm>100.00</epoAdm>
+<stat></stat>
+</EPO>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000434787</hn>
+<invno>859653350</invno>
+<dttran>2026-04-13T06:00:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4850</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="25" last ="0">25</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000434787</hn>
+<invno>860258695</invno>
+<dttran>2026-04-17T06:05:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4852</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>8000.00</EPOiu>
+<EPOpay  charge ="590.00"  pay ="590.00">590.00</EPOpay>
+<HCT cur ="25" last ="0">25</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "2.00">8000</iu>
+<item  code = "01" >590.00</item>
+<epoPay limit = "670.00" charge = "590.00"  allow ="590.00">590.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000434787</hn>
+<name>วันชนะ แก้วอุดร</name>
+<pid>3341600101951</pid>
+<benefit  main = "S" sub ="" marker ="" />
+<wkno>0706</wkno>
+<hds>3</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "4500.0000">4500.0000</hdcharge>
+<payable>4500.0000</payable>
+<outstanding>0.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp></cohosp>
+<EPO>
+<effHDs>3</effHDs>
+<effHCT>25</effHCT>
+<epoPay limit ="1125.00"  charge = "885.00" allow ="885.00">885.00</epoPay>
+<epoAdm>150.00</epoAdm>
+<stat></stat>
+</EPO>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000434787</hn>
+<invno>860349264</invno>
+<dttran>2026-04-20T06:05:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4853</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="25" last ="0">25</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000434787</hn>
+<invno>860462270</invno>
+<dttran>2026-04-22T06:05:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4854</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="25" last ="0">25</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000434787</hn>
+<invno>860730654</invno>
+<dttran>2026-04-24T06:05:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4856</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="25" last ="0">25</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000482454</hn>
+<name>อำคา มารัตน์</name>
+<pid>3341600810103</pid>
+<benefit  main = "S" sub ="" marker ="" />
+<wkno>0705</wkno>
+<hds>3</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "4500.0000">4500.0000</hdcharge>
+<payable>4500.0000</payable>
+<outstanding>0.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp></cohosp>
+<EPO>
+<effHDs>3</effHDs>
+<effHCT>24</effHCT>
+<epoPay limit ="1125.00"  charge = "885.00" allow ="885.00">885.00</epoPay>
+<epoAdm>150.00</epoAdm>
+<stat></stat>
+</EPO>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000482454</hn>
+<invno>860060674</invno>
+<dttran>2026-04-14T10:15:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4851</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="24" last ="0">24</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000482454</hn>
+<invno>860246839</invno>
+<dttran>2026-04-16T10:10:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4852</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="24" last ="0">24</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000482454</hn>
+<invno>860337704</invno>
+<dttran>2026-04-18T10:10:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4853</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="24" last ="0">24</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000482454</hn>
+<name>อำคา มารัตน์</name>
+<pid>3341600810103</pid>
+<benefit  main = "S" sub ="" marker ="" />
+<wkno>0706</wkno>
+<hds>3</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "4500.0000">4500.0000</hdcharge>
+<payable>4500.0000</payable>
+<outstanding>0.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp></cohosp>
+<EPO>
+<effHDs>3</effHDs>
+<effHCT>24</effHCT>
+<epoPay limit ="1125.00"  charge = "885.00" allow ="885.00">885.00</epoPay>
+<epoAdm>150.00</epoAdm>
+<stat></stat>
+</EPO>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000482454</hn>
+<invno>860364621</invno>
+<dttran>2026-04-21T10:10:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4853</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="24" last ="0">24</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000482454</hn>
+<invno>860649942</invno>
+<dttran>2026-04-23T10:10:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4856</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="24" last ="0">24</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>02</station>
+<wkno>0706</wkno>
+<hreg>10703</hreg>
+<hn>000482454</hn>
+<invno>861054896</invno>
+<dttran>2026-04-25T10:20:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4857</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="295.00"  pay ="295.00">295.00</EPOpay>
+<HCT cur ="24" last ="0">24</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >295.00</item>
+<epoPay limit = "335.00" charge = "295.00"  allow ="295.00">295.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+</HDBill>
+<HDBill Img ="N">
+<hreg>10703</hreg>
+<hn>000518855</hn>
+<name>สิทธิชัย สมหมาย</name>
+<pid>1370200025029</pid>
+<benefit  main = "S" sub ="" marker ="" />
+<wkno>0705</wkno>
+<hds>1</hds>
+<quota  unit ="/wk"  time ="1">4500.0000</quota>
+<hdcharge charge = "1500.0000">1500.0000</hdcharge>
+<payable>1500.0000</payable>
+<outstanding>3000.0000</outstanding>
+<stat  code = "P" id ="1" />
+<cohosp>1</cohosp>
+<EPO/>
+<TBill self ="Y"  Img ="N">
+<hcode>10703</hcode>
+<station>01</station>
+<wkno>0705</wkno>
+<hreg>10703</hreg>
+<hn>000518855</hn>
+<invno>859643839</invno>
+<dttran>2026-04-13T13:20:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>4850</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>CIS</HDflag>
+<paychk>1</paychk>
+<EPOstat></EPOstat>
+</TBill>
+<TBill self ="N"  Img ="N">
+<hcode>80052</hcode>
+<station>01</station>
+<wkno>0705</wkno>
+<hreg>80052</hreg>
+<hn>00058</hn>
+<invno>859826171</invno>
+<dttran>2026-04-16T06:30:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>1020</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="335.00"  pay ="335.00">335.00</EPOpay>
+<HCT cur ="25" last ="0">25</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >335.00</item>
+<epoPay limit = "335.00" charge = "335.00"  allow ="335.00">335.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+<TBill self ="N"  Img ="N">
+<hcode>80052</hcode>
+<station>01</station>
+<wkno>0705</wkno>
+<hreg>80052</hreg>
+<hn>00058</hn>
+<invno>860054745</invno>
+<dttran>2026-04-18T10:40:00</dttran>
+<hdrate>1500.0000</hdrate>
+<hdcharge>1500.0000</hdcharge>
+<amount>1500.0000</amount>
+<paid>0.0000</paid>
+<rid>1021</rid>
+<accp code = "1">260501</accp>
+<cstat></cstat>
+<pstat></pstat>
+<adj code ="0"  id ="" />
+<HDflag>COS</HDflag>
+<paychk>1</paychk>
+<EPOstat>E</EPOstat>
+<EPOs>
+<EPOiu>4000.00</EPOiu>
+<EPOpay  charge ="335.00"  pay ="335.00">335.00</EPOpay>
+<HCT cur ="25" last ="0">25</HCT>
+<EPOadm>50.00</EPOadm>
+<stat>1</stat>
+<EPOcnt>1</EPOcnt>
+<EPO precode = "21" code ="736920" eponame = "HEMA-PLUS">
+<LN>001</LN>
+<iu  st = "4000"  unit = "iu/1mL"  qty = "1.00">4000</iu>
+<item  code = "01" >335.00</item>
+<epoPay limit = "335.00" charge = "335.00"  allow ="335.00">335.00</epoPay>
+<epoclaim>1</epoclaim>
+<stat></stat>
+<split  code ='0'/>
+</EPO>
+</EPOs>
+</TBill>
+</HDBill>
+</HDBills>
+ <Remarks desc ="หมายเหตุ : ">
+	<item  pathno ='1'  type ='T'   code ="รายการที่มีสิทธิ์ซ้อน"    desc ="จะแสดงข้อมูลสิทธิ์ท้ายชื่อผู้ประกันตน"/>
+	<item  pathno ='1'  type ='T'  code ="" desc=" (SC) - สิทธิ์ประกันสังคมซ้อนกับสิทธิ์ข้าราชการ  กรมบัญชีกลาง" />
+	<item  pathno ='1'  type ='T'  code ="" desc=" (SL) - สิทธิ์ประกันสังคมซ้อนกับสิทธิ์ข้าราชการ กรุงเทพมหานคร  " />
+	<item  pathno ='1'  type ='T'   code ="รายการที่มีแถบสีเทา"    desc ="จะแสดงข้อมูล [รหัสสถานพยาบาล]   คือ&#160;บริการในสถานพยาบาลอื่นในรอบสัปดาห์เดียวกัน" />
+	<item  pathno ='1'  type ='N'  code ="ลำดับสัปดาห์&#160;&#160;:"  desc ="เริ่มนับสัปดาห์ที่ 0001  จากวันที่ 15/10/2555   โดยวันจันทร์ คือวันเริ่มต้นของสัปดาห์"/>
+	<item  pathno ='1'  type ='N'  code=''   desc ="สำหรับสัปดาห์ที่มี * คือสัปดาห์ที่มีรายการส่งล่าช้ากว่ากำหนด"/>
+	<item  pathno ='1'  type ='N'  code ="HDs&#160;&#160;:"  desc ="จำนวนครั้งที่เข้ารับบริการในรอบสัปดาห์"/>
+	<item  pathno ='1'  type ='N'  code ="Quota&#160;&#160;:"  desc ="จำนวนเงินที่สามารถเบิกได้ตามข้อกำหนดของสำนักงานประกันสังคมในรอบสัปดาห์"/>
+	<item pathno ='1' type ='N' code ="" desc ="รายการที่มี [&#160;&#160;] คือ จำนวนเงินที่สามารถเบิกได้ เป็นยอดคงเหลือจากสัปดาห์ที่มีการจ่ายไปแล้ว"/>
+	<item  pathno ='1'  type ='N'  code ="Reimbs&#160;&#160;:"  desc ="ยอดเงินรวมที่สถานพยาบาลแจ้งขอเบิกเข้ามาในรอบสัปดาห์ (ผลรวมของ Reimb)"/>
+	<item  pathno ='1'  type ='N'  code ="HDPay&#160;&#160;:"  desc ="ยอดเงินรวมที่ให้เบิกได้ตามเงื่อนไขข้อกำหนดในรอบสัปดาห์ (ยอดเงินต่ำสุด เปรียบเทียบระหว่าง Quota กับ Reimbs)"/>
+	<item  pathno ='1'  type ='N'  code ="Wstat&#160;&#160;:"   desc ="ครั้งที่จ่ายตามเงื่อนไขข้อกำหนดในรอบสัปดาห์"/>
+	<item  pathno ='1'  type ='N'  code =""  desc ="&#160;P0&#160;-&#160;ยังไม่มีการจ่าย"/>
+	<item  pathno ='1'  type ='N'  code =""  desc ="&#160;Pn&#160;-&#160;มีการจ่าย&#160;&#160;เลขต่อท้าย(n)&#160;คือ&#160;ครั้งที่จ่าย"/>
+	<item  pathno ='1'  type ='N'  code ="STM&#160;&#160;:"   desc ="งวดบัญชีที่รายการถูกกันไว้  มีรูปแบบ YYMMnn"/>
+	<item  pathno ='1'  type ='N'  code ="Invno&#160;&#160;:"  desc ="เลขที่ธุรกรรม"/>
+	<item  pathno ='1'  type ='N'  code ="DTtran&#160;&#160;:"  desc ="วันเวลาที่ใช้บริการ"/>
+	<item  pathno ='1'  type ='N'  code ="REP&#160;&#160;:"  desc ="เลขที่เอกสารตอบรับ"/>
+	<item  pathno ='1'  type ='N'  code ="Flag&#160;&#160;:"  desc ="รหัสแสดง ประเภทการรักษา,ประเภทบัญชี และผู้จ่าย"/>
+	<item  pathno ='1'  type ='N'  code ="Clm&#160;&#160;:"  desc ="รหัสระบุการเบิก"/>
+	<item  pathno ='1'  type ='T'  code =""  desc ="1&#160;-&#160;ขอเบิก"/>
+	<item  pathno ='1'  type ='T'  code =""  desc ="0&#160;-&#160;ไม่ขอเบิก"/>
+	<item  pathno ='1'  type ='N'  code ="Rate&#160;&#160;:"  desc ="อัตราชดเชยค่าฟอกเลือด"/>
+	<item  pathno ='1'  type ='N'  code ="Reimb&#160;&#160;:"  desc ="ยอดเงินที่สถานพยาบาลแจ้งขอเบิก"/>
+	<item  pathno ='1'  type ='N'  code ="PSes&#160;&#160;:"  desc ="ยอดเงินที่ให้เบิกได้ตามเงื่อนไขข้อกำหนด"/>
+	<item  pathno ='1'  type ='N'  code ="Ext&#160;&#160;:"  desc ="การเบิกเพิ่มอื่นๆ"/>
+	<item  pathno ='1'  type ='N'  code =""  desc ="&#160;E&#160;-&#160;มีการเบิกค่า Epoetin"/>
+	<item  pathno ='1'  type ='N'  code ="Stat&#160;&#160;:"   desc ="รหัสแสดงสถานะข้อมูล"/>
+	<item  pathno ='1'  type ='T'  code =""   desc ="ว่าง&#160;-&#160;&#160;รายการปกติ [จ่าย]"/>
+	<item  pathno ='1'  type ='N'  code =""   desc ="&#160;X&#160;&#160;&#160;-&#160;&#160;ยกเลิกรายการ [ไม่จ่าย]"/>
+	<item  pathno ='1'  type ='N'  code =""   desc ="&#160;F&#160;&#160;&#160;-&#160;&#160;รายการจ่ายได้ ตามเกณฑ์จำนวนครั้งต่อสัปดาห์&#160;[จ่าย]"/>
+	<item  pathno ='1'  type ='N'  code =""   desc ="&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;H&#160;&#160;คือ&#160;&#160;รายการรอสรุป(H) ที่ในรอบนี้มีข้อมูลบริการครบตามเกณฑ์จำนวนครั้งต่อสัปดาห์"/>
+	<item  pathno ='1'  type ='N'  code =""   desc ="&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;B&#160;&#160;คือ&#160;&#160;ข้อมูลบริการครบตามเกณฑ์จำนวนครั้งต่อสัปดาห์ด้วยข้อมูลบริการสิทธิ์อื่น"/>
+	<item  pathno ='1'  type ='N'  code =""   desc ="&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;O&#160;&#160;คือ&#160;&#160;ข้อมูลบริการครบตามเกณฑ์จำนวนครั้งต่อสัปดาห์ด้วยข้อมูลบริการที่สถานพยาบาลนอกโครงการ"/>	
+	<item  pathno ='1'  type ='N'  code =""   desc ="&#160;H&#160;&#160;&#160;-&#160;&#160;รายการรอสรุป&#160;[รอสรุป]"/>
+	<item  pathno ='1'  type ='N'  code =""   desc ="&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;1&#160;&#160;คือ&#160;&#160;บริการน้อยกว่า 2 ครั้ง/สัปดาห์&#160;&#160;รอกำหนด 60 วัน"/>
+	<item  pathno ='1'  type ='N'  code =""   desc ="&#160;N&#160;&#160;&#160;-&#160;&#160;รายการไม่ขอเบิก หรือ รายการที่มียอดเบิกศูนย์บาท [ไม่จ่าย]"/>
+	<item  pathno ='1'  type ='N'  code =""   desc ="&#160;P&#160;&#160;&#160;-&#160;&#160;รายการที่จ่ายบางส่วน เนื่องจากเกินอัตราค่าฟอกเลือดต่อสัปดาห์ [จ่าย]"/>
+	<item  pathno ='1'  type ='N'  code =""   desc ="&#160;R&#160;&#160;&#160;-&#160;&#160;รายการไม่จ่าย เลขต่อท้ายคือ รหัสแสดงเหตุผล [ไม่จ่าย]"/>
+	<item  pathno ='1'  type ='N'  code =""   desc ="&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;1&#160;&#160;คือ&#160;&#160;บริการนอกสถานพยาบาลที่ สปส. แจ้ง"/>
+	<item  pathno ='1'  type ='N'  code =""   desc ="&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;2&#160;&#160;คือ&#160;&#160;บริการน้อยกว่า 4 ชม."/>
+	<item  pathno ='1'  type ='N'  code =""   desc ="&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;3&#160;&#160;คือ&#160;&#160;บริการน้อยกว่า&#160;2&#160;ครั้ง/สัปดาห์&#160;&#160;และรอข้อมูลบริการตามเกณฑ์จำนวนครั้งต่อสัปดาห์เกินกำหนด 60 วัน"/>
+	<item  pathno ='1'  type ='N'  code =""   desc ="&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;&#160;4&#160;&#160;คือ&#160;&#160;รายการที่เบิกเกินอัตราค่าฟอกเลือดต่อสัปดาห์"/>
+
+	<item  pathno ='2'  type ='T'   code ="รายการที่มีสิทธิ์ซ้อน"    desc ="จะแสดงข้อมูลสิทธิ์ท้ายชื่อผู้ประกันตน"/>
+	<item  pathno ='2'  type ='T'  code ="" desc=" (SC) - สิทธิ์ประกันสังคมซ้อนกับสิทธิ์ข้าราชการ  กรมบัญชีกลาง" />
+	<item  pathno ='2'  type ='T'  code ="" desc=" (SL) - สิทธิ์ประกันสังคมซ้อนกับสิทธิ์ข้าราชการ กรุงเทพมหานคร  " />
+	<item  pathno ='2'  type ='T'   code ="รายการที่มีแถบสีเทา"    desc ="จะแสดงข้อมูล [รหัสสถานพยาบาล]   คือ&#160;บริการในสถานพยาบาลอื่นในรอบสัปดาห์เดียวกัน" />
+	<item  pathno ='2'  type ='N'   code ="Wkno&#160;&#160;:"    desc ="เริ่มนับสัปดาห์ที่ 0001  จากวันที่ 15/10/2555   โดยวันจันทร์
+	คือวันเริ่มต้นของสัปดาห์"/>
+	<item  pathno ='2'  type ='N'  code=''   desc ="สำหรับสัปดาห์ที่มี '*' คือสัปดาห์ที่มีรายการส่งล่าช้ากว่ากำหนด"/>
+	<item  pathno ='2'  type ='N'  code ="HDs&#160;&#160;:"  desc ="จำนวนครั้งที่เข้ารับบริการในรอบสัปดาห์"/>
+	<item  pathno ='2'  type ='N'  code ="effHCT&#160;&#160;:"  desc ="Hematocrit(%) ที่หาได้  เป็นค่าต่ำสุดในสัปดาห์นั้น แต่มากกว่าศูนย์"/>
+	<item  pathno ='2'  type ='N'  code ="Reimbs&#160;&#160;:"  desc ="ยอดเงินรวมที่สถานพยาบาลแจ้งขอเบิกเข้ามาในรอบสัปดาห์"/>
+	<item  pathno ='2'  type ='N'  code ="Quota&#160;&#160;:"  desc ="จำนวนเงินที่สามารถเบิกได้ในรอบสัปดาห์  ตามข้อกำหนดของสำนักงานประกันสังคม"/>
+	<item pathno ='2'  type ='N'  code ="PSess&#160;&#160;:"  desc ="ยอดเงินค่ายา Epoetin รวมเรียกเก็บได้ในรอบสัปดาห์ ตามข้อกำหนด (ผลรวมของ PSes)"/>
+	<item  pathno ='2'  type ='N'  code ="EpoPay&#160;&#160;:"  desc ="ยอดเงินค่ายา Epoetin สุทธิ (ยอดเงินต่ำสุด เปรียบเทียบระหว่าง Quota กับ PSess)"/>
+	<item  pathno ='2'  type ='N'  code ="EpoIs&#160;&#160;:"  desc ="ยอดรวมค่าฉีดยาในรอบสัปดาห์ (ผลรวมของ EpoI)"/>
+	<item  pathno ='2'  type ='N'  code ="Stat&#160;&#160;:"  desc ="รหัสแสดงข้อมูล"/>
+	<item  pathno ='2'  type ='N'  code =""  desc =" 0 - ไม่ให้เบิก"/>
+	<item  pathno ='2'  type ='N'  code =""  desc =" 1 - ให้เบิก"/>
+	<item  pathno ='2'  type ='N'  code ="DTtran&#160;&#160;:"  desc ="วันที่ใช้บริการ"/>
+	<item  pathno ='2'  type ='N'  code ="HCT&#160;&#160;:"  desc ="Hematocrit(%) ที่ รพ. แจ้ง"/>
+	<item  pathno ='2'  type ='N'  code = ""  desc ="สำหรับรายการที่มี () คือ Hematocrit(%) ค่าเก่าที่พบใน 28 วันย้อนหลัง"/>
+	<item  pathno ='2'  type ='N'  code ="Clm&#160;&#160;:"  desc ="ประเภทการเบิกยา Epoetin"/>
+	<item  pathno ='2'  type ='N'  code =""  desc =" 0 - ไม่ขอเบิก"/>
+	<item  pathno ='2'  type ='N'  code =""  desc =" 1 - เบิกโดยหน่วยไตเทียมนี้"/>
+	<item  pathno ='2'  type ='N'  code =""  desc =" 2 - เบิกมาจากหน่วยเบิกอื่น"/>
+	<item  pathno ='2'  type ='N'  code =""  desc =" 3 - ผู้ป่วยจัดหามาเอง"/>
+	<item  pathno ='2'  type ='N'  code =""  desc =" 4 - เป็นยาจากแหล่งอื่น"/>	
+	<item  pathno ='2'  type ='N'  code ="EPOTN&#160;&#160;:"  desc ="ชื่อยา Epoetin"/>
+	<item  pathno ='2'  type ='N'  code ="Qty&#160;&#160;:"  desc ="จำนวนยาที่ใช้"/>
+	<item  pathno ='2'  type ='N'  code ="Reimb&#160;&#160;:"  desc ="ยอดเงินที่สถานพยาบาลแจ้งขอเบิก"/>
+	<item  pathno ='2'  type ='N'  code ="Mprice&#160;&#160;:"  desc ="ราคากลางยา ตามข้อกำหนดของประกันสังคม
+	(คำนวณจาก ราคากลางยาตามประกาศฯ คูณกับ จำนวนยาที่ใช้ )"/>
+	<item  pathno ='2'  type ='N'  code ="Pitem&#160;&#160;:"  desc ="ยอดเงินค่ายา Epoetin ที่เบิกได้ในแต่ละรายการยา  ตามข้อกำหนดของประกันสังคม"/>
+	<item  pathno ='2'  type ='N'  code ="PSes&#160;&#160;:"  desc ="ยอดเงินค่ายา Epoetin รวมที่เบิกได้ในแต่ละครั้งที่รับบริการ (ผลรวมของ Pitem)"/>
+	<item  pathno ='2'  type ='N'  code ="EpoI&#160;&#160;:"  desc ="ค่าฉีดยาที่เบิกได้ในแต่ละครั้งที่รับบริการ"/>
+	<item  pathno ='3'  type ='T'   code ="รายการที่มีสิทธิ์ซ้อน"    desc ="จะแสดงข้อมูลสิทธิ์ท้ายชื่อผู้ประกันตน"/>
+	<item  pathno ='3'  type ='T'  code ="" desc=" (SC) - สิทธิ์ประกันสังคมซ้อนกับสิทธิ์ข้าราชการ  กรมบัญชีกลาง" />
+	<item  pathno ='3'  type ='T'  code ="" desc=" (SL) - สิทธิ์ประกันสังคมซ้อนกับสิทธิ์ข้าราชการ กรุงเทพมหานคร  " />
+	<item  pathno ='3'  type ='N'  code ="ลำดับสัปดาห์&#160;&#160;:"  desc ="เริ่มนับสัปดาห์ที่ 0001  จากวันที่ 15/10/2555   โดยวันจันทร์ คือวันเริ่มต้นของสัปดาห์"/>
+	<item  pathno ='3'  type ='N'  code=''   desc ="สำหรับสัปดาห์ที่มี * คือสัปดาห์ที่มีรายการส่งล่าช้ากว่ากำหนด"/>
+	<item  pathno ='3'  type ='N'  code ="STM&#160;&#160;:"   desc ="งวดบัญชีที่รายการถูกกันไว้  มีรูปแบบ YYMMnn"/>
+	<item  pathno ='3'  type ='N'  code ="Invno&#160;&#160;:"  desc ="เลขที่ธุรกรรม"/>
+	<item  pathno ='3'  type ='N'  code ="DTtran&#160;&#160;:"  desc ="วันเวลาที่ใช้บริการ"/>
+	<item  pathno ='3'  type ='N'  code ="REP&#160;&#160;:"  desc ="เลขที่เอกสารตอบรับ"/>
+	<item  pathno ='3'  type ='N'  code ="Flag&#160;&#160;:"  desc ="รหัสแสดง ประเภทการรักษา,ประเภทบัญชี และผู้จ่าย"/>
+	<item  pathno ='3'  type ='N'  code ="Clm&#160;&#160;:"  desc ="รหัสระบุการเบิก"/>
+	<item  pathno ='3'  type ='T'  code =""  desc ="1&#160;-&#160;ขอเบิก"/>
+	<item  pathno ='3'  type ='T'  code =""  desc ="0&#160;-&#160;ไม่ขอเบิก"/>
+	<item  pathno ='3'  type ='N'  code ="Rate&#160;&#160;:"  desc ="อัตราชดเชยค่าฟอกเลือด"/>
+	<item  pathno ='3'  type ='N'  code ="Reimb&#160;&#160;:"  desc ="ยอดเงินที่สถานพยาบาลแจ้งขอเบิก"/>
+	<item  pathno ='3'  type ='N'  code ="PSes&#160;&#160;:"  desc ="ยอดเงินที่ให้เบิกได้ตามเงื่อนไขข้อกำหนด จะถูกนำไปประมวลผลในงวด 20260601 บัญชีรายการการแก้ไข"/>
+	<item  pathno ='3'  type ='N'  code ="Ext&#160;&#160;:"  desc ="การเบิกเพิ่มอื่นๆ"/>
+	<item  pathno ='3'  type ='N'  code =""  desc ="&#160;E&#160;-&#160;มีการเบิกค่า Epoetin"/>
+	<item  pathno ='3'  type ='N'  code ="Stat&#160;&#160;:"   desc ="รหัสแสดงสถานะข้อมูล"/>
+	<item  pathno ='3'  type ='T'  code =""   desc ="L&#160;-&#160;&#160;รายการที่ส่งข้อมูลล่าช้าเกินกำหนด 60 วัน"/>
+</Remarks>
+<config>
+<STMheader desc='บัญชีรายการเบิกค่ารักษาพยาบาลของผู้ป่วยนอกโรคไตวายเรื้อรัง&#160;-&#160;ระบบประกันสังคม'/>
+<Addheader code ='H' desc="รายการค่ารักษาพยาบาลผู้ป่วยนอกไตวายเรื้อรัง"/>
+<Addheader code ='E' desc="รายการส่วนเบิกเพิ่ม : ค่ายา Epoetin และค่าฉีดยา"/>
+<Addheader code ='L' desc="รายการฟอกเลือดล้างไตที่ส่งล่าช้า"/>
+<AdjContent code ='A' id ='1' desc ='เลขที่ตอบรับการแก้ไขข้อมูล&#160;(ARID)&#160;:&#160;'/>
+<SumContent code ='H'   id ='B' desc ='รวมรายการที่จ่าย' unit ='รายการ'  desc1 =''   unit1 ='บาท'/>
+<SumContent code ='H'   id ='H' desc ='รวมรายการที่ไม่จ่าย' unit ='รายการ' desc1=''   unit1= 'บาท' />
+<SumContent code ='H'   id ='W' desc ='รวมรายการรอสรุป' unit ='รายการ'  desc1=''   unit1= 'บาท' />
+<SumContent code ='E'  id ='B'  desc ='ค่ายา EPOETIN'  unit ='บาท'  desc1 = ''    unit1 =''/>
+<SumContent code ='E'  id ='A'  desc ='ค่าฉีดยา EPOETIN'  unit ='บาท'  desc1 = ''    unit1 =''/>
+<SumContent code ='E'  id ='S'  desc ='รวมเบิกเพิ่มทั้งสิ้น'  unit ='บาท'  desc1 = ''    unit1 =''/>
+<SumContent code ='L'   id ='S' desc ='รวมรายการที่ส่งล่าช้า' unit ='รายการ'  desc1 =''   unit1 =''/>
+<SplContent code ='I' id ='F' desc ='รายการยาที่กำหนดอัตราต่อ&#160;'  unit =' สัปดาห์'  desc1 =' ลำดับที่ '   unit1 =''/>
+<SplContent code ='I' id ='M' desc ='รายการยกมาจากสัปดาห์ที่&#160;'  unit =''  desc1 =' ลำดับที่ '   unit1 =''/>
+<Wkno>
+<week code ="0705"  desc ="13  เม.ย.  2569 - 19  เม.ย.  2569"  desc1 ="" />
+<week code ="0706"  desc ="20  เม.ย.  2569 - 26  เม.ย.  2569"  desc1 ="" />
+</Wkno>
+</config>
+</STMSTM>

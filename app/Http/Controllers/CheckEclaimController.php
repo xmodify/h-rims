@@ -59,8 +59,10 @@ class CheckEclaimController extends Controller
 
             // Filter by patient_type (OP / IP)
             if (in_array($activePatientType, ['OP', 'IP'])) {
-                $query->where('patient_type', $activePatientType);
-                $recordsTotal->where('patient_type', $activePatientType);
+                if (!$request->has('status_filter') || $request->status_filter === '') {
+                    $query->where('patient_type', $activePatientType);
+                    $recordsTotal->where('patient_type', $activePatientType);
+                }
             }
 
             // Global search filter (HN, AN, ptname, eclaim_no, etc.)
@@ -114,7 +116,7 @@ class CheckEclaimController extends Controller
             $length = $request->length ?? 50;
             $data = $query->offset($start)->limit($length)->get();
 
-            // Calculate dynamic summary for this patient_type and date range
+            // Calculate dynamic summary for this date range (overall - do not filter by patient_type)
             $sumQuery = DB::table('eclaim_status')
                 ->select(
                     DB::raw('SUBSTRING(status, 1, 1) as status_code'),
@@ -128,9 +130,6 @@ class CheckEclaimController extends Controller
 
             if (!empty($hipdata)) {
                 $sumQuery->where('hipdata', $hipdata);
-            }
-            if (in_array($activePatientType, ['OP', 'IP'])) {
-                $sumQuery->where('patient_type', $activePatientType);
             }
             $summaryData = $sumQuery->groupBy(DB::raw('SUBSTRING(status, 1, 1)'))->get()->keyBy('status_code');
 
@@ -165,9 +164,6 @@ class CheckEclaimController extends Controller
 
         if (!empty($hipdata)) {
             $sumQuery->where('hipdata', $hipdata);
-        }
-        if (in_array($patient_type, ['OP', 'IP'])) {
-            $sumQuery->where('patient_type', $patient_type);
         }
 
         $summary = $sumQuery->groupBy(DB::raw('SUBSTRING(status, 1, 1)'))

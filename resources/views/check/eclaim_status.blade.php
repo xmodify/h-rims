@@ -485,14 +485,10 @@
       $('.status-card').on('click', function() {
           const status = $(this).data('status').toString();
           
-          if (window.currentStatusFilter === status) {
-              window.currentStatusFilter = '';
-              $('.status-card').css('opacity', '1').removeClass('border-dark');
-          } else {
-              window.currentStatusFilter = status;
-              $('.status-card').css('opacity', '0.5').removeClass('border-dark');
-              $(this).css('opacity', '1').addClass('border-dark');
-          }
+          window.currentStatusFilter = status;
+          $('.status-card').css('opacity', '0.5').removeClass('border-dark');
+          $(this).css('opacity', '1').addClass('border-dark');
+          
           $('#list').DataTable().ajax.reload();
       });
 

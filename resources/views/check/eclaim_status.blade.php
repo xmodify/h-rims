@@ -497,9 +497,14 @@
       });
 
       // Tab switcher event handler
-      $('#patientTypeTab button').on('shown.bs.tab', function (e) {
+      $('#patientTypeTab button').on('click', function (e) {
+          e.preventDefault();
           window.currentPatientType = $(this).data('patient-type');
           $('#patient_type').val(window.currentPatientType);
+          
+          $('#patientTypeTab button').removeClass('active');
+          $(this).addClass('active');
+
           // Reset status filter highlight when switching tabs
           window.currentStatusFilter = '';
           $('.status-card').css('opacity', '1').removeClass('border-dark');

@@ -505,9 +505,6 @@
           $('#patientTypeTab button').removeClass('active');
           $(this).addClass('active');
 
-          // Reset status filter highlight when switching tabs
-          window.currentStatusFilter = '';
-          $('.status-card').css('opacity', '1').removeClass('border-dark');
           $('#list').DataTable().ajax.reload();
       });
     });

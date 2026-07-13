@@ -19,6 +19,7 @@
                 <div class="input-group input-group-sm" style="width: auto;">
                     <span class="input-group-text bg-white border-end-0"><i class="bi bi-calendar3"></i></span>
                     <input type="hidden" id="start_date" name="start_date" value="{{ $start_date }}">
+                    <input type="hidden" id="patient_type" name="patient_type" value="{{ $patient_type }}">
                     <input type="text" id="start_date_picker" class="form-control datepicker_th border-start-0 text-center" readonly style="width: 130px; cursor: pointer;">
                     
                     <span class="input-group-text bg-white">ถึง</span>
@@ -137,10 +138,10 @@
         <div class="card-header bg-white border-bottom-0 pb-0 pt-3">
             <ul class="nav nav-tabs card-header-tabs" id="patientTypeTab" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active fw-bold" id="opd-tab" data-bs-toggle="tab" data-patient-type="OP" type="button" role="tab"><i class="bi bi-person me-1"></i> ผู้ป่วยนอก (OPD)</button>
+                    <button class="nav-link {{ $patient_type == 'OP' ? 'active' : '' }} fw-bold" id="opd-tab" data-bs-toggle="tab" data-patient-type="OP" type="button" role="tab"><i class="bi bi-person me-1"></i> ผู้ป่วยนอก (OPD)</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-bold" id="ipd-tab" data-bs-toggle="tab" data-patient-type="IP" type="button" role="tab"><i class="bi bi-door-open me-1"></i> ผู้ป่วยใน (IPD)</button>
+                    <button class="nav-link {{ $patient_type == 'IP' ? 'active' : '' }} fw-bold" id="ipd-tab" data-bs-toggle="tab" data-patient-type="IP" type="button" role="tab"><i class="bi bi-door-open me-1"></i> ผู้ป่วยใน (IPD)</button>
                 </li>
             </ul>
         </div>
@@ -346,7 +347,7 @@
       });
 
       window.currentStatusFilter = '';
-      window.currentPatientType = 'OP';
+      window.currentPatientType = "{{ $patient_type }}";
 
       $('#list').DataTable({
         processing: true,
@@ -498,6 +499,7 @@
       // Tab switcher event handler
       $('#patientTypeTab button').on('shown.bs.tab', function (e) {
           window.currentPatientType = $(this).data('patient-type');
+          $('#patient_type').val(window.currentPatientType);
           // Reset status filter highlight when switching tabs
           window.currentStatusFilter = '';
           $('.status-card').css('opacity', '1').removeClass('border-dark');

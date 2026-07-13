@@ -107,7 +107,7 @@ class MainSettingController extends Controller
                     // Drop legacy tables if they exist
                     \Illuminate\Support\Facades\Schema::dropIfExists('sss_chronic_feedback');
                     \Illuminate\Support\Facades\Schema::dropIfExists('lookup_adp_sss');
-                    \Illuminate\Support\Facades\Schema::dropIfExists('lookup_icd10_chi');
+
 
                     $output = new \Symfony\Component\Console\Output\BufferedOutput();
                     \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true], $output);

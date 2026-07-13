@@ -161,47 +161,6 @@
                         </tr>     
                     </thead> 
                     <tbody> 
-                        @foreach($sql as $row) 
-                        @php
-                            $st_code = substr($row->status, 0, 1);
-                            $row_class = 'row-status-0'; // Default to white
-                            if($st_code == '1') $row_class = 'row-status-1';
-                            elseif($st_code == '2') $row_class = 'row-status-2';
-                            elseif($st_code == '3') $row_class = 'row-status-3';
-                            elseif($st_code == '4') $row_class = 'row-status-4';
-                        @endphp
-                        <tr class="{{ $row_class }}">
-                            <td class="text-center fw-bold">{{ $row->eclaim_no }}</td>
-                            <td class="text-center small">{{ $row->hipdata }}</td>
-                            <td class="text-center">{{ $row->cid }}</td>
-                            <td class="text-center">{{ $row->hn }}</td>
-                            <td class="text-center">{{ $row->an ?: '-' }}</td>
-                            <td class="text-start">{{ $row->ptname }}</td>
-                            <td class="text-center small">{{ $row->vstdate ? DateThai($row->vstdate) : '-' }}</td>
-                            <td class="text-center small">{{ $row->vsttime ?: '-' }}</td>
-                            <td class="text-center small">{{ $row->dchdate ? DateThai($row->dchdate) : '-' }}</td>
-                            <td class="text-center small">{{ $row->dchtime ?: '-' }}</td>
-                            <td class="text-start small">
-                                {{ $row->status }}
-                            </td>
-                            <td class="text-start small">{{ $row->recorder ?: '-' }}</td>
-                            <td class="text-end fw-bold text-primary">{{ number_format($row->claim_amount, 2) }}</td>
-                            <td class="text-center small">{{ $row->rep ?: '-' }}</td>
-                            <td class="text-center small">{{ $row->stm ?: '-' }}</td>
-                            <td class="text-center small">{{ $row->seq ?: '-' }}</td>
-                            <td class="text-start small">{{ $row->check_detail ?: '-' }}</td>
-                            <td class="text-start small text-danger">{{ $row->deny_warning ?: '-' }}</td>
-                            <td class="text-center">
-                                @if($row->channel == 'Excel')
-                                    <span class="badge bg-success-soft text-success"><i class="bi bi-file-earmark-excel"></i> Excel</span>
-                                @elseif($row->channel == 'Extension')
-                                    <span class="badge bg-info-soft text-info"><i class="bi bi-browser-chrome"></i> Extension</span>
-                                @else
-                                    <span class="badge bg-light text-dark">{{ $row->channel ?: '-' }}</span>
-                                @endif
-                            </td>
-                        </tr>
-                        @endforeach                 
                     </tbody>
                 </table> 
             </div>          
@@ -376,7 +335,94 @@
           }
       });
 
+      window.currentStatusFilter = '';
+
       $('#list').DataTable({
+        processing: true,
+        serverSide: true,
+        ajax: {
+            url: "{{ url('check/eclaim_status') }}",
+            data: function (d) {
+                d.start_date = $('#start_date').val();
+                d.end_date = $('#end_date').val();
+                d.hipdata = $('select[name="hipdata"]').val();
+                d.status_filter = window.currentStatusFilter || '';
+            }
+        },
+        columns: [
+            { data: 'eclaim_no', name: 'eclaim_no', className: 'text-center fw-bold' },
+            { data: 'hipdata', name: 'hipdata', className: 'text-center small' },
+            { data: 'cid', name: 'cid', className: 'text-center' },
+            { data: 'hn', name: 'hn', className: 'text-center' },
+            { data: 'an', name: 'an', className: 'text-center', render: function(data) { return data || '-'; } },
+            { data: 'ptname', name: 'ptname', className: 'text-start' },
+            { 
+                data: 'vstdate', 
+                name: 'vstdate', 
+                className: 'text-center small',
+                render: function(data) {
+                    if (!data) return '-';
+                    var date = new Date(data);
+                    var day = date.getDate();
+                    var month = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."][date.getMonth()];
+                    var year = date.getFullYear() + 543;
+                    return day + ' ' + month + ' ' + year;
+                }
+            },
+            { data: 'vsttime', name: 'vsttime', className: 'text-center small', render: function(data) { return data || '-'; } },
+            { 
+                data: 'dchdate', 
+                name: 'dchdate', 
+                className: 'text-center small',
+                render: function(data) {
+                    if (!data) return '-';
+                    var date = new Date(data);
+                    var day = date.getDate();
+                    var month = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."][date.getMonth()];
+                    var year = date.getFullYear() + 543;
+                    return day + ' ' + month + ' ' + year;
+                }
+            },
+            { data: 'dchtime', name: 'dchtime', className: 'text-center small', render: function(data) { return data || '-'; } },
+            { data: 'status', name: 'status', className: 'text-start small' },
+            { data: 'recorder', name: 'recorder', className: 'text-start small', render: function(data) { return data || '-'; } },
+            { 
+                data: 'claim_amount', 
+                name: 'claim_amount', 
+                className: 'text-end fw-bold text-primary',
+                render: function(data) {
+                    return parseFloat(data || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                }
+            },
+            { data: 'rep', name: 'rep', className: 'text-center small', render: function(data) { return data || '-'; } },
+            { data: 'stm', name: 'stm', className: 'text-center small', render: function(data) { return data || '-'; } },
+            { data: 'seq', name: 'seq', className: 'text-center small', render: function(data) { return data || '-'; } },
+            { data: 'check_detail', name: 'check_detail', className: 'text-start small', render: function(data) { return data || '-'; } },
+            { data: 'deny_warning', name: 'deny_warning', className: 'text-start small text-danger', render: function(data) { return data || '-'; } },
+            { 
+                data: 'channel', 
+                name: 'channel', 
+                className: 'text-center',
+                render: function(data) {
+                    if(data === 'Excel') {
+                        return '<span class="badge bg-success-soft text-success"><i class="bi bi-file-earmark-excel"></i> Excel</span>';
+                    } else if(data === 'Extension') {
+                        return '<span class="badge bg-info-soft text-info"><i class="bi bi-browser-chrome"></i> Extension</span>';
+                    } else {
+                        return '<span class="badge bg-light text-dark">' + (data || '-') + '</span>';
+                    }
+                }
+            }
+        ],
+        createdRow: function(row, data, dataIndex) {
+            var st_code = (data.status || '').substring(0, 1);
+            var row_class = 'row-status-0';
+            if(st_code === '1') row_class = 'row-status-1';
+            else if(st_code === '2') row_class = 'row-status-2';
+            else if(st_code === '3') row_class = 'row-status-3';
+            else if(st_code === '4') row_class = 'row-status-4';
+            $(row).addClass(row_class);
+        },
         dom: '<"row mb-3"' +
                 '<"col-md-6"l>' + 
                 '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
@@ -408,22 +454,17 @@
 
       // Filter table when clicking on status cards
       $('.status-card').on('click', function() {
-          const status = $(this).data('status');
-          const table = $('#list').DataTable();
-          const currentFilter = table.column(10).search();
+          const status = $(this).data('status').toString();
           
-          // Toggle filter: if already filtering for this status, clear it
-          if (currentFilter === '^' + status) {
-              table.column(10).search('').draw();
+          if (window.currentStatusFilter === status) {
+              window.currentStatusFilter = '';
               $('.status-card').css('opacity', '1').removeClass('border-dark');
           } else {
-              // Set regex filter for column 10 (สถานะข้อมูล) to find values starting with the status code
-              table.column(10).search('^' + status, true, false).draw();
-              
-              // highlight the active card and dim others
+              window.currentStatusFilter = status;
               $('.status-card').css('opacity', '0.5').removeClass('border-dark');
               $(this).css('opacity', '1').addClass('border-dark');
           }
+          $('#list').DataTable().draw();
       });
     });
 </script>

@@ -29,9 +29,91 @@ class CheckEclaimController extends Controller
     {
         $start_date = $request->start_date ?: Session::get('start_date') ?: date('Y-m-01');
         $end_date = $request->end_date ?: Session::get('end_date') ?: date('Y-m-d');
-        // อัปเดตค่าเก็บใน Session เผื่อครั้งถัดไป
+        $hipdata = $request->has('hipdata') ? $request->hipdata : Session::get('eclaim_hipdata');
+
         Session::put('start_date', $start_date);
         Session::put('end_date', $end_date);
+        Session::put('eclaim_hipdata', $hipdata);
+
+        if ($request->ajax()) {
+            $query = DB::table('eclaim_status')
+                ->where(function ($q) use ($start_date, $end_date) {
+                    $q->whereBetween('vstdate', [$start_date, $end_date])
+                      ->orWhereBetween('dchdate', [$start_date, $end_date]);
+                });
+
+            if (!empty($hipdata)) {
+                $query->where('hipdata', $hipdata);
+            }
+
+            // Global search filter (HN, AN, ptname, eclaim_no, etc.)
+            if ($request->has('search') && !empty($request->search['value'])) {
+                $searchValue = $request->search['value'];
+                $query->where(function ($q) use ($searchValue) {
+                    $q->where('hn', 'like', "%{$searchValue}%")
+                      ->orWhere('an', 'like', "%{$searchValue}%")
+                      ->orWhere('ptname', 'like', "%{$searchValue}%")
+                      ->orWhere('eclaim_no', 'like', "%{$searchValue}%")
+                      ->orWhere('cid', 'like', "%{$searchValue}%");
+                });
+            }
+
+            // Filter by status code clicked from cards (passed from frontend)
+            if ($request->has('status_filter') && $request->status_filter !== '') {
+                $query->where('status', 'like', $request->status_filter . '%');
+            }
+
+            $recordsTotal = DB::table('eclaim_status')
+                ->where(function ($q) use ($start_date, $end_date) {
+                    $q->whereBetween('vstdate', [$start_date, $end_date])
+                      ->orWhereBetween('dchdate', [$start_date, $end_date]);
+                });
+
+            if (!empty($hipdata)) {
+                $recordsTotal->where('hipdata', $hipdata);
+            }
+            $recordsTotalVal = $recordsTotal->count();
+
+            $recordsFiltered = $query->count();
+
+            // Ordering
+            if ($request->has('order') && !empty($request->order)) {
+                $columns = [
+                    0 => 'eclaim_no',
+                    1 => 'hipdata',
+                    2 => 'cid',
+                    3 => 'hn',
+                    4 => 'an',
+                    5 => 'ptname',
+                    6 => 'vstdate',
+                    7 => 'vsttime',
+                    8 => 'dchdate',
+                    9 => 'dchtime',
+                    10 => 'status',
+                    11 => 'recorder',
+                    12 => 'claim_amount'
+                ];
+                $orderCol = $request->order[0]['column'];
+                $orderDir = $request->order[0]['dir'];
+                if (isset($columns[$orderCol])) {
+                    $query->orderBy($columns[$orderCol], $orderDir);
+                }
+            } else {
+                $query->orderBy('vstdate', 'desc');
+            }
+
+            // Pagination
+            $start = $request->start ?? 0;
+            $length = $request->length ?? 50;
+            $data = $query->offset($start)->limit($length)->get();
+
+            return response()->json([
+                "draw" => intval($request->draw),
+                "recordsTotal" => $recordsTotalVal,
+                "recordsFiltered" => $recordsFiltered,
+                "data" => $data
+            ]);
+        }
 
         // ดึงรายการ hipdata ทั้งหมดที่มีในตารางมาทำตัวกรอง
         $hipdata_list = DB::table('eclaim_status')
@@ -40,22 +122,6 @@ class CheckEclaimController extends Controller
             ->where('hipdata', '<>', '')
             ->orderBy('hipdata')
             ->pluck('hipdata');
-
-        $hipdata = $request->has('hipdata') ? $request->hipdata : Session::get('eclaim_hipdata');
-        Session::put('eclaim_hipdata', $hipdata);
-
-        // ดึงข้อมูลจากฐานข้อมูล (ดึงรวมทั้ง OPD และ IPD จากตารางเดียวเลย เพราะเราบันทึกรวมกันมารอไว้แล้ว)
-        $query = DB::table('eclaim_status')
-            ->where(function ($q) use ($start_date, $end_date) {
-                $q->whereBetween('vstdate', [$start_date, $end_date])
-                    ->orWhereBetween('dchdate', [$start_date, $end_date]);
-            });
-
-        if (!empty($hipdata)) {
-            $query->where('hipdata', $hipdata);
-        }
-
-        $sql = $query->orderBy('vstdate', 'desc')->get();
 
         // คำนวณยอดรวมแยกตามสถานะ (ตัวเลขตัวแรกของ status: 0, 1, 2, 3, 4)
         $sumQuery = DB::table('eclaim_status')
@@ -66,7 +132,7 @@ class CheckEclaimController extends Controller
             )
             ->where(function ($q) use ($start_date, $end_date) {
                 $q->whereBetween('vstdate', [$start_date, $end_date])
-                    ->orWhereBetween('dchdate', [$start_date, $end_date]);
+                  ->orWhereBetween('dchdate', [$start_date, $end_date]);
             });
 
         if (!empty($hipdata)) {
@@ -77,8 +143,9 @@ class CheckEclaimController extends Controller
             ->get()
             ->keyBy('status_code');
 
-        return view('check.eclaim_status', compact('start_date', 'end_date', 'sql', 'summary', 'hipdata_list', 'hipdata'));
+        return view('check.eclaim_status', compact('start_date', 'end_date', 'summary', 'hipdata_list', 'hipdata'));
     }
+
 
     // ฟังก์ชันรับการ Import Excel
     public function import_eclaim_excel(Request $request)

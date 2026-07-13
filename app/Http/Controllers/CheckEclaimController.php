@@ -53,8 +53,8 @@ class CheckEclaimController extends Controller
                 $recordsTotal->where('hipdata', $hipdata);
             }
 
-            // Filter by patient_type (OPD / IPD)
-            if ($request->has('patient_type') && in_array($request->patient_type, ['OPD', 'IPD'])) {
+            // Filter by patient_type (OP / IP)
+            if ($request->has('patient_type') && in_array($request->patient_type, ['OP', 'IP'])) {
                 $query->where('patient_type', $request->patient_type);
                 $recordsTotal->where('patient_type', $request->patient_type);
             }
@@ -125,7 +125,7 @@ class CheckEclaimController extends Controller
             if (!empty($hipdata)) {
                 $sumQuery->where('hipdata', $hipdata);
             }
-            if ($request->has('patient_type') && in_array($request->patient_type, ['OPD', 'IPD'])) {
+            if ($request->has('patient_type') && in_array($request->patient_type, ['OP', 'IP'])) {
                 $sumQuery->where('patient_type', $request->patient_type);
             }
             $summaryData = $sumQuery->groupBy(DB::raw('SUBSTRING(status, 1, 1)'))->get()->keyBy('status_code');

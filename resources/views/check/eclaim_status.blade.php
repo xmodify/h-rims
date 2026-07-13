@@ -137,10 +137,10 @@
         <div class="card-header bg-white border-bottom-0 pb-0 pt-3">
             <ul class="nav nav-tabs card-header-tabs" id="patientTypeTab" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active fw-bold" id="opd-tab" data-bs-toggle="tab" data-patient-type="OPD" type="button" role="tab"><i class="bi bi-person me-1"></i> ผู้ป่วยนอก (OPD)</button>
+                    <button class="nav-link active fw-bold" id="opd-tab" data-bs-toggle="tab" data-patient-type="OP" type="button" role="tab"><i class="bi bi-person me-1"></i> ผู้ป่วยนอก (OPD)</button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-bold" id="ipd-tab" data-bs-toggle="tab" data-patient-type="IPD" type="button" role="tab"><i class="bi bi-door-open me-1"></i> ผู้ป่วยใน (IPD)</button>
+                    <button class="nav-link fw-bold" id="ipd-tab" data-bs-toggle="tab" data-patient-type="IP" type="button" role="tab"><i class="bi bi-door-open me-1"></i> ผู้ป่วยใน (IPD)</button>
                 </li>
             </ul>
         </div>
@@ -346,7 +346,7 @@
       });
 
       window.currentStatusFilter = '';
-      window.currentPatientType = 'OPD';
+      window.currentPatientType = 'OP';
 
       $('#list').DataTable({
         processing: true,
@@ -358,7 +358,7 @@
                 d.end_date = $('#end_date').val();
                 d.hipdata = $('select[name="hipdata"]').val();
                 d.status_filter = window.currentStatusFilter || '';
-                d.patient_type = window.currentPatientType || 'OPD';
+                d.patient_type = window.currentPatientType || 'OP';
             }
         },
         columns: [

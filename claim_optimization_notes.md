@@ -27,8 +27,8 @@ LEFT JOIN patient pt ON pt.hn = vp.hn
 
 ## Pattern 2: Split Views (Page Shell + AJAX Partial)
 Divide the blade template into two parts:
-1. **Page Shell (`xxx.blade.php`):** Contains page title, main action buttons, chart canvases, modal markups, and script blocks.
-2. **Table View (`xxx_table.blade.php`):** Contains only the tab layouts, datatables, and the table loop logic.
+1. **Page Shell (`xxx.blade.php`):** Contains page title, modal markups, the root page wrapper container (`<div id="data-container">`), and script blocks.
+2. **Table View (`xxx_table.blade.php`):** Contains the Chart canvas section, main action buttons, date range filter forms, tab layouts, datatables, and the table loop logic. This ensures that on initial load, the entire page below the header is covered by a clean loading card, rather than showing a giant empty white space for the chart.
 
 ### AJAX Route Handling in Controller
 ```php
@@ -81,6 +81,24 @@ Avoid browser reload by caching the chart data in a global JavaScript variable (
 3. In the AJAX `.done()` handler, check if the response contains new chart data. If it does, update `window.currentChartData`.
 4. Call the global `drawChart(...)` function using `window.currentChartData`. This updates the tables instantly and redraws the chart in-place without refreshing the page.
 
+> [!TIP]
+> **Avoid Popup Overlaps:** Do not use `Swal.fire` loading dialogs inside `loadDashboard()`. Instead, inject clean inline HTML spinner templates directly into the container placeholders (e.g. replacing `#myTabContent` with a small spinner when `skip_chart` is true, or replacing `#table-container` with a full card spinner when loading both chart and tables). This prevents overlapping modals on page load.
+
+> [!IMPORTANT]
+> **Legacy Button Handlers:** If your existing views have buttons with `onclick="fetchData()"` or references to legacy loader functions, define a dummy/fallback function inside your script block to prevent `ReferenceError: fetchData is not defined` from breaking JavaScript execution:
+> ```javascript
+> function fetchData() {
+>     // Fallback for legacy onclick handlers. The form submission event listener 
+>     // (e.g. $(document).on('submit', '#form_indiv', ...)) will intercept the submit 
+>     // and invoke loadDashboard() automatically.
+> }
+> ```
+
+> [!CAUTION]
+> **Date Filtering on Year Change:**
+> - When changing the budget year (submitting `#form_budget_year`), ONLY pass the new `budget_year` parameter to `loadDashboard()`. **Do not** pass the old `start_date` and `end_date` parameters. This allows the controller to reset the default dates for the new year.
+> - In the AJAX `.done()` success handler, always extract the start/end dates directly from the server-rendered HTML hidden input fields (`$('#start_date').val()`), rather than relying on request parameters (`dataParams`). This prevents the datepicker inputs from becoming blank on year changes.
+
 ---
 
 ## Pattern 4: Local View Style Overrides
@@ -115,3 +133,8 @@ To style active/inactive tabs differently without polluting `app.blade.php` or m
 
 ## Pattern 5: Detailed JSON Modal Binding
 When implementing modals like `showDetails(vn)`, return structured JSON from the controller and build the HTML content dynamically using a JavaScript template string. This prevents loading errors and allows you to bind events and sub-tables (like DataTables) cleanly inside the modal.
+
+> [!WARNING]
+> **Status Check Accuracy:**
+> - When determining if a visit has been successfully closed in NHSO (`endpointBtn`), always verify the computed property `v.endpoint_valid` from the validation payload rather than querying raw database fields like `visit.claimCode`.
+> - Maintain uniform status badges and button designs (e.g. `pullNhsoData` and `checkFdh` actions) across all modules to ensure a consistent user experience.

@@ -171,6 +171,10 @@
       });
     }
 
+    function fetchData() {
+        // Fallback for any legacy onclick handlers
+    }
+
     // AJAX Dashboard Loader
     function loadDashboard(dataParams) {
       const container = document.getElementById('data-container');
@@ -181,8 +185,10 @@
           if (tabContent) {
               tabContent.innerHTML = `
                   <div class="text-center py-5">
-                      <div class="spinner-border text-primary" role="status" style="width: 2.5rem; height: 2.5rem;"></div>
-                      <h6 class="mt-3 fw-bold text-secondary">กำลังอัปเดตตารางข้อมูลคนไข้...</h6>
+                      <div class="d-flex justify-content-center mb-3">
+                          <div class="spinner-border text-primary" role="status" style="width: 2.5rem; height: 2.5rem;"></div>
+                      </div>
+                      <h6 class="fw-bold text-secondary">กำลังอัปเดตตารางข้อมูลคนไข้...</h6>
                   </div>
               `;
           }
@@ -190,10 +196,12 @@
           container.innerHTML = `
               <div class="card shadow-sm border-0" style="border-radius: 12px; overflow: hidden;">
                   <div class="card-body py-5 text-center">
-                      <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-                          <span class="visually-hidden">Loading...</span>
+                      <div class="d-flex justify-content-center mb-3">
+                          <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                              <span class="visually-hidden">Loading...</span>
+                          </div>
                       </div>
-                      <h5 class="mt-3 fw-bold text-secondary">กำลังประมวลผลข้อมูลการเรียกเก็บและชดเชย...</h5>
+                      <h5 class="fw-bold text-secondary">กำลังประมวลผลข้อมูลการเรียกเก็บและชดเชย...</h5>
                       <p class="text-muted small mb-0">ระบบกำลังสแกนประวัติการรักษาย้อนหลังทั้งปีงบประมาณและเชื่อมสถานะส่งเคลม อาจใช้เวลา 5-15 วินาที โปรดรอสักครู่</p>
                   </div>
               </div>
@@ -220,8 +228,8 @@
                   zIndexOffset: 1050
               });
 
-              var start_date_val = dataParams.start_date;
-              var end_date_val = dataParams.end_date;
+              var start_date_val = $('#start_date').val();
+              var end_date_val = $('#end_date').val();
               if(start_date_val) {
                   $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
               }
@@ -859,9 +867,7 @@
       $(document).on('submit', '#form_budget_year', function(e) {
           e.preventDefault();
           loadDashboard({
-              budget_year: $(this).find('select[name="budget_year"]').val(),
-              start_date: $('#start_date').val(),
-              end_date: $('#end_date').val()
+              budget_year: $(this).find('select[name="budget_year"]').val()
           });
       });
 

@@ -155,12 +155,13 @@ class MainSettingController extends Controller
                     // ==========================================
                     $report = [];
 
-                    // --- 2.1: Import/Sync Lookup (EquipdevAIPN.xlsx) ---
-                    $filePathAIPN = base_path('docs/lookup/EquipdevAIPN.xlsx');
+                    // --- 2.1: Import/Sync Lookup (EquipdevAIPN.json) ---
+                    $filePathAIPN = base_path('docs/lookup/EquipdevAIPN.json');
                     if (file_exists($filePathAIPN)) {
-                        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePathAIPN);
-                        $sheet = $spreadsheet->setActiveSheetIndex(0);
-                        $row_limit = $sheet->getHighestDataRow();
+                        $jsonData = json_decode(file_get_contents($filePathAIPN), true);
+                        if (json_last_error() !== JSON_ERROR_NONE) {
+                            throw new \Exception("ไฟล์ EquipdevAIPN.json รูปแบบไม่ถูกต้อง: " . json_last_error_msg());
+                        }
 
                         $parseDate = function ($value) {
                             if (empty($value) || $value === '-' || trim($value) === '') {
@@ -200,34 +201,30 @@ class MainSettingController extends Controller
 
                         DB::beginTransaction();
                         try {
-                            for ($row = 2; $row <= $row_limit; $row++) {
-                                $billgroup = $sheet->getCell('A' . $row)->getValue();
-                                $code = $sheet->getCell('B' . $row)->getValue();
-
-                                if (empty($billgroup) && empty($code)) {
+                            foreach ($jsonData as $row) {
+                                $code = trim($row['code'] ?? '');
+                                if (empty($code)) {
                                     continue;
                                 }
 
-                                $code = trim($code);
-                                $rate = $cleanRate($sheet->getCell('D' . $row)->getValue());
-                                $rate2 = $cleanRate($sheet->getCell('E' . $row)->getValue());
-
-                                $daterev = $parseDate($sheet->getCell('G' . $row)->getValue());
-                                $dateeff = $parseDate($sheet->getCell('H' . $row)->getValue());
-                                $dateexp = $parseDate($sheet->getCell('I' . $row)->getValue());
+                                $rate = $cleanRate($row['rate'] ?? null);
+                                $rate2 = $cleanRate($row['rate2'] ?? null);
+                                $daterev = $parseDate($row['daterev'] ?? null);
+                                $dateeff = $parseDate($row['dateeff'] ?? null);
+                                $dateexp = $parseDate($row['dateexp'] ?? null);
 
                                 $recordData = [
-                                    'billgroup' => $billgroup,
-                                    'unit' => $sheet->getCell('C' . $row)->getValue(),
+                                    'billgroup' => $row['billgroup'] ?? null,
+                                    'unit' => $row['unit'] ?? null,
                                     'rate' => $rate,
                                     'rate2' => $rate2,
-                                    'desc' => $sheet->getCell('F' . $row)->getValue(),
+                                    'desc' => $row['desc'] ?? null,
                                     'daterev' => $daterev,
                                     'dateeff' => $dateeff,
                                     'dateexp' => $dateexp,
-                                    'lastupd' => $sheet->getCell('J' . $row)->getValue(),
-                                    'dtcond' => $sheet->getCell('K' . $row)->getValue(),
-                                    'note' => $sheet->getCell('L' . $row)->getValue(),
+                                    'lastupd' => $row['lastupd'] ?? null,
+                                    'dtcond' => $row['dtcond'] ?? null,
+                                    'note' => $row['note'] ?? null,
                                     'updated_at' => now(),
                                 ];
 
@@ -251,20 +248,19 @@ class MainSettingController extends Controller
                         $report[] = "EquipdevAIPN (ไม่พบไฟล์)";
                     }
 
-                    // --- 2.2: Import/Sync Lookup (lookup_nhso_adp_type.xlsx) ---
-                    $filePathAdpType = base_path('docs/lookup/lookup_nhso_adp_type.xlsx');
+                    // --- 2.2: Import/Sync Lookup (lookup_nhso_adp_type.json) ---
+                    $filePathAdpType = base_path('docs/lookup/lookup_nhso_adp_type.json');
                     if (file_exists($filePathAdpType)) {
-                        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePathAdpType);
-                        $sheet = $spreadsheet->getActiveSheet();
-                        $row_limit = $sheet->getHighestDataRow();
+                        $jsonData = json_decode(file_get_contents($filePathAdpType), true);
+                        if (json_last_error() !== JSON_ERROR_NONE) {
+                            throw new \Exception("ไฟล์ lookup_nhso_adp_type.json รูปแบบไม่ถูกต้อง: " . json_last_error_msg());
+                        }
 
                         $insertedTypes = 0;
                         DB::beginTransaction();
                         try {
-                            for ($row = 2; $row <= $row_limit; $row++) {
-                                $type_id = $sheet->getCell('A' . $row)->getValue();
-                                $type_name = $sheet->getCell('B' . $row)->getValue();
-
+                            foreach ($jsonData as $row) {
+                                $type_id = $row['nhso_adp_type_id'] ?? null;
                                 if (empty($type_id)) {
                                     continue;
                                 }
@@ -272,7 +268,7 @@ class MainSettingController extends Controller
                                 DB::table('lookup_nhso_adp_type')->updateOrInsert(
                                     ['nhso_adp_type_id' => intval($type_id)],
                                     [
-                                        'nhso_adp_type_name' => $type_name,
+                                        'nhso_adp_type_name' => $row['nhso_adp_type_name'] ?? null,
                                         'updated_at' => now(),
                                         'created_at' => now()
                                     ]
@@ -289,12 +285,13 @@ class MainSettingController extends Controller
                         $report[] = "adp_type (ไม่พบไฟล์)";
                     }
 
-                    // --- 2.3: Import/Sync Lookup (lookup_nhso_adp_code.xlsx) ---
-                    $filePathAdpCode = base_path('docs/lookup/lookup_nhso_adp_code.xlsx');
+                    // --- 2.3: Import/Sync Lookup (lookup_nhso_adp_code.json) ---
+                    $filePathAdpCode = base_path('docs/lookup/lookup_nhso_adp_code.json');
                     if (file_exists($filePathAdpCode)) {
-                        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($filePathAdpCode);
-                        $sheet = $spreadsheet->getActiveSheet();
-                        $row_limit = $sheet->getHighestDataRow();
+                        $jsonData = json_decode(file_get_contents($filePathAdpCode), true);
+                        if (json_last_error() !== JSON_ERROR_NONE) {
+                            throw new \Exception("ไฟล์ lookup_nhso_adp_code.json รูปแบบไม่ถูกต้อง: " . json_last_error_msg());
+                        }
 
                         $cleanPrice = function ($val) {
                             if ($val === null || $val === '-' || trim($val) === '') {
@@ -307,50 +304,56 @@ class MainSettingController extends Controller
                         // Truncate first to have a clean import
                         DB::table('lookup_nhso_adp_code')->truncate();
 
-                        $batchData = [];
-                        $insertedCountCode = 0;
-                        for ($row = 2; $row <= $row_limit; $row++) {
-                            $adp_code = $sheet->getCell('A' . $row)->getValue();
-                            $adp_type_id = $sheet->getCell('B' . $row)->getValue();
-
-                            if (empty($adp_code) || empty($adp_type_id)) {
-                                continue;
-                            }
-
-                            $price_ucs = $cleanPrice($sheet->getCell('E' . $row)->getValue());
-                            $price_ofc = $cleanPrice($sheet->getCell('F' . $row)->getValue());
-                            $price_sss = $cleanPrice($sheet->getCell('G' . $row)->getValue());
-                            $price_lgo = $cleanPrice($sheet->getCell('H' . $row)->getValue());
-                            $price_fs = $cleanPrice($sheet->getCell('I' . $row)->getValue());
-                            $price_ucep = $cleanPrice($sheet->getCell('J' . $row)->getValue());
-                            $ins_ucs = trim($sheet->getCell('K' . $row)->getValue() ?? '');
-                            $ins_ofc = trim($sheet->getCell('L' . $row)->getValue() ?? '');
-                            $fs = trim($sheet->getCell('M' . $row)->getValue() ?? '');
-
-                            $batchData[] = [
-                                'nhso_adp_code' => trim($adp_code),
-                                'nhso_adp_type_id' => intval($adp_type_id),
-                                'nhso_adp_code_name' => $sheet->getCell('C' . $row)->getValue() ?? '',
-                                'category' => $sheet->getCell('D' . $row)->getValue(),
-                                'price_ucs' => $price_ucs,
-                                'price_ofc' => $price_ofc,
-                                'price_sss' => $price_sss,
-                                'price_lgo' => $price_lgo,
-                                'price_fs' => $price_fs,
-                                'price_ucep' => $price_ucep,
-                                'ins_ucs' => $ins_ucs,
-                                'ins_ofc' => $ins_ofc,
-                                'fs' => $fs,
-                                'created_at' => now(),
-                                'updated_at' => now()
-                            ];
-                            $insertedCountCode++;
-                        }
-
                         DB::beginTransaction();
                         try {
-                            foreach (array_chunk($batchData, 500) as $chunk) {
-                                DB::table('lookup_nhso_adp_code')->insert($chunk);
+                            $batchData = [];
+                            $insertedCountCode = 0;
+
+                            foreach ($jsonData as $row) {
+                                $adp_code = $row['nhso_adp_code'] ?? null;
+                                $adp_type_id = $row['nhso_adp_type_id'] ?? null;
+
+                                if (empty($adp_code) || empty($adp_type_id)) {
+                                    continue;
+                                }
+
+                                $price_ucs = $cleanPrice($row['price_ucs'] ?? null);
+                                $price_ofc = $cleanPrice($row['price_ofc'] ?? null);
+                                $price_sss = $cleanPrice($row['price_sss'] ?? null);
+                                $price_lgo = $cleanPrice($row['price_lgo'] ?? null);
+                                $price_fs = $cleanPrice($row['price_fs'] ?? null);
+                                $price_ucep = $cleanPrice($row['price_ucep'] ?? null);
+                                $ins_ucs = trim($row['ins_ucs'] ?? '');
+                                $ins_ofc = trim($row['ins_ofc'] ?? '');
+                                $fs = trim($row['fs'] ?? '');
+
+                                $batchData[] = [
+                                    'nhso_adp_code' => trim($adp_code),
+                                    'nhso_adp_type_id' => intval($adp_type_id),
+                                    'nhso_adp_code_name' => $row['nhso_adp_code_name'] ?? '',
+                                    'category' => $row['category'] ?? null,
+                                    'price_ucs' => $price_ucs,
+                                    'price_ofc' => $price_ofc,
+                                    'price_sss' => $price_sss,
+                                    'price_lgo' => $price_lgo,
+                                    'price_fs' => $price_fs,
+                                    'price_ucep' => $price_ucep,
+                                    'ins_ucs' => $ins_ucs,
+                                    'ins_ofc' => $ins_ofc,
+                                    'fs' => $fs,
+                                    'created_at' => now(),
+                                    'updated_at' => now()
+                                ];
+                                $insertedCountCode++;
+
+                                if (count($batchData) >= 500) {
+                                    DB::table('lookup_nhso_adp_code')->insert($batchData);
+                                    $batchData = [];
+                                }
+                            }
+
+                            if (!empty($batchData)) {
+                                DB::table('lookup_nhso_adp_code')->insert($batchData);
                             }
                             DB::commit();
                             $report[] = "adp_code ($insertedCountCode รายการ)";
@@ -432,45 +435,50 @@ class MainSettingController extends Controller
                             $batchIcd = [];
                             $insertedCountIcd = 0;
 
-                            for ($i = 0; $i < $num_records; $i++) {
-                                $record = fread($handle, $record_size);
-                                if (strlen($record) < $record_size) {
-                                    break;
-                                }
-                                if ($record[0] === '*') {
-                                    continue;
-                                }
-                                $offset = 1;
-                                $row = [];
-                                foreach ($fields as $f) {
-                                    $val = substr($record, $offset, $f['length']);
-                                    $row[$f['name']] = trim(iconv('TIS-620', 'UTF-8//IGNORE', $val));
-                                    $offset += $f['length'];
-                                }
-
-                                $batchIcd[] = [
-                                    'code' => $row['CODE'] ?? '',
-                                    'accpdx' => $row['ACCPDX'] ?? null,
-                                    'code_cat' => $row['CODE_CAT'] ?? null,
-                                    'desc' => $row['DESC'] ?? null,
-                                    'created_at' => now(),
-                                    'updated_at' => now()
-                                ];
-                                $insertedCountIcd++;
-                            }
-                            fclose($handle);
-
                             DB::beginTransaction();
                             try {
-                                foreach (array_chunk($batchIcd, 500) as $chunk) {
-                                    DB::table('lookup_icd10_chi')->insert($chunk);
+                                for ($i = 0; $i < $num_records; $i++) {
+                                    $record = fread($handle, $record_size);
+                                    if (strlen($record) < $record_size) {
+                                        break;
+                                    }
+                                    if ($record[0] === '*') {
+                                        continue;
+                                    }
+                                    $offset = 1;
+                                    $row = [];
+                                    foreach ($fields as $f) {
+                                        $val = substr($record, $offset, $f['length']);
+                                        $row[$f['name']] = trim(iconv('TIS-620', 'UTF-8//IGNORE', $val));
+                                        $offset += $f['length'];
+                                    }
+
+                                    $batchIcd[] = [
+                                        'code' => $row['CODE'] ?? '',
+                                        'accpdx' => $row['ACCPDX'] ?? null,
+                                        'code_cat' => $row['CODE_CAT'] ?? null,
+                                        'desc' => $row['DESC'] ?? null,
+                                        'created_at' => now(),
+                                        'updated_at' => now()
+                                    ];
+                                    $insertedCountIcd++;
+
+                                    if (count($batchIcd) >= 1000) {
+                                        DB::table('lookup_icd10_chi')->insert($batchIcd);
+                                        $batchIcd = [];
+                                    }
+                                }
+                                if (!empty($batchIcd)) {
+                                    DB::table('lookup_icd10_chi')->insert($batchIcd);
                                 }
                                 DB::commit();
                                 $report[] = "lookup_icd10_chi ($insertedCountIcd รายการ)";
                             } catch (\Throwable $e) {
                                 DB::rollBack();
+                                fclose($handle);
                                 throw $e;
                             }
+                            fclose($handle);
                         } else {
                             $report[] = "lookup_icd10_chi (ไม่สามารถเปิดไฟล์)";
                         }

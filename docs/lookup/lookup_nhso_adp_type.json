@@ -1,0 +1,82 @@
+[
+    {
+        "nhso_adp_type_id": 1,
+        "nhso_adp_type_name": "01-HC (OPD)"
+    },
+    {
+        "nhso_adp_type_id": 2,
+        "nhso_adp_type_name": "02-Instrument"
+    },
+    {
+        "nhso_adp_type_id": 3,
+        "nhso_adp_type_name": "03-ค่าบริการอื่นๆ ที่ยังไมได้จัดหมวด"
+    },
+    {
+        "nhso_adp_type_id": 4,
+        "nhso_adp_type_name": "04-ค่าส่งเสริมป้องกัน\/บริการเฉพาะ"
+    },
+    {
+        "nhso_adp_type_id": 5,
+        "nhso_adp_type_name": "05-Project code"
+    },
+    {
+        "nhso_adp_type_id": 6,
+        "nhso_adp_type_name": "06-การรักษามะเร็ง 10 ชนิดตามโปรโตคอล"
+    },
+    {
+        "nhso_adp_type_id": 7,
+        "nhso_adp_type_name": "07-การรักษาโรคมะเร็งด้วยรังสีวิทยา"
+    },
+    {
+        "nhso_adp_type_id": 8,
+        "nhso_adp_type_name": "08-OP Refer และรายการ FeeSchedule"
+    },
+    {
+        "nhso_adp_type_id": 9,
+        "nhso_adp_type_name": "09-การตรวจวินิจฉัยด้วยวิธีพิเศษอื่น"
+    },
+    {
+        "nhso_adp_type_id": 10,
+        "nhso_adp_type_name": "10-ค่าห้อง\/ค่าอาหาร"
+    },
+    {
+        "nhso_adp_type_id": 11,
+        "nhso_adp_type_name": "11-เวชภัณฑ์ที่ไม่ใช่ยา"
+    },
+    {
+        "nhso_adp_type_id": 12,
+        "nhso_adp_type_name": "12-ค่าบริการทันตกรรม"
+    },
+    {
+        "nhso_adp_type_id": 13,
+        "nhso_adp_type_name": "13-ค่าบริการฝังเข็ม"
+    },
+    {
+        "nhso_adp_type_id": 14,
+        "nhso_adp_type_name": "14-ค่าบริการโลหิตและส่วนประกอบของโลหิต"
+    },
+    {
+        "nhso_adp_type_id": 15,
+        "nhso_adp_type_name": "15-ค่าตรวจวินิจฉัยทางเทคนิคการแพทย์และพยาธิวิทยา"
+    },
+    {
+        "nhso_adp_type_id": 16,
+        "nhso_adp_type_name": "16-ค่าตรวจวินิจฉัยและรักษาทางรังสีวิทยา"
+    },
+    {
+        "nhso_adp_type_id": 17,
+        "nhso_adp_type_name": "17-ค่าบริการทางการพยาบาล"
+    },
+    {
+        "nhso_adp_type_id": 18,
+        "nhso_adp_type_name": "18-ค่าอุปกรณ์และเครื่องมือทางการแพทย์"
+    },
+    {
+        "nhso_adp_type_id": 19,
+        "nhso_adp_type_name": "19-ค่าหัตถการและวิสัญญี"
+    },
+    {
+        "nhso_adp_type_id": 20,
+        "nhso_adp_type_name": "20-ค่าบริการทางกายภาพบำบัดและเวชกรรมฟื้นฟู"
+    }
+]

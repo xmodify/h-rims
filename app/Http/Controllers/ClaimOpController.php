@@ -707,11 +707,11 @@ class ClaimOpController extends Controller
 			p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
-            v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
-            COALESCE(claim_items.other_price, 0) AS other_price,v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0) AS claim_price,
+            COALESCE(claim_items.total_income, 0) AS income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+            COALESCE(claim_items.other_price, 0) AS other_price,COALESCE(claim_items.total_income, 0)-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0) AS claim_price,
             CASE 
                 WHEN er.vn IS NOT NULL AND v1.vn IS NULL THEN 
-                    IF((v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0)) > 700, 700, (v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0)))
+                    IF((COALESCE(claim_items.total_income, 0)-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0)) > 700, 700, (COALESCE(claim_items.total_income, 0)-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0)))
                 WHEN lh.hmain_sss = "Y" THEN 370
                 ELSE 120
             END AS cfo_price,
@@ -737,16 +737,17 @@ class ClaimOpController extends Controller
 			LEFT JOIN vn_stat v1 ON v1.vn = o.vn AND v1.pdx IN ("Z242","Z235","Z439","Z488","Z480","Z098","Z549","Z479")
             LEFT JOIN (
                 SELECT op.vn, 
-                    GROUP_CONCAT(DISTINCT sd.`name`) AS other_list,
-                    SUM(op.sum_price) AS other_price
+                    SUM(op.sum_price) AS total_income,
+                    GROUP_CONCAT(DISTINCT CASE WHEN li.icode IS NOT NULL THEN sd.`name` END) AS other_list,
+                    SUM(CASE WHEN li.icode IS NOT NULL THEN op.sum_price ELSE 0 END) AS other_price
                 FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN hrims.lookup_icode li ON op.icode = li.icode
                 LEFT JOIN s_drugitems sd ON sd.icode=op.icode
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
             ) claim_items ON claim_items.vn = o.vn            
             WHERE (o.an ="" OR o.an IS NULL) AND p.hipdata_code IN ("UCS","WEL") AND o.vstdate BETWEEN ? AND ? 
-            AND v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0) <> 0
+            AND COALESCE(claim_items.total_income, 0)-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0) <> 0
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE in_province = "Y"	AND (hmain_ucs IS NULL OR hmain_ucs =""))
             AND v.pdx NOT IN (SELECT icd10 FROM hrims.lookup_icd10)
             GROUP BY o.vn ORDER BY vp.hospmain,pt_status DESC,o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date]);
@@ -854,9 +855,9 @@ class ClaimOpController extends Controller
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,COALESCE(op_data.total_income, 0) AS income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             COALESCE(op_data.other_price, 0) AS other_price,
-            v.income - IFNULL(rc.rcpt_money, 0) - COALESCE(op_data.other_price, 0) AS claim_price,
+            COALESCE(op_data.total_income, 0) - IFNULL(rc.rcpt_money, 0) - COALESCE(op_data.other_price, 0) AS claim_price,
             op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
             fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,MAX(ec.check_detail) AS check_detail
             FROM ovst o
@@ -878,6 +879,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN (
                 SELECT op.vn, 
+                    SUM(op.sum_price) AS total_income,
                     SUM(CASE WHEN (li.ems = "Y" OR li.kidney = "Y") THEN op.sum_price ELSE 0 END) AS other_price,
                     GROUP_CONCAT(DISTINCT CASE WHEN n.nhso_adp_code IN ("WALKIN","UCEP24") THEN n.nhso_adp_code END) AS project,
                     MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) AS is_kidney
@@ -913,9 +915,9 @@ class ClaimOpController extends Controller
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,COALESCE(op_data.total_income, 0) AS income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             COALESCE(op_data.other_price, 0) AS other_price,
-            v.income - IFNULL(rc.rcpt_money, 0) - COALESCE(op_data.other_price, 0) AS claim_price,
+            COALESCE(op_data.total_income, 0) - IFNULL(rc.rcpt_money, 0) - COALESCE(op_data.other_price, 0) AS claim_price,
             op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
             stm.receive_total,stm.repno,
             fdh.status_message_th AS fdh_status,MAX(ec.status) AS ec_status,MAX(ec.check_detail) AS check_detail
@@ -938,6 +940,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn            
             LEFT JOIN (
                 SELECT op.vn, 
+                    SUM(op.sum_price) AS total_income,
                     SUM(CASE WHEN (li.ems = "Y" OR li.kidney = "Y") THEN op.sum_price ELSE 0 END) AS other_price,
                     GROUP_CONCAT(DISTINCT CASE WHEN n.nhso_adp_code IN ("WALKIN","UCEP24") THEN n.nhso_adp_code END) AS project,
                     MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) AS is_kidney
@@ -1337,9 +1340,9 @@ class ClaimOpController extends Controller
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,COALESCE(claim_items.total_income, 0) AS income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             claim_items.claim_list,
-            COALESCE(claim_items.ppfs, 0) AS ppfs,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,rep.rep_eclaim_detail_nhso AS rep_nhso,
+            COALESCE(claim_items.ppfs, 0) AS ppfs,COALESCE(claim_items.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS claim_price,rep.rep_eclaim_detail_nhso AS rep_nhso,
             rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno,
             fdh.status_message_th AS fdh_status,ec.status AS ec_status,
             IF(oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR stm.cid IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL, "Y", "N") AS is_sent
@@ -1360,10 +1363,11 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn        
             LEFT JOIN (
                 SELECT op.vn, 
-                    GROUP_CONCAT(DISTINCT IFNULL(n.`name`,d.`name`)) AS claim_list,
-                    SUM(op.sum_price) AS ppfs
+                    SUM(op.sum_price) AS total_income,
+                    GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN IFNULL(n.`name`,d.`name`) END) AS claim_list,
+                    SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs
                 FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON op.icode = li.icode AND li.ppfs = "Y"
+                LEFT JOIN hrims.lookup_icode li ON op.icode = li.icode
                 LEFT JOIN nondrugitems n ON n.icode=op.icode
                 LEFT JOIN drugitems d ON d.icode=op.icode
                 WHERE op.vstdate BETWEEN ? AND ?
@@ -1520,8 +1524,8 @@ class ClaimOpController extends Controller
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
             vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.refer, 0) AS refer,
-            IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
+            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,COALESCE(op_data.total_income, 0) AS income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.refer, 0) AS refer,
+            IFNULL(COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
             op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
             rep.rep_eclaim_detail_nhso AS rep_nhso,rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno,
             fdh.status_message_th AS fdh_status,ec.status AS ec_status,
@@ -1545,6 +1549,7 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
             LEFT JOIN (
                 SELECT op.vn, 
+                    SUM(op.sum_price) AS total_income,
                     SUM(CASE WHEN n.nhso_adp_code IN ("S1801","S1802") THEN op.sum_price ELSE 0 END) AS refer,
                     GROUP_CONCAT(DISTINCT CASE WHEN n.nhso_adp_code IN ("WALKIN","UCEP24") THEN n.nhso_adp_code END) AS project,
                     MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) AS is_kidney
@@ -1713,11 +1718,11 @@ class ClaimOpController extends Controller
             o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
-            op_data.ppfs_list,v.income,
+            op_data.ppfs_list,COALESCE(op_data.total_income, 0) AS income,
             IFNULL(v.paid_money, 0) AS paid_money,
             IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
             COALESCE(op_data.ems_price, 0) AS ems_price,
-            v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(op_data.ems_price, 0) AS debtor,
+            COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0)-COALESCE(op_data.ems_price, 0) AS debtor,
             ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds
             FROM ovst o
@@ -1738,12 +1743,13 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
                 SELECT op.vn,
+                    SUM(op.sum_price) AS total_income,
                     GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN s.`name` END) AS ppfs_list,
                     SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
                     SUM(CASE WHEN li.ems = "Y" THEN op.sum_price ELSE 0 END) AS ems_price,
                     MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) AS is_kidney
                 FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                 LEFT JOIN nondrugitems n ON n.icode = op.icode
                 LEFT JOIN s_drugitems s ON s.icode = op.icode
                 WHERE op.vstdate BETWEEN ? AND ?
@@ -1789,9 +1795,9 @@ class ClaimOpController extends Controller
             o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
-            oe.upload_datetime AS ecliam,v.income,IFNULL(v.paid_money, 0) AS paid_money,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
+            oe.upload_datetime AS ecliam,COALESCE(op_data.total_income, 0) AS income,IFNULL(v.paid_money, 0) AS paid_money,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
             COALESCE(op_data.ems_price, 0) AS ems_price,
-            v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(op_data.ems_price, 0) AS debtor,
+            COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0)-COALESCE(op_data.ems_price, 0) AS debtor,
             IFNULL(stm.receive_total, 0) + IFNULL(csop.amount, 0) AS receive_total,
             stm_uc.receive_pp,IFNULL(stm.repno,csop.rid) AS repno,ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds
@@ -1813,12 +1819,13 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
                 SELECT op.vn,
+                    SUM(op.sum_price) AS total_income,
                     GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN s.`name` END) AS ppfs_list,
                     SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
                     SUM(CASE WHEN li.ems = "Y" THEN op.sum_price ELSE 0 END) AS ems_price,
                     MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) AS is_kidney
                 FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                 LEFT JOIN nondrugitems n ON n.icode = op.icode
                 LEFT JOIN s_drugitems s ON s.icode = op.icode
                 WHERE op.vstdate BETWEEN ? AND ?
@@ -2246,10 +2253,10 @@ class ClaimOpController extends Controller
             o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
-            op_data.ppfs_list,v.income,
+            op_data.ppfs_list,COALESCE(op_data.total_income, 0) AS income,
             IFNULL(v.paid_money, 0) AS paid_money,
             IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            v.income-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status,
+            COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
             0 AS ems_price
             FROM ovst o
@@ -2270,11 +2277,12 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
                 SELECT op.vn,
+                    SUM(op.sum_price) AS total_income,
                     GROUP_CONCAT(DISTINCT s.`name`) AS ppfs_list,
                     SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
                     MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) AS is_kidney
                 FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                 LEFT JOIN nondrugitems n ON n.icode = op.icode
                 LEFT JOIN s_drugitems s ON s.icode = op.icode
                 WHERE op.vstdate BETWEEN ? AND ?
@@ -2313,10 +2321,10 @@ class ClaimOpController extends Controller
             o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
-            oe.upload_datetime AS ecliam,v.income,
+            oe.upload_datetime AS ecliam,COALESCE(op_data.total_income, 0) AS income,
             IFNULL(v.paid_money, 0) AS paid_money,
             IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            v.income-IFNULL(rc.rcpt_money, 0) AS debtor,stm.compensate_treatment AS receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status,
+            COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,stm.compensate_treatment AS receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status,
             pt.sex, v.age_y, vp.confirm_and_locked, vp.request_funds,
             0 AS ems_price
             FROM ovst o
@@ -2337,11 +2345,12 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
                 SELECT op.vn,
+                    SUM(op.sum_price) AS total_income,
                     GROUP_CONCAT(DISTINCT s.`name`) AS ppfs_list,
                     SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
                     MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) AS is_kidney
                 FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                 LEFT JOIN nondrugitems n ON n.icode = op.icode
                 LEFT JOIN s_drugitems s ON s.icode = op.icode
                 WHERE op.vstdate BETWEEN ? AND ?
@@ -2669,8 +2678,8 @@ class ClaimOpController extends Controller
             IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
-            op_data.ppfs_list,v.income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
-            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status
+            op_data.ppfs_list,COALESCE(op_data.total_income, 0) AS income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
+            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -2689,11 +2698,12 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
                 SELECT op.vn,
+                    SUM(op.sum_price) AS total_income,
                     GROUP_CONCAT(DISTINCT s.`name`) AS ppfs_list,
                     SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
                     MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) AS is_kidney
                 FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                 LEFT JOIN nondrugitems n ON n.icode = op.icode
                 LEFT JOIN s_drugitems s ON s.icode = op.icode
                 WHERE op.vstdate BETWEEN ? AND ?
@@ -2724,9 +2734,9 @@ class ClaimOpController extends Controller
             IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
-            oe.upload_datetime AS ecliam,v.income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
+            oe.upload_datetime AS ecliam,COALESCE(op_data.total_income, 0) AS income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
             IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            v.income-IFNULL(rc.rcpt_money, 0) AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
+            COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -2745,11 +2755,12 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
                 SELECT op.vn,
+                    SUM(op.sum_price) AS total_income,
                     GROUP_CONCAT(DISTINCT s.`name`) AS ppfs_list,
                     SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
                     MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) AS is_kidney
                 FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                 LEFT JOIN nondrugitems n ON n.icode = op.icode
                 LEFT JOIN s_drugitems s ON s.icode = op.icode
                 WHERE op.vstdate BETWEEN ? AND ?
@@ -3066,8 +3077,8 @@ class ClaimOpController extends Controller
             IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
-            op_data.ppfs_list,v.income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
-            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status
+            op_data.ppfs_list,COALESCE(op_data.total_income, 0) AS income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
+            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -3086,11 +3097,12 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
                 SELECT op.vn,
+                    SUM(op.sum_price) AS total_income,
                     GROUP_CONCAT(DISTINCT s.`name`) AS ppfs_list,
                     SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
                     MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) AS is_kidney
                 FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                 LEFT JOIN nondrugitems n ON n.icode = op.icode
                 LEFT JOIN s_drugitems s ON s.icode = op.icode
                 WHERE op.vstdate BETWEEN ? AND ?
@@ -3121,9 +3133,9 @@ class ClaimOpController extends Controller
             IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
-            oe.upload_datetime AS ecliam,v.income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
+            oe.upload_datetime AS ecliam,COALESCE(op_data.total_income, 0) AS income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
             IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            v.income-IFNULL(rc.rcpt_money, 0) AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
+            COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -3142,11 +3154,12 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
                 SELECT op.vn,
+                    SUM(op.sum_price) AS total_income,
                     GROUP_CONCAT(DISTINCT s.`name`) AS ppfs_list,
                     SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
                     MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) AS is_kidney
                 FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                 LEFT JOIN nondrugitems n ON n.icode = op.icode
                 LEFT JOIN s_drugitems s ON s.icode = op.icode
                 WHERE op.vstdate BETWEEN ? AND ?
@@ -3461,8 +3474,8 @@ class ClaimOpController extends Controller
             IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
-            op_data.ppfs_list,v.income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
-            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status
+            op_data.ppfs_list,COALESCE(op_data.total_income, 0) AS income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
+            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -3481,11 +3494,12 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
                 SELECT op.vn,
+                    SUM(op.sum_price) AS total_income,
                     GROUP_CONCAT(DISTINCT s.`name`) AS ppfs_list,
                     SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
                     MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) AS is_kidney
                 FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                 LEFT JOIN nondrugitems n ON n.icode = op.icode
                 LEFT JOIN s_drugitems s ON s.icode = op.icode
                 WHERE op.vstdate BETWEEN ? AND ?
@@ -3516,9 +3530,9 @@ class ClaimOpController extends Controller
             IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
-            oe.upload_datetime AS ecliam,v.income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
+            oe.upload_datetime AS ecliam,COALESCE(op_data.total_income, 0) AS income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
             IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            v.income-IFNULL(rc.rcpt_money, 0) AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
+            COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -3537,11 +3551,12 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
                 SELECT op.vn,
+                    SUM(op.sum_price) AS total_income,
                     GROUP_CONCAT(DISTINCT s.`name`) AS ppfs_list,
                     SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
                     MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) AS is_kidney
                 FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                 LEFT JOIN nondrugitems n ON n.icode = op.icode
                 LEFT JOIN s_drugitems s ON s.icode = op.icode
                 WHERE op.vstdate BETWEEN ? AND ?
@@ -3704,8 +3719,8 @@ class ClaimOpController extends Controller
             IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,
-            op_data.ppfs_list,v.income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
-            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,v.income-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status
+            op_data.ppfs_list,COALESCE(op_data.total_income, 0) AS income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
+            IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -3724,11 +3739,12 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
                 SELECT op.vn,
+                    SUM(op.sum_price) AS total_income,
                     GROUP_CONCAT(DISTINCT s.`name`) AS ppfs_list,
                     SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
                     MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) AS is_kidney
                 FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                 LEFT JOIN nondrugitems n ON n.icode = op.icode
                 LEFT JOIN s_drugitems s ON s.icode = op.icode
                 WHERE op.vstdate BETWEEN ? AND ?
@@ -3759,9 +3775,9 @@ class ClaimOpController extends Controller
             IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,
             CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,os.cc,v.pdx,
             GROUP_CONCAT(DISTINCT od.icd10) AS icd9,op_data.ppfs_list,
-            oe.upload_datetime AS ecliam,v.income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
+            oe.upload_datetime AS ecliam,COALESCE(op_data.total_income, 0) AS income, IFNULL(v.paid_money, 0) AS paid_money, 0 AS ems_price,
             IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.ppfs_price, 0) AS ppfs,
-            v.income-IFNULL(rc.rcpt_money, 0) AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
+            COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS debtor,stm.receive_total,stm_uc.receive_pp,stm.repno,ec.status AS ec_status
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
@@ -3780,11 +3796,12 @@ class ClaimOpController extends Controller
             LEFT JOIN ovst_seq oq ON oq.vn=o.vn
             LEFT JOIN (
                 SELECT op.vn,
+                    SUM(op.sum_price) AS total_income,
                     GROUP_CONCAT(DISTINCT s.`name`) AS ppfs_list,
                     SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs_price,
                     MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) AS is_kidney
                 FROM opitemrece op
-                INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+                LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
                 LEFT JOIN nondrugitems n ON n.icode = op.icode
                 LEFT JOIN s_drugitems s ON s.icode = op.icode
                 WHERE op.vstdate BETWEEN ? AND ?

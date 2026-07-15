@@ -23,7 +23,8 @@ class IncomeController extends Controller
 
     public function opd_income(Request $request)
     {
-        ini_set('max_execution_time', 300);
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
@@ -194,7 +195,8 @@ class IncomeController extends Controller
 
     public function ipd_income(Request $request)
     {
-        ini_set('max_execution_time', 300);
+        set_time_limit(0);
+        ini_set('memory_limit', '1024M');
 
         $budget_year_select = DB::table('budget_year')
             ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')

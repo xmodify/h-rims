@@ -56,7 +56,7 @@ class IncomeController extends Controller
             ->toArray();
 
         // ปลดล็อก Session Lock เพื่อให้หน้าเว็บอื่นหรือปุ่มกดเมนูอื่นๆ สามารถโหลดได้ทันทีโดยไม่ติดคิวคอยสคริปต์นี้ทำงานเสร็จ
-        session()->writeClose();
+        session()->save();
 
         // Query ดึงรายได้รวมของ OPD แยกรายเดือน รายสิทธิ์ และรายหมวด
         $raw_data = DB::connection('hosxp')->select("
@@ -240,7 +240,7 @@ class IncomeController extends Controller
             ->toArray();
 
         // ปลดล็อก Session Lock เพื่อให้หน้าเว็บอื่นหรือปุ่มกดเมนูอื่นๆ สามารถโหลดได้ทันทีโดยไม่ติดคิวคอยสคริปต์นี้ทำงานเสร็จ
-        session()->writeClose();
+        session()->save();
 
         // Query ดึงรายได้รวมของ IPD แยกรายเดือน รายสิทธิ์ และรายหมวด (เชื่อมตาราง ipt ตามวันที่จำหน่ายคนไข้ dchdate)
         $raw_data = DB::connection('hosxp')->select("

@@ -20,6 +20,7 @@ use App\Http\Controllers\CheckLabcatController;
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\OpdController;
 use App\Http\Controllers\IpdController;
+use App\Http\Controllers\IncomeController;
 use App\Http\Controllers\ClaimOpController;
 use App\Http\Controllers\ClaimIpController;
 use App\Http\Controllers\MishosController;
@@ -295,12 +296,15 @@ Route::match(['get', 'post'], 'opd/diag_sepsis', [OpdController::class, 'diag_se
 Route::match(['get', 'post'], 'opd/diag_stroke', [OpdController::class, 'diag_stroke']);
 Route::match(['get', 'post'], 'opd/diag_stemi', [OpdController::class, 'diag_stemi']);
 Route::match(['get', 'post'], 'opd/diag_pneumonia', [OpdController::class, 'diag_pneumonia']);
+Route::match(['get', 'post'], 'opd/income', [IncomeController::class, 'opd_income']);
 
 //Ipd-------------------------------------------------------------------------------------------------------------------------------
 Route::match(['get', 'post'], 'ipd/wait_doctor_dchsummary', [IpdController::class, 'wait_doctor_dchsummary']);
 Route::match(['get', 'post'], 'ipd/wait_icd_coder', [IpdController::class, 'wait_icd_coder']);
 Route::match(['get', 'post'], 'ipd/dchsummary', [IpdController::class, 'dchsummary']);
 Route::match(['get', 'post'], 'ipd/dchsummary_audit', [IpdController::class, 'dchsummary_audit']);
+Route::match(['get', 'post'], 'ipd/ipd_visit', [IpdController::class, 'ipd_visit']);
+Route::match(['get', 'post'], 'ipd/income', [IncomeController::class, 'ipd_income']);
 
 //Claim_OP -------------------------------------------------------------------------------------------------------------------------
 Route::match(['get', 'post'], 'claim_op/ucs_incup', [ClaimOpController::class, 'ucs_incup']);

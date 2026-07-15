@@ -670,34 +670,60 @@
                                         <i class="bi bi-file-earmark-medical-fill me-1" style="color: #60a5fa;"></i> งานเวชระเบียน
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end">
-                                        <!-- เมนูอื่น -->
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('opd/oppp_visit') }}">
-                                                <i class="bi bi-people-fill text-primary me-2"></i> OP-จำนวนผู้มารับบริการ
-                                            </a>
-                                        </li>
-                                        <!-- ชี้ขวา -->
+                                        <!-- ผู้ป่วยนอก (OPD) -->
                                         <li class="dropend position-relative">
-                                            <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#"
-                                                data-bs-toggle="dropdown">
-                                                <i class="bi bi-activity text-danger me-2"></i> OP-รายโรคสำคัญ
+                                            <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                                                <i class="bi bi-person-badge-fill text-primary me-2"></i> ผู้ป่วยนอก OPD
                                             </a>
                                             <ul class="dropdown-menu dropdown-menu-modern">
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('opd/diag_sepsis') }}"><i class="bi bi-chevron-right text-muted me-1"></i> Sepsis</a></li>
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('opd/diag_stroke') }}"><i class="bi bi-chevron-right text-muted me-1"></i> Stroke</a></li>
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('opd/diag_stemi') }}"><i class="bi bi-chevron-right text-muted me-1"></i> Stemi</a></li>
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('opd/diag_pneumonia') }}"><i class="bi bi-chevron-right text-muted me-1"></i> Pneumonia</a></li>
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('opd/oppp_visit') }}">
+                                                        <i class="bi bi-people-fill text-primary me-2"></i> สถิติผู้มารับบริการ OPD
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('opd/income') }}">
+                                                        <i class="bi bi-cash-coin text-primary me-2"></i> รายได้ตามหมวดค่ารักษา OPD
+                                                    </a>
+                                                </li>
                                             </ul>
                                         </li>
-                                        <!-- เมนูอื่น -->
-                                        <li>
-                                            <a class="dropdown-item dropdown-item-modern" href="{{ url('/ipd/dchsummary') }}">
-                                                <i class="bi bi-file-earmark-medical-fill text-success me-2"></i> IP-D/C Summary
+
+                                        <!-- ผู้ป่วยใน (IPD) -->
+                                        <li class="dropend position-relative">
+                                            <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                                                <i class="bi bi-door-open-fill text-success me-2"></i> ผู้ป่วยใน IPD
                                             </a>
+                                            <ul class="dropdown-menu dropdown-menu-modern">
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('ipd/ipd_visit') }}">
+                                                        <i class="bi bi-bar-chart-line-fill text-success me-2"></i> สถิติผู้ป่วยใน IPD
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('ipd/income') }}">
+                                                        <i class="bi bi-cash-coin text-success me-2"></i> รายได้ตามหมวดค่ารักษา IPD
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item dropdown-item-modern" href="{{ url('/ipd/dchsummary') }}">
+                                                        <i class="bi bi-file-earmark-medical-fill text-success me-2"></i> D/C Summary
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </li>
+
+                                        <!-- รายโรคสำคัญ -->
+                                        <li class="dropend position-relative">
+                                            <a class="dropdown-item dropdown-item-modern dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                                                <i class="bi bi-activity text-danger me-2"></i> รายโรคสำคัญ
+                                            </a>
+                                            <ul class="dropdown-menu dropdown-menu-modern">
+                                                <li><a class="dropdown-item dropdown-item-modern" href="{{ url('opd/diag_sepsis') }}"><i class="bi bi-chevron-right text-muted me-1"></i> Sepsis</a></li>
+                                                <li><a class="dropdown-item dropdown-item-modern" href="{{ url('opd/diag_stroke') }}"><i class="bi bi-chevron-right text-muted me-1"></i> Stroke</a></li>
+                                                <li><a class="dropdown-item dropdown-item-modern" href="{{ url('opd/diag_stemi') }}"><i class="bi bi-chevron-right text-muted me-1"></i> Stemi</a></li>
+                                                <li><a class="dropdown-item dropdown-item-modern" href="{{ url('opd/diag_pneumonia') }}"><i class="bi bi-chevron-right text-muted me-1"></i> Pneumonia</a></li>
+                                            </ul>
                                         </li>
                                     </ul>
                                 </li>

@@ -187,7 +187,8 @@ class IncomeController extends Controller
         return response()->json([
             'success' => true,
             'table_html' => $table_html,
-            'chart_data' => $chart_data
+            'chart_data' => $chart_data,
+            'categories' => $categories
         ]);
     }
 
@@ -358,7 +359,8 @@ class IncomeController extends Controller
         return response()->json([
             'success' => true,
             'table_html' => $table_html,
-            'chart_data' => $chart_data
+            'chart_data' => $chart_data,
+            'categories' => $categories
         ]);
     }
 }

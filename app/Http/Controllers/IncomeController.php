@@ -58,22 +58,31 @@ class IncomeController extends Controller
         // Query ดึงรายได้รวมของ OPD แยกรายเดือน รายสิทธิ์ และรายหมวด
         $raw_data = DB::connection('hosxp')->select("
             SELECT 
-                MONTH(o.rxdate) AS month_num,
+                t.month_num,
                 i.drg_chrgitem_id AS group_id,
-                SUM(CASE WHEN p.hipdata_code IN ('UCS', 'WEL') AND o.paidst NOT IN ('01', '03') THEN o.sum_price ELSE 0 END) AS ucs,
-                SUM(CASE WHEN p.hipdata_code = 'OFC' AND o.paidst NOT IN ('01', '03') THEN o.sum_price ELSE 0 END) AS ofc,
-                SUM(CASE WHEN p.hipdata_code = 'LGO' AND o.paidst NOT IN ('01', '03') THEN o.sum_price ELSE 0 END) AS lgo,
-                SUM(CASE WHEN p.hipdata_code IN ('GOF', 'BMT', 'KKT', 'SRT') AND o.paidst NOT IN ('01', '03') THEN o.sum_price ELSE 0 END) AS gov,
-                SUM(CASE WHEN p.hipdata_code IN ('SSS', 'SSI') AND o.paidst NOT IN ('01', '03') THEN o.sum_price ELSE 0 END) AS sss,
-                SUM(CASE WHEN p.hipdata_code IN ('NRD', 'NRH', 'FWF') AND o.paidst NOT IN ('01', '03') THEN o.sum_price ELSE 0 END) AS immigrant,
-                SUM(CASE WHEN p.hipdata_code NOT IN ('UCS', 'WEL', 'OFC', 'LGO', 'GOF', 'BMT', 'KKT', 'SRT', 'SSS', 'SSI', 'NRD', 'NRH', 'FWF') OR p.hipdata_code IS NULL OR o.paidst IN ('01', '03') THEN o.sum_price ELSE 0 END) AS others,
-                SUM(o.sum_price) AS total
-            FROM opitemrece o
-            INNER JOIN pttype p ON p.pttype = o.pttype
-            INNER JOIN income i ON i.income = o.income
-            WHERE o.rxdate BETWEEN ? AND ?
-              AND o.an IS NULL
-            GROUP BY MONTH(o.rxdate), i.drg_chrgitem_id
+                SUM(CASE WHEN p.hipdata_code IN ('UCS', 'WEL') AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS ucs,
+                SUM(CASE WHEN p.hipdata_code = 'OFC' AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS ofc,
+                SUM(CASE WHEN p.hipdata_code = 'LGO' AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS lgo,
+                SUM(CASE WHEN p.hipdata_code IN ('GOF', 'BMT', 'KKT', 'SRT') AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS gov,
+                SUM(CASE WHEN p.hipdata_code IN ('SSS', 'SSI') AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS sss,
+                SUM(CASE WHEN p.hipdata_code IN ('NRD', 'NRH', 'FWF') AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS immigrant,
+                SUM(CASE WHEN p.hipdata_code NOT IN ('UCS', 'WEL', 'OFC', 'LGO', 'GOF', 'BMT', 'KKT', 'SRT', 'SSS', 'SSI', 'NRD', 'NRH', 'FWF') OR p.hipdata_code IS NULL OR t.paidst IN ('01', '03') THEN t.sum_price ELSE 0 END) AS others,
+                SUM(t.sum_price) AS total
+            FROM (
+                SELECT 
+                    MONTH(rxdate) AS month_num,
+                    income,
+                    pttype,
+                    paidst,
+                    SUM(sum_price) AS sum_price
+                FROM opitemrece
+                WHERE rxdate BETWEEN ? AND ?
+                  AND an IS NULL
+                GROUP BY MONTH(rxdate), income, pttype, paidst
+            ) t
+            INNER JOIN income i ON i.income = t.income
+            INNER JOIN pttype p ON p.pttype = t.pttype
+            GROUP BY t.month_num, i.drg_chrgitem_id
         ", [$start_date, $end_date]);
 
         // จัดการโครงสร้างข้อมูลรายเดือนใน PHP
@@ -230,24 +239,33 @@ class IncomeController extends Controller
         // Query ดึงรายได้รวมของ IPD แยกรายเดือน รายสิทธิ์ และรายหมวด (เชื่อมตาราง ipt ตามวันที่จำหน่ายคนไข้ dchdate)
         $raw_data = DB::connection('hosxp')->select("
             SELECT 
-                MONTH(ipt.dchdate) AS month_num,
+                t.month_num,
                 i.drg_chrgitem_id AS group_id,
-                SUM(CASE WHEN p.hipdata_code IN ('UCS', 'WEL') AND o.paidst NOT IN ('01', '03') THEN o.sum_price ELSE 0 END) AS ucs,
-                SUM(CASE WHEN p.hipdata_code = 'OFC' AND o.paidst NOT IN ('01', '03') THEN o.sum_price ELSE 0 END) AS ofc,
-                SUM(CASE WHEN p.hipdata_code = 'LGO' AND o.paidst NOT IN ('01', '03') THEN o.sum_price ELSE 0 END) AS lgo,
-                SUM(CASE WHEN p.hipdata_code IN ('GOF', 'BMT', 'KKT', 'SRT') AND o.paidst NOT IN ('01', '03') THEN o.sum_price ELSE 0 END) AS gov,
-                SUM(CASE WHEN p.hipdata_code IN ('SSS', 'SSI') AND o.paidst NOT IN ('01', '03') THEN o.sum_price ELSE 0 END) AS sss,
-                SUM(CASE WHEN p.hipdata_code IN ('NRD', 'NRH', 'FWF') AND o.paidst NOT IN ('01', '03') THEN o.sum_price ELSE 0 END) AS immigrant,
-                SUM(CASE WHEN p.hipdata_code NOT IN ('UCS', 'WEL', 'OFC', 'LGO', 'GOF', 'BMT', 'KKT', 'SRT', 'SSS', 'SSI', 'NRD', 'NRH', 'FWF') OR p.hipdata_code IS NULL OR o.paidst IN ('01', '03') THEN o.sum_price ELSE 0 END) AS others,
-                SUM(o.sum_price) AS total
-            FROM opitemrece o
-            INNER JOIN ipt ON ipt.an = o.an
-            INNER JOIN pttype p ON p.pttype = o.pttype
-            INNER JOIN income i ON i.income = o.income
-            WHERE ipt.dchdate BETWEEN ? AND ?
-              AND o.an IS NOT NULL 
-              AND o.an <> ''
-            GROUP BY MONTH(ipt.dchdate), i.drg_chrgitem_id
+                SUM(CASE WHEN p.hipdata_code IN ('UCS', 'WEL') AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS ucs,
+                SUM(CASE WHEN p.hipdata_code = 'OFC' AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS ofc,
+                SUM(CASE WHEN p.hipdata_code = 'LGO' AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS lgo,
+                SUM(CASE WHEN p.hipdata_code IN ('GOF', 'BMT', 'KKT', 'SRT') AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS gov,
+                SUM(CASE WHEN p.hipdata_code IN ('SSS', 'SSI') AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS sss,
+                SUM(CASE WHEN p.hipdata_code IN ('NRD', 'NRH', 'FWF') AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS immigrant,
+                SUM(CASE WHEN p.hipdata_code NOT IN ('UCS', 'WEL', 'OFC', 'LGO', 'GOF', 'BMT', 'KKT', 'SRT', 'SSS', 'SSI', 'NRD', 'NRH', 'FWF') OR p.hipdata_code IS NULL OR t.paidst IN ('01', '03') THEN t.sum_price ELSE 0 END) AS others,
+                SUM(t.sum_price) AS total
+            FROM (
+                SELECT 
+                    MONTH(ipt.dchdate) AS month_num,
+                    o.income,
+                    o.pttype,
+                    o.paidst,
+                    SUM(o.sum_price) AS sum_price
+                FROM opitemrece o
+                INNER JOIN ipt ON ipt.an = o.an
+                WHERE ipt.dchdate BETWEEN ? AND ?
+                  AND o.an IS NOT NULL 
+                  AND o.an <> ''
+                GROUP BY MONTH(ipt.dchdate), o.income, o.pttype, o.paidst
+            ) t
+            INNER JOIN income i ON i.income = t.income
+            INNER JOIN pttype p ON p.pttype = t.pttype
+            GROUP BY t.month_num, i.drg_chrgitem_id
         ", [$start_date, $end_date]);
 
         // จัดการโครงสร้างข้อมูลรายเดือนใน PHP

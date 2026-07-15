@@ -108,6 +108,9 @@ class MainSettingController extends Controller
                     \Illuminate\Support\Facades\Schema::dropIfExists('sss_chronic_feedback');
                     \Illuminate\Support\Facades\Schema::dropIfExists('lookup_adp_sss');
 
+                    if (\Illuminate\Support\Facades\Schema::hasTable('stm_seamless_dmis')) {
+                        DB::table('stm_seamless_dmis')->truncate();
+                    }
 
                     $output = new \Symfony\Component\Console\Output\BufferedOutput();
                     \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true], $output);

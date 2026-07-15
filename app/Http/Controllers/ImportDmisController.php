@@ -318,6 +318,17 @@ class ImportDmisController extends Controller
             $budget_year = date('Y') + 543 + (date('m') >= 10 ? 1 : 0);
         }
 
+        // Get DATE_BEGIN and DATE_END from budget_year table
+        $byInfo = DB::table('budget_year')->where('LEAVE_YEAR_ID', $budget_year)->first();
+        if ($byInfo) {
+            $dateBegin = $byInfo->DATE_BEGIN;
+            $dateEnd = $byInfo->DATE_END;
+        } else {
+            $gregorianYear = $budget_year - 543;
+            $dateBegin = ($gregorianYear - 1) . '-10-01';
+            $dateEnd = $gregorianYear . '-09-30';
+        }
+
         $claim_type = $request->claim_type;
         $project = $request->project;
 
@@ -326,7 +337,8 @@ class ImportDmisController extends Controller
                 DB::raw('SUM(claim_price) as total_claim'),
                 DB::raw('SUM(receive_total) as total_receive')
             )
-            ->whereRaw('(2500 + CAST(SUBSTRING(round_no, 5, 2) AS UNSIGNED)) = ?', [$budget_year]);
+            ->whereDate('vstdate', '>=', $dateBegin)
+            ->whereDate('vstdate', '<=', $dateEnd);
 
         if (!empty($claim_type)) {
             $query->where('claim_type_name', $claim_type);
@@ -374,10 +386,11 @@ class ImportDmisController extends Controller
             }
         }
 
-        // Get projects for this budget year dynamically
+        // Get projects for this budget year dynamically based on vstdate
         $project_codes = Stm_seamless_dmis::whereNotNull('round_no')
             ->where('round_no', '<>', '')
-            ->whereRaw('(2500 + CAST(SUBSTRING(round_no, 5, 2) AS UNSIGNED)) = ?', [$budget_year])
+            ->whereDate('vstdate', '>=', $dateBegin)
+            ->whereDate('vstdate', '<=', $dateEnd)
             ->distinct()
             ->pluck(DB::raw('LEFT(round_no, 4)'))
             ->toArray();
@@ -403,22 +416,24 @@ class ImportDmisController extends Controller
             }
         }
 
-        // Get claim types for this budget year dynamically
+        // Get claim types for this budget year dynamically based on vstdate
         $claim_types = Stm_seamless_dmis::whereNotNull('claim_type_name')
             ->where('claim_type_name', '<>', '')
-            ->whereRaw('(2500 + CAST(SUBSTRING(round_no, 5, 2) AS UNSIGNED)) = ?', [$budget_year])
+            ->whereDate('vstdate', '>=', $dateBegin)
+            ->whereDate('vstdate', '<=', $dateEnd)
             ->distinct()
             ->orderBy('claim_type_name')
             ->pluck('claim_type_name')
             ->toArray();
 
-        // Get project to claim types mapping for this budget year dynamically
+        // Get project to claim types mapping for this budget year dynamically based on vstdate
         $raw_mapping = Stm_seamless_dmis::select(DB::raw('LEFT(round_no, 4) as project_code'), 'claim_type_name')
             ->whereNotNull('round_no')
             ->where('round_no', '<>', '')
             ->whereNotNull('claim_type_name')
             ->where('claim_type_name', '<>', '')
-            ->whereRaw('(2500 + CAST(SUBSTRING(round_no, 5, 2) AS UNSIGNED)) = ?', [$budget_year])
+            ->whereDate('vstdate', '>=', $dateBegin)
+            ->whereDate('vstdate', '<=', $dateEnd)
             ->distinct()
             ->get();
         

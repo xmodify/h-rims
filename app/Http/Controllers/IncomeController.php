@@ -94,6 +94,16 @@ class IncomeController extends Controller
             9 => "ก.ย. {$year_short}"
         ];
 
+        // หากเป็นการเปิดหน้าจอครั้งแรก (ไม่ใช่ AJAX) ให้ส่งเฉพาะโครงสร้าง Blade กลับไปทันที
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('opd.opd_income', compact(
+                'budget_year_select',
+                'budget_year',
+                'categories',
+                'months_names'
+            ));
+        }
+
         $report_data = [];
         // สร้างโครงสร้างเปล่าก่อน
         foreach ($months_list as $m) {
@@ -165,16 +175,20 @@ class IncomeController extends Controller
             }
         }
 
-        return view('opd.opd_income', compact(
-            'budget_year_select',
-            'budget_year',
+        // หากเป็น AJAX ดึงข้อมูลหลังโหลดหน้าเสร็จ
+        $table_html = view('opd.opd_income_table', compact(
             'categories',
             'report_data',
             'yearly_data',
             'months_list',
-            'months_names',
-            'chart_data'
-        ));
+            'months_names'
+        ))->render();
+
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'chart_data' => $chart_data
+        ]);
     }
 
     public function ipd_income(Request $request)
@@ -252,6 +266,16 @@ class IncomeController extends Controller
             9 => "ก.ย. {$year_short}"
         ];
 
+        // หากเป็นการเปิดหน้าจอครั้งแรก (ไม่ใช่ AJAX) ให้ส่งเฉพาะโครงสร้าง Blade กลับไปทันที
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('ipd.ipd_income', compact(
+                'budget_year_select',
+                'budget_year',
+                'categories',
+                'months_names'
+            ));
+        }
+
         $report_data = [];
         // สร้างโครงสร้างเปล่าก่อน
         foreach ($months_list as $m) {
@@ -322,15 +346,19 @@ class IncomeController extends Controller
             }
         }
 
-        return view('ipd.ipd_income', compact(
-            'budget_year_select',
-            'budget_year',
+        // หากเป็น AJAX ดึงข้อมูลหลังโหลดหน้าเสร็จ
+        $table_html = view('ipd.ipd_income_table', compact(
             'categories',
             'report_data',
             'yearly_data',
             'months_list',
-            'months_names',
-            'chart_data'
-        ));
+            'months_names'
+        ))->render();
+
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'chart_data' => $chart_data
+        ]);
     }
 }

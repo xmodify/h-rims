@@ -64,12 +64,13 @@ class IncomeController extends Controller
                 t.month_num,
                 i.drg_chrgitem_id AS group_id,
                 SUM(CASE WHEN p.hipdata_code IN ('UCS', 'WEL') AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS ucs,
+                SUM(CASE WHEN p.hipdata_code = 'STP' AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS stp,
                 SUM(CASE WHEN p.hipdata_code = 'OFC' AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS ofc,
                 SUM(CASE WHEN p.hipdata_code = 'LGO' AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS lgo,
                 SUM(CASE WHEN p.hipdata_code IN ('GOF', 'BMT', 'KKT', 'SRT') AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS gov,
                 SUM(CASE WHEN p.hipdata_code IN ('SSS', 'SSI') AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS sss,
                 SUM(CASE WHEN p.hipdata_code IN ('NRD', 'NRH', 'FWF') AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS immigrant,
-                SUM(CASE WHEN p.hipdata_code NOT IN ('UCS', 'WEL', 'OFC', 'LGO', 'GOF', 'BMT', 'KKT', 'SRT', 'SSS', 'SSI', 'NRD', 'NRH', 'FWF') OR p.hipdata_code IS NULL OR t.paidst IN ('01', '03') THEN t.sum_price ELSE 0 END) AS others,
+                SUM(CASE WHEN p.hipdata_code NOT IN ('UCS', 'WEL', 'OFC', 'LGO', 'GOF', 'BMT', 'KKT', 'SRT', 'SSS', 'SSI', 'NRD', 'NRH', 'FWF', 'STP') OR p.hipdata_code IS NULL OR t.paidst IN ('01', '03') THEN t.sum_price ELSE 0 END) AS others,
                 SUM(t.sum_price) AS total
             FROM (
                 SELECT 
@@ -125,7 +126,7 @@ class IncomeController extends Controller
                 $report_data[$m][$catId] = (object)[
                     'group_id' => $catId,
                     'group_name' => $cat->group_name,
-                    'ucs' => 0, 'ofc' => 0, 'lgo' => 0, 'gov' => 0, 'sss' => 0, 'immigrant' => 0, 'others' => 0, 'total' => 0
+                    'ucs' => 0, 'stp' => 0, 'ofc' => 0, 'lgo' => 0, 'gov' => 0, 'sss' => 0, 'immigrant' => 0, 'others' => 0, 'total' => 0
                 ];
             }
         }
@@ -136,7 +137,7 @@ class IncomeController extends Controller
             $yearly_data[$catId] = (object)[
                 'group_id' => $catId,
                 'group_name' => $cat->group_name,
-                'ucs' => 0, 'ofc' => 0, 'lgo' => 0, 'gov' => 0, 'sss' => 0, 'immigrant' => 0, 'others' => 0, 'total' => 0
+                'ucs' => 0, 'stp' => 0, 'ofc' => 0, 'lgo' => 0, 'gov' => 0, 'sss' => 0, 'immigrant' => 0, 'others' => 0, 'total' => 0
             ];
         }
 
@@ -146,6 +147,7 @@ class IncomeController extends Controller
             $catId = (int)$row->group_id;
             if (isset($report_data[$m][$catId])) {
                 $report_data[$m][$catId]->ucs = round((double)$row->ucs, 2);
+                $report_data[$m][$catId]->stp = round((double)$row->stp, 2);
                 $report_data[$m][$catId]->ofc = round((double)$row->ofc, 2);
                 $report_data[$m][$catId]->lgo = round((double)$row->lgo, 2);
                 $report_data[$m][$catId]->gov = round((double)$row->gov, 2);
@@ -157,6 +159,7 @@ class IncomeController extends Controller
 
             if (isset($yearly_data[$catId])) {
                 $yearly_data[$catId]->ucs = round($yearly_data[$catId]->ucs + (double)$row->ucs, 2);
+                $yearly_data[$catId]->stp = round($yearly_data[$catId]->stp + (double)$row->stp, 2);
                 $yearly_data[$catId]->ofc = round($yearly_data[$catId]->ofc + (double)$row->ofc, 2);
                 $yearly_data[$catId]->lgo = round($yearly_data[$catId]->lgo + (double)$row->lgo, 2);
                 $yearly_data[$catId]->gov = round($yearly_data[$catId]->gov + (double)$row->gov, 2);
@@ -248,12 +251,13 @@ class IncomeController extends Controller
                 t.month_num,
                 i.drg_chrgitem_id AS group_id,
                 SUM(CASE WHEN p.hipdata_code IN ('UCS', 'WEL') AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS ucs,
+                SUM(CASE WHEN p.hipdata_code = 'STP' AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS stp,
                 SUM(CASE WHEN p.hipdata_code = 'OFC' AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS ofc,
                 SUM(CASE WHEN p.hipdata_code = 'LGO' AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS lgo,
                 SUM(CASE WHEN p.hipdata_code IN ('GOF', 'BMT', 'KKT', 'SRT') AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS gov,
                 SUM(CASE WHEN p.hipdata_code IN ('SSS', 'SSI') AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS sss,
                 SUM(CASE WHEN p.hipdata_code IN ('NRD', 'NRH', 'FWF') AND t.paidst NOT IN ('01', '03') THEN t.sum_price ELSE 0 END) AS immigrant,
-                SUM(CASE WHEN p.hipdata_code NOT IN ('UCS', 'WEL', 'OFC', 'LGO', 'GOF', 'BMT', 'KKT', 'SRT', 'SSS', 'SSI', 'NRD', 'NRH', 'FWF') OR p.hipdata_code IS NULL OR t.paidst IN ('01', '03') THEN t.sum_price ELSE 0 END) AS others,
+                SUM(CASE WHEN p.hipdata_code NOT IN ('UCS', 'WEL', 'OFC', 'LGO', 'GOF', 'BMT', 'KKT', 'SRT', 'SSS', 'SSI', 'NRD', 'NRH', 'FWF', 'STP') OR p.hipdata_code IS NULL OR t.paidst IN ('01', '03') THEN t.sum_price ELSE 0 END) AS others,
                 SUM(t.sum_price) AS total
             FROM (
                 SELECT 
@@ -311,7 +315,7 @@ class IncomeController extends Controller
                 $report_data[$m][$catId] = (object)[
                     'group_id' => $catId,
                     'group_name' => $cat->group_name,
-                    'ucs' => 0, 'ofc' => 0, 'lgo' => 0, 'gov' => 0, 'sss' => 0, 'immigrant' => 0, 'others' => 0, 'total' => 0
+                    'ucs' => 0, 'stp' => 0, 'ofc' => 0, 'lgo' => 0, 'gov' => 0, 'sss' => 0, 'immigrant' => 0, 'others' => 0, 'total' => 0
                 ];
             }
         }
@@ -322,7 +326,7 @@ class IncomeController extends Controller
             $yearly_data[$catId] = (object)[
                 'group_id' => $catId,
                 'group_name' => $cat->group_name,
-                'ucs' => 0, 'ofc' => 0, 'lgo' => 0, 'gov' => 0, 'sss' => 0, 'immigrant' => 0, 'others' => 0, 'total' => 0
+                'ucs' => 0, 'stp' => 0, 'ofc' => 0, 'lgo' => 0, 'gov' => 0, 'sss' => 0, 'immigrant' => 0, 'others' => 0, 'total' => 0
             ];
         }
 
@@ -332,6 +336,7 @@ class IncomeController extends Controller
             $catId = (int)$row->group_id;
             if (isset($report_data[$m][$catId])) {
                 $report_data[$m][$catId]->ucs = round((double)$row->ucs, 2);
+                $report_data[$m][$catId]->stp = round((double)$row->stp, 2);
                 $report_data[$m][$catId]->ofc = round((double)$row->ofc, 2);
                 $report_data[$m][$catId]->lgo = round((double)$row->lgo, 2);
                 $report_data[$m][$catId]->gov = round((double)$row->gov, 2);
@@ -343,6 +348,7 @@ class IncomeController extends Controller
 
             if (isset($yearly_data[$catId])) {
                 $yearly_data[$catId]->ucs = round($yearly_data[$catId]->ucs + (double)$row->ucs, 2);
+                $yearly_data[$catId]->stp = round($yearly_data[$catId]->stp + (double)$row->stp, 2);
                 $yearly_data[$catId]->ofc = round($yearly_data[$catId]->ofc + (double)$row->ofc, 2);
                 $yearly_data[$catId]->lgo = round($yearly_data[$catId]->lgo + (double)$row->lgo, 2);
                 $yearly_data[$catId]->gov = round($yearly_data[$catId]->gov + (double)$row->gov, 2);

@@ -38,6 +38,7 @@
                                 <th>อปท.</th>
                                 <th>ต้นสังกัด</th>
                                 <th>ประกันสังคม</th>
+                                <th>STP</th>
                                 <th>ต่างด้าว</th>
                                 <th>อื่นๆ</th>
                                 <th>ยอดรวม (บาท)</th>
@@ -45,7 +46,7 @@
                         </thead>
                         <tbody>
                             @php
-                                $sums = ['ucs'=>0, 'ofc'=>0, 'lgo'=>0, 'gov'=>0, 'sss'=>0, 'immigrant'=>0, 'others'=>0, 'total'=>0];
+                                $sums = ['ucs'=>0, 'stp'=>0, 'ofc'=>0, 'lgo'=>0, 'gov'=>0, 'sss'=>0, 'immigrant'=>0, 'others'=>0, 'total'=>0];
                             @endphp
                             @foreach($yearly_data as $row)
                             <tr>
@@ -55,12 +56,13 @@
                                 <td align="right">{{ number_format($row->lgo, 2) }}</td>
                                 <td align="right">{{ number_format($row->gov, 2) }}</td>
                                 <td align="right">{{ number_format($row->sss, 2) }}</td>
+                                <td align="right">{{ number_format($row->stp, 2) }}</td>
                                 <td align="right">{{ number_format($row->immigrant, 2) }}</td>
                                 <td align="right">{{ number_format($row->others, 2) }}</td>
                                 <td align="right" class="fw-bold text-success">{{ number_format($row->total, 2) }}</td>
                             </tr>
                             @php
-                                $sums['ucs'] += $row->ucs; $sums['ofc'] += $row->ofc; $sums['lgo'] += $row->lgo; $sums['gov'] += $row->gov;
+                                $sums['ucs'] += $row->ucs; $sums['stp'] += $row->stp; $sums['ofc'] += $row->ofc; $sums['lgo'] += $row->lgo; $sums['gov'] += $row->gov;
                                 $sums['sss'] += $row->sss; $sums['immigrant'] += $row->immigrant; $sums['others'] += $row->others; $sums['total'] += $row->total;
                             @endphp
                             @endforeach
@@ -73,6 +75,7 @@
                                 <td>{{ number_format($sums['lgo'], 2) }}</td>
                                 <td>{{ number_format($sums['gov'], 2) }}</td>
                                 <td>{{ number_format($sums['sss'], 2) }}</td>
+                                <td>{{ number_format($sums['stp'], 2) }}</td>
                                 <td>{{ number_format($sums['immigrant'], 2) }}</td>
                                 <td>{{ number_format($sums['others'], 2) }}</td>
                                 <td class="text-success">{{ number_format($sums['total'], 2) }}</td>
@@ -105,6 +108,7 @@
                                 <th>อปท.</th>
                                 <th>ต้นสังกัด</th>
                                 <th>ประกันสังคม</th>
+                                <th>STP</th>
                                 <th>ต่างด้าว</th>
                                 <th>อื่นๆ</th>
                                 <th>ยอดรวม (บาท)</th>
@@ -112,7 +116,7 @@
                         </thead>
                         <tbody>
                             @php
-                                $m_sums = ['ucs'=>0, 'ofc'=>0, 'lgo'=>0, 'gov'=>0, 'sss'=>0, 'immigrant'=>0, 'others'=>0, 'total'=>0];
+                                $m_sums = ['ucs'=>0, 'stp'=>0, 'ofc'=>0, 'lgo'=>0, 'gov'=>0, 'sss'=>0, 'immigrant'=>0, 'others'=>0, 'total'=>0];
                             @endphp
                             @foreach($report_data[$m] as $row)
                             <tr>
@@ -122,12 +126,13 @@
                                 <td align="right">{{ number_format($row->lgo, 2) }}</td>
                                 <td align="right">{{ number_format($row->gov, 2) }}</td>
                                 <td align="right">{{ number_format($row->sss, 2) }}</td>
+                                <td align="right">{{ number_format($row->stp, 2) }}</td>
                                 <td align="right">{{ number_format($row->immigrant, 2) }}</td>
                                 <td align="right">{{ number_format($row->others, 2) }}</td>
                                 <td align="right" class="fw-bold text-success">{{ number_format($row->total, 2) }}</td>
                             </tr>
                             @php
-                                $m_sums['ucs'] += $row->ucs; $m_sums['ofc'] += $row->ofc; $m_sums['lgo'] += $row->lgo; $m_sums['gov'] += $row->gov;
+                                $m_sums['ucs'] += $row->ucs; $m_sums['stp'] += $row->stp; $m_sums['ofc'] += $row->ofc; $m_sums['lgo'] += $row->lgo; $m_sums['gov'] += $row->gov;
                                 $m_sums['sss'] += $row->sss; $m_sums['immigrant'] += $row->immigrant; $m_sums['others'] += $row->others; $m_sums['total'] += $row->total;
                             @endphp
                             @endforeach
@@ -140,6 +145,7 @@
                                 <td>{{ number_format($m_sums['lgo'], 2) }}</td>
                                 <td>{{ number_format($m_sums['gov'], 2) }}</td>
                                 <td>{{ number_format($m_sums['sss'], 2) }}</td>
+                                <td>{{ number_format($m_sums['stp'], 2) }}</td>
                                 <td>{{ number_format($m_sums['immigrant'], 2) }}</td>
                                 <td>{{ number_format($m_sums['others'], 2) }}</td>
                                 <td class="text-success">{{ number_format($m_sums['total'], 2) }}</td>

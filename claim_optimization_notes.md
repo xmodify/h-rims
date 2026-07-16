@@ -156,6 +156,9 @@ When implementing modals like `showDetails(vn)`, return structured JSON from the
 | `claim_op/ucs_outprovince` | ✅ | ✅ | ✅ | Applied 2026-07-16 |
 | `claim_op/ucs_inprovince` | ✅ | ✅ | — | Has date-range filter (no tab style needed) |
 | `claim_op/ucs_kidney` | ✅ | ✅ | ✅ | Applied 2026-07-16 |
+| `claim_op/ofc` | ✅ | ✅ | ✅ | Applied 2026-07-16 |
+| `claim_op/stp_incup` | ✅ | ✅ | — | Applied 2026-07-16 |
+| `claim_op/stp_outcup` | ✅ | ✅ | — | Applied 2026-07-16 |
 
 > [!TIP]
 > When optimizing a new module, apply patterns in order: **2 → 3 → 4**. Pattern 1 (SQL pre-aggregation) is optional but recommended for modules with large `opitemrece` joins.

@@ -1159,13 +1159,14 @@ class ClaimOpController extends Controller
             SELECT o.vn, o.vstdate, o.vsttime, o.oqueue,
                    pt.hn, pt.sex, v.age_y, pt.cid,
                    CONCAT(pt.pname,pt.fname," ",pt.lname) AS ptname,
-                   p.name AS pttype, vp.hospmain, os.cc, (SELECT icd10 FROM ovstdiag WHERE vn = o.vn AND diagtype = "1" LIMIT 1) AS pdx,
-                   v.income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
+                   p.name AS pttype, p.hipdata_code, vp.hospmain, os.cc, (SELECT icd10 FROM ovstdiag WHERE vn = o.vn AND diagtype = "1" LIMIT 1) AS pdx,
+                   v.income, v.uc_money, v.debt_id_list, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                    IF((vp.auth_code IS NOT NULL AND vp.auth_code <> ""),"Y",NULL) AS auth_code,
                    IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
                    ep.claim_status,
                    fdh.status_message_th AS fdh_status,
-                   vp.confirm_and_locked
+                   vp.confirm_and_locked,
+                   vp.request_funds
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
@@ -1190,8 +1191,6 @@ class ClaimOpController extends Controller
             ->toArray();
         $visit->sdx = implode(',', $secDiags);
 
-
-
         // รหัสหัตถการ (ICD-9/Procedure)
         $procedures = DB::connection('hosxp')
             ->table('ovstdiag')
@@ -1201,6 +1200,49 @@ class ClaimOpController extends Controller
             ->toArray();
         $visit->icd9 = implode(',', $procedures);
 
+        // รายการเวชภัณฑ์/ค่าใช้จ่ายที่เรียกเก็บ
+        $items = DB::connection('hosxp')->select('
+            SELECT op.icode, IFNULL(n.name, d.name) AS name,
+                   op.qty, op.unitprice, op.sum_price,
+                   li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
+                   op.paidst AS paids, pst.name AS paids_name,
+                   op.pttype, ptt.name AS pttype_name,
+                   COALESCE(d3.ref_code, d.sks_drug_code) AS tmtid
+            FROM opitemrece op
+            INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+            LEFT JOIN nondrugitems n ON n.icode = op.icode
+            LEFT JOIN drugitems d ON d.icode = op.icode
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode = op.icode AND d3.drugitems_ref_code_type_id = 3
+            LEFT JOIN paidst pst ON pst.paidst = op.paidst
+            LEFT JOIN pttype ptt ON ptt.pttype = op.pttype
+            WHERE op.vn = ?
+            AND (li.uc_cr = "Y" OR li.ppfs = "Y" OR li.herb32 = "Y")', [$vn]);
+
+        // แนบ ins_ucs flag จาก lookup_nhso_adp_code เพื่อตรวจสอบว่าอยู่ในประกาศ UCS หรือเปล่า
+        $adpCodes = collect($items)->pluck('nhso_adp_code')->filter()->unique()->values()->toArray();
+        $insUcsMap = [];
+        if (!empty($adpCodes) && \Illuminate\Support\Facades\Schema::hasTable('lookup_nhso_adp_code')) {
+            $insRecords = DB::table('lookup_nhso_adp_code')
+                ->whereIn('nhso_adp_code', $adpCodes)
+                ->where('nhso_adp_type_id', 2)
+                ->pluck('ins_ucs', 'nhso_adp_code');
+            $insUcsMap = $insRecords->toArray();
+        }
+        foreach ($items as $item) {
+            $item->ins_ucs = $insUcsMap[$item->nhso_adp_code] ?? null;
+        }
+
+        // Validate
+        $validator = new \App\Services\ClaimValidator();
+        $validation = $validator->validateUcs($visit, $items);
+
+        return response()->json([
+            'visit'      => $visit,
+            'sec_diags'  => $secDiags,
+            'procedures' => $procedures,
+            'items'      => $items,
+            'validation' => $validation,
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_kidney(Request $request)
@@ -1391,7 +1433,7 @@ class ClaimOpController extends Controller
         return view('claim_op.ucs_kidney', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
- public function stp_incup(Request $request)
+     public function stp_incup(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
 
@@ -1420,77 +1462,97 @@ class ClaimOpController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
-            SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,
-                SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,
-                SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,stm.receive_total,
-                  CASE WHEN oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL OR rep.vn IS NOT NULL THEN (v.income-IFNULL(rc.rcpt_money, 0)) ELSE 0 END AS claim_sent_price
-            FROM ovst o
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype           
-            LEFT JOIN vn_stat v ON v.vn = o.vn           
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
-            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
-            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
-            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
-                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
-            LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
-            LEFT JOIN ( 
-                SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
-                GROUP_CONCAT(DISTINCT repno) AS repno FROM hrims.stm_ucs
-                WHERE vstdate BETWEEN ? AND ?
-                GROUP BY cid, vstdate, LEFT(TIME(datetimeadm),5)
-            ) stm ON stm.cid = pt.cid 
-                AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
-            WHERE (o.an ="" OR o.an IS NULL) 
-            AND o.vstdate BETWEEN ? AND ?
-            AND p.hipdata_code = "STP" 
-            AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")            
-            GROUP BY o.vn ) AS a
-			GROUP BY YEAR(vstdate), MONTH(vstdate)
-            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
+        // ── Early Return for Initial Page Load (Pattern 2) ──────────────────
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_op.stp_incup', compact(
+                'budget_year_select',
+                'budget_year',
+                'start_date',
+                'end_date'
+            ));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $sum_month = null;
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        // ── Conditional Chart Query (Pattern 3) ─────────────────────────────
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
+                SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                    END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,
+                    SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,
+                    SUM(IFNULL(receive_total,0)) AS receive_total
+                FROM (SELECT o.vstdate,o.vsttime,o.vn,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,stm.receive_total,
+                      CASE WHEN oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL OR rep.vn IS NOT NULL THEN (v.income-IFNULL(rc.rcpt_money, 0)) ELSE 0 END AS claim_sent_price
+                FROM ovst o
+                LEFT JOIN patient pt ON pt.hn=o.hn
+                LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+                LEFT JOIN pttype p ON p.pttype=vp.pttype           
+                LEFT JOIN vn_stat v ON v.vn = o.vn 
+                LEFT JOIN (
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money
+                    FROM rcpt_print r
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                    WHERE a.rcpno IS NULL
+                    GROUP BY r.vn
+                ) rc ON rc.vn = o.vn
+                LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
+                LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
+                    AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
+                LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
+                LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
+                LEFT JOIN ( 
+                    SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total
+                    FROM hrims.stm_ucs
+                    WHERE vstdate BETWEEN ? AND ?
+                    GROUP BY cid, vstdate, LEFT(TIME(datetimeadm),5)
+                ) stm ON stm.cid = pt.cid 
+                    AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
+                WHERE (o.an ="" OR o.an IS NULL) 
+                AND o.vstdate BETWEEN ? AND ?
+                AND p.hipdata_code = "STP" 
+                AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
+                GROUP BY o.vn  ) AS a
+                GROUP BY YEAR(vstdate), MONTH(vstdate)
+                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
 
         $visits = DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
-            vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
-            CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,COALESCE(claim_items.total_income, 0) AS income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+            IF(rep.vn IS NOT NULL,"Y",IF((oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL),"Y","N")) AS is_sent,
+            vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.hn,o.vn AS seq,
+            CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,
             claim_items.claim_list,
-            COALESCE(claim_items.ppfs, 0) AS ppfs,COALESCE(claim_items.total_income, 0)-IFNULL(rc.rcpt_money, 0) AS claim_price,rep.rep_eclaim_detail_nhso AS rep_nhso,
-            rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno,
-            fdh.status_message_th AS fdh_status,ec.status AS ec_status,
-            IF(oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR stm.cid IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL, "Y", "N") AS is_sent
+            v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+            v.income - IFNULL(rc.rcpt_money, 0) AS claim_price,
+            stm.receive_total,stm.repno
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
-            LEFT JOIN opdscreen os ON os.vn=o.vn
-            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
                 SELECT r.vn, SUM(r.total_amount) AS rcpt_money
@@ -1548,7 +1610,7 @@ class ClaimOpController extends Controller
                 $allVns);
             $adpCodes = collect($rawItems)->pluck('nhso_adp_code')->filter()->unique()->values()->toArray();
             $insUcsMap = [];
-            if (!empty($adpCodes) && \Illuminate\Support\Facades\Schema::hasTable('lookup_nhso_adp_code')) {
+            if (!empty($adpCodes) && \IlluminateSupport\Facades\Schema::hasTable('lookup_nhso_adp_code')) {
                 $insUcsMap = DB::table('lookup_nhso_adp_code')
                     ->whereIn('nhso_adp_code', $adpCodes)
                     ->where('nhso_adp_type_id', 2)
@@ -1571,9 +1633,27 @@ class ClaimOpController extends Controller
             $row->validation_warnings = $result['warnings'];
         }
 
+        // ── AJAX JSON Response (Pattern 2) ──────────────────────────────────
+        if ($request->ajax()) {
+            $table_html = view('claim_op.stp_incup_table', compact(
+                'visits', 'budget_year', 'start_date', 'end_date'
+            ))->render();
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'chart_data' => $sum_month ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
         return view('claim_op.stp_incup', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'visits'));
     }
-    //----------------------------------------------------------------------------------------------------------------------------------------
+
     public function stp_outcup(Request $request)
     {
         ini_set('max_execution_time', 0); // เพิ่มเป็น 5 นาที
@@ -1603,80 +1683,97 @@ class ClaimOpController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
-            SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,
-                SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,
-                SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vsttime,o.vn,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,stm.receive_total,
-                  CASE WHEN oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL OR rep.vn IS NOT NULL THEN IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) ELSE 0 END AS claim_sent_price
-            FROM ovst o
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype           
-            LEFT JOIN vn_stat v ON v.vn = o.vn           
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
-            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
-            LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
-            LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
-                AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
-            LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
-            LEFT JOIN ( 
-                SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total,
-                GROUP_CONCAT(DISTINCT repno) AS repno FROM hrims.stm_ucs
-                WHERE vstdate BETWEEN ? AND ?
-                GROUP BY cid, vstdate, LEFT(TIME(datetimeadm),5)
-            ) stm ON stm.cid = pt.cid 
-                AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
-            WHERE (o.an ="" OR o.an IS NULL) 
-            AND o.vstdate BETWEEN ? AND ?
-            AND p.hipdata_code = "STP" 
-            AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
-            AND NOT EXISTS (SELECT 1 FROM opitemrece kidney LEFT JOIN nondrugitems n ON n.icode=kidney.icode WHERE kidney.vn=o.vn AND n.billcode = "71641")
-            GROUP BY o.vn ) AS a
-			GROUP BY YEAR(vstdate), MONTH(vstdate)
-            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
+        // ── Early Return for Initial Page Load (Pattern 2) ──────────────────
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_op.stp_outcup', compact(
+                'budget_year_select',
+                'budget_year',
+                'start_date',
+                'end_date'
+            ));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $sum_month = null;
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        // ── Conditional Chart Query (Pattern 3) ─────────────────────────────
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
+                SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                    END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,
+                    SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,
+                    SUM(IFNULL(receive_total,0)) AS receive_total
+                FROM (SELECT o.vstdate,o.vsttime,o.vn,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,stm.receive_total,
+                      CASE WHEN oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL OR rep.vn IS NOT NULL THEN (v.income-IFNULL(rc.rcpt_money, 0)) ELSE 0 END AS claim_sent_price
+                FROM ovst o
+                LEFT JOIN patient pt ON pt.hn=o.hn
+                LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+                LEFT JOIN pttype p ON p.pttype=vp.pttype           
+                LEFT JOIN vn_stat v ON v.vn = o.vn 
+                LEFT JOIN (
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money
+                    FROM rcpt_print r
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                    WHERE a.rcpno IS NULL
+                    GROUP BY r.vn
+                ) rc ON rc.vn = o.vn
+                LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
+                LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
+                    AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
+                LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
+                LEFT JOIN rep_eclaim_detail rep ON rep.vn=o.vn
+                LEFT JOIN ( 
+                    SELECT cid, vstdate, LEFT(TIME(datetimeadm),5) AS vsttime5,SUM(receive_total) AS receive_total
+                    FROM hrims.stm_ucs
+                    WHERE vstdate BETWEEN ? AND ?
+                    GROUP BY cid, vstdate, LEFT(TIME(datetimeadm),5)
+                ) stm ON stm.cid = pt.cid 
+                    AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
+                WHERE (o.an ="" OR o.an IS NULL) 
+                AND o.vstdate BETWEEN ? AND ?
+                AND p.hipdata_code = "STP" 
+                AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
+                GROUP BY o.vn  ) AS a
+                GROUP BY YEAR(vstdate), MONTH(vstdate)
+                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
 
         $visits = DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
-            vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,o.vn AS seq,
-            CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,os.cc,
-            v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,COALESCE(op_data.total_income, 0) AS income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,COALESCE(op_data.refer, 0) AS refer,
-            IFNULL(COALESCE(op_data.total_income, 0)-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
-            op_data.project,et.ucae AS er,vp.nhso_ucae_type_code AS ae,
-            rep.rep_eclaim_detail_nhso AS rep_nhso,rep.rep_eclaim_detail_error_code AS rep_error,stm.receive_total,stm.repno,
-            fdh.status_message_th AS fdh_status,ec.status AS ec_status,
-            IF(oe.moph_finance_upload_status IS NOT NULL OR rep.vn IS NOT NULL OR stm.cid IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL, "Y", "N") AS is_sent
+            IF(rep.vn IS NOT NULL,"Y",IF((oe.moph_finance_upload_status IS NOT NULL OR fdh.seq IS NOT NULL OR ec.hn IS NOT NULL OR stm.cid IS NOT NULL),"Y","N")) AS is_sent,
+            vp.confirm_and_locked,vp.request_funds,o.vstdate,o.vsttime,o.oqueue,pt.hn,o.vn AS seq,
+            CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,
+            claim_items.claim_list,
+            v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+            v.income - IFNULL(rc.rcpt_money, 0) AS claim_price,
+            stm.receive_total,stm.repno
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn=o.hn
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN er_regist e ON e.vn=o.vn 
-            LEFT JOIN er_pt_type et ON et.er_pt_type=e.er_pt_type AND et.ucae IN ("A","E")
             LEFT JOIN pttype p ON p.pttype=vp.pttype
-            LEFT JOIN opdscreen os ON os.vn=o.vn
-            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn AND od.diagtype = "2"
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN (
                 SELECT r.vn, SUM(r.total_amount) AS rcpt_money
@@ -1685,20 +1782,20 @@ class ClaimOpController extends Controller
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
-            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
+            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn        
             LEFT JOIN (
                 SELECT op.vn, 
                     SUM(op.sum_price) AS total_income,
-                    SUM(CASE WHEN n.nhso_adp_code IN ("S1801","S1802") THEN op.sum_price ELSE 0 END) AS refer,
-                    GROUP_CONCAT(DISTINCT CASE WHEN n.nhso_adp_code IN ("WALKIN","UCEP24") THEN n.nhso_adp_code END) AS project,
-                    MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) AS is_kidney
+                    GROUP_CONCAT(DISTINCT CASE WHEN li.ppfs = "Y" THEN IFNULL(n.`name`,d.`name`) END) AS claim_list,
+                    SUM(CASE WHEN li.ppfs = "Y" THEN op.sum_price ELSE 0 END) AS ppfs
                 FROM opitemrece op
-                LEFT JOIN nondrugitems n ON n.icode=op.icode 
-                LEFT JOIN hrims.lookup_icode li ON li.icode=op.icode
+                LEFT JOIN hrims.lookup_icode li ON op.icode = li.icode
+                LEFT JOIN nondrugitems n ON n.icode=op.icode
+                LEFT JOIN drugitems d ON d.icode=op.icode
                 WHERE op.vstdate BETWEEN ? AND ?
                 GROUP BY op.vn
-            ) op_data ON op_data.vn = o.vn
-            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=v.cid AND ep.vstdate=o.vstdate
+            ) claim_items ON claim_items.vn = o.vn            
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate
             LEFT JOIN hrims.eclaim_status ec ON ec.hn = o.hn  
                 AND ec.vstdate = o.vstdate AND LEFT(ec.vsttime, 5) = LEFT(o.vsttime, 5)
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.seq=o.vn
@@ -1711,10 +1808,9 @@ class ClaimOpController extends Controller
             ) stm ON stm.cid = pt.cid 
                 AND stm.vstdate = o.vstdate AND stm.vsttime5 = LEFT(o.vsttime,5)
             WHERE (o.an ="" OR o.an IS NULL) 
-            AND p.hipdata_code = "STP" 
             AND o.vstdate BETWEEN ? AND ?
-            AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs = "Y")
-            AND COALESCE(op_data.is_kidney, 0) = 0 
+            AND p.hipdata_code = "STP" 
+            AND vp.hospmain NOT IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_ucs ="Y")
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         // ── Batch load claim items for all VNs ──────────────────────────────
@@ -1735,7 +1831,7 @@ class ClaimOpController extends Controller
                 $allVns);
             $adpCodes = collect($rawItems)->pluck('nhso_adp_code')->filter()->unique()->values()->toArray();
             $insUcsMap = [];
-            if (!empty($adpCodes) && \Illuminate\Support\Facades\Schema::hasTable('lookup_nhso_adp_code')) {
+            if (!empty($adpCodes) && \IlluminateSupport\Facades\Schema::hasTable('lookup_nhso_adp_code')) {
                 $insUcsMap = DB::table('lookup_nhso_adp_code')
                     ->whereIn('nhso_adp_code', $adpCodes)
                     ->where('nhso_adp_type_id', 2)
@@ -1756,6 +1852,24 @@ class ClaimOpController extends Controller
             $row->endpoint_valid     = $result['endpoint_valid'];
             $row->validation_errors  = $result['errors'];
             $row->validation_warnings = $result['warnings'];
+        }
+
+        // ── AJAX JSON Response (Pattern 2) ──────────────────────────────────
+        if ($request->ajax()) {
+            $table_html = view('claim_op.stp_outcup_table', compact(
+                'visits', 'budget_year', 'start_date', 'end_date'
+            ))->render();
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'chart_data' => $sum_month ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
         }
 
         return view('claim_op.stp_outcup', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'visits'));
@@ -1791,64 +1905,83 @@ class ClaimOpController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d');
         $pttype_checkup = DB::table('main_setting')->where('name', 'pttype_checkup')->value('value');
 
-        $sum_month = DB::connection('hosxp')->select('
-            SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,
-                SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,
-                SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vn,o.vstdate,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
-            IFNULL(stm.receive_total, 0) + IFNULL(csop.amount, 0) AS receive_total,
-            CASE WHEN oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR csop.hn IS NOT NULL OR ec.seq IS NOT NULL THEN IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) ELSE 0 END AS claim_sent_price
-            FROM ovst o        
-			LEFT JOIN patient pt ON pt.hn=o.hn				
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype 
-			LEFT JOIN vn_stat v ON v.vn = o.vn 	
-			LEFT JOIN (
-			    SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-			    FROM rcpt_print r
-			    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-			    WHERE a.rcpno IS NULL
-			    GROUP BY r.vn
-			) rc ON rc.vn = o.vn
-            LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
-            LEFT JOIN hrims.eclaim_status ec ON ec.seq = o.vn
-            LEFT JOIN (
-                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
-                FROM hrims.stm_ofc 
-                WHERE vstdate BETWEEN ? AND ?
-                GROUP BY hn, vstdate, LEFT(vsttime,5)
-            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
-            LEFT JOIN (
-                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount
-                FROM hrims.stm_ofc_csop 
-                WHERE sys <> "HD" AND vstdate BETWEEN ? AND ?
-                GROUP BY hn, vstdate, LEFT(vsttime,5)
-            ) csop ON csop.hn = pt.hn AND csop.vstdate = o.vstdate AND csop.vsttime = LEFT(o.vsttime,5)       
-            WHERE (o.an ="" OR o.an IS NULL) 
-            AND p.hipdata_code = "OFC" 
-            AND o.vstdate BETWEEN ? AND ?
-            AND p.pttype NOT IN (' . $pttype_checkup . ') 
-            AND v.income <>"0" 
-            AND NOT EXISTS (SELECT 1 FROM opitemrece kidney LEFT JOIN nondrugitems n ON n.icode=kidney.icode WHERE kidney.vn=o.vn AND n.billcode = "71641")
-            GROUP BY o.vn  ) AS a
-			GROUP BY YEAR(vstdate), MONTH(vstdate)
-            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_op.ofc', compact(
+                'budget_year_select',
+                'budget_year',
+                'start_date',
+                'end_date'
+            ));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
+                SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                    END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,
+                    SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,
+                    SUM(IFNULL(receive_total,0)) AS receive_total
+                FROM (SELECT o.vn,o.vstdate,IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) AS claim_price,
+                IFNULL(stm.receive_total, 0) + IFNULL(csop.amount, 0) AS receive_total,
+                CASE WHEN oe.upload_datetime IS NOT NULL OR stm.hn IS NOT NULL OR csop.hn IS NOT NULL OR ec.seq IS NOT NULL THEN IFNULL(v.income-IFNULL(rc.rcpt_money, 0),0) ELSE 0 END AS claim_sent_price
+                FROM ovst o        
+                LEFT JOIN patient pt ON pt.hn=o.hn				
+                LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+                LEFT JOIN pttype p ON p.pttype=vp.pttype 
+                LEFT JOIN vn_stat v ON v.vn = o.vn 	
+                LEFT JOIN (
+                    SELECT r.vn, SUM(r.total_amount) AS rcpt_money
+                    FROM rcpt_print r
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                    WHERE a.rcpno IS NULL
+                    GROUP BY r.vn
+                ) rc ON rc.vn = o.vn
+                LEFT JOIN ovst_eclaim oe ON oe.vn=o.vn
+                LEFT JOIN hrims.eclaim_status ec ON ec.seq = o.vn
+                LEFT JOIN (
+                    SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime,SUM(receive_total) AS receive_total,MAX(repno) AS repno
+                    FROM hrims.stm_ofc 
+                    WHERE vstdate BETWEEN ? AND ?
+                    GROUP BY hn, vstdate, LEFT(vsttime,5)
+                ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
+                LEFT JOIN (
+                    SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount
+                    FROM hrims.stm_ofc_csop 
+                    WHERE sys <> "HD" AND vstdate BETWEEN ? AND ?
+                    GROUP BY hn, vstdate, LEFT(vsttime,5)
+                ) csop ON csop.hn = pt.hn AND csop.vstdate = o.vstdate AND csop.vsttime = LEFT(o.vsttime,5)       
+                WHERE (o.an ="" OR o.an IS NULL) 
+                AND p.hipdata_code = "OFC" 
+                AND o.vstdate BETWEEN ? AND ?
+                AND p.pttype NOT IN (' . $pttype_checkup . ') 
+                AND v.income <>"0" 
+                AND NOT EXISTS (SELECT 1 FROM opitemrece kidney LEFT JOIN nondrugitems n ON n.icode=kidney.icode WHERE kidney.vn=o.vn AND n.billcode = "71641")
+                GROUP BY o.vn  ) AS a
+                GROUP BY YEAR(vstdate), MONTH(vstdate)
+                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -2044,7 +2177,26 @@ class ClaimOpController extends Controller
             $row->validation_warnings = $result['warnings'];
         }
 
-        return view('claim_op.ofc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'search', 'claim', 'month', 'claim_price', 'claim_sent_price', 'receive_total'));
+        $table_html = view('claim_op.ofc_table', compact(
+            'budget_year', 'start_date', 'end_date', 'search', 'claim'
+        ))->render();
+
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
+
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !$request->input('skip_chart') ? [
+                'month' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     // API: ดึงรายละเอียดการรับบริการสำหรับ Modal (Details + Validation) ของ OFC
@@ -2068,7 +2220,9 @@ class ClaimOpController extends Controller
                    fdh.status_message_th AS fdh_status,
                    vp.confirm_and_locked,
                    vp.request_funds,
-                   IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc, eal.edc_ktb, eal.edc_ktb_with_time
+                   IFNULL(vp.Claim_Code,oq.edc_approve_list_text) AS edc, eal.edc_ktb, eal.edc_ktb_with_time,
+                   COALESCE(stm.receive_total, 0) + COALESCE(csop.amount, 0) AS receive_total,
+                   COALESCE(stm_uc.receive_pp, 0) AS receive_pp
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
@@ -2086,6 +2240,22 @@ class ClaimOpController extends Controller
                 FROM hrims.edc_approve_list
                 GROUP BY cid, vstdate
             ) eal ON eal.cid = pt.cid AND eal.vstdate = o.vstdate
+            LEFT JOIN (
+                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(receive_total) AS receive_total
+                FROM hrims.stm_ofc 
+                GROUP BY hn, vstdate, LEFT(vsttime,5)
+            ) stm ON stm.hn = pt.hn AND stm.vstdate = o.vstdate AND stm.vsttime = LEFT(o.vsttime,5)   
+            LEFT JOIN (
+                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount
+                FROM hrims.stm_ofc_csop 
+                WHERE sys <> "HD"
+                GROUP BY hn, vstdate, LEFT(vsttime,5)
+            ) csop ON csop.hn = pt.hn AND csop.vstdate = o.vstdate AND csop.vsttime = LEFT(o.vsttime,5)  
+            LEFT JOIN (
+                SELECT cid, vstdate, LEFT(vsttime,5) AS vsttime5, SUM(receive_pp) AS receive_pp
+                FROM hrims.stm_ucs 
+                GROUP BY cid, vstdate, LEFT(vsttime,5)
+            ) stm_uc ON stm_uc.cid = pt.cid AND stm_uc.vstdate = o.vstdate AND stm_uc.vsttime5 = LEFT(o.vsttime,5)
             WHERE o.vn = ?', [$vn]);
 
         if (!$visit) {
@@ -2114,11 +2284,13 @@ class ClaimOpController extends Controller
             SELECT op.icode, IFNULL(n.name, d.name) AS name,
                    op.qty, op.unitprice, op.sum_price,
                    li.ppfs, li.ems, op.paidst AS paids, ps.name AS paids_name,
-                   op.pttype, ptt.name AS pttype_name, n.nhso_adp_code AS nhso_adp_code
+                   op.pttype, ptt.name AS pttype_name, n.nhso_adp_code AS nhso_adp_code,
+                   COALESCE(d3.ref_code, d.sks_drug_code) AS tmtid
             FROM opitemrece op
             LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
             LEFT JOIN nondrugitems n ON n.icode = op.icode
             LEFT JOIN drugitems d ON d.icode = op.icode
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode = op.icode AND d3.drugitems_ref_code_type_id = 3
             LEFT JOIN paidst ps ON ps.paidst = op.paidst
             LEFT JOIN pttype ptt ON ptt.pttype = op.pttype
             WHERE op.vn = ?', [$vn]);
@@ -2169,50 +2341,71 @@ class ClaimOpController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
-            SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
-                WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
-                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT o.vstdate,o.vn, COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(csop.amount, 0) AS receive_total 
-            FROM ovst o
-            LEFT JOIN patient pt ON pt.hn=o.hn
-            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
-            LEFT JOIN pttype p ON p.pttype=vp.pttype           
-            LEFT JOIN vn_stat v ON v.vn = o.vn           
+        // ── Early return for initial non-AJAX page load (Pattern 2) ────────
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_op.ofc_kidney', compact(
+                'budget_year_select',
+                'budget_year',
+                'start_date',
+                'end_date'
+            ));
+        }
 
-            INNER JOIN (
-                SELECT op.vn, SUM(CASE WHEN li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS claim_price
-                FROM opitemrece op
-                LEFT JOIN nondrugitems n ON n.icode = op.icode
-                LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
-                WHERE op.vstdate BETWEEN ? AND ?
-                GROUP BY op.vn
-                HAVING MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) = 1
-            ) kidney_items ON kidney_items.vn = o.vn
-            LEFT JOIN (
-                SELECT hn, vstdate, SUM(amount) AS amount,MAX(rid) AS rid
-                FROM hrims.stm_ofc_csop 
-                WHERE sys = "HD" AND vstdate BETWEEN ? AND ?
-                GROUP BY hn, vstdate
-            ) csop ON csop.hn = pt.hn AND csop.vstdate = o.vstdate 
-            WHERE p.hipdata_code = "OFC" 
-            AND o.vstdate BETWEEN ? AND ?
-            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime) AS a
-			GROUP BY YEAR(vstdate), MONTH(vstdate)
-            ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $receive_total = array_column($sum_month, 'receive_total');
+        session()->save();
+        ini_set('memory_limit', '512M');
+
+        $sum_month = null;
+        $month = [];
+        $claim_price = [];
+        $receive_total = [];
+
+        // ── Conditional chart query (Pattern 3) ────────────────────────────
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
+                SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                    WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                    END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(receive_total,0)) AS receive_total
+                FROM (SELECT o.vstdate,o.vn, COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(csop.amount, 0) AS receive_total 
+                FROM ovst o
+                LEFT JOIN patient pt ON pt.hn=o.hn
+                LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+                LEFT JOIN pttype p ON p.pttype=vp.pttype           
+                LEFT JOIN vn_stat v ON v.vn = o.vn           
+
+                INNER JOIN (
+                    SELECT op.vn, SUM(CASE WHEN li.kidney = "Y" THEN op.sum_price ELSE 0 END) AS claim_price
+                    FROM opitemrece op
+                    LEFT JOIN nondrugitems n ON n.icode = op.icode
+                    LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
+                    WHERE op.vstdate BETWEEN ? AND ?
+                    GROUP BY op.vn
+                    HAVING MAX(CASE WHEN n.billcode = "71641" THEN 1 ELSE 0 END) = 1
+                ) kidney_items ON kidney_items.vn = o.vn
+                LEFT JOIN (
+                    SELECT hn, vstdate, SUM(amount) AS amount,MAX(rid) AS rid
+                    FROM hrims.stm_ofc_csop 
+                    WHERE sys = "HD" AND vstdate BETWEEN ? AND ?
+                    GROUP BY hn, vstdate
+                ) csop ON csop.hn = pt.hn AND csop.vstdate = o.vstdate 
+                WHERE p.hipdata_code = "OFC" 
+                AND o.vstdate BETWEEN ? AND ?
+                GROUP BY o.vn ORDER BY o.vstdate,o.vsttime) AS a
+                GROUP BY YEAR(vstdate), MONTH(vstdate)
+                ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
@@ -2296,7 +2489,24 @@ class ClaimOpController extends Controller
             AND csop.hn IS NOT NULL
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_op.ofc_kidney', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'search', 'claim', 'month', 'claim_price', 'receive_total'));
+        // ── AJAX JSON response (Pattern 2) ──────────────────────────────────
+        if ($request->ajax()) {
+            $table_html = view('claim_op.ofc_kidney_table', compact(
+                'search', 'claim', 'budget_year', 'start_date', 'end_date'
+            ))->render();
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'chart_data' => $sum_month ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'receive_total' => $receive_total,
+                ] : null,
+            ]);
+        }
+
+        return view('claim_op.ofc_kidney', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function lgo(Request $request)

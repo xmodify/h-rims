@@ -407,12 +407,23 @@
                 // Status banner
                 let statusBadge = '';
                 if (!v.is_valid) {
+                    const warningsList = [];
+                    if (v.errors && v.errors.length > 0) {
+                        v.errors.forEach(e => warningsList.push(e));
+                    }
+                    if (v.warnings && v.warnings.length > 0) {
+                        v.warnings.forEach(w => warningsList.push(w));
+                    }
+                    const listHtml = warningsList.length > 0
+                        ? `<ul class="mb-0 ps-3 mt-1 text-danger" style="list-style-type: disc;">${warningsList.map(w => `<li>${w}</li>`).join('')}</ul>`
+                        : `<div class="small opacity-90">ตรวจพบคลิกตรวจสอบปัญหาที่ปุ่มสถานะสีแดงในตารางหลัก</div>`;
+
                     statusBadge = `
                       <div class="alert alert-danger d-flex align-items-start gap-2 py-2 px-3 mb-3" style="font-size:0.8rem;">
                         <i class="bi bi-x-octagon-fill fs-5 mt-1"></i>
                         <div>
                           <div class="fw-bold">สถานะ: ข้อมูลไม่ผ่านเกณฑ์การเคลม (กรุณาแก้ไขก่อนส่งออก)</div>
-                          <div class="small opacity-90">ตรวจพบคลิกตรวจสอบปัญหาที่ปุ่มสถานะสีแดงในตารางหลัก</div>
+                          ${listHtml}
                         </div>
                       </div>`;
                 } else if (!v.endpoint_valid) {

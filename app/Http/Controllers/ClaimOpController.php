@@ -2538,7 +2538,25 @@ class ClaimOpController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_op.lgo', compact(
+                'budget_year_select',
+                'budget_year',
+                'start_date',
+                'end_date'
+            ));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -2590,10 +2608,11 @@ class ClaimOpController extends Controller
             GROUP BY o.vn ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
             ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-        $receive_total = array_column($sum_month, 'receive_total');
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT IF((vp.auth_code IS NOT NULL OR vp.auth_code <> ""),"Y",NULL) AS auth_code,
@@ -2773,7 +2792,26 @@ class ClaimOpController extends Controller
             $row->validation_warnings = $result['warnings'];
         }
 
-        return view('claim_op.lgo', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
+        $table_html = view('claim_op.lgo_table', compact(
+            'budget_year', 'start_date', 'end_date', 'search', 'claim'
+        ))->render();
+
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
+
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !empty($month) ? [
+                'month' => $month,
+                'claim_price' => $claim_price,
+                'claim_sent_price' => $claim_sent_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function lgo_kidney(Request $request)
@@ -2805,7 +2843,24 @@ class ClaimOpController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_op.lgo_kidney', compact(
+                'budget_year_select',
+                'budget_year',
+                'start_date',
+                'end_date'
+            ));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -2848,12 +2903,13 @@ class ClaimOpController extends Controller
             GROUP BY o.vn ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
             ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b, $start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $receive_total = array_column($sum_month, 'receive_total');
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
 
         $search = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
             COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno
@@ -2893,7 +2949,7 @@ class ClaimOpController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $claim = DB::connection('hosxp')->select('
-            SELECT o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
+            SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain,
             os.cc,v.pdx,GROUP_CONCAT(DISTINCT od.icd10) AS icd9,v.income,IFNULL(rc.rcpt_money, 0) AS rcpt_money,
             kidney_items.claim_list,
             COALESCE(kidney_items.claim_price, 0) AS claim_price,COALESCE(stm.receive_total, 0) AS receive_total ,stm.repno
@@ -2932,7 +2988,25 @@ class ClaimOpController extends Controller
             AND stm.cid IS NOT NULL
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_op.lgo_kidney', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
+        $table_html = view('claim_op.lgo_kidney_table', compact(
+            'budget_year', 'start_date', 'end_date', 'search', 'claim'
+        ))->render();
+
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim)
+        );
+
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => !empty($month) ? [
+                'month' => $month,
+                'claim_price' => $claim_price,
+                'receive_total' => $receive_total
+            ] : null
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function bkk(Request $request)

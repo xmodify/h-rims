@@ -53,8 +53,8 @@
                         <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
-                <h5 class="fw-bold text-secondary">กำลังประมวลผลข้อมูล STP-OP นอก CUP...</h5>
-                <p class="text-muted small mb-0">ระบบกำลังสแกนประวัติการรักษาและเชื่อมสถานะส่งเคลม/ชดเชย อาจใช้เวลา 5-15 วินาที โปรดรอสักครู่</p>
+                <h5 class="fw-bold text-secondary">กำลังประมวลผลข้อมูลการเรียกเก็บและชดเชย...</h5>
+                <p class="text-muted small mb-0">ระบบกำลังสแกนประวัติการรักษอย้อนหลังทั้งปีงบประมาณและเชื่อมสถานะส่งเคลม อาจใช้เวลา 5-15 วินาที โปรดรอสักครู่</p>
             </div>
         </div>
     </div>
@@ -653,8 +653,8 @@
                                 <span class="visually-hidden">Loading...</span>
                             </div>
                         </div>
-                        <h5 class="fw-bold text-secondary">กำลังประมวลผลข้อมูล STP-OP นอก CUP...</h5>
-                        <p class="text-muted small mb-0">ระบบกำลังสแกนประวัติการรักษาและเชื่อมสถานะส่งเคลม/ชดเชย อาจใช้เวลา 5-15 วินาที โปรดรอสักครู่</p>
+                        <h5 class="fw-bold text-secondary">กำลังประมวลผลข้อมูลการเรียกเก็บและชดเชย...</h5>
+                        <p class="text-muted small mb-0">ระบบกำลังสแกนประวัติการรักษอย้อนหลังทั้งปีงบประมาณและเชื่อมสถานะส่งเคลม อาจใช้เวลา 5-15 วินาที โปรดรอสักครู่</p>
                     </div>
                 </div>
             `;

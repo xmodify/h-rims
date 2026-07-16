@@ -47,7 +47,85 @@ class MishosController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ae', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ae', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ae', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ae', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ae', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ae', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -99,6 +177,12 @@ class MishosController extends Controller
         $claim_price = array_column($sum_month, 'claim_price');
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
+        }
+        }
+        }
+        }
+        }
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -139,6 +223,126 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->checkClosedStatusOnly($search);
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ae_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ae_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ae_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ae_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ae_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ae_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
         return view('mishos.ucs_ae', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -167,7 +371,85 @@ class MishosController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_walkin', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_walkin', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_walkin', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_walkin', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_walkin', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_walkin', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -219,6 +501,12 @@ class MishosController extends Controller
         $claim_price = array_column($sum_month, 'claim_price');
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
+        }
+        }
+        }
+        }
+        }
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -259,6 +547,126 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->checkClosedStatusOnly($search);
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_walkin_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_walkin_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_walkin_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_walkin_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_walkin_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_walkin_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
         return view('mishos.ucs_walkin', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -287,7 +695,85 @@ class MishosController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_herb', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_herb', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_herb', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_herb', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_herb', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_herb', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -341,6 +827,12 @@ class MishosController extends Controller
         $claim_price = array_column($sum_month, 'claim_price');
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
+        }
+        }
+        }
+        }
+        }
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -383,6 +875,126 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->checkClosedStatusOnly($search);
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_herb_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_herb_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_herb_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_herb_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_herb_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_herb_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
         return view('mishos.ucs_herb', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -411,7 +1023,85 @@ class MishosController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_telemed', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_telemed', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_telemed', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_telemed', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_telemed', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_telemed', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -463,6 +1153,12 @@ class MishosController extends Controller
         $claim_price = array_column($sum_month, 'claim_price');
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
+        }
+        }
+        }
+        }
+        }
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -505,6 +1201,126 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->checkClosedStatusOnly($search);
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_telemed_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_telemed_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_telemed_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_telemed_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_telemed_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_telemed_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
         return view('mishos.ucs_telemed', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -533,7 +1349,85 @@ class MishosController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_rider', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_rider', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_rider', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_rider', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_rider', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_rider', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -585,6 +1479,12 @@ class MishosController extends Controller
         $claim_price = array_column($sum_month, 'claim_price');
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
+        }
+        }
+        }
+        }
+        }
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -627,6 +1527,126 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->checkClosedStatusOnly($search);
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_rider_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_rider_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_rider_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_rider_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_rider_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_rider_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
         return view('mishos.ucs_rider', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -655,7 +1675,85 @@ class MishosController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_gdm', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_gdm', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_gdm', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_gdm', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_gdm', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_gdm', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -707,6 +1805,12 @@ class MishosController extends Controller
         $claim_price = array_column($sum_month, 'claim_price');
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
+        }
+        }
+        }
+        }
+        }
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -750,6 +1854,126 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->checkClosedStatusOnly($search);
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_gdm_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_gdm_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_gdm_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_gdm_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_gdm_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_gdm_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
         return view('mishos.ucs_gdm', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -777,9 +2001,87 @@ class MishosController extends Controller
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_drug_clopidogrel', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_drug_clopidogrel', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_drug_clopidogrel', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_drug_clopidogrel', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_drug_clopidogrel', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_drug_clopidogrel', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
         $drug_clopidogrel = DB::table('main_setting')->where('name', 'drug_clopidogrel')->value('value');
 
-        $sum_month = DB::connection('hosxp')->select('
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -817,6 +2119,12 @@ class MishosController extends Controller
         $claim_price = array_column($sum_month, 'claim_price');
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
+        }
+        }
+        }
+        }
+        }
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -856,6 +2164,126 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $drug_clopidogrel, $start_date, $end_date, $drug_clopidogrel, $start_date, $end_date, $start_date, $end_date]);
 
         $this->checkClosedStatusOnly($search);
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_drug_clopidogrel_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_drug_clopidogrel_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_drug_clopidogrel_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_drug_clopidogrel_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_drug_clopidogrel_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_drug_clopidogrel_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
         return view('mishos.ucs_drug_clopidogrel', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -884,7 +2312,85 @@ class MishosController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_drug_sk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_drug_sk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_drug_sk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_drug_sk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_drug_sk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_drug_sk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -935,6 +2441,12 @@ class MishosController extends Controller
         $claim_price = array_column($sum_month, 'claim_price');
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
+        }
+        }
+        }
+        }
+        }
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -977,6 +2489,126 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->checkClosedStatusOnly($search);
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_drug_sk_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_drug_sk_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_drug_sk_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_drug_sk_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_drug_sk_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_drug_sk_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
         return view('mishos.ucs_drug_sk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -1005,7 +2637,85 @@ class MishosController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ins', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ins', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ins', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ins', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ins', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ins', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -1063,6 +2773,12 @@ class MishosController extends Controller
         $claim_price = array_column($sum_month, 'claim_price');
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
+        }
+        }
+        }
+        }
+        }
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -1112,6 +2828,126 @@ class MishosController extends Controller
 
         $this->validateUcsInsRows($search);
 
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ins_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ins_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ins_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ins_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ins_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ins_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
         return view('mishos.ucs_ins', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -1140,7 +2976,85 @@ class MishosController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_palliative', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_palliative', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_palliative', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_palliative', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_palliative', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_palliative', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
@@ -1189,6 +3103,12 @@ class MishosController extends Controller
         $claim_price = array_column($sum_month, 'claim_price');
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
+        }
+        }
+        }
+        }
+        }
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -1231,6 +3151,126 @@ class MishosController extends Controller
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
         $this->checkClosedStatusOnly($search);
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_palliative_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_palliative_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_palliative_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_palliative_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_palliative_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_palliative_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
         return view('mishos.ucs_palliative', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -1259,7 +3299,85 @@ class MishosController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_fp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_fp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_fp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_fp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_fp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_fp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
@@ -1316,6 +3434,12 @@ class MishosController extends Controller
         $claim_price = array_column($grouped, 'claim_price');
         $claim_sent_price = array_column($grouped, 'claim_sent_price');
         $receive_total = array_column($grouped, 'receive_total');
+        }
+        }
+        }
+        }
+        }
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -1364,6 +3488,126 @@ class MishosController extends Controller
         $this->validateUcsPpfsRows($search);
         $this->allocatePpfs($search, ["FP001", "FP002", "FP002_1", "FP002_2", "FP003_1", "FP003_2", "FP003_3", "FP003_4"], 'seq');
 
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_fp_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_fp_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_fp_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_fp_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_fp_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_fp_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
         return view('mishos.ucs_ppfs_fp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -1391,9 +3635,87 @@ class MishosController extends Controller
 
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_prt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_prt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_prt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_prt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_prt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_prt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
         $lab_prt = DB::table('main_setting')->where('name', 'lab_prt')->value('value');
 
-        $sum_month = DB::connection('hosxp')->select('
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
@@ -1448,6 +3770,12 @@ class MishosController extends Controller
         $claim_price = array_column($grouped, 'claim_price');
         $claim_sent_price = array_column($grouped, 'claim_sent_price');
         $receive_total = array_column($grouped, 'receive_total');
+        }
+        }
+        }
+        }
+        }
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -1494,6 +3822,126 @@ class MishosController extends Controller
         $this->validateUcsPpfsRows($search);
         $this->allocatePpfs($search, ["30014"], 'seq');
 
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_prt_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_prt_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_prt_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_prt_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_prt_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_prt_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
         return view('mishos.ucs_ppfs_prt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -1522,7 +3970,85 @@ class MishosController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_ida', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_ida', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_ida', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_ida', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_ida', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_ida', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
@@ -1577,6 +4103,12 @@ class MishosController extends Controller
         $claim_price = array_column($grouped, 'claim_price');
         $claim_sent_price = array_column($grouped, 'claim_sent_price');
         $receive_total = array_column($grouped, 'receive_total');
+        }
+        }
+        }
+        }
+        }
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -1621,6 +4153,126 @@ class MishosController extends Controller
         $this->validateUcsPpfsRows($search);
         $this->allocatePpfs($search, ["13001"], 'seq');
 
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_ida_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_ida_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_ida_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_ida_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_ida_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_ida_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
         return view('mishos.ucs_ppfs_ida', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -1649,7 +4301,85 @@ class MishosController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_ferrofolic', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_ferrofolic', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_ferrofolic', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_ferrofolic', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_ferrofolic', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_ferrofolic', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
@@ -1704,6 +4434,12 @@ class MishosController extends Controller
         $claim_price = array_column($grouped, 'claim_price');
         $claim_sent_price = array_column($grouped, 'claim_sent_price');
         $receive_total = array_column($grouped, 'receive_total');
+        }
+        }
+        }
+        }
+        }
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -1748,6 +4484,126 @@ class MishosController extends Controller
         $this->validateUcsPpfsRows($search);
         $this->allocatePpfs($search, ["14001"], 'seq');
 
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_ferrofolic_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_ferrofolic_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_ferrofolic_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_ferrofolic_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_ferrofolic_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_ferrofolic_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
         return view('mishos.ucs_ppfs_ferrofolic', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -1776,7 +4632,85 @@ class MishosController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_fluoride', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_fluoride', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_fluoride', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_fluoride', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_fluoride', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_fluoride', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
@@ -1821,6 +4755,12 @@ class MishosController extends Controller
         $claim_price = array_column($grouped, 'claim_price');
         $claim_sent_price = array_column($grouped, 'claim_sent_price');
         $receive_total = array_column($grouped, 'receive_total');
+        }
+        }
+        }
+        }
+        }
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -1865,6 +4805,126 @@ class MishosController extends Controller
         $this->validateUcsPpfsRows($search);
         $this->allocatePpfs($search, ["15001"], 'seq');
 
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_fluoride_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_fluoride_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_fluoride_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_fluoride_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_fluoride_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_fluoride_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
         return view('mishos.ucs_ppfs_fluoride', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -1893,7 +4953,85 @@ class MishosController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_anc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_anc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_anc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_anc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_anc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_anc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
@@ -1949,6 +5087,12 @@ class MishosController extends Controller
         $claim_price = array_column($grouped, 'claim_price');
         $claim_sent_price = array_column($grouped, 'claim_sent_price');
         $receive_total = array_column($grouped, 'receive_total');
+        }
+        }
+        }
+        }
+        }
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -1996,6 +5140,126 @@ class MishosController extends Controller
         $this->validateUcsPpfsRows($search);
         $this->allocatePpfs($search, ["30008", "30009", "30010", "30011", "30012", "30013"], 'seq');
 
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_anc_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_anc_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_anc_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_anc_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_anc_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_anc_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
         return view('mishos.ucs_ppfs_anc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -2024,7 +5288,85 @@ class MishosController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_postnatal', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_postnatal', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_postnatal', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_postnatal', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_postnatal', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_postnatal', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
@@ -2080,6 +5422,12 @@ class MishosController extends Controller
         $claim_price = array_column($grouped, 'claim_price');
         $claim_sent_price = array_column($grouped, 'claim_sent_price');
         $receive_total = array_column($grouped, 'receive_total');
+        }
+        }
+        }
+        }
+        }
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -2126,6 +5474,126 @@ class MishosController extends Controller
         $this->validateUcsPpfsRows($search);
         $this->allocatePpfs($search, ["30015", "30016"], 'seq');
 
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_postnatal_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_postnatal_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_postnatal_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_postnatal_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_postnatal_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_postnatal_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
         return view('mishos.ucs_ppfs_postnatal', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -2154,7 +5622,85 @@ class MishosController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_fittest', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_fittest', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_fittest', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_fittest', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_fittest', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_fittest', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
@@ -2210,6 +5756,12 @@ class MishosController extends Controller
         $claim_price = array_column($grouped, 'claim_price');
         $claim_sent_price = array_column($grouped, 'claim_sent_price');
         $receive_total = array_column($grouped, 'receive_total');
+        }
+        }
+        }
+        }
+        }
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -2256,6 +5808,126 @@ class MishosController extends Controller
         $this->validateUcsPpfsRows($search);
         $this->allocatePpfs($search, ["90005"], 'seq');
 
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_fittest_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_fittest_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_fittest_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_fittest_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_fittest_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_fittest_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
         return view('mishos.ucs_ppfs_fittest', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -2284,7 +5956,85 @@ class MishosController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_scr', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_scr', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_scr', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_scr', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_scr', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('mishos.ucs_ppfs_scr', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT vn, vstdate, claim_price, is_sent, 0.00 AS receive_total FROM (SELECT o.vn,o.vstdate,o.vsttime,COALESCE(ppfs.claim_price, 0) AS claim_price, CASE WHEN (SELECT 1 FROM hrims.fdh_claim_status WHERE seq = o.vn LIMIT 1) IS NOT NULL OR stm.cid IS NOT NULL THEN 1 ELSE 0 END AS is_sent,
                 0.00 AS receive_total
                 FROM ovst o
@@ -2340,6 +6090,12 @@ class MishosController extends Controller
         $claim_price = array_column($grouped, 'claim_price');
         $claim_sent_price = array_column($grouped, 'claim_sent_price');
         $receive_total = array_column($grouped, 'receive_total');
+        }
+        }
+        }
+        }
+        }
+        }
 
         $search = DB::connection('hosxp')->select('
             SELECT o.vn AS seq,o.vstdate,o.vsttime,o.oqueue,pt.cid,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
@@ -2385,6 +6141,126 @@ class MishosController extends Controller
 
         $this->validateUcsPpfsRows($search);
         $this->allocatePpfs($search, ["12003", "12004"], 'seq');
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_scr_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_scr_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_scr_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_scr_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_scr_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        if ($request->ajax()) {
+            $table_html = view('mishos.ucs_ppfs_scr_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search'
+            ))->render();
+
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $search);
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'patient_items' => $patient_items,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'months' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
 
         return view('mishos.ucs_ppfs_scr', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search'));
     }

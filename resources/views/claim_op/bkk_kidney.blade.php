@@ -2,495 +2,10 @@
 
 @section('content')
 
-    <!-- Page Header & Logic Filters -->
-    <div class="page-header-box mt-2 mb-3 d-flex justify-content-between align-items-center">
-        <div>
-            <h4 class="text-primary mb-0 fw-bold">
-                <i class="bi bi-wallet2 me-2"></i>
-                สถิติการชดเชยค่าบริการ BKK ฟอกไต
-            </h4>
-        </div>
-        
-        <div class="d-flex align-items-center gap-4">
-            <!-- Filter Section 1: Chart Data (Budget Year) -->
-            <div class="filter-group">
-                <form method="POST" enctype="multipart/form-data" class="m-0 d-flex align-items-center">
-                    @csrf
-                    <span class="fw-bold text-muted small text-nowrap me-2">เลือกปีงบประมาณ</span>
-                    <div class="input-group input-group-sm">
-                        <input type="hidden" name="start_date" value="{{ $start_date }}">
-                        <input type="hidden" name="end_date" value="{{ $end_date }}">
-                        <select class="form-select" name="budget_year" style="width: 160px;">
-                            @foreach ($budget_year_select as $row)
-                              <option value="{{ $row->LEAVE_YEAR_ID }}"
-                                {{ (int)$budget_year === (int)$row->LEAVE_YEAR_ID ? 'selected' : '' }}>
-                                {{ $row->LEAVE_YEAR_NAME }}
-                              </option>
-                            @endforeach
-                        </select>
-                        <button type="submit" onclick="fetchData()" class="btn btn-primary px-3 shadow-sm">
-                            <i class="bi bi-graph-up me-1"></i> โหลดกราฟ
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Main Dashboard Container -->
-    <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">
-        <!-- Section 1: Chart -->
-        <div class="px-4 pt-2 pb-0 border-bottom">
-            <h6 class="fw-bold text-dark mb-1" style="font-size: 0.85rem;">
-                <i class="bi bi-bar-chart-fill text-primary me-2"></i>
-                สถิติการเรียกเก็บและชดเชยรายเดือน ปีงบประมาณ {{ $budget_year }}
-            </h6>
-            <div style="height: 300px; width: 100%;">
-                <canvas id="sum_month"></canvas>
-            </div>
-        </div>
-
-        <!-- Section 2: Tables -->
-        <div class="card-header bg-transparent border-0 pt-3 px-4 pb-0">
-            <div class="d-flex justify-content-between align-items-end mb-3">
-                <div class="d-flex align-items-center gap-3">
-                    <h6 class="fw-bold text-dark mb-0">
-                        <i class="bi bi-people-fill text-primary me-2"></i>รายชื่อผู้มารับบริการ BKK ฟอกไต
-                    </h6>
-                    <span class="text-muted small">
-                        วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}
-                    </span>
-                </div>
-                
-                <div class="filter-group">
-                    <form id="form_indiv" method="POST" enctype="multipart/form-data" class="m-0 d-flex align-items-center">
-                        @csrf            
-                        <span class="fw-bold text-muted small text-nowrap me-2">เลือกวันที่รับบริการ</span>
-                        <div class="input-group input-group-sm">
-                            <input type="hidden" name="budget_year" value="{{ $budget_year }}">
-                            <!-- Start Date -->
-                            <input type="hidden" id="start_date" name="start_date" value="{{ $start_date }}">
-                            <input type="text" id="start_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
-                            
-                            <span class="input-group-text bg-white border-start-0 border-end-0">ถึง</span>
-
-                            <!-- End Date -->
-                            <input type="hidden" id="end_date" name="end_date" value="{{ $end_date }}">
-                            <input type="text" id="end_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
-
-                            <button onclick="fetchData()" type="submit" class="btn btn-success px-3 shadow-sm">
-                                <i class="bi bi-table me-1"></i> โหลด indiv
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tab list matching ucs_kidney -->
-        <div class="px-4 mb-2">
-            <ul class="nav nav-tabs-modern" id="pills-tab" role="tablist">
-                <li class="nav-item">
-                    <button class="nav-link active" id="search-tab" data-bs-toggle="pill" data-bs-target="#search" type="button" role="tab">
-                        <i class="bi bi-hourglass-split me-1"></i>รอชดเชย
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link" id="claim-tab" data-bs-toggle="pill" data-bs-target="#claim" type="button" role="tab">
-                        <i class="bi bi-check-circle-fill me-1"></i>ชดเชยแล้ว
-                    </button>
-                </li>
-            </ul>
-        </div>
-
-        <div class="card-body px-4 pb-4 pt-0">
-            <div class="tab-content" id="myTabContent">
-                <!-- Tab 1: Waiting for Compensation -->
-                <div class="tab-pane fade show active" id="search" role="tabpanel">
-                    <div class="table-responsive">            
-                        <table id="t_search" class="table table-modern w-100">
-                            <thead>
-                                <tr>
-                                    <th class="text-center">#</th>                      
-                                    <th class="text-center">วัน-เวลา | Q</th>  
-                                    <th class="text-center">HN</th> 
-                                    <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
-                                    <th class="text-center" width="10%">อาการสำคัญ</th>
-                                    <th class="text-center">PDX | ICD9</th>
-                                    <th class="text-center small">ค่ารักษา</th>  
-                                    <th class="text-center small">ชำระเอง</th> 
-                                    <th class="text-center small">รายการที่เรียกเก็บ</th>
-                                    <th class="text-center small">เรียกเก็บ</th>
-                                    <th class="text-center text-primary small">ชดเชย</th> 
-                                    <th class="text-center text-primary small">ผลต่าง</th> 
-                                    <th class="text-center text-primary small">REP</th> 
-                                </tr>
-                            </thead> 
-                            <tbody> 
-                                @php 
-                                    $count = 1; 
-                                    $sum_income = 0; 
-                                    $sum_rcpt_money = 0;  
-                                    $sum_claim_price = 0;           
-                                    $sum_receive_total = 0; 
-                                @endphp
-                                @foreach($search as $row) 
-                                <tr>
-                                    <td class="text-center text-muted small">{{ $count }}</td>                   
-                                    <td class="text-start">
-                                        <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
-                                        <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
-                                    </td>            
-                                    <td class="text-center fw-bold text-primary small">{{$row->hn}}</td>
-                                    <td class="text-start">
-                                        <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
-                                        <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">
-                                            {{$row->pttype}}
-                                        </div>
-                                    </td> 
-                                    <td class="text-start small text-muted text-wrap">{{ $row->cc }}</td>
-                                    <td class="text-center small">
-                                        <div class="fw-bold text-dark">{{ $row->pdx }}</div>
-                                        <div class="text-muted" style="font-size: 0.65rem;">{{$row->icd9}}</div>
-                                    </td>
-                                    <td class="text-end small">{{ number_format($row->income,2) }}</td>
-                                    <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
-                                    <td class="text-start small text-muted text-wrap" style="max-width: 120px;">{{ $row->claim_list }}</td>  
-                                    <td class="text-end small fw-bold">{{ number_format($row->claim_price,2) }}</td>
-                                    <td class="text-end small fw-bold @if($row->receive_total > 0) text-success @elseif($row->receive_total < 0) text-danger @endif">
-                                        {{ number_format($row->receive_total,2) }}
-                                    </td>
-                                    <td class="text-end small fw-bold @if($row->receive_total-$row->claim_price > 0) text-success @elseif($row->receive_total-$row->claim_price < 0) text-danger @endif">
-                                        {{ number_format($row->receive_total-$row->claim_price,2) }}
-                                    </td>
-                                    <td class="text-center small text-primary">{{ $row->repno }}</td> 
-                                </tr>
-                                @php 
-                                    $count++; 
-                                    $sum_income += $row->income; 
-                                    $sum_rcpt_money += $row->rcpt_money; 
-                                    $sum_claim_price += $row->claim_price; 
-                                    $sum_receive_total += $row->receive_total; 
-                                @endphp
-                                @endforeach                 
-                            </tbody>
-                            <tfoot class="bg-light-soft">
-                                <tr>
-                                    <th colspan="6" class="text-end text-muted small px-3">รวมงบประมาณที่รอชดเชย:</th>
-                                    <th class="text-end small">{{ number_format($sum_income,2) }}</th>
-                                    <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
-                                    <th></th>
-                                    <th class="text-end small fw-bold">{{ number_format($sum_claim_price,2) }}</th>
-                                    <th class="text-end small fw-bold @if($sum_receive_total > 0) text-success @elseif($sum_receive_total < 0) text-danger @endif">
-                                        {{ number_format($sum_receive_total,2) }}
-                                    </th>
-                                    <th class="text-end small fw-bold @if($sum_receive_total-$sum_claim_price > 0) text-success @elseif($sum_receive_total-$sum_claim_price < 0) text-danger @endif">
-                                        {{ number_format($sum_receive_total-$sum_claim_price,2) }}
-                                    </th>
-                                    <th></th>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Tab 2: Compensated -->
-                <div class="tab-pane fade" id="claim" role="tabpanel">
-                    <div class="table-responsive">            
-                        <table id="t_claim" class="table table-modern w-100">
-                            <thead>
-                                <tr>
-                                    <th class="text-center">#</th>                      
-                                    <th class="text-center">วัน-เวลา | Q</th>  
-                                    <th class="text-center">HN</th> 
-                                    <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
-                                    <th class="text-center" width="10%">อาการสำคัญ</th>
-                                    <th class="text-center">PDX | ICD9</th>
-                                    <th class="text-center small">ค่ารักษา</th>  
-                                    <th class="text-center small">ชำระเอง</th> 
-                                    <th class="text-center small">รายการที่เรียกเก็บ</th>
-                                    <th class="text-center small">เรียกเก็บ</th>
-                                    <th class="text-center text-primary small">ชดเชย</th> 
-                                    <th class="text-center text-primary small">ผลต่าง</th> 
-                                    <th class="text-center text-primary small">REP</th> 
-                                </tr>
-                            </thead> 
-                            <tbody> 
-                                @php 
-                                    $count = 1; 
-                                    $sum_income = 0; 
-                                    $sum_rcpt_money = 0;  
-                                    $sum_claim_price = 0;           
-                                    $sum_receive_total = 0; 
-                                @endphp
-                                @foreach($claim as $row) 
-                                <tr>
-                                    <td class="text-center text-muted small">{{ $count }}</td>                   
-                                    <td class="text-start">
-                                        <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
-                                        <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
-                                    </td>            
-                                    <td class="text-center fw-bold text-primary small">{{$row->hn}}</td>
-                                    <td class="text-start">
-                                        <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
-                                        <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">
-                                            {{$row->pttype}}
-                                        </div>
-                                    </td> 
-                                    <td class="text-start small text-muted text-wrap">{{ $row->cc }}</td>
-                                    <td class="text-center small">
-                                        <div class="fw-bold text-dark">{{ $row->pdx }}</div>
-                                        <div class="text-muted" style="font-size: 0.65rem;">{{$row->icd9}}</div>
-                                    </td>
-                                    <td class="text-end small">{{ number_format($row->income,2) }}</td>
-                                    <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
-                                    <td class="text-start small text-muted text-wrap" style="max-width: 120px;">{{ $row->claim_list }}</td>  
-                                    <td class="text-end small fw-bold">{{ number_format($row->claim_price,2) }}</td>
-                                    <td class="text-end small fw-bold @if($row->receive_total > 0) text-success @elseif($row->receive_total < 0) text-danger @endif">
-                                        {{ number_format($row->receive_total,2) }}
-                                    </td>
-                                    <td class="text-end small fw-bold @if($row->receive_total-$row->claim_price > 0) text-success @elseif($row->receive_total-$row->claim_price < 0) text-danger @endif">
-                                        {{ number_format($row->receive_total-$row->claim_price,2) }}
-                                    </td>
-                                    <td class="text-center small text-primary">{{ $row->repno }}</td> 
-                                </tr>
-                                @php 
-                                    $count++; 
-                                    $sum_income += $row->income; 
-                                    $sum_rcpt_money += $row->rcpt_money; 
-                                    $sum_claim_price += $row->claim_price; 
-                                    $sum_receive_total += $row->receive_total; 
-                                @endphp
-                                @endforeach                 
-                            </tbody>
-                            <tfoot class="bg-light-soft">
-                                <tr>
-                                    <th colspan="6" class="text-end text-muted small px-3">รวมงบประมาณที่ชดเชยแล้ว:</th>
-                                    <th class="text-end small">{{ number_format($sum_income,2) }}</th>
-                                    <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
-                                    <th></th>
-                                    <th class="text-end small fw-bold">{{ number_format($sum_claim_price,2) }}</th>
-                                    <th class="text-end small fw-bold @if($sum_receive_total > 0) text-success @elseif($sum_receive_total < 0) text-danger @endif">
-                                        {{ number_format($sum_receive_total,2) }}
-                                    </th>
-                                    <th class="text-end small fw-bold @if($sum_receive_total-$sum_claim_price > 0) text-success @elseif($sum_receive_total-$sum_claim_price < 0) text-danger @endif">
-                                        {{ number_format($sum_receive_total-$sum_claim_price,2) }}
-                                    </th>
-                                    <th></th>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-<script>
-  function showLoading() {
-      Swal.fire({
-          title: 'กำลังโหลด...',
-          text: 'กรุณารอสักครู่',
-          allowOutsideClick: false,
-          didOpen: () => {
-              Swal.showLoading();
-          }
-      });
-  }
-  function fetchData() {
-      showLoading();
-  }
-</script>
-
-@push('scripts')
-  <script>
-    $(document).ready(function () {
-
-      // Initialize Datepicker Thai
-      $('.datepicker_th').datepicker({
-          format: 'd M yyyy',
-          todayBtn: "linked",
-          todayHighlight: true,
-          autoclose: true,
-          language: 'th-th', 
-          thaiyear: true,
-          zIndexOffset: 1050
-      });
-
-      // Set initial values for Datepickers
-      var start_date_val = "{{ $start_date }}";
-      var end_date_val = "{{ $end_date }}";
-
-      if(start_date_val) {
-          $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
-      }
-      if(end_date_val) {
-          $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
-      }
-
-      // Sync Changes from Picker to Hidden Input
-      $('#start_date_picker').on('changeDate', function(e) {
-          var date = e.date;
-          if(date) {
-            var day = ("0" + date.getDate()).slice(-2);
-            var month = ("0" + (date.getMonth() + 1)).slice(-2);
-            var year = date.getFullYear();
-            $('#start_date').val(year + "-" + month + "-" + day);
-          }
-      });
-
-      $('#end_date_picker').on('changeDate', function(e) {
-          var date = e.date;
-          if(date) {
-            var day = ("0" + date.getDate()).slice(-2);
-            var month = ("0" + (date.getMonth() + 1)).slice(-2);
-            var year = date.getFullYear();
-            $('#end_date').val(year + "-" + month + "-" + day);
-          }
-      });
-
-      var dt_search = $('#t_search').DataTable({
-        autoWidth: false,
-        dom: '<"row mb-3"' +
-                '<"col-md-6"l>' + 
-                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
-              '>' +
-              'rt' +
-              '<"row mt-3"' +
-                '<"col-md-6"i>' + 
-                '<"col-md-6"p>' + 
-              '>',
-        buttons: [
-            {
-              extend: 'excelHtml5',
-              text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
-              className: 'btn btn-success btn-sm shadow-sm',
-              title: 'รายชื่อผู้มารับบริการ BKK ฟอกไต รอชดเชย วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
-            }
-        ],
-        language: {
-            search: "ค้นหา:",
-            lengthMenu: "แสดง _MENU_ รายการ",
-            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-            paginate: {
-                previous: "ก่อนหน้า",
-                next: "ถัดไป"
-            }
-        }
-      });
-
-      var dt_claim = $('#t_claim').DataTable({
-        autoWidth: false,
-        dom: '<"row mb-3"' +
-                '<"col-md-6"l>' + 
-                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
-              '>' +
-              'rt' +
-              '<"row mt-3"' +
-                '<"col-md-6"i>' + 
-                '<"col-md-6"p>' + 
-              '>',
-        buttons: [
-            {
-              extend: 'excelHtml5',
-              text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
-              className: 'btn btn-success btn-sm shadow-sm',
-              title: 'รายชื่อผู้มารับบริการ BKK ฟอกไต ชดเชยแล้ว วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
-            }
-        ],
-        language: {
-            search: "ค้นหา:",
-            lengthMenu: "แสดง _MENU_ รายการ",
-            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-            paginate: {
-                previous: "ก่อนหน้า",
-                next: "ถัดไป"
-            }
-        }
-      });
-
-      // แก้ตารางไม่เต็ม card เมื่อสลับ tab หรือ pill
-      $('button[data-bs-toggle="tab"], button[data-bs-toggle="pill"]').on('shown.bs.tab shown.bs.pill', function () {
-          dt_search.columns.adjust().draw(false);
-          dt_claim.columns.adjust().draw(false);
-      });
-    });
-  </script>
-@endpush
-
-<script src="{{ asset('assets/vendor/chart.js/chart.min.js') }}"></script>
-<script src="{{ asset('assets/vendor/chartjs-plugin-datalabels/chartjs-plugin-datalabels.min.js') }}"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    new Chart(document.querySelector('#sum_month'), {
-      type: 'bar',
-      data: {
-        labels: <?php echo json_encode($month); ?>,
-        datasets: [
-          {
-            label: 'เรียกเก็บ',
-            data: <?php echo json_encode($claim_price); ?>,
-            backgroundColor: 'rgba(185, 28, 28, 0.75)',
-            borderColor: 'rgb(185, 28, 28)',
-            borderWidth: 1,
-            borderRadius: 4
-          },
-          {
-            label: 'ชดเชย',
-            data: <?php echo json_encode($receive_total); ?>,
-            backgroundColor: 'rgba(16, 185, 129, 0.6)',
-            borderColor: 'rgb(16, 185, 129)',
-            borderWidth: 1,
-            borderRadius: 4
-          }
-        ]
-      }, 
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: {
-                usePointStyle: true,
-                boxWidth: 6
-            }
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                return context.dataset.label + ': ' + context.formattedValue + ' บาท';
-              }
-            }
-          },
-          datalabels: {
-            anchor: 'end',
-            align: 'top',
-            color: '#000',
-            font: {
-              weight: 'bold',
-              size: 10
-            },
-            formatter: (value) => value > 0 ? value.toLocaleString() : ''
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              callback: function(value) {
-                return value.toLocaleString();
-              }
-            }
-          }
-        }
-      },
-      plugins: [ChartDataLabels]
-    });
-  });
-</script>
-
 <style>
+.spin { animation: spin 1s linear infinite; display: inline-block; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
 /* Custom pastel background for main tabs in bkk_kidney */
 #search-tab {
     background-color: #fef2f2 !important; /* Soft pastel red/pink */
@@ -515,4 +30,316 @@
 }
 </style>
 
+    <!-- Page Header & Logic Filters -->
+    <div class="page-header-box mt-2 mb-3 d-flex justify-content-between align-items-center">
+        <div>
+            <h4 class="text-primary mb-0 fw-bold">
+                <i class="bi bi-wallet2 me-2"></i>
+                สถิติการชดเชยค่าบริการ BKK ฟอกไต
+            </h4>
+        </div>
+        
+        <div class="d-flex align-items-center gap-4">
+            <!-- Filter Section 1: Chart Data (Budget Year) -->
+            <div class="filter-group">
+                <form id="form_budget_year" method="POST" enctype="multipart/form-data" class="m-0 d-flex align-items-center">
+                    @csrf
+                    <span class="fw-bold text-muted small text-nowrap me-2">เลือกปีงบประมาณ</span>
+                    <div class="input-group input-group-sm">
+                        <select class="form-select" name="budget_year" style="width: 160px;">
+                            @foreach ($budget_year_select as $row)
+                              <option value="{{ $row->LEAVE_YEAR_ID }}"
+                                {{ (int)$budget_year === (int)$row->LEAVE_YEAR_ID ? 'selected' : '' }}>
+                                {{ $row->LEAVE_YEAR_NAME }}
+                              </option>
+                            @endforeach
+                        </select>
+                        <button type="submit" class="btn btn-primary px-3 shadow-sm">
+                            <i class="bi bi-graph-up me-1"></i> โหลดกราฟ
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Container -->
+    <div id="data-container">
+        <div class="card shadow-sm border-0 m-3" style="border-radius: 12px; overflow: hidden;">
+            <div class="card-body py-5 text-center">
+                <div class="d-flex justify-content-center mb-3">
+                    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <h5 class="fw-bold text-secondary">กำลังประมวลผลข้อมูลการเรียกเก็บและชดเชย...</h5>
+                <p class="text-muted small mb-0">ระบบกำลังสแกนประวัติการรักษาย้อนหลังทั้งปีงบประมาณและเชื่อมสถานะส่งเคลม อาจใช้เวลา 5-15 วินาที โปรดรอสักครู่</p>
+            </div>
+        </div>
+    </div>
+
 @endsection
+
+@push('scripts')
+  <script src="{{ asset('assets/vendor/chart.js/chart.min.js') }}"></script>
+  <script src="{{ asset('assets/vendor/chartjs-plugin-datalabels/chartjs-plugin-datalabels.min.js') }}"></script>
+
+  <script>
+    let myChart = null;
+
+    function fetchData() {
+        // Legacy handler fallback
+    }
+
+    // AJAX Dashboard Loader
+    function loadDashboard(dataParams) {
+        const container = document.getElementById('data-container');
+        if (!container) return;
+
+        if (dataParams.skip_chart) {
+            const tabContent = document.getElementById('myTabContent');
+            if (tabContent) {
+                tabContent.innerHTML = `
+                    <div class="text-center py-5">
+                        <div class="d-flex justify-content-center mb-3">
+                            <div class="spinner-border text-primary" role="status" style="width: 2.5rem; height: 2.5rem;"></div>
+                        </div>
+                        <h6 class="fw-bold text-secondary">กำลังอัปเดตตารางข้อมูลผู้ป่วย...</h6>
+                    </div>
+                `;
+            }
+        } else {
+            container.innerHTML = `
+                <div class="card shadow-sm border-0 m-3" style="border-radius: 12px; overflow: hidden;">
+                    <div class="card-body py-5 text-center">
+                        <div class="d-flex justify-content-center mb-3">
+                            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <h5 class="fw-bold text-secondary">กำลังประมวลผลข้อมูลการเรียกเก็บและชดเชย...</h5>
+                        <p class="text-muted small mb-0">ระบบกำลังสแกนประวัติการรักษาย้อนหลังทั้งปีงบประมาณและเชื่อมสถานะส่งเคลม อาจใช้เวลา 5-15 วินาที โปรดรอสักครู่</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Cache active tab
+        const activeTabBtn = document.querySelector('.nav-tabs-modern .nav-link.active');
+        const currentActiveTab = activeTabBtn ? activeTabBtn.getAttribute('data-bs-target') : '#search';
+
+        $.ajax({
+            url: "{{ url('claim_op/bkk_kidney') }}",
+            type: "POST",
+            data: $.extend({ _token: "{{ csrf_token() }}" }, dataParams)
+        })
+        .done(function(res) {
+            if (res.success) {
+                container.innerHTML = res.table_html;
+                window.patientItems = res.patient_items || [];
+
+                // Re-initialize pickers
+                $('.datepicker_th').datepicker({
+                    format: 'd M yyyy',
+                    todayBtn: "linked",
+                    todayHighlight: true,
+                    autoclose: true,
+                    language: 'th-th',
+                    thaiyear: true,
+                    zIndexOffset: 1050
+                });
+
+                var start_date_val = $('#start_date').val();
+                var end_date_val = $('#end_date').val();
+                if(start_date_val) {
+                    $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
+                }
+                if(end_date_val) {
+                    $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
+                }
+
+                $('#start_date_picker').on('changeDate', function(e) {
+                    var date = e.date;
+                    if(date) {
+                      var day = ("0" + date.getDate()).slice(-2);
+                      var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                      var year = date.getFullYear();
+                      $('#start_date').val(year + "-" + month + "-" + day);
+                    }
+                });
+
+                $('#end_date_picker').on('changeDate', function(e) {
+                    var date = e.date;
+                    if(date) {
+                      var day = ("0" + date.getDate()).slice(-2);
+                      var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                      var year = date.getFullYear();
+                      $('#end_date').val(year + "-" + month + "-" + day);
+                    }
+                });
+
+                // Init DataTables
+                var dt_search = $('#t_search').DataTable({
+                    autoWidth: false,
+                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>><rt><"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                    buttons: [{
+                        extend: 'excelHtml5',
+                        text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                        className: 'btn btn-success btn-sm shadow-sm',
+                        title: 'รายชื่อผู้มารับบริการ BKK ฟอกไต รอชดเชย'
+                    }],
+                    language: {
+                        search: "ค้นหา:",
+                        lengthMenu: "แสดง _MENU_ รายการ",
+                        info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                        paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                    }
+                });
+
+                var dt_claim = $('#t_claim').DataTable({
+                    autoWidth: false,
+                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>><rt><"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                    buttons: [{
+                        extend: 'excelHtml5',
+                        text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                        className: 'btn btn-success btn-sm shadow-sm',
+                        title: 'รายชื่อผู้มารับบริการ BKK ฟอกไต ชดเชยแล้ว'
+                    }],
+                    language: {
+                        search: "ค้นหา:",
+                        lengthMenu: "แสดง _MENU_ รายการ",
+                        info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                        paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                    }
+                });
+
+                // Tab restoration
+                const restoredTab = localStorage.getItem('active_tab') || currentActiveTab;
+                if (restoredTab) {
+                    const tabBtn = document.querySelector(`button[data-bs-target="${restoredTab}"]`);
+                    if (tabBtn) {
+                        document.querySelectorAll('.nav-tabs-modern .nav-link').forEach(btn => {
+                            btn.classList.remove('active');
+                            const target = document.querySelector(btn.getAttribute('data-bs-target'));
+                            if (target) target.classList.remove('show', 'active');
+                        });
+                        tabBtn.classList.add('active');
+                        const target = document.querySelector(restoredTab);
+                        if (target) target.classList.add('show', 'active');
+                    }
+                    localStorage.removeItem('active_tab');
+                }
+
+                $('button[data-bs-toggle="pill"]').on('shown.bs.tab shown.bs.pill', function () {
+                    dt_search.columns.adjust().draw(false);
+                    dt_claim.columns.adjust().draw(false);
+                });
+
+                if (res.chart_data) {
+                    window.currentChartData = res.chart_data;
+                }
+                if (window.currentChartData) {
+                    drawChart(window.currentChartData);
+                }
+            }
+        })
+        .fail(function() {
+            Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: 'ไม่สามารถอัปเดตข้อมูลตารางผ่านระบบ AJAX ได้' });
+        });
+    }
+
+    // Draw Chart using Chart.js
+    function drawChart(chartData) {
+        const ctx = document.querySelector('#sum_month');
+        if (!ctx) return;
+
+        if (myChart) {
+            myChart.destroy();
+        }
+
+        myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartData.months || chartData.month || [],
+                datasets: [
+                    {
+                        label: 'เรียกเก็บ',
+                        data: chartData.claim_price || [],
+                        backgroundColor: 'rgba(185, 28, 28, 0.75)',
+                        borderColor: 'rgb(185, 28, 28)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'ชดเชย',
+                        data: chartData.receive_total || [],
+                        backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                        borderColor: 'rgb(16, 185, 129)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { usePointStyle: true, boxWidth: 6 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.formattedValue + ' บาท';
+                            }
+                        }
+                    },
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'top',
+                        color: '#000',
+                        font: { weight: 'bold', size: 10 },
+                        formatter: (value) => value > 0 ? value.toLocaleString() : ''
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: function(value) { return value.toLocaleString(); } }
+                    }
+                }
+            },
+            plugins: [ChartDataLabels]
+        });
+    }
+
+    $(document).ready(function () {
+        // Initial load
+        loadDashboard({
+            budget_year: "{{ $budget_year }}",
+            start_date: "{{ $start_date }}",
+            end_date: "{{ $end_date }}"
+        });
+
+        // Year form submission
+        $(document).on('submit', '#form_budget_year', function(e) {
+            e.preventDefault();
+            loadDashboard({
+                budget_year: $(this).find('select[name="budget_year"]').val()
+            });
+        });
+
+        // Indiv form submission
+        $(document).on('submit', '#form_indiv', function(e) {
+            e.preventDefault();
+            loadDashboard({
+                budget_year: $('#form_budget_year select[name="budget_year"]').val() || "{{ $budget_year }}",
+                start_date: $(this).find('#start_date').val(),
+                end_date: $(this).find('#end_date').val(),
+                skip_chart: 1
+            });
+        });
+    });
+  </script>
+@endpush

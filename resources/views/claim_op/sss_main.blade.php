@@ -5,6 +5,23 @@
 
 @section('content')
 
+<style>
+.spin { animation: spin 1s linear infinite; display: inline-block; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* Fix DataTables duplicated header/thin blue row bug when scrollX/scrollY is used */
+.dataTables_scrollBody table thead tr {
+    visibility: collapse !important;
+    height: 0 !important;
+}
+.dataTables_scrollBody table thead tr th {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    border: none !important;
+    height: 0 !important;
+}
+</style>
+
     <!-- Page Header & Logic Filters -->
     <div class="page-header-box mt-2 mb-3 d-flex justify-content-between align-items-center">
         <div>
@@ -17,12 +34,10 @@
         <div class="d-flex align-items-center gap-4">
             <!-- Filter Section 1: Chart Data (Budget Year) -->
             <div class="filter-group">
-                <form method="POST" enctype="multipart/form-data" class="m-0 d-flex align-items-center">
+                <form id="form_budget_year" method="POST" class="m-0 d-flex align-items-center">
                     @csrf
                     <span class="fw-bold text-muted small text-nowrap me-2">เลือกปีงบประมาณ</span>
                     <div class="input-group input-group-sm">
-                        <input type="hidden" name="start_date" value="{{ $start_date }}">
-                        <input type="hidden" name="end_date" value="{{ $end_date }}">
                         <select class="form-select" name="budget_year" style="width: 160px;">
                             @foreach ($budget_year_select as $row)
                               <option value="{{ $row->LEAVE_YEAR_ID }}"
@@ -31,7 +46,7 @@
                               </option>
                             @endforeach
                         </select>
-                        <button type="submit" onclick="fetchData()" class="btn btn-primary px-3 shadow-sm">
+                        <button type="submit" class="btn btn-primary px-3 shadow-sm">
                             <i class="bi bi-graph-up me-1"></i> โหลดกราฟ
                         </button>
                     </div>
@@ -41,237 +56,17 @@
     </div>
 
     <!-- Main Dashboard Container -->
-    <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">
-        <!-- Section 1: Chart -->
-        <div class="px-4 pt-2 pb-0 border-bottom">
-            <h6 class="fw-bold text-dark mb-1" style="font-size: 0.85rem;">
-                <i class="bi bi-bar-chart-fill text-primary me-2"></i>
-                สถิติการเรียกเก็บและชดเชยรายเดือน ปีงบประมาณ {{ $budget_year }}
-            </h6>
-            <div style="height: 300px; width: 100%;">
-                <canvas id="sum_month"></canvas>
-            </div>
-        </div>
-
-        <!-- Section 2: Tables -->
-        <div class="card-header bg-transparent border-0 pt-3 px-4 pb-0">
-            <div class="d-flex justify-content-between align-items-end mb-3">
-                <div class="d-flex align-items-center gap-3">
-                    <h6 class="fw-bold text-dark mb-0">
-                        <i class="bi bi-people-fill text-primary me-2"></i>รายชื่อผู้มารับบริการ SS-OP ประกันสังคม เครือข่าย
-                    </h6>
-                    <span class="text-muted small">
-                        วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}
-                    </span>
-                </div>
-                
-                <div class="filter-group">
-                    <form id="form_indiv" method="POST" enctype="multipart/form-data" class="m-0 d-flex align-items-center">
-                        @csrf            
-                        <span class="fw-bold text-muted small text-nowrap me-2">เลือกวันที่รับบริการ</span>
-                        <div class="input-group input-group-sm">
-                            <input type="hidden" name="budget_year" value="{{ $budget_year }}">
-                            <!-- Start Date -->
-                            <input type="hidden" id="start_date" name="start_date" value="{{ $start_date }}">
-                            <input type="text" id="start_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
-                            
-                            <span class="input-group-text bg-white border-start-0 border-end-0">ถึง</span>
-
-                            <!-- End Date -->
-                            <input type="hidden" id="end_date" name="end_date" value="{{ $end_date }}">
-                            <input type="text" id="end_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
-
-                            <button onclick="fetchData()" type="submit" class="btn btn-success px-3 shadow-sm">
-                                <i class="bi bi-table me-1"></i> โหลด indiv
-                            </button>
-                            <button type="button" class="btn btn-outline-primary px-3 shadow-sm" onclick="$('#importFeedbackModal').modal('show'); loadFeedbackList();">
-                                <i class="bi bi-file-earmark-zip me-1"></i> นำเข้าข้อมูลตอบกลับ
-                            </button>
-                            @if($is_ssop_licensed)
-                            <button type="button" class="btn btn-outline-success px-3 shadow-sm" onclick="exportSelectedSSOP()">
-                                <i class="bi bi-box-arrow-up-fill me-1"></i> ส่งออก SSOP (.zip)
-                            </button>
-                            @endif
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <div class="card-body px-4 pb-4 pt-0">
-            <!-- Filter & Selection Section -->
-            <div class="d-flex flex-wrap align-items-center gap-3 mb-3 border-bottom pb-3">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="fw-bold text-muted small text-nowrap"><i class="bi bi-funnel-fill text-secondary me-1"></i>ตัวกรองข้อมูล:</span>
-                    <div class="btn-group btn-group-sm shadow-sm" role="group">
-                        <input type="radio" class="btn-check" name="rep_filter" id="rep_filter_all" value="all" checked autocomplete="off" onchange="applyRepFilter()">
-                        <label class="btn btn-outline-secondary px-3 fw-bold" for="rep_filter_all">แสดงทั้งหมด</label>
-
-                        <input type="radio" class="btn-check" name="rep_filter" id="rep_filter_error" value="error" autocomplete="off" onchange="applyRepFilter()">
-                        <label class="btn btn-outline-danger px-3 fw-bold" for="rep_filter_error">
-                            <i class="bi bi-exclamation-triangle-fill me-1"></i> เฉพาะ REP Error
-                        </label>
-
-                        <input type="radio" class="btn-check" name="rep_filter" id="rep_filter_has_invoice" value="has_invoice" autocomplete="off" onchange="applyRepFilter()">
-                        <label class="btn btn-outline-success px-3 fw-bold" for="rep_filter_has_invoice">
-                            <i class="bi bi-file-earmark-check-fill me-1"></i> เฉพาะมี Invoice
-                        </label>
-
-                        <input type="radio" class="btn-check" name="rep_filter" id="rep_filter_no_invoice" value="no_invoice" autocomplete="off" onchange="applyRepFilter()">
-                        <label class="btn btn-outline-warning px-3 fw-bold" for="rep_filter_no_invoice">
-                            <i class="bi bi-file-earmark-x-fill me-1"></i> เฉพาะไม่มี Invoice
-                        </label>
+    <div id="data-container">
+        <div class="card shadow-sm border-0 m-3" style="border-radius: 12px; overflow: hidden;">
+            <div class="card-body py-5 text-center">
+                <div class="d-flex justify-content-center mb-3">
+                    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
+                <h5 class="fw-bold text-secondary">กำลังประมวลผลข้อมูลการเรียกเก็บและชดเชย...</h5>
+                <p class="text-muted small mb-0">ระบบกำลังสแกนประวัติการรักษาย้อนหลังทั้งปีงบประมาณและเชื่อมสถานะส่งเคลม อาจใช้เวลา 5-15 วินาที โปรดรอสักครู่</p>
             </div>
-
-            <div class="table-responsive">            
-                <table id="t_claim" class="table table-modern w-100">
-                    <thead>
-                        <tr>
-                            @if($is_ssop_licensed)
-                            <th class="text-center" width="3%"><input type="checkbox" id="select_all_claims"></th>
-                            @endif
-                                                  
-                            <th class="text-center">ตรวจสอบ</th>                      
-                            <th class="text-center" width="8%">InvoiceNo</th>                      
-                            <th class="text-center" width="10%">วัน-เวลา | Q</th>     
-                            <th class="text-center">HN</th>    
-                            <th class="text-center">CID</th>    
-                            <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
-                            <th class="text-center" width="15%">อาการสำคัญ</th>
-                            <th class="text-center" width="8%">โรคเรื้อรัง</th>
-                            <th class="text-center" width="8%">ยาโรคเรื้อรัง</th>
-                            <th class="text-end px-3" width="6%">PDX</th>
-                            <th class="text-start px-3" width="10%">SDX | ICD9</th>
-                            <th class="text-center">ค่ารักษา</th> 
-                            <th class="text-center">ชำระเอง</th>                               
-                            <th class="text-center text-primary">เรียกเก็บ</th>
-                            <th class="text-center" width="8%">Rep Error</th>
-                            <th class="text-center" width="8%">Rep Warning</th>
-                            <th class="text-center" width="8%">stm ชดเชย</th> 
-                        </tr>
-                    </thead> 
-                    <tbody> 
-                        @php 
-                            $count = 1; 
-                            $sum_income = 0; 
-                            $sum_rcpt_money = 0; 
-                            $sum_claim_price = 0; 
-                        @endphp
-                        @foreach($claim as $row) 
-                        @php
-                            $has_invoice = (($row->sss_invno && $row->sss_invno !== '0') || ($row->debt_id_list && $row->debt_id_list !== '0')) ? 'true' : 'false';
-                        @endphp
-                        <tr data-has-error="{{ $row->rep_error ? 'true' : 'false' }}" data-has-invoice="{{ $has_invoice }}">
-                            @if($is_ssop_licensed)
-                            <td class="text-center">
-                                <input type="checkbox" class="claim-select-check" value="{{ $row->vn }}" data-has-error="{{ $row->rep_error ? 'true' : 'false' }}">
-                            </td>
-                            @endif
-                            
-                            <td class="text-center" data-status="{{ $row->claim_status }}" data-order="{{ $row->claim_status === 'red' ? '2' : ($row->claim_status === 'yellow' ? '1' : '0') }}">
-                                @if($row->claim_status === 'green')
-                                    <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->vn }}')" title="ความพร้อม: พร้อมส่งออกและปิดสิทธิแล้ว (คลิกเพื่อดูรายละเอียด)">
-                                        <i class="bi bi-eye-fill"></i>
-                                    </button>
-                                @elseif($row->claim_status === 'yellow')
-                                    <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->vn }}')" title="ความพร้อม: ผ่านเกณฑ์แต่ยังไม่ได้ปิดสิทธิ (คลิกเพื่อตรวจสอบ/ปิดสิทธิ)">
-                                        <i class="bi bi-eye-fill"></i>
-                                    </button>
-                                @else
-                                    <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->vn }}')" title="ความพร้อม: ไม่ผ่านเกณฑ์ (คลิกเพื่อดูหัวข้อที่ต้องแก้ไข)">
-                                        <i class="bi bi-eye-fill"></i>
-                                    </button>
-                                @endif
-                            </td>
-                            <td class="text-center small">
-                                @php
-                                    $invoice_no = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
-                                @endphp
-                                @if($invoice_no && $invoice_no !== '0')
-                                    <span class="badge bg-success-soft text-success fw-bold">{{ $invoice_no }}</span>
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </td>
-                            <td class="text-start">
-                                <div class="small fw-bold text-nowrap">{{ DateThai($row->vstdate) }}</div>
-                                <div class="text-muted text-nowrap" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
-                            </td>            
-                            <td class="text-center fw-bold text-primary small">{{$row->hn}}</td> 
-                            <td class="text-center small text-muted text-nowrap">{{$row->cid}}</td> 
-                            <td class="text-start">
-                                <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
-                                <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
-                            </td> 
-                            <td class="text-start small text-muted text-wrap">{{ $row->cc }}</td>
-                            <td class="text-center">
-                                @if($row->is_ncd)
-                                    <span class="d-none">Y</span><i class="bi bi-check-circle-fill text-success" title="เป็นโรคเรื้อรัง"></i>
-                                @else
-                                    <span class="d-none"></span>
-                                @endif
-                            </td>
-                            <td class="text-center">
-                                @if($row->has_chronic_drug)
-                                    <span class="d-none">Y</span><i class="bi bi-check-circle-fill text-success" title="ได้รับยาโรคเรื้อรัง"></i>
-                                @else
-                                    <span class="d-none"></span>
-                                @endif
-                            </td>
-
-                            <td class="text-end fw-bold text-dark small px-3">{{ $row->pdx }}</td>
-                            <td class="text-start small px-3">
-                                <div class="text-dark">{{ $row->sdx }}</div>
-                                <div class="text-muted" style="font-size: 0.65rem;">{{ $row->icd9 }}</div>
-                            </td>
-                            <td class="text-end small">{{ number_format($row->income,2) }}</td>              
-                            <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
-                            <td class="text-end fw-bold text-primary">{{ number_format($row->claim_price,2) }}</td>
-                            <td class="text-center small">
-                                @if($row->rep_error)
-                                    <button class="btn btn-link p-0 badge bg-danger-soft text-danger fw-bold border-0" onclick="showRepDetails('{{ $row->vn }}')" title="คลิกเพื่อดูรายละเอียดข้อผิดพลาด">{{ $row->rep_error }}</button>
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </td>
-                            <td class="text-center small">
-                                @if($row->rep_warning)
-                                    <button class="btn btn-link p-0 badge bg-warning-soft text-warning fw-bold border-0" onclick="showRepDetails('{{ $row->vn }}')" title="คลิกเพื่อดูรายละเอียดข้อแนะนำ">{{ $row->rep_warning }}</button>
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </td>
-                            <td class="text-end small fw-bold text-success">
-                                @if($row->stm_pay !== null)
-                                    {{ number_format($row->stm_pay, 2) }}
-                                @else
-                                    <span class="text-muted">-</span>
-                                @endif
-                            </td> 
-                        </tr>
-                        @php 
-                            $count++; 
-                            $sum_income += $row->income; 
-                            $sum_rcpt_money += $row->rcpt_money; 
-                            $sum_claim_price += $row->claim_price; 
-                        @endphp
-                        @endforeach                 
-                    </tbody>
-                    <tfoot class="bg-light-soft">
-                        <tr>
-                            <th colspan="{{ $is_ssop_licensed ? 11 : 10 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
-                            <th class="text-end small">{{ number_format($sum_income,2) }}</th>
-                            <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
-                            <th class="text-end fw-bold text-primary">{{ number_format($sum_claim_price,2) }}</th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>          
         </div>
     </div>
 
@@ -500,1135 +295,365 @@
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link fw-bold text-info" id="prev-opdx-tab" data-bs-toggle="tab" data-bs-target="#prev-opdx-panel" type="button" role="tab" aria-controls="prev-opdx-panel" aria-selected="false">
-                                <i class="bi bi-activity me-1"></i> OPDx
+                            <button class="nav-link fw-bold text-info" id="prev-opdiagnoses-tab" data-bs-toggle="tab" data-bs-target="#prev-opdiagnoses" type="button" role="tab" aria-controls="prev-opdiagnoses" aria-selected="false">
+                                <i class="bi bi-clipboard-pulse me-1"></i> OPDiagnoses
                             </button>
                         </li>
                     </ul>
-                    
-                    <!-- Tabs Content -->
-                    <div class="tab-content" id="previewTabContent">
-                        <!-- Tab 0: Pre-Audit Validation -->
+
+                    <div class="tab-content" id="previewTabContent" style="font-size: 0.82rem;">
+                        <!-- Pre-Audit Tab -->
                         <div class="tab-pane fade show active" id="prev-audit" role="tabpanel" aria-labelledby="prev-audit-tab">
-                            <div class="alert alert-warning py-2 px-3 mb-3 d-flex align-items-center gap-2" style="font-size:0.85rem;">
-                                <i class="bi bi-exclamation-triangle-fill fs-5"></i>
-                                <span>รายการแจ้งเตือนด้านล่างนี้เป็นการตรวจสอบความสมบูรณ์ของข้อมูลเบื้องต้นก่อนการส่งออกจริง หากพบข้อผิดพลาดควรทำการแก้ไขก่อนดำเนินการส่งออก</span>
+                            <div class="alert alert-warning d-flex align-items-center mb-3">
+                                <i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i>
+                                <div>กรุณาตรวจสอบและแก้ไขรายการที่มีสีแดง (Errors) ก่อนที่จะทำการดาวน์โหลด ZIP นำส่งระบบ สกส. เพื่อป้องกันการติด C (Denied Claim)</div>
                             </div>
-                            <div class="table-responsive mb-3" style="max-height:400px; overflow-y:auto;">
-                                <table class="table table-hover table-striped align-middle mb-0 small w-100" id="table-prev-audit">
-                                    <thead class="table-dark">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover align-middle" id="table-prev-audit">
+                                    <thead class="table-danger">
                                         <tr>
-                                            <th width="12%">HN</th>
-                                            <th width="20%">ชื่อ-สกุล</th>
-                                            <th width="15%">ไฟล์ที่มีปัญหา</th>
-                                            <th class="text-danger">รายละเอียดข้อผิดพลาด (ต้องแก้ไข)</th>
+                                            <th class="text-center" width="5%">#</th>
+                                            <th width="15%">ผู้ป่วย (HN / ชื่อ-สกุล)</th>
+                                            <th width="15%">วันที่รับบริการ</th>
+                                            <th>ประเด็นที่พบ (Audit Issues)</th>
+                                            <th class="text-center" width="10%">ระดับความรุนแรง</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="preview-audit-tbody">
-                                        <!-- Will be populated dynamically -->
+                                    <tbody id="prev-audit-body">
+                                        <!-- Populated via AJAX -->
                                     </tbody>
                                 </table>
                             </div>
                         </div>
 
-                        <!-- Tab 1: BILLTRAN -->
+                        <!-- BILLTRAN Tab -->
                         <div class="tab-pane fade" id="prev-billtran" role="tabpanel" aria-labelledby="prev-billtran-tab">
-                            <div class="mb-3">
-                                <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-billtran">
-                                    <thead class="table-dark sticky-top">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="table-prev-billtran">
+                                    <thead class="table-primary">
                                         <tr>
-                                            <th>Station</th>
-                                            <th>Authcode</th>
-                                            <th>DTtran</th>
-                                            <th>Hcode</th>
-                                            <th>Invno</th>
-                                            <th>Billno</th>
-                                            <th>HN</th>
-                                            <th>MemberNo</th>
-                                            <th class="text-end">Amount</th>
-                                            <th class="text-end">Paid</th>
-                                            <th>VerCode</th>
-                                            <th>Tflag</th>
-                                            <th>Pid</th>
-                                            <th>Name</th>
-                                            <th>HMain</th>
-                                            <th>PayPlan</th>
-                                            <th class="text-end">ClaimAmt</th>
-                                            <th>OtherPayplan</th>
-                                            <th>OtherPay</th>
+                                            <th>Station</th><th>InvNo</th><th>HN</th><th>MemberNo</th><th>Amount</th><th>Paid</th><th>Claim</th><th>Name</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="preview-billtran-tbody"></tbody>
+                                    <tbody id="prev-billtran-body"></tbody>
                                 </table>
-                            </div>
-                            <div class="card border-0 bg-light">
-                                <div class="card-header border-0 bg-light p-0">
-                                    <button class="btn btn-sm btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#raw-billtran-collapse">
-                                        <span><i class="bi bi-file-earmark-code me-1"></i> ดูไฟล์ข้อความดิบ BILLTRAN.txt (Raw XML)</span>
-                                        <i class="bi bi-chevron-down"></i>
-                                    </button>
-                                </div>
-                                <div class="collapse" id="raw-billtran-collapse">
-                                    <div class="card-body p-2 position-relative">
-                                        <button class="btn btn-xs btn-secondary position-absolute end-0 top-0 m-2 btn-copy-xml" data-target="preview-billtran-raw" style="font-size: 0.7rem; z-index:10;"><i class="bi bi-clipboard"></i> Copy</button>
-                                        <textarea class="form-control text-monospace bg-dark text-light p-3 small" id="preview-billtran-raw" rows="8" readonly style="font-family: Consolas, monospace; font-size:0.75rem;"></textarea>
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
-                        <!-- Tab 2: BillItems -->
+                        <!-- BillItems Tab -->
                         <div class="tab-pane fade" id="prev-billitems-panel" role="tabpanel" aria-labelledby="prev-billitems-tab">
-                            <div class="mb-3">
-                                <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-billitems">
-                                    <thead class="table-dark">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="table-prev-billitems">
+                                    <thead class="table-primary">
                                         <tr>
-                                            <th>Invno</th>
-                                            <th>SvDate</th>
-                                            <th>BillMuad</th>
-                                            <th>LCCode</th>
-                                            <th>STDCode</th>
-                                            <th>Desc</th>
-                                            <th class="text-center">QTY</th>
-                                            <th class="text-end">UP</th>
-                                            <th class="text-end">ChargeAmt</th>
-                                            <th class="text-end">ClaimUP</th>
-                                            <th class="text-end">ClaimAmount</th>
-                                            <th>SvRefID</th>
-                                            <th>ClaimCat</th>
+                                            <th>InvNo</th><th>ItemSeq</th><th>BillGr</th><th>LCode</th><th>Qty</th><th>Charge</th><th>Claim</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="preview-billitems-tbody"></tbody>
+                                    <tbody id="prev-billitems-body"></tbody>
                                 </table>
                             </div>
                         </div>
 
-                        <!-- Tab 3: BILLDISP -->
+                        <!-- BILLDISP Tab -->
                         <div class="tab-pane fade" id="prev-billdisp" role="tabpanel" aria-labelledby="prev-billdisp-tab">
-                            <div class="mb-3">
-                                <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-billdisp">
-                                    <thead class="table-dark sticky-top">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="table-prev-billdisp">
+                                    <thead class="table-success">
                                         <tr>
-                                            <th>ProviderID</th>
-                                            <th>Dispid</th>
-                                            <th>Invno</th>
-                                            <th>HN</th>
-                                            <th>PID</th>
-                                            <th>Prescdt</th>
-                                            <th>Dispdt</th>
-                                            <th>Prescb</th>
-                                            <th>Itemcnt</th>
-                                            <th class="text-end">ChargeAmt</th>
-                                            <th class="text-end">ClaimAmt</th>
-                                            <th>Paid</th>
-                                            <th>OtherPay</th>
-                                            <th>Reimburser</th>
-                                            <th>BenefitPlan</th>
-                                            <th class="text-center">DispeStat</th>
-                                            <th>SvID</th>
+                                            <th>DispID</th><th>PrescID</th><th>InvNo</th><th>DispDate</th><th>HN</th><th>Name</th><th>Amount</th><th>Reimb</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="preview-billdisp-tbody"></tbody>
+                                    <tbody id="prev-billdisp-body"></tbody>
                                 </table>
-                            </div>
-                            <div class="card border-0 bg-light">
-                                <div class="card-header border-0 bg-light p-0">
-                                    <button class="btn btn-sm btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#raw-billdisp-collapse">
-                                        <span><i class="bi bi-file-earmark-code me-1"></i> ดูไฟล์ข้อความดิบ BILLDISP.txt (Raw XML)</span>
-                                        <i class="bi bi-chevron-down"></i>
-                                    </button>
-                                </div>
-                                <div class="collapse" id="raw-billdisp-collapse">
-                                    <div class="card-body p-2 position-relative">
-                                        <button class="btn btn-xs btn-secondary position-absolute end-0 top-0 m-2 btn-copy-xml" data-target="preview-billdisp-raw" style="font-size: 0.7rem; z-index:10;"><i class="bi bi-clipboard"></i> Copy</button>
-                                        <textarea class="form-control text-monospace bg-dark text-light p-3 small" id="preview-billdisp-raw" rows="8" readonly style="font-family: Consolas, monospace; font-size:0.75rem;"></textarea>
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
-                        <!-- Tab 4: DispensedItems -->
+                        <!-- DispensedItems Tab -->
                         <div class="tab-pane fade" id="prev-dispenseditems-panel" role="tabpanel" aria-labelledby="prev-dispenseditems-tab">
-                            <div class="mb-3">
-                                <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-dispenseditems">
-                                    <thead class="table-dark">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="table-prev-dispenseditems">
+                                    <thead class="table-success">
                                         <tr>
-                                            <th>DispID</th>
-                                            <th>PrdCat</th>
-                                            <th>Hospdrgid</th>
-                                            <th>DrgID</th>
-                                            <th>dfsCode</th>
-                                            <th>dfsText</th>
-                                            <th>Packsize</th>
-                                            <th>sigCode</th>
-                                            <th>sigText</th>
-                                            <th class="text-center">Quantity</th>
-                                            <th class="text-end">UnitPrice</th>
-                                            <th class="text-end">ChargeAmt</th>
-                                            <th class="text-end">ReimbPrice</th>
-                                            <th class="text-end">ReimbAmt</th>
-                                            <th>PrdSeCode</th>
-                                            <th>ClaimCont</th>
+                                            <th>DispID</th><th>PrescID</th><th>ItemSeq</th><th>LocalCd</th><th>StdCd</th><th>Qty</th><th>PrdCat</th><th>Reimb</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="preview-dispenseditems-tbody"></tbody>
+                                    <tbody id="prev-dispenseditems-body"></tbody>
                                 </table>
                             </div>
                         </div>
 
-                        <!-- Tab 5: OPServices -->
+                        <!-- OPServices Tab -->
                         <div class="tab-pane fade" id="prev-opservices" role="tabpanel" aria-labelledby="prev-opservices-tab">
-                            <div class="mb-3">
-                                <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-opservices">
-                                    <thead class="table-dark sticky-top">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="table-prev-opservices">
+                                    <thead class="table-info">
                                         <tr>
-                                            <th>InvNo</th>
-                                            <th>SvID</th>
-                                            <th>Class</th>
-                                            <th>Hcode</th>
-                                            <th>HN</th>
-                                            <th>PID</th>
-                                            <th>CareType</th>
-                                            <th>Clinic</th>
-                                            <th>ReferIn</th>
-                                            <th>ReferOut</th>
-                                            <th>Expire</th>
-                                            <th>DocNo</th>
-                                            <th>ServSub</th>
-                                            <th>SvDT</th>
-                                            <th>EndDT</th>
-                                            <th>ExClass</th>
-                                            <th>ExTx</th>
-                                            <th>ExAmt</th>
-                                            <th>Paid</th>
-                                            <th>Eligible</th>
-                                            <th>ExSp</th>
-                                            <th>Seq</th>
+                                            <th>HN</th><th>SvDate</th><th>Class</th><th>CareType</th><th>InvNo</th><th>PrePay</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="preview-opservices-tbody"></tbody>
+                                    <tbody id="prev-opservices-body"></tbody>
                                 </table>
-                            </div>
-                            <div class="card border-0 bg-light">
-                                <div class="card-header border-0 bg-light p-0">
-                                    <button class="btn btn-sm btn-outline-secondary w-100 text-start d-flex justify-content-between align-items-center" type="button" data-bs-toggle="collapse" data-bs-target="#raw-opservices-collapse">
-                                        <span><i class="bi bi-file-earmark-code me-1"></i> ดูไฟล์ข้อความดิบ OPServices.txt (Raw XML)</span>
-                                        <i class="bi bi-chevron-down"></i>
-                                    </button>
-                                </div>
-                                <div class="collapse" id="raw-opservices-collapse">
-                                    <div class="card-body p-2 position-relative">
-                                        <button class="btn btn-xs btn-secondary position-absolute end-0 top-0 m-2 btn-copy-xml" data-target="preview-opservices-raw" style="font-size: 0.7rem; z-index:10;"><i class="bi bi-clipboard"></i> Copy</button>
-                                        <textarea class="form-control text-monospace bg-dark text-light p-3 small" id="preview-opservices-raw" rows="8" readonly style="font-family: Consolas, monospace; font-size:0.75rem;"></textarea>
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
-                        <!-- Tab 6: OPDx -->
-                        <div class="tab-pane fade" id="prev-opdx-panel" role="tabpanel" aria-labelledby="prev-opdx-tab">
-                            <div class="mb-3">
-                                <table class="table table-hover table-striped align-middle mb-0 text-nowrap small w-100" id="table-prev-opdx">
-                                    <thead class="table-dark">
+                        <!-- OPDiagnoses Tab -->
+                        <div class="tab-pane fade" id="prev-opdiagnoses" role="tabpanel" aria-labelledby="prev-opdiagnoses-tab">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="table-prev-opdiagnoses">
+                                    <thead class="table-info">
                                         <tr>
-                                            <th>Class</th>
-                                            <th>SvID</th>
-                                            <th>DiagType</th>
-                                            <th>DiagCls</th>
-                                            <th>DiagCode</th>
+                                            <th>HN</th><th>SvDate</th><th>DiagType</th><th>DiagCode</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="preview-opdx-tbody"></tbody>
+                                    <tbody id="prev-opdiagnoses-body"></tbody>
                                 </table>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light py-2 px-4 d-flex justify-content-between">
-                    <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
-                    <button type="button" class="btn btn-success px-4" onclick="triggerActualDownload()">
-                        <i class="bi bi-cloud-arrow-down-fill me-1"></i> ยืนยันส่งออก
+                    <button type="button" class="btn btn-secondary px-3" onclick="$('#ssopPreviewModal').modal('hide'); $('#ssopExportModal').modal('show');">
+                        <i class="bi bi-arrow-left me-1"></i> ย้อนกลับ
+                    </button>
+                    <button type="button" class="btn btn-success px-4" id="btnDownloadSSOP" onclick="downloadSSOPExportZip()">
+                        <i class="bi bi-download me-1"></i> ยืนยันการดาวน์โหลด SSOP (.zip)
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-<script>
-  function showLoading() {
-      Swal.fire({
-          title: 'กำลังโหลด...',
-          text: 'กรุณารอสักครู่',
-          allowOutsideClick: false,
-          didOpen: () => {
-              Swal.showLoading();
-          }
-      });
-  }
-  function fetchData() {
-      showLoading();
-  }
-</script>
-
 @endsection
 
-@push('scripts')  
+@push('scripts')
+  <script src="{{ asset('assets/vendor/chart.js/chart.min.js') }}"></script>
+  <script src="{{ asset('assets/vendor/chartjs-plugin-datalabels/chartjs-plugin-datalabels.min.js') }}"></script>
+
   <script>
-    var shouldReloadOnModalClose = false;
+    let myChart = null;
+    let dt_claim = null;
 
-    $(document).ready(function () {
-      // Reload main page only when the import modal is closed and we have successfully uploaded files
-      $('#importFeedbackModal').on('hidden.bs.modal', function () {
-          if (shouldReloadOnModalClose) {
-              location.reload();
-          }
-      });
-
-      // Adjust DataTables column width on tab change (fix display bugs in hidden tabs)
-      $('button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
-          $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
-      });
-
-      // Initialize Datepicker Thai
-      $('.datepicker_th').datepicker({
-          format: 'd M yyyy',
-          todayBtn: "linked",
-          todayHighlight: true,
-          autoclose: true,
-          language: 'th-th', 
-          thaiyear: true,
-          zIndexOffset: 1050
-      });
-
-      // Set initial values for Datepickers
-      var start_date_val = "{{ $start_date }}";
-      var end_date_val = "{{ $end_date }}";
-
-      if(start_date_val) {
-          $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
-      }
-      if(end_date_val) {
-          $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
-      }
-
-      // Sync Changes from Picker to Hidden Input
-      $('#start_date_picker').on('changeDate', function(e) {
-          var date = e.date;
-          if(date) {
-            var day = ("0" + date.getDate()).slice(-2);
-            var month = ("0" + (date.getMonth() + 1)).slice(-2);
-            var year = date.getFullYear();
-            $('#start_date').val(year + "-" + month + "-" + day);
-          }
-      });
-
-      $('#end_date_picker').on('changeDate', function(e) {
-          var date = e.date;
-          if(date) {
-            var day = ("0" + date.getDate()).slice(-2);
-            var month = ("0" + (date.getMonth() + 1)).slice(-2);
-            var year = date.getFullYear();
-            $('#end_date').val(year + "-" + month + "-" + day);
-          }
-      });
-
-      $.fn.dataTable.ext.order['dom-status'] = function (settings, col) {
-          return this.api().column(col, {order:'index'}).nodes().map(function (td, i) {
-              var status = $(td).attr('data-status');
-              var sort = settings.aaSorting[0];
-              var dir = (sort && sort[0] === col) ? sort[1] : 'desc';
-              
-              if (status === 'red') {
-                  return dir === 'desc' ? 2 : -1;
-              } else if (status === 'green') {
-                  return dir === 'desc' ? 1 : -2;
-              } else {
-                  return 0;
-              }
-          });
-      };
-
-      $('#t_claim').DataTable({
-        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"]],
-        order: [[{{ $is_ssop_licensed ? 1 : 0 }}, 'desc']],
-        columnDefs: [
-            @if($is_ssop_licensed)
-            { targets: 0, orderable: false, searchable: false },
-            @endif
-            { targets: {{ $is_ssop_licensed ? 1 : 0 }}, orderDataType: 'dom-status', orderSequence: ['desc', 'asc'] }
-        ],
-        dom: '<"row mb-3"' +
-                '<"col-md-6"l>' + 
-                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
-              '>' +
-              'rt' +
-              '<"row mt-3"' +
-                '<"col-md-6"i>' + 
-                '<"col-md-6"p>' + 
-              '>',
-        buttons: [
-            {
-              extend: 'excelHtml5',
-              text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
-              className: 'btn btn-success btn-sm shadow-sm',
-              title: 'รายชื่อผู้มารับบริการ SS-OP ประกันสังคม เครือข่าย วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}',
-              exportOptions: {
-                  columns: {!! $is_ssop_licensed ? '[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]' : '[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]' !!},
-                  format: {
-                      body: function (data, row, column, node) {
-                          var $cell = $(node);
-                          var chronicColIdx = {{ $is_ssop_licensed ? 5 : 4 }};
-                          var drugColIdx = {{ $is_ssop_licensed ? 6 : 5 }};
-                          if (column === chronicColIdx || column === drugColIdx) {
-                              return $cell.find('.d-none').text().trim() === 'Y' ? 'Y' : '';
-                          }
-                          var cleanText = $cell.text().replace(/\s+/g, ' ').trim();
-                          return cleanText;
-                      }
-                  }
-              }
-            }
-        ],
-        language: {
-            search: "ค้นหา:",
-            lengthMenu: "แสดง _MENU_ รายการ",
-            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-            paginate: {
-              previous: "ก่อนหน้า",
-              next: "ถัดไป"
-            }
-        }
-      });
-    });
-
-
-    async function uploadSssZip(type) {
-        let inputId = 'zip_file_rep';
-        let url = "{{ url('claim_op/sss_rep_import') }}";
-        let title = 'นำเข้าข้อมูล REP';
-        let isChronic = false;
-        
-        if (type === 'chronic') {
-            inputId = 'zip_file_chronic';
-            url = "{{ url('claim_op/sss_chronic_import') }}";
-            title = 'นำเข้าข้อมูลโรคเรื้อรัง';
-            isChronic = true;
-        } else if (type === 'chronic_reg') {
-            inputId = 'zip_file_chronic_reg';
-            url = "{{ url('claim_op/sss_chronic_register_import') }}";
-            title = 'นำเข้าบัญชีโรคเรื้อรัง';
-        } else if (type === 'stm') {
-            inputId = 'zip_file_stm';
-            url = "{{ url('claim_op/sss_stm_import') }}";
-            title = 'นำเข้าข้อมูล STM';
-        }
-
-        const fileInput = document.getElementById(inputId);
-        if (!fileInput.files || fileInput.files.length === 0) {
-            return;
-        }
-        
-        const files = Array.from(fileInput.files);
-        const totalFiles = files.length;
-
-        // Validate file types before starting upload
-        for (let i = 0; i < totalFiles; i++) {
-            const file = files[i];
-            const nameUpper = file.name.toUpperCase();
-            
-            // Detect actual type
-            let detectedType = null;
-            if (nameUpper.includes('BIL') || nameUpper.includes('SOCDBIL')) {
-                detectedType = 'rep';
-            } else if (nameUpper.includes('STM') || nameUpper.includes('SOGNSTM')) {
-                detectedType = 'stm';
-            } else if (nameUpper.includes('ACDCONF')) {
-                detectedType = 'chronic_reg';
-            } else if (nameUpper.includes('ACD') || nameUpper.includes('SOCDACD') || nameUpper.includes('REPACD') || nameUpper.includes('REPACDP') || nameUpper.includes('CHRONIC')) {
-                detectedType = (type === 'chronic_reg') ? 'chronic_reg' : 'chronic';
-            } else if (nameUpper.includes('REP')) {
-                detectedType = 'rep';
-            }
-
-            if (type !== detectedType) {
-                let expectedText = 'REP';
-                if (type === 'chronic') expectedText = 'โรคเรื้อรัง (ผลตอบกลับ)';
-                if (type === 'chronic_reg') expectedText = 'บัญชีผู้ป่วยโรคเรื้อรัง (ACDCONF)';
-                if (type === 'stm') expectedText = 'การจ่ายเงิน (STM)';
-
-                Swal.fire({
-                    icon: 'error',
-                    title: 'เลือกไฟล์ผิดประเภท',
-                    text: `ไฟล์ "${file.name}" ไม่ใช่ไฟล์${expectedText} กรุณาเลือกไฟล์ให้ถูกต้อง`
-                });
-                fileInput.value = '';
-                return;
-            }
-        }
-
-        let successCount = 0;
-        let failCount = 0;
-        let learnedTpu = 0;
-        let learnedDx = 0;
-        let errorMessages = [];
-
-        Swal.fire({
-            title: `กำลัง${title}...`,
-            html: `<div class="progress mb-3" style="height: 22px;">
-                      <div id="import-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
-                   </div>
-                   <div id="import-progress-text" class="small text-muted fw-bold">กำลังเตรียมอัปโหลด...</div>`,
-            allowOutsideClick: false,
-            showConfirmButton: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        for (let i = 0; i < totalFiles; i++) {
-            const file = files[i];
-            const percent = Math.round((i / totalFiles) * 100);
-            
-            // Update progress UI
-            $('#import-progress-bar').css('width', percent + '%').attr('aria-valuenow', percent).text(percent + '%');
-            $('#import-progress-text').html(`กำลังนำเข้าไฟล์ที่ ${i + 1} จาก ${totalFiles}: <br><span class="text-primary">${file.name}</span>`);
-
-            const formData = new FormData();
-            formData.append('zip_file', file);
-            formData.append('_token', '{{ csrf_token() }}');
-
-            try {
-                const response = await $.ajax({
-                    url: url,
-                    type: "POST",
-                    data: formData,
-                    processData: false,
-                    contentType: false
-                });
-
-                successCount++;
-                if (isChronic && response.message) {
-                    const tpuMatch = response.message.match(/เรียนรู้รหัสยาใหม่ (\d+)/);
-                    const dxMatch = response.message.match(/รหัสโรคใหม่ (\d+)/);
-                    if (tpuMatch) learnedTpu += parseInt(tpuMatch[1]);
-                    if (dxMatch) learnedDx += parseInt(dxMatch[1]);
-                }
-                if (response.warnings && response.warnings.length > 0) {
-                    response.warnings.forEach(warn => {
-                        errorMessages.push(`⚠️ ไฟล์ ${file.name} - ${warn}`);
-                    });
-                }
-            } catch (xhr) {
-                failCount++;
-                let err = `ไฟล์ ${file.name}`;
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    err += `: ${xhr.responseJSON.message}`;
-                } else {
-                    err += ': เกิดข้อผิดพลาดในการเชื่อมต่อ';
-                }
-                errorMessages.push(err);
-            }
-        }
-
-        // Set progress to 100% when finished
-        $('#import-progress-bar').css('width', '100%').attr('aria-valuenow', 100).text('100%').removeClass('bg-primary').addClass('bg-success');
-        $('#import-progress-text').text('เสร็จสิ้นการทำงาน');
-
-        // Show final report
-        let reportHtml = `<div class="text-start p-2 border rounded bg-light small mb-2">
-            <div class="mb-1 text-success">✔️ สำเร็จ: <strong>${successCount} ไฟล์</strong></div>`;
-        if (failCount > 0) {
-            reportHtml += `<div class="mb-1 text-danger">❌ ล้มเหลว: <strong>${failCount} ไฟล์</strong></div>`;
-        }
-        if (isChronic) {
-            reportHtml += `<div class="mb-1 text-dark">💊 เรียนรู้รหัสยาใหม่สะสม: <strong>${learnedTpu} รายการ</strong></div>
-                <div class="text-dark">🦠 เรียนรู้รหัสโรคใหม่สะสม: <strong>${learnedDx} รหัส</strong></div>`;
-        }
-        reportHtml += `</div>`;
-        
-        if (errorMessages.length > 0) {
-            reportHtml += `<div class="text-start"><strong class="text-danger small">รายละเอียดข้อผิดพลาด / คำเตือน:</strong>
-            <div class="text-danger mt-1 small p-2 border rounded bg-white" style="max-height: 120px; overflow-y: auto;">
-                ${errorMessages.join('<br>')}
-            </div></div>`;
-        }
-
-        Swal.fire({
-            icon: (failCount === 0 && errorMessages.length === 0) ? 'success' : (successCount > 0 ? 'warning' : 'error'),
-            title: `นำเข้าไฟล์เสร็จสิ้น`,
-            html: reportHtml,
-            confirmButtonText: 'ตกลง'
-        }).then(() => {
-            fileInput.value = '';
-            if (successCount > 0) {
-                shouldReloadOnModalClose = true;
-                loadFeedbackList();
-            }
-        });
+    function fetchData() {
+        // Fallback for legacy handlers
     }
 
-    function loadFeedbackList() {
-        const body21 = document.getElementById('feedback-21-body');
-        const body22 = document.getElementById('feedback-22-body');
-        
-        // Destroy existing DataTables if initialized
-        if ($.fn.DataTable.isDataTable('#table-feedback-21')) {
-            $('#table-feedback-21').DataTable().destroy();
+    // Filter Rep Error, Has/No Invoice function
+    window.applyRepFilter = function() {
+        if (!dt_claim) return;
+        dt_claim.draw();
+    };
+
+    // AJAX Dashboard Loader
+    function loadDashboard(dataParams) {
+        const container = document.getElementById('data-container');
+        if (!container) return;
+
+        if (dataParams.skip_chart) {
+            const tableContainer = document.querySelector('.table-responsive');
+            if (tableContainer) {
+                tableContainer.innerHTML = `
+                    <div class="text-center py-5">
+                        <div class="d-flex justify-content-center mb-3">
+                            <div class="spinner-border text-primary" role="status" style="width: 2.5rem; height: 2.5rem;"></div>
+                        </div>
+                        <h6 class="fw-bold text-secondary">กำลังอัปเดตตารางข้อมูลผู้ป่วย...</h6>
+                    </div>
+                `;
+            }
+        } else {
+            container.innerHTML = `
+                <div class="card shadow-sm border-0 m-3" style="border-radius: 12px; overflow: hidden;">
+                    <div class="card-body py-5 text-center">
+                        <div class="d-flex justify-content-center mb-3">
+                            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <h5 class="fw-bold text-secondary">กำลังประมวลผลข้อมูลการเรียกเก็บและชดเชย...</h5>
+                        <p class="text-muted small mb-0">ระบบกำลังสแกนประวัติการรักษาย้อนหลังทั้งปีงบประมาณและเชื่อมสถานะส่งเคลม อาจใช้เวลา 5-15 วินาที โปรดรอสักครู่</p>
+                    </div>
+                </div>
+            `;
         }
-        if ($.fn.DataTable.isDataTable('#table-feedback-22')) {
-            $('#table-feedback-22').DataTable().destroy();
-        }
 
-        body21.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-arrow-repeat spin me-2"></i>กำลังโหลด...</td></tr>';
-        body22.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-arrow-repeat spin me-2"></i>กำลังโหลด...</td></tr>';
+        $.ajax({
+            url: "{{ url('claim_op/sss_main') }}",
+            type: "POST",
+            data: $.extend({ _token: "{{ csrf_token() }}" }, dataParams)
+        })
+        .done(function(res) {
+            if (res.success) {
+                container.innerHTML = res.table_html;
+                window.patientItems = res.patient_items || [];
 
-        $.get("{{ url('claim_op/sss_chronic_feedback_list') }}")
-            .done(function(data) {
-                // Populate Tab 2.1
-                let html21 = '';
-                if (data.list21 && data.list21.length > 0) {
-                    data.list21.forEach(row => {
-                        html21 += `
-                            <tr>
-                                <td>${formatThaiShortDate(row.dttran)}</td>
-                                <td><strong>${row.hn}</strong></td>
-                                <td>${row.ptname || '-'}</td>
-                                <td><code>${row.pid || '-'}</code></td>
-                                <td><span class="badge bg-danger text-light">${row.dx || '-'}</span></td>
-                                <td><span class="badge bg-warning text-dark">${row.drug || '-'}</span></td>
-                                <td class="text-muted small">${row.rep_file}</td>
-                            </tr>
-                        `;
-                    });
+                $('.datepicker_th').datepicker({
+                    format: 'd M yyyy',
+                    todayBtn: "linked",
+                    todayHighlight: true,
+                    autoclose: true,
+                    language: 'th-th',
+                    thaiyear: true,
+                    zIndexOffset: 1050
+                });
+
+                var start_date_val = $('#start_date').val();
+                var end_date_val = $('#end_date').val();
+                if(start_date_val) {
+                    $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
                 }
-                body21.innerHTML = html21 || '<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบรายการผลตอบกลับประเภท 2.1</td></tr>';
-
-                // Populate Tab 2.2
-                let html22 = '';
-                if (data.list22 && data.list22.length > 0) {
-                    data.list22.forEach(row => {
-                        html22 += `
-                            <tr>
-                                <td>${formatThaiShortDate(row.dttran)}</td>
-                                <td><strong>${row.hn}</strong></td>
-                                <td>${row.ptname || '-'}</td>
-                                <td><code>${row.pid || '-'}</code></td>
-                                <td><span class="badge bg-danger text-light">${row.dx || '-'}</span></td>
-                                <td><span class="badge bg-warning text-dark">${row.drug || '-'}</span></td>
-                                <td class="text-muted small">${row.rep_file}</td>
-                            </tr>
-                        `;
-                    });
+                if(end_date_val) {
+                    $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
                 }
-                body22.innerHTML = html22 || '<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบรายการผลตอบกลับประเภท 2.2</td></tr>';
 
-                // Re-initialize DataTables with pageLength 10
-                const dtConfig = {
-                    pageLength: 10,
-                    lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"]],
+                $('#start_date_picker').on('changeDate', function(e) {
+                    var date = e.date;
+                    if(date) {
+                      var day = ("0" + date.getDate()).slice(-2);
+                      var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                      var year = date.getFullYear();
+                      $('#start_date').val(year + "-" + month + "-" + day);
+                    }
+                });
+
+                $('#end_date_picker').on('changeDate', function(e) {
+                    var date = e.date;
+                    if(date) {
+                      var day = ("0" + date.getDate()).slice(-2);
+                      var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                      var year = date.getFullYear();
+                      $('#end_date').val(year + "-" + month + "-" + day);
+                    }
+                });
+
+                $.fn.dataTable.ext.search.push(
+                    function(settings, data, dataIndex) {
+                        const filterVal = $('input[name="rep_filter"]:checked').val() || 'all';
+                        if (filterVal === 'all') return true;
+
+                        const rowNode = dt_claim.row(dataIndex).node();
+                        if (!rowNode) return true;
+
+                        const hasError = rowNode.getAttribute('data-has-error') === 'true';
+                        const hasInvoice = rowNode.getAttribute('data-has-invoice') === 'true';
+
+                        if (filterVal === 'error') return hasError;
+                        if (filterVal === 'has_invoice') return hasInvoice;
+                        if (filterVal === 'no_invoice') return !hasInvoice;
+
+                        return true;
+                    }
+                );
+
+                dt_claim = $('#t_claim').DataTable({
+                    autoWidth: false,
+                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>><rt><"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                    buttons: [{
+                        extend: 'excelHtml5',
+                        text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                        className: 'btn btn-success btn-sm shadow-sm',
+                        title: 'รายชื่อผู้มารับบริการ SS-OP ประกันสังคม เครือข่าย'
+                    }],
                     language: {
                         search: "ค้นหา:",
                         lengthMenu: "แสดง _MENU_ รายการ",
                         info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-                        paginate: {
-                            previous: "ก่อนหน้า",
-                            next: "ถัดไป"
-                        }
+                        paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
                     }
-                };
+                });
 
-                if (data.list21 && data.list21.length > 0) {
-                    $('#table-feedback-21').DataTable(dtConfig);
+                $(document).on('change', '#select_all_claims', function() {
+                    const checked = this.checked;
+                    $('.claim-select-check').each(function() {
+                        this.checked = checked;
+                    });
+                });
+
+                if (res.chart_data) {
+                    window.currentChartData = res.chart_data;
                 }
-                if (data.list22 && data.list22.length > 0) {
-                    $('#table-feedback-22').DataTable(dtConfig);
+                if (window.currentChartData) {
+                    drawChart(window.currentChartData);
                 }
-
-                // Force column adjustment after rendering
-                setTimeout(() => {
-                    $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
-                }, 150);
-            })
-            .fail(function() {
-                body21.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
-                body22.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">เกิดข้อผิดพลาดในการโหลดข้อมูล</td></tr>';
-            });
-    }
-
-    function formatThaiShortDate(dateStr) {
-        if (!dateStr) return '-';
-        const parts = dateStr.split('-');
-        if (parts.length !== 3) return dateStr;
-        
-        const year = parseInt(parts[0]) + 543;
-        const month = parseInt(parts[1]);
-        const day = parseInt(parts[2]);
-        
-        const shortMonths = [
-            '', 'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
-            'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'
-        ];
-        
-        const shortYear = year.toString().slice(-2);
-        return `${day} ${shortMonths[month]} ${shortYear}`;
-    }
-
-    // Select all / Deselect all claims (handles all paginated rows in DataTable)
-    $(document).on('change', '#select_all_claims', function() {
-        var table = $('#t_claim').DataTable();
-        var rows = table.rows({ search: 'applied' }).nodes();
-        $('.claim-select-check', rows).prop('checked', this.checked);
-    });
-
-    // Custom Datatable Search for REP Error and Invoice Filters
-    $.fn.dataTable.ext.search.push(
-        function(settings, data, dataIndex) {
-            if (settings.nTable.id !== 't_claim') return true;
-            
-            var filterVal = $('input[name="rep_filter"]:checked').val() || 'all';
-            var rowNode = settings.aoData[dataIndex].nTr;
-            if (filterVal === 'error') {
-                return $(rowNode).attr('data-has-error') === 'true';
-            } else if (filterVal === 'has_invoice') {
-                return $(rowNode).attr('data-has-invoice') === 'true';
-            } else if (filterVal === 'no_invoice') {
-                return $(rowNode).attr('data-has-invoice') === 'false';
             }
-            return true;
-        }
-    );
-
-    function applyRepFilter() {
-        $('#t_claim').DataTable().draw();
+        })
+        .fail(function() {
+            Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: 'ไม่สามารถอัปเดตข้อมูลตารางผ่านระบบ AJAX ได้' });
+        });
     }
 
-    function selectRepErrorsOnly() {
-        var table = $('#t_claim').DataTable();
-        var rows = table.rows({ search: 'applied' }).nodes();
-        // Uncheck all first
-        $('.claim-select-check', rows).prop('checked', false);
-        // Check only those with rep error
-        $('.claim-select-check[data-has-error="true"]', rows).prop('checked', true);
-        // Deselect the "select all" header checkbox to be safe
-        $('#select_all_claims').prop('checked', false);
-    }
+    // Chart Drawer
+    function drawChart(chartData) {
+        const ctx = document.querySelector('#sum_month');
+        if (!ctx) return;
 
-    function exportSelectedSSOP() {
-        var selectedVns = [];
-        $('.claim-select-check:checked').each(function() {
-            selectedVns.push($(this).val());
-        });
-
-        if (selectedVns.length === 0) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'คำเตือน',
-                text: 'กรุณาเลือกอย่างน้อย 1 รายการเพื่อส่งออก',
-                confirmButtonColor: '#3085d6'
-            });
-            return;
+        if (myChart) {
+            myChart.destroy();
         }
 
-        // Set default random session ID
-        var randomSess = Math.floor(Math.random() * (9999 - 1000 + 1)) + 1000;
-        $('#export_session_id').val(randomSess);
-        $('#export_station_id').val('01');
-
-        // Open modal
-        $('#ssopExportModal').modal('show');
-    }
-
-    function previewSSOPExport() {
-        var selectedVns = [];
-        $('.claim-select-check:checked').each(function() {
-            selectedVns.push($(this).val());
-        });
-
-        var sessionId = $('#export_session_id').val().trim();
-        var stationId = $('#export_station_id').val().trim();
-        var tflag = $('#export_tflag').val();
-
-        if (!sessionId) {
-            Swal.fire({ icon: 'warning', title: 'กรุณากรอก Session ID' });
-            return;
-        }
-        if (!stationId) {
-            Swal.fire({ icon: 'warning', title: 'กรุณากรอก Station ID' });
-            return;
-        }
-
-        $('#ssopExportModal').modal('hide');
-
-        Swal.fire({
-            title: 'กำลังประมวลผลข้อมูล...',
-            text: 'กรุณารอสักครู่ขณะระบบดึงและตรวจสอบข้อมูลพรีวิว',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        // Destroy existing DataTables if initialized to prevent error
-        if ($.fn.DataTable.isDataTable('#table-prev-audit')) { $('#table-prev-audit').DataTable().destroy(); }
-        if ($.fn.DataTable.isDataTable('#table-prev-billtran')) { $('#table-prev-billtran').DataTable().destroy(); }
-        if ($.fn.DataTable.isDataTable('#table-prev-billitems')) { $('#table-prev-billitems').DataTable().destroy(); }
-        if ($.fn.DataTable.isDataTable('#table-prev-billdisp')) { $('#table-prev-billdisp').DataTable().destroy(); }
-        if ($.fn.DataTable.isDataTable('#table-prev-dispenseditems')) { $('#table-prev-dispenseditems').DataTable().destroy(); }
-        if ($.fn.DataTable.isDataTable('#table-prev-opservices')) { $('#table-prev-opservices').DataTable().destroy(); }
-        if ($.fn.DataTable.isDataTable('#table-prev-opdx')) { $('#table-prev-opdx').DataTable().destroy(); }
-
-        $.ajax({
-            url: "{{ url('claim_op/sss_export_preview') }}",
-            method: 'POST',
+        myChart = new Chart(ctx, {
+            type: 'bar',
             data: {
-                _token: "{{ csrf_token() }}",
-                vns: selectedVns,
-                session_id: sessionId,
-                station_id: stationId,
-                tflag: tflag
+                labels: chartData.months || chartData.month || [],
+                datasets: [
+                    {
+                        label: 'เรียกเก็บ',
+                        data: chartData.claim_price || [],
+                        backgroundColor: 'rgba(185, 28, 28, 0.75)',
+                        borderColor: 'rgb(185, 28, 28)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'ส่งเคลม',
+                        data: chartData.claim_sent_price || [],
+                        backgroundColor: 'rgba(234, 179, 8, 0.6)',
+                        borderColor: 'rgb(234, 179, 8)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'ชดเชย',
+                        data: chartData.receive_total || [],
+                        backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                        borderColor: 'rgb(16, 185, 129)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }
+                ]
             },
-            success: function(response) {
-                console.log("AJAX Success response:", response);
-                Swal.close();
-                if (response.success) {
-                    // Populate Pre-Audit Table
-                    var html_audit = '';
-                    var hasAnyErrors = false;
-                    Object.keys(response.validation).forEach(function(vn) {
-                        var val = response.validation[vn];
-                        var errorsList = [];
-                        if (!val.billtran_ok) {
-                            errorsList.push({ file: 'BILLTRAN', err: val.billtran_err });
-                        }
-                        if (!val.billdisp_ok) {
-                            errorsList.push({ file: 'BILLDISP', err: val.billdisp_err });
-                        }
-                        if (!val.opservices_ok) {
-                            errorsList.push({ file: 'OPServices', err: val.opservices_err });
-                        }
-
-                        if (errorsList.length > 0) {
-                            hasAnyErrors = true;
-                            errorsList.forEach(function(e) {
-                                html_audit += `<tr>
-                                    <td><strong class="text-primary">${val.hn || ''}</strong></td>
-                                    <td>${val.name || ''}</td>
-                                    <td><span class="badge bg-danger text-white fw-bold">${e.file}</span></td>
-                                    <td class="text-danger fw-bold"><i class="bi bi-x-circle-fill me-1"></i> ${e.err}</td>
-                                </tr>`;
-                            });
-                        }
-                    });
-
-                    if (!hasAnyErrors) {
-                        html_audit = `<tr>
-                            <td colspan="4" class="text-center py-4 text-success fw-bold">
-                                <i class="bi bi-check-circle-fill fs-4 me-2"></i>ผ่านการตรวจสอบโครงสร้างพื้นฐานทั้งหมด (ไม่พบข้อผิดพลาด)
-                            </td>
-                        </tr>`;
-                    }
-                    $('#preview-audit-tbody').html(html_audit);
-
-                    // 1. Populate BILLTRAN & BillItems Table & Raw XML
-                    $('#preview-billtran-raw').val(response.billtran_raw);
-                    var html1 = '';
-                    response.billtran_table.forEach(function(fields) {
-                        if (fields.length < 10) return;
-                        
-                        html1 += `<tr>
-                            <td>${fields[0] || ''}</td>
-                            <td>${fields[1] || ''}</td>
-                            <td>${fields[2] || ''}</td>
-                            <td>${fields[3] || ''}</td>
-                            <td>${fields[4] || ''}</td>
-                            <td>${fields[5] || ''}</td>
-                            <td>${fields[6] || ''}</td>
-                            <td>${fields[7] || ''}</td>
-                            <td class="text-end fw-bold">${fields[8] || '0.00'}</td>
-                            <td class="text-end text-muted">${fields[9] || '0.00'}</td>
-                            <td>${fields[10] || ''}</td>
-                            <td><span class="badge bg-success">${fields[11] || ''}</span></td>
-                            <td>${fields[12] || ''}</td>
-                            <td class="fw-bold">${fields[13] || ''}</td>
-                            <td>${fields[14] || ''}</td>
-                            <td>${fields[15] || ''}</td>
-                            <td class="text-end text-primary fw-bold">${fields[16] || '0.00'}</td>
-                            <td>${fields[17] || ''}</td>
-                            <td>${fields[18] || '0.00'}</td>
-                        </tr>`;
-                    });
-                    $('#preview-billtran-tbody').html(html1);
-
-                    var html_items = '';
-                    response.billitems_table.forEach(function(fields) {
-                        if (fields.length < 5) return;
-                        html_items += `<tr>
-                            <td class="fw-bold">${fields[0] || ''}</td>
-                            <td>${fields[1] || ''}</td>
-                            <td><span class="badge bg-info">${fields[2] || ''}</span></td>
-                            <td>${fields[3] || ''}</td>
-                            <td>${fields[4] || ''}</td>
-                            <td>${fields[5] || ''}</td>
-                            <td class="text-center fw-bold">${fields[6] || '0'}</td>
-                            <td class="text-end">${fields[7] || '0.00'}</td>
-                            <td class="text-end fw-bold">${fields[8] || '0.00'}</td>
-                            <td class="text-end text-muted">${fields[9] || '0.00'}</td>
-                            <td class="text-end fw-bold text-success">${fields[10] || '0.00'}</td>
-                            <td>${fields[11] || ''}</td>
-                            <td>${fields[12] || ''}</td>
-                        </tr>`;
-                    });
-                    $('#preview-billitems-tbody').html(html_items);
-
-                    // 2. Populate BILLDISP & DispensedItems Table & Raw XML
-                    $('#preview-billdisp-raw').val(response.billdisp_raw);
-                    var html2 = '';
-                    response.billdisp_table.forEach(function(fields) {
-                        if (fields.length < 10) return;
-                        html2 += `<tr>
-                            <td>${fields[0] || ''}</td>
-                            <td class="fw-bold text-primary">${fields[1] || ''}</td>
-                            <td>${fields[2] || ''}</td>
-                            <td>${fields[3] || ''}</td>
-                            <td>${fields[4] || ''}</td>
-                            <td>${fields[5] || ''}</td>
-                            <td>${fields[6] || ''}</td>
-                            <td>${fields[7] || ''}</td>
-                            <td><span class="badge bg-secondary">${fields[8] || ''}</span></td>
-                            <td class="text-end">${fields[9] || '0.00'}</td>
-                            <td class="text-end fw-bold">${fields[10] || '0.00'}</td>
-                            <td>${fields[11] || '0.00'}</td>
-                            <td>${fields[12] || '0.00'}</td>
-                            <td>${fields[13] || ''}</td>
-                            <td>${fields[14] || ''}</td>
-                            <td class="text-center fw-bold">${fields[15] || '0'}</td>
-                            <td>${fields[16] || ''}</td>
-                        </tr>`;
-                    });
-                    $('#preview-billdisp-tbody').html(html2);
-
-                    var html_dispensed = '';
-                    response.dispenseditems_table.forEach(function(fields) {
-                        if (fields.length < 5) return;
-                        html_dispensed += `<tr>
-                            <td class="fw-bold text-primary">${fields[0] || ''}</td>
-                            <td>${fields[1] || ''}</td>
-                            <td>${fields[2] || ''}</td>
-                            <td>${fields[3] || ''}</td>
-                            <td>${fields[4] || ''}</td>
-                            <td>${fields[5] || ''}</td>
-                            <td>${fields[6] || ''}</td>
-                            <td>${fields[7] || ''}</td>
-                            <td><small class="text-muted">${fields[8] || ''}</small></td>
-                            <td class="text-center fw-bold">${fields[9] || '0'}</td>
-                            <td class="text-end">${fields[10] || '0.00'}</td>
-                            <td class="text-end fw-bold">${fields[11] || '0.00'}</td>
-                            <td class="text-end text-muted">${fields[12] || '0.00'}</td>
-                            <td class="text-end fw-bold text-success">${fields[13] || '0.00'}</td>
-                            <td>${fields[14] || ''}</td>
-                            <td>${fields[15] || ''}</td>
-                        </tr>`;
-                    });
-                    $('#preview-dispenseditems-tbody').html(html_dispensed);
-
-                    // 3. Populate OPServices & OPDx Table & Raw XML
-                    $('#preview-opservices-raw').val(response.opservices_raw);
-                    var html3 = '';
-                    response.opservices_table.forEach(function(fields) {
-                        if (fields.length < 10) return;
-                        html3 += `<tr>
-                            <td>${fields[0] || ''}</td>
-                            <td>${fields[1] || ''}</td>
-                            <td><span class="badge bg-info">${fields[2] || ''}</span></td>
-                            <td>${fields[3] || ''}</td>
-                            <td>${fields[4] || ''}</td>
-                            <td>${fields[5] || ''}</td>
-                            <td>${fields[6] || ''}</td>
-                            <td>${fields[7] || ''}</td>
-                            <td>${fields[8] || ''}</td>
-                            <td>${fields[9] || ''}</td>
-                            <td>${fields[10] || ''}</td>
-                            <td>${fields[11] || ''}</td>
-                            <td>${fields[12] || ''}</td>
-                            <td>${fields[13] || ''}</td>
-                            <td>${fields[14] || ''}</td>
-                            <td>${fields[15] || ''}</td>
-                            <td>${fields[16] || ''}</td>
-                            <td>${fields[17] || ''}</td>
-                            <td>${fields[18] || '0.00'}</td>
-                            <td><span class="badge bg-success">${fields[19] || ''}</span></td>
-                            <td>${fields[20] || ''}</td>
-                            <td>${fields[21] || ''}</td>
-                        </tr>`;
-                    });
-                    $('#preview-opservices-tbody').html(html3);
-
-                    var html_opdx = '';
-                    response.opdx_table.forEach(function(fields) {
-                        if (fields.length < 4) return;
-                        var typeBadge = fields[2] == '1' 
-                            ? '<span class="badge bg-danger">โรคหลัก (PDX)</span>'
-                            : '<span class="badge bg-secondary">โรคร่วม/อื่น ๆ</span>';
-                        html_opdx += `<tr>
-                            <td>${fields[0] || ''}</td>
-                            <td class="fw-bold">${fields[1] || ''}</td>
-                            <td>${typeBadge}</td>
-                            <td><span class="badge bg-info">${fields[3] || ''}</span></td>
-                            <td class="fw-bold text-dark">${fields[4] || ''}</td>
-                        </tr>`;
-                    });
-                    $('#preview-opdx-tbody').html(html_opdx);
-
-                    // Initialize DataTables for Preview Tables
-                    const prevDtConfig = {
-                        pageLength: 10,
-                        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"]],
-                        language: {
-                            search: "ค้นหา:",
-                            lengthMenu: "แสดง _MENU_ รายการ",
-                            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-                            paginate: {
-                                previous: "ก่อนหน้า",
-                                next: "ถัดไป"
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { usePointStyle: true, boxWidth: 6 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.formattedValue + ' บาท';
                             }
-                        },
-                        scrollY: "300px",
-                        scrollCollapse: true,
-                        scrollX: true,
-                        autoWidth: false
-                    };
-                    $('#table-prev-billtran').DataTable(prevDtConfig);
-                    $('#table-prev-billitems').DataTable(prevDtConfig);
-                    $('#table-prev-billdisp').DataTable(prevDtConfig);
-                    $('#table-prev-dispenseditems').DataTable(prevDtConfig);
-                    $('#table-prev-opservices').DataTable(prevDtConfig);
-                    $('#table-prev-opdx').DataTable(prevDtConfig);
-
-                    if (hasAnyErrors) {
-                        $('#table-prev-audit').DataTable({
-                            pageLength: 10,
-                            lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "ทั้งหมด"]],
-                            language: {
-                                search: "ค้นหา:",
-                                lengthMenu: "แสดง _MENU_ รายการ",
-                                info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-                                paginate: {
-                                    previous: "ก่อนหน้า",
-                                    next: "ถัดไป"
-                                }
-                            },
-                            autoWidth: false
-                        });
+                        }
+                    },
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'top',
+                        color: '#000',
+                        font: { weight: 'bold', size: 10 },
+                        formatter: (value) => value > 0 ? value.toLocaleString() : ''
                     }
-
-                    // Reset active tab to the first tab (Pre-Audit)
-                    $('#prev-audit-tab').tab('show');
-
-                    // Open Preview Modal
-                    $('#ssopPreviewModal').modal('show');
-                } else {
-                    Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: response.error || 'ไม่สามารถประมวลผลข้อมูลพรีวิวได้' });
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: function(value) { return value.toLocaleString(); } }
+                    }
                 }
             },
-            error: function(xhr) {
-                console.error("AJAX Error details:", xhr.status, xhr.statusText, xhr.responseText);
-                Swal.close();
-                var msg = xhr.responseJSON && xhr.responseJSON.error ? xhr.responseJSON.error : ('เกิดข้อผิดพลาดในการเชื่อมต่อ (สถานะ: ' + xhr.status + ' ' + xhr.statusText + ')');
-                Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: msg });
-            }
+            plugins: [ChartDataLabels]
         });
     }
-
-    function triggerActualDownload() {
-        var selectedVns = [];
-        $('.claim-select-check:checked').each(function() {
-            selectedVns.push($(this).val());
-        });
-
-        var sessionId = $('#export_session_id').val().trim();
-        var stationId = $('#export_station_id').val().trim();
-
-        $('#ssopPreviewModal').modal('hide');
-
-        Swal.fire({
-            title: 'กำลังสร้างไฟล์...',
-            text: 'กรุณารอสักครู่ขณะสร้างไฟล์ Zip เพื่อดาวน์โหลด',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        // Standard POST form submit to trigger file download
-        var form = document.createElement('form');
-        form.method = 'POST';
-        form.action = "{{ url('claim_op/sss_export_ssop') }}";
-        
-        // CSRF Token
-        var csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = '_token';
-        csrfInput.value = "{{ csrf_token() }}";
-        form.appendChild(csrfInput);
-
-        var sessInput = document.createElement('input');
-        sessInput.type = 'hidden';
-        sessInput.name = 'session_id';
-        sessInput.value = sessionId;
-        form.appendChild(sessInput);
-
-        var statInput = document.createElement('input');
-        statInput.type = 'hidden';
-        statInput.name = 'station_id';
-        statInput.value = stationId;
-        form.appendChild(statInput);
-
-        var tflagInput = document.createElement('input');
-        tflagInput.type = 'hidden';
-        tflagInput.name = 'tflag';
-        tflagInput.value = $('#export_tflag').val();
-        form.appendChild(tflagInput);
-
-        // Selected VNs
-        selectedVns.forEach(function(vn) {
-            var vnInput = document.createElement('input');
-            vnInput.type = 'hidden';
-            vnInput.name = 'vns[]';
-            vnInput.value = vn;
-            form.appendChild(vnInput);
-        });
-
-        document.body.appendChild(form);
-        form.submit();
-        document.body.removeChild(form);
-
-        setTimeout(function() {
-            Swal.close();
-        }, 2000);
-    }
-
-    // Copy XML text to clipboard
-    $(document).on('click', '.btn-copy-xml', function() {
-        var targetId = $(this).attr('data-target');
-        var textarea = document.getElementById(targetId);
-        textarea.select();
-        document.execCommand('copy');
-        
-        var $btn = $(this);
-        $btn.html('<i class="bi bi-check2"></i> Copied!').removeClass('btn-secondary').addClass('btn-success');
-        setTimeout(function() {
-            $btn.html('<i class="bi bi-clipboard"></i> Copy').removeClass('btn-success').addClass('btn-secondary');
-        }, 2000);
-    });
-
-    // Auto adjust columns for hidden tables inside preview modal on shown
-    $('#ssopPreviewModal').on('shown.bs.modal', function () {
-        $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
-    });
-
-    $('#previewTab button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
-        $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
-    });
 
     // Custom showDetails function to display SSOP validation checks on the eye button
     window.showDetails = function(vn) {
@@ -1882,9 +907,6 @@
                                     if (prdcatInt >= 1 && prdcatInt <= 5) {
                                         if (!sigtext) sigtext = 'ตามแพทย์สั่ง';
                                     }
-                                    
-                                    
-
                                     let paids_display = d.paids_name || d.paids || '-';
                                     let pttype_display = d.pttype_name || d.pttype || '-';
                                     return `<tr>
@@ -2021,7 +1043,6 @@
             });
     };
 
-
     // NHSO Endpoint pull/push functions
     window.pullNhsoData = function(vstdate, cid, vn) {
         Swal.fire({
@@ -2040,10 +1061,7 @@
                 "X-CSRF-TOKEN": "{{ csrf_token() }}",
                 "Accept": "application/json"
             },
-            body: JSON.stringify({
-                vstdate: vstdate,
-                cid: cid
-            })
+            body: JSON.stringify({ vstdate: vstdate, cid: cid })
         })
         .then(async response => {
             const data = await response.json();
@@ -2211,99 +1229,349 @@
                 });
             });
     };
+
+    // feedback lists & zip uploads
+    window.loadFeedbackList = function() {
+        const body21 = document.getElementById('feedback-21-body');
+        const body22 = document.getElementById('feedback-22-body');
+        
+        body21.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">กำลังโหลดข้อมูล...</td></tr>';
+        body22.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">กำลังโหลดข้อมูล...</td></tr>';
+        
+        $.get("{{ url('api/sss_ssop_feedback_list') }}")
+            .done(function(data) {
+                // Populate Tab 2.1
+                let h21 = '';
+                const items21 = data.feedback_21 || [];
+                if (items21.length === 0) {
+                    h21 = '<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบรายการผลตอบกลับ ตอนที่ 2.1</td></tr>';
+                } else {
+                    items21.forEach(row => {
+                        h21 += `<tr>
+                            <td>${row.vstdate}</td>
+                            <td class="fw-bold text-primary">${row.hn}</td>
+                            <td>${row.ptname}</td>
+                            <td>${row.cid}</td>
+                            <td class="${row.diag_mismatch ? 'text-danger fw-bold' : ''}">${row.diag_code || '-'}</td>
+                            <td class="${row.drug_mismatch ? 'text-danger fw-bold' : ''}">${row.drug_code || '-'}</td>
+                            <td class="small text-muted">${row.source_filename}</td>
+                        </tr>`;
+                    });
+                }
+                body21.innerHTML = h21;
+
+                // Populate Tab 2.2
+                let h22 = '';
+                const items22 = data.feedback_22 || [];
+                if (items22.length === 0) {
+                    h22 = '<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบรายการผลตอบกลับ ตอนที่ 2.2</td></tr>';
+                } else {
+                    items22.forEach(row => {
+                        h22 += `<tr>
+                            <td>${row.vstdate}</td>
+                            <td class="fw-bold text-primary">${row.hn}</td>
+                            <td>${row.ptname}</td>
+                            <td>${row.cid}</td>
+                            <td class="text-danger fw-bold">${row.diag_code || '-'}</td>
+                            <td class="text-danger fw-bold">${row.drug_code || '-'}</td>
+                            <td class="small text-muted">${row.source_filename}</td>
+                        </tr>`;
+                    });
+                }
+                body22.innerHTML = h22;
+            })
+            .fail(function() {
+                body21.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">ผิดพลาดในการเชื่อมต่อข้อมูล</td></tr>';
+                body22.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">ผิดพลาดในการเชื่อมต่อข้อมูล</td></tr>';
+            });
+    };
+
+    window.uploadSssZip = function(type) {
+        const inputId = type === 'rep' ? 'zip_file_rep' : (type === 'stm' ? 'zip_file_stm' : (type === 'chronic' ? 'zip_file_chronic' : 'zip_file_chronic_reg'));
+        const input = document.getElementById(inputId);
+        if (!input || input.files.length === 0) return;
+
+        const formData = new FormData();
+        formData.append('_token', "{{ csrf_token() }}");
+        formData.append('type', type);
+        for(let i=0; i<input.files.length; i++) {
+            formData.append('zip_files[]', input.files[i]);
+        }
+
+        Swal.fire({
+            title: 'กำลังอัปโหลดและประมวลผลไฟล์...',
+            text: 'กรุณารอสักครู่ ห้ามปิดหน้าต่างนี้',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+            url: "{{ url('api/import_sss_zip') }}",
+            type: "POST",
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(res) {
+                if (res.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'นำเข้าสำเร็จ!',
+                        html: `นำเข้าข้อมูลเรียบร้อยแล้ว<br>จำนวนข้อมูล: ${res.inserted_count} แถว<br>${res.message || ''}`,
+                    }).then(() => {
+                        input.value = '';
+                        loadFeedbackList();
+                        // Reload main dashboard tables to see latest feedback/stm status
+                        loadDashboard({
+                            budget_year: $('#form_budget_year select[name="budget_year"]').val() || "{{ $budget_year }}",
+                            start_date: $('#start_date').val(),
+                            end_date: $('#end_date').val(),
+                            skip_chart: 1
+                        });
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'ไม่สำเร็จ',
+                        text: res.message || 'เกิดข้อผิดพลาดในการประมวลผลไฟล์ ZIP'
+                    });
+                }
+            },
+            error: function(xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาดในการนำเข้า',
+                    text: (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'ไม่สามารถสื่อสารกับเซิร์ฟเวอร์ได้'
+                });
+            }
+        });
+    };
+
+    // export SSOP functions
+    let selectedVnsForExport = [];
+    window.exportSelectedSSOP = function() {
+        selectedVnsForExport = [];
+        $('.claim-select-check:checked').each(function() {
+            selectedVnsForExport.push(this.value);
+        });
+
+        if (selectedVnsForExport.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'กรุณาเลือกรายการ',
+                text: 'กรุณาติ๊กเลือกผู้ป่วยอย่างน้อย 1 รายการก่อนทำการส่งออก SSOP'
+            });
+            return;
+        }
+
+        // Random Session ID setup
+        const minVal = 1000;
+        const maxVal = 9999;
+        const randomSession = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
+        document.getElementById('export_session_id').value = randomSession;
+        document.getElementById('export_station_id').value = '01';
+        document.getElementById('export_tflag').value = 'A';
+
+        $('#ssopExportModal').modal('show');
+    };
+
+    window.previewSSOPExport = function() {
+        const sessionId = document.getElementById('export_session_id').value;
+        const stationId = document.getElementById('export_station_id').value;
+        const tflag = document.getElementById('export_tflag').value;
+
+        if (!sessionId) {
+            Swal.fire({ icon: 'warning', title: 'กรุณากรอก Session ID' });
+            return;
+        }
+
+        Swal.fire({
+            title: 'กำลังเตรียมและประมวลผลข้อมูลส่งออก...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        $.ajax({
+            url: "{{ url('api/ssop_export_preview') }}",
+            type: "POST",
+            data: {
+                _token: "{{ csrf_token() }}",
+                vns: selectedVnsForExport,
+                session_id: sessionId,
+                station_id: stationId,
+                tflag: tflag
+            },
+            success: function(res) {
+                Swal.close();
+                if (res.success) {
+                    $('#ssopExportModal').modal('hide');
+                    $('#ssopPreviewModal').modal('show');
+
+                    // Pre-Audit Tab population
+                    let hAudit = '';
+                    const auditIssues = res.audit_issues || [];
+                    if (auditIssues.length === 0) {
+                        hAudit = '<tr><td colspan="5" class="text-center text-success fw-bold py-3"><i class="bi bi-patch-check-fill me-1"></i> ผ่านการตรวจสอบ ไม่พบข้อผิดพลาด Pre-Audit (พร้อมนำส่ง 100%)</td></tr>';
+                    } else {
+                        auditIssues.forEach((issue, idx) => {
+                            const badge = issue.severity === 'error' ? 'bg-danger' : 'bg-warning text-dark';
+                            const rowClass = issue.severity === 'error' ? 'table-danger-light' : 'table-warning-light';
+                            hAudit += `<tr class="${rowClass}">
+                                <td class="text-center">${idx + 1}</td>
+                                <td><div class="fw-bold">${issue.hn}</div><div>${issue.ptname}</div></td>
+                                <td>${issue.vstdate}</td>
+                                <td class="fw-bold text-dark">${issue.message}</td>
+                                <td class="text-center"><span class="badge ${badge}">${issue.severity.toUpperCase()}</span></td>
+                            </tr>`;
+                        });
+                    }
+                    document.getElementById('prev-audit-body').innerHTML = hAudit;
+
+                    // BILLTRAN Tab population
+                    let hBill = '';
+                    (res.billtran || []).forEach(row => {
+                        hBill += `<tr>
+                            <td>${row.Station || ''}</td><td>${row.InvNo || ''}</td><td>${row.HN || ''}</td><td>${row.MemberNo || ''}</td>
+                            <td>${row.Amount || ''}</td><td>${row.Paid || ''}</td><td>${row.Claim || ''}</td><td>${row.Name || ''}</td>
+                        </tr>`;
+                    });
+                    document.getElementById('prev-billtran-body').innerHTML = hBill;
+
+                    // BillItems Tab population
+                    let hItems = '';
+                    (res.billitems || []).forEach(row => {
+                        hItems += `<tr>
+                            <td>${row.InvNo || ''}</td><td>${row.ItemSeq || ''}</td><td>${row.BillGr || ''}</td><td>${row.LCode || ''}</td>
+                            <td>${row.Qty || ''}</td><td>${row.Charge || ''}</td><td>${row.Claim || ''}</td>
+                        </tr>`;
+                    });
+                    document.getElementById('prev-billitems-body').innerHTML = hItems;
+
+                    // BILLDISP Tab population
+                    let hDisp = '';
+                    (res.billdisp || []).forEach(row => {
+                        hDisp += `<tr>
+                            <td>${row.DispID || ''}</td><td>${row.PrescID || ''}</td><td>${row.InvNo || ''}</td><td>${row.DispDate || ''}</td>
+                            <td>${row.HN || ''}</td><td>${row.Name || ''}</td><td>${row.Amount || ''}</td><td>${row.Reimb || ''}</td>
+                        </tr>`;
+                    });
+                    document.getElementById('prev-billdisp-body').innerHTML = hDisp;
+
+                    // DispensedItems Tab population
+                    let hDispItems = '';
+                    (res.dispenseditems || []).forEach(row => {
+                        hDispItems += `<tr>
+                            <td>${row.DispID || ''}</td><td>${row.PrescID || ''}</td><td>${row.ItemSeq || ''}</td><td>${row.LocalCd || ''}</td>
+                            <td>${row.StdCd || ''}</td><td>${row.Qty || ''}</td><td>${row.PrdCat || ''}</td><td>${row.Reimb || ''}</td>
+                        </tr>`;
+                    });
+                    document.getElementById('prev-dispenseditems-body').innerHTML = hDispItems;
+
+                    // OPServices Tab population
+                    let hOps = '';
+                    (res.opservices || []).forEach(row => {
+                        hOps += `<tr>
+                            <td>${row.HN || ''}</td><td>${row.SvDate || ''}</td><td>${row.Class || ''}</td><td>${row.CareType || ''}</td>
+                            <td>${row.InvNo || ''}</td><td>${row.PrePay || ''}</td>
+                        </tr>`;
+                    });
+                    document.getElementById('prev-opservices-body').innerHTML = hOps;
+
+                    // OPDiagnoses Tab population
+                    let hDiag = '';
+                    (res.opdiagnoses || []).forEach(row => {
+                        hDiag += `<tr>
+                            <td>${row.HN || ''}</td><td>${row.SvDate || ''}</td><td>${row.DiagType || ''}</td><td>${row.DiagCode || ''}</td>
+                        </tr>`;
+                    });
+                    document.getElementById('prev-opdiagnoses-body').innerHTML = hDiag;
+
+                    // If errors exist, disable download button
+                    const errorCount = auditIssues.filter(i => i.severity === 'error').length;
+                    const btnDownload = document.getElementById('btnDownloadSSOP');
+                    if (errorCount > 0) {
+                        btnDownload.disabled = true;
+                        btnDownload.innerHTML = `<i class="bi bi-x-circle me-1"></i> กรุณาแก้ไขข้อผิดพลาด (${errorCount} รายการ)`;
+                        btnDownload.className = 'btn btn-danger px-4';
+                    } else {
+                        btnDownload.disabled = false;
+                        btnDownload.innerHTML = `<i class="bi bi-download me-1"></i> ยืนยันการดาวน์โหลด SSOP (.zip)`;
+                        btnDownload.className = 'btn btn-success px-4';
+                    }
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'ผิดพลาด',
+                        text: res.message || 'เกิดข้อผิดพลาดในการโหลดข้อมูลพรีวิว'
+                    });
+                }
+            },
+            error: function(xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'ผิดพลาด',
+                    text: (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'ไม่สามารถประมวลผลคำขอได้'
+                });
+            }
+        });
+    };
+
+    window.downloadSSOPExportZip = function() {
+        const sessionId = document.getElementById('export_session_id').value;
+        const stationId = document.getElementById('export_station_id').value;
+        const tflag = document.getElementById('export_tflag').value;
+
+        // Redirect/Download trigger
+        const queryParams = $.param({
+            vns: selectedVnsForExport,
+            session_id: sessionId,
+            station_id: stationId,
+            tflag: tflag
+        });
+        window.location.href = "{{ url('api/ssop_export_download') }}?" + queryParams;
+
+        $('#ssopPreviewModal').modal('hide');
+        Swal.fire({
+            icon: 'success',
+            title: 'สร้างไฟล์นำส่งเรียบร้อยแล้ว!',
+            text: 'ดาวน์โหลดไฟล์นำส่ง SSOP สำเร็จแล้ว',
+            timer: 2000,
+            showConfirmButton: false
+        }).then(() => {
+            // Refresh tables
+            loadDashboard({
+                budget_year: $('#form_budget_year select[name="budget_year"]').val() || "{{ $budget_year }}",
+                start_date: $('#start_date').val(),
+                end_date: $('#end_date').val(),
+                skip_chart: 1
+            });
+        });
+    };
+
+    $(document).ready(function () {
+        loadDashboard({
+            budget_year: "{{ $budget_year }}",
+            start_date: "{{ $start_date }}",
+            end_date: "{{ $end_date }}"
+        });
+
+        $(document).on('submit', '#form_budget_year', function(e) {
+            e.preventDefault();
+            loadDashboard({
+                budget_year: $(this).find('select[name="budget_year"]').val()
+            });
+        });
+
+        $(document).on('submit', '#form_indiv', function(e) {
+            e.preventDefault();
+            loadDashboard({
+                budget_year: $('#form_budget_year select[name="budget_year"]').val() || "{{ $budget_year }}",
+                start_date: $(this).find('#start_date').val(),
+                end_date: $(this).find('#end_date').val(),
+                skip_chart: 1
+            });
+        });
+    });
   </script>
 @endpush
-
-<script src="{{ asset('assets/vendor/chart.js/chart.min.js') }}"></script>
-<script src="{{ asset('assets/vendor/chartjs-plugin-datalabels/chartjs-plugin-datalabels.min.js') }}"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    new Chart(document.querySelector('#sum_month'), {
-      type: 'bar',
-      data: {
-        labels: <?php echo json_encode($month); ?>,
-        datasets: [
-          {
-            label: 'เรียกเก็บ',
-            data: <?php echo json_encode($claim_price); ?>,
-            backgroundColor: 'rgba(185, 28, 28, 0.75)',
-            borderColor: 'rgb(185, 28, 28)',
-            borderWidth: 1,
-            borderRadius: 4
-          },
-          {
-            label: 'ส่งเคลม',
-            data: <?php echo json_encode($claim_sent_price); ?>,
-            backgroundColor: 'rgba(234, 179, 8, 0.6)',
-            borderColor: 'rgb(234, 179, 8)',
-            borderWidth: 1,
-            borderRadius: 4
-          },
-          {
-            label: 'ชดเชย',
-            data: <?php echo json_encode($receive_total); ?>,
-            backgroundColor: 'rgba(16, 185, 129, 0.6)',
-            borderColor: 'rgb(16, 185, 129)',
-            borderWidth: 1,
-            borderRadius: 4
-          }
-        ]
-      }, 
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: {
-                usePointStyle: true,
-                boxWidth: 6
-            }
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                return context.dataset.label + ': ' + context.formattedValue + ' บาท';
-              }
-            }
-          },
-          datalabels: {
-            anchor: 'end',
-            align: 'top',
-            color: '#000',
-            font: {
-              weight: 'bold',
-              size: 10
-            },
-            formatter: (value) => value > 0 ? value.toLocaleString() : ''
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              callback: function(value) {
-                return value.toLocaleString();
-              }
-            }
-          }
-        }
-      },
-      plugins: [ChartDataLabels]
-    });
-  });
-</script>
-
-<style>
-/* Fix DataTables duplicated header/thin blue row bug when scrollX/scrollY is used */
-.dataTables_scrollBody table thead tr {
-    visibility: collapse !important;
-    height: 0 !important;
-}
-.dataTables_scrollBody table thead tr th {
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    border: none !important;
-    height: 0 !important;
-}
-</style>

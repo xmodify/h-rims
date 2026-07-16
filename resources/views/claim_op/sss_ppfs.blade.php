@@ -3,6 +3,12 @@
 @section('content')
 
 <style>
+.spin { animation: spin 1s linear infinite; display: inline-block; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.badge-type { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+.badge-ppfs  { background:#fff3cd; color:#856404; }
+.badge-uc_cr { background:#cfe2ff; color:#084298; }
+
 /* Custom pastel background for main tabs in sss_ppfs */
 #search-tab {
     background-color: #fef2f2 !important; /* Soft pastel red/pink */
@@ -39,12 +45,10 @@
         <div class="d-flex align-items-center gap-4">
             <!-- Filter Section 1: Chart Data (Budget Year) -->
             <div class="filter-group">
-                <form method="POST" enctype="multipart/form-data" class="m-0 d-flex align-items-center">
+                <form id="form_budget_year" method="POST" class="m-0 d-flex align-items-center">
                     @csrf
                     <span class="fw-bold text-muted small text-nowrap me-2">เลือกปีงบประมาณ</span>
                     <div class="input-group input-group-sm">
-                        <input type="hidden" name="start_date" value="{{ $start_date }}">
-                        <input type="hidden" name="end_date" value="{{ $end_date }}">
                         <select class="form-select" name="budget_year" style="width: 160px;">
                             @foreach ($budget_year_select as $row)
                               <option value="{{ $row->LEAVE_YEAR_ID }}"
@@ -53,7 +57,7 @@
                               </option>
                             @endforeach
                         </select>
-                        <button type="submit" onclick="fetchData()" class="btn btn-primary px-3 shadow-sm">
+                        <button type="submit" class="btn btn-primary px-3 shadow-sm">
                             <i class="bi bi-graph-up me-1"></i> โหลดกราฟ
                         </button>
                     </div>
@@ -63,345 +67,37 @@
     </div>
 
     <!-- Main Dashboard Container -->
-    <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">
-        <!-- Section 1: Chart -->
-        <div class="px-4 pt-2 pb-0 border-bottom">
-            <h6 class="fw-bold text-dark mb-1" style="font-size: 0.85rem;">
-                <i class="bi bi-bar-chart-fill text-primary me-2"></i>
-                สถิติการเรียกเก็บและชดเชยรายเดือน ปีงบประมาณ {{ $budget_year }}
-            </h6>
-            <div style="height: 300px; width: 100%;">
-                <canvas id="sum_month"></canvas>
-            </div>
-        </div>
-
-        <!-- Section 2: Tables & Tabs -->
-        <div class="card-header bg-transparent border-0 pt-3 px-4 pb-0">
-            <div class="d-flex justify-content-between align-items-end mb-3">
-                <div class="d-flex align-items-center gap-3">
-                    <h6 class="fw-bold text-dark mb-0">
-                        <i class="bi bi-people-fill text-primary me-2"></i>รายชื่อผู้มารับบริการ SS-OP ประกันสังคม PPFS
-                    </h6>
-                    <span class="text-muted small">
-                        วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}
-                    </span>
+    <div id="data-container">
+        <div class="card shadow-sm border-0 m-3" style="border-radius: 12px; overflow: hidden;">
+            <div class="card-body py-5 text-center">
+                <div class="d-flex justify-content-center mb-3">
+                    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
                 </div>
-                
-                <div class="filter-group">
-                    <form id="form_indiv" method="POST" enctype="multipart/form-data" class="m-0 d-flex align-items-center">
-                        @csrf            
-                        <span class="fw-bold text-muted small text-nowrap me-2">เลือกวันที่รับบริการ</span>
-                        <div class="input-group input-group-sm">
-                            <input type="hidden" name="budget_year" value="{{ $budget_year }}">
-                            
-                            <!-- Start Date -->
-                            <input type="hidden" id="start_date" name="start_date" value="{{ $start_date }}">
-                            <input type="text" id="start_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
-                            
-                            <span class="input-group-text bg-white border-start-0 border-end-0">ถึง</span>
-
-                            <!-- End Date -->
-                            <input type="hidden" id="end_date" name="end_date" value="{{ $end_date }}">
-                            <input type="text" id="end_date_picker" class="form-control datepicker_th text-center" readonly style="width: 120px; cursor: pointer;">
-
-                            <button onclick="fetchData()" type="submit" class="btn btn-success px-3 shadow-sm">
-                                <i class="bi bi-table me-1"></i> โหลด indiv
-                            </button>
-                            <button type="button" class="btn btn-outline-success px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#ExtensionInfoModal">
-                                <i class="bi bi-puzzle-fill me-1"></i> ดึง E-Claim ด้วย Extension
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-            <ul class="nav nav-tabs-modern" id="pills-tab" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active" id="search-tab" data-bs-toggle="pill" data-bs-target="#search" type="button" role="tab">
-                        <i class="bi bi-clock-history me-1"></i> รอส่ง Claim
-                    </button>
-                </li>       
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link" id="claim-tab" data-bs-toggle="pill" data-bs-target="#claim" type="button" role="tab">
-                        <i class="bi bi-send-check me-1"></i> ส่ง Claim แล้ว
-                    </button>
-                </li>
-            </ul>
-        </div>
-        <div class="card-body px-4 pb-4 pt-0">
-            <div class="tab-content" id="myTabContent">
-                <!-- Tab 1: Waiting for Claim -->
-                <div class="tab-pane fade show active" id="search" role="tabpanel">
-                    <div class="table-responsive">            
-                        <table id="t_search" class="table table-modern w-100">
-                            <thead>
-                                <tr>
-                                    <th class="text-center">#</th> 
-                                    <th class="text-center">สถานะ</th>
-                                    <th class="text-center">เบิก/ส่ง</th>
-                                    <th class="text-center">วัน-เวลา | Q</th>     
-                                    <th class="text-center">HN</th>    
-                                    <th class="text-center">ชื่อ-สกุล | สิทธิ</th>
-                                    <th class="text-center">รายการต้องเรียกเก็บ</th>  
-                                    <th class="text-center">ค่ารักษา</th> 
-                                    <th class="text-center">ชำระเอง</th>
-                                    <th class="text-center text-primary">เรียกเก็บ</th> 
-                                </tr>
-                            </thead> 
-                            <tbody> 
-                                @php 
-                                    $count = 1; 
-                                    $sum_income = 0; 
-                                    $sum_rcpt_money = 0; 
-                                    $sum_claim_price = 0; 
-                                @endphp
-                                @foreach($search as $row) 
-                                <tr>
-                                    <td class="text-center text-muted small">{{ $count }}</td>
-                                    <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
-                                        @if(!$row->is_valid)
-                                            {{-- แดง: ข้อมูลไม่ครบ (priority สูงสุด) --}}
-                                            <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด">
-                                                <i class="bi bi-eye-fill"></i>
-                                            </button>
-                                        @elseif(!empty($row->validation_warnings))
-                                            {{-- เหลือง: มี warnings --}}
-                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มีข้อมูลเตือน | คลิกดูรายละเอียด">
-                                                <i class="bi bi-eye-fill"></i>
-                                            </button>
-                                        @elseif($row->endpoint_valid)
-                                            {{-- เขียว: ข้อมูลครบ + ปิดสิทธิแล้ว --}}
-                                            <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด">
-                                                <i class="bi bi-eye-fill"></i>
-                                            </button>
-                                        @else
-                                            {{-- เหลือง: ข้อมูลครบ แต่ยังไม่ปิดสิทธิ --}}
-                                            <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ | คลิกดูรายละเอียด">
-                                                <i class="bi bi-eye-fill"></i>
-                                            </button>
-                                        @endif
-                                    </td>
-                                    <td class="text-start ps-3" data-order="{{ $row->confirm_and_locked == 'Y' ? '2' : '1' }}">
-                                        <div class="d-flex flex-column align-items-start gap-1">
-                                            <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
-                                                <span class="text-muted">ประสงค์เบิก:</span>
-                                                @if($row->request_funds == 'Y')
-                                                    <i class="bi bi-check-circle-fill text-success" title="ประสงค์เบิก Y"></i>
-                                                @else
-                                                    <i class="bi bi-x-circle-fill text-danger" title="ไม่ประสงค์เบิก N"></i>
-                                                @endif
-                                            </div>
-                                            <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
-                                                <span class="text-muted">พร้อมส่ง:</span>
-                                                @if($row->confirm_and_locked == 'Y')
-                                                    <i class="bi bi-check-circle-fill text-success" title="พร้อมส่ง Y"></i>
-                                                @else
-                                                    <i class="bi bi-x-circle-fill text-danger" title="ยังไม่พร้อมส่ง N"></i>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="text-start">
-                                        <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
-                                        <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}} | Q: {{ $row->oqueue }}</div>
-                                    </td>            
-                                    <td class="text-center fw-bold text-primary small">{{$row->hn}}</td> 
-                                    <td class="text-start">
-                                        <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
-                                        <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
-                                    </td> 
-                                    <td class="text-start small text-muted" style="font-size:0.7rem; max-width:200px;">{{ $row->claim_list }}</td>
-                                    <td class="text-end small">{{ number_format($row->income,2) }}</td>              
-                                    <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
-                                    <td class="text-end fw-bold text-primary">{{ number_format($row->claim_price,2) }}</td> 
-                                  </tr>
-                                @php 
-                                    $count++; 
-                                    $sum_income += $row->income; 
-                                    $sum_rcpt_money += $row->rcpt_money; 
-                                    $sum_claim_price += $row->claim_price; 
-                                @endphp
-                                @endforeach                 
-                            </tbody>
-                            <tfoot class="bg-light-soft">
-                                <tr>
-                                    <th colspan="7" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
-                                    <th class="text-end small">{{ number_format($sum_income,2) }}</th>
-                                    <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
-                                    <th class="text-end fw-bold text-primary">{{ number_format($sum_claim_price,2) }}</th>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>          
-                </div>  
-                <!-- Tab 2: Claims Sent -->
-                <div class="tab-pane fade" id="claim" role="tabpanel">
-                    <div class="table-responsive">            
-                        <table id="t_claim" class="table table-modern w-100">
-                            <thead>
-                                <tr>
-                                    <th class="text-center" rowspan="2">#</th>  
-                                    <th class="text-center" rowspan="2">สถานะ</th>
-                                    <th class="text-center" rowspan="2">ERROR</th>
-                                    <th class="text-center" rowspan="2">เบิก/ส่ง</th>
-                                    <th class="text-center" rowspan="2" width="10%">วัน-เวลา | Q</th>     
-                                    <th class="text-center" rowspan="2">HN</th> 
-                                    <th class="text-center" rowspan="2">ชื่อ-สกุล | สิทธิ</th>
-                                    <th class="text-center" rowspan="2">รายการต้องเรียกเก็บ</th>
-                                    <th class="text-center" colspan="3">ค่ารักษา</th>                                     
-                                    <th class="text-center bg-primary-soft" colspan="3">ข้อมูลการชดเชย</th>
-                                </tr>
-                                <tr>                                    
-                                    <th class="text-center small">รวม</th>
-                                    <th class="text-center small">ชำระเอง</th>                                                                  
-                                    <th class="text-center small">PPFS</th>
-                                                                        <th class="text-center bg-primary-soft small px-1">STM ชดเชย</th> 
-                                    <th class="text-center bg-primary-soft small px-1">ผลต่าง</th> 
-                                    <th class="text-center bg-primary-soft small px-1 text-nowrap">REP No.</th>
-                                </tr>
-                            </thead> 
-                            <tbody> 
-                                @php 
-                                    $count = 1; 
-                                    $sum_income = 0; 
-                                    $sum_rcpt_money = 0; 
-                                    $sum_ppfs = 0; 
-                                    $sum_rep_nhso = 0; 
-                                    $sum_receive_total = 0; 
-                                @endphp
-                                @foreach($claim as $row) 
-                                <tr>
-                                    <td class="text-center text-muted small">{{ $count }}</td>
-                                    <td class="text-center" id="td-status-claim-{{ $row->seq }}" data-order="{{ !$row->is_valid ? 0 : (($row->endpoint_valid && empty($row->validation_warnings)) ? 2 : 1) }}">
-                                        @if(!$row->is_valid)
-                                            {{-- แดง: ข้อมูลไม่ครบ --}}
-                                            <button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด">
-                                                <i class="bi bi-eye-fill"></i>
-                                            </button>
-                                        @elseif(!empty($row->validation_warnings))
-                                             {{-- เหลือง: มี warnings --}}
-                                             <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="มีข้อมูลเตือน | คลิกดูรายละเอียด">
-                                                 <i class="bi bi-eye-fill"></i>
-                                             </button>
-                                        @elseif($row->endpoint_valid)
-                                             {{-- เขียว: ข้อมูลครบ + ปิดสิทธิแล้ว --}}
-                                             <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด">
-                                                 <i class="bi bi-eye-fill"></i>
-                                             </button>
-                                        @else
-                                             {{-- เหลือง: ข้อมูลครบ แต่ยังไม่ปิดสิทธิ --}}
-                                             <button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ | คลิกดูรายละเอียด">
-                                                 <i class="bi bi-eye-fill"></i>
-                                             </button>
-                                        @endif
-                                    </td>
-                                                                         <td class="text-center small">
-                                         @if(!empty($row->check_detail))
-                                             @php
-                                                 $prefix = '';
-                                                 $badge_style = 'background-color: #dc3545; color: #fff;'; // Default red
-                                                 if (!empty($row->ec_status)) {
-                                                     $first_char = substr($row->ec_status, 0, 1);
-                                                     if (in_array($first_char, ['2', '3'])) {
-                                                         $prefix = $first_char . '-';
-                                                         if ($first_char === '3') {
-                                                             $badge_style = 'background-color: #fd7e14; color: #fff;'; // Orange for 3
-                                                         } else {
-                                                             $badge_style = 'background-color: #f43f5e; color: #fff;'; // Rose red for 2
-                                                         }
-                                                     }
-                                                 }
-                                             @endphp
-                                             <span class="badge fw-bold" style="font-size: 0.72rem; {{ $badge_style }}" title="พบข้อผิดพลาด e-Claim: {{ $row->check_detail }}">{{ $prefix }}{{ $row->check_detail }}</span>
-                                         @else
-                                             <span class="text-muted">-</span>
-                                         @endif
-                                     </td>
-                                    <td class="text-start ps-3" data-order="{{ $row->confirm_and_locked == 'Y' ? '2' : '1' }}">
-                                        <div class="d-flex flex-column align-items-start gap-1">
-                                            <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
-                                                <span class="text-muted">ประสงค์เบิก:</span>
-                                                @if($row->request_funds == 'Y')
-                                                    <i class="bi bi-check-circle-fill text-success" title="ประสงค์เบิก Y"></i>
-                                                @else
-                                                    <i class="bi bi-x-circle-fill text-danger" title="ไม่ประสงค์เบิก N"></i>
-                                                @endif
-                                            </div>
-                                            <div class="d-flex align-items-center gap-1" style="font-size: 0.72rem;">
-                                                <span class="text-muted">พร้อมส่ง:</span>
-                                                @if($row->confirm_and_locked == 'Y')
-                                                    <i class="bi bi-check-circle-fill text-success" title="พร้อมส่ง Y"></i>
-                                                @else
-                                                    <i class="bi bi-x-circle-fill text-danger" title="ยังไม่พร้อมส่ง N"></i>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="text-start">
-                                        <div class="small fw-bold">{{ DateThai($row->vstdate) }}</div>
-                                        <div class="text-muted" style="font-size: 0.7rem;">เวลา {{$row->vsttime}}</div>
-                                        <div class="small fw-bold">Q: {{ $row->oqueue }}</div>
-                                    </td>            
-                                    <td class="text-center fw-bold text-primary small">{{$row->hn}}</td>
-                                    <td class="text-start">
-                                        <div class="text-dark fw-bold small text-truncate" style="max-width: 150px;">{{$row->ptname}}</div>
-                                        <div class="small text-muted text-truncate" style="max-width: 150px;" title="{{$row->pttype}}">{{$row->pttype}}</div>
-                                    </td> 
-                                    <td class="text-start small text-muted" style="font-size:0.7rem; max-width:200px;">{{ $row->claim_list }}</td>
-                                    <td class="text-end small">{{ number_format($row->income,2) }}</td>              
-                                    <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>                                      
-                                    <td class="text-end small">{{ number_format($row->ppfs,2) }}</td> 
-                                    
-                                    
-                                    <td class="text-end small fw-bold {{ $row->receive_total > 0 ? 'text-success' : ($row->receive_total < 0 ? 'text-danger' : 'text-dark') }}">
-                                        {{ number_format($row->receive_total,2) }}
-                                    </td>
-                                    @php $diff = $row->receive_total - $row->ppfs; @endphp
-                                    <td class="text-end small fw-bold {{ $diff > 0 ? 'text-success' : ($diff < 0 ? 'text-danger' : 'text-dark') }}">
-                                        {{ number_format($diff, 2) }}
-                                    </td>
-                                    <td class="text-center small text-muted">{{ $row->repno }}</td>
-                                </tr>
-                                @php 
-                                    $count++; 
-                                    $sum_income += $row->income; 
-                                    $sum_rcpt_money += $row->rcpt_money; 
-                                    $sum_ppfs += $row->ppfs; 
-                                    $sum_rep_nhso += $row->rep_nhso;
-                                    $sum_receive_total += $row->receive_total; 
-                                 @endphp
-                                @endforeach                 
-                            </tbody>
-                            <tfoot class="bg-light-soft">
-                                <tr>
-                                    <th colspan="8" class="text-end text-muted small px-3">รวมงบประมาณที่ส่งเบิก:</th>
-                                    <th class="text-end small">{{ number_format($sum_income,2) }}</th>
-                                    <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
-                                    <th class="text-end small">{{ number_format($sum_ppfs,2) }}</th>
-                                    <th class="text-end small fw-bold {{ $sum_receive_total > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($sum_receive_total,2) }}</th>
-                                    @php $total_diff = $sum_receive_total - $sum_ppfs; @endphp
-                                    <th class="text-end small fw-bold {{ $total_diff > 0 ? 'text-success' : 'text-danger' }}">{{ number_format($total_diff, 2) }}</th>
-                                    <th></th>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>          
-                </div> 
+                <h5 class="fw-bold text-secondary">กำลังประมวลผลข้อมูลการเรียกเก็บและชดเชย...</h5>
+                <p class="text-muted small mb-0">ระบบกำลังสแกนประวัติการรักษาย้อนหลังทั้งปีงบประมาณและเชื่อมสถานะส่งเคลม อาจใช้เวลา 5-15 วินาที โปรดรอสักครู่</p>
             </div>
         </div>
     </div>
 
     <!-- Details Modal -->
     <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header bg-primary text-white py-3">
-                    <h5 class="modal-title fw-bold" id="detailsModalLabel">
-                        <i class="bi bi-file-earmark-medical me-2"></i>รายละเอียดการรับบริการ & การตรวจสอบ
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h6 class="modal-title fw-bold mb-0">
+                        <i class="bi bi-info-circle-fill me-2"></i>รายละเอียดการรับบริการและตรวจสอบสิทธิ์
+                    </h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body p-4" id="detailsModalBody">
-                    <!-- Content loaded dynamically via AJAX -->
+                <div class="modal-body" id="detailsModalBody">
+                    <div class="text-center text-muted py-4"><i class="bi bi-arrow-repeat spin me-2"></i>กำลังโหลด...</div>
+                </div>
+                <div class="modal-footer border-0 bg-light py-2">
+                    <button type="button" class="btn btn-secondary btn-sm px-3" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-1"></i>ปิดหน้าต่าง
+                    </button>
                 </div>
             </div>
         </div>
@@ -410,7 +106,7 @@
     <!-- Modal Extension Info -->
     <div class="modal fade" id="ExtensionInfoModal" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
+        <div class="modal-content border-0 shadow bg-white">
           <div class="modal-header bg-dark text-white">
             <h5 class="modal-title fw-bold"><i class="bi bi-puzzle-fill text-warning me-2"></i> วิธีติดตั้งและใช้งาน Chrome Extension</h5>
             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -460,21 +156,21 @@
       </div>
     </div>
 
-<script>
-  function showLoading() {
-      Swal.fire({
-          title: 'กำลังโหลด...',
-          text: 'กรุณารอสักครู่',
-          allowOutsideClick: false,
-          didOpen: () => {
-              Swal.showLoading();
-          }
-      });
-  }
-  function fetchData() {
-      showLoading();
-  }
-      function copyToClipboard(text) {
+@endsection
+
+@push('scripts')
+  <script src="{{ asset('assets/vendor/chart.js/chart.min.js') }}"></script>
+  <script src="{{ asset('assets/vendor/chartjs-plugin-datalabels/chartjs-plugin-datalabels.min.js') }}"></script>
+
+  <script>
+    let myChart = null;
+    const VISIT_DETAILS_URL = "{{ url('claim_op/sss_ppfs/visit_details') }}";
+
+    function fetchData() {
+        // Fallback for legacy handlers
+    }
+
+    function copyToClipboard(text) {
         if (navigator.clipboard && window.isSecureContext) {
             navigator.clipboard.writeText(text).then(() => {
                 showSuccessAlert();
@@ -512,169 +208,238 @@
         Swal.fire({
             icon: 'success',
             title: 'คัดลอกแล้ว!',
-            text: 'นำไปวางในช่อง RiMS API URL ในหน้าตั้งค่าของ Extension ได้เลย',
+            text: 'นำไปวางในช่อง RiMS API URL ในหน้าตั้งค่า of Extension ได้เลย',
             timer: 2000,
             showConfirmButton: false
         });
     }
 
+    // AJAX Dashboard Loader
+    function loadDashboard(dataParams) {
+        const container = document.getElementById('data-container');
+        if (!container) return;
 
+        if (dataParams.skip_chart) {
+            const tabContent = document.getElementById('myTabContent');
+            if (tabContent) {
+                tabContent.innerHTML = `
+                    <div class="text-center py-5">
+                        <div class="d-flex justify-content-center mb-3">
+                            <div class="spinner-border text-primary" role="status" style="width: 2.5rem; height: 2.5rem;"></div>
+                        </div>
+                        <h6 class="fw-bold text-secondary">กำลังอัปเดตตารางข้อมูลผู้ป่วย...</h6>
+                    </div>
+                `;
+            }
+        } else {
+            container.innerHTML = `
+                <div class="card shadow-sm border-0 m-3" style="border-radius: 12px; overflow: hidden;">
+                    <div class="card-body py-5 text-center">
+                        <div class="d-flex justify-content-center mb-3">
+                            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <h5 class="fw-bold text-secondary">กำลังประมวลผลข้อมูลการเรียกเก็บและชดเชย...</h5>
+                        <p class="text-muted small mb-0">ระบบกำลังสแกนประวัติการรักษาย้อนหลังทั้งปีงบประมาณและเชื่อมสถานะส่งเคลม อาจใช้เวลา 5-15 วินาที โปรดรอสักครู่</p>
+                    </div>
+                </div>
+            `;
+        }
 
-  function alertAlreadyClosed(source) {
-      Swal.fire({
-          icon: 'info',
-          title: 'ปิดสิทธิเรียบร้อยแล้ว',
-          text: 'รายการนี้ปิดสิทธิโดย ' + source + ' เรียบร้อยแล้ว ไม่จำเป็นต้องส่งซ้ำอีกครั้ง',
-          confirmButtonText: 'รับทราบ',
-          confirmButtonColor: '#0d6efd'
-      });
-  }
+        const activeTabBtn = document.querySelector('.nav-tabs-modern .nav-link.active');
+        const currentActiveTab = activeTabBtn ? activeTabBtn.getAttribute('data-bs-target') : '#search';
 
-  function pullNhsoData(vstdate, cid, vn) {
-      Swal.fire({
-          title: 'กำลังดึงข้อมูล...',
-          text: 'กรุณารอสักครู่',
-          allowOutsideClick: false,
-          didOpen: () => {
-              Swal.showLoading()
-          }
-      });
+        $.ajax({
+            url: "{{ url('claim_op/sss_ppfs') }}",
+            type: "POST",
+            data: $.extend({ _token: "{{ csrf_token() }}" }, dataParams)
+        })
+        .done(function(res) {
+            if (res.success) {
+                container.innerHTML = res.table_html;
+                window.patientItems = res.patient_items || [];
 
-      fetch("{{ url('api/nhso_endpoint_pull_indiv') }}", {
-          method: "POST",
-          headers: {
-              "Content-Type": "application/json",
-              "X-CSRF-TOKEN": "{{ csrf_token() }}",
-              "Accept": "application/json"
-          },
-          body: JSON.stringify({
-              vstdate: vstdate,
-              cid: cid
-          })
-      })
-          .then(async response => {
-              const data = await response.json();
-              if (!response.ok) {
-                  throw new Error(data.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล');
-              }
-              return data;
-          })
-          .then(data => {
-              if (data.found) {
-                  Swal.fire({
-                      icon: 'success',
-                      title: 'พบข้อมูลปิดสิทธิ',
-                      text: data.message,
-                      timer: 1500,
-                      showConfirmButton: false
-                  }).then(() => {
-                      if (vn) {
-                          showDetails(vn);
-                      } else {
-                          location.reload();
-                      }
-                  });
-              } else {
-                  Swal.fire({
-                      icon: 'warning',
-                      title: 'ไม่พบการปิดสิทธิจากระบบอื่น',
-                      text: 'ยังไม่มีการปิดสิทธิสำหรับรายการนี้ใน สปสช. ต้องการปิดสิทธิด้วยระบบ RiMS หรือไม่?',
-                      showCancelButton: true,
-                      confirmButtonColor: '#3085d6',
-                      cancelButtonColor: '#6c757d',
-                      confirmButtonText: 'ปิดสิทธิเลย',
-                      cancelButtonText: 'ยกเลิก'
-                  }).then(result => {
-                      if (result.isConfirmed) {
-                          pushNhsoData(cid, vstdate, vn);
-                      }
-                  });
-              }
-          })
-          .catch(error => {
-              Swal.fire({
-                  icon: 'error',
-                  title: 'เกิดข้อผิดพลาด',
-                  text: error.message || 'ไม่สามารถเชื่อมต่อกับระบบได้',
-              });
-          });
-  }
+                $('.datepicker_th').datepicker({
+                    format: 'd M yyyy',
+                    todayBtn: "linked",
+                    todayHighlight: true,
+                    autoclose: true,
+                    language: 'th-th',
+                    thaiyear: true,
+                    zIndexOffset: 1050
+                });
 
-  function pushNhsoData(cid, vstdate, vn) {
-      Swal.fire({
-          title: 'ยืนยันการส่งข้อมูล?',
-          text: "ระบบจะดึงข้อมูลจาก HOSxP และส่งไปปิดสิทธิที่ สปสช.",
-          icon: 'question',
-          showCancelButton: true,
-          confirmButtonColor: '#3085d6',
-          cancelButtonColor: '#d33',
-          confirmButtonText: 'ตกลง, ส่งข้อมูล!',
-          cancelButtonText: 'ยกเลิก'
-      }).then((result) => {
-          if (result.isConfirmed) {
-              Swal.fire({
-                  title: 'กำลังดำเนินการ...',
-                  allowOutsideClick: false,
-                  didOpen: () => {
-                      Swal.showLoading()
-                  }
-              });
+                var start_date_val = $('#start_date').val();
+                var end_date_val = $('#end_date').val();
+                if(start_date_val) {
+                    $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
+                }
+                if(end_date_val) {
+                    $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
+                }
 
-              $.ajax({
-                  url: "{{ route('api.nhso.push_indiv') }}",
-                  type: "POST",
-                  data: {
-                      _token: "{{ csrf_token() }}",
-                      cid: cid,
-                      vstdate: vstdate
-                  },
-                  success: function(response) {
-                      if (response.status == 'success') {
-                          Swal.fire({
-                              icon: 'success',
-                              title: 'สำเร็จ!',
-                              text: 'ปิดสิทธิเรียบร้อยแล้ว',
-                              timer: 1500,
-                              showConfirmButton: false
-                          }).then(() => {
-                              if (vn) {
-                                  showDetails(vn);
-                              } else {
-                                  location.reload();
-                              }
-                          });
-                      } else {
-                          Swal.fire({
-                              icon: 'error',
-                              title: 'ไม่สำเร็จ',
-                              text: response.message || 'เกิดข้อผิดพลาดในการส่งข้อมูล'
-                          });
-                      }
-                  },
-                  error: function(xhr) {
-                      let msg = 'ไม่สามารถเชื่อมต่อกับระบบได้';
-                      if(xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                      Swal.fire({
-                          icon: 'error',
-                          title: 'เกิดข้อผิดพลาด',
-                          text: msg
-                      });
-                  }
-              });
-          }
-      });
-  }
-</script>
+                $('#start_date_picker').on('changeDate', function(e) {
+                    var date = e.date;
+                    if(date) {
+                      var day = ("0" + date.getDate()).slice(-2);
+                      var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                      var year = date.getFullYear();
+                      $('#start_date').val(year + "-" + month + "-" + day);
+                    }
+                });
 
+                $('#end_date_picker').on('changeDate', function(e) {
+                    var date = e.date;
+                    if(date) {
+                      var day = ("0" + date.getDate()).slice(-2);
+                      var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                      var year = date.getFullYear();
+                      $('#end_date').val(year + "-" + month + "-" + day);
+                    }
+                });
 
+                var dt_search = $('#t_search').DataTable({
+                    autoWidth: false,
+                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>><rt><"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                    buttons: [{
+                        extend: 'excelHtml5',
+                        text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                        className: 'btn btn-success btn-sm shadow-sm',
+                        title: 'รายชื่อผู้มารับบริการ SS-OP ประกันสังคม PPFS รอส่ง Claim'
+                    }],
+                    language: {
+                        search: "ค้นหา:",
+                        lengthMenu: "แสดง _MENU_ รายการ",
+                        info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                        paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                    }
+                });
 
-@endsection
+                var dt_claim = $('#t_claim').DataTable({
+                    autoWidth: false,
+                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>><rt><"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                    buttons: [{
+                        extend: 'excelHtml5',
+                        text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                        className: 'btn btn-success btn-sm shadow-sm',
+                        title: 'รายชื่อผู้มารับบริการ SS-OP ประกันสังคม PPFS ส่ง Claim แล้ว'
+                    }],
+                    language: {
+                        search: "ค้นหา:",
+                        lengthMenu: "แสดง _MENU_ รายการ",
+                        info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                        paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                    }
+                });
 
-@push('scripts')
-  <script>
-    const VISIT_DETAILS_URL = "{{ url('claim_op/sss_ppfs/visit_details') }}";
+                const restoredTab = localStorage.getItem('active_tab') || currentActiveTab;
+                if (restoredTab) {
+                    const tabBtn = document.querySelector(`button[data-bs-target="${restoredTab}"]`);
+                    if (tabBtn) {
+                        document.querySelectorAll('.nav-tabs-modern .nav-link').forEach(btn => {
+                            btn.classList.remove('active');
+                            const target = document.querySelector(btn.getAttribute('data-bs-target'));
+                            if (target) target.classList.remove('show', 'active');
+                        });
+                        tabBtn.classList.add('active');
+                        const target = document.querySelector(restoredTab);
+                        if (target) target.classList.add('show', 'active');
+                    }
+                    localStorage.removeItem('active_tab');
+                }
 
-    // ── Details Modal ─────────────────────────────────────────────────────────
+                $('button[data-bs-toggle="pill"]').on('shown.bs.tab shown.bs.pill', function () {
+                    dt_search.columns.adjust().draw(false);
+                    dt_claim.columns.adjust().draw(false);
+                });
+
+                if (res.chart_data) {
+                    window.currentChartData = res.chart_data;
+                }
+                if (window.currentChartData) {
+                    drawChart(window.currentChartData);
+                }
+            }
+        })
+        .fail(function() {
+            Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: 'ไม่สามารถอัปเดตข้อมูลตารางผ่านระบบ AJAX ได้' });
+        });
+    }
+
+    function drawChart(chartData) {
+        const ctx = document.querySelector('#sum_month');
+        if (!ctx) return;
+
+        if (myChart) {
+            myChart.destroy();
+        }
+
+        myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartData.months || chartData.month || [],
+                datasets: [
+                    {
+                        label: 'เรียกเก็บ',
+                        data: chartData.claim_price || [],
+                        backgroundColor: 'rgba(185, 28, 28, 0.75)',
+                        borderColor: 'rgb(185, 28, 28)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'ส่งเคลม',
+                        data: chartData.claim_sent_price || [],
+                        backgroundColor: 'rgba(234, 179, 8, 0.6)',
+                        borderColor: 'rgb(234, 179, 8)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'ชดเชย',
+                        data: chartData.receive_total || [],
+                        backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                        borderColor: 'rgb(16, 185, 129)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { usePointStyle: true, boxWidth: 6 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.formattedValue + ' บาท';
+                            }
+                        }
+                    },
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'top',
+                        color: '#000',
+                        font: { weight: 'bold', size: 10 },
+                        formatter: (value) => value > 0 ? value.toLocaleString() : ''
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: function(value) { return value.toLocaleString(); } }
+                    }
+                }
+            },
+            plugins: [ChartDataLabels]
+        });
+    }
+
     function showDetails(vn) {
         const body = document.getElementById('detailsModalBody');
         body.innerHTML = '<div class="text-center text-muted py-4"><i class="bi bi-arrow-repeat spin me-2"></i>กำลังโหลด...</div>';
@@ -686,38 +451,30 @@
                 const items = data.items;
                 const v     = data.validation;
 
-                const statusBadge = v.is_valid
-                    ? '<span class="badge bg-success ms-2"><i class="bi bi-check-circle-fill"></i> ผ่านเงื่อนไข</span>'
-                    : '<span class="badge bg-danger ms-2"><i class="bi bi-exclamation-triangle-fill"></i> ไม่ผ่าน ' + v.errors.length + ' รายการ</span>';
-
                 const isEndpointDone = v.endpoint_valid === true;
                 const hasWarnings    = v.warnings && v.warnings.length > 0;
 
                 function makeCellHtml(isValid, epDone, warn) {
                     if (!isValid) {
                         return `<button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
-                    } else if (warn) {
-                        return `<button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="มีข้อมูลเตือน | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
                     } else if (epDone) {
                         return `<button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
                     } else {
-                        return `<button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
+                        return `<button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${vn}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
                     }
                 }
 
-                const dataOrder = !v.is_valid ? '0' : (isEndpointDone && !hasWarnings ? '2' : '1');
+                const dataOrder = !v.is_valid ? 0 : (isEndpointDone && !hasWarnings ? 2 : 1);
 
                 const searchRow = document.getElementById(`td-status-search-${vn}`);
                 const claimRow  = document.getElementById(`td-status-claim-${vn}`);
                 if (searchRow) {
                     searchRow.innerHTML = makeCellHtml(v.is_valid, isEndpointDone, hasWarnings);
                     searchRow.setAttribute('data-order', dataOrder);
-                    $('#t_search').DataTable().cell(searchRow).invalidate().draw(false);
                 }
                 if (claimRow) {
                     claimRow.innerHTML = makeCellHtml(v.is_valid, isEndpointDone, hasWarnings);
                     claimRow.setAttribute('data-order', dataOrder);
-                    $('#t_claim').DataTable().cell(claimRow).invalidate().draw(false);
                 }
 
                 let endpointBtn = '';
@@ -727,7 +484,6 @@
                     endpointBtn = `<button onclick="pullNhsoData('${visit.vstdate}', '${visit.cid}', '${vn}')" class="btn btn-warning btn-sm py-1 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-cloud-download-fill me-1"></i>ดึงข้อมูล (Pull)</button>`;
                 }
 
-                // Calculate validation banner at the top
                 let statusHtml = '';
                 if (!v.is_valid) {
                     statusHtml = `
@@ -766,10 +522,7 @@
 
                 let html = `
                 <div class="row g-3">
-                  <!-- Validation Status Banner -->
                   ${statusHtml}
-
-                  <!-- คอลัมน์ที่ 1: ข้อมูลผู้ป่วย -->
                   <div class="col-md-4">
                     <div class="card border-0 bg-light-soft h-100">
                       <div class="card-body py-2 px-3">
@@ -786,8 +539,6 @@
                       </div>
                     </div>
                   </div>
-
-                  <!-- คอลัมน์ที่ 2: ข้อมูลทางคลินิก -->
                   <div class="col-md-4">
                     <div class="card border-0 bg-light-soft h-100">
                       <div class="card-body py-2 px-3">
@@ -802,8 +553,6 @@
                       </div>
                     </div>
                   </div>
-
-                  <!-- คอลัมน์ที่ 3: ข้อมูลการเงิน -->
                   <div class="col-md-4">
                     <div class="card border-0 bg-light-soft h-100">
                       <div class="card-body py-2 px-3">
@@ -812,15 +561,13 @@
                           <tr><th class="text-muted" style="width:40%">ยอดค่ารักษา</th><td>${parseFloat(visit.income || 0).toFixed(2)} บาท</td></tr>
                           <tr><th class="text-muted">ต้องชำระ/เอง</th><td>${parseFloat(visit.paid_money || 0).toFixed(2)} / ${parseFloat(visit.rcpt_money || 0).toFixed(2)} บาท</td></tr>
                           <tr><th class="text-muted">ยอดเรียกเก็บ</th><td class="fw-bold text-primary">${parseFloat(visit.income - visit.rcpt_money).toFixed(2)} บาท</td></tr>
-                          <tr><th class="text-muted">ชดเชย NHSO</th><td class="text-success fw-bold">${parseFloat(visit.rep_nhso || 0).toFixed(2)} บาท</td></tr>
-                          <tr><th class="text-muted">ชดเชย PPFS</th><td class="text-info fw-bold">${parseFloat(visit.receive_total || 0).toFixed(2)} บาท</td></tr>
+                          <tr><th class="text-muted">ชดเชย STM</th><td class="text-success fw-bold">${parseFloat(visit.receive_total || 0).toFixed(2)} บาท</td></tr>
+                          <tr><th class="text-muted">ชดเชย PP</th><td class="text-info fw-bold">${parseFloat(visit.receive_pp || 0).toFixed(2)} บาท</td></tr>
                           <tr><th class="text-muted">สถานะปิดสิทธิ์</th><td>${endpointBtn}</td></tr>
                         </table>
                       </div>
                     </div>
                   </div>
-
-                  <!-- ส่วนแท็บรายละเอียดรายการยา และ ค่าบริการรักษาพยาบาล -->
                   <div class="col-12 mt-3">
                     <ul class="nav nav-tabs nav-tabs-custom mb-2" id="modalDetailTabs" role="tablist" style="font-size: 0.85rem;">
                       <li class="nav-item">
@@ -831,7 +578,6 @@
                       </li>
                     </ul>
                     <div class="tab-content" id="modalDetailTabsContent">
-                      <!-- แท็บรายการยา -->
                       <div class="tab-pane fade show active" id="modal-drugs-panel" role="tabpanel" style="font-size: 12px;">
                         <table id="modal-drugs-table" class="table table-sm table-hover align-middle mb-0 small border w-100">
                           <thead class="table-dark">
@@ -870,18 +616,15 @@
                           </tbody>
                         </table>
                       </div>
-
-                      <!-- แท็บค่ารักษาพยาบาล -->
                       <div class="tab-pane fade" id="modal-services-panel" role="tabpanel" style="font-size: 12px;">
                         <table id="modal-services-table" class="table table-sm table-hover align-middle mb-0 small border w-100">
                           <thead class="table-dark">
                             <tr>
-                              <th>รายการค่าบริการ</th>
+                              <th>ชื่อบริการ/ค่ารักษาพยาบาล</th>
                               <th class="text-center" width="10%">จำนวน</th>
                               <th class="text-end" width="12%">ราคารวม (บาท)</th>
                               <th class="text-center" width="15%">ประเภทการชำระ</th>
                               <th class="text-center" width="15%">สิทธิการรักษา</th>
-                              <th class="text-center" width="12%">PPFS</th>
                               <th>ADP Code</th>
                             </tr>
                           </thead>
@@ -889,21 +632,23 @@
                             ${(function() {
                                 let servicesList = items.filter(d => !d.icode.startsWith('1'));
                                 if (servicesList.length === 0) {
-                                    return '<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบรายการค่าบริการรักษาพยาบาลใน Visit นี้</td></tr>';
+                                    return '<tr><td colspan="6" class="text-center text-muted py-3">ไม่พบรายการค่าบริการ/รักษาพยาบาลใน Visit นี้</td></tr>';
                                 }
                                 return servicesList.map(d => {
-                                    let ppfsVal = d.ppfs === 'Y' ? '<i class="bi bi-check-circle-fill text-success"></i>' : '-';
+                                    let type = '';
+                                    if (d.ppfs  === 'Y') type += '<span class="badge-type badge-ppfs me-1">PPFS</span>';
+                                    if (d.ems === 'Y') type += '<span class="badge-type me-1" style="background:#cfe2ff;color:#084298;">EMS</span>';
+                                    
                                     return `<tr>
                                       <td>
-                                        <div class="fw-bold text-dark">${d.name}</div>
+                                        <div class="fw-bold text-dark">${d.name ?? '-'} ${type}</div>
                                         <div class="text-muted small" style="font-size: 0.7rem;">icode: ${d.icode}</div>
                                       </td>
                                       <td class="text-center fw-bold">${parseFloat(d.qty).toFixed(0)}</td>
                                       <td class="text-end font-monospace">${parseFloat(d.sum_price).toFixed(2)}</td>
                                       <td class="text-center">${d.paids_name || d.paids || '-'}</td>
                                       <td class="text-center">${d.pttype_name || d.pttype || '-'}</td>
-                                      <td class="text-center">${ppfsVal}</td>
-                                      <td class="font-monospace">${d.nhso_adp_code ?? '-'}</td>
+                                      <td><span class="badge bg-secondary-soft text-secondary fw-bold">${d.nhso_adp_code ?? '-'}</span></td>
                                     </tr>`;
                                 }).join('');
                             })()}
@@ -913,209 +658,184 @@
                     </div>
                   </div>
                 </div>`;
+
                 body.innerHTML = html;
+
+                if ($.fn.DataTable.isDataTable('#modal-drugs-table')) {
+                    $('#modal-drugs-table').DataTable().destroy();
+                }
+                if ($.fn.DataTable.isDataTable('#modal-services-table')) {
+                    $('#modal-services-table').DataTable().destroy();
+                }
+
+                if (items.filter(d => d.icode.startsWith('1')).length > 0) {
+                    $('#modal-drugs-table').DataTable({
+                        pageLength: 5,
+                        lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "ทั้งหมด"]],
+                        language: {
+                            search: "ค้นหา:",
+                            lengthMenu: "แสดง _MENU_ รายการ",
+                            info: "แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ",
+                            paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                        }
+                    });
+                }
+
+                if (items.filter(d => !d.icode.startsWith('1')).length > 0) {
+                    $('#modal-services-table').DataTable({
+                        pageLength: 5,
+                        lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "ทั้งหมด"]],
+                        language: {
+                            search: "ค้นหา:",
+                            lengthMenu: "แสดง _MENU_ รายการ",
+                            info: "แสดง _START_ ถึง _END_ จาก _TOTAL_ รายการ",
+                            paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                        }
+                    });
+                }
+
+                $('#modalDetailTabs button[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+                    $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+                });
             })
-            .fail(function() {
-                body.innerHTML = '<div class="alert alert-warning">ไม่สามารถโหลดข้อมูลได้</div>';
+            .fail(function(xhr) {
+                body.innerHTML = `<div class="text-danger py-4 text-center"><i class="bi bi-exclamation-triangle-fill me-2"></i>ไม่สามารถดึงข้อมูลได้: ${xhr.responseJSON?.error ?? 'ข้อผิดพลาดระบบ'}</div>`;
             });
     }
 
+    function pullNhsoData(vstdate, cid, vn) {
+        Swal.fire({
+            title: 'กำลังดึงข้อมูล...',
+            text: 'กรุณารอสักครู่',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading() }
+        });
+
+        fetch("{{ url('api/nhso_endpoint_pull_indiv') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-TOKEN": "{{ csrf_token() }}",
+                "Accept": "application/json"
+            },
+            body: JSON.stringify({ vstdate: vstdate, cid: cid })
+        })
+        .then(async response => {
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || 'เกิดข้อผิดพลาดในการดึงข้อมูล');
+            return data;
+        })
+        .then(data => {
+            if (data.found) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'พบข้อมูลปิดสิทธิ',
+                    text: data.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                }).then(() => {
+                    showDetails(vn);
+                });
+            } else {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'ไม่พบการปิดสิทธิจากระบบอื่น',
+                    text: 'ยังไม่มีการปิดสิทธิสำหรับรายการนี้ใน สปสช. ต้องการปิดสิทธิด้วยระบบ RiMS หรือไม่?',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'ปิดสิทธิเลย',
+                    cancelButtonText: 'ยกเลิก'
+                }).then(result => {
+                    if (result.isConfirmed) pushNhsoData(cid, vstdate, vn);
+                });
+            }
+        })
+        .catch(error => {
+            Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: error.message || 'ไม่สามารถเชื่อมต่อกับระบบได้' });
+        });
+    }
+
+    function pushNhsoData(cid, vstdate, vn) {
+        Swal.fire({
+            title: 'ยืนยันการส่งข้อมูล?',
+            text: "ระบบจะดึงข้อมูลจาก HOSxP และส่งไปปิดสิทธิที่ สปสช.",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'ตกลง, ส่งข้อมูล!',
+            cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'กำลังส่งข้อมูล...',
+                    text: 'กรุณารอสักครู่',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading() }
+                });
+
+                $.ajax({
+                    url: "{{ route('api.nhso.push_indiv') }}",
+                    type: "POST",
+                    data: { _token: "{{ csrf_token() }}", cid: cid, vstdate: vstdate },
+                    success: function(response) {
+                        if (response.status == 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'สำเร็จ!',
+                                text: 'ปิดสิทธิเรียบร้อยแล้ว',
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
+                                if (vn) {
+                                    showDetails(vn);
+                                } else {
+                                    loadDashboard({
+                                        budget_year: $('#form_budget_year select[name="budget_year"]').val(),
+                                        start_date: $('#start_date').val(),
+                                        end_date: $('#end_date').val(),
+                                        skip_chart: 1
+                                    });
+                                }
+                            });
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'ไม่สำเร็จ', text: response.message || 'เกิดข้อผิดพลาดในการส่งข้อมูล' });
+                        }
+                    },
+                    error: function(xhr) {
+                        let msg = 'ไม่สามารถเชื่อมต่อกับระบบได้';
+                        if(xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                        Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: msg });
+                    }
+                });
+            }
+        });
+    }
+
     $(document).ready(function () {
-      
-      // Initialize Datepicker Thai
-      $('.datepicker_th').datepicker({
-          format: 'd M yyyy',
-          todayBtn: "linked",
-          todayHighlight: true,
-          autoclose: true,
-          language: 'th-th', 
-          thaiyear: true,
-          zIndexOffset: 1050
-      });
+        loadDashboard({
+            budget_year: "{{ $budget_year }}",
+            start_date: "{{ $start_date }}",
+            end_date: "{{ $end_date }}"
+        });
 
-      // Set initial values for Datepickers
-      var start_date_val = "{{ $start_date }}";
-      var end_date_val = "{{ $end_date }}";
+        $(document).on('submit', '#form_budget_year', function(e) {
+            e.preventDefault();
+            loadDashboard({
+                budget_year: $(this).find('select[name="budget_year"]').val()
+            });
+        });
 
-      if(start_date_val) {
-          $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
-      }
-      if(end_date_val) {
-          $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
-      }
-
-      $('.datepicker_th').on('changeDate', function(e) {
-          var date = e.date;
-          var targetId = $(this).attr('id').replace('_picker', '');
-          var hiddenInput = $('#' + targetId);
-          
-          if(date) {
-              var day = ("0" + date.getDate()).slice(-2);
-              var month = ("0" + (date.getMonth() + 1)).slice(-2);
-              var year = date.getFullYear(); // Gregorian
-              hiddenInput.val(year + "-" + month + "-" + day);
-          } else {
-              hiddenInput.val('');
-          }
-      });
-
-      // Table 1: Waiting for Claim
-      var dt_search = $('#t_search').DataTable({
-        autoWidth: false,
-        dom: '<"row mb-3"' +
-                '<"col-md-6"l>' + 
-                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
-              '>' +
-              'rt' +
-              '<"row mt-3"' +
-                '<"col-md-6"i>' + 
-                '<"col-md-6"p>' + 
-              '>',
-        buttons: [
-            {
-              extend: 'excelHtml5',
-              text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
-              className: 'btn btn-success btn-sm shadow-sm',
-              title: 'รายชื่อผู้มารับบริการ SS-OP ประกันสังคม PPFS รอส่ง Claim วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
-            }
-        ],
-        language: {
-            search: "ค้นหา:",
-            lengthMenu: "แสดง _MENU_ รายการ",
-            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-            paginate: {
-              previous: "ก่อนหน้า",
-              next: "ถัดไป"
-            }
-        }
-      });
-
-      // Table 2: Sent Claim
-      var dt_claim = $('#t_claim').DataTable({
-        autoWidth: false,
-        dom: '<"row mb-3"' +
-                '<"col-md-6"l>' + 
-                '<"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>' + 
-              '>' +
-              'rt' +
-              '<"row mt-3"' +
-                '<"col-md-6"i>' + 
-                '<"col-md-6"p>' + 
-              '>',
-        buttons: [
-            {
-              extend: 'excelHtml5',
-              text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
-              className: 'btn btn-success btn-sm shadow-sm',
-              title: 'รายชื่อผู้มารับบริการ SS-OP ประกันสังคม PPFS ส่ง Claim วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}'
-            }
-        ],
-        language: {
-            search: "ค้นหา:",
-            lengthMenu: "แสดง _MENU_ รายการ",
-            info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-            paginate: {
-              previous: "ก่อนหน้า",
-              next: "ถัดไป"
-            }
-        }
-      });
-
-      // แก้ตารางไม่เต็ม card เมื่อสลับ tab
-      $('button[data-bs-toggle="pill"]').on('shown.bs.tab', function () {
-          dt_search.columns.adjust().draw(false);
-          dt_claim.columns.adjust().draw(false);
-      });
-
-      // Restore active tab from localStorage
-      var activeTab = localStorage.getItem('active_tab');
-      if (activeTab) {
-          var tabEl = document.querySelector(`button[data-bs-target="${activeTab}"]`);
-          if (tabEl) {
-              tabEl.click();
-          }
-          localStorage.removeItem('active_tab');
-      }
+        $(document).on('submit', '#form_indiv', function(e) {
+            e.preventDefault();
+            loadDashboard({
+                budget_year: $('#form_budget_year select[name="budget_year"]').val() || "{{ $budget_year }}",
+                start_date: $(this).find('#start_date').val(),
+                end_date: $(this).find('#end_date').val(),
+                skip_chart: 1
+            });
+        });
     });
   </script>
 @endpush
-
-<script src="{{ asset('assets/vendor/chart.js/chart.min.js') }}"></script>
-<script src="{{ asset('assets/vendor/chartjs-plugin-datalabels/chartjs-plugin-datalabels.min.js') }}"></script>
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    new Chart(document.querySelector('#sum_month'), {
-      type: 'bar',
-      data: {
-        labels: <?php echo json_encode($month); ?>,
-        datasets: [
-          {
-            label: 'เรียกเก็บ',
-            data: <?php echo json_encode($claim_price); ?>,
-            backgroundColor: 'rgba(185, 28, 28, 0.75)',
-            borderColor: 'rgb(185, 28, 28)',
-            borderWidth: 1,
-            borderRadius: 4
-          },
-          {
-            label: 'ส่งเคลม',
-            data: <?php echo json_encode($claim_sent_price); ?>,
-            backgroundColor: 'rgba(234, 179, 8, 0.6)',
-            borderColor: 'rgb(234, 179, 8)',
-            borderWidth: 1,
-            borderRadius: 4
-          },
-          {
-            label: 'ชดเชย',
-            data: <?php echo json_encode($receive_total); ?>,
-            backgroundColor: 'rgba(16, 185, 129, 0.6)',
-            borderColor: 'rgb(16, 185, 129)',
-            borderWidth: 1,
-            borderRadius: 4
-          }
-        ]
-      }, 
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: {
-                usePointStyle: true,
-                boxWidth: 6
-            }
-          },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                return context.dataset.label + ': ' + context.formattedValue + ' บาท';
-              }
-            }
-          },
-          datalabels: {
-            anchor: 'end',
-            align: 'top',
-            color: '#000',
-            font: {
-              weight: 'bold',
-              size: 10
-            },
-            formatter: (value) => value > 0 ? value.toLocaleString() : ''
-          }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              callback: function(value) {
-                return value.toLocaleString();
-              }
-            }
-          }
-        }
-      },
-      plugins: [ChartDataLabels]
-    });
-  });
-</script>

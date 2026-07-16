@@ -102,11 +102,14 @@ Avoid browser reload by caching the chart data in a global JavaScript variable (
 ---
 
 ## Pattern 4: Local View Style Overrides
-To style active/inactive tabs differently without polluting `app.blade.php` or modifying global assets, define them inside the local page shell `<style>` section:
+To style active/inactive tabs differently without polluting `app.blade.php` or modifying global assets, define them inside the **page shell** blade file (`xxx.blade.php`) — **not** in the `xxx_table.blade.php` partial. Place the `<style>` block right after `@section('content')`.
+
+> [!IMPORTANT]
+> The CSS **must** be in the page shell (`xxx.blade.php`), because the partial (`xxx_table.blade.php`) is injected via AJAX after the `<head>` has already been rendered. Styles placed inside the partial will not apply.
 
 ```css
 <style>
-/* Custom pastel styling for tabs */
+/* Custom pastel background for main tabs */
 #search-tab {
     background-color: #fef2f2 !important; /* Pastel Red */
     color: #dc2626 !important;
@@ -117,10 +120,12 @@ To style active/inactive tabs differently without polluting `app.blade.php` or m
     background-color: #dc2626 !important;
     color: #fff !important;
 }
+
 #claim-tab {
     background-color: #f0fdf4 !important; /* Pastel Green */
     color: #166534 !important;
     border-radius: 8px 8px 0 0;
+    font-weight: 600;
 }
 #claim-tab.active {
     background-color: #166534 !important;
@@ -128,6 +133,8 @@ To style active/inactive tabs differently without polluting `app.blade.php` or m
 }
 </style>
 ```
+
+**Pages applied:** `ucs_incup.blade.php`, `ucs_outprovince.blade.php`
 
 ---
 
@@ -138,3 +145,17 @@ When implementing modals like `showDetails(vn)`, return structured JSON from the
 > **Status Check Accuracy:**
 > - When determining if a visit has been successfully closed in NHSO (`endpointBtn`), always verify the computed property `v.endpoint_valid` from the validation payload rather than querying raw database fields like `visit.claimCode`.
 > - Maintain uniform status badges and button designs (e.g. `pullNhsoData` and `checkFdh` actions) across all modules to ensure a consistent user experience.
+
+---
+
+## Pages Optimized (Tracking)
+
+| Page | Pattern 2 (Shell + AJAX) | Pattern 3 (Chart Cache) | Pattern 4 (Tab Style) | Notes |
+|---|:---:|:---:|:---:|---|
+| `claim_op/ucs_incup` | ✅ | ✅ | ✅ | Reference implementation |
+| `claim_op/ucs_outprovince` | ✅ | ✅ | ✅ | Applied 2026-07-16 |
+| `claim_op/ucs_inprovince` | ✅ | ✅ | — | Has date-range filter (no tab style needed) |
+| `claim_op/ucs_kidney` | ✅ | ✅ | ✅ | Applied 2026-07-16 |
+
+> [!TIP]
+> When optimizing a new module, apply patterns in order: **2 → 3 → 4**. Pattern 1 (SQL pre-aggregation) is optional but recommended for modules with large `opitemrece` joins.

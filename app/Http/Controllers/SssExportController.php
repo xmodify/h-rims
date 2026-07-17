@@ -539,6 +539,8 @@ class SssExportController extends Controller
             'opdx_rows' => $opdx_rows,
             'visits_list' => $visits->toArray(),
             'disp_items' => $disp_items,
+            'exclude_pttypes' => $exclude_pttypes,
+            'sss_pttypes_by_vn' => $sss_pttypes_by_vn,
             'sss_debt_map' => $sss_debt_map
         ];
     }
@@ -557,6 +559,8 @@ class SssExportController extends Controller
 
         $tflag = $request->input('tflag') ?: 'A';
         $data = $this->generate_ssop_raw_data($vns, $sess_no, $station_id, $tflag);
+        $exclude_pttypes = $data['exclude_pttypes'] ?? [];
+        $sss_pttypes_by_vn = $data['sss_pttypes_by_vn'] ?? [];
 
         $billtran_table = [];
         foreach ($data['billtran_rows'] as $idx => $row) {
@@ -646,8 +650,18 @@ class SssExportController extends Controller
             } elseif ($invoice_no === $vn) {
                 $errors['billdisp'][] = "เลขใบแจ้งหนี้ใช้เลข VN (ยังไม่ได้ออกใบแจ้งหนี้)";
             }
-            $vn_disp_items = array_filter($data['disp_items'], function($item) use ($vn) {
-                return $item->vn === $vn;
+            $vn_disp_items = array_filter($data['disp_items'], function($item) use ($vn, $exclude_pttypes, $sss_pttypes_by_vn) {
+                if ($item->vn !== $vn) {
+                    return false;
+                }
+                if (in_array($item->pttype, $exclude_pttypes)) {
+                    return false;
+                }
+                $sss_pttype = $sss_pttypes_by_vn[$item->vn] ?? null;
+                if ($sss_pttype !== null && !empty($item->pttype) && $item->pttype !== $sss_pttype) {
+                    return false;
+                }
+                return true;
             });
             foreach ($vn_disp_items as $item) {
                 $item_prdcat = !empty($item->sks_product_category_id) ? (string)$item->sks_product_category_id : '';
@@ -691,6 +705,7 @@ class SssExportController extends Controller
             $validation[$vn] = [
                 'hn' => $row->hn,
                 'name' => trim($row->pname . $row->fname . ' ' . $row->lname),
+                'vstdate' => $row->vstdate,
                 'billtran_ok' => empty($errors['billtran']),
                 'billtran_err' => implode(', ', $errors['billtran'] ?? []),
                 'billdisp_ok' => empty($errors['billdisp']),

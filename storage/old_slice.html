@@ -1,0 +1,599 @@
+        </div>
+    </div>
+
+    <!-- SSOP Export Preview Modal -->
+    <div class="modal fade" id="ssopPreviewModal" tabindex="-1" aria-labelledby="ssopPreviewModalLabel" aria-hidden="true" style="z-index: 1060;">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content shadow border-0">
+                <div class="modal-header bg-success text-white py-3">
+                    <h5 class="modal-title fw-bold" id="ssopPreviewModalLabel">
+                        <i class="bi bi-file-earmark-check-fill me-2"></i> ตรวจสอบความถูกต้องของข้อมูลก่อนส่งออก SSOP
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Tabs Header -->
+                    <ul class="nav nav-tabs mb-3" id="previewTab" role="tablist" style="font-size: 0.85rem;">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active fw-bold text-danger" id="prev-audit-tab" data-bs-toggle="tab" data-bs-target="#prev-audit" type="button" role="tab" aria-controls="prev-audit" aria-selected="true">
+                                <i class="bi bi-shield-fill-exclamation me-1"></i> ผลตรวจสอบ (Pre-Audit)
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-primary" id="prev-billtran-tab" data-bs-toggle="tab" data-bs-target="#prev-billtran" type="button" role="tab" aria-controls="prev-billtran" aria-selected="false">
+                                <i class="bi bi-file-earmark-spreadsheet me-1"></i> BILLTRAN
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-primary" id="prev-billitems-tab" data-bs-toggle="tab" data-bs-target="#prev-billitems-panel" type="button" role="tab" aria-controls="prev-billitems-panel" aria-selected="false">
+                                <i class="bi bi-list-stars me-1"></i> BillItems
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-success" id="prev-billdisp-tab" data-bs-toggle="tab" data-bs-target="#prev-billdisp" type="button" role="tab" aria-controls="prev-billdisp" aria-selected="false">
+                                <i class="bi bi-capsule me-1"></i> BILLDISP
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-success" id="prev-dispenseditems-tab" data-bs-toggle="tab" data-bs-target="#prev-dispenseditems-panel" type="button" role="tab" aria-controls="prev-dispenseditems-panel" aria-selected="false">
+                                <i class="bi bi-capsules me-1"></i> DispensedItems
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-info" id="prev-opservices-tab" data-bs-toggle="tab" data-bs-target="#prev-opservices" type="button" role="tab" aria-controls="prev-opservices" aria-selected="false">
+                                <i class="bi bi-clipboard-pulse me-1"></i> OPServices
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-info" id="prev-opdiagnoses-tab" data-bs-toggle="tab" data-bs-target="#prev-opdiagnoses" type="button" role="tab" aria-controls="prev-opdiagnoses" aria-selected="false">
+                                <i class="bi bi-clipboard-pulse me-1"></i> OPDiagnoses
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="previewTabContent" style="font-size: 0.82rem;">
+                        <!-- Pre-Audit Tab -->
+                        <div class="tab-pane fade show active" id="prev-audit" role="tabpanel" aria-labelledby="prev-audit-tab">
+                            <div class="alert alert-warning d-flex align-items-center mb-3">
+                                <i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i>
+                                <div>กรุณาตรวจสอบและแก้ไขรายการที่มีสีแดง (Errors) ก่อนที่จะทำการดาวน์โหลด ZIP นำส่งระบบ สกส. เพื่อป้องกันการติด C (Denied Claim)</div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover align-middle" id="table-prev-audit">
+                                    <thead class="table-danger">
+                                        <tr>
+                                            <th class="text-center" width="5%">#</th>
+                                            <th width="15%">ผู้ป่วย (HN / ชื่อ-สกุล)</th>
+                                            <th width="15%">วันที่รับบริการ</th>
+                                            <th>ประเด็นที่พบ (Audit Issues)</th>
+                                            <th class="text-center" width="10%">ระดับความรุนแรง</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="prev-audit-body">
+                                        <!-- Populated via AJAX -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- BILLTRAN Tab -->
+                        <div class="tab-pane fade" id="prev-billtran" role="tabpanel" aria-labelledby="prev-billtran-tab">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="table-prev-billtran">
+                                    <thead class="table-primary">
+                                        <tr>
+                                            <th>Station</th><th>InvNo</th><th>HN</th><th>MemberNo</th><th>Amount</th><th>Paid</th><th>Claim</th><th>Name</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="prev-billtran-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- BillItems Tab -->
+                        <div class="tab-pane fade" id="prev-billitems-panel" role="tabpanel" aria-labelledby="prev-billitems-tab">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="table-prev-billitems">
+                                    <thead class="table-primary">
+                                        <tr>
+                                            <th>InvNo</th><th>ItemSeq</th><th>BillGr</th><th>LCode</th><th>Qty</th><th>Charge</th><th>Claim</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="prev-billitems-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- BILLDISP Tab -->
+                        <div class="tab-pane fade" id="prev-billdisp" role="tabpanel" aria-labelledby="prev-billdisp-tab">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="table-prev-billdisp">
+                                    <thead class="table-success">
+                                        <tr>
+                                            <th>DispID</th><th>PrescID</th><th>InvNo</th><th>DispDate</th><th>HN</th><th>Name</th><th>Amount</th><th>Reimb</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="prev-billdisp-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- DispensedItems Tab -->
+                        <div class="tab-pane fade" id="prev-dispenseditems-panel" role="tabpanel" aria-labelledby="prev-dispenseditems-tab">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="table-prev-dispenseditems">
+                                    <thead class="table-success">
+                                        <tr>
+                                            <th>DispID</th><th>PrescID</th><th>ItemSeq</th><th>LocalCd</th><th>StdCd</th><th>Qty</th><th>PrdCat</th><th>Reimb</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="prev-dispenseditems-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- OPServices Tab -->
+                        <div class="tab-pane fade" id="prev-opservices" role="tabpanel" aria-labelledby="prev-opservices-tab">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="table-prev-opservices">
+                                    <thead class="table-info">
+                                        <tr>
+                                            <th>HN</th><th>SvDate</th><th>Class</th><th>CareType</th><th>InvNo</th><th>PrePay</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="prev-opservices-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- OPDiagnoses Tab -->
+                        <div class="tab-pane fade" id="prev-opdiagnoses" role="tabpanel" aria-labelledby="prev-opdiagnoses-tab">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="table-prev-opdiagnoses">
+                                    <thead class="table-info">
+                                        <tr>
+                                            <th>HN</th><th>SvDate</th><th>DiagType</th><th>DiagCode</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="prev-opdiagnoses-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2 px-4 d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary px-3" onclick="$('#ssopPreviewModal').modal('hide'); $('#ssopExportModal').modal('show');">
+                        <i class="bi bi-arrow-left me-1"></i> ย้อนกลับ
+                    </button>
+                    <button type="button" class="btn btn-success px-4" id="btnDownloadSSOP" onclick="downloadSSOPExportZip()">
+                        <i class="bi bi-download me-1"></i> ยืนยันการดาวน์โหลด SSOP (.zip)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+@endsection
+
+@push('scripts')
+  <script src="{{ asset('assets/vendor/chart.js/chart.min.js') }}"></script>
+  <script src="{{ asset('assets/vendor/chartjs-plugin-datalabels/chartjs-plugin-datalabels.min.js') }}"></script>
+
+  <script>
+    let myChart = null;
+    let dt_claim = null;
+
+    function fetchData() {
+        // Fallback for legacy handlers
+    }
+
+    // Filter Rep Error, Has/No Invoice function
+    window.applyRepFilter = function() {
+        if (!dt_claim) return;
+        dt_claim.draw();
+    };
+
+    // AJAX Dashboard Loader
+    function loadDashboard(dataParams) {
+        const container = document.getElementById('data-container');
+        if (!container) return;
+
+        if (dataParams.skip_chart) {
+            const tableContainer = document.querySelector('.table-responsive');
+            if (tableContainer) {
+                tableContainer.innerHTML = `
+                    <div class="text-center py-5">
+                        <div class="d-flex justify-content-center mb-3">
+                            <div class="spinner-border text-primary" role="status" style="width: 2.5rem; height: 2.5rem;"></div>
+                        </div>
+                        <h6 class="fw-bold text-secondary">กำลังอัปเดตตารางข้อมูลผู้ป่วย...</h6>
+                    </div>
+                `;
+            }
+        } else {
+            container.innerHTML = `
+                <div class="card shadow-sm border-0 m-3" style="border-radius: 12px; overflow: hidden;">
+                    <div class="card-body py-5 text-center">
+                        <div class="d-flex justify-content-center mb-3">
+                            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <h5 class="fw-bold text-secondary">กำลังประมวลผลข้อมูลการเรียกเก็บและชดเชย...</h5>
+                        <p class="text-muted small mb-0">ระบบกำลังสแกนประวัติการรักษาย้อนหลังทั้งปีงบประมาณและเชื่อมสถานะส่งเคลม อาจใช้เวลา 5-15 วินาที โปรดรอสักครู่</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        $.ajax({
+            url: "{{ url('claim_op/sss_main') }}",
+            type: "POST",
+            data: $.extend({ _token: "{{ csrf_token() }}" }, dataParams)
+        })
+        .done(function(res) {
+            if (res.success) {
+                container.innerHTML = res.table_html;
+                window.patientItems = res.patient_items || [];
+
+                $('.datepicker_th').datepicker({
+                    format: 'd M yyyy',
+                    todayBtn: "linked",
+                    todayHighlight: true,
+                    autoclose: true,
+                    language: 'th-th',
+                    thaiyear: true,
+                    zIndexOffset: 1050
+                });
+
+                var start_date_val = $('#start_date').val();
+                var end_date_val = $('#end_date').val();
+                if(start_date_val) {
+                    $('#start_date_picker').datepicker('setDate', new Date(start_date_val));
+                }
+                if(end_date_val) {
+                    $('#end_date_picker').datepicker('setDate', new Date(end_date_val));
+                }
+
+                $('#start_date_picker').on('changeDate', function(e) {
+                    var date = e.date;
+                    if(date) {
+                      var day = ("0" + date.getDate()).slice(-2);
+                      var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                      var year = date.getFullYear();
+                      $('#start_date').val(year + "-" + month + "-" + day);
+                    }
+                });
+
+                $('#end_date_picker').on('changeDate', function(e) {
+                    var date = e.date;
+                    if(date) {
+                      var day = ("0" + date.getDate()).slice(-2);
+                      var month = ("0" + (date.getMonth() + 1)).slice(-2);
+                      var year = date.getFullYear();
+                      $('#end_date').val(year + "-" + month + "-" + day);
+                    }
+                });
+
+                $.fn.dataTable.ext.search.push(
+                    function(settings, data, dataIndex) {
+                        const filterVal = $('input[name="rep_filter"]:checked').val() || 'all';
+                        if (filterVal === 'all') return true;
+
+                        const rowNode = dt_claim.row(dataIndex).node();
+                        if (!rowNode) return true;
+
+                        const hasError = rowNode.getAttribute('data-has-error') === 'true';
+                        const hasInvoice = rowNode.getAttribute('data-has-invoice') === 'true';
+
+                        if (filterVal === 'error') return hasError;
+                        if (filterVal === 'has_invoice') return hasInvoice;
+                        if (filterVal === 'no_invoice') return !hasInvoice;
+
+                        return true;
+                    }
+                );
+
+                dt_claim = $('#t_claim').DataTable({
+                    autoWidth: false,
+                    dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>><rt><"row mt-3"<"col-md-6"i><"col-md-6"p>>',
+                    buttons: [{
+                        extend: 'excelHtml5',
+                        text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
+                        className: 'btn btn-success btn-sm shadow-sm',
+                        title: 'รายชื่อผู้มารับบริการ SS-OP ประกันสังคม เครือข่าย'
+                    }],
+                    language: {
+                        search: "ค้นหา:",
+                        lengthMenu: "แสดง _MENU_ รายการ",
+                        info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                        paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
+                    }
+                });
+
+                $(document).on('change', '#select_all_claims', function() {
+                    const checked = this.checked;
+                    $('.claim-select-check').each(function() {
+                        this.checked = checked;
+                    });
+                });
+
+                if (res.chart_data) {
+                    window.currentChartData = res.chart_data;
+                }
+                if (window.currentChartData) {
+                    drawChart(window.currentChartData);
+                }
+            }
+        })
+        .fail(function() {
+            Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: 'ไม่สามารถอัปเดตข้อมูลตารางผ่านระบบ AJAX ได้' });
+        });
+    }
+
+    // Chart Drawer
+    function drawChart(chartData) {
+        const ctx = document.querySelector('#sum_month');
+        if (!ctx) return;
+
+        if (myChart) {
+            myChart.destroy();
+        }
+
+        myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartData.months || chartData.month || [],
+                datasets: [
+                    {
+                        label: 'เรียกเก็บ',
+                        data: chartData.claim_price || [],
+                        backgroundColor: 'rgba(185, 28, 28, 0.75)',
+                        borderColor: 'rgb(185, 28, 28)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'ส่งเคลม',
+                        data: chartData.claim_sent_price || [],
+                        backgroundColor: 'rgba(234, 179, 8, 0.6)',
+                        borderColor: 'rgb(234, 179, 8)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'ชดเชย',
+                        data: chartData.receive_total || [],
+                        backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                        borderColor: 'rgb(16, 185, 129)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { usePointStyle: true, boxWidth: 6 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.formattedValue + ' บาท';
+                            }
+                        }
+                    },
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'top',
+                        color: '#000',
+                        font: { weight: 'bold', size: 10 },
+                        formatter: (value) => value > 0 ? value.toLocaleString() : ''
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { callback: function(value) { return value.toLocaleString(); } }
+                    }
+                }
+            },
+            plugins: [ChartDataLabels]
+        });
+    }
+
+    // Custom showDetails function to display SSOP validation checks on the eye button
+    window.showDetails = function(vn) {
+        const body = document.getElementById('detailsModalBody');
+        if (!body) return;
+        body.innerHTML = '<div class="text-center text-muted py-4"><i class="bi bi-arrow-repeat spin me-2"></i>กำลังโหลด...</div>';
+        
+        // Clear footer summary immediately to prevent showing previous patient's details
+        const footerSummary = document.getElementById('detailsModalFooterSummary');
+        if (footerSummary) {
+            footerSummary.innerHTML = '';
+        }
+        
+        $('#detailsModal').modal('show');
+
+        $.get("{{ url('claim_op/sss_detail') }}", { vn: vn })
+            .done(function(data) {
+                const visit = data.visit;
+                const diagnoses = data.diagnoses;
+                const drugs = data.drugs;
+                const feedbacks = data.rep_feedbacks || [];
+
+                let pdx = visit.pdx || '-';
+                let sec_diags = [];
+                let procedures = [];
+                let has_pdx = false;
+
+                diagnoses.forEach(function(d) {
+                    if (d.diagtype == '2') {
+                        procedures.push(d.icd10);
+                    } else if (d.diagtype != '1') {
+                        sec_diags.push(d.icd10);
+                    }
+                    if (d.diagtype == '1') {
+                        has_pdx = true;
+                    }
+                });
+
+                // NHSO Endpoint privilege status button
+                let endpointBtn = '';
+                if (visit.endpoint === 'Y') {
+                    endpointBtn = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>ปิดสิทธิแล้ว (สปสช.)</span>`;
+                } else {
+                    endpointBtn = `<button onclick="pullNhsoData('${visit.vstdate}', '${visit.cid}', '${vn}')" class="btn btn-warning btn-sm py-1 px-2 fw-bold" style="font-size:0.75rem;"><i class="bi bi-cloud-download-fill me-1"></i>ดึงข้อมูล (Pull)</button>`;
+                }
+
+                let receiptText = parseFloat(visit.rcpt_money) > 0 && visit.rcpno_list 
+                    ? ` (${visit.rcpno_list})` 
+                    : '';
+
+                let invoice_no = visit.sss_invno && visit.sss_invno !== '0' ? visit.sss_invno : (visit.debt_id_list && visit.debt_id_list !== '0' ? visit.debt_id_list : '');
+
+                // Validation errors
+                const errors = [];
+                if (!invoice_no || invoice_no === '0' || invoice_no === 0) {
+                    errors.push("ไม่พบเลขใบแจ้งหนี้ (InvoiceNo) กรุณากดออกใบแจ้งหนี้ใน HOSxP");
+                }
+                if (!visit.cid || visit.cid.length !== 13) {
+                    errors.push("เลขบัตรประชาชน (CID) ว่างหรือความยาวไม่ครบ 13 หลัก");
+                }
+                if (!visit.hn) {
+                    errors.push("ไม่พบ HN");
+                }
+                if (!has_pdx) {
+                    errors.push("ไม่พบรหัสวินิจฉัยโรคหลัก (PDX) กรุณาบันทึกแพทย์ผู้ตรวจโรค");
+                }
+                const uc_money = parseFloat(visit.uc_money || 0);
+                if (uc_money <= 0) {
+                    errors.push("ยอดเงินเรียกเก็บ (uc_money) น้อยกว่าหรือเท่ากับ 0 บาท");
+                }
+
+                // Add backend pre-audit checks to errors/warnings
+                const preAudits = data.pre_audits || [];
+                const warnings = [];
+                
+                preAudits.forEach(audit => {
+                    let msg = '';
+                    if (audit.code) {
+                        msg += `[${audit.code}] `;
+                    }
+                    if (audit.title) {
+                        msg += `${audit.title}: `;
+                    }
+                    msg += audit.desc;
+
+                    if (audit.status === 'danger') {
+                        errors.push(msg);
+                    } else if (audit.status === 'warning') {
+                        warnings.push(msg);
+                    }
+                });
+
+                // Determine validation status alert banner
+                let statusHtml = '';
+                if (errors.length > 0) {
+                    // RED Status Alert
+                    statusHtml = `
+                    <div class="col-12 mb-2">
+                      <div class="alert alert-danger py-2 px-3 border-0 shadow-sm d-flex align-items-start small" style="background-color: #fef2f2; color: #991b1b; border-left: 5px solid #dc2626 !important;">
+                        <i class="bi bi-exclamation-triangle-fill me-2 mt-1" style="font-size: 1.1rem; color: #dc2626;"></i>
+                        <div>
+                          <div class="fw-bold mb-1 text-dark">สถานะ: ไม่ผ่านเกณฑ์ส่งออก (มีข้อผิดพลาดที่ต้องแก้ไข)</div>
+                          <ul class="mb-0 ps-3 text-danger">
+                            ${errors.map(err => `<li>${err}</li>`).join('')}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>`;
+                } else if (visit.endpoint !== 'Y' || warnings.length > 0) {
+                    // YELLOW Status Alert
+                    const allWarnings = [...warnings];
+                    if (visit.endpoint !== 'Y') {
+                        allWarnings.push("สิทธิ์การรักษายังไม่ได้ปิดสิทธิ์ในระบบ สปสช. (กรุณากดดึงข้อมูลหรือปิดสิทธิ์)");
+                    }
+                    statusHtml = `
+                    <div class="col-12 mb-2">
+                      <div class="alert alert-warning py-2 px-3 border-0 shadow-sm d-flex align-items-start small" style="background-color: #fffbeb; color: #92400e; border-left: 5px solid #d97706 !important;">
+                        <i class="bi bi-exclamation-circle-fill me-2 mt-1" style="font-size: 1.1rem; color: #d97706;"></i>
+                        <div>
+                          <div class="fw-bold mb-1 text-dark">สถานะ: ข้อมูลผ่านเกณฑ์ แต่มีข้อแนะนำ/ยังไม่ได้ปิดสิทธิ (สปสช.)</div>
+                          <ul class="mb-0 ps-3 text-warning" style="color: #92400e !important;">
+                            ${allWarnings.map(warn => `<li>${warn}</li>`).join('')}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>`;
+                } else {
+                    // GREEN Status Alert
+                    statusHtml = `
+                    <div class="col-12 mb-2">
+                      <div class="alert alert-success py-2 px-3 border-0 shadow-sm d-flex align-items-start small" style="background-color: #f0fdf4; color: #166534; border-left: 5px solid #16a34a !important;">
+                        <i class="bi bi-check-circle-fill me-2 mt-1" style="font-size: 1.1rem; color: #16a34a;"></i>
+                        <div>
+                          <div class="fw-bold mb-1 text-dark">สถานะ: ข้อมูลพร้อมส่งออก (ผ่านเกณฑ์และปิดสิทธิเรียบร้อย)</div>
+                          <div class="text-muted">ข้อมูลการรับบริการถูกต้อง ครบถ้วน และปิดสิทธิเรียบร้อยแล้ว</div>
+                        </div>
+                      </div>
+                    </div>`;
+                }
+
+                let html = `
+                <style>
+                  .compact-info-table th, .compact-info-table td {
+                      font-size: 12px !important;
+                      padding: 6px 12px !important;
+                      border-bottom: 1px solid #dee2e6 !important;
+                  }
+                  #modal-drugs-table th, #modal-drugs-table td,
+                  #modal-services-table th, #modal-services-table td {
+                      font-size: 12px !important;
+                      padding: 6px 8px !important;
+                  }
+                  .dataTables_wrapper, .dataTables_info, .dataTables_paginate, .dataTables_length, .dataTables_filter {
+                      font-size: 12px !important;
+                  }
+                </style>
+                <div class="row g-3">
+                  <!-- Validation Status Banner -->
+                  ${statusHtml}
+
+                  <!-- Column 1: Patient Info -->
+                  <div class="col-md-4">
+                    <div class="card border-0 bg-light h-100">
+                      <div class="card-body py-2 px-3" style="font-size: 11px;">
+                        <div class="fw-bold text-primary mb-2 small" style="font-size: 12px;"><i class="bi bi-person-fill me-1"></i>ข้อมูลผู้ป่วย</div>
+                        <table class="table table-sm table-borderless mb-0 w-100 compact-info-table">
+                          <tr><th class="text-muted" style="width:43%;">HN</th><td class="fw-bold text-dark" >${visit.hn}</td></tr>
+                          <tr><th class="text-muted" >CID</th><td class="text-dark" >${visit.cid ?? '-'}</td></tr>
+                          <tr><th class="text-muted" >ชื่อ-สกุล</th><td class="text-dark" >${visit.ptname}</td></tr>
+                          <tr><th class="text-muted" >เพศ/อายุ</th><td class="text-dark" >${visit.sex == '1' ? 'ชาย' : (visit.sex == '2' ? 'หญิง' : (visit.sex ?? '-'))} / ${visit.age_y ?? '-'} ปี</td></tr>
+                          <tr><th class="text-muted" >สิทธิ์การรักษา</th><td class="text-dark" >${visit.pttype_name ?? '-'}</td></tr>
+                          <tr><th class="text-muted" >รพ.หลัก (HMAIN)</th><td class="text-dark fw-bold text-danger" >${visit.hospmain ?? '-'}</td></tr>
+                          <tr><th class="text-muted" >Hipdata Code</th><td class="text-dark" >${visit.hipdata_code ?? '-'}</td></tr>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Column 2: Clinical Info -->
+                  <div class="col-md-4">
+                    <div class="card border-0 bg-light h-100">
+                      <div class="card-body py-2 px-3" style="font-size: 11px;">
+                        <div class="fw-bold text-primary mb-2 small" style="font-size: 12px;"><i class="bi bi-clipboard2-pulse me-1"></i>ข้อมูลทางคลินิก</div>
+                        <table class="table table-sm table-borderless mb-0 w-100 compact-info-table" style="table-layout: fixed;">
+                          <tr><th class="text-muted" style="width:40%;">วันที่รับบริการ</th><td class="text-dark" style="word-break: break-all;">${visit.vstdate} ${visit.vsttime}</td></tr>
+                          <tr><th class="text-muted" >CC</th><td class="text-dark" style="word-break: break-all;">${visit.cc ?? '-'}</td></tr>
+                          <tr><th class="text-muted" >PDX</th><td class="fw-bold text-danger" style="word-break: break-all;">${pdx}</td></tr>
+                          <tr><th class="text-muted" >SDX</th><td class="text-dark" style="word-break: break-all;">${sec_diags.join(', ') || '-'}</td></tr>
+                          <tr><th class="text-muted" >ICD-9</th><td class="text-dark" style="word-break: break-all;">${procedures.join(', ') || '-'}</td></tr>
+                        </table>
+                      </div>
+                    </div>
+                  </div>

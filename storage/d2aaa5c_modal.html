@@ -1,0 +1,170 @@
+    <div class="modal fade" id="ssopPreviewModal" tabindex="-1" aria-labelledby="ssopPreviewModalLabel" aria-hidden="true" style="z-index: 1060;">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content shadow border-0">
+                <div class="modal-header bg-success text-white py-3">
+                    <h5 class="modal-title fw-bold" id="ssopPreviewModalLabel">
+                        <i class="bi bi-file-earmark-check-fill me-2"></i> ตรวจสอบความถูกต้องของข้อมูลก่อนส่งออก SSOP
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Tabs Header -->
+                    <ul class="nav nav-tabs mb-3" id="previewTab" role="tablist" style="font-size: 0.85rem;">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active fw-bold text-danger" id="prev-audit-tab" data-bs-toggle="tab" data-bs-target="#prev-audit" type="button" role="tab" aria-controls="prev-audit" aria-selected="true">
+                                <i class="bi bi-shield-fill-exclamation me-1"></i> ผลตรวจสอบ (Pre-Audit)
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-primary" id="prev-billtran-tab" data-bs-toggle="tab" data-bs-target="#prev-billtran" type="button" role="tab" aria-controls="prev-billtran" aria-selected="false">
+                                <i class="bi bi-file-earmark-spreadsheet me-1"></i> BILLTRAN
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-primary" id="prev-billitems-tab" data-bs-toggle="tab" data-bs-target="#prev-billitems-panel" type="button" role="tab" aria-controls="prev-billitems-panel" aria-selected="false">
+                                <i class="bi bi-list-stars me-1"></i> BillItems
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-success" id="prev-billdisp-tab" data-bs-toggle="tab" data-bs-target="#prev-billdisp" type="button" role="tab" aria-controls="prev-billdisp" aria-selected="false">
+                                <i class="bi bi-capsule me-1"></i> BILLDISP
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-success" id="prev-dispenseditems-tab" data-bs-toggle="tab" data-bs-target="#prev-dispenseditems-panel" type="button" role="tab" aria-controls="prev-dispenseditems-panel" aria-selected="false">
+                                <i class="bi bi-capsules me-1"></i> DispensedItems
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-info" id="prev-opservices-tab" data-bs-toggle="tab" data-bs-target="#prev-opservices" type="button" role="tab" aria-controls="prev-opservices" aria-selected="false">
+                                <i class="bi bi-clipboard-pulse me-1"></i> OPServices
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-info" id="prev-opdiagnoses-tab" data-bs-toggle="tab" data-bs-target="#prev-opdiagnoses" type="button" role="tab" aria-controls="prev-opdiagnoses" aria-selected="false">
+                                <i class="bi bi-clipboard-pulse me-1"></i> OPDiagnoses
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="previewTabContent" style="font-size: 0.82rem;">
+                        <!-- Pre-Audit Tab -->
+                        <div class="tab-pane fade show active" id="prev-audit" role="tabpanel" aria-labelledby="prev-audit-tab">
+                            <div class="alert alert-warning d-flex align-items-center mb-3">
+                                <i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i>
+                                <div>กรุณาตรวจสอบและแก้ไขรายการที่มีสีแดง (Errors) ก่อนที่จะทำการดาวน์โหลด ZIP นำส่งระบบ สกส. เพื่อป้องกันการติด C (Denied Claim)</div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-hover align-middle" id="table-prev-audit">
+                                    <thead class="table-danger">
+                                        <tr>
+                                            <th class="text-center" width="5%">#</th>
+                                            <th width="15%">ผู้ป่วย (HN / ชื่อ-สกุล)</th>
+                                            <th width="15%">วันที่รับบริการ</th>
+                                            <th>ประเด็นที่พบ (Audit Issues)</th>
+                                            <th class="text-center" width="10%">ระดับความรุนแรง</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="prev-audit-body">
+                                        <!-- Populated via AJAX -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- BILLTRAN Tab -->
+                        <div class="tab-pane fade" id="prev-billtran" role="tabpanel" aria-labelledby="prev-billtran-tab">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="table-prev-billtran">
+                                    <thead class="table-primary">
+                                        <tr>
+                                            <th>Station</th><th>InvNo</th><th>HN</th><th>MemberNo</th><th>Amount</th><th>Paid</th><th>Claim</th><th>Name</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="prev-billtran-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- BillItems Tab -->
+                        <div class="tab-pane fade" id="prev-billitems-panel" role="tabpanel" aria-labelledby="prev-billitems-tab">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="table-prev-billitems">
+                                    <thead class="table-primary">
+                                        <tr>
+                                            <th>InvNo</th><th>ItemSeq</th><th>BillGr</th><th>LCode</th><th>Qty</th><th>Charge</th><th>Claim</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="prev-billitems-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- BILLDISP Tab -->
+                        <div class="tab-pane fade" id="prev-billdisp" role="tabpanel" aria-labelledby="prev-billdisp-tab">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="table-prev-billdisp">
+                                    <thead class="table-success">
+                                        <tr>
+                                            <th>DispID</th><th>PrescID</th><th>InvNo</th><th>DispDate</th><th>HN</th><th>Name</th><th>Amount</th><th>Reimb</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="prev-billdisp-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- DispensedItems Tab -->
+                        <div class="tab-pane fade" id="prev-dispenseditems-panel" role="tabpanel" aria-labelledby="prev-dispenseditems-tab">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="table-prev-dispenseditems">
+                                    <thead class="table-success">
+                                        <tr>
+                                            <th>DispID</th><th>PrescID</th><th>ItemSeq</th><th>LocalCd</th><th>StdCd</th><th>Qty</th><th>PrdCat</th><th>Reimb</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="prev-dispenseditems-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- OPServices Tab -->
+                        <div class="tab-pane fade" id="prev-opservices" role="tabpanel" aria-labelledby="prev-opservices-tab">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="table-prev-opservices">
+                                    <thead class="table-info">
+                                        <tr>
+                                            <th>HN</th><th>SvDate</th><th>Class</th><th>CareType</th><th>InvNo</th><th>PrePay</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="prev-opservices-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- OPDiagnoses Tab -->
+                        <div class="tab-pane fade" id="prev-opdiagnoses" role="tabpanel" aria-labelledby="prev-opdiagnoses-tab">
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-striped" id="table-prev-opdiagnoses">
+                                    <thead class="table-info">
+                                        <tr>
+                                            <th>HN</th><th>SvDate</th><th>DiagType</th><th>DiagCode</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="prev-opdiagnoses-body"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2 px-4 d-flex justify-content-between">
+                    <button type="button" class="btn btn-secondary px-3" onclick="$('#ssopPreviewModal').modal('hide'); $('#ssopExportModal').modal('show');">
+                        <i class="bi bi-arrow-left me-1"></i> ย้อนกลับ
+                    </button>
+                    <button type="button" class="btn btn-success px-4" id="btnDownloadSSOP" onclick="downloadSSOPExportZip()">
+                        <i class="bi bi-download me-1"></i> ยืนยันการดาวน์โหลด SSOP (.zip)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>

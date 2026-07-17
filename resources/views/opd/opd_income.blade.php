@@ -33,8 +33,19 @@
         </div>
     </div>
 
+    <!-- Main Page Loader (Shown only during loading) -->
+    <div id="main-loader" class="card shadow-sm border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
+        <div class="card-body py-5 text-center">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <h5 class="mt-3 fw-bold text-secondary">กำลังดึงข้อมูลสถิติรายได้ตามหมวดค่ารักษา...</h5>
+            <p class="text-muted small mb-0">ตารางสถิตินี้ใช้เวลาในการประมวลผลข้อมูลขนาดใหญ่ประมาณ 5-15 วินาที โปรดรอสักครู่</p>
+        </div>
+    </div>
+
     <!-- Chart Card: Monthly Trend by Category -->
-    <div class="card shadow-sm border-0 mb-4" style="border-radius: 12px; overflow: hidden;">
+    <div id="chart-card-container" class="card shadow-sm border-0 mb-4" style="border-radius: 12px; overflow: hidden; display: none;">
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
             <h6 class="mb-0 fw-bold text-dark"><i class="bi bi-graph-up text-primary me-2"></i> กราฟแนวโน้มรายเดือนของรายได้ค่ารักษา</h6>
             <div style="width: 250px;">
@@ -52,17 +63,7 @@
     </div>
 
     <!-- Table Container (AJAX loaded) -->
-    <div id="table-container" class="mt-3">
-        <div class="card shadow-sm border-0" style="border-radius: 12px; overflow: hidden;">
-            <div class="card-body py-5 text-center">
-                <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <h5 class="mt-3 fw-bold text-secondary">กำลังดึงข้อมูลสถิติรายได้ตามหมวดค่ารักษา...</h5>
-                <p class="text-muted small mb-0">ตารางสถิตินี้ใช้เวลาในการประมวลผลข้อมูลขนาดใหญ่ประมาณ 5-15 วินาที โปรดรอสักครู่</p>
-            </div>
-        </div>
-    </div>
+    <div id="table-container" class="mt-3"></div>
 </div>
 @endsection
 
@@ -205,6 +206,14 @@
         .then(response => response.json())
         .then(res => {
             if (res.success) {
+                // ซ่อนตัวโหลดด้านบน
+                const loader = document.getElementById('main-loader');
+                if (loader) loader.style.display = 'none';
+
+                // แสดงกล่องกราฟ
+                const chartCard = document.getElementById('chart-card-container');
+                if (chartCard) chartCard.style.display = 'block';
+
                 // แทรก HTML ของตาราง
                 document.getElementById('table-container').innerHTML = res.table_html;
                 
@@ -220,6 +229,10 @@
             }
         })
         .catch(err => {
+            // ซ่อนตัวโหลดด้านบน
+            const loader = document.getElementById('main-loader');
+            if (loader) loader.style.display = 'none';
+
             document.getElementById('table-container').innerHTML = `
                 <div class="alert alert-danger rounded-3 p-4 text-center">
                     <i class="bi bi-exclamation-triangle-fill fs-1"></i>

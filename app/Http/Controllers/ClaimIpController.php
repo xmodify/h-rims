@@ -46,8 +46,17 @@ class ClaimIpController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        // 2. Query Sum Month (Optimized with AN filter in subquery)
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_ip.ucs_incup', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT 
                 month,
                 COUNT(an) AS an,
@@ -119,7 +128,13 @@ class ClaimIpController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         // 3. Search Data (Wait for claim - Optimized)
-        $search = DB::connection('hosxp')->select('
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
+
+$search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
@@ -220,7 +235,25 @@ class ClaimIpController extends Controller
             AND (fdh.an IS NOT NULL OR ec.an IS NOT NULL OR stm.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_ip.ucs_incup', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
+        
+        $table_html = view('claim_ip.ucs_incup_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $claim)
+        );
+
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => [
+                'month' => $month ?? [],
+                'claim_price' => $claim_price ?? [],
+                'claim_sent_price' => $claim_sent_price ?? [],
+                'receive_total' => $receive_total ?? []
+            ]
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ucs_outcup(Request $request)
@@ -247,8 +280,17 @@ class ClaimIpController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        // 2. Query Sum Month (Out-CUP)
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_ip.ucs_outcup', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT 
                 month,
                 COUNT(an) AS an,
@@ -321,7 +363,13 @@ class ClaimIpController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         // 3. Search Data (Out-CUP)
-        $search = DB::connection('hosxp')->select('
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
+
+$search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,ip.hospmain,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
@@ -422,7 +470,25 @@ class ClaimIpController extends Controller
             AND (fdh.an IS NOT NULL OR ec.an IS NOT NULL OR stm.an IS NOT NULL) 
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_ip.ucs_outcup', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
+        
+        $table_html = view('claim_ip.ucs_outcup_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $claim)
+        );
+
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => [
+                'month' => $month ?? [],
+                'claim_price' => $claim_price ?? [],
+                'claim_sent_price' => $claim_sent_price ?? [],
+                'receive_total' => $receive_total ?? []
+            ]
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function stp(Request $request)
@@ -449,8 +515,17 @@ class ClaimIpController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        // 2. Query Sum Month (STP)
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_ip.stp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT 
                 month,
                 COUNT(an) AS an,
@@ -517,7 +592,13 @@ class ClaimIpController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         // 3. Visits Data (STP Combined)
-        $visits = DB::connection('hosxp')->select('
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
+
+$visits = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,pt.cid,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
                 a.age_y,p.`name` AS pttype,ip.hospmain,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
@@ -567,7 +648,22 @@ class ClaimIpController extends Controller
             AND p.hipdata_code = "STP" 
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_ip.stp', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'visits'));
+        
+        $table_html = view('claim_ip.stp_table', compact('budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'visits'))->render();
+
+        $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $visits);
+
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => [
+                'month' => $month ?? [],
+                'claim_price' => $claim_price ?? [],
+                'claim_sent_price' => $claim_sent_price ?? [],
+                'receive_total' => $receive_total ?? []
+            ]
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function ofc(Request $request)
@@ -594,8 +690,17 @@ class ClaimIpController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        // 2. Query Sum Month (OFC)
-        $sum_month = DB::connection('hosxp')->select(
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_ip.ofc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select(
             '
             SELECT 
                 month,
@@ -682,7 +787,13 @@ class ClaimIpController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         // 3. Search Data (OFC)
-        $search = DB::connection('hosxp')->select(
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
+
+$search = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
@@ -813,7 +924,25 @@ class ClaimIpController extends Controller
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
-        return view('claim_ip.ofc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
+        
+        $table_html = view('claim_ip.ofc_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $claim)
+        );
+
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => [
+                'month' => $month ?? [],
+                'claim_price' => $claim_price ?? [],
+                'claim_sent_price' => $claim_sent_price ?? [],
+                'receive_total' => $receive_total ?? []
+            ]
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function lgo(Request $request)
@@ -840,8 +969,17 @@ class ClaimIpController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        // 2. Query Sum Month (LGO)
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_ip.lgo', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT 
                 month,
                 COUNT(an) AS an,
@@ -908,7 +1046,13 @@ class ClaimIpController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         // 3. Search Data (LGO)
-        $search = DB::connection('hosxp')->select('
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
+
+$search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
@@ -1002,7 +1146,25 @@ class ClaimIpController extends Controller
             AND (stm.an IS NOT NULL OR ec.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_ip.lgo', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
+        
+        $table_html = view('claim_ip.lgo_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $claim)
+        );
+
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => [
+                'month' => $month ?? [],
+                'claim_price' => $claim_price ?? [],
+                'claim_sent_price' => $claim_sent_price ?? [],
+                'receive_total' => $receive_total ?? []
+            ]
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function bkk(Request $request)
@@ -1029,8 +1191,17 @@ class ClaimIpController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        // 2. Query Sum Month (BKK)
-        $sum_month = DB::connection('hosxp')->select(
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_ip.bkk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select(
             '
             SELECT 
                 month,
@@ -1108,7 +1279,13 @@ class ClaimIpController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         // 3. Search Data (BKK)
-        $search = DB::connection('hosxp')->select(
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
+
+$search = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
@@ -1227,7 +1404,25 @@ class ClaimIpController extends Controller
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
-        return view('claim_ip.bkk', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
+        
+        $table_html = view('claim_ip.bkk_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $claim)
+        );
+
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => [
+                'month' => $month ?? [],
+                'claim_price' => $claim_price ?? [],
+                'claim_sent_price' => $claim_sent_price ?? [],
+                'receive_total' => $receive_total ?? []
+            ]
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function bmt(Request $request)
@@ -1254,8 +1449,17 @@ class ClaimIpController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        // 2. Query Sum Month (BMT)
-        $sum_month = DB::connection('hosxp')->select(
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_ip.bmt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select(
             '
             SELECT 
                 month,
@@ -1334,7 +1538,13 @@ class ClaimIpController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         // 3. Search Data (BMT)
-        $search = DB::connection('hosxp')->select(
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
+
+$search = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
@@ -1453,7 +1663,25 @@ class ClaimIpController extends Controller
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
-        return view('claim_ip.bmt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
+        
+        $table_html = view('claim_ip.bmt_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $claim)
+        );
+
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => [
+                'month' => $month ?? [],
+                'claim_price' => $claim_price ?? [],
+                'claim_sent_price' => $claim_sent_price ?? [],
+                'receive_total' => $receive_total ?? []
+            ]
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function srt(Request $request)
@@ -1480,8 +1708,17 @@ class ClaimIpController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        // 2. Query Sum Month (SRT)
-        $sum_month = DB::connection('hosxp')->select(
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_ip.srt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select(
             '
             SELECT 
                 month,
@@ -1552,7 +1789,13 @@ class ClaimIpController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         // 3. Search Data (SRT)
-        $search = DB::connection('hosxp')->select(
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
+
+$search = DB::connection('hosxp')->select(
             '
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
@@ -1655,7 +1898,25 @@ class ClaimIpController extends Controller
             [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]
         );
 
-        return view('claim_ip.srt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim'));
+        
+        $table_html = view('claim_ip.srt_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $claim)
+        );
+
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => [
+                'month' => $month ?? [],
+                'claim_price' => $claim_price ?? [],
+                'claim_sent_price' => $claim_sent_price ?? [],
+                'receive_total' => $receive_total ?? []
+            ]
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function sss(Request $request)
@@ -1682,8 +1943,17 @@ class ClaimIpController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        // 2. Query Sum Month (SSS)
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_ip.sss', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT 
                 month,
                 COUNT(an) AS an,
@@ -1743,7 +2013,13 @@ class ClaimIpController extends Controller
         $receive_total = array_column($sum_month, 'receive_total');
 
         // 3. Search Data (SSS)
-        $search = DB::connection('hosxp')->select('
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
+
+$search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
@@ -1821,7 +2097,25 @@ class ClaimIpController extends Controller
             AND ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_ip.sss', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
+        
+        $table_html = view('claim_ip.sss_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $claim)
+        );
+
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => [
+                'month' => $month ?? [],
+                'claim_price' => $claim_price ?? [],
+                'claim_sent_price' => $claim_sent_price ?? [],
+                'receive_total' => $receive_total ?? []
+            ]
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function sss_hc(Request $request)
@@ -1849,7 +2143,17 @@ class ClaimIpController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_ip.sss_hc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(dchdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(dchdate)+543, 2))
                 WHEN MONTH(dchdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(dchdate)+543, 2))
                 WHEN MONTH(dchdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(dchdate)+543, 2))
@@ -1887,8 +2191,13 @@ class ClaimIpController extends Controller
         $claim_price = array_column($sum_month, 'claim_price');
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
 
-        $search = DB::connection('hosxp')->select('
+$search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
             a.age_y, p.`name` AS pttype,ip.hospmain,a.diag_text_list,id.icd10,idx.icd9,
             IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
@@ -1932,7 +2241,22 @@ class ClaimIpController extends Controller
             AND p.hipdata_code IN ("SSS","SSI") 
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_ip.sss_hc', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search'));
+        
+        $table_html = view('claim_ip.sss_hc_table', compact('budget_year', 'start_date', 'end_date', 'search'))->render();
+
+        $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $search);
+
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => [
+                'month' => $month ?? [],
+                'claim_price' => $claim_price ?? [],
+                'claim_sent_price' => $claim_sent_price ?? [],
+                'receive_total' => $receive_total ?? []
+            ]
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function gof(Request $request)
@@ -1960,7 +2284,17 @@ class ClaimIpController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_ip.gof', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(dchdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(dchdate)+543, 2))
                 WHEN MONTH(dchdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(dchdate)+543, 2))
                 WHEN MONTH(dchdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(dchdate)+543, 2))
@@ -2003,8 +2337,13 @@ class ClaimIpController extends Controller
         $claim_price = array_column($sum_month, 'claim_price');
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
 
-        $search = DB::connection('hosxp')->select('
+$search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
@@ -2079,7 +2418,25 @@ class ClaimIpController extends Controller
             AND ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_ip.gof', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
+        
+        $table_html = view('claim_ip.gof_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $claim)
+        );
+
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => [
+                'month' => $month ?? [],
+                'claim_price' => $claim_price ?? [],
+                'claim_sent_price' => $claim_sent_price ?? [],
+                'receive_total' => $receive_total ?? []
+            ]
+        ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------
     public function rcpt(Request $request)
@@ -2107,77 +2464,60 @@ class ClaimIpController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
-        $sum_month = DB::connection('hosxp')->select('
-            SELECT CASE WHEN MONTH(dchdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(dchdate)+543, 2))
-                END AS month,COUNT(an) AS an,SUM(IFNULL(claim_price,0)) AS claim_price
-            FROM (SELECT i.dchdate,i.hn,i.an,
-                (IFNULL(a.paid_money,0) - IFNULL(rc.rcpt_money,0)) AS claim_price
-            FROM ipt i                                 
-            LEFT JOIN an_stat a ON a.an=i.an           
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
-            WHERE i.confirm_discharge = "Y" 
-            AND i.dchdate BETWEEN ? AND ?
-            AND a.paid_money <> "0" 
-            AND IFNULL(rc.rcpt_money,0) <> a.paid_money      
-            GROUP BY i.an ) AS a
-			GROUP BY YEAR(dchdate), MONTH(dchdate)
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_ip.rcpt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
+            SELECT 
+                CASE 
+                    WHEN MONTH(dchdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                    WHEN MONTH(dchdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(dchdate)+543, 2))
+                    WHEN MONTH(dchdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                    WHEN MONTH(dchdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                    WHEN MONTH(dchdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(dchdate)+543, 2))
+                    WHEN MONTH(dchdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                    WHEN MONTH(dchdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(dchdate)+543, 2))
+                    WHEN MONTH(dchdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                    WHEN MONTH(dchdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(dchdate)+543, 2))
+                    WHEN MONTH(dchdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                    WHEN MONTH(dchdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(dchdate)+543, 2))
+                    WHEN MONTH(dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(dchdate)+543, 2))
+                END AS month,
+                SUM(CASE WHEN rcpt_money <> paid_money THEN (paid_money - rcpt_money) ELSE 0 END) AS claim_price,
+                SUM(CASE WHEN rcpt_money = paid_money THEN rcpt_money ELSE 0 END) AS receive_total
+            FROM (
+                SELECT i.dchdate, i.an, IFNULL(a.paid_money,0) AS paid_money, IFNULL(rc.rcpt_money,0) AS rcpt_money
+                FROM ipt i                                 
+                LEFT JOIN an_stat a ON a.an=i.an           
+                LEFT JOIN (
+                    SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money
+                    FROM rcpt_print r
+                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
+                    WHERE a.rcpno IS NULL
+                    GROUP BY r.vn
+                ) rc ON rc.an = i.an
+                WHERE i.confirm_discharge = "Y" 
+                AND i.dchdate BETWEEN ? AND ?
+                AND a.paid_money <> "0"
+                GROUP BY i.an
+            ) AS a
+            GROUP BY YEAR(dchdate), MONTH(dchdate)
             ORDER BY YEAR(dchdate), MONTH(dchdate)', [$start_date_b, $end_date_b]);
 
-        $sum_month_rcpt = DB::connection('hosxp')->select('
-            SELECT CASE WHEN MONTH(dchdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(dchdate)+543, 2))
-                WHEN MONTH(dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(dchdate)+543, 2))
-                END AS month,COUNT(an) AS an,SUM(IFNULL(receive_total,0)) AS receive_total
-            FROM (SELECT i.dchdate,i.hn,i.an,IFNULL(rc.rcpt_money,0) AS receive_total
-            FROM ipt i                                 
-            LEFT JOIN an_stat a ON a.an=i.an           
-            LEFT JOIN (
-                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.an = i.an
-            WHERE i.confirm_discharge = "Y" 
-            AND i.dchdate BETWEEN ? AND ?
-            AND a.paid_money <> "0" 
-            AND IFNULL(rc.rcpt_money,0) = a.paid_money      
-            GROUP BY i.an ) AS a
-			GROUP BY YEAR(dchdate), MONTH(dchdate)
-            ORDER BY YEAR(dchdate), MONTH(dchdate)', [$start_date_b, $end_date_b]);
-        $month = array_column($sum_month, 'month');
-        $claim_price = array_column($sum_month, 'claim_price');
-        $receive_total = array_column($sum_month_rcpt, 'receive_total');
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_fill(0, count($month), 0);
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
 
-        $search = DB::connection('hosxp')->select('
+$search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,i.adjrw,
                 IFNULL(inc.income,0) AS income, a.paid_money, IFNULL(rc.rcpt_money,0) AS rcpt_money,
@@ -2255,7 +2595,25 @@ class ClaimIpController extends Controller
             AND a.paid_money <> "0" AND IFNULL(rc.rcpt_money,0) = a.paid_money 
             GROUP BY i.an ORDER BY i.ward,i.dchdate,p.pttype', [$start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_ip.rcpt', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
+        
+        $table_html = view('claim_ip.rcpt_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $claim)
+        );
+
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => [
+                'month' => $month ?? [],
+                'claim_price' => $claim_price ?? [],
+                'claim_sent_price' => $claim_sent_price ?? [],
+                'receive_total' => $receive_total ?? []
+            ]
+        ]);
     }
 
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -2285,7 +2643,17 @@ class ClaimIpController extends Controller
         $end_date = $request->end_date ?: date('Y-m-d');
         $pttype_act = DB::table('main_setting')->where('name', 'pttype_act')->value('value');
 
-        $sum_month = DB::connection('hosxp')->select('
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_ip.act', compact('budget_year_select', 'budget_year', 'start_date', 'end_date'));
+        }
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
             SELECT CASE WHEN MONTH(dchdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(dchdate)+543, 2))
                 WHEN MONTH(dchdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(dchdate)+543, 2))
                 WHEN MONTH(dchdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(dchdate)+543, 2))
@@ -2330,8 +2698,13 @@ class ClaimIpController extends Controller
         $claim_price = array_column($sum_month, 'claim_price');
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
 
-        $search = DB::connection('hosxp')->select('
+$search = DB::connection('hosxp')->select('
             SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
@@ -2403,6 +2776,24 @@ class ClaimIpController extends Controller
             AND ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date]);
 
-        return view('claim_ip.act', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'receive_total', 'search', 'claim'));
+        
+        $table_html = view('claim_ip.act_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+
+        $patient_items = array_merge(
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $search),
+            array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $claim)
+        );
+
+        return response()->json([
+            'success' => true,
+            'table_html' => $table_html,
+            'patient_items' => $patient_items,
+            'chart_data' => [
+                'month' => $month ?? [],
+                'claim_price' => $claim_price ?? [],
+                'claim_sent_price' => $claim_sent_price ?? [],
+                'receive_total' => $receive_total ?? []
+            ]
+        ]);
     }
 }

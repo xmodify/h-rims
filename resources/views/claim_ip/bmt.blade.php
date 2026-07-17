@@ -391,6 +391,10 @@
               // Re-initialize Datatables (support both standard search/claim and stp/others)
               var dt_search = $('#t_search').DataTable({
                   autoWidth: false,
+                  orderCellsTop: true,
+                  columnDefs: [
+                      { orderable: true, targets: '_all' }
+                  ],
                   dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                   buttons: [
                       {
@@ -402,7 +406,7 @@
                   ],
                   language: {
                       search: "ค้นหา:",
-                      lengthMenu: "แสดง _MENU_ รายการ",
+                      lengthMenu: "แสดง _MENU_ รายาการ",
                       info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
                       paginate: { previous: "ก่อนหน้า", next: "ถัดไป" }
                   }
@@ -410,6 +414,10 @@
 
               var dt_claim = $('#t_claim').DataTable({
                   autoWidth: false,
+                  orderCellsTop: true,
+                  columnDefs: [
+                      { orderable: true, targets: '_all' }
+                  ],
                   dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                   buttons: [
                       {
@@ -429,6 +437,10 @@
 
               var dt_visits = $('#t_visits').DataTable({
                   autoWidth: false,
+                  orderCellsTop: true,
+                  columnDefs: [
+                      { orderable: true, targets: '_all' }
+                  ],
                   dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                   buttons: [
                       {

@@ -1042,20 +1042,15 @@ $search = DB::connection('hosxp')->select(
         $claim_price = array_column($sum_month, 'claim_price');
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
-
-        // 3. Search Data (LGO)
-            $month = array_column($sum_month, 'month');
-            $claim_price = array_column($sum_month, 'claim_price');
-            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-            $receive_total = array_column($sum_month, 'receive_total');
         }
 
-$search = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+        // 3. Search Data (LGO)
+        $search = DB::connection('hosxp')->select('
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 ec.status AS ec_status
             FROM ipt i 
@@ -1095,15 +1090,16 @@ $search = DB::connection('hosxp')->select('
             AND p.hipdata_code = "LGO" 
             AND stm.an IS NULL AND ec.an IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date, $start_date, $end_date]);
-
+ 
         // 4. Claimed Data (LGO)
         $claim = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 stm.case_iplg AS receive_treatment,stm.compensate_treatment AS receive_total,stm.repno,
+                ec.check_detail AS rep_error,
                 ec.status AS ec_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -1285,11 +1281,11 @@ $search = DB::connection('hosxp')->select('
 
 $search = DB::connection('hosxp')->select(
             '
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 ec.status AS ec_status
             FROM ipt i 
@@ -1343,14 +1339,15 @@ $search = DB::connection('hosxp')->select(
         // 4. Claimed Data (BKK)
         $claim = DB::connection('hosxp')->select(
             '
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IFNULL(stm.receive_total,0) AS receive_treatment,
                 (IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0)) AS receive_total,
                 CONCAT_WS(",", stm.repno, kidney.repno) AS repno,
+                ec.check_detail AS rep_error,
                 ec.status AS ec_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -1544,11 +1541,11 @@ $search = DB::connection('hosxp')->select(
 
 $search = DB::connection('hosxp')->select(
             '
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 ec.status AS ec_status
             FROM ipt i 
@@ -1602,14 +1599,15 @@ $search = DB::connection('hosxp')->select(
         // 4. Claimed Data (BMT)
         $claim = DB::connection('hosxp')->select(
             '
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IFNULL(stm.receive_total,0) AS receive_treatment,
                 (IFNULL(stm.receive_total,0) + IFNULL(kidney.receive_total,0)) AS receive_total,
                 CONCAT_WS(",", stm.repno, kidney.repno) AS repno,
+                ec.check_detail AS rep_error,
                 ec.status AS ec_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -1795,11 +1793,11 @@ $search = DB::connection('hosxp')->select(
 
 $search = DB::connection('hosxp')->select(
             '
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 ec.status AS ec_status
             FROM ipt i 
@@ -1845,14 +1843,15 @@ $search = DB::connection('hosxp')->select(
         // 4. Claimed Data (SRT)
         $claim = DB::connection('hosxp')->select(
             '
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IFNULL(stm.receive_total,0) AS receive_treatment,
                 IFNULL(stm.receive_total,0) AS receive_total,
                 stm.repno AS repno,
+                ec.check_detail AS rep_error,
                 ec.status AS ec_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -2329,25 +2328,23 @@ $search = DB::connection('hosxp')->select('
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("BFC","GOF","WVO")         
             GROUP BY i.an ) AS a
-			GROUP BY YEAR(dchdate), MONTH(dchdate)
+            GROUP BY YEAR(dchdate), MONTH(dchdate)
             ORDER BY YEAR(dchdate), MONTH(dchdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
-            $month = array_column($sum_month, 'month');
-            $claim_price = array_column($sum_month, 'claim_price');
-            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-            $receive_total = array_column($sum_month, 'receive_total');
         }
 
-$search = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+        // 3. Search Data (GOF)
+        $search = DB::connection('hosxp')->select('
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
-                IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
+                ec.status AS ec_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
@@ -2374,17 +2371,22 @@ $search = DB::connection('hosxp')->select('
             LEFT JOIN iptoprt idx ON idx.an=i.an
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
+            LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("BFC","GOF","WVO") 
             AND (ic.an IS NULL OR (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id NOT IN ("4","5"))) 
+            AND ec.an IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date]);
 
+        // 4. Claimed Data (GOF)
         $claim = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                ec.check_detail AS rep_error,
+                ec.status AS ec_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
@@ -2411,9 +2413,10 @@ $search = DB::connection('hosxp')->select('
             LEFT JOIN iptoprt idx ON idx.an=i.an
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id            
+            LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
             WHERE i.confirm_discharge = "Y" AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("BFC","GOF","WVO") 
-            AND ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")
+            AND (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5") OR ec.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date]);
 
         

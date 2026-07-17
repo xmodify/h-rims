@@ -7,50 +7,28 @@
             "name": "โรคเบาหวาน (Diabetes mellitus)",
             "gp_codes": [],
             "gpu_codes": [],
-            "tpu_codes": [
-                "374764",
-                "337005",
-                "338092",
-                "663802",
-                "657805",
-                "1006051"
-            ]
+            "tpu_codes": []
         },
         {
             "id": "02",
             "name": "โรคความดันโลหิตสูง (Hypertension)",
             "gp_codes": [],
             "gpu_codes": [],
-            "tpu_codes": [
-                "108562",
-                "226262",
-                "317598",
-                "117308",
-                "111471",
-                "846903",
-                "112032",
-                "114112"
-            ]
+            "tpu_codes": []
         },
         {
             "id": "03A",
             "name": "โรคตับอักเสบเรื้อรัง (Chronic hepatitis)",
             "gp_codes": [],
             "gpu_codes": [],
-            "tpu_codes": [
-                "1134951",
-                "272993"
-            ]
+            "tpu_codes": []
         },
         {
             "id": "03B",
             "name": "โรคตับแข็ง (Cirrhosis of liver)",
             "gp_codes": [],
             "gpu_codes": [],
-            "tpu_codes": [
-                "1134951",
-                "272993"
-            ]
+            "tpu_codes": []
         },
         {
             "id": "04",
@@ -61,7 +39,7 @@
         },
         {
             "id": "05",
-            "name": "โรคเส้นเลือดสมองแตก\/อุดตัน (Cerebrovascular accident)",
+            "name": "โรคเส้นเลือดสมองแตก/อุดตัน (Cerebrovascular accident)",
             "gp_codes": [],
             "gpu_codes": [],
             "tpu_codes": []
@@ -78,48 +56,21 @@
             "name": "โรคภูมิคุ้มกันบกพร่อง (AIDS)",
             "gp_codes": [],
             "gpu_codes": [],
-            "tpu_codes": [
-                "1160474"
-            ]
+            "tpu_codes": []
         },
         {
             "id": "08",
             "name": "โรคถุงลมโป่งพอง (Emphysema)",
             "gp_codes": [],
             "gpu_codes": [],
-            "tpu_codes": [
-                "838289"
-            ]
+            "tpu_codes": []
         },
         {
             "id": "09",
             "name": "โรคไตวายเรื้อรัง (Chronic renal failure)",
-            "gp_codes": [
-                "210448",
-                "210447",
-                "210356",
-                "210355",
-                "375005",
-                "375004"
-            ],
-            "gpu_codes": [
-                "200119",
-                "200118",
-                "200057",
-                "200056",
-                "380293",
-                "380292"
-            ],
-            "tpu_codes": [
-                "374764",
-                "1006051",
-                "737818",
-                "459215",
-                "111471",
-                "668234",
-                "1033097",
-                "737759"
-            ]
+            "gp_codes": [],
+            "gpu_codes": [],
+            "tpu_codes": []
         },
         {
             "id": "10",
@@ -154,22 +105,14 @@
             "name": "โรคไขมันในเลือดสูง (Dyslipidemia)",
             "gp_codes": [],
             "gpu_codes": [],
-            "tpu_codes": [
-                "115816",
-                "117308",
-                "693947",
-                "115546",
-                "115892"
-            ]
+            "tpu_codes": []
         },
         {
             "id": "15",
             "name": "โรคข้ออักเสบรูมาตอยด์ (Rheumatoid arthritis)",
             "gp_codes": [],
             "gpu_codes": [],
-            "tpu_codes": [
-                "768581"
-            ]
+            "tpu_codes": []
         },
         {
             "id": "16",
@@ -183,9 +126,7 @@
             "name": "โรคไต เนฟโฟรติค (Nephrotic syndrome)",
             "gp_codes": [],
             "gpu_codes": [],
-            "tpu_codes": [
-                "768581"
-            ]
+            "tpu_codes": []
         },
         {
             "id": "18",
@@ -206,9 +147,7 @@
             "name": "โรคทาลัสซีเมีย (Thalassemia)",
             "gp_codes": [],
             "gpu_codes": [],
-            "tpu_codes": [
-                "737818"
-            ]
+            "tpu_codes": []
         },
         {
             "id": "21",
@@ -243,9 +182,7 @@
             "name": "โรคต่อมธัยรอยด์เป็นพิษ (Toxic goitre)",
             "gp_codes": [],
             "gpu_codes": [],
-            "tpu_codes": [
-                "459215"
-            ]
+            "tpu_codes": []
         },
         {
             "id": "26",

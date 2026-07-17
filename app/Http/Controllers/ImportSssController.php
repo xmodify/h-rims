@@ -569,9 +569,15 @@ class ImportSssController extends Controller
 
             // Learning logic
             if (!empty($new_tpu_entries) || !empty($new_dx_entries)) {
-                $tmt_json_path = base_path('docs/lookup/tmt_sss_chronic.json');
+                $tmt_json_path = storage_path('app/tmt_sss_chronic.json');
+                if (!\File::exists($tmt_json_path)) {
+                    $default_tmt = base_path('docs/lookup/tmt_sss_chronic.json');
+                    if (\File::exists($default_tmt)) {
+                        \File::copy($default_tmt, $tmt_json_path);
+                    }
+                }
                 $tmt_data = [];
-                if (File::exists($tmt_json_path)) {
+                if (\File::exists($tmt_json_path)) {
                     $tmt_data = json_decode(File::get($tmt_json_path), true);
                 }
                 $diseases = $tmt_data['diseases'] ?? [];
@@ -594,9 +600,15 @@ class ImportSssController extends Controller
                 $tmt_data['diseases'] = $diseases;
                 File::put($tmt_json_path, json_encode($tmt_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
 
-                $ncd_json_path = base_path('docs/lookup/icd10_sss_chronic.json');
+                $ncd_json_path = storage_path('app/icd10_sss_chronic.json');
+                if (!\File::exists($ncd_json_path)) {
+                    $default_ncd = base_path('docs/lookup/icd10_sss_chronic.json');
+                    if (\File::exists($default_ncd)) {
+                        \File::copy($default_ncd, $ncd_json_path);
+                    }
+                }
                 $ncd_data = [];
-                if (File::exists($ncd_json_path)) {
+                if (\File::exists($ncd_json_path)) {
                     $ncd_data = json_decode(File::get($ncd_json_path), true);
                 }
                 $ncd_diseases = $ncd_data['diseases'] ?? [];
@@ -804,7 +816,13 @@ class ImportSssController extends Controller
 
         } elseif ($type === 'chronic_drugs') {
             // Load Approved TMT codes from JSON
-            $tmt_json_path = base_path('docs/lookup/tmt_sss_chronic.json');
+            $tmt_json_path = storage_path('app/tmt_sss_chronic.json');
+            if (!\File::exists($tmt_json_path)) {
+                $default_tmt = base_path('docs/lookup/tmt_sss_chronic.json');
+                if (\File::exists($default_tmt)) {
+                    \File::copy($default_tmt, $tmt_json_path);
+                }
+            }
             $tmt_data = [];
             if (\File::exists($tmt_json_path)) {
                 $tmt_data = json_decode(\File::get($tmt_json_path), true);

@@ -5807,7 +5807,13 @@ class ClaimOpController extends Controller
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date]);
 
-        $ncd_json_path = base_path('docs/lookup/icd10_sss_chronic.json');
+        $ncd_json_path = storage_path('app/icd10_sss_chronic.json');
+        if (!file_exists($ncd_json_path)) {
+            $default_ncd = base_path('docs/lookup/icd10_sss_chronic.json');
+            if (file_exists($default_ncd)) {
+                @copy($default_ncd, $ncd_json_path);
+            }
+        }
         $ncd_data = [];
         if (file_exists($ncd_json_path)) {
             $ncd_data = json_decode(file_get_contents($ncd_json_path), true);
@@ -5815,7 +5821,13 @@ class ClaimOpController extends Controller
         $prefixes = $ncd_data['prefixes'] ?? [];
         $exclusions = $ncd_data['exclusions'] ?? [];
 
-        $tmt_json_path = base_path('docs/lookup/tmt_sss_chronic.json');
+        $tmt_json_path = storage_path('app/tmt_sss_chronic.json');
+        if (!file_exists($tmt_json_path)) {
+            $default_tmt = base_path('docs/lookup/tmt_sss_chronic.json');
+            if (file_exists($default_tmt)) {
+                @copy($default_tmt, $tmt_json_path);
+            }
+        }
         $tmt_diseases = [];
         if (file_exists($tmt_json_path)) {
             $tmt_data = json_decode(file_get_contents($tmt_json_path), true);
@@ -6160,14 +6172,26 @@ class ClaimOpController extends Controller
             WHERE op.vn = ?
         ", [$vn]);
 
-        $tmt_json_path = base_path('docs/lookup/tmt_sss_chronic.json');
+        $tmt_json_path = storage_path('app/tmt_sss_chronic.json');
+        if (!file_exists($tmt_json_path)) {
+            $default_tmt = base_path('docs/lookup/tmt_sss_chronic.json');
+            if (file_exists($default_tmt)) {
+                @copy($default_tmt, $tmt_json_path);
+            }
+        }
         $tmt_diseases = [];
         if (file_exists($tmt_json_path)) {
             $tmt_data = json_decode(file_get_contents($tmt_json_path), true);
             $tmt_diseases = $tmt_data['diseases'] ?? [];
         }
 
-        $ncd_json_path = base_path('docs/lookup/icd10_sss_chronic.json');
+        $ncd_json_path = storage_path('app/icd10_sss_chronic.json');
+        if (!file_exists($ncd_json_path)) {
+            $default_ncd = base_path('docs/lookup/icd10_sss_chronic.json');
+            if (file_exists($default_ncd)) {
+                @copy($default_ncd, $ncd_json_path);
+            }
+        }
         $ncd_data = [];
         if (file_exists($ncd_json_path)) {
             $ncd_data = json_decode(file_get_contents($ncd_json_path), true);
@@ -6501,7 +6525,13 @@ class ClaimOpController extends Controller
         \File::deleteDirectory($extractPath);
 
         // Update tmt_sss_chronic.json with new drug codes
-        $tmt_json_path = base_path('docs/lookup/tmt_sss_chronic.json');
+        $tmt_json_path = storage_path('app/tmt_sss_chronic.json');
+        if (!file_exists($tmt_json_path)) {
+            $default_tmt = base_path('docs/lookup/tmt_sss_chronic.json');
+            if (file_exists($default_tmt)) {
+                @copy($default_tmt, $tmt_json_path);
+            }
+        }
         if (file_exists($tmt_json_path) && !empty($new_tpu_entries)) {
             $tmt_data = json_decode(file_get_contents($tmt_json_path), true);
             $diseases = $tmt_data['diseases'] ?? [];
@@ -6527,7 +6557,13 @@ class ClaimOpController extends Controller
         }
 
         // Update icd10_sss_chronic.json with new disease codes
-        $ncd_json_path = base_path('docs/lookup/icd10_sss_chronic.json');
+        $ncd_json_path = storage_path('app/icd10_sss_chronic.json');
+        if (!file_exists($ncd_json_path)) {
+            $default_ncd = base_path('docs/lookup/icd10_sss_chronic.json');
+            if (file_exists($default_ncd)) {
+                @copy($default_ncd, $ncd_json_path);
+            }
+        }
         if (file_exists($ncd_json_path) && !empty($new_dx_entries)) {
             $ncd_data = json_decode(file_get_contents($ncd_json_path), true);
             $diseases = $ncd_data['diseases'] ?? [];

@@ -297,7 +297,7 @@ class ImportSssController extends Controller
                 $filesStr = !empty($foundFiles) ? ' (พบไฟล์ด้านใน: ' . implode(', ', $foundFiles) . ')' : ' (ไม่พบไฟล์ใดๆ ด้านใน ZIP)';
                 return response()->json([
                     'success' => false,
-                    'message' => 'ไม่พบไฟล์ตอบกลับ REP (SOCDBIL) ภายในไฟล์ ZIP' . $filesStr
+                    'message' => 'เลือกประเภทไฟล์ไม่ถูกต้อง'
                 ], 400);
             }
             return response()->json([
@@ -412,7 +412,7 @@ class ImportSssController extends Controller
                 $filesStr = !empty($foundFiles) ? ' (พบไฟล์ด้านใน: ' . implode(', ', $foundFiles) . ')' : ' (ไม่พบไฟล์ใดๆ ด้านใน ZIP)';
                 return response()->json([
                     'success' => false,
-                    'message' => 'ไม่พบไฟล์ตอบกลับ STM (SOGNSTM) ภายในไฟล์ ZIP' . $filesStr
+                    'message' => 'เลือกประเภทไฟล์ไม่ถูกต้อง'
                 ], 400);
             }
             return response()->json([
@@ -629,7 +629,7 @@ class ImportSssController extends Controller
                 $filesStr = !empty($foundFiles) ? ' (พบไฟล์ด้านใน: ' . implode(', ', $foundFiles) . ')' : ' (ไม่พบไฟล์ใดๆ ด้านใน ZIP)';
                 return response()->json([
                     'success' => false,
-                    'message' => 'ไม่พบไฟล์ตอบกลับโรคเรื้อรัง (SOCDACD) ภายในไฟล์ ZIP' . $filesStr
+                    'message' => 'เลือกประเภทไฟล์ไม่ถูกต้อง'
                 ], 400);
             }
             return response()->json([
@@ -698,7 +698,7 @@ class ImportSssController extends Controller
                 File::deleteDirectory($extractPath);
                 return response()->json([
                     'success' => false,
-                    'message' => 'ไม่พบไฟล์บัญชีโรคเรื้อรัง (ACDCONF) ภายในไฟล์ ZIP' . $filesStr
+                    'message' => 'เลือกประเภทไฟล์ไม่ถูกต้อง'
                 ], 400);
             }
 
@@ -802,6 +802,98 @@ class ImportSssController extends Controller
                 ->get();
             return response()->json(['success' => true, 'data' => $data]);
 
+        } elseif ($type === 'chronic_drugs') {
+            // Load Approved TMT codes from JSON
+            $tmt_json_path = base_path('docs/lookup/tmt_sss_chronic.json');
+            $tmt_data = [];
+            if (\File::exists($tmt_json_path)) {
+                $tmt_data = json_decode(\File::get($tmt_json_path), true);
+            }
+            $diseases = $tmt_data['diseases'] ?? [];
+
+            // Collect all unique TMT codes
+            $all_tmt_codes = [];
+            foreach ($diseases as $dis) {
+                if (!empty($dis['tpu_codes'])) {
+                    foreach ($dis['tpu_codes'] as $code) {
+                        $all_tmt_codes[] = trim($code);
+                    }
+                }
+            }
+            $all_tmt_codes = array_values(array_unique(array_filter($all_tmt_codes)));
+
+            // Query drug names from HOSxP for these TMT codes
+            $drug_names = [];
+            if (!empty($all_tmt_codes)) {
+                try {
+                    $drugs = DB::connection('hosxp')->table('drugitems as d')
+                        ->leftJoin('drugitems_ref_code as d3', function($join) {
+                            $join->on('d3.icode', '=', 'd.icode')
+                                 ->where('d3.drugitems_ref_code_type_id', '=', 3);
+                        })
+                        ->select('d.name', DB::raw('COALESCE(d3.ref_code, d.sks_drug_code) as tmtid'))
+                        ->where(function($query) use ($all_tmt_codes) {
+                            $query->whereIn('d3.ref_code', $all_tmt_codes)
+                                  ->orWhereIn('d.sks_drug_code', $all_tmt_codes);
+                        })
+                        ->get();
+
+                    foreach ($drugs as $dg) {
+                        if (!empty($dg->tmtid)) {
+                            $tmt_clean = trim($dg->tmtid);
+                            if (!isset($drug_names[$tmt_clean])) {
+                                $drug_names[$tmt_clean] = [];
+                            }
+                            $drug_names[$tmt_clean][] = $dg->name;
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    try {
+                        $drugs = DB::table('s_drugitems')
+                            ->select('name', 'sks_drug_code as tmtid')
+                            ->whereIn('sks_drug_code', $all_tmt_codes)
+                            ->get();
+                        foreach ($drugs as $dg) {
+                            if (!empty($dg->tmtid)) {
+                                $tmt_clean = trim($dg->tmtid);
+                                if (!isset($drug_names[$tmt_clean])) {
+                                    $drug_names[$tmt_clean] = [];
+                                }
+                                $drug_names[$tmt_clean][] = $dg->name;
+                            }
+                        }
+                    } catch (\Throwable $ex) {}
+                }
+            }
+
+            // Build output rows
+            $rows = [];
+            foreach ($diseases as $dis) {
+                $disease_id = $dis['id'];
+                $disease_name = $dis['name'];
+                if (!empty($dis['tpu_codes'])) {
+                    foreach ($dis['tpu_codes'] as $code) {
+                        $code = trim($code);
+                        $names = isset($drug_names[$code]) ? implode(', ', array_unique($drug_names[$code])) : '<span class="text-muted italic">ไม่มีการเชื่อมโยงกับยาในโรงพยาบาล</span>';
+                        $rows[] = [
+                            'disease_id' => $disease_id,
+                            'disease_name' => $disease_name,
+                            'tmt_code' => $code,
+                            'drug_names' => $names
+                        ];
+                    }
+                } else {
+                    $rows[] = [
+                        'disease_id' => $disease_id,
+                        'disease_name' => $disease_name,
+                        'tmt_code' => '-',
+                        'drug_names' => '<span class="text-muted italic">ยังไม่มีการลงทะเบียนรหัส TMT สำหรับกลุ่มโรคนี้</span>'
+                    ];
+                }
+            }
+
+            return response()->json(['success' => true, 'data' => $rows]);
+
         } else {
             // Default: Fetch chronic feedback list21 and list22 for the chronic feedback modal
             $list21 = DB::table('sss_chronic')
@@ -863,7 +955,9 @@ class ImportSssController extends Controller
             return response()->json([
                 'success' => true,
                 'list21' => $list21,
-                'list22' => $list22
+                'list22' => $list22,
+                'feedback_21' => $list21,
+                'feedback_22' => $list22
             ]);
         }
     }

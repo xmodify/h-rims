@@ -151,6 +151,11 @@
                                 ตอนที่ 2.2 ผู้ป่วยยังไม่อยู่ในบัญชีโรคเรื้อรัง
                             </button>
                         </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link fw-bold text-success" id="tab23-tab" data-bs-toggle="tab" data-bs-target="#tab23-panel" type="button" role="tab" aria-controls="tab23-panel" aria-selected="false">
+                                รายชื่อยาโรคเรื้อรัง (TMT Map)
+                            </button>
+                        </li>
                     </ul>
                     
                     <div class="tab-content border border-top-0 p-3 bg-white rounded-bottom" id="feedbackTabsContent">
@@ -196,6 +201,26 @@
                                     <tbody id="feedback-22-body" class="small">
                                         <tr>
                                             <td colspan="7" class="text-center text-muted py-4">กำลังโหลดข้อมูล...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- Tab 2.3 -->
+                        <div class="tab-pane fade" id="tab23-panel" role="tabpanel" aria-labelledby="tab23-tab">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-striped align-middle" id="table-feedback-23" style="width: 100%;">
+                                    <thead class="table-dark small">
+                                        <tr>
+                                            <th class="text-center" width="8%">กลุ่มโรค</th>
+                                            <th>ชื่อกลุ่มโรค</th>
+                                            <th class="text-center" width="15%">รหัสมาตรฐาน TMT</th>
+                                            <th>ชื่อยาในโรงพยาบาลที่เชื่อมโยง</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="feedback-23-body" class="small">
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted py-4">กำลังโหลดข้อมูล...</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -1234,11 +1259,43 @@
     window.loadFeedbackList = function() {
         const body21 = document.getElementById('feedback-21-body');
         const body22 = document.getElementById('feedback-22-body');
+        const body23 = document.getElementById('feedback-23-body');
         
+        if ($.fn.DataTable.isDataTable('#table-feedback-21')) {
+            $('#table-feedback-21').DataTable().destroy();
+        }
+        if ($.fn.DataTable.isDataTable('#table-feedback-22')) {
+            $('#table-feedback-22').DataTable().destroy();
+        }
+        if ($.fn.DataTable.isDataTable('#table-feedback-23')) {
+            $('#table-feedback-23').DataTable().destroy();
+        }
+
         body21.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">กำลังโหลดข้อมูล...</td></tr>';
         body22.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">กำลังโหลดข้อมูล...</td></tr>';
+        body23.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">กำลังโหลดข้อมูล...</td></tr>';
         
-        $.get("{{ url('api/sss_ssop_feedback_list') }}")
+        const commonConfig = {
+            language: {
+                search: "ค้นหา:",
+                lengthMenu: "แสดง _MENU_ รายการ",
+                info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
+                paginate: {
+                    first: "หน้าแรก",
+                    last: "หน้าสุดท้าย",
+                    next: "ถัดไป",
+                    previous: "ก่อนหน้า"
+                },
+                zeroRecords: "ไม่พบข้อมูล",
+                emptyTable: "ไม่พบข้อมูลในตาราง"
+            },
+            pageLength: 10,
+            lengthMenu: [10, 25, 50, 100],
+            order: []
+        };
+
+        // Fetch feedback lists
+        $.get("{{ url('claim_op/sss_chronic_feedback_list') }}")
             .done(function(data) {
                 // Populate Tab 2.1
                 let h21 = '';
@@ -1248,13 +1305,13 @@
                 } else {
                     items21.forEach(row => {
                         h21 += `<tr>
-                            <td>${row.vstdate}</td>
-                            <td class="fw-bold text-primary">${row.hn}</td>
-                            <td>${row.ptname}</td>
-                            <td>${row.cid}</td>
-                            <td class="${row.diag_mismatch ? 'text-danger fw-bold' : ''}">${row.diag_code || '-'}</td>
-                            <td class="${row.drug_mismatch ? 'text-danger fw-bold' : ''}">${row.drug_code || '-'}</td>
-                            <td class="small text-muted">${row.source_filename}</td>
+                            <td>${row.dttran || '-'}</td>
+                            <td class="fw-bold text-primary">${row.hn || '-'}</td>
+                            <td>${row.ptname || '-'}</td>
+                            <td>${row.pid || '-'}</td>
+                            <td>${row.dx || '-'}</td>
+                            <td>${row.drug || '-'}</td>
+                            <td class="small text-muted">${row.rep_file || '-'}</td>
                         </tr>`;
                     });
                 }
@@ -1268,21 +1325,54 @@
                 } else {
                     items22.forEach(row => {
                         h22 += `<tr>
-                            <td>${row.vstdate}</td>
-                            <td class="fw-bold text-primary">${row.hn}</td>
-                            <td>${row.ptname}</td>
-                            <td>${row.cid}</td>
-                            <td class="text-danger fw-bold">${row.diag_code || '-'}</td>
-                            <td class="text-danger fw-bold">${row.drug_code || '-'}</td>
-                            <td class="small text-muted">${row.source_filename}</td>
+                            <td>${row.dttran || '-'}</td>
+                            <td class="fw-bold text-primary">${row.hn || '-'}</td>
+                            <td>${row.ptname || '-'}</td>
+                            <td>${row.pid || '-'}</td>
+                            <td class="text-danger fw-bold">${row.dx || '-'}</td>
+                            <td class="text-danger fw-bold">${row.drug || '-'}</td>
+                            <td class="small text-muted">${row.rep_file || '-'}</td>
                         </tr>`;
                     });
                 }
                 body22.innerHTML = h22;
+
+                if (items21.length > 0) {
+                    $('#table-feedback-21').DataTable(commonConfig);
+                }
+                if (items22.length > 0) {
+                    $('#table-feedback-22').DataTable(commonConfig);
+                }
             })
             .fail(function() {
                 body21.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">ผิดพลาดในการเชื่อมต่อข้อมูล</td></tr>';
                 body22.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">ผิดพลาดในการเชื่อมต่อข้อมูล</td></tr>';
+            });
+
+        // Fetch Approved Chronic Disease Drug mapping (Tab 2.3)
+        $.get("{{ url('claim_op/sss_chronic_feedback_list') }}", { type: 'chronic_drugs' })
+            .done(function(res) {
+                let h23 = '';
+                const items23 = res.data || [];
+                if (items23.length === 0) {
+                    h23 = '<tr><td colspan="4" class="text-center text-muted py-3">ไม่พบข้อมูลรายชื่อยาโรคเรื้อรัง</td></tr>';
+                } else {
+                    items23.forEach(row => {
+                        h23 += `<tr>
+                            <td class="text-center fw-bold">${row.disease_id || '-'}</td>
+                            <td>${row.disease_name || '-'}</td>
+                            <td class="text-center font-monospace text-primary fw-bold">${row.tmt_code || '-'}</td>
+                            <td>${row.drug_names || '-'}</td>
+                        </tr>`;
+                    });
+                }
+                body23.innerHTML = h23;
+                if (items23.length > 0) {
+                    $('#table-feedback-23').DataTable(commonConfig);
+                }
+            })
+            .fail(function() {
+                body23.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-3">ผิดพลาดในการเชื่อมต่อข้อมูล</td></tr>';
             });
     };
 
@@ -1291,61 +1381,115 @@
         const input = document.getElementById(inputId);
         if (!input || input.files.length === 0) return;
 
-        const formData = new FormData();
-        formData.append('_token', "{{ csrf_token() }}");
-        formData.append('type', type);
-        for(let i=0; i<input.files.length; i++) {
-            formData.append('zip_files[]', input.files[i]);
+        const files = Array.from(input.files);
+        let uploadUrl = '';
+        if (type === 'rep') {
+            uploadUrl = "{{ url('claim_op/sss_rep_import') }}";
+        } else if (type === 'stm') {
+            uploadUrl = "{{ url('claim_op/sss_stm_import') }}";
+        } else if (type === 'chronic') {
+            uploadUrl = "{{ url('claim_op/sss_chronic_import') }}";
+        } else {
+            uploadUrl = "{{ url('claim_op/sss_chronic_register_import') }}";
         }
 
-        Swal.fire({
-            title: 'กำลังอัปโหลดและประมวลผลไฟล์...',
-            text: 'กรุณารอสักครู่ ห้ามปิดหน้าต่างนี้',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
+        let currentIdx = 0;
+        let successCount = 0;
+        let failCount = 0;
+        let summaryHtml = '';
 
-        $.ajax({
-            url: "{{ url('api/import_sss_zip') }}",
-            type: "POST",
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function(res) {
-                if (res.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'นำเข้าสำเร็จ!',
-                        html: `นำเข้าข้อมูลเรียบร้อยแล้ว<br>จำนวนข้อมูล: ${res.inserted_count} แถว<br>${res.message || ''}`,
-                    }).then(() => {
-                        input.value = '';
-                        loadFeedbackList();
-                        // Reload main dashboard tables to see latest feedback/stm status
-                        loadDashboard({
-                            budget_year: $('#form_budget_year select[name="budget_year"]').val() || "{{ $budget_year }}",
-                            start_date: $('#start_date').val(),
-                            end_date: $('#end_date').val(),
-                            skip_chart: 1
-                        });
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'ไม่สำเร็จ',
-                        text: res.message || 'เกิดข้อผิดพลาดในการประมวลผลไฟล์ ZIP'
-                    });
-                }
-            },
-            error: function(xhr) {
+        function processNextFile() {
+            if (currentIdx >= files.length) {
                 Swal.fire({
-                    icon: 'error',
-                    title: 'เกิดข้อผิดพลาดในการนำเข้า',
-                    text: (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'ไม่สามารถสื่อสารกับเซิร์ฟเวอร์ได้'
+                    icon: successCount > 0 ? 'success' : 'error',
+                    title: successCount > 0 ? 'นำเข้าสำเร็จ!' : 'นำเข้าไม่สำเร็จ',
+                    html: `<b>ประมวลผลเสร็จสิ้นทั้งหมด ${files.length} ไฟล์</b><br>` +
+                          `<span class="text-success">สำเร็จ: ${successCount} ไฟล์</span> | ` +
+                          `<span class="text-danger">ล้มเหลว: ${failCount} ไฟล์</span><br><br>` +
+                          `<div class="text-start small p-2 bg-light border rounded" style="max-height: 150px; overflow-y: auto;">${summaryHtml}</div>`
+                }).then(() => {
+                    input.value = '';
+                    loadFeedbackList();
+                    loadDashboard({
+                        budget_year: $('#form_budget_year select[name="budget_year"]').val() || "{{ $budget_year }}",
+                        start_date: $('#start_date').val(),
+                        end_date: $('#end_date').val(),
+                        skip_chart: 1
+                    });
+                });
+                return;
+            }
+
+            const currentFile = files[currentIdx];
+            const percent = Math.round((currentIdx / files.length) * 100);
+
+            if (currentIdx === 0) {
+                Swal.fire({
+                    title: 'กำลังอัปโหลดและประมวลผลไฟล์...',
+                    html: `<b>ไฟล์ที่ ${currentIdx + 1} จากทั้งหมด ${files.length} (${percent}%)</b><br>` +
+                          `<span class="text-muted small" style="word-break: break-all;">กำลังดำเนินการ: ${currentFile.name}</span><br><br>` +
+                          `<div class="progress" style="height: 10px; background-color: #e9ecef; border-radius: 5px; overflow: hidden;">` +
+                          `  <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: ${percent}%; height: 100%;"></div>` +
+                          `</div>`,
+                    allowOutsideClick: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+            } else {
+                Swal.update({
+                    html: `<b>ไฟล์ที่ ${currentIdx + 1} จากทั้งหมด ${files.length} (${percent}%)</b><br>` +
+                          `<span class="text-muted small" style="word-break: break-all;">กำลังดำเนินการ: ${currentFile.name}</span><br><br>` +
+                          `<div class="progress" style="height: 10px; background-color: #e9ecef; border-radius: 5px; overflow: hidden;">` +
+                          `  <div class="progress-bar progress-bar-striped progress-bar-animated bg-success" role="progressbar" style="width: ${percent}%; height: 100%;"></div>` +
+                          `</div>`
                 });
             }
-        });
+
+            const formData = new FormData();
+            formData.append('_token', "{{ csrf_token() }}");
+            formData.append('type', type);
+            formData.append('zip_file', currentFile);
+
+            $.ajax({
+                url: uploadUrl,
+                type: "POST",
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(res) {
+                    if (res.success) {
+                        successCount++;
+                        summaryHtml += `<span class="text-success">✔ [${currentFile.name}]</span> ${res.message || 'สำเร็จ'}<br>`;
+                        currentIdx++;
+                        processNextFile();
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'นำเข้าไม่สำเร็จ',
+                            html: `<b>พบข้อผิดพลาดที่ไฟล์: ${currentFile.name}</b><br>` +
+                                  `<span class="text-danger">${res.message || 'เลือกประเภทไฟล์ไม่ถูกต้อง'}</span><br><br>` +
+                                  `ระบบได้หยุดการทำงานเพื่อไม่ให้นำเข้าไฟล์ที่เหลือ`
+                        });
+                        input.value = '';
+                    }
+                },
+                error: function(xhr) {
+                    const errMsg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'ไม่สามารถสื่อสารกับเซิร์ฟเวอร์ได้';
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'นำเข้าไม่สำเร็จ',
+                        html: `<b>พบข้อผิดพลาดที่ไฟล์: ${currentFile.name}</b><br>` +
+                              `<span class="text-danger">${errMsg}</span><br><br>` +
+                              `ระบบได้หยุดการทำงานเพื่อไม่ให้นำเข้าไฟล์ที่เหลือ`
+                    });
+                    input.value = '';
+                }
+            });
+        }
+
+        processNextFile();
     };
 
     // export SSOP functions
@@ -1393,7 +1537,7 @@
         });
 
         $.ajax({
-            url: "{{ url('api/ssop_export_preview') }}",
+            url: "{{ url('claim_op/sss_export_preview') }}",
             type: "POST",
             data: {
                 _token: "{{ csrf_token() }}",
@@ -1430,59 +1574,59 @@
 
                     // BILLTRAN Tab population
                     let hBill = '';
-                    (res.billtran || []).forEach(row => {
+                    (res.billtran_table || []).forEach(row => {
                         hBill += `<tr>
-                            <td>${row.Station || ''}</td><td>${row.InvNo || ''}</td><td>${row.HN || ''}</td><td>${row.MemberNo || ''}</td>
-                            <td>${row.Amount || ''}</td><td>${row.Paid || ''}</td><td>${row.Claim || ''}</td><td>${row.Name || ''}</td>
+                            <td>${row[0] || ''}</td><td>${row[4] || ''}</td><td>${row[6] || ''}</td><td>${row[5] || ''}</td>
+                            <td>${row[8] || ''}</td><td>${row[9] || ''}</td><td>${row[15] || ''}</td><td>${row[13] || ''}</td>
                         </tr>`;
                     });
                     document.getElementById('prev-billtran-body').innerHTML = hBill;
 
                     // BillItems Tab population
                     let hItems = '';
-                    (res.billitems || []).forEach(row => {
+                    (res.billitems_table || []).forEach((row, idx) => {
                         hItems += `<tr>
-                            <td>${row.InvNo || ''}</td><td>${row.ItemSeq || ''}</td><td>${row.BillGr || ''}</td><td>${row.LCode || ''}</td>
-                            <td>${row.Qty || ''}</td><td>${row.Charge || ''}</td><td>${row.Claim || ''}</td>
+                            <td>${row[0] || ''}</td><td>${idx + 1}</td><td>${row[2] || ''}</td><td>${row[3] || ''}</td>
+                            <td>${row[6] || ''}</td><td>${row[8] || ''}</td><td>${row[10] || ''}</td>
                         </tr>`;
                     });
                     document.getElementById('prev-billitems-body').innerHTML = hItems;
 
                     // BILLDISP Tab population
                     let hDisp = '';
-                    (res.billdisp || []).forEach(row => {
+                    (res.billdisp_table || []).forEach(row => {
                         hDisp += `<tr>
-                            <td>${row.DispID || ''}</td><td>${row.PrescID || ''}</td><td>${row.InvNo || ''}</td><td>${row.DispDate || ''}</td>
-                            <td>${row.HN || ''}</td><td>${row.Name || ''}</td><td>${row.Amount || ''}</td><td>${row.Reimb || ''}</td>
+                            <td>${row[1] || ''}</td><td>${row[1] || ''}</td><td>${row[2] || ''}</td><td>${row[5] || ''}</td>
+                            <td>${row[3] || ''}</td><td>-</td><td>${row[9] || ''}</td><td>${row[10] || ''}</td>
                         </tr>`;
                     });
                     document.getElementById('prev-billdisp-body').innerHTML = hDisp;
 
                     // DispensedItems Tab population
                     let hDispItems = '';
-                    (res.dispenseditems || []).forEach(row => {
+                    (res.dispenseditems_table || []).forEach((row, idx) => {
                         hDispItems += `<tr>
-                            <td>${row.DispID || ''}</td><td>${row.PrescID || ''}</td><td>${row.ItemSeq || ''}</td><td>${row.LocalCd || ''}</td>
-                            <td>${row.StdCd || ''}</td><td>${row.Qty || ''}</td><td>${row.PrdCat || ''}</td><td>${row.Reimb || ''}</td>
+                            <td>${row[0] || ''}</td><td>${row[0] || ''}</td><td>${idx + 1}</td><td>${row[2] || ''}</td>
+                            <td>${row[3] || ''}</td><td>${row[9] || ''}</td><td>${row[1] || ''}</td><td>${row[13] || ''}</td>
                         </tr>`;
                     });
                     document.getElementById('prev-dispenseditems-body').innerHTML = hDispItems;
 
                     // OPServices Tab population
                     let hOps = '';
-                    (res.opservices || []).forEach(row => {
+                    (res.opservices_table || []).forEach(row => {
                         hOps += `<tr>
-                            <td>${row.HN || ''}</td><td>${row.SvDate || ''}</td><td>${row.Class || ''}</td><td>${row.CareType || ''}</td>
-                            <td>${row.InvNo || ''}</td><td>${row.PrePay || ''}</td>
+                            <td>${row[4] || ''}</td><td>${row[13] || ''}</td><td>${row[2] || ''}</td><td>${row[7] || ''}</td>
+                            <td>${row[0] || ''}</td><td>${row[18] || ''}</td>
                         </tr>`;
                     });
                     document.getElementById('prev-opservices-body').innerHTML = hOps;
 
                     // OPDiagnoses Tab population
                     let hDiag = '';
-                    (res.opdiagnoses || []).forEach(row => {
+                    (res.opdx_table || []).forEach(row => {
                         hDiag += `<tr>
-                            <td>${row.HN || ''}</td><td>${row.SvDate || ''}</td><td>${row.DiagType || ''}</td><td>${row.DiagCode || ''}</td>
+                            <td>${row[1] || ''}</td><td>-</td><td>${row[2] || ''}</td><td>${row[4] || ''}</td>
                         </tr>`;
                     });
                     document.getElementById('prev-opdiagnoses-body').innerHTML = hDiag;
@@ -1529,7 +1673,7 @@
             station_id: stationId,
             tflag: tflag
         });
-        window.location.href = "{{ url('api/ssop_export_download') }}?" + queryParams;
+        window.location.href = "{{ url('claim_op/sss_export_ssop') }}?" + queryParams;
 
         $('#ssopPreviewModal').modal('hide');
         Swal.fire({
@@ -1554,6 +1698,10 @@
             budget_year: "{{ $budget_year }}",
             start_date: "{{ $start_date }}",
             end_date: "{{ $end_date }}"
+        });
+
+        $(document).on('shown.bs.tab', '#feedbackTabs button[data-bs-toggle="tab"]', function (e) {
+            $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
         });
 
         $(document).on('submit', '#form_budget_year', function(e) {

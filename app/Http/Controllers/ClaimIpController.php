@@ -135,11 +135,11 @@ class ClaimIpController extends Controller
         }
 
 $search = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,i.data_ok ,
                 fdh.status_message_th AS fdh_status,ec.status AS ec_status
             FROM ipt i 
@@ -186,12 +186,12 @@ $search = DB::connection('hosxp')->select('
 
         // 4. Claimed Data (Optimized)
         $claim = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
-                rep.rep_eclaim_detail_error_code AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
+                ec.check_detail AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
                 fdh.status_message_th AS fdh_status,ec.status AS ec_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -219,7 +219,6 @@ $search = DB::connection('hosxp')->select('
             LEFT JOIN iptoprt idx ON idx.an=i.an
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
-            LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
             LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
             LEFT JOIN (
@@ -370,11 +369,11 @@ $search = DB::connection('hosxp')->select('
         }
 
 $search = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,ip.hospmain,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,i.data_ok ,
                 fdh.status_message_th AS fdh_status,ec.status AS ec_status
             FROM ipt i 
@@ -421,12 +420,12 @@ $search = DB::connection('hosxp')->select('
 
         // 4. Claimed Data (Out-CUP)
         $claim = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,ip.hospmain,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
-                rep.rep_eclaim_detail_error_code AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,i.data_exp_date AS fdh,
+                ec.check_detail AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
                 fdh.status_message_th AS fdh_status,ec.status AS ec_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
@@ -454,7 +453,6 @@ $search = DB::connection('hosxp')->select('
             LEFT JOIN iptoprt idx ON idx.an=i.an
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
-            LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
             LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
             LEFT JOIN (
@@ -550,7 +548,7 @@ $search = DB::connection('hosxp')->select('
                     END AS month,
                     i.an,
                     (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
-                    CASE WHEN fdh.an IS NOT NULL OR ec.an IS NOT NULL OR stm.an IS NOT NULL THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) ELSE 0 END AS claim_sent_price,
+                    CASE WHEN i.data_exp_date IS NOT NULL OR fdh.an IS NOT NULL OR ec.an IS NOT NULL OR stm.an IS NOT NULL THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) ELSE 0 END AS claim_sent_price,
                     (IFNULL(stm.receive_total,0)) AS receive_total,
                     YEAR(i.dchdate) AS y, MONTH(i.dchdate) AS m
                 FROM ipt i            
@@ -599,13 +597,13 @@ $search = DB::connection('hosxp')->select('
         }
 
 $visits = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,pt.cid,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,pt.cid,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,
                 a.age_y,p.`name` AS pttype,ip.hospmain,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,i.data_ok ,
-                rep.rep_eclaim_detail_error_code AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
+                ec.check_detail AS rep_error,stm.fund_ip_payrate,stm.receive_ip_compensate_pay,stm.receive_total,stm.repno,
                 fdh.status_message_th AS fdh_status,ec.status AS ec_status,
                 IF(i.data_exp_date IS NOT NULL OR fdh.an IS NOT NULL OR ec.an IS NOT NULL OR stm.an IS NOT NULL, "Y", "N") AS is_sent
             FROM ipt i 
@@ -634,7 +632,6 @@ $visits = DB::connection('hosxp')->select('
             LEFT JOIN iptoprt idx ON idx.an=i.an
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
-            LEFT JOIN rep_eclaim_detail rep ON rep.vn=i.vn
             LEFT JOIN hrims.fdh_claim_status fdh ON fdh.an=i.an
             LEFT JOIN hrims.eclaim_status ec ON ec.an=i.an
             LEFT JOIN (
@@ -795,11 +792,11 @@ $visits = DB::connection('hosxp')->select('
 
 $search = DB::connection('hosxp')->select(
             '
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
                 ec.status AS ec_status
             FROM ipt i 
@@ -859,14 +856,15 @@ $search = DB::connection('hosxp')->select(
         // 4. Claimed Data (OFC)
         $claim = DB::connection('hosxp')->select(
             '
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                CONCAT(r.refer_hospcode, IF(ia.ac_ae = "Y", "[ucae=Y]", "")) AS refer,i.adjrw,ict.ipt_coll_status_type_name,
                 IFNULL(stm.receive_total,0) AS receive_treatment,
                 IFNULL(stm.receive_total,0) + IFNULL(cipn.gtotal,0) + IFNULL(csop.amount,0) AS receive_total,
                 CONCAT_WS(",", stm.repno, cipn.rid, csop.rid) AS repno,
+                ec.check_detail AS rep_error,
                 ec.status AS ec_status
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn

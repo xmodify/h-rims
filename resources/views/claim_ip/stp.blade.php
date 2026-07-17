@@ -352,6 +352,10 @@
 
               var dt_visits = $('#t_visits').DataTable({
                   autoWidth: false,
+                  orderCellsTop: true,
+                  columnDefs: [
+                      { orderable: true, targets: '_all' }
+                  ],
                   dom: '<"row mb-3"<"col-md-6"l><"col-md-6 d-flex justify-content-end align-items-center gap-2"fB>>rt<"row mt-3"<"col-md-6"i><"col-md-6"p>>',
                   buttons: [
                       {

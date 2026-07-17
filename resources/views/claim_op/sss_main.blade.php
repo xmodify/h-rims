@@ -335,7 +335,7 @@
                                 <div>กรุณาตรวจสอบและแก้ไขรายการที่มีสีแดง (Errors) ก่อนที่จะทำการดาวน์โหลด ZIP นำส่งระบบ สกส. เพื่อป้องกันการติด C (Denied Claim)</div>
                             </div>
                             <div class="table-responsive">
-                                <table class="table table-bordered table-hover align-middle" id="table-prev-audit">
+                                <table class="table table-bordered table-hover align-middle w-100" id="table-prev-audit" style="width: 100%;">
                                     <thead class="table-danger">
                                         <tr>
                                             <th class="text-center" width="5%">#</th>
@@ -685,6 +685,9 @@
 
                 $.fn.dataTable.ext.search.push(
                     function(settings, data, dataIndex) {
+                        if (settings.nTable.id !== 't_claim') {
+                            return true;
+                        }
                         const filterVal = $('input[name="rep_filter"]:checked').val() || 'all';
                         if (filterVal === 'all') return true;
 
@@ -1700,15 +1703,30 @@
                     Object.keys(res.validation || {}).forEach(vn => {
                         const val = res.validation[vn];
                         const errs = [];
-                        if (!val.billtran_ok) {
-                            errs.push('<strong>BILLTRAN:</strong> ' + val.billtran_err);
-                        }
-                        if (!val.billdisp_ok) {
-                            errs.push('<strong>BILLDISP:</strong> ' + val.billdisp_err);
-                        }
-                        if (!val.opservices_ok) {
-                            errs.push('<strong>OPServices:</strong> ' + val.opservices_err);
-                        }
+                        const fileErrors = {};
+                        const addErrors = (fileLabel, errStr) => {
+                            if (!errStr) return;
+                            const parts = errStr.split(', ');
+                            parts.forEach(part => {
+                                let normalized = part.trim();
+                                if (normalized === 'ไม่พบเลขใบแจ้งหนี้ (InvoiceNo)') {
+                                    normalized = 'ไม่พบเลขใบแจ้งหนี้ (InvNo)';
+                                }
+                                if (!fileErrors[normalized]) {
+                                    fileErrors[normalized] = [];
+                                }
+                                fileErrors[normalized].push(fileLabel);
+                            });
+                        };
+
+                        if (!val.billtran_ok) addErrors('BILLTRAN', val.billtran_err);
+                        if (!val.billdisp_ok) addErrors('BILLDISP', val.billdisp_err);
+                        if (!val.opservices_ok) addErrors('OPServices', val.opservices_err);
+
+                        Object.keys(fileErrors).forEach(msg => {
+                            const files = fileErrors[msg].join(', ');
+                            errs.push(`<strong>${files}:</strong> ${msg}`);
+                        });
 
                         if (errs.length > 0) {
                             auditIssues.push({
@@ -1998,6 +2016,10 @@
         });
 
         $(document).on('shown.bs.tab', '#feedbackTabs button[data-bs-toggle="tab"], #previewTab button[data-bs-toggle="tab"]', function (e) {
+            $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
+        });
+
+        $(document).on('shown.bs.modal', '#ssopPreviewModal', function () {
             $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
         });
 

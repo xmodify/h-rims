@@ -6052,21 +6052,12 @@ class ClaimOpController extends Controller
             }
             $row->stm_pay = $stm_pays[$row->vn] ?? null;
 
-            // Check ICD-10 CHI validation
+            // Check ICD-10 CHI validation (Validate ONLY primary diagnosis/PDX)
             $has_icd10_chi_error = false;
             if (!empty($row->pdx)) {
                 $res = $validator->validateIcd10Chi($row->pdx, '1');
                 if (!$res['is_valid']) {
                     $has_icd10_chi_error = true;
-                }
-            }
-            if (!$has_icd10_chi_error && !empty($row->sdx)) {
-                foreach (explode(',', $row->sdx) as $sdx) {
-                    $res = $validator->validateIcd10Chi($sdx, '2');
-                    if (!$res['is_valid']) {
-                        $has_icd10_chi_error = true;
-                        break;
-                    }
                 }
             }
 
@@ -6263,6 +6254,26 @@ class ClaimOpController extends Controller
         $visit->has_matching_category = !empty($intersect);
 
         $rep_feedbacks = [];
+        $rep_record = DB::table('sss_ssop_rep')
+            ->where('vn', $vn)
+            ->first();
+        if ($rep_record && !empty($rep_record->error_codes)) {
+            $codes = array_filter(array_map('trim', explode(',', $rep_record->error_codes)));
+            $lookup = [];
+            $json_path = base_path('docs/lookup/sss_error_codes.json');
+            if (file_exists($json_path)) {
+                $lookup = json_decode(file_get_contents($json_path), true) ?: [];
+            }
+            foreach ($codes as $c) {
+                $is_warn = str_starts_with(strtoupper($c), 'W');
+                $desc = $lookup[$c] ?? 'ไม่พบรายละเอียดข้อผิดพลาด';
+                $rep_feedbacks[] = [
+                    'code' => $c,
+                    'type' => $is_warn ? 'warning' : 'error',
+                    'desc' => $desc
+                ];
+            }
+        }
 
         // Pre-audit validation before export (Predict C-code rejections)
         $pre_audits = [];
@@ -6318,14 +6329,13 @@ class ClaimOpController extends Controller
             }
         }
 
-        // 4. Audit ICD10 CHI: Check if diagnosis codes are valid
+        // 4. Audit ICD10 CHI: Check if diagnosis codes are valid (Validate ONLY primary diagnosis/PDX)
         $validator = new \App\Services\ClaimValidator();
         foreach ($diagnoses as $d) {
-            if (($d->diagtype ?? '') == '2') {
+            if (($d->diagtype ?? '') != '1') {
                 continue;
             }
-            $is_primary = ($d->diagtype == '1');
-            $res = $validator->validateIcd10Chi($d->icd10 ?? '', $is_primary ? '1' : '2');
+            $res = $validator->validateIcd10Chi($d->icd10 ?? '', '1');
             if (!$res['is_valid']) {
                 $pre_audits[] = [
                     'code' => '',

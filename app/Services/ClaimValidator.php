@@ -400,12 +400,13 @@ class ClaimValidator
             ];
         }
 
-        if ($diagType === '1' && ($row->accpdx ?? '') === 'N') {
-            return [
-                'is_valid' => false,
-                'message' => "รหัสโรคหลัก {$diagCode} ไม่อนุญาตให้เป็นโรคหลัก (ACCPDX=N)"
-            ];
-        }
+        // (Disabled as requested) 
+        // if ($diagType === '1' && ($row->accpdx ?? '') === 'N') {
+        //     return [
+        //         'is_valid' => false,
+        //         'message' => "รหัสโรคหลัก {$diagCode} ไม่อนุญาตให้เป็นโรคหลัก (ACCPDX=N)"
+        //     ];
+        // }
 
         return ['is_valid' => true, 'message' => ''];
     }

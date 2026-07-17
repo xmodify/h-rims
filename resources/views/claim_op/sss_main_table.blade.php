@@ -91,7 +91,7 @@
                     <thead>
                         <tr>
                             @if($is_ssop_licensed)
-                            <th class="text-center" width="3%"><input type="checkbox" id="select_all_claims"></th>
+                            <th class="text-center" width="5%" style="min-width: 45px;"><input type="checkbox" id="select_all_claims"></th>
                             @endif
                                                   
                             <th class="text-center">ตรวจสอบ</th>                      

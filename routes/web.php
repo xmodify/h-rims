@@ -362,6 +362,10 @@ Route::match(['get', 'post'], 'claim_ip/bkk', [ClaimIpController::class, 'bkk'])
 Route::match(['get', 'post'], 'claim_ip/bmt', [ClaimIpController::class, 'bmt']);
 Route::match(['get', 'post'], 'claim_ip/srt', [ClaimIpController::class, 'srt']);
 Route::match(['get', 'post'], 'claim_ip/sss', [ClaimIpController::class, 'sss']);
+Route::get('claim_ip/sss_detail', [ClaimIpController::class, 'sss_detail']);
+Route::get('claim_ip/sss_rep_errors', [ClaimIpController::class, 'sss_rep_errors']);
+Route::post('claim_ip/sss_aipn_rep_import', [ImportSssController::class, 'import_aipn_rep']);
+Route::post('claim_ip/sss_aipn_stm_import', [ImportSssController::class, 'import_aipn_stm']);
 Route::match(['get', 'post'], 'claim_ip/sss_hc', [ClaimIpController::class, 'sss_hc']);
 Route::match(['get', 'post'], 'claim_ip/gof', [ClaimIpController::class, 'gof']);
 Route::match(['get', 'post'], 'claim_ip/rcpt', [ClaimIpController::class, 'rcpt']);

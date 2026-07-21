@@ -979,4 +979,446 @@ class ImportSssController extends Controller
             ]);
         }
     }
+
+    private function findXmlRecordsRecursive($element, &$records, $type = 'rep')
+    {
+        $children = $element->children(null, true);
+        $foundValues = [];
+        
+        if ($type === 'rep') {
+            $matchKeys = ['an', 'hn', 'pid', 'cid', 'invno', 'invoiceno', 'dttran', 'dchdate', 'amount', 'charge', 'claim_price', 'claim', 'pay_price', 'pay', 'error_codes', 'errorcode', 'result', 'claim_type', 'repline', 'hcode', 'hmain', 'pcode', 'tcode', 'iptype', 'care_as', 'ss', 'drg', 'rw', 'adjrw', 'st', 'sst', 'pt', 'amt', 'name'];
+        } else {
+            $matchKeys = ['an', 'hn', 'pid', 'name', 'dateadm', 'datedsc', 'ft', 'bf', 'drg', 'rw', 'adjrw', 'hmain', 'hcode', 'hproc', 'careas', 'sc', 'ed', 'due', 'reimb', 'receive_total', 'nreimb', 'copay', 'cp', 'pp', 'rid'];
+        }
+
+        foreach ($children as $child) {
+            $lowerName = strtolower($child->getName());
+            if (in_array($lowerName, $matchKeys)) {
+                $foundValues[$lowerName] = (string)$child;
+            }
+        }
+
+        if (isset($foundValues['an']) || isset($foundValues['hn']) || isset($foundValues['pid']) || isset($foundValues['cid'])) {
+            $records[] = $foundValues;
+        } else {
+            foreach ($children as $child) {
+                $this->findXmlRecordsRecursive($child, $records, $type);
+            }
+        }
+    }
+
+    /**
+     * Import AIPN REP ZIP File (@10989_SIGNREP_10126.ZIP)
+     */
+    public function import_aipn_rep(Request $request)
+    {
+        $request->validate([
+            'zip_file' => 'required|file|mimes:zip',
+        ]);
+
+        $file = $request->file('zip_file');
+        $originalZipName = strtoupper($file->getClientOriginalName());
+        if (str_contains($originalZipName, 'STM') || str_contains($originalZipName, 'SIGNSTM') || str_contains($originalZipName, 'SOGNSTM')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'เลือกประเภทไฟล์ไม่ถูกต้อง (คุณกำลังนำเข้าไฟล์ STM ในช่อง REP)'
+            ], 400);
+        }
+
+        $uniqueId = uniqid('sss_aipn_rep_');
+        $extractPath = storage_path('app/tmp_sss_aipn_rep/' . $uniqueId);
+
+        try {
+            $zip = new ZipArchive();
+            if ($zip->open($file->getRealPath()) !== true) {
+                return response()->json(['success' => false, 'message' => 'ไฟล์ ZIP เสียหาย (ไม่สามารถเปิดไฟล์ได้)'], 400);
+            }
+            if (!File::exists($extractPath)) {
+                File::makeDirectory($extractPath, 0755, true);
+            }
+            $zip->extractTo($extractPath);
+            $zip->close();
+        } catch (\Throwable $e) {
+            if (File::exists($extractPath)) {
+                File::deleteDirectory($extractPath);
+            }
+            return response()->json(['success' => false, 'message' => 'เกิดข้อผิดพลาดในการแตกไฟล์: ' . $e->getMessage()], 400);
+        }
+
+        try {
+            $files = File::allFiles($extractPath);
+            $processedCount = 0;
+            $fileFound = false;
+
+            foreach ($files as $f) {
+                $fileName = $f->getFilename();
+                $ext = strtolower($f->getExtension());
+
+                if (str_contains(strtoupper($fileName), 'SIGNREP') && in_array($ext, ['xml', 'bil', 'rep', 'txt'])) {
+                    $fileFound = true;
+                    // Delete existing records of the same file to prevent duplicates
+                    DB::table('sss_aipn_rep')->where('rep_file', $fileName)->delete();
+
+                    $rawBytes = File::get($f->getRealPath());
+
+                    $rawContent = @iconv('Windows-874', 'UTF-8//IGNORE', $rawBytes);
+                    if ($rawContent === false) {
+                        $rawContent = mb_convert_encoding($rawBytes, 'UTF-8', 'TIS-620');
+                    }
+
+                    // Extract repno
+                    $repno = null;
+                    if (preg_match('/เลขตอบรับที่\s*=\s*(\d+)/u', $rawContent, $matches)) {
+                        $repno = trim($matches[1]);
+                    } elseif (preg_match('/<repno>([^<]+)<\/repno>/i', $rawContent, $matches)) {
+                        $repno = trim($matches[1]);
+                    }
+
+                    // Extract rep_date and rep_time
+                    $rep_date = null;
+                    $rep_time = null;
+                    if (preg_match('/วันที่ออกเลขตอบรับ\s*=\s*([^\s]+)\s+เวลา\s*:\s*([^\r\n]+)/u', $rawContent, $matches)) {
+                        $dateStr = trim($matches[1]);
+                        $timeStr = trim($matches[2]);
+                        $rep_date = $this->parseBuddhistDate($dateStr);
+                        $rep_time = str_replace('.', ':', $timeStr);
+                    } elseif (preg_match('/<repdate>([^<]+)<\/repdate>/i', $rawContent, $matches)) {
+                        $rep_date = $this->parseBuddhistDate($matches[1]);
+                    }
+
+                    // Try XML parse first
+                    $xmlParsed = false;
+                    try {
+                        $xml = @simplexml_load_string($rawBytes);
+                        if ($xml !== false) {
+                            $xmlParsed = true;
+
+                            $records = [];
+                            $this->findXmlRecordsRecursive($xml, $records, 'rep');
+
+                            foreach ($records as $record) {
+                                $an = $record['an'] ?? '';
+                                $hn = $record['hn'] ?? '';
+                                $pid = $record['pid'] ?? $record['cid'] ?? '';
+                                $invno = $record['invno'] ?? $record['invoiceno'] ?? '';
+                                $dttran_raw = $record['dttran'] ?? $record['dchdate'] ?? '';
+                                $amount = $record['amount'] ?? $record['charge'] ?? 0;
+                                $claim_price = $record['claim_price'] ?? $record['claim'] ?? 0;
+                                $pay_price = $record['pay_price'] ?? $record['pay'] ?? 0;
+                                $error_codes = $record['error_codes'] ?? $record['errorcode'] ?? $record['result'] ?? '';
+
+                                $parsed = $this->parseStmDateTime($dttran_raw);
+
+                                DB::table('sss_aipn_rep')->insert([
+                                    'rep_file' => $fileName,
+                                    'repno' => $repno,
+                                    'rep_date' => $rep_date,
+                                    'rep_time' => $rep_time,
+                                    'an' => $an ?: null,
+                                    'hn' => $hn ?: null,
+                                    'pid' => $pid ?: null,
+                                    'invno' => $invno ?: null,
+                                    'dttran' => $parsed['datetime'],
+                                    'dttran_date' => $parsed['date'],
+                                    'dttran_time' => $parsed['time'],
+                                    'amount' => is_numeric($amount) ? (float)$amount : null,
+                                    'claim_price' => is_numeric($claim_price) ? (float)$claim_price : null,
+                                    'pay_price' => is_numeric($pay_price) ? (float)$pay_price : null,
+                                    'error_codes' => $error_codes ?: null,
+                                    'created_at' => now(),
+                                    'updated_at' => now()
+                                ]);
+                                $processedCount++;
+                            }
+                        }
+                    } catch (\Throwable $ex) {
+                        $xmlParsed = false;
+                    }
+
+                    // Fallback to text parsing (*| or | delimited)
+                    if (!$xmlParsed) {
+                        $content = $rawContent;
+
+                        $lines = explode("\n", $content);
+                        $repline = 1;
+                        foreach ($lines as $line) {
+                            $line = trim($line);
+                            if (str_starts_with($line, '*|')) {
+                                $raw_data = trim(substr($line, 2));
+                                $cols = explode(',', $raw_data);
+                                if (count($cols) >= 4) {
+                                    $pcode_str = trim($cols[0]);
+                                    $an = isset($cols[1]) ? trim($cols[1]) : '';
+                                    $hcode = isset($cols[2]) ? trim($cols[2]) : '';
+                                    $hmain = isset($cols[3]) ? trim($cols[3]) : '';
+                                    $drg = isset($cols[4]) ? trim($cols[4]) : '';
+                                    $rw = isset($cols[5]) ? trim($cols[5]) : '';
+                                    $adjrw = isset($cols[6]) ? trim($cols[6]) : '';
+                                    $st = isset($cols[7]) ? trim($cols[7]) : '';
+                                    $sst = isset($cols[8]) ? trim($cols[8]) : '';
+                                    $pt = isset($cols[9]) ? trim($cols[9]) : '';
+                                    $amount = isset($cols[10]) ? trim($cols[10]) : '';
+                                    
+                                    // Split by colon to separate error codes from the rest of the line
+                                    $error_codes = '';
+                                    $patient_name = '';
+                                    $left_side = $raw_data;
+
+                                    if (str_contains($raw_data, ':')) {
+                                        $parts = explode(':', $raw_data, 2);
+                                        $left_side = trim($parts[0]);
+                                        $error_codes = trim($parts[1]);
+                                    }
+
+                                    $cols = explode(',', $left_side);
+                                    if (count($cols) >= 4) {
+                                        // The name is the last element on the left side of the colon
+                                        $patient_name = trim(array_pop($cols));
+
+                                        $pcode_str = trim($cols[0]);
+                                        $hmain = isset($cols[1]) ? trim($cols[1]) : '';
+                                        $hcode = isset($cols[2]) ? trim($cols[2]) : '';
+                                        $an = isset($cols[3]) ? trim($cols[3]) : '';
+                                        $drg = isset($cols[4]) ? trim($cols[4]) : '';
+                                        $rw = isset($cols[5]) ? trim($cols[5]) : '';
+                                        $adjrw = isset($cols[6]) ? trim($cols[6]) : '';
+                                        $st = isset($cols[7]) ? trim($cols[7]) : '';
+                                        $sst = isset($cols[8]) ? trim($cols[8]) : '';
+                                        $pt = isset($cols[9]) ? trim($cols[9]) : '';
+                                        $amount = isset($cols[10]) ? trim($cols[10]) : '';
+
+                                        // Parse pcode string
+                                        $p_parts = explode(' ', preg_replace('/\s+/', ' ', trim($pcode_str)));
+                                        $pcode = $p_parts[0] ?? null;
+                                        $tcode = $p_parts[1] ?? null;
+                                        $iptype = $p_parts[2] ?? null;
+                                        $care_as = $p_parts[3] ?? null;
+                                        $ss = $p_parts[4] ?? null;
+
+                                        // Lookup patient HN and CID from HOSxP
+                                        $hn = null;
+                                        $pid = $pt;
+                                        if (!empty($an)) {
+                                            try {
+                                                $patient = DB::connection('hosxp')->table('ipt')
+                                                    ->join('patient', 'ipt.hn', '=', 'patient.hn')
+                                                    ->select('ipt.hn', 'patient.cid')
+                                                    ->where('ipt.an', '=', $an)
+                                                    ->first();
+                                                if ($patient) {
+                                                    $hn = $patient->hn;
+                                                    if (empty($pid)) {
+                                                        $pid = $patient->cid;
+                                                    }
+                                                }
+                                            } catch (\Throwable $ex) {}
+                                        }
+
+                                        DB::table('sss_aipn_rep')->insert([
+                                            'rep_file' => $fileName,
+                                            'repno' => $repno,
+                                            'rep_date' => $rep_date,
+                                            'rep_time' => $rep_time,
+                                            'repline' => $repline++,
+                                            'pcode' => $pcode,
+                                            'tcode' => $tcode,
+                                            'iptype' => $iptype,
+                                            'care_as' => $care_as,
+                                            'ss' => $ss,
+                                            'hmain' => $hmain ?: null,
+                                            'hcare' => $hcode ?: null,
+                                            'an' => $an ?: null,
+                                            'hn' => $hn ?: null,
+                                            'pid' => $pid ?: null,
+                                            'drg' => $drg ?: null,
+                                            'rw' => is_numeric($rw) ? (float)$rw : null,
+                                            'adjrw' => is_numeric($adjrw) ? (float)$adjrw : null,
+                                            'st' => $st ?: null,
+                                            'sst' => $sst ?: null,
+                                            'pt' => $pt ?: null,
+                                            'amt' => is_numeric($amount) ? (float)$amount : null,
+                                            'name' => $patient_name ?: null,
+                                            'error_codes' => $error_codes ?: null,
+                                            'created_at' => now(),
+                                            'updated_at' => now()
+                                        ]);
+                                        $processedCount++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            File::deleteDirectory($extractPath);
+            if (!$fileFound) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'เลือกประเภทไฟล์ไม่ถูกต้อง (ไม่พบไฟล์ REP / SIGNREP)'
+                ], 400);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "นำเข้าไฟล์ REP (AIPN) สำเร็จเรียบร้อยแล้ว (ประมวลผลทั้งหมด $processedCount รายการ)"
+            ]);
+
+        } catch (\Throwable $e) {
+            if (File::exists($extractPath)) {
+                File::deleteDirectory($extractPath);
+            }
+            return response()->json(['success' => false, 'message' => 'เกิดข้อผิดพลาดในการนำเข้าข้อมูล REP: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Import AIPN STM ZIP File (@10989_SIGNSTM_6906.ZIP)
+     */
+    public function import_aipn_stm(Request $request)
+    {
+        $request->validate([
+            'zip_file' => 'required|file|mimes:zip',
+        ]);
+
+        $file = $request->file('zip_file');
+        $originalZipName = strtoupper($file->getClientOriginalName());
+        if (str_contains($originalZipName, 'REP') || str_contains($originalZipName, 'SIGNREP') || str_contains($originalZipName, 'SOCDBIL')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'เลือกประเภทไฟล์ไม่ถูกต้อง (คุณกำลังนำเข้าไฟล์ REP ในช่อง STM)'
+            ], 400);
+        }
+
+        $uniqueId = uniqid('sss_aipn_stm_');
+        $extractPath = storage_path('app/tmp_sss_aipn_stm/' . $uniqueId);
+
+        try {
+            $zip = new ZipArchive();
+            if ($zip->open($file->getRealPath()) !== true) {
+                return response()->json(['success' => false, 'message' => 'ไฟล์ ZIP เสียหาย (ไม่สามารถเปิดไฟล์ได้)'], 400);
+            }
+            if (!File::exists($extractPath)) {
+                File::makeDirectory($extractPath, 0755, true);
+            }
+            $zip->extractTo($extractPath);
+            $zip->close();
+        } catch (\Throwable $e) {
+            if (File::exists($extractPath)) {
+                File::deleteDirectory($extractPath);
+            }
+            return response()->json(['success' => false, 'message' => 'เกิดข้อผิดพลาดในการแตกไฟล์: ' . $e->getMessage()], 400);
+        }
+
+        try {
+            $files = File::allFiles($extractPath);
+            $processedCount = 0;
+            $fileFound = false;
+
+            foreach ($files as $f) {
+                $fileName = $f->getFilename();
+                $ext = strtolower($f->getExtension());
+
+                if (str_contains(strtoupper($fileName), 'SIGNSTMS') && in_array($ext, ['xml', 'stm'])) {
+                    $fileFound = true;
+                    // Delete existing records of the same file to prevent duplicates
+                    DB::table('sss_aipn_stm')->where('stm_file', $fileName)->delete();
+
+                    $rawBytes = File::get($f->getRealPath());
+
+                    // Try XML parse first
+                    $xmlParsed = false;
+                    try {
+                        $xml = @simplexml_load_string($rawBytes);
+                        if ($xml !== false) {
+                            $xmlParsed = true;
+
+                            $records = [];
+                            $this->findXmlRecordsRecursive($xml, $records, 'stm');
+
+                            foreach ($records as $record) {
+                                $hn = $record['hn'] ?? '';
+                                $an = $record['an'] ?? '';
+                                $pid = $record['pid'] ?? '';
+                                $name = $record['name'] ?? '';
+                                $dateadm = $record['dateadm'] ?? '';
+                                $datedsc = $record['datedsc'] ?? '';
+                                $ft = $record['ft'] ?? '';
+                                $bf = $record['bf'] ?? '';
+                                $drg = $record['drg'] ?? '';
+                                $rw = $record['rw'] ?? '';
+                                $adjrw = $record['adjrw'] ?? '';
+                                $hmain = $record['hmain'] ?? '';
+                                $hcode = $record['hcode'] ?? '';
+                                $hproc = $record['hproc'] ?? '';
+                                $careas = $record['careas'] ?? '';
+                                $sc = $record['sc'] ?? '';
+                                $ed = $record['ed'] ?? '';
+                                $due = $record['due'] ?? 0;
+                                $reimb = $record['reimb'] ?? 0;
+                                $nreimb = $record['nreimb'] ?? 0;
+                                $copay = $record['copay'] ?? 0;
+                                $cp = $record['cp'] ?? '';
+                                $pp = $record['pp'] ?? '';
+                                $rid = $record['rid'] ?? '';
+
+                                DB::table('sss_aipn_stm')->insert([
+                                    'stm_file' => $fileName,
+                                    'hn' => $hn ?: null,
+                                    'an' => $an ?: null,
+                                    'pid' => $pid ?: null,
+                                    'name' => $name ?: null,
+                                    'dateadm' => !empty($dateadm) ? $dateadm : null,
+                                    'datedsc' => !empty($datedsc) ? $datedsc : null,
+                                    'ft' => $ft ?: null,
+                                    'bf' => $bf ?: null,
+                                    'drg' => $drg ?: null,
+                                    'rw' => is_numeric($rw) ? (float)$rw : null,
+                                    'adjrw' => is_numeric($adjrw) ? (float)$adjrw : null,
+                                    'hmain' => $hmain ?: null,
+                                    'hcode' => $hcode ?: null,
+                                    'hproc' => $hproc ?: null,
+                                    'careas' => $careas ?: null,
+                                    'sc' => $sc ?: null,
+                                    'ed' => $ed ?: null,
+                                    'due' => is_numeric($due) ? (float)$due : null,
+                                    'reimb' => is_numeric($reimb) ? (float)$reimb : null,
+                                    'receive_total' => is_numeric($reimb) ? (float)$reimb : null,
+                                    'nreimb' => is_numeric($nreimb) ? (float)$nreimb : null,
+                                    'copay' => is_numeric($copay) ? (float)$copay : null,
+                                    'cp' => $cp ?: null,
+                                    'pp' => $pp ?: null,
+                                    'rid' => $rid ?: null,
+                                    'created_at' => now(),
+                                    'updated_at' => now()
+                                ]);
+                                $processedCount++;
+                            }
+                        }
+                    } catch (\Throwable $ex) {
+                        $xmlParsed = false;
+                    }
+                }
+            }
+
+            File::deleteDirectory($extractPath);
+            if (!$fileFound) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'เลือกประเภทไฟล์ไม่ถูกต้อง (ไม่พบไฟล์ STM / SIGNSTM)'
+                ], 400);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "นำเข้าไฟล์ STM (AIPN) สำเร็จเรียบร้อยแล้ว (ประมวลผลทั้งหมด $processedCount รายการ)"
+            ]);
+
+        } catch (\Throwable $e) {
+            if (File::exists($extractPath)) {
+                File::deleteDirectory($extractPath);
+            }
+            return response()->json(['success' => false, 'message' => 'เกิดข้อผิดพลาดในการนำเข้าข้อมูล STM: ' . $e->getMessage()], 500);
+        }
+    }
 }

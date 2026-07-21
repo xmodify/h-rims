@@ -1949,80 +1949,77 @@ $search = DB::connection('hosxp')->select(
         $claim_sent_price = [];
         $receive_total = [];
 
-        if (!$request->input('skip_chart')) {
-            $sum_month = DB::connection('hosxp')->select('
+        $sum_month = DB::connection('hosxp')->select('
+        SELECT 
+            month,
+            COUNT(an) AS an,
+            SUM(claim_price) AS claim_price,
+            SUM(claim_sent_price) AS claim_sent_price,
+            SUM(receive_total) AS receive_total
+        FROM (
             SELECT 
-                month,
-                COUNT(an) AS an,
-                SUM(claim_price) AS claim_price,
-                SUM(receive_total) AS receive_total
-            FROM (
-                SELECT 
-                    CASE 
-                        WHEN MONTH(i.dchdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
-                        WHEN MONTH(i.dchdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
-                        WHEN MONTH(i.dchdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
-                        WHEN MONTH(i.dchdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
-                        WHEN MONTH(i.dchdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(i.dchdate)+543, 2))
-                        WHEN MONTH(i.dchdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
-                        WHEN MONTH(i.dchdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
-                        WHEN MONTH(i.dchdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
-                        WHEN MONTH(i.dchdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
-                        WHEN MONTH(i.dchdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
-                        WHEN MONTH(i.dchdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
-                        WHEN MONTH(i.dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
-                    END AS month,
-                    i.an,
-                    (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
-                    (IFNULL(d.receive,0) + IFNULL(d1.receive,0) + IFNULL(d2.receive,0)) AS receive_total,
-                    YEAR(i.dchdate) AS y, MONTH(i.dchdate) AS m
-                FROM ipt i            
-                LEFT JOIN ipt_pttype ip ON ip.an = i.an
-                LEFT JOIN pttype p ON p.pttype = ip.pttype           
-                LEFT JOIN (
-                    SELECT o.an,o.pttype,SUM(o.sum_price) AS income
-                    FROM opitemrece o
-                    INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
-                    GROUP BY o.an, o.pttype
-                ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
-                LEFT JOIN (
-                    SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
-                        GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
-                    FROM rcpt_print r
-                    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
-                    WHERE a.rcpno IS NULL
-                    GROUP BY r.vn
-                ) rc ON rc.an = i.an
-                LEFT JOIN hrims.debtor_1102050101_302 d ON d.an = i.an
-                LEFT JOIN hrims.debtor_1102050101_304 d1 ON d1.an = i.an
-                LEFT JOIN hrims.debtor_1102050101_308 d2 ON d2.an = i.an 
-                WHERE i.confirm_discharge = "Y" 
-                AND i.dchdate BETWEEN ? AND ?
-                AND p.hipdata_code IN ("SSS","SSI")          
-                GROUP BY i.an
-            ) AS a
-            GROUP BY y, m
-            ORDER BY y, m', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+                CASE 
+                    WHEN MONTH(i.dchdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                    WHEN MONTH(i.dchdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                    WHEN MONTH(i.dchdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                    WHEN MONTH(i.dchdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                    WHEN MONTH(i.dchdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                    WHEN MONTH(i.dchdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                    WHEN MONTH(i.dchdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                    WHEN MONTH(i.dchdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                    WHEN MONTH(i.dchdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                    WHEN MONTH(i.dchdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                    WHEN MONTH(i.dchdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                    WHEN MONTH(i.dchdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(i.dchdate)+543, 2))
+                END AS month,
+                i.an,
+                (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) AS claim_price,
+                CASE WHEN rep.an IS NOT NULL OR stm.an IS NOT NULL THEN (IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0)) ELSE 0 END AS claim_sent_price,
+                (IFNULL(d.receive,0) + IFNULL(d1.receive,0) + IFNULL(d2.receive,0)) AS receive_total,
+                YEAR(i.dchdate) AS y, MONTH(i.dchdate) AS m
+            FROM ipt i            
+            LEFT JOIN ipt_pttype ip ON ip.an = i.an
+            LEFT JOIN pttype p ON p.pttype = ip.pttype           
+            LEFT JOIN (
+                SELECT o.an,o.pttype,SUM(o.sum_price) AS income
+                FROM opitemrece o
+                INNER JOIN ipt i2 ON i2.an = o.an AND i2.confirm_discharge = "Y" AND i2.dchdate BETWEEN ? AND ?
+                GROUP BY o.an, o.pttype
+            ) inc ON inc.an = i.an AND inc.pttype = ip.pttype
+            LEFT JOIN (
+                SELECT r.vn AS an, SUM(r.total_amount) AS rcpt_money,
+                    GROUP_CONCAT(r.rcpno ORDER BY r.rcpno) AS rcpno 
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.an = i.an
+            LEFT JOIN hrims.sss_aipn_rep rep ON rep.an = i.an
+            LEFT JOIN hrims.sss_aipn_stm stm ON stm.an = i.an
+            LEFT JOIN hrims.debtor_1102050101_302 d ON d.an = i.an
+            LEFT JOIN hrims.debtor_1102050101_304 d1 ON d1.an = i.an
+            LEFT JOIN hrims.debtor_1102050101_308 d2 ON d2.an = i.an 
+            WHERE i.confirm_discharge = "Y" 
+            AND i.dchdate BETWEEN ? AND ?
+            AND p.hipdata_code IN ("SSS","SSI")          
+            GROUP BY i.an
+        ) AS a
+        GROUP BY y, m
+        ORDER BY y, m', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
 
         $month = array_column($sum_month, 'month');
         $claim_price = array_column($sum_month, 'claim_price');
         $claim_sent_price = array_column($sum_month, 'claim_sent_price');
         $receive_total = array_column($sum_month, 'receive_total');
 
-        // 3. Search Data (SSS)
-            $month = array_column($sum_month, 'month');
-            $claim_price = array_column($sum_month, 'claim_price');
-            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
-            $receive_total = array_column($sum_month, 'receive_total');
-        }
-
-$search = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+        $search = DB::connection('hosxp')->select('
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
                 CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
-                IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum
+                IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
+                rep.error_codes AS rep_error_codes, rep.tcode AS rep_tcode, rep.repno AS rep_repno, rep.rep_date AS rep_rep_date, stm.receive_total AS stm_pay
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
@@ -2049,19 +2046,29 @@ $search = DB::connection('hosxp')->select('
             LEFT JOIN iptoprt idx ON idx.an=i.an
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
+            LEFT JOIN (
+                SELECT * FROM (
+                    SELECT *, ROW_NUMBER() OVER (PARTITION BY an ORDER BY rep_date DESC, rep_time DESC, id DESC) as rn
+                    FROM hrims.sss_aipn_rep
+                ) t1 WHERE t1.rn = 1
+            ) rep ON rep.an = i.an
+            LEFT JOIN hrims.sss_aipn_stm stm ON stm.an = i.an
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("SSS","SSI") 
-            AND (ic.an IS NULL OR (ic.an IS NOT NULL AND ict.ipt_coll_status_type_id NOT IN ("4","5"))) 
+            AND rep.an IS NULL
+            AND stm.an IS NULL
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date]);
-
+ 
         // 4. Claimed Data (SSS)
         $claim = DB::connection('hosxp')->select('
-            SELECT w.`name` AS ward,i.regdate,i.dchdate,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
+            SELECT w.`name` AS ward,i.regdate,i.regtime,i.dchdate,i.dchtime,i.hn,i.an,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,a.age_y,
                 p.`name` AS pttype,a.diag_text_list,id.icd10,idx.icd9,
                 IFNULL(inc.income,0) AS income, IFNULL(rc.rcpt_money,0) AS rcpt_money,
                 IFNULL(inc.income,0) - IFNULL(rc.rcpt_money,0) AS claim_price,
-                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name
+                CONCAT(r.refer_hospcode,"[ucae=",ia.ac_ae,"]") AS refer,i.adjrw,ict.ipt_coll_status_type_name,
+                IF(ip.auth_code <> "","Y",NULL) AS auth_code,IF(id.an <> "","Y",NULL) AS dch_sum,
+                rep.error_codes AS rep_error_codes, rep.tcode AS rep_tcode, rep.repno AS rep_repno, rep.rep_date AS rep_rep_date, stm.receive_total AS stm_pay
             FROM ipt i 
             LEFT JOIN patient pt ON pt.hn=i.hn
             LEFT JOIN ipt_pttype ip ON ip.an=i.an
@@ -2088,14 +2095,56 @@ $search = DB::connection('hosxp')->select('
             LEFT JOIN iptoprt idx ON idx.an=i.an
             LEFT JOIN ipt_coll_stat ic ON ic.an=i.an
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
+            LEFT JOIN (
+                SELECT * FROM (
+                    SELECT *, ROW_NUMBER() OVER (PARTITION BY an ORDER BY rep_date DESC, rep_time DESC, id DESC) as rn
+                    FROM hrims.sss_aipn_rep
+                ) t1 WHERE t1.rn = 1
+            ) rep ON rep.an = i.an
+            LEFT JOIN hrims.sss_aipn_stm stm ON stm.an = i.an
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("SSS","SSI") 
-            AND ic.an IS NOT NULL AND ict.ipt_coll_status_type_id IN ("4","5")
+            AND (rep.an IS NOT NULL OR stm.an IS NOT NULL)
             GROUP BY i.an ORDER BY i.ward,i.dchdate', [$start_date, $end_date, $start_date, $end_date]);
 
+        // Process rep error codes and warnings
+        foreach ([$search, $claim] as $dataset) {
+            foreach ($dataset as $row) {
+                $row->rep_error = null;
+                $row->rep_warning = null;
+                if (!empty($row->rep_error_codes)) {
+                    $errs = [];
+                    $warns = [];
+                    $codes = explode(',', $row->rep_error_codes);
+                    foreach ($codes as $c) {
+                        $parts = explode(':', $c, 2);
+                        $base_code = trim($parts[0]);
+                        $is_warn = str_starts_with(strtoupper($base_code), 'W') || str_starts_with($base_code, '8');
+                        if ($is_warn) {
+                            $warns[] = trim($c);
+                        } else {
+                            $errs[] = trim($c);
+                        }
+                    }
+                    if (!empty($errs)) {
+                        $row->rep_error = implode(',', $errs);
+                    }
+                    if (!empty($warns)) {
+                        $row->rep_warning = implode(',', $warns);
+                    }
+                }
+            }
+        }
+
+        $warning = [];
+        foreach ($claim as $row) {
+            if (($row->rep_tcode ?? null) === 'C' && $row->stm_pay === null) {
+                $warning[] = $row;
+            }
+        }
         
-        $table_html = view('claim_ip.sss_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim'))->render();
+        $table_html = view('claim_ip.sss_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim', 'warning'))->render();
 
         $patient_items = array_merge(
             array_map(fn($row) => ['hn' => $row->hn, 'seq' => '', 'an' => $row->an], $search),
@@ -2112,6 +2161,73 @@ $search = DB::connection('hosxp')->select('
                 'claim_sent_price' => $claim_sent_price ?? [],
                 'receive_total' => $receive_total ?? []
             ]
+        ]);
+    }
+    //----------------------------------------------------------------------------------------------------------------------------------------
+    public function sss_detail(Request $request)
+    {
+        $an = $request->an;
+        if (empty($an)) {
+            return response()->json(['error' => 'Invalid AN'], 400);
+        }
+
+        $rep_feedbacks = [];
+        $rep_record = DB::table('sss_aipn_rep')
+            ->where('an', $an)
+            ->orderByDesc('rep_date')
+            ->orderByDesc('rep_time')
+            ->orderByDesc('id')
+            ->first();
+        if ($rep_record && !empty($rep_record->error_codes)) {
+            $codes = array_filter(array_map('trim', explode(',', $rep_record->error_codes)));
+            $lookup = [];
+            $json_path = base_path('docs/lookup/sss_error_codes.json');
+            if (file_exists($json_path)) {
+                $lookup = json_decode(file_get_contents($json_path), true) ?: [];
+            }
+            foreach ($codes as $c) {
+                $parts = explode(':', $c, 2);
+                $base_code = trim($parts[0]);
+
+                $desc = $lookup[$base_code] ?? 'ไม่พบข้อมูลในคู่มือ';
+                $is_warn = str_starts_with(strtoupper($base_code), 'W') || str_starts_with($base_code, '8');
+                $rep_feedbacks[] = [
+                    'code' => $c,
+                    'type' => $is_warn ? 'warning' : 'error',
+                    'desc' => $desc
+                ];
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'rep_feedbacks' => $rep_feedbacks
+        ]);
+    }
+    //----------------------------------------------------------------------------------------------------------------------------------------
+    public function sss_rep_errors(Request $request)
+    {
+        $errors = DB::connection('hosxp')->select('
+            SELECT rep.an, rep.hn, CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, 
+                   rep.rep_file, rep.repno, rep.rep_date, rep.rep_time, rep.error_codes, rep.tcode
+            FROM (
+                SELECT * FROM (
+                    SELECT *, ROW_NUMBER() OVER (PARTITION BY an ORDER BY rep_date DESC, rep_time DESC, id DESC) as rn
+                    FROM hrims.sss_aipn_rep
+                ) t1 WHERE t1.rn = 1
+            ) rep
+            LEFT JOIN patient pt ON pt.hn = rep.hn
+            LEFT JOIN hrims.sss_aipn_stm stm ON stm.an = rep.an
+            WHERE rep.error_codes IS NOT NULL 
+              AND rep.error_codes <> ""
+              AND stm.an IS NULL
+            ORDER BY rep.id DESC
+            LIMIT 500
+        ');
+
+        return response()->json([
+            'success' => true,
+            'data' => $errors
         ]);
     }
     //----------------------------------------------------------------------------------------------------------------------------------------

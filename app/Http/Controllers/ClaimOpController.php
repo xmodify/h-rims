@@ -6265,8 +6265,8 @@ class ClaimOpController extends Controller
                 $lookup = json_decode(file_get_contents($json_path), true) ?: [];
             }
             foreach ($codes as $c) {
+                $desc = $lookup[$c] ?? 'ไม่พบข้อมูลในคู่มือ';
                 $is_warn = str_starts_with(strtoupper($c), 'W');
-                $desc = $lookup[$c] ?? 'ไม่พบรายละเอียดข้อผิดพลาด';
                 $rep_feedbacks[] = [
                     'code' => $c,
                     'type' => $is_warn ? 'warning' : 'error',

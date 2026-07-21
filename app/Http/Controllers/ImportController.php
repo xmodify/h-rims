@@ -128,7 +128,8 @@ class ImportController extends Controller
         $rawData = DB::table('stm_ucs')
             ->select(
                 DB::raw('CAST(SUBSTRING(round_no, 3, 2) AS UNSIGNED) as month_no'),
-                DB::raw('SUM(receive_total) as total_receive')
+                DB::raw("SUM(CASE WHEN SUBSTRING(stm_filename,11) LIKE 'O%' THEN receive_total ELSE 0 END) as op_receive"),
+                DB::raw("SUM(CASE WHEN SUBSTRING(stm_filename,11) NOT LIKE 'O%' THEN receive_total ELSE 0 END) as ip_receive")
             )
             ->whereNotNull('round_no')
             ->where('round_no', '<>', '')
@@ -159,20 +160,24 @@ class ImportController extends Controller
         ];
 
         $labels = [];
-        $receiveTotals = [];
+        $opTotals = [];
+        $ipTotals = [];
 
         foreach ($monthOrder as $m) {
             $labels[] = $monthNames[$m];
             if (isset($rawData[$m])) {
-                $receiveTotals[] = floatval($rawData[$m]->total_receive);
+                $opTotals[] = floatval($rawData[$m]->op_receive);
+                $ipTotals[] = floatval($rawData[$m]->ip_receive);
             } else {
-                $receiveTotals[] = 0.00;
+                $opTotals[] = 0.00;
+                $ipTotals[] = 0.00;
             }
         }
 
         return response()->json([
             'labels' => $labels,
-            'receive_totals' => $receiveTotals
+            'op_totals' => $opTotals,
+            'ip_totals' => $ipTotals
         ]);
     }
 
@@ -2078,7 +2083,8 @@ class ImportController extends Controller
         $rawData = DB::table('stm_ofc')
             ->select(
                 DB::raw('CAST(SUBSTRING(round_no, LOCATE("20", round_no) + 4, 2) AS UNSIGNED) as month_no'),
-                DB::raw('SUM(receive_total) as total_receive')
+                DB::raw("SUM(CASE WHEN SUBSTRING(stm_filename,11) LIKE 'O%' THEN receive_total ELSE 0 END) as op_receive"),
+                DB::raw("SUM(CASE WHEN SUBSTRING(stm_filename,11) NOT LIKE 'O%' THEN receive_total ELSE 0 END) as ip_receive")
             )
             ->whereNotNull('round_no')
             ->where('round_no', '<>', '')
@@ -2109,20 +2115,24 @@ class ImportController extends Controller
         ];
 
         $labels = [];
-        $receiveTotals = [];
+        $opTotals = [];
+        $ipTotals = [];
 
         foreach ($monthOrder as $m) {
             $labels[] = $monthNames[$m];
             if (isset($rawData[$m])) {
-                $receiveTotals[] = floatval($rawData[$m]->total_receive);
+                $opTotals[] = floatval($rawData[$m]->op_receive);
+                $ipTotals[] = floatval($rawData[$m]->ip_receive);
             } else {
-                $receiveTotals[] = 0.00;
+                $opTotals[] = 0.00;
+                $ipTotals[] = 0.00;
             }
         }
 
         return response()->json([
             'labels' => $labels,
-            'receive_totals' => $receiveTotals
+            'op_totals' => $opTotals,
+            'ip_totals' => $ipTotals
         ]);
     }
 
@@ -2798,7 +2808,8 @@ class ImportController extends Controller
         $rawData = DB::table('stm_bkk')
             ->select(
                 DB::raw('CAST(SUBSTRING(round_no, LOCATE("20", round_no) + 4, 2) AS UNSIGNED) as month_no'),
-                DB::raw('SUM(receive_total) as total_receive')
+                DB::raw("SUM(CASE WHEN SUBSTRING(stm_filename,11) LIKE 'O%' THEN receive_total ELSE 0 END) as op_receive"),
+                DB::raw("SUM(CASE WHEN SUBSTRING(stm_filename,11) NOT LIKE 'O%' THEN receive_total ELSE 0 END) as ip_receive")
             )
             ->whereNotNull('round_no')
             ->where('round_no', '<>', '')
@@ -2829,20 +2840,24 @@ class ImportController extends Controller
         ];
 
         $labels = [];
-        $receiveTotals = [];
+        $opTotals = [];
+        $ipTotals = [];
 
         foreach ($monthOrder as $m) {
             $labels[] = $monthNames[$m];
             if (isset($rawData[$m])) {
-                $receiveTotals[] = floatval($rawData[$m]->total_receive);
+                $opTotals[] = floatval($rawData[$m]->op_receive);
+                $ipTotals[] = floatval($rawData[$m]->ip_receive);
             } else {
-                $receiveTotals[] = 0.00;
+                $opTotals[] = 0.00;
+                $ipTotals[] = 0.00;
             }
         }
 
         return response()->json([
             'labels' => $labels,
-            'receive_totals' => $receiveTotals
+            'op_totals' => $opTotals,
+            'ip_totals' => $ipTotals
         ]);
     }
 
@@ -3512,7 +3527,8 @@ class ImportController extends Controller
         $rawData = DB::table('stm_srt')
             ->select(
                 DB::raw('CAST(SUBSTRING(round_no, LOCATE("20", round_no) + 4, 2) AS UNSIGNED) as month_no'),
-                DB::raw('SUM(receive_total) as total_receive')
+                DB::raw("SUM(CASE WHEN SUBSTRING(stm_filename,11) LIKE 'O%' THEN receive_total ELSE 0 END) as op_receive"),
+                DB::raw("SUM(CASE WHEN SUBSTRING(stm_filename,11) NOT LIKE 'O%' THEN receive_total ELSE 0 END) as ip_receive")
             )
             ->whereNotNull('round_no')
             ->where('round_no', '<>', '')
@@ -3543,20 +3559,24 @@ class ImportController extends Controller
         ];
 
         $labels = [];
-        $receiveTotals = [];
+        $opTotals = [];
+        $ipTotals = [];
 
         foreach ($monthOrder as $m) {
             $labels[] = $monthNames[$m];
             if (isset($rawData[$m])) {
-                $receiveTotals[] = floatval($rawData[$m]->total_receive);
+                $opTotals[] = floatval($rawData[$m]->op_receive);
+                $ipTotals[] = floatval($rawData[$m]->ip_receive);
             } else {
-                $receiveTotals[] = 0.00;
+                $opTotals[] = 0.00;
+                $ipTotals[] = 0.00;
             }
         }
 
         return response()->json([
             'labels' => $labels,
-            'receive_totals' => $receiveTotals
+            'op_totals' => $opTotals,
+            'ip_totals' => $ipTotals
         ]);
     }
 
@@ -4226,7 +4246,8 @@ class ImportController extends Controller
         $rawData = DB::table('stm_pvt')
             ->select(
                 DB::raw('CAST(SUBSTRING(round_no, LOCATE("20", round_no) + 4, 2) AS UNSIGNED) as month_no'),
-                DB::raw('SUM(receive_total) as total_receive')
+                DB::raw("SUM(CASE WHEN SUBSTRING(stm_filename,11) LIKE 'O%' THEN receive_total ELSE 0 END) as op_receive"),
+                DB::raw("SUM(CASE WHEN SUBSTRING(stm_filename,11) NOT LIKE 'O%' THEN receive_total ELSE 0 END) as ip_receive")
             )
             ->whereNotNull('round_no')
             ->where('round_no', '<>', '')
@@ -4257,20 +4278,24 @@ class ImportController extends Controller
         ];
 
         $labels = [];
-        $receiveTotals = [];
+        $opTotals = [];
+        $ipTotals = [];
 
         foreach ($monthOrder as $m) {
             $labels[] = $monthNames[$m];
             if (isset($rawData[$m])) {
-                $receiveTotals[] = floatval($rawData[$m]->total_receive);
+                $opTotals[] = floatval($rawData[$m]->op_receive);
+                $ipTotals[] = floatval($rawData[$m]->ip_receive);
             } else {
-                $receiveTotals[] = 0.00;
+                $opTotals[] = 0.00;
+                $ipTotals[] = 0.00;
             }
         }
 
         return response()->json([
             'labels' => $labels,
-            'receive_totals' => $receiveTotals
+            'op_totals' => $opTotals,
+            'ip_totals' => $ipTotals
         ]);
     }
 
@@ -4941,7 +4966,8 @@ class ImportController extends Controller
         $rawData = DB::table('stm_bmt')
             ->select(
                 DB::raw('CAST(SUBSTRING(round_no, LOCATE("20", round_no) + 4, 2) AS UNSIGNED) as month_no'),
-                DB::raw('SUM(receive_total) as total_receive')
+                DB::raw("SUM(CASE WHEN SUBSTRING(stm_filename,11) LIKE 'O%' THEN receive_total ELSE 0 END) as op_receive"),
+                DB::raw("SUM(CASE WHEN SUBSTRING(stm_filename,11) NOT LIKE 'O%' THEN receive_total ELSE 0 END) as ip_receive")
             )
             ->whereNotNull('round_no')
             ->where('round_no', '<>', '')
@@ -4972,20 +4998,24 @@ class ImportController extends Controller
         ];
 
         $labels = [];
-        $receiveTotals = [];
+        $opTotals = [];
+        $ipTotals = [];
 
         foreach ($monthOrder as $m) {
             $labels[] = $monthNames[$m];
             if (isset($rawData[$m])) {
-                $receiveTotals[] = floatval($rawData[$m]->total_receive);
+                $opTotals[] = floatval($rawData[$m]->op_receive);
+                $ipTotals[] = floatval($rawData[$m]->ip_receive);
             } else {
-                $receiveTotals[] = 0.00;
+                $opTotals[] = 0.00;
+                $ipTotals[] = 0.00;
             }
         }
 
         return response()->json([
             'labels' => $labels,
-            'receive_totals' => $receiveTotals
+            'op_totals' => $opTotals,
+            'ip_totals' => $ipTotals
         ]);
     }
 
@@ -6574,7 +6604,8 @@ class ImportController extends Controller
         $rawData = DB::table('stm_lgo')
             ->select(
                 DB::raw('CAST(SUBSTRING(round_no, 3, 2) AS UNSIGNED) as month_no'),
-                DB::raw('SUM(compensate_treatment) as total_receive')
+                DB::raw("SUM(CASE WHEN (SUBSTRING(stm_filename,14) LIKE 'O%' OR SUBSTRING(stm_filename,11) LIKE 'O%') THEN compensate_treatment ELSE 0 END) as op_receive"),
+                DB::raw("SUM(CASE WHEN (SUBSTRING(stm_filename,14) NOT LIKE 'O%' AND SUBSTRING(stm_filename,11) NOT LIKE 'O%') THEN compensate_treatment ELSE 0 END) as ip_receive")
             )
             ->whereNotNull('round_no')
             ->where('round_no', '<>', '')
@@ -6605,20 +6636,24 @@ class ImportController extends Controller
         ];
 
         $labels = [];
-        $receiveTotals = [];
+        $opTotals = [];
+        $ipTotals = [];
 
         foreach ($monthOrder as $m) {
             $labels[] = $monthNames[$m];
             if (isset($rawData[$m])) {
-                $receiveTotals[] = floatval($rawData[$m]->total_receive);
+                $opTotals[] = floatval($rawData[$m]->op_receive);
+                $ipTotals[] = floatval($rawData[$m]->ip_receive);
             } else {
-                $receiveTotals[] = 0.00;
+                $opTotals[] = 0.00;
+                $ipTotals[] = 0.00;
             }
         }
 
         return response()->json([
             'labels' => $labels,
-            'receive_totals' => $receiveTotals
+            'op_totals' => $opTotals,
+            'ip_totals' => $ipTotals
         ]);
     }
 

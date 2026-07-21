@@ -471,7 +471,7 @@
                         success: function (res) {
                             $('#loading_spinner').addClass('d-none');
                             $('#chart_container').removeClass('d-none');
-                            renderChart(res.labels, res.receive_totals);
+                            renderChart(res.labels, res.op_totals, res.ip_totals);
                         },
                         error: function () {
                             $('#loading_spinner').addClass('d-none');
@@ -481,36 +481,42 @@
                     });
                 }
 
-                function renderChart(labels, receiveTotals) {
+                function renderChart(labels, opTotals, ipTotals) {
                     if (monthlyChart) {
                         monthlyChart.destroy();
                     }
 
                     const options = {
-                        series: [{
-                            name: 'ชดเชยสุทธิ',
-                            data: receiveTotals
-                        }],
+                        series: [
+                            {
+                                name: 'OP (ผู้ป่วยนอก)',
+                                data: opTotals
+                            },
+                            {
+                                name: 'IP (ผู้ป่วยใน)',
+                                data: ipTotals
+                            }
+                        ],
                         chart: {
                             height: 430,
                             type: 'area',
                             toolbar: { show: false }
                         },
                         markers: { size: 4 },
-                        colors: ['#10b981'],
+                        colors: ['#10b981', '#ef4444'],
                         fill: {
                             type: "gradient",
                             gradient: {
                                 shadeIntensity: 1,
-                                opacityFrom: 0.4,
-                                opacityTo: 0.1,
+                                opacityFrom: 0.3,
+                                opacityTo: 0.05,
                                 stops: [0, 90, 100]
                             }
                         },
                         dataLabels: {
                             enabled: true,
                             formatter: function (val) {
-                                return new Intl.NumberFormat('th-TH').format(val);
+                                return val ? new Intl.NumberFormat('th-TH').format(val) : '';
                             },
                             style: {
                                 fontSize: '11px',

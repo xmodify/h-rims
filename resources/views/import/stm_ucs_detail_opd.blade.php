@@ -44,6 +44,7 @@
                             <th class="text-center">Dep</th>
                             <th class="text-center">REP</th> 
                             <th class="text-center">HN</th>
+                            <th class="text-center">เลขบัตร</th>
                             <th class="text-center">AN</th>
                             <th class="text-center">ชื่อ-สกุล</th>
                             <th class="text-center">วันเข้ารักษา</th>
@@ -124,6 +125,7 @@
             { data: 'dep', name: 'dep', className: 'text-center' },
             { data: 'repno', name: 'repno', className: 'text-center' },
             { data: 'hn', name: 'hn', className: 'text-center fw-bold' },
+            { data: 'cid', name: 'cid', className: 'text-center' },
             { data: 'an', name: 'an', className: 'text-center' },
             { data: 'pt_name', name: 'pt_name' },
             { data: 'datetimeadm', name: 'datetimeadm', className: 'text-center small' },

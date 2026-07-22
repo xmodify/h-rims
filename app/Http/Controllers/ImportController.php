@@ -600,6 +600,7 @@ class ImportController extends Controller
                     'stm_filename',
                     'repno',
                     'hn',
+                    'cid',
                     'an',
                     'pt_name',
                     'datetimeadm',
@@ -638,7 +639,7 @@ class ImportController extends Controller
             }
 
             // Group By
-            $query->groupBy('stm_filename', 'repno', 'hn', 'datetimeadm');
+            $query->groupBy('stm_filename', 'repno', 'hn', 'cid', 'datetimeadm');
 
             // Export Excel
             if ($request->export == 'excel') {

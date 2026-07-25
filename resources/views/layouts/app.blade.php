@@ -633,13 +633,13 @@
                                             </a>
                                             <ul class="dropdown-menu dropdown-menu-modern">
                                                 <li><a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('check/labcat_tmt') }}"><i class="bi bi-chevron-right text-muted me-1"></i> TMLT</a></li>
+                                                <li><a class="dropdown-item dropdown-item-modern"
                                                         href="{{ url('check/labcat_nhso') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สปสช.</a></li>
                                                 <li><a class="dropdown-item dropdown-item-modern"
                                                         href="{{ url('check/labcat_chi') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สกส.</a></li>
                                                 <li><a class="dropdown-item dropdown-item-modern"
                                                         href="{{ url('check/labcat_fdh') }}"><i class="bi bi-chevron-right text-muted me-1"></i> FDH</a></li>
-                                                <li><a class="dropdown-item dropdown-item-modern"
-                                                        href="{{ url('check/labcat_tmt') }}"><i class="bi bi-chevron-right text-muted me-1"></i> TMLT</a></li>
                                             </ul>
                                         </li>
 

@@ -1368,19 +1368,28 @@ return new class extends Migration
 
         if (!Schema::hasTable('labcat_tmt')) {
             Schema::create('labcat_tmt', function (Blueprint $table) {
-                $table->string('lab_code', 255)->nullable();
-                $table->string('lab_name', 255)->nullable();
-                $table->string('lab_type', 255)->nullable();
-                $table->string('location', 255)->nullable();
-                $table->string('lab_price', 255)->nullable();
-                $table->string('component', 255)->nullable();
-                $table->string('scale', 255)->nullable();
-                $table->string('specimen', 255)->nullable();
-                $table->string('unit', 255)->nullable();
-                $table->string('method', 255)->nullable();
+                $table->id();
+                $table->string('lccode', 255)->nullable()->index();
+                $table->string('billgroup', 255)->nullable();
                 $table->string('cscode', 255)->nullable();
                 $table->string('tmlt', 255)->nullable();
-                $table->string('loinc_num', 255)->nullable();
+                $table->string('loinc', 255)->nullable();
+                $table->string('panel', 255)->nullable();
+                $table->string('name', 255)->nullable();
+                $table->string('sflag', 255)->nullable();
+                $table->string('chargecat', 255)->nullable();
+                $table->double('unitprice')->nullable();
+                $table->string('benefitplan', 255)->nullable();
+                $table->double('reimbprice')->nullable();
+                $table->string('updateflag', 255)->nullable();
+                $table->string('updatebeg', 255)->nullable();
+                $table->string('updateend', 255)->nullable();
+                $table->string('rpdatebeg', 255)->nullable();
+                $table->string('rpdateend', 255)->nullable();
+                $table->string('dateupd', 255)->nullable();
+                $table->string('hcode', 255)->nullable();
+                $table->string('message', 255)->nullable();
+                $table->string('stm_filename', 255)->nullable();
             });
         }
 

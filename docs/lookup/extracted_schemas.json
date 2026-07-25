@@ -10759,61 +10759,19 @@
     },
     "labcat_tmt": {
         "columns": {
-            "lab_code": {
+            "id": {
+                "type": "int(10) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "lccode": {
                 "type": "varchar(255)",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             },
-            "lab_name": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "lab_type": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "location": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "lab_price": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "component": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "scale": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "specimen": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "unit": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "method": {
+            "billgroup": {
                 "type": "varchar(255)",
                 "nullable": true,
                 "default": null,
@@ -10831,14 +10789,123 @@
                 "default": null,
                 "extra": ""
             },
-            "loinc_num": {
+            "loinc": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "panel": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "name": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "sflag": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "chargecat": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "unitprice": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "benefitplan": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "reimbprice": {
+                "type": "double",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updateflag": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updatebeg": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updateend": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rpdatebeg": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rpdateend": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dateupd": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hcode": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "message": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "stm_filename": {
                 "type": "varchar(255)",
                 "nullable": true,
                 "default": null,
                 "extra": ""
             }
         },
-        "indexes": []
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "lccode": [
+                {
+                    "column": "lccode",
+                    "unique": false
+                }
+            ]
+        }
     },
     "lookup_hospcode": {
         "columns": {

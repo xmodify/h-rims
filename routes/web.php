@@ -286,6 +286,15 @@ Route::post('check/drugcat_fdh_export_preview', [CheckDrugcatController::class, 
     Route::match(['get', 'post'], 'check/labcat_chi_export/{seq?}', [CheckLabcatController::class, 'labcat_chi_export'])->name('check.labcat_chi_export');
     Route::post('check/labcat_chi_export_preview', [CheckLabcatController::class, 'labcat_chi_export_preview'])->name('check.labcat_chi_export_preview');
 
+    Route::post('check/labcat_tmt_save', [CheckLabcatController::class, 'labcat_tmt_save']);
+    Route::get('check/labcat_tmt', [CheckLabcatController::class, 'labcat_tmt'])->name('check.labcat_tmt');
+    Route::get('check/labcat_tmt_non_nhso', [CheckLabcatController::class, 'labcat_tmt_non_nhso']);
+    Route::get('check/labcat_tmt_price_notmatch_hosxp', [CheckLabcatController::class, 'labcat_tmt_price_notmatch_hosxp']);
+    Route::get('check/labcat_tmt_tmlt_notmatch_hosxp', [CheckLabcatController::class, 'labcat_tmt_tmlt_notmatch_hosxp']);
+    Route::get('check/labcat_tmt_loinc_notmatch_hosxp', [CheckLabcatController::class, 'labcat_tmt_loinc_notmatch_hosxp']);
+    Route::get('check/labcat_tmt_tmlt_missing_hosxp', [CheckLabcatController::class, 'labcat_tmt_tmlt_missing_hosxp']);
+    Route::get('check/labcat_tmt_loinc_missing_hosxp', [CheckLabcatController::class, 'labcat_tmt_loinc_missing_hosxp']);
+
 Route::get('check/pttype', [CheckController::class, 'pttype']);
 Route::get('check/nhso_subinscl', [CheckController::class, 'nhso_subinscl']);
 Route::get('check/nondrugitems', [CheckController::class, 'nondrugitems']);

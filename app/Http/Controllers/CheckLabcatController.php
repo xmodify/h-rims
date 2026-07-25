@@ -12,6 +12,7 @@ use PhpOffice\PhpSpreadsheet\Reader\Exception;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use App\Models\Labcat_nhso;
 use App\Models\Labcat_chi;
+use App\Models\Labcat_tmt;
 
 class CheckLabcatController extends Controller
 {
@@ -1154,5 +1155,215 @@ class CheckLabcatController extends Controller
             return '0.00';
         }
         return number_format((float)$val, 2, '.', '');
+    }
+
+    // =========================================================================
+    // LAB CATALOG TMLT (labcat_tmt)
+    // =========================================================================
+
+    public function labcat_tmt_save(Request $request)
+    {
+        set_time_limit(300);
+
+        $this->validate($request, [
+            'file' => 'required|file'
+        ]);
+        $the_file = $request->file('file');
+        if (!in_array(strtolower($the_file->getClientOriginalExtension()), ['xls', 'xlsx'])) {
+            return back()->withErrors('กรุณาเลือกเฉพาะไฟล์นามสกุล .xls หรือ .xlsx เท่านั้น');
+        }
+        $file_name = $the_file->getClientOriginalName();
+
+        try {
+            $spreadsheet = IOFactory::load($the_file->getRealPath());
+            $sheet        = $spreadsheet->setActiveSheetIndex(0);
+            $row_limit    = $sheet->getHighestDataRow();
+            $row_range    = range('2', $row_limit);
+            
+            $cleanPrice = function ($val) {
+                if ($val === null || $val === '-' || trim($val) === '') {
+                    return null;
+                }
+                $val = str_replace(',', '', $val);
+                return is_numeric($val) ? (float) $val : null;
+            };
+
+            $now = date('Y-m-d H:i:s');
+            $data = [];
+            foreach ($row_range as $row) {
+                $lccode = $sheet->getCell('B' . $row)->getValue();
+                if ($lccode instanceof \PhpOffice\PhpSpreadsheet\RichText\RichText) {
+                    $lccode = $lccode->getPlainText();
+                }
+                $lccode = trim($lccode ?? '');
+                if ($lccode === '') {
+                    continue;
+                }
+
+                $dateupd = $sheet->getCell('S' . $row)->getValue();
+                if (!$dateupd || trim((string)$dateupd) === '') {
+                    $dateupd = $now;
+                }
+
+                $data[] = [
+                    'lccode'       => trim($lccode),
+                    'billgroup'    => $sheet->getCell('C' . $row)->getValue(),
+                    'cscode'       => $sheet->getCell('D' . $row)->getValue(),
+                    'tmlt'         => $sheet->getCell('E' . $row)->getValue(),
+                    'loinc'        => $sheet->getCell('F' . $row)->getValue(),
+                    'panel'        => $sheet->getCell('G' . $row)->getValue(),
+                    'name'         => $sheet->getCell('H' . $row)->getValue(),
+                    'sflag'        => $sheet->getCell('I' . $row)->getValue(),
+                    'chargecat'    => $sheet->getCell('J' . $row)->getValue(),
+                    'unitprice'    => $cleanPrice($sheet->getCell('K' . $row)->getValue()),
+                    'benefitplan'  => $sheet->getCell('L' . $row)->getValue(),
+                    'reimbprice'   => $cleanPrice($sheet->getCell('M' . $row)->getValue()),
+                    'updateflag'   => $sheet->getCell('N' . $row)->getValue(),
+                    'updatebeg'    => $sheet->getCell('O' . $row)->getValue(),
+                    'updateend'    => $sheet->getCell('P' . $row)->getValue(),
+                    'rpdatebeg'    => $sheet->getCell('Q' . $row)->getValue(),
+                    'rpdateend'    => $sheet->getCell('R' . $row)->getValue(),
+                    'dateupd'      => $dateupd,
+                    'hcode'        => $sheet->getCell('T' . $row)->getValue(),
+                    'message'      => $sheet->getCell('U' . $row)->getValue(),
+                    'stm_filename' => $file_name,
+                ];
+            }
+
+            foreach ($data as $row_data) {
+                Labcat_tmt::updateOrCreate(
+                    ['lccode' => $row_data['lccode']],
+                    $row_data
+                );
+            }
+        } catch (\Exception $e) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+            }
+            return back()->withErrors('เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' . $e->getMessage());
+        }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'file_name' => $file_name]);
+        }
+
+        return redirect()->route('check.labcat_tmt')->with('success', $file_name);
+    }
+
+    private function getTmtLabItems($extraWhere = '')
+    {
+        $local_db = config('database.connections.mysql.database');
+        $whereClause = "WHERE l.active_status = 'Y' AND (l.icode IS NOT NULL AND l.icode <> '')";
+        $whereClause .= " AND l.icode NOT IN (SELECT DISTINCT group_icode FROM lab_items_sub_group WHERE group_icode IS NOT NULL AND group_icode <> '')";
+        if ($extraWhere) {
+            $whereClause .= " " . $extraWhere;
+        }
+
+        return DB::connection('hosxp')->select("
+            SELECT l.lab_items_code, l.icode, l.lab_items_name, n.name AS nondrug_name, ln.name AS name_nhso, n.price AS service_price, l.service_price_ipd, l.tmlt_code, l.loinc_code,
+                   ln.unitprice AS price_nhso, ln.reimbprice AS reimb_nhso, ln.tmlt AS tmlt_nhso, ln.loinc AS loinc_nhso,
+                   ln.panel AS panel_nhso,
+                   IF(ln.lccode IS NULL, 'N', 'Y') AS chk_nhso_labcat
+            FROM lab_items l
+            INNER JOIN nondrugitems n ON n.icode = l.icode
+            LEFT JOIN (
+                SELECT dc.* FROM {$local_db}.labcat_tmt dc 
+                WHERE dc.dateupd = (
+                    SELECT MAX(dc1.dateupd) FROM {$local_db}.labcat_tmt dc1 WHERE dc.lccode=dc1.lccode
+                )
+            ) ln ON ln.lccode = l.icode
+            {$whereClause}
+            ORDER BY l.lab_items_name ASC
+        ");
+    }
+
+    private function getTmtLabPanels($extraWhere = '')
+    {
+        $local_db = config('database.connections.mysql.database');
+        $whereClause = "WHERE (sg.active_status <> 'N' OR sg.active_status IS NULL) AND (sg.group_icode IS NOT NULL AND sg.group_icode <> '')";
+        if ($extraWhere) {
+            $whereClause .= " " . $extraWhere;
+        }
+
+        return DB::connection('hosxp')->select("
+            SELECT sg.lab_items_sub_group_code AS lab_items_code, sg.group_icode AS icode, sg.lab_items_sub_group_name AS lab_items_name, n.name AS nondrug_name, ln.name AS name_nhso,
+                   n.price AS service_price, sg.group_price_ipd AS service_price_ipd, sg.tmlt_code, sg.loinc_code,
+                   ln.unitprice AS price_nhso, ln.reimbprice AS reimb_nhso, ln.tmlt AS tmlt_nhso, ln.loinc AS loinc_nhso,
+                   ln.panel AS panel_nhso,
+                   IF(ln.lccode IS NULL, 'N', 'Y') AS chk_nhso_labcat
+            FROM lab_items_sub_group sg
+            INNER JOIN nondrugitems n ON n.icode = sg.group_icode
+            LEFT JOIN (
+                SELECT dc.* FROM {$local_db}.labcat_tmt dc 
+                WHERE dc.dateupd = (
+                    SELECT MAX(dc1.dateupd) FROM {$local_db}.labcat_tmt dc1 WHERE dc.lccode=dc1.lccode
+                )
+            ) ln ON ln.lccode = sg.group_icode
+            {$whereClause}
+            ORDER BY sg.lab_items_sub_group_name ASC
+        ");
+    }
+
+    public function labcat_tmt()
+    {
+        $items_i = $this->getTmtLabItems();
+        $items_p = $this->getTmtLabPanels();
+        $items_unmapped_i = $this->getUnmappedLabItems();
+        $items_unmapped_p = $this->getUnmappedLabPanels();
+        return view('check.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+    }
+
+    public function labcat_tmt_non_nhso()
+    {
+        $items_i = $this->getTmtLabItems("AND ln.lccode IS NULL");
+        $items_p = $this->getTmtLabPanels("AND ln.lccode IS NULL");
+        $items_unmapped_i = $this->getUnmappedLabItems();
+        $items_unmapped_p = $this->getUnmappedLabPanels();
+        return view('check.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+    }
+
+    public function labcat_tmt_price_notmatch_hosxp()
+    {
+        $items_i = $this->getTmtLabItems("AND ln.lccode IS NOT NULL AND ln.unitprice <> n.price");
+        $items_p = $this->getTmtLabPanels("AND ln.lccode IS NOT NULL AND ln.unitprice <> n.price");
+        $items_unmapped_i = $this->getUnmappedLabItems();
+        $items_unmapped_p = $this->getUnmappedLabPanels();
+        return view('check.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+    }
+
+    public function labcat_tmt_tmlt_notmatch_hosxp()
+    {
+        $items_i = $this->getTmtLabItems("AND ln.lccode IS NOT NULL AND ln.tmlt <> l.tmlt_code");
+        $items_p = $this->getTmtLabPanels("AND ln.lccode IS NOT NULL AND ln.tmlt <> sg.tmlt_code");
+        $items_unmapped_i = $this->getUnmappedLabItems();
+        $items_unmapped_p = $this->getUnmappedLabPanels();
+        return view('check.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+    }
+
+    public function labcat_tmt_loinc_notmatch_hosxp()
+    {
+        $items_i = $this->getTmtLabItems("AND ln.lccode IS NOT NULL AND ln.loinc <> l.loinc_code");
+        $items_p = $this->getTmtLabPanels("AND ln.lccode IS NOT NULL AND ln.loinc <> sg.loinc_code");
+        $items_unmapped_i = $this->getUnmappedLabItems();
+        $items_unmapped_p = $this->getUnmappedLabPanels();
+        return view('check.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+    }
+
+    public function labcat_tmt_tmlt_missing_hosxp()
+    {
+        $items_i = $this->getTmtLabItems("AND ln.lccode IS NOT NULL AND (l.tmlt_code IS NULL OR l.tmlt_code = '') AND ln.tmlt IS NOT NULL");
+        $items_p = $this->getTmtLabPanels("AND ln.lccode IS NOT NULL AND (sg.tmlt_code IS NULL OR sg.tmlt_code = '') AND ln.tmlt IS NOT NULL");
+        $items_unmapped_i = $this->getUnmappedLabItems();
+        $items_unmapped_p = $this->getUnmappedLabPanels();
+        return view('check.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
+    }
+
+    public function labcat_tmt_loinc_missing_hosxp()
+    {
+        $items_i = $this->getTmtLabItems("AND ln.lccode IS NOT NULL AND (l.loinc_code IS NULL OR l.loinc_code = '') AND ln.loinc IS NOT NULL");
+        $items_p = $this->getTmtLabPanels("AND ln.lccode IS NOT NULL AND (sg.loinc_code IS NULL OR sg.loinc_code = '') AND ln.loinc IS NOT NULL");
+        $items_unmapped_i = $this->getUnmappedLabItems();
+        $items_unmapped_p = $this->getUnmappedLabPanels();
+        return view('check.labcat_tmt', compact('items_i', 'items_p', 'items_unmapped_i', 'items_unmapped_p'));
     }
 }

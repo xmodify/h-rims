@@ -638,6 +638,8 @@
                                                         href="{{ url('check/labcat_chi') }}"><i class="bi bi-chevron-right text-muted me-1"></i> สกส.</a></li>
                                                 <li><a class="dropdown-item dropdown-item-modern"
                                                         href="{{ url('check/labcat_fdh') }}"><i class="bi bi-chevron-right text-muted me-1"></i> FDH</a></li>
+                                                <li><a class="dropdown-item dropdown-item-modern"
+                                                        href="{{ url('check/labcat_tmt') }}"><i class="bi bi-chevron-right text-muted me-1"></i> TMLT</a></li>
                                             </ul>
                                         </li>
 
@@ -1129,7 +1131,7 @@
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item d-flex align-items-center me-2">
                             <div class="nav-version-badge">
-                                V.69-07-22 01:00
+                                V.69-07-25 10:00
                             </div>
                         </li>
                         <!-- Authentication Links -->

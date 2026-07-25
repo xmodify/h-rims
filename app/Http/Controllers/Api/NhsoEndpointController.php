@@ -210,18 +210,27 @@ class NhsoEndpointController extends Controller
 
         $result = $response->json();
 
-        if (!isset($result['firstName']) || !isset($result['serviceHistories'])) {
-            return response()->json(['status' => 'error', 'message' => 'Invalid data from NHSO API'], 500);
+        if (!is_array($result)) {
+            return response()->json(['status' => 'error', 'message' => 'Invalid JSON response from NHSO API'], 500);
+        }
+
+        if (isset($result['status']) && $result['status'] === 'error') {
+            return response()->json(['status' => 'error', 'message' => $result['message'] ?? 'NHSO API Error'], 500);
+        }
+
+        if (!isset($result['firstName'])) {
+            $msg = $result['statusMessage'] ?? $result['message'] ?? 'ไม่พบข้อมูลบุคคลจาก สปสช. (กรุณาตรวจสอบ CID)';
+            return response()->json(['status' => 'error', 'message' => $msg], 500);
         }
 
         $firstName = $result['firstName'];
-        $lastName = $result['lastName'];
+        $lastName = $result['lastName'] ?? '';
         $mainInscl = $result['mainInscl']['id'] ?? '';
         $mainInsclName = $result['mainInscl']['name'] ?? '';
         $subInscl = $result['subInscl']['id'] ?? '';
         $subInsclName = $result['subInscl']['name'] ?? '';
 
-        $services = $result['serviceHistories'];
+        $services = $result['serviceHistories'] ?? [];
 
         $foundPiSit = false;
 

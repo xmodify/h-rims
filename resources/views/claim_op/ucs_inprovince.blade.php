@@ -392,6 +392,47 @@
             });
     }
 
+    function updateStatusCell(seq, v) {
+        let orderVal = 0;
+        let newHtml = '';
+        
+        if (!v.is_valid) {
+            orderVal = 0;
+            newHtml = `<button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${seq}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
+        } else if (v.warnings && v.warnings.length > 0) {
+            orderVal = 1;
+            newHtml = `<button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${seq}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
+        } else if (v.endpoint_valid) {
+            orderVal = 2;
+            newHtml = `<button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${seq}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
+        } else {
+            orderVal = 1;
+            newHtml = `<button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('${seq}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
+        }
+
+        var cellSearch = $('#td-status-search-' + seq);
+        if (cellSearch.length) {
+            cellSearch.html(newHtml);
+            cellSearch.attr('data-order', orderVal);
+            var dt = $('#t_search').DataTable();
+            var row = dt.row(cellSearch.closest('tr'));
+            if (row.length) {
+                row.invalidate().draw(false);
+            }
+        }
+
+        var cellClaim = $('#td-status-claim-' + seq);
+        if (cellClaim.length) {
+            cellClaim.html(newHtml);
+            cellClaim.attr('data-order', orderVal);
+            var dt = $('#t_claim').DataTable();
+            var row = dt.row(cellClaim.closest('tr'));
+            if (row.length) {
+                row.invalidate().draw(false);
+            }
+        }
+    }
+
     // ── Visit Details Modal ──────────────────────────────────────────────────
     function showDetails(vn) {
         const body = document.getElementById('detailsModalBody');
@@ -403,6 +444,8 @@
                 const visit = data.visit;
                 const items = data.items;
                 const v = data.validation;
+
+                updateStatusCell(vn, v);
 
                 // Status banner
                 let statusBadge = '';

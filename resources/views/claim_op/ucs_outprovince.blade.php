@@ -365,20 +365,34 @@
                 const isEndpointDone = v.endpoint_valid === true;
                 const hasWarnings    = v.warnings && v.warnings.length > 0;
 
-                function makeCellHtml(epDone, warn) {
-                    if (warn) {
+                function makeCellHtml(isValid, epDone, warn) {
+                    if (!isValid) {
+                        return `<button class="btn btn-sm btn-outline-danger px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem;height:26px;margin:0 auto;" onclick="showDetails('${vn}')" title="ไม่ผ่านเงื่อนไข | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
+                    } else if (warn) {
                         return `<button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem;height:26px;margin:0 auto;" onclick="showDetails('${vn}')" title="มี Instrument ไม่อยู่ในประกาศ UCS | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
                     } else if (epDone) {
-                        return `<button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem;height:26px;margin:0 auto;" onclick="showDetails('${vn}')" title="ปิดสิทธิแล้ว"><i class="bi bi-eye-fill"></i></button>`;
+                        return `<button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem;height:26px;margin:0 auto;" onclick="showDetails('${vn}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
                     } else {
-                        return `<button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem;height:26px;margin:0 auto;" onclick="showDetails('${vn}')" title="ยังไม่ปิดสิทธิ สปสช."><i class="bi bi-eye-fill"></i></button>`;
+                        return `<button class="btn btn-sm btn-outline-warning px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem;height:26px;margin:0 auto;" onclick="showDetails('${vn}')" title="ข้อมูลครบ แต่ยังไม่ปิดสิทธิ สปสช. | คลิกดูรายละเอียด"><i class="bi bi-eye-fill"></i></button>`;
                     }
                 }
-                const dataOrder = (isEndpointDone && !hasWarnings) ? '2' : '1';
+                const dataOrder = !v.is_valid ? '0' : (isEndpointDone && !hasWarnings ? '2' : '1');
                 const searchRow = document.getElementById(`td-status-search-${vn}`);
                 const claimRow  = document.getElementById(`td-status-claim-${vn}`);
-                if (searchRow) { searchRow.innerHTML = makeCellHtml(isEndpointDone, hasWarnings); searchRow.setAttribute('data-order', dataOrder); }
-                if (claimRow)  { claimRow.innerHTML  = makeCellHtml(isEndpointDone, hasWarnings); claimRow.setAttribute('data-order', dataOrder); }
+                if (searchRow) {
+                    searchRow.innerHTML = makeCellHtml(v.is_valid, isEndpointDone, hasWarnings);
+                    searchRow.setAttribute('data-order', dataOrder);
+                    if ($.fn.DataTable.isDataTable('#t_search')) {
+                        $('#t_search').DataTable().cell(searchRow).invalidate().draw(false);
+                    }
+                }
+                if (claimRow) {
+                    claimRow.innerHTML = makeCellHtml(v.is_valid, isEndpointDone, hasWarnings);
+                    claimRow.setAttribute('data-order', dataOrder);
+                    if ($.fn.DataTable.isDataTable('#t_claim')) {
+                        $('#t_claim').DataTable().cell(claimRow).invalidate().draw(false);
+                    }
+                }
 
                 let endpointBtn = isEndpointDone
                     ? `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>ปิดสิทธิแล้ว (สปสช.)</span>`

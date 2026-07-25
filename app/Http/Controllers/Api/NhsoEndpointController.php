@@ -219,8 +219,16 @@ class NhsoEndpointController extends Controller
         }
 
         if (!isset($result['firstName'])) {
-            $msg = $result['statusMessage'] ?? $result['message'] ?? 'ไม่พบข้อมูลบุคคลจาก สปสช. (กรุณาตรวจสอบ CID)';
-            return response()->json(['status' => 'error', 'message' => $msg], 500);
+            $msg = $result['statusMessage'] ?? $result['message'] ?? '';
+            // If the message indicates a query result (like "no authen found" / "ไม่พบข้อมูลการ authen"), return success with found = false
+            if ($msg && (strpos($msg, 'ไม่พบ') !== false || strpos($msg, 'authen') !== false || strpos($msg, 'Authen') !== false)) {
+                return response()->json([
+                    'status' => 'success',
+                    'found' => false,
+                    'message' => $msg
+                ]);
+            }
+            return response()->json(['status' => 'error', 'message' => $msg ?: 'ไม่พบข้อมูลบุคคลจาก สปสช. (กรุณาตรวจสอบ CID)'], 500);
         }
 
         $firstName = $result['firstName'];

@@ -22,6 +22,9 @@ class AppServiceProvider extends ServiceProvider
         \Illuminate\Database\Connection::resolverFor('mariadb', function ($connection, $database, $prefix, $config) {
             return new \App\Database\LegacyMariaDbConnection($connection, $database, $prefix, $config);
         });
+        \Illuminate\Database\Connection::resolverFor('mysql', function ($connection, $database, $prefix, $config) {
+            return new \App\Database\LegacyMariaDbConnection($connection, $database, $prefix, $config);
+        });
     }
 
     /**

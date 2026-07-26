@@ -1610,7 +1610,7 @@ class ClaimOpController extends Controller
                 $allVns);
             $adpCodes = collect($rawItems)->pluck('nhso_adp_code')->filter()->unique()->values()->toArray();
             $insUcsMap = [];
-            if (!empty($adpCodes) && \IlluminateSupport\Facades\Schema::hasTable('lookup_nhso_adp_code')) {
+            if (!empty($adpCodes) && \Illuminate\Support\Facades\Schema::hasTable('lookup_nhso_adp_code')) {
                 $insUcsMap = DB::table('lookup_nhso_adp_code')
                     ->whereIn('nhso_adp_code', $adpCodes)
                     ->where('nhso_adp_type_id', 2)
@@ -1831,7 +1831,7 @@ class ClaimOpController extends Controller
                 $allVns);
             $adpCodes = collect($rawItems)->pluck('nhso_adp_code')->filter()->unique()->values()->toArray();
             $insUcsMap = [];
-            if (!empty($adpCodes) && \IlluminateSupport\Facades\Schema::hasTable('lookup_nhso_adp_code')) {
+            if (!empty($adpCodes) && \Illuminate\Support\Facades\Schema::hasTable('lookup_nhso_adp_code')) {
                 $insUcsMap = DB::table('lookup_nhso_adp_code')
                     ->whereIn('nhso_adp_code', $adpCodes)
                     ->where('nhso_adp_type_id', 2)

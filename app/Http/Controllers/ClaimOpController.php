@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ClaimOpController extends Controller
 {
@@ -1610,7 +1611,7 @@ class ClaimOpController extends Controller
                 $allVns);
             $adpCodes = collect($rawItems)->pluck('nhso_adp_code')->filter()->unique()->values()->toArray();
             $insUcsMap = [];
-            if (!empty($adpCodes) && \Illuminate\Support\Facades\Schema::hasTable('lookup_nhso_adp_code')) {
+            if (!empty($adpCodes) && Schema::hasTable('lookup_nhso_adp_code')) {
                 $insUcsMap = DB::table('lookup_nhso_adp_code')
                     ->whereIn('nhso_adp_code', $adpCodes)
                     ->where('nhso_adp_type_id', 2)
@@ -1831,7 +1832,7 @@ class ClaimOpController extends Controller
                 $allVns);
             $adpCodes = collect($rawItems)->pluck('nhso_adp_code')->filter()->unique()->values()->toArray();
             $insUcsMap = [];
-            if (!empty($adpCodes) && \Illuminate\Support\Facades\Schema::hasTable('lookup_nhso_adp_code')) {
+            if (!empty($adpCodes) && Schema::hasTable('lookup_nhso_adp_code')) {
                 $insUcsMap = DB::table('lookup_nhso_adp_code')
                     ->whereIn('nhso_adp_code', $adpCodes)
                     ->where('nhso_adp_type_id', 2)

@@ -739,6 +739,10 @@ class ClaimOpController extends Controller
         $start_date = $request->start_date ?: date('Y-m-d');
         $end_date = $request->end_date ?: date('Y-m-d');
 
+        $hcode = DB::connection('hosxp')->table('opdconfig')->value('hospitalcode');
+        $lh_status = DB::table('lookup_hospcode')->where('hospcode', $hcode)->value('hmain_sss');
+        $default_normal_price = ($lh_status === 'Y') ? 370 : 120;
+
         $sum = DB::connection('hosxp')->select('
             SELECT hospmain,COUNT(vn) AS visit,SUM(income) AS income,SUM(rcpt_money) AS rcpt_money,
             SUM(other_price) AS other_price,SUM(claim_price) AS claim_price,SUM(cfo_price) AS cfo_price,
@@ -756,8 +760,7 @@ class ClaimOpController extends Controller
 				CASE 
 				    WHEN er.vn IS NOT NULL AND v1.vn IS NULL THEN 
 				        IF((v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0)) > 700, 700, (v.income-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0)))
-				    WHEN lh.hmain_sss = "Y" THEN 370
-				    ELSE 120
+				    ELSE ' . $default_normal_price . '
 				END AS cfo_price
                 FROM ovst o
 				LEFT JOIN er_regist er ON er.vn=o.vn
@@ -775,7 +778,7 @@ class ClaimOpController extends Controller
                     GROUP BY r.vn
                 ) rc ON rc.vn = o.vn
 
-				LEFT JOIN vn_stat v1 ON v1.vn = o.vn AND v1.pdx IN ("Z242","Z235","Z439","Z488","Z489","Z480","Z098","Z549","Z479")
+				LEFT JOIN vn_stat v1 ON v1.vn = o.vn AND v1.pdx IN ("Z242","Z235","Z439","Z488","Z480","Z098","Z549","Z479")
                 LEFT JOIN (SELECT op.vn, SUM(op.sum_price) AS other_price FROM opitemrece op
                     INNER JOIN hrims.lookup_icode li ON op.icode = li.icode
 					WHERE op.vstdate BETWEEN ? AND ?  GROUP BY op.vn) claim_items ON claim_items.vn=o.vn            
@@ -801,8 +804,7 @@ class ClaimOpController extends Controller
             CASE 
                 WHEN er.vn IS NOT NULL AND v1.vn IS NULL THEN 
                     IF((COALESCE(claim_items.total_income, 0)-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0)) > 700, 700, (COALESCE(claim_items.total_income, 0)-IFNULL(rc.rcpt_money, 0)-COALESCE(claim_items.other_price,0)))
-                WHEN lh.hmain_sss = "Y" THEN 370
-                ELSE 120
+                ELSE ' . $default_normal_price . '
             END AS cfo_price,
             claim_items.other_list
             FROM ovst o

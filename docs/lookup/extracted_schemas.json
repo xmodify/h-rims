@@ -11802,6 +11802,16 @@
                     "column": "claimCode",
                     "unique": false
                 }
+            ],
+            "nhso_endpoint_cid_vstdate_index": [
+                {
+                    "column": "cid",
+                    "unique": false
+                },
+                {
+                    "column": "vstdate",
+                    "unique": false
+                }
             ]
         }
     },

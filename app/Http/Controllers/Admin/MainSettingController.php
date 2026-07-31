@@ -12,6 +12,9 @@ use Illuminate\Database\Schema\Blueprint;
 
 class MainSettingController extends Controller
 {
+    protected $hosxpCollation = null;
+    protected $hosxpCharset = null;
+    protected $hasAttemptedHosxpCollationDetection = false;
 
     public function index()
     {
@@ -139,6 +142,9 @@ class MainSettingController extends Controller
                             $details[] = "$table: $res";
                         }
                     }
+
+                    // Align column collations with HOSxP legacy tables to optimize performance
+                    $this->alignColumnCollations();
 
                     // Set Admin default permissions in users table
                     $permissionColumns = [
@@ -834,11 +840,150 @@ class MainSettingController extends Controller
                 }
             }
 
+            // Automatically enforce HOSxP collation for cross-database join columns
+            if (in_array(strtolower($colName), ['vn', 'hn', 'cid', 'an'])) {
+                $isStringCol = (
+                    strpos($type, 'varchar') !== false ||
+                    strpos($type, 'char') !== false ||
+                    strpos($type, 'text') !== false
+                );
+                if ($isStringCol) {
+                    $this->detectHosxpCollation();
+                    if ($this->hosxpCollation && $this->hosxpCharset) {
+                        if (method_exists($colObj, 'charset') && method_exists($colObj, 'collation')) {
+                            $colObj->charset($this->hosxpCharset)->collation($this->hosxpCollation);
+                        }
+                    }
+                }
+            }
+
             if ($isChange) {
                 $colObj->change();
             }
         }
         return $colObj;
+    }
+
+    /**
+     * Dynamically detects the collation and charset used by HOSxP patient database.
+     */
+    protected function detectHosxpCollation()
+    {
+        if ($this->hasAttemptedHosxpCollationDetection) {
+            return;
+        }
+        $this->hasAttemptedHosxpCollationDetection = true;
+
+        try {
+            $colInfo = DB::connection('hosxp')->select("SHOW FULL COLUMNS FROM `patient` WHERE Field = 'cid'");
+            if (!empty($colInfo)) {
+                $collation = $colInfo[0]->Collation;
+                if ($collation) {
+                    $parts = explode('_', $collation);
+                    $this->hosxpCollation = $collation;
+                    $this->hosxpCharset = $parts[0];
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning("Could not detect HOSxP collation: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Dynamically aligns column collations of cross-database join keys to prevent collation mismatch issues.
+     */
+    protected function alignColumnCollations()
+    {
+        $this->detectHosxpCollation();
+        if (!$this->hosxpCollation || !$this->hosxpCharset) {
+            Log::warning("Skipped column collation alignment because HOSxP collation was not detected.");
+            return;
+        }
+
+        // Set session lock_wait_timeout to prevent ALTER TABLE statements from hanging indefinitely
+        try {
+            DB::statement("SET session lock_wait_timeout = 5");
+        } catch (\Exception $e) {
+            Log::warning("Could not set lock_wait_timeout: " . $e->getMessage());
+        }
+
+        $tables = [
+            'nhso_endpoint' => ['cid'],
+            'debtor_1102050101_301' => ['vn', 'hn', 'cid'],
+            'sss_ssop_rep' => ['vn', 'hn'],
+            'sss_ssop_stm' => ['vn', 'hn'],
+            'debtor_1102050102_108' => ['vn', 'hn', 'cid', 'an'],
+            'debtor_1102050102_109' => ['vn', 'hn', 'cid', 'an'],
+            'debtor_1102050102_110' => ['vn', 'hn', 'cid', 'an'],
+            'debtor_1102050102_111' => ['vn', 'hn', 'cid', 'an'],
+            'debtor_1102050102_602' => ['vn', 'hn', 'cid', 'an'],
+            'debtor_1102050102_603' => ['vn', 'hn', 'cid', 'an'],
+            'debtor_1102050102_801' => ['vn', 'hn', 'cid', 'an'],
+            'debtor_1102050102_802' => ['vn', 'hn', 'cid', 'an'],
+            'debtor_1102050102_803' => ['vn', 'hn', 'cid', 'an'],
+            'debtor_1102050102_804' => ['vn', 'hn', 'cid', 'an'],
+            'eclaim_status' => ['cid', 'hn', 'an'],
+            'fdh_claim_status' => ['hn', 'an'],
+            'sss_aipn_rep' => ['an', 'hn'],
+            'sss_aipn_stm' => ['hn', 'an'],
+            'sss_chronic' => ['hn'],
+            'sss_chronic_register' => ['cid'],
+            'stm_bkk' => ['hn', 'an', 'cid'],
+            'stm_bkk_kidney' => ['hn', 'an', 'cid'],
+            'stm_bkk_kidneyexcel' => ['hn', 'an', 'cid'],
+            'stm_bkkexcel' => ['hn', 'an', 'cid'],
+            'stm_bmt' => ['hn', 'an', 'cid'],
+            'stm_bmt_kidney' => ['hn', 'an', 'cid'],
+            'stm_bmt_kidneyexcel' => ['hn', 'an', 'cid'],
+            'stm_bmtexcel' => ['hn', 'an', 'cid'],
+            'stm_lgo' => ['hn', 'an', 'cid'],
+            'stm_lgo_kidney' => ['hn', 'cid'],
+            'stm_lgo_kidneyexcel' => ['hn', 'cid'],
+            'stm_lgoexcel' => ['hn', 'an', 'cid'],
+            'stm_ofc' => ['hn', 'an', 'cid'],
+            'stm_ofc_cipn' => ['an'],
+            'stm_ofc_csop' => ['hn'],
+            'stm_ofcexcel' => ['hn', 'an', 'cid'],
+            'stm_pvt' => ['hn', 'an', 'cid'],
+            'stm_pvtexcel' => ['hn', 'an', 'cid'],
+            'stm_seamless_dmis' => ['hn', 'an', 'cid'],
+            'stm_srt' => ['hn', 'an', 'cid'],
+            'stm_srtexcel' => ['hn', 'an', 'cid'],
+            'stm_sss_kidney' => ['hn', 'cid'],
+            'stm_ucs' => ['hn', 'an', 'cid'],
+            'stm_ucs_kidney' => ['hn', 'an', 'cid'],
+            'stm_ucs_kidneyexcel' => ['hn', 'an', 'cid'],
+            'stm_ucsexcel' => ['hn', 'an', 'cid'],
+        ];
+
+        foreach ($tables as $table => $columns) {
+            if (!\Illuminate\Support\Facades\Schema::hasTable($table)) {
+                continue;
+            }
+            foreach ($columns as $col) {
+                $colInfo = DB::select("SHOW FULL COLUMNS FROM `$table` WHERE Field = ?", [$col]);
+                if (!empty($colInfo)) {
+                    $c = $colInfo[0];
+                    if ($c->Collation !== $this->hosxpCollation) {
+                        $nullableStr = ($c->Null === 'YES') ? 'NULL' : 'NOT NULL';
+                        $defaultStr = '';
+                        if ($c->Default !== null) {
+                            $defaultStr = "DEFAULT '" . addslashes($c->Default) . "'";
+                        } elseif ($c->Null === 'YES') {
+                            $defaultStr = 'DEFAULT NULL';
+                        }
+                        try {
+                            DB::statement("ALTER TABLE `$table` MODIFY `$col` {$c->Type} CHARACTER SET {$this->hosxpCharset} COLLATE {$this->hosxpCollation} {$nullableStr} {$defaultStr}");
+                        } catch (\Exception $e) {
+                            \Illuminate\Support\Facades\Log::error("Failed to align collation for $table.$col: " . $e->getMessage());
+                            if (strpos($e->getMessage(), 'Lock wait timeout') !== false) {
+                                throw new \Exception("ไม่สามารถปรับปรุงตาราง {$table} ได้เนื่องจากติดคิวอ่านรายงานอื่นค้างอยู่ (Lock wait timeout) กรุณารอสักครู่ (ประมาณ 10-30 วินาที) เพื่อให้คิวประมวลผลว่างลง แล้วกดปุ่ม 'Upgrade Structure' ใหม่อีกครั้ง");
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public function gitPull()

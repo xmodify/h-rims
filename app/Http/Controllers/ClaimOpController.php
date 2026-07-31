@@ -4983,6 +4983,7 @@ class ClaimOpController extends Controller
 			) rc ON rc.vn = o.vn
             LEFT JOIN hrims.debtor_1102050101_307 d ON d.vn=o.vn
             WHERE p.pttype IN (' . $pttype_sss_fund . ') 
+                AND (o.an = "" OR o.an IS NULL)
                 AND o.vstdate BETWEEN ? AND ?
                 GROUP BY o.vn ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
@@ -5011,6 +5012,7 @@ class ClaimOpController extends Controller
             ) rc ON rc.vn = o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid=pt.cid AND ep.vstdate=o.vstdate AND ep.claimCode LIKE "EP%"
             WHERE p.pttype IN (' . $pttype_sss_fund . ') 
+            AND (o.an = "" OR o.an IS NULL)
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date]);
 
@@ -5300,7 +5302,7 @@ class ClaimOpController extends Controller
                 HAVING MAX(CASE WHEN op.paidst = "02" THEN 1 ELSE 0 END) = 1
             ) hc_items ON hc_items.vn = o.vn		
 			LEFT JOIN hrims.debtor_1102050101_309 d ON d.vn=o.vn
-			WHERE p.hipdata_code = "SSS" AND o.vstdate BETWEEN ? AND ?
+			WHERE p.hipdata_code = "SSS" AND (o.an = "" OR o.an IS NULL) AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
             ORDER BY YEAR(vstdate), MONTH(vstdate)', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
@@ -5342,7 +5344,7 @@ class ClaimOpController extends Controller
                 HAVING MAX(CASE WHEN op.paidst = "02" THEN 1 ELSE 0 END) = 1
             ) hc_items ON hc_items.vn = o.vn
             LEFT JOIN hrims.debtor_1102050101_309 d ON d.vn=o.vn		
-			WHERE p.hipdata_code = "SSS" AND o.vstdate BETWEEN ? AND ?
+			WHERE p.hipdata_code = "SSS" AND (o.an = "" OR o.an IS NULL) AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date, $start_date, $end_date]);
 
         if ($request->ajax()) {
@@ -5618,6 +5620,7 @@ class ClaimOpController extends Controller
                 ) rc ON rc.vn = o.vn
                 LEFT JOIN hrims.debtor_1102050102_602 d ON d.vn=o.vn
                 WHERE p.pttype IN (' . $pttype_act . ') 
+                    AND (o.an = "" OR o.an IS NULL)
                     AND o.vstdate BETWEEN ? AND ?
                 GROUP BY o.vn 
             ) AS a
@@ -5647,7 +5650,7 @@ class ClaimOpController extends Controller
                 GROUP BY r.vn
             ) rc ON rc.vn = o.vn
             LEFT JOIN hrims.debtor_1102050102_602 d ON d.vn=o.vn
-            WHERE p.pttype IN (' . $pttype_act . ') AND o.vstdate BETWEEN ? AND ?
+            WHERE p.pttype IN (' . $pttype_act . ') AND (o.an = "" OR o.an IS NULL) AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date]);
 
         if ($request->ajax()) {
@@ -5764,6 +5767,7 @@ class ClaimOpController extends Controller
             WHERE p.hipdata_code = "SSS"
                 AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
                 AND p.pttype NOT IN (' . $exclude_pttypes_str . ')
+                AND (o.an = "" OR o.an IS NULL)
                 AND o.vstdate BETWEEN ? AND ?
                 GROUP BY o.vn ) AS a
 			GROUP BY YEAR(vstdate), MONTH(vstdate)
@@ -5807,6 +5811,7 @@ class ClaimOpController extends Controller
             WHERE p.hipdata_code = "SSS"
             AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
             AND p.pttype NOT IN (' . $exclude_pttypes_str . ')
+            AND (o.an = "" OR o.an IS NULL)
             AND o.vstdate BETWEEN ? AND ?
             GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date]);
 

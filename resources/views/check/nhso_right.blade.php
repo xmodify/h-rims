@@ -249,8 +249,27 @@
         
         if (!isLocalhost) {
             if (showSuccessAlert) {
-                // หากรันอยู่บนเซิร์ฟเวอร์จริง ให้เปิดหน้าต่างเลือกไฟล์ token.txt เพื่อความปลอดภัย
-                $('#tokenFileInput').click();
+                // คัดลอกพาธโฟลเดอร์ลง Clipboard อัตโนมัติเพื่อให้ผู้ใช้วางในช่อง Address bar ได้ทันที
+                const pathText = '%userprofile%\\SRM Smart Card Single Sign-On\\';
+                navigator.clipboard.writeText(pathText).then(() => {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'คัดลอกเส้นทางโฟลเดอร์แล้ว!',
+                        html: 'ระบบได้คัดลอกเส้นทางโฟลเดอร์ของ SRM ให้แล้ว<br><br>' +
+                              '<b>ขั้นตอนการเปิดไฟล์:</b><br>' +
+                              '1. เมื่อหน้าต่างเลือกไฟล์เปิดขึ้นมา ให้กดคลิกที่แถบที่อยู่ด้านบนสุด (Address Bar)<br>' +
+                              '2. กด <b>Ctrl + V</b> (เพื่อวางพาธ) แล้วกด <b>Enter</b><br>' +
+                              '3. ดับเบิ้ลคลิกเลือกไฟล์ <b>token.txt</b> ได้ทันที',
+                        confirmButtonText: 'เลือกไฟล์ token.txt',
+                        confirmButtonColor: '#3b82f6'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            $('#tokenFileInput').click();
+                        }
+                    });
+                }).catch(() => {
+                    $('#tokenFileInput').click();
+                });
             } else {
                 updateStatusBadge();
             }

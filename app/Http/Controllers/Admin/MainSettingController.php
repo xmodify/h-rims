@@ -17,7 +17,17 @@ class MainSettingController extends Controller
     {
         $hospcode = DB::table('lookup_hospcode')->value('hospcode');
 
-        $settings = MainSetting::orderBy('name_th', 'asc')->get();
+        // Exclude internal calculated AOPOD settings from being manually edited
+        $excludeFromDisplay = [
+            'aopod_death_pct_patient', 'aopod_death_details_patient',
+            'aopod_death_pct_person', 'aopod_death_details_person',
+            'aopod_death_pct_clinicmember', 'aopod_death_details_clinicmember',
+            'aopod_death_pct_death', 'aopod_death_details_death'
+        ];
+
+        $settings = MainSetting::orderBy('name_th', 'asc')
+            ->whereNotIn('name', $excludeFromDisplay)
+            ->get();
 
         $integrationTokens = [
             'token_authen_kiosk_nhso',
@@ -28,8 +38,6 @@ class MainSettingController extends Controller
             'moph_notify_secret',
             'moph_notify_client_id'
         ];
-
-
 
         // Grouping settings into categories
         $categories = [
@@ -57,6 +65,8 @@ class MainSettingController extends Controller
             ],
             'Claim (FDH)' => ['fdh_user', 'fdh_pass', 'fdh_secretKey'],
             'Integration Tokens' => $integrationTokens,
+            'AOPOD Setting' => ['aopod_token', 'aopod_url_api_death'],
+            'License Setting' => ['rims_license_key'],
         ];
 
         $groupedData = [];
@@ -89,6 +99,10 @@ class MainSettingController extends Controller
         $setting = MainSetting::where('name', $name)->firstOrFail();
         $setting->value = $request->value;
         $setting->save();
+
+        if ($name === 'rims_license_key') {
+            \Illuminate\Support\Facades\Cache::forget(\App\Services\LicenseVerificationService::CACHE_KEY);
+        }
 
         return redirect()->back()->with('success', 'แก้ไขข้อมูลสำเร็จ');
     }
@@ -544,6 +558,7 @@ class MainSettingController extends Controller
                         ['name' => 'git_token', 'name_th' => 'GitHub Token (สำหรับ Private Repo)', 'value' => ''],
                         ['name' => 'moph_notify_secret', 'name_th' => 'Moph Notify SecretKEY', 'value' => ''],
                         ['name' => 'moph_notify_client_id', 'name_th' => 'Moph Notify ClientID', 'value' => ''],
+                        ['name' => 'rims_license_key', 'name_th' => 'รหัสคีย์ลิขสิทธิ์ (License Key)', 'value' => ''],
                     ];
 
                     // Clean up obsolete settings dynamically
@@ -1023,5 +1038,20 @@ class MainSettingController extends Controller
                 'message' => 'เกิดข้อผิดพลาดในการส่ง Notify: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+
+
+    public function licenseVerify(Request $request)
+    {
+        \Illuminate\Support\Facades\Cache::forget(\App\Services\LicenseVerificationService::CACHE_KEY);
+        $info = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
+
+        if (isset($info['status']) && $info['status'] === 'active') {
+            return redirect()->back()->with('success', 'ตรวจสอบสิทธิ์สำเร็จ! ลิขสิทธิ์มีผลใช้งานถึง: ' . \App\Services\LicenseVerificationService::formatThaiShortDate($info['expires_at']));
+        }
+
+        $msg = $info['message'] ?? 'ลิขสิทธิ์ไม่มีผลบังคับใช้ (สถานะ: ' . ($info['status'] ?? 'ไม่ทราบ') . ')';
+        return redirect()->back()->with('error', 'ผลการตรวจสอบ: ' . $msg);
     }
 }

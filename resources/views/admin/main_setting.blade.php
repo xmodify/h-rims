@@ -24,6 +24,9 @@
     </div>
 
 
+
+
+
     <div class="row">
         @php $i = 1; @endphp
         @foreach($groupedData as $category => $settings)
@@ -37,9 +40,72 @@
                             <button type="button" class="btn btn-outline-info btn-sm px-3 rounded-pill shadow-sm hover-scale" id="testFdhUserBtn">
                                 <i class="bi bi-shield-lock-fill me-1"></i> ทดสอบดึง Token
                             </button>
+                        @elseif($category === 'License Setting')
+                            <button type="button" class="btn btn-outline-primary btn-sm px-3 rounded-pill shadow-sm hover-scale" data-bs-toggle="modal" data-bs-target="#licenseInfoModal">
+                                <i class="bi bi-info-circle-fill me-1"></i> ขอบเขตสิทธิ์การใช้งาน
+                            </button>
                         @endif
                     </div>
                     <div class="card-body p-0">
+                        @if($category === 'License Setting')
+                            @php
+                                $licInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
+                                $licKey = \App\Services\LicenseVerificationService::getLicenseKey();
+                            @endphp
+                            <div class="p-4 border-bottom bg-light bg-opacity-25">
+                                <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="small fw-bold text-muted">สถานะลิขสิทธิ์:</span>
+                                        @if($licInfo['status'] === 'active')
+                                            <span class="badge bg-success rounded-pill fw-bold text-white px-2.5 py-1">
+                                                <i class="bi bi-patch-check-fill me-1"></i> Active
+                                            </span>
+                                        @elseif($licInfo['status'] === 'expired')
+                                            <span class="badge bg-danger rounded-pill fw-bold text-white px-2.5 py-1">
+                                                <i class="bi bi-exclamation-triangle-fill me-1"></i> Expired
+                                            </span>
+                                        @elseif($licInfo['status'] === 'pending')
+                                            <span class="badge bg-warning text-dark rounded-pill fw-bold px-2.5 py-1">
+                                                <i class="bi bi-hourglass-split me-1"></i> Pending
+                                            </span>
+                                        @elseif($licInfo['status'] === 'not_registered')
+                                            <span class="badge bg-secondary rounded-pill fw-bold px-2.5 py-1">
+                                                <i class="bi bi-slash-circle me-1"></i> Not Registered
+                                            </span>
+                                        @else
+                                            <span class="badge bg-danger rounded-pill fw-bold text-white px-2.5 py-1">
+                                                <i class="bi bi-shield-slash-fill me-1"></i> Locked
+                                            </span>
+                                        @endif
+                                        
+                                        @if($licInfo['offline'])
+                                            <span class="badge bg-info text-dark rounded-pill fw-bold px-2.5 py-1" title="โหมดออฟไลน์ชั่วคราว">
+                                                <i class="bi bi-wifi-off me-1"></i> Offline Mode
+                                            </span>
+                                        @endif
+                                    </div>
+                                    <span class="badge bg-light text-dark border rounded-pill fw-bold">
+                                        HCODE: {{ \App\Services\LicenseVerificationService::getHcode() }}
+                                    </span>
+                                </div>
+                                <ul class="list-unstyled mb-3 text-muted small lh-lg">
+                                    <li>• <b>วันหมดอายุ:</b> <span class="fw-bold text-dark">{{ \App\Services\LicenseVerificationService::formatThaiShortDate($licInfo['expires_at'] ?? '') }}</span></li>
+                                    @if(!empty($licInfo['message']))
+                                        <li>• <b>รายละเอียด:</b> {{ $licInfo['message'] }}</li>
+                                    @endif
+                                </ul>
+                                <div class="d-flex gap-2">
+                                    @if(!empty($licKey))
+                                        <form action="{{ route('admin.license.verify') }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-primary btn-sm px-3 rounded-pill shadow-sm">
+                                                <i class="bi bi-arrow-repeat me-1"></i> ตรวจสอบออนไลน์
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
                         <div class="table-responsive">
                             <table class="table table-hover mb-0 border-0">
                                 <thead class="bg-light">
@@ -132,6 +198,41 @@
         </div>
     </div>
 </div>
+
+    <!-- License Scope Info Modal -->
+    <div class="modal fade" id="licenseInfoModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0 rounded-4">
+                <div class="modal-header bg-primary text-white border-0 py-3">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-shield-check me-2"></i> ขอบเขตการอนุมัติสิทธิ์ (License Scope)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-dark">
+                    <p class="text-muted mb-3">ระบบ/ฟังก์ชันของโปรแกรม "RiMS" (rims_license) ที่ถูกควบคุมสิทธิ์ใช้งานภายใต้ลิขสิทธิ์ปัจจุบัน:</p>
+                    
+                    <div class="list-group list-group-flush rounded-3 border mb-3">
+                        <div class="list-group-item d-flex align-items-center gap-3 py-3">
+                            <div class="bg-success bg-opacity-10 text-success rounded-circle p-2 d-flex">
+                                <i class="bi bi-file-earmark-arrow-up-fill fs-5"></i>
+                            </div>
+                            <div>
+                                <strong class="d-block text-dark">ระบบส่งออกข้อมูลประกันสังคม (SSOP)</strong>
+                                <span class="text-muted small">ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาล (SSOP Export)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning border-0 small mb-0 rounded-3">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        หากคีย์ลิขสิทธิ์หมดอายุหรือถูกปิดใช้งาน ระบบจะระงับการทำรายการในหัวข้อข้างต้นชั่วคราวจนกว่าจะได้รับการเปิดสิทธิ์อนุมัติใหม่
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0">
+                    <button type="button" class="btn btn-secondary px-4 rounded-pill" data-bs-dismiss="modal">ปิดหน้าต่าง</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <style>
     .hover-scale {

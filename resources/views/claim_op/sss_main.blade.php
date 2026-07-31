@@ -1,5 +1,5 @@
 @php
-    $is_ssop_licensed = \App\Services\LicenseService::isLicensed();
+    $is_ssop_licensed = \App\Services\LicenseVerificationService::isLicensed();
 @endphp
 @extends('layouts.app')
 

@@ -68,6 +68,6 @@ class Kernel extends HttpKernel
 
     protected $routeMiddleware = [
         'is_admin' => \App\Http\Middleware\IsAdmin::class,
-        'hosp_license' => \App\Http\Middleware\CheckHospitalLicense::class,
+        'rims_license' => \App\Http\Middleware\CheckLicense::class,
     ];  
 }

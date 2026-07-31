@@ -140,6 +140,31 @@
             font-weight: 700;
         }
 
+        .nav-license-badge {
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+            margin-left: 8px;
+            display: inline-flex;
+            align-items: center;
+        }
+        .nav-license-badge.license-active {
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+            border: 1px solid rgba(46, 204, 113, 0.4);
+        }
+        .nav-license-badge.license-expired {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+            border: 1px solid rgba(231, 76, 60, 0.4);
+        }
+        .nav-license-badge.license-pending {
+            background: rgba(241, 196, 15, 0.2);
+            color: #f1c40f;
+            border: 1px solid rgba(241, 196, 15, 0.4);
+        }
+
         /* Dash Card Tokens */
         .dash-card {
             background: #ffffff !important;
@@ -878,7 +903,7 @@
                                         </li>
                                         <!-- ชี้ขวา -->
                                         @php
-                                            $is_ssop_licensed = \App\Services\LicenseService::isLicensed();
+                                            $is_ssop_licensed = \App\Services\LicenseVerificationService::isLicensed();
                                             view()->share('is_ssop_licensed', $is_ssop_licensed);
                                         @endphp
                                         <li class="dropend position-relative">
@@ -1130,9 +1155,31 @@
                     <!-- Right Side Of Navbar -->
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item d-flex align-items-center me-2">
+                            @php
+                                $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
+                            @endphp
                             <div class="nav-version-badge">
-                                V.69-07-30 10:30
+                                V.69-07-31 15:00
                             </div>
+                            @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
+                                @if($licenseInfo['status'] === 'active')
+                                    <div class="nav-license-badge license-active" title="ลิขสิทธิ์ถูกต้อง">
+                                        <i class="bi bi-patch-check-fill me-1"></i> Active ({{ \App\Services\LicenseVerificationService::formatThaiShortDate($licenseInfo['expires_at']) }})
+                                    </div>
+                                @elseif($licenseInfo['status'] === 'expired')
+                                    <div class="nav-license-badge license-expired" title="ลิขสิทธิ์หมดอายุ">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i> Expired ({{ \App\Services\LicenseVerificationService::formatThaiShortDate($licenseInfo['expires_at']) }})
+                                    </div>
+                                @elseif($licenseInfo['status'] === 'pending')
+                                    <div class="nav-license-badge license-pending" title="รอการอนุมัติ">
+                                        <i class="bi bi-hourglass-split me-1"></i> Pending
+                                    </div>
+                                @else
+                                    <div class="nav-license-badge license-expired" title="{{ $licenseInfo['message'] ?? 'ลิขสิทธิ์มีปัญหา' }}">
+                                        <i class="bi bi-shield-slash-fill me-1"></i> Locked
+                                    </div>
+                                @endif
+                            @endif
                         </li>
                         <!-- Authentication Links -->
                         @guest

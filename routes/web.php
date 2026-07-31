@@ -47,6 +47,7 @@ Route::prefix('admin')->middleware(['auth', 'is_admin'])->name('admin.')->group(
     Route::get('main_setting', [MainSettingController::class, 'index'])->name('main_setting');
     Route::put('main_setting/{name}', [MainSettingController::class, 'update']);
     Route::post('main_setting/up_structure', [MainSettingController::class, 'up_structure'])->name('up_structure');
+    Route::post('license/verify', [MainSettingController::class, 'licenseVerify'])->name('license.verify');
     Route::get('lookup_icode/search_items', [LookupIcodeController::class, 'search_items'])->name('lookup_icode.search_items');
     Route::resource('lookup_icode', LookupIcodeController::class)->parameters(['lookup_icode' => 'icode']);
     Route::post('insert_lookup_uc_cr', [LookupIcodeController::class, 'insert_lookup_uc_cr'])->name('insert_lookup_uc_cr');
@@ -354,8 +355,8 @@ Route::get('claim_op/sss_detail', [ClaimOpController::class, 'sss_detail']);
     Route::post('claim_op/sss_rep_import', [ImportSssController::class, 'import_rep']);
     Route::post('claim_op/sss_stm_import', [ImportSssController::class, 'import_stm']);
     Route::get('claim_op/sss_chronic_feedback_list', [ImportSssController::class, 'get_feedback_list']);
-Route::match(['get', 'post'], 'claim_op/sss_export_ssop', [\App\Http\Controllers\SssExportController::class, 'sss_export_ssop'])->middleware('hosp_license');
-Route::post('claim_op/sss_export_preview', [\App\Http\Controllers\SssExportController::class, 'sss_export_preview'])->middleware('hosp_license');
+Route::match(['get', 'post'], 'claim_op/sss_export_ssop', [\App\Http\Controllers\SssExportController::class, 'sss_export_ssop'])->middleware('rims_license');
+Route::post('claim_op/sss_export_preview', [\App\Http\Controllers\SssExportController::class, 'sss_export_preview'])->middleware('rims_license');
 Route::match(['get', 'post'], 'claim_op/sss_kidney', [ClaimOpController::class, 'sss_kidney']);
 Route::match(['get', 'post'], 'claim_op/sss_hc', [ClaimOpController::class, 'sss_hc']);
 Route::match(['get', 'post'], 'claim_op/rcpt', [ClaimOpController::class, 'rcpt']);

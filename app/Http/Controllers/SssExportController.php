@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use App\Services\LicenseService;
+use App\Services\LicenseVerificationService;
 use ZipArchive;
 
 class SssExportController extends Controller
@@ -21,7 +21,7 @@ class SssExportController extends Controller
      */
     private function generate_ssop_raw_data($vns, $sess_no, $station_id, $tflag = 'A')
     {
-        $hcode = LicenseService::getCurrentHospcode() ?: '10989';
+        $hcode = LicenseVerificationService::getHcode();
         
         $hname = Cache::remember('hospitalname_licensed', 86400, function() {
             try {

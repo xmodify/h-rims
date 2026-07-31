@@ -1,5 +1,5 @@
 @php
-    $is_ssop_licensed = \App\Services\LicenseService::isLicensed();
+    $is_ssop_licensed = \App\Services\LicenseVerificationService::isLicensed();
 @endphp
 
     <div class="card dash-card border-0" style="height: auto !important; overflow: visible !important;">

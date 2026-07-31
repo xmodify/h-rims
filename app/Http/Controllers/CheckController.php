@@ -15,6 +15,7 @@ use App\Models\Drugcat_chi;
 use App\Models\Drugcat_fdh;
 use App\Models\Labcat_nhso;
 use App\Models\Labcat_chi;
+use App\Services\LicenseVerificationService;
 
 class CheckController extends Controller
 {
@@ -24,12 +25,52 @@ class CheckController extends Controller
             'auth',
             function ($request, $next) {
                 $user = auth()->user();
-                if ($user && $user->status !== 'admin' && $user->allow_check !== 'Y') {
-                    return response()->view('errors.restricted', ['module' => 'ตรวจสอบข้อมูล'], 403);
+                if ($user && $user->status !== 'admin') {
+                    $routeName = $request->route() ? $request->route()->getName() : null;
+                    if (in_array($routeName, ['check.nhso_right', 'check.nhso_right.open_folder'])) {
+                        if ($user->allow_check_right !== 'Y') {
+                            return response()->view('errors.restricted', ['module' => 'ตรวจสอบสิทธิการรักษา (สปสช.)'], 403);
+                        }
+                    } else {
+                        if ($user->allow_check !== 'Y') {
+                            return response()->view('errors.restricted', ['module' => 'ตรวจสอบข้อมูล'], 403);
+                        }
+                    }
                 }
                 return $next($request);
             }
         ]);
+    }
+
+    public function nhso_right(Request $request)
+    {
+        if (!LicenseVerificationService::isLicensed()) {
+            return response()->view('errors.restricted', ['module' => 'ระบบระงับการทำงานชั่วคราว: สำหรับ License เท่านั้น'], 403);
+        }
+        return view('check.nhso_right');
+    }
+
+    public function openFolder(Request $request)
+    {
+        $userprofile = getenv('USERPROFILE') ?: ($_SERVER['USERPROFILE'] ?? null);
+        if (empty($userprofile)) {
+            $homedrive = getenv('HOMEDRIVE') ?: 'C:';
+            $homepath = getenv('HOMEPATH') ?: '';
+            if ($homepath) {
+                $userprofile = $homedrive . $homepath;
+            }
+        }
+
+        if ($userprofile) {
+            $path = $userprofile . DIRECTORY_SEPARATOR . 'SRM Smart Card Single Sign-On';
+            if (is_dir($path)) {
+                // Run explorer.exe to open folder in Windows
+                @shell_exec('explorer.exe "' . $path . '"');
+                return response()->json(['status' => 'success', 'message' => 'เปิดโฟลเดอร์สำเร็จ']);
+            }
+            return response()->json(['status' => 'error', 'message' => 'ไม่พบโฟลเดอร์ในเครื่องเซิร์ฟเวอร์: ' . $path], 400);
+        }
+        return response()->json(['status' => 'error', 'message' => 'ไม่พบพาธผู้ใช้งานบนเครื่องเซิร์ฟเวอร์'], 400);
     }
 
     public function nhso_endpoint(Request $request)

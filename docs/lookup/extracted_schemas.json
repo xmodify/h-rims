@@ -18409,6 +18409,12 @@
                 "default": "N",
                 "extra": ""
             },
+            "allow_check_right": {
+                "type": "varchar(1)",
+                "nullable": false,
+                "default": "N",
+                "extra": ""
+            },
             "allow_import": {
                 "type": "varchar(1)",
                 "nullable": false,

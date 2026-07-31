@@ -612,7 +612,7 @@
                                 </li>
                             @endif
 
-                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_check == 'Y')
+                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_check == 'Y' || Auth::user()->allow_check_right == 'Y')
                                 <li class="nav-item dropdown">
                                     <a id="navbarDropdown" class="nav-link nav-link-modern dropdown-toggle" href="#"
                                         role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"
@@ -622,18 +622,30 @@
                                     <ul class="dropdown-menu dropdown-menu-modern dropdown-menu-end">
                                         <!-- เมนูอื่น -->
                                         <li>
-                                            <a class="dropdown-item dropdown-item-modern"
-                                                href="{{ url('check/nhso_endpoint') }}">
-                                                <i class="bi bi-person-x-fill text-danger me-2"></i> ปิดสิทธิ สปสช.
-                                            </a>
-                                            <a class="dropdown-item dropdown-item-modern"
-                                                href="{{ url('check/fdh_claim_status') }}">
-                                                <i class="bi bi-cloud-check-fill text-primary me-2"></i> FDH-Claim Status
-                                            </a>
-                                            <a class="dropdown-item dropdown-item-modern"
-                                                href="{{ url('check/eclaim_status') }}">
-                                                <i class="bi bi-file-earmark-check-fill text-success me-2"></i> E-Claim Status
-                                            </a>
+                                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_check_right == 'Y')
+                                                @php
+                                                    $is_nhso_check_licensed = \App\Services\LicenseVerificationService::isLicensed();
+                                                @endphp
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ $is_nhso_check_licensed ? url('check/nhso_right') : '#' }}"
+                                                    @if(!$is_nhso_check_licensed) onclick="showLicenseRequiredAlert(event)" @endif>
+                                                    <i class="bi bi-card-checklist text-info me-2"></i> ตรวจสอบสิทธิการรักษา
+                                                </a>
+                                            @endif
+                                            @if(Auth::user()->status == 'admin' || Auth::user()->allow_check == 'Y')
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('check/nhso_endpoint') }}">
+                                                    <i class="bi bi-person-x-fill text-danger me-2"></i> ปิดสิทธิ สปสช.
+                                                </a>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('check/fdh_claim_status') }}">
+                                                    <i class="bi bi-cloud-check-fill text-primary me-2"></i> FDH-Claim Status
+                                                </a>
+                                                <a class="dropdown-item dropdown-item-modern"
+                                                    href="{{ url('check/eclaim_status') }}">
+                                                    <i class="bi bi-file-earmark-check-fill text-success me-2"></i> E-Claim Status
+                                                </a>
+                                            @endif
                                         </li>
                                         <!-- ชี้ขวา -->
                                         <li class="dropend position-relative">
@@ -1159,7 +1171,7 @@
                                 $licenseInfo = \App\Services\LicenseVerificationService::getLicenseStatusInfo();
                             @endphp
                             <div class="nav-version-badge">
-                                V.69-08-01 00:30
+                                V.69-08-01 03:00
                             </div>
                             @if(isset($licenseInfo) && in_array($licenseInfo['status'], ['active', 'expired', 'suspended', 'pending']))
                                 @if($licenseInfo['status'] === 'active')
@@ -1891,6 +1903,18 @@
                     body.innerHTML = '<div class="alert alert-warning">ไม่สามารถโหลดข้อมูลได้</div>';
                 });
         };
+    }
+
+    function showLicenseRequiredAlert(e) {
+        if (e) e.preventDefault();
+        Swal.fire({
+            icon: 'warning',
+            title: 'สำหรับ License เท่านั้น',
+            text: 'กรุณาลงทะเบียน License ที่เมนูตั้งค่าระบบ',
+            confirmButtonText: 'ตกลง',
+            confirmButtonColor: '#3b82f6',
+            borderRadius: '15px'
+        });
     }
     </script>
 </body>

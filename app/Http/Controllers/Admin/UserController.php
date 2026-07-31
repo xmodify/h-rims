@@ -48,6 +48,7 @@ class UserController extends Controller
             'cid' => $request->cid,
             'allow_nhso_endpoint' => $request->has('allow_nhso_endpoint') ? 'Y' : 'N',
             'allow_aopod_death' => $request->has('allow_aopod_death') ? 'Y' : 'N',
+            'allow_check_right' => $request->has('allow_check_right') ? 'Y' : 'N',
         ]);
 
         return redirect()->route('admin.users.index')->with('success', 'เพิ่มข้อมูลสำเร็จ');
@@ -85,6 +86,7 @@ class UserController extends Controller
             'cid' => $request->cid,
             'allow_nhso_endpoint' => $request->has('allow_nhso_endpoint') ? 'Y' : 'N',
             'allow_aopod_death' => $request->has('allow_aopod_death') ? 'Y' : 'N',
+            'allow_check_right' => $request->has('allow_check_right') ? 'Y' : 'N',
         ];
 
         // ถ้ามีการกรอก password ใหม่ ให้ hash แล้วอัปเดต

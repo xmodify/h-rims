@@ -37,6 +37,7 @@ class User extends Authenticatable
         'allow_receipt',
         'allow_nhso_endpoint',
         'allow_aopod_death',
+        'allow_check_right',
     ];
 
     /**

@@ -211,13 +211,22 @@
                     <p class="text-muted mb-3">ระบบ/ฟังก์ชันของโปรแกรม "RiMS" (rims_license) ที่ถูกควบคุมสิทธิ์ใช้งานภายใต้ลิขสิทธิ์ปัจจุบัน:</p>
                     
                     <div class="list-group list-group-flush rounded-3 border mb-3">
-                        <div class="list-group-item d-flex align-items-center gap-3 py-3">
+                        <div class="list-group-item d-flex align-items-center gap-3 py-3 border-bottom">
                             <div class="bg-success bg-opacity-10 text-success rounded-circle p-2 d-flex">
                                 <i class="bi bi-file-earmark-arrow-up-fill fs-5"></i>
                             </div>
                             <div>
                                 <strong class="d-block text-dark">ระบบส่งออกข้อมูลประกันสังคม (SSOP)</strong>
                                 <span class="text-muted small">ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาล (SSOP Export)</span>
+                            </div>
+                        </div>
+                        <div class="list-group-item d-flex align-items-center gap-3 py-3">
+                            <div class="bg-info bg-opacity-10 text-info rounded-circle p-2 d-flex">
+                                <i class="bi bi-card-checklist fs-5"></i>
+                            </div>
+                            <div>
+                                <strong class="d-block text-dark">ระบบตรวจสอบสิทธิการรักษา (สปสช. SRM)</strong>
+                                <span class="text-muted small">เชื่อมต่อกับระบบ สปสช. เพื่อตรวจสอบสิทธิการรักษาจากเลขบัตรประชาชน (Smart Card / SRM API)</span>
                             </div>
                         </div>
                     </div>

@@ -215,6 +215,12 @@ Route::match(['get', 'post'], 'check/sss_equipdev_aipn', [CheckController::class
 Route::post('check/sss_equipdev_aipn_save', [CheckController::class, 'sss_equipdev_aipn_save'])->name('check.sss_equipdev_aipn_save');
 
 //Check------------------------------------------------------------------------------------------------------------------------------
+Route::match(['get', 'post'], 'check/nhso_right', [CheckController::class, 'nhso_right'])->name('check.nhso_right');
+Route::post('check/nhso_right/open-folder', [CheckController::class, 'openFolder'])->name('check.nhso_right.open_folder');
+Route::post('check/nhso_right/load-local-token', [\App\Http\Controllers\Api\NhsoCheckRightController::class, 'loadLocalToken'])->name('check.nhso_right.load_local_token');
+Route::post('check/nhso_right/search', [\App\Http\Controllers\Api\NhsoCheckRightController::class, 'search'])->name('check.nhso_right.search');
+Route::post('check/nhso_right/refresh-token', [\App\Http\Controllers\Api\NhsoCheckRightController::class, 'refreshToken'])->name('check.nhso_right.refresh_token');
+
 Route::match(['get', 'post'], 'check/nhso_endpoint', [CheckController::class, 'nhso_endpoint']);
 Route::match(['get', 'post'], 'check/fdh_claim_status', [CheckController::class, 'fdh_claim_status']);
 Route::post('check/drugcat_nhso_save', [CheckDrugcatController::class, 'drugcat_nhso_save']);

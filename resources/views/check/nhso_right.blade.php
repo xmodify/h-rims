@@ -245,6 +245,18 @@
 
     // ฟังก์ชันซิงค์อ่านไฟล์ token.txt อัตโนมัติ
     function syncSrmToken(showSuccessAlert = false) {
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        if (!isLocalhost) {
+            if (showSuccessAlert) {
+                // หากรันอยู่บนเซิร์ฟเวอร์จริง ให้เปิดหน้าต่างเลือกไฟล์ token.txt เพื่อความปลอดภัย
+                $('#tokenFileInput').click();
+            } else {
+                updateStatusBadge();
+            }
+            return;
+        }
+
         $.ajax({
             url: "{{ route('check.nhso_right.load_local_token') }}",
             method: 'POST',
@@ -396,32 +408,53 @@
         const now = Date.now();
         const expTime = exp ? parseInt(exp) * 1000 : 0;
 
-        // หากไม่มี Token หรือ Token หมดอายุแล้ว ให้ทำการดึงคีย์ใหม่โดยอัตโนมัติก่อนส่งค้นหา
-        if (!access || now > expTime) {
-            $('#loaderBox').removeClass('d-none');
-            $('#errorBox').addClass('d-none');
-            $('#resultBox').addClass('d-none');
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-            $.ajax({
-                url: "{{ route('check.nhso_right.load_local_token') }}",
-                method: 'POST',
-                data: {
-                    _token: "{{ csrf_token() }}"
-                },
-                success: function(response) {
-                    if (response.status === 'success' && response.access_token) {
-                        saveTokens(response.access_token, response.refresh_token, response.expires_at);
-                        executeSearchAjax(pid);
-                    } else {
+        // หากไม่มี Token หรือ Token หมดอายุแล้ว
+        if (!access || now > expTime) {
+            if (isLocalhost) {
+                // ทำการ Auto Sync บน localhost
+                $('#loaderBox').removeClass('d-none');
+                $('#errorBox').addClass('d-none');
+                $('#resultBox').addClass('d-none');
+
+                $.ajax({
+                    url: "{{ route('check.nhso_right.load_local_token') }}",
+                    method: 'POST',
+                    data: {
+                        _token: "{{ csrf_token() }}"
+                    },
+                    success: function(response) {
+                        if (response.status === 'success' && response.access_token) {
+                            saveTokens(response.access_token, response.refresh_token, response.expires_at);
+                            executeSearchAjax(pid);
+                        } else {
+                            $('#loaderBox').addClass('d-none');
+                            showError('ไม่สามารถดึงข้อมูลได้: กรุณาเปิดโปรแกรม SRM Smart Card และทำการเสียบบัตรประชาชนเพื่อสร้างคีย์เชื่อมต่อ');
+                        }
+                    },
+                    error: function() {
                         $('#loaderBox').addClass('d-none');
-                        showError('ไม่สามารถดึงข้อมูลได้: กรุณาเปิดโปรแกรม SRM Smart Card และทำการเสียบบัตรประชาชนเพื่อสร้างคีย์เชื่อมต่อ');
+                        showError('เชื่อมต่อโปรแกรม SRM ในเครื่องไม่สำเร็จ กรุณาตรวจสอบการทำงานของโปรแกรม SRM Smart Card Single Sign-On');
                     }
-                },
-                error: function() {
-                    $('#loaderBox').addClass('d-none');
-                    showError('เชื่อมต่อโปรแกรม SRM ในเครื่องไม่สำเร็จ กรุณาตรวจสอบการทำงานของโปรแกรม SRM Smart Card Single Sign-On');
-                }
-            });
+                });
+            } else {
+                // บนเซิร์ฟเวอร์จริง ให้แจ้งเตือนเพื่อให้ผู้ใช้อัปโหลด/เลือกไฟล์ใหม่
+                showError('คีย์เชื่อมต่อระบบ (Access Token) หมดอายุ หรือยังไม่ได้นำเข้าคีย์ กรุณากดปุ่ม Sync SRM Token');
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Token หมดอายุ หรือยังไม่ได้นำเข้า',
+                    text: 'กรุณาอัปโหลดไฟล์ token.txt ใหม่จากโฟลเดอร์ %userprofile%\\SRM Smart Card Single Sign-On\\',
+                    confirmButtonText: 'เลือกไฟล์ Token',
+                    confirmButtonColor: '#3b82f6',
+                    showCancelButton: true,
+                    cancelButtonText: 'ยกเลิก'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $('#tokenFileInput').click();
+                    }
+                });
+            }
         } else {
             executeSearchAjax(pid);
         }

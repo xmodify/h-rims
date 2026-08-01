@@ -243,39 +243,10 @@
         }
     }
 
-    // ฟังก์ชันซิงค์อ่านไฟล์ token.txt อัตโนมัติ
+    // ฟังก์ชันซิงค์อ่านไฟล์ token.txt หรือดึงข้อมูลจากตาราง nhso_token HOSxP
     function syncSrmToken(showSuccessAlert = false) {
         const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         
-        if (!isLocalhost) {
-            if (showSuccessAlert) {
-                // คัดลอกพาธโฟลเดอร์ลง Clipboard อัตโนมัติเพื่อให้ผู้ใช้วางในช่อง Address bar ได้ทันที
-                const pathText = '%userprofile%\\SRM Smart Card Single Sign-On\\';
-                navigator.clipboard.writeText(pathText).then(() => {
-                    Swal.fire({
-                        icon: 'info',
-                        title: 'คัดลอกเส้นทางโฟลเดอร์แล้ว!',
-                        html: 'ระบบได้คัดลอกเส้นทางโฟลเดอร์ของ SRM ให้แล้ว<br><br>' +
-                              '<b>ขั้นตอนการเปิดไฟล์:</b><br>' +
-                              '1. เมื่อหน้าต่างเลือกไฟล์เปิดขึ้นมา ให้กดคลิกที่แถบที่อยู่ด้านบนสุด (Address Bar)<br>' +
-                              '2. กด <b>Ctrl + V</b> (เพื่อวางพาธ) แล้วกด <b>Enter</b><br>' +
-                              '3. ดับเบิ้ลคลิกเลือกไฟล์ <b>token.txt</b> ได้ทันที',
-                        confirmButtonText: 'เลือกไฟล์ token.txt',
-                        confirmButtonColor: '#3b82f6'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            $('#tokenFileInput').click();
-                        }
-                    });
-                }).catch(() => {
-                    $('#tokenFileInput').click();
-                });
-            } else {
-                updateStatusBadge();
-            }
-            return;
-        }
-
         $.ajax({
             url: "{{ route('check.nhso_right.load_local_token') }}",
             method: 'POST',
@@ -289,34 +260,56 @@
                         Swal.fire({
                             icon: 'success',
                             title: 'Sync Token สำเร็จ!',
-                            text: 'อัปเดตคีย์เชื่อมต่อระบบ สปสช. (SRM) เรียบร้อยแล้ว',
+                            text: 'ตรวจพบและซิงค์คีย์เชื่อมต่อจากฐานข้อมูล HOSxP เรียบร้อยแล้ว',
                             timer: 2000,
                             showConfirmButton: false
                         });
                     }
                 } else {
-                    updateStatusBadge();
-                    if (showSuccessAlert) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Sync ล้มเหลว',
-                            text: 'พบความผิดพลาดในการเข้าถึงหรือการอ่านรูปแบบไฟล์ token.txt'
-                        });
-                    }
+                    handleSyncFailure(isLocalhost, showSuccessAlert);
                 }
             },
             error: function(xhr) {
-                updateStatusBadge();
-                if (showSuccessAlert) {
-                    const errData = xhr.responseJSON;
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Sync ไม่สำเร็จ',
-                        text: errData?.message || 'ไม่พบไฟล์ token.txt หรือไม่สามารถเชื่อมต่อไปยังเครื่องท้องถิ่นได้'
-                    });
-                }
+                handleSyncFailure(isLocalhost, showSuccessAlert);
             }
         });
+    }
+
+    // จัดการเมื่อการซิงค์ล้มเหลว (แสดง Alert หรือเปิดช่องทางสำรองอัปโหลดไฟล์)
+    function handleSyncFailure(isLocalhost, showSuccessAlert) {
+        updateStatusBadge();
+        if (showSuccessAlert) {
+            if (isLocalhost) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Sync ไม่สำเร็จ',
+                    text: 'ไม่พบไฟล์ token.txt หรือไม่สามารถเชื่อมต่อไปยังเครื่องท้องถิ่นได้'
+                });
+            } else {
+                // บนเซิร์ฟเวอร์จริง ให้เปิดหน้าต่างเลือกไฟล์ token.txt เพื่อความปลอดภัย
+                const pathText = '%userprofile%\\SRM Smart Card Single Sign-On\\';
+                navigator.clipboard.writeText(pathText).then(() => {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'ไม่พบคีย์ในฐานข้อมูล HOSxP',
+                        html: 'ระบบไม่พบหรือต่ออายุคีย์ในฐานข้อมูล HOSxP ของโรงพยาบาลได้สำเร็จ<br><br>' +
+                              'คุณสามารถเลือกนำเข้าคีย์ผ่านไฟล์ token.txt ในเครื่องของคุณได้ด้วยตนเอง:<br><br>' +
+                              '<b>ขั้นตอนการเปิดไฟล์:</b><br>' +
+                              '1. ระบบได้คัดลอกเส้นทางโฟลเดอร์ให้แล้ว<br>' +
+                              '2. เมื่อหน้าต่างเปิดขึ้นมา ให้กดคลิกที่แถบที่อยู่ด้านบนสุด (Address Bar)<br>' +
+                              '3. กด <b>Ctrl + V</b> (เพื่อวางพาธ) แล้วกด <b>Enter</b> เพื่อเลือกไฟล์ <b>token.txt</b>',
+                        confirmButtonText: 'เลือกไฟล์ token.txt',
+                        confirmButtonColor: '#3b82f6'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            $('#tokenFileInput').click();
+                        }
+                    });
+                }).catch(() => {
+                    $('#tokenFileInput').click();
+                });
+            }
+        }
     }
 
     // ปรับปรุง Badge แสดงสถานะการเชื่อมต่อ Token

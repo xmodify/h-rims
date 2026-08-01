@@ -271,17 +271,18 @@ class NhsoCheckRightController extends Controller
     private function getHosxpToken($cid = null, $env = 'production')
     {
         try {
-            // ดึงคีย์ล่าสุดที่มีในตารางโดยเรียงตามเวลาอัปเดตล่าสุด
-            $hosxpToken = DB::connection('hosxp')
+            // ดึงคีย์ล่าสุด 5 แถวแรกที่มีการอัปเดตเรียงลำดับเวลาล่าสุดลงไป
+            $hosxpTokens = DB::connection('hosxp')
                 ->table('nhso_token')
                 ->orderBy('update_datetime', 'desc')
-                ->first();
+                ->limit(5)
+                ->get();
 
-            if ($hosxpToken) {
+            foreach ($hosxpTokens as $hosxpToken) {
                 $possibleAccess = $hosxpToken->token;
                 $possibleRefresh = $hosxpToken->refresh_token;
 
-                // 1. ถ้าคีย์หลักใน DB เป็น JWT และยังไม่หมดอายุ -> นำไปใช้ได้เลย
+                // 1. ถ้าคีย์หลักในแถวนี้เป็น JWT และยังไม่หมดอายุ -> นำไปใช้ได้เลย
                 if (str_starts_with($possibleAccess, 'eyJ') && !$this->isJwtExpired($possibleAccess)) {
                     return [
                         'access_token' => $possibleAccess,
@@ -289,14 +290,14 @@ class NhsoCheckRightController extends Controller
                     ];
                 }
 
-                // 2. ถ้าคีย์หลักหมดอายุ/ไม่ใช่ JWT แต่มี Refresh Token ที่ยังไม่หมดอายุ -> ลองต่ออายุ
+                // 2. ถ้าคีย์หลักหมดอายุ/ไม่ใช่ JWT แต่มี Refresh Token ที่ยังไม่หมดอายุ -> ลองขอคีย์ใหม่
                 if (str_starts_with($possibleRefresh, 'eyJ') && !$this->isJwtExpired($possibleRefresh)) {
                     $refreshResult = $this->performTokenRefresh($possibleRefresh, $env);
                     if ($refreshResult && !empty($refreshResult['access-token'])) {
                         $accessToken = $refreshResult['access-token'];
                         $refreshToken = $refreshResult['refresh-token'] ?? $possibleRefresh;
 
-                        // อัปเดตข้อมูลกลับลงฐานข้อมูล HOSxP ที่แถวเดิม (อ้างอิงตาม cid ของเจ้าของคีย์เดิมในตาราง)
+                        // อัปเดตข้อมูลกลับลงฐานข้อมูล HOSxP ที่แถวเดิมของเจ้าของคีย์ (เพื่อความถูกต้องของระบบ HOSxP)
                         DB::connection('hosxp')
                             ->table('nhso_token')
                             ->where('cid', $hosxpToken->cid)

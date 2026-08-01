@@ -517,7 +517,12 @@ class NhsoCheckRightController extends Controller
             $tokens = DB::connection('hosxp')
                 ->table('nhso_token as t')
                 ->leftJoin('opduser as u', 'u.cid', '=', 't.cid')
-                ->select('t.*', 'u.name as staff_name')
+                ->leftJoin('patient as p', 'p.cid', '=', 't.cid')
+                ->select(
+                    't.*', 
+                    'u.name as staff_name_opd', 
+                    DB::raw("CONCAT(p.pname, p.fname, ' ', p.lname) as staff_name_patient")
+                )
                 ->orderBy('t.update_datetime', 'desc')
                 ->limit(5)
                 ->get();
@@ -539,9 +544,15 @@ class NhsoCheckRightController extends Controller
                     }
                 }
 
+                $staffName = $row->staff_name_opd;
+                if (empty($staffName)) {
+                    $staffName = !empty($row->staff_name_patient) ? trim($row->staff_name_patient) : null;
+                }
+
                 $formatted[] = [
-                    'staff_name' => $row->staff_name ?? 'ไม่พบชื่อเจ้าหน้าที่ (' . $row->cid . ')',
+                    'staff_name' => $staffName ?? 'ไม่พบชื่อ (' . $row->cid . ')',
                     'update_datetime' => $row->update_datetime,
+                    'token' => $possibleAccess,
                     'access_status' => $accessStatus,
                 ];
             }

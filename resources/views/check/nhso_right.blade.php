@@ -348,13 +348,14 @@
                                 <td>${index + 1}</td>
                                 <td class="fw-bold">${row.staff_name || '-'}</td>
                                 <td>${row.update_datetime || '-'}</td>
+                                <td class="font-monospace text-muted small">${row.token || '-'}</td>
                                 <td><span class="badge ${bgAccess}">${row.access_status}</span></td>
                             </tr>
                         `;
                     });
 
                     if (response.data.length === 0) {
-                        tableRows = '<tr><td colspan="4" class="text-center py-3 text-muted">ไม่พบข้อมูล Token ในตาราง nhso_token</td></tr>';
+                        tableRows = '<tr><td colspan="5" class="text-center py-3 text-muted">ไม่พบข้อมูล Token ในตาราง nhso_token</td></tr>';
                     }
 
                     const modalContent = `
@@ -362,10 +363,11 @@
                             <table class="table table-hover table-striped align-middle small m-0" style="font-size: 0.85rem;">
                                 <thead class="table-dark">
                                     <tr>
-                                        <th style="width: 8%;">#</th>
+                                        <th style="width: 5%;">#</th>
                                         <th>ชื่อ-สกุล เจ้าหน้าที่</th>
-                                        <th style="width: 30%;">เวลาอัปเดตล่าสุด</th>
-                                        <th style="width: 25%;">สถานะคีย์</th>
+                                        <th style="width: 22%;">เวลาอัปเดตล่าสุด</th>
+                                        <th style="width: 25%;">คีย์ Token</th>
+                                        <th style="width: 18%;">สถานะคีย์</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -378,7 +380,7 @@
                     Swal.fire({
                         title: 'ประวัติ Token ในฐานข้อมูล HOSxP',
                         html: modalContent,
-                        width: '650px',
+                        width: '800px',
                         confirmButtonText: 'ปิดหน้าจอ',
                         confirmButtonColor: '#6b7280'
                     });

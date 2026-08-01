@@ -6942,7 +6942,7 @@ class ClaimOpController extends Controller
         $rep_records = [];
         $stm_pays = [];
         if (!empty($vns)) {
-            $rep_records = DB::table('rep_csop')
+            $rep_records = DB::table('rep_ofc_csop')
                 ->whereIn('vn', $vns)
                 ->get()
                 ->keyBy('vn')

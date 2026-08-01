@@ -973,6 +973,7 @@ class MainSettingController extends Controller
             'stm_lgoexcel' => ['hn', 'an', 'cid'],
             'stm_ofc' => ['hn', 'an', 'cid'],
             'stm_ofc_cipn' => ['an'],
+            'rep_ofc_csop' => ['vn', 'hn'],
             'stm_ofc_csop' => ['hn'],
             'stm_ofcexcel' => ['hn', 'an', 'cid'],
             'stm_pvt' => ['hn', 'an', 'cid'],

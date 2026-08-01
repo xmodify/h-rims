@@ -54,7 +54,7 @@ class ImportCsController extends Controller
                 if (str_contains(strtoupper($fileName), 'COCDBIL') && in_array($ext, ['xml', 'bil', 'rep', 'txt'])) {
                     $fileFound = true;
                     // Delete existing records of the same file to prevent duplicates
-                    DB::table('rep_csop')->where('rep_file', $fileName)->delete();
+                    DB::table('rep_ofc_csop')->where('rep_file', $fileName)->delete();
 
                     $rawBytes = File::get($f->getRealPath());
 
@@ -112,7 +112,7 @@ class ImportCsController extends Controller
                                             ->value('vn');
                                     }
 
-                                    DB::table('rep_csop')->insert([
+                                    DB::table('rep_ofc_csop')->insert([
                                         'rep_file' => $fileName,
                                         'repline' => is_numeric($repline) ? (int)$repline : null,
                                         'vn' => $vn,

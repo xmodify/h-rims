@@ -53,12 +53,12 @@
                 <li class="nav-item">
                     <button class="nav-link active" id="search-tab" data-bs-toggle="pill" data-bs-target="#search" type="button" role="tab">
                         <i class="bi bi-hourglass-split me-1"></i>รอชดเชย
-                    </button>
+                     <span class="badge bg-secondary ms-1 rounded-pill">{{ count($search) }}</span></button>
                 </li>
                 <li class="nav-item">
                     <button class="nav-link" id="claim-tab" data-bs-toggle="pill" data-bs-target="#claim" type="button" role="tab">
                         <i class="bi bi-check-circle-fill me-1"></i>ชดเชยแล้ว
-                    </button>
+                     <span class="badge bg-success ms-1 rounded-pill">{{ count($claim) }}</span></button>
                 </li>
             </ul>
         </div>

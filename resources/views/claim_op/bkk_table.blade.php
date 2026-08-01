@@ -55,12 +55,12 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="search-tab" data-bs-toggle="pill" data-bs-target="#search" type="button" role="tab" aria-controls="search" aria-selected="true">
                         <i class="bi bi-clock-history me-1"></i> รอส่ง Claim
-                    </button>
+                     <span class="badge bg-secondary ms-1 rounded-pill">{{ count($search) }}</span></button>
                 </li>
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="claim-tab" data-bs-toggle="pill" data-bs-target="#claim" type="button" role="tab" aria-controls="claim" aria-selected="false">
                         <i class="bi bi-send-check me-1"></i> ส่ง Claim แล้ว
-                    </button>
+                     <span class="badge bg-success ms-1 rounded-pill">{{ count($claim) }}</span></button>
                 </li>
             </ul>
         </div>

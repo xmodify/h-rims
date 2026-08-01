@@ -18926,7 +18926,7 @@
             ]
         }
     },
-    "rep_csop": {
+    "rep_ofc_csop": {
         "columns": {
             "id": {
                 "type": "bigint(20) unsigned",
@@ -19020,13 +19020,13 @@
                     "unique": true
                 }
             ],
-            "rep_csop_vn_index": [
+            "rep_ofc_csop_vn_index": [
                 {
                     "column": "vn",
                     "unique": false
                 }
             ],
-            "rep_csop_hn_index": [
+            "rep_ofc_csop_hn_index": [
                 {
                     "column": "hn",
                     "unique": false

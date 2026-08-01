@@ -54,7 +54,7 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link" id="claim-tab" data-bs-toggle="pill" data-bs-target="#claim" type="button" role="tab">
                         <i class="bi bi-send-check me-1"></i> ส่ง Claim แล้ว
-                        <span class="badge bg-secondary ms-1 rounded-pill">{{ count($claim) }}</span>
+                        <span class="badge bg-success ms-1 rounded-pill">{{ count($claim) }}</span>
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">

@@ -46,7 +46,7 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="search-tab" data-bs-toggle="pill" data-bs-target="#search" type="button" role="tab">
                         <i class="bi bi-list-ul me-1"></i> รายการ
-                    </button>
+                     <span class="badge bg-secondary ms-1 rounded-pill">{{ count($search) }}</span></button>
                 </li>
             </ul>
         </div>

@@ -6356,7 +6356,7 @@ class ClaimOpController extends Controller
                     $rep_feedbacks[] = [
                         'code' => $c,
                         'type' => $is_warn ? 'warning' : 'error',
-                        'desc' => '[' . $rep_record->stat . ' ' . $rep_record->station . '] ' . $desc
+                        'desc' => $desc
                     ];
                 }
             }
@@ -6551,7 +6551,7 @@ class ClaimOpController extends Controller
                     $rep_feedbacks[] = [
                         'code' => $c,
                         'type' => $is_warn ? 'warning' : 'error',
-                        'desc' => '[' . $rep_record->stat . ' ' . $rep_record->station . '] รหัสข้อผิดพลาด: ' . $c
+                        'desc' => 'รหัสข้อผิดพลาด: ' . $c
                     ];
                 }
             }

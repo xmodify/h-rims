@@ -218,7 +218,7 @@ class ImportSssController extends Controller
                 if (str_contains(strtoupper($fileName), 'SOCDBIL') && strtolower($f->getExtension()) === 'bil') {
                     $fileFound = true;
                     // Delete existing records of the same file to prevent duplicates
-                    DB::table('sss_ssop_rep')->where('rep_file', $fileName)->delete();
+                    DB::table('rep_sss_ssop')->where('rep_file', $fileName)->delete();
 
                     $contentBytes = File::get($f->getRealPath());
                     $content = @iconv('Windows-874', 'UTF-8//IGNORE', $contentBytes);
@@ -227,6 +227,36 @@ class ImportSssController extends Controller
                     }
 
                     $lines = explode("\n", $content);
+                    $rep_date = null;
+                    $rep_time = null;
+                    $rep_no = null;
+                    $rep_station = null;
+
+                    foreach ($lines as $line) {
+                        $line = trim($line);
+                        if (str_contains($line, 'วันที่ออกเลขตอบรับ')) {
+                            $parts = explode('=', $line);
+                            if (isset($parts[1])) {
+                                $dt_val = trim($parts[1]);
+                                $dt_parts = preg_split('/\s+/', $dt_val);
+                                $raw_date = $dt_parts[0] ?? '';
+                                $rep_date = $this->parseBuddhistDate($raw_date);
+                                if (str_contains($line, 'เวลา:')) {
+                                    $time_parts = explode('เวลา:', $line);
+                                    $rep_time = trim($time_parts[1] ?? '');
+                                }
+                            }
+                        }
+                        if (str_contains($line, 'เลขที่ตอบรับ')) {
+                            $parts = explode('=', $line);
+                            $rep_no = trim($parts[1] ?? '');
+                        }
+                        if (str_contains($line, 'สถานี:')) {
+                            $parts = explode(':', $line);
+                            $rep_station = trim($parts[1] ?? '');
+                        }
+                    }
+
                     foreach ($lines as $line) {
                         $line = trim($line);
                         // Check for line header starting with *|
@@ -261,8 +291,19 @@ class ImportSssController extends Controller
                                     // Match HOSxP VN
                                     $vn = $this->findHosxpVn($invno, $pid, $dttran, $time_raw);
 
-                                    DB::table('sss_ssop_rep')->insert([
+                                    $stat = null;
+                                    $station = null;
+                                    if (!empty($claim_type)) {
+                                        $claim_parts = explode(' ', $claim_type, 2);
+                                        $stat = trim($claim_parts[0]);
+                                        $station = isset($claim_parts[1]) ? trim($claim_parts[1]) : null;
+                                    }
+
+                                    DB::table('rep_sss_ssop')->insert([
                                         'rep_file' => $fileName,
+                                        'rep_date' => $rep_date,
+                                        'rep_time' => $rep_time ? ($rep_time . ':00') : null,
+                                        'rep_no' => $rep_no,
                                         'repline' => is_numeric($repline) ? (int)$repline : null,
                                         'hcode' => $hcode,
                                         'hmain' => $hmain,
@@ -273,7 +314,8 @@ class ImportSssController extends Controller
                                         'dttran' => $dttran ? ($dttran . ' ' . ($time_raw ?: '00:00:00')) : null,
                                         'dttran_date' => $dttran,
                                         'dttran_time' => !empty($time_raw) ? $time_raw : null,
-                                        'claim_type' => $claim_type,
+                                        'stat' => $stat,
+                                        'station' => $station,
                                         'amount' => is_numeric($amount) ? (float)$amount : null,
                                         'claim_price' => is_numeric($claim_price) ? (float)$claim_price : null,
                                         'error_codes' => $error_codes,
@@ -353,7 +395,7 @@ class ImportSssController extends Controller
                 if (str_contains(strtoupper($fileName), 'SOGNSTM') && strtolower($f->getExtension()) === 'xml') {
                     $fileFound = true;
                     // Delete existing records of the same file to prevent duplicates
-                    DB::table('sss_ssop_stm')->where('stm_file', $fileName)->delete();
+                    DB::table('stm_sss_ssop')->where('stm_file', $fileName)->delete();
 
                     $xmlContent = File::get($f->getRealPath());
                     $xml = simplexml_load_string($xmlContent);
@@ -381,7 +423,7 @@ class ImportSssController extends Controller
                                     // Match HOSxP VN
                                     $vn = $this->findHosxpVn($invno, $pid, $date_only, $time_raw);
 
-                                    DB::table('sss_ssop_stm')->insert([
+                                    DB::table('stm_sss_ssop')->insert([
                                         'stm_file' => $fileName,
                                         'vn' => $vn, // HOSxP VN (or null if not found)
                                         'hn' => $hn,
@@ -798,7 +840,7 @@ class ImportSssController extends Controller
 
         if ($type === 'rep') {
             // Fetch rejected REP claims
-            $data = DB::table('sss_ssop_rep')
+            $data = DB::table('rep_sss_ssop')
                 ->whereNotNull('error_codes')
                 ->where('error_codes', '!=', '')
                 ->orderByDesc('id')
@@ -808,7 +850,7 @@ class ImportSssController extends Controller
 
         } elseif ($type === 'stm') {
             // Fetch STM statement payments
-            $data = DB::table('sss_ssop_stm')
+            $data = DB::table('stm_sss_ssop')
                 ->orderByDesc('id')
                 ->limit(500)
                 ->get();
@@ -1025,8 +1067,8 @@ class ImportSssController extends Controller
             ], 400);
         }
 
-        $uniqueId = uniqid('sss_aipn_rep_');
-        $extractPath = storage_path('app/tmp_sss_aipn_rep/' . $uniqueId);
+        $uniqueId = uniqid('rep_sss_aipn_');
+        $extractPath = storage_path('app/tmp_rep_sss_aipn/' . $uniqueId);
 
         try {
             $zip = new ZipArchive();
@@ -1057,7 +1099,7 @@ class ImportSssController extends Controller
                 if (str_contains(strtoupper($fileName), 'SIGNREP') && in_array($ext, ['xml', 'bil', 'rep', 'txt'])) {
                     $fileFound = true;
                     // Delete existing records of the same file to prevent duplicates
-                    DB::table('sss_aipn_rep')->where('rep_file', $fileName)->delete();
+                    DB::table('rep_sss_aipn')->where('rep_file', $fileName)->delete();
 
                     $rawBytes = File::get($f->getRealPath());
 
@@ -1109,7 +1151,7 @@ class ImportSssController extends Controller
 
                                 $parsed = $this->parseStmDateTime($dttran_raw);
 
-                                DB::table('sss_aipn_rep')->insert([
+                                DB::table('rep_sss_aipn')->insert([
                                     'rep_file' => $fileName,
                                     'repno' => $repno,
                                     'rep_date' => $rep_date,
@@ -1214,7 +1256,7 @@ class ImportSssController extends Controller
                                             } catch (\Throwable $ex) {}
                                         }
 
-                                        DB::table('sss_aipn_rep')->insert([
+                                        DB::table('rep_sss_aipn')->insert([
                                             'rep_file' => $fileName,
                                             'repno' => $repno,
                                             'rep_date' => $rep_date,
@@ -1290,8 +1332,8 @@ class ImportSssController extends Controller
             ], 400);
         }
 
-        $uniqueId = uniqid('sss_aipn_stm_');
-        $extractPath = storage_path('app/tmp_sss_aipn_stm/' . $uniqueId);
+        $uniqueId = uniqid('stm_sss_aipn_');
+        $extractPath = storage_path('app/tmp_stm_sss_aipn/' . $uniqueId);
 
         try {
             $zip = new ZipArchive();
@@ -1322,7 +1364,7 @@ class ImportSssController extends Controller
                 if (str_contains(strtoupper($fileName), 'SIGNSTMS') && in_array($ext, ['xml', 'stm'])) {
                     $fileFound = true;
                     // Delete existing records of the same file to prevent duplicates
-                    DB::table('sss_aipn_stm')->where('stm_file', $fileName)->delete();
+                    DB::table('stm_sss_aipn')->where('stm_file', $fileName)->delete();
 
                     $rawBytes = File::get($f->getRealPath());
 
@@ -1362,7 +1404,7 @@ class ImportSssController extends Controller
                                 $pp = $record['pp'] ?? '';
                                 $rid = $record['rid'] ?? '';
 
-                                DB::table('sss_aipn_stm')->insert([
+                                DB::table('stm_sss_aipn')->insert([
                                     'stm_file' => $fileName,
                                     'hn' => $hn ?: null,
                                     'an' => $an ?: null,

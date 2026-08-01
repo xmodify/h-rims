@@ -10759,6 +10759,84 @@
     },
     "labcat_tmt": {
         "columns": {
+            "lab_code": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "lab_name": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "lab_type": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "location": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "lab_price": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "component": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "scale": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "specimen": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "unit": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "method": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cscode": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "tmlt": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "loinc_num": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
             "id": {
                 "type": "int(10) unsigned",
                 "nullable": false,
@@ -10772,18 +10850,6 @@
                 "extra": ""
             },
             "billgroup": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "cscode": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "tmlt": {
                 "type": "varchar(255)",
                 "nullable": true,
                 "default": null,
@@ -11022,6 +11088,60 @@
             "icd10": [
                 {
                     "column": "icd10",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "lookup_icd10_chi": {
+        "columns": {
+            "code": {
+                "type": "varchar(10)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "accpdx": {
+                "type": "varchar(5)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "code_cat": {
+                "type": "varchar(5)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "desc": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "code",
+                    "unique": true
+                }
+            ],
+            "lookup_icd10_chi_code_index": [
+                {
+                    "column": "code",
                     "unique": false
                 }
             ]
@@ -11957,6 +12077,504 @@
             ]
         }
     },
+    "rep_ofc_csop": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "rep_file": {
+                "type": "varchar(150)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rep_date": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rep_time": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rep_no": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "repline": {
+                "type": "int(11)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vn": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "invno": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dttran": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dttran_date": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dttran_time": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "stat": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "station": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "amount": {
+                "type": "decimal(10,2)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "error_codes": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "rep_ofc_csop_vn_index": [
+                {
+                    "column": "vn",
+                    "unique": false
+                }
+            ],
+            "rep_ofc_csop_hn_index": [
+                {
+                    "column": "hn",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "rep_sss_aipn": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "rep_file": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "repno": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rep_date": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rep_time": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "repline": {
+                "type": "int(11)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pcode": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "tcode": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "iptype": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "care_as": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ss": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hmain": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hcare": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "an": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pid": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "drg": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rw": {
+                "type": "decimal(10,4)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "adjrw": {
+                "type": "decimal(10,4)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "st": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "sst": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pt": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "amt": {
+                "type": "decimal(15,2)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "name": {
+                "type": "varchar(150)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "error_codes": {
+                "type": "text",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "sss_aipn_rep_rep_file_index": [
+                {
+                    "column": "rep_file",
+                    "unique": false
+                }
+            ],
+            "sss_aipn_rep_an_index": [
+                {
+                    "column": "an",
+                    "unique": false
+                }
+            ],
+            "sss_aipn_rep_hn_index": [
+                {
+                    "column": "hn",
+                    "unique": false
+                }
+            ],
+            "sss_aipn_rep_pid_index": [
+                {
+                    "column": "pid",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "rep_sss_ssop": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "rep_file": {
+                "type": "varchar(100)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "rep_date": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rep_time": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rep_no": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "repline": {
+                "type": "int(11)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hcode": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hmain": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "vn": {
+                "type": "varchar(30)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "invno": {
+                "type": "varchar(30)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pid": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dttran": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dttran_date": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dttran_time": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "stat": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "station": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "amount": {
+                "type": "decimal(10,2)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "claim_price": {
+                "type": "decimal(10,2)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "error_codes": {
+                "type": "varchar(255)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "sss_ssop_rep_vn_index": [
+                {
+                    "column": "vn",
+                    "unique": false
+                }
+            ],
+            "sss_ssop_rep_hn_index": [
+                {
+                    "column": "hn",
+                    "unique": false
+                }
+            ],
+            "sss_ssop_rep_pid_index": [
+                {
+                    "column": "pid",
+                    "unique": false
+                }
+            ],
+            "sss_ssop_rep_dttran_date_index": [
+                {
+                    "column": "dttran_date",
+                    "unique": false
+                }
+            ]
+        }
+    },
     "sss_chronic": {
         "columns": {
             "id": {
@@ -12144,270 +12762,6 @@
             "sss_chronic_register_code_index": [
                 {
                     "column": "chronic_code",
-                    "unique": false
-                }
-            ]
-        }
-    },
-    "sss_ssop_rep": {
-        "columns": {
-            "id": {
-                "type": "bigint(20) unsigned",
-                "nullable": false,
-                "default": null,
-                "extra": "auto_increment"
-            },
-            "rep_file": {
-                "type": "varchar(100)",
-                "nullable": false,
-                "default": null,
-                "extra": ""
-            },
-            "repline": {
-                "type": "int(11)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hcode": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hmain": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "vn": {
-                "type": "varchar(30)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "invno": {
-                "type": "varchar(30)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hn": {
-                "type": "varchar(20)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "pid": {
-                "type": "varchar(20)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dttran": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dttran_date": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dttran_time": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "claim_type": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "amount": {
-                "type": "decimal(10,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "claim_price": {
-                "type": "decimal(10,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "error_codes": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "created_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updated_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "indexes": {
-            "PRIMARY": [
-                {
-                    "column": "id",
-                    "unique": true
-                }
-            ],
-            "sss_ssop_rep_vn_index": [
-                {
-                    "column": "vn",
-                    "unique": false
-                }
-            ],
-            "sss_ssop_rep_hn_index": [
-                {
-                    "column": "hn",
-                    "unique": false
-                }
-            ],
-            "sss_ssop_rep_pid_index": [
-                {
-                    "column": "pid",
-                    "unique": false
-                }
-            ],
-            "sss_ssop_rep_dttran_date_index": [
-                {
-                    "column": "dttran_date",
-                    "unique": false
-                }
-            ]
-        }
-    },
-    "sss_ssop_stm": {
-        "columns": {
-            "id": {
-                "type": "bigint(20) unsigned",
-                "nullable": false,
-                "default": null,
-                "extra": "auto_increment"
-            },
-            "stm_file": {
-                "type": "varchar(100)",
-                "nullable": false,
-                "default": null,
-                "extra": ""
-            },
-            "vn": {
-                "type": "varchar(30)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hn": {
-                "type": "varchar(20)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "pid": {
-                "type": "varchar(20)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "invno": {
-                "type": "varchar(30)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dttran": {
-                "type": "datetime",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dttran_date": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dttran_time": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "total": {
-                "type": "decimal(10,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "rid": {
-                "type": "varchar(30)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "created_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updated_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "indexes": {
-            "PRIMARY": [
-                {
-                    "column": "id",
-                    "unique": true
-                }
-            ],
-            "sss_ssop_stm_hn_index": [
-                {
-                    "column": "hn",
-                    "unique": false
-                }
-            ],
-            "sss_ssop_stm_pid_index": [
-                {
-                    "column": "pid",
-                    "unique": false
-                }
-            ],
-            "sss_ssop_stm_invno_index": [
-                {
-                    "column": "invno",
-                    "unique": false
-                }
-            ],
-            "sss_ssop_stm_vn_index": [
-                {
-                    "column": "vn",
-                    "unique": false
-                }
-            ],
-            "sss_ssop_stm_dttran_date_index": [
-                {
-                    "column": "dttran_date",
                     "unique": false
                 }
             ]
@@ -17077,6 +17431,222 @@
             ]
         }
     },
+    "stm_sss_aipn": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "stm_file": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "round_no": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "an": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pid": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "name": {
+                "type": "varchar(150)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dateadm": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "datedsc": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ft": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "bf": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "drg": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rw": {
+                "type": "decimal(10,4)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "adjrw": {
+                "type": "decimal(10,4)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hmain": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hcode": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hproc": {
+                "type": "varchar(50)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "careas": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "sc": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "ed": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "due": {
+                "type": "decimal(15,2)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "reimb": {
+                "type": "decimal(15,2)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "receive_total": {
+                "type": "decimal(15,2)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "nreimb": {
+                "type": "decimal(15,2)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "copay": {
+                "type": "decimal(15,2)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "cp": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pp": {
+                "type": "varchar(10)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rid": {
+                "type": "varchar(100)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "sss_aipn_stm_stm_file_index": [
+                {
+                    "column": "stm_file",
+                    "unique": false
+                }
+            ],
+            "sss_aipn_stm_an_index": [
+                {
+                    "column": "an",
+                    "unique": false
+                }
+            ],
+            "sss_aipn_stm_hn_index": [
+                {
+                    "column": "hn",
+                    "unique": false
+                }
+            ],
+            "sss_aipn_stm_pid_index": [
+                {
+                    "column": "pid",
+                    "unique": false
+                }
+            ]
+        }
+    },
     "stm_sss_kidney": {
         "columns": {
             "id": {
@@ -17272,6 +17842,126 @@
                 },
                 {
                     "column": "vstdate",
+                    "unique": false
+                }
+            ]
+        }
+    },
+    "stm_sss_ssop": {
+        "columns": {
+            "id": {
+                "type": "bigint(20) unsigned",
+                "nullable": false,
+                "default": null,
+                "extra": "auto_increment"
+            },
+            "stm_file": {
+                "type": "varchar(100)",
+                "nullable": false,
+                "default": null,
+                "extra": ""
+            },
+            "vn": {
+                "type": "varchar(30)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "hn": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "pid": {
+                "type": "varchar(20)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "invno": {
+                "type": "varchar(30)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dttran": {
+                "type": "datetime",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dttran_date": {
+                "type": "date",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "dttran_time": {
+                "type": "time",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "total": {
+                "type": "decimal(10,2)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "rid": {
+                "type": "varchar(30)",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "created_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            },
+            "updated_at": {
+                "type": "timestamp",
+                "nullable": true,
+                "default": null,
+                "extra": ""
+            }
+        },
+        "indexes": {
+            "PRIMARY": [
+                {
+                    "column": "id",
+                    "unique": true
+                }
+            ],
+            "sss_ssop_stm_hn_index": [
+                {
+                    "column": "hn",
+                    "unique": false
+                }
+            ],
+            "sss_ssop_stm_pid_index": [
+                {
+                    "column": "pid",
+                    "unique": false
+                }
+            ],
+            "sss_ssop_stm_invno_index": [
+                {
+                    "column": "invno",
+                    "unique": false
+                }
+            ],
+            "sss_ssop_stm_vn_index": [
+                {
+                    "column": "vn",
+                    "unique": false
+                }
+            ],
+            "sss_ssop_stm_dttran_date_index": [
+                {
+                    "column": "dttran_date",
                     "unique": false
                 }
             ]
@@ -18409,12 +19099,6 @@
                 "default": "N",
                 "extra": ""
             },
-            "allow_check_right": {
-                "type": "varchar(1)",
-                "nullable": false,
-                "default": "N",
-                "extra": ""
-            },
             "allow_import": {
                 "type": "varchar(1)",
                 "nullable": false,
@@ -18444,236 +19128,11 @@
                 "nullable": false,
                 "default": "N",
                 "extra": ""
-            }
-        },
-        "indexes": {
-            "PRIMARY": [
-                {
-                    "column": "id",
-                    "unique": true
-                }
-            ]
-        }
-    },
-    "lookup_icd10_chi": {
-        "columns": {
-            "code": {
-                "type": "varchar(10)",
+            },
+            "allow_check_right": {
+                "type": "varchar(1)",
                 "nullable": false,
-                "default": null,
-                "extra": ""
-            },
-            "accpdx": {
-                "type": "varchar(5)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "code_cat": {
-                "type": "varchar(5)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "desc": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "created_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updated_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "primary_key": [
-            "code"
-        ],
-        "indexes": {
-            "PRIMARY": [
-                {
-                    "column": "code",
-                    "unique": true
-                }
-            ],
-            "lookup_icd10_chi_code_index": [
-                {
-                    "column": "code",
-                    "unique": false
-                }
-            ]
-        }
-    },
-    "sss_aipn_rep": {
-        "columns": {
-            "id": {
-                "type": "bigint(20) unsigned",
-                "nullable": false,
-                "default": null,
-                "extra": "auto_increment"
-            },
-            "rep_file": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "repno": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "rep_date": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "rep_time": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "repline": {
-                "type": "int(11)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "pcode": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "tcode": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "iptype": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "care_as": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "ss": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hmain": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hcare": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "an": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hn": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "pid": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "drg": {
-                "type": "varchar(20)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "rw": {
-                "type": "decimal(10,4)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "adjrw": {
-                "type": "decimal(10,4)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "st": {
-                "type": "varchar(20)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "sst": {
-                "type": "varchar(20)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "pt": {
-                "type": "varchar(20)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "amt": {
-                "type": "decimal(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "name": {
-                "type": "varchar(150)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "error_codes": {
-                "type": "text",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "created_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updated_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
+                "default": "N",
                 "extra": ""
             }
         },
@@ -18682,354 +19141,6 @@
                 {
                     "column": "id",
                     "unique": true
-                }
-            ],
-            "sss_aipn_rep_rep_file_index": [
-                {
-                    "column": "rep_file",
-                    "unique": false
-                }
-            ],
-            "sss_aipn_rep_an_index": [
-                {
-                    "column": "an",
-                    "unique": false
-                }
-            ],
-            "sss_aipn_rep_hn_index": [
-                {
-                    "column": "hn",
-                    "unique": false
-                }
-            ],
-            "sss_aipn_rep_pid_index": [
-                {
-                    "column": "pid",
-                    "unique": false
-                }
-            ]
-        }
-    },
-    "sss_aipn_stm": {
-        "columns": {
-            "id": {
-                "type": "bigint(20) unsigned",
-                "nullable": false,
-                "default": null,
-                "extra": "auto_increment"
-            },
-            "stm_file": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "round_no": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hn": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "an": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "pid": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "name": {
-                "type": "varchar(150)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dateadm": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "datedsc": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "ft": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "bf": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "drg": {
-                "type": "varchar(20)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "rw": {
-                "type": "decimal(10,4)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "adjrw": {
-                "type": "decimal(10,4)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hmain": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hcode": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hproc": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "careas": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "sc": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "ed": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "due": {
-                "type": "decimal(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "reimb": {
-                "type": "decimal(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "receive_total": {
-                "type": "decimal(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "nreimb": {
-                "type": "decimal(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "copay": {
-                "type": "decimal(15,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "cp": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "pp": {
-                "type": "varchar(10)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "rid": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "created_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updated_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "indexes": {
-            "PRIMARY": [
-                {
-                    "column": "id",
-                    "unique": true
-                }
-            ],
-            "sss_aipn_stm_stm_file_index": [
-                {
-                    "column": "stm_file",
-                    "unique": false
-                }
-            ],
-            "sss_aipn_stm_an_index": [
-                {
-                    "column": "an",
-                    "unique": false
-                }
-            ],
-            "sss_aipn_stm_hn_index": [
-                {
-                    "column": "hn",
-                    "unique": false
-                }
-            ],
-            "sss_aipn_stm_pid_index": [
-                {
-                    "column": "pid",
-                    "unique": false
-                }
-            ]
-        }
-    },
-    "rep_ofc_csop": {
-        "columns": {
-            "id": {
-                "type": "bigint(20) unsigned",
-                "nullable": false,
-                "default": null,
-                "extra": "auto_increment"
-            },
-            "rep_file": {
-                "type": "varchar(150)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "repline": {
-                "type": "int(11)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "vn": {
-                "type": "varchar(20)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "hn": {
-                "type": "varchar(20)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "invno": {
-                "type": "varchar(100)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dttran": {
-                "type": "datetime",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dttran_date": {
-                "type": "date",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "dttran_time": {
-                "type": "time",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "claim_type": {
-                "type": "varchar(50)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "amount": {
-                "type": "decimal(10,2)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "error_codes": {
-                "type": "varchar(255)",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "created_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            },
-            "updated_at": {
-                "type": "timestamp",
-                "nullable": true,
-                "default": null,
-                "extra": ""
-            }
-        },
-        "indexes": {
-            "PRIMARY": [
-                {
-                    "column": "id",
-                    "unique": true
-                }
-            ],
-            "rep_ofc_csop_vn_index": [
-                {
-                    "column": "vn",
-                    "unique": false
-                }
-            ],
-            "rep_ofc_csop_hn_index": [
-                {
-                    "column": "hn",
-                    "unique": false
                 }
             ]
         }

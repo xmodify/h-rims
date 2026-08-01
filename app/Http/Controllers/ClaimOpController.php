@@ -5762,7 +5762,7 @@ class ClaimOpController extends Controller
 			) rc ON rc.vn = o.vn
             LEFT JOIN hrims.debtor_1102050101_301 d ON d.vn=o.vn
             LEFT JOIN (
-                SELECT vn FROM hrims.sss_ssop_rep GROUP BY vn
+                SELECT vn FROM hrims.rep_sss_ssop GROUP BY vn
             ) rep ON rep.vn = o.vn
             WHERE p.hipdata_code = "SSS"
                 AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
@@ -5893,14 +5893,46 @@ class ClaimOpController extends Controller
                 $drugs_by_vn[$d->vn][] = $d;
             }
 
-            // Fetch REP errors matching actual HOSxP vns
-            $rep_errors = DB::table('sss_ssop_rep')
+            // Fetch latest REP error codes grouped by vn and station sorted chronologically (rep_date, rep_time, rep_no, rep_file, id)
+            $rep_records = DB::table('rep_sss_ssop')
                 ->whereIn('vn', $vns)
-                ->pluck('error_codes', 'vn')
-                ->toArray();
+                ->whereIn('id', function($query) use ($vns) {
+                    $query->select('id')
+                        ->from(DB::raw("(
+                            SELECT id, vn, station,
+                                   ROW_NUMBER() OVER (
+                                       PARTITION BY vn, station 
+                                       ORDER BY 
+                                           COALESCE(rep_date, '1970-01-01') DESC, 
+                                           COALESCE(rep_time, '00:00:00') DESC, 
+                                           COALESCE(rep_no, '') DESC, 
+                                           COALESCE(rep_file, '') DESC, 
+                                           id DESC
+                                   ) as rn
+                            FROM rep_sss_ssop
+                            WHERE vn IN ('" . implode("','", $vns) . "')
+                        ) t"))
+                        ->where('rn', 1);
+                })
+                ->select('vn', 'error_codes')
+                ->get();
+
+            $rep_errors = [];
+            foreach ($rep_records as $rec) {
+                if (!empty($rec->error_codes)) {
+                    if (isset($rep_errors[$rec->vn])) {
+                        $existing = array_filter(array_map('trim', explode(',', $rep_errors[$rec->vn])));
+                        $new_codes = array_filter(array_map('trim', explode(',', $rec->error_codes)));
+                        $combined = array_unique(array_merge($existing, $new_codes));
+                        $rep_errors[$rec->vn] = implode(',', $combined);
+                    } else {
+                        $rep_errors[$rec->vn] = $rec->error_codes;
+                    }
+                }
+            }
 
             // Fetch STM paid amount matching actual HOSxP vns
-            $stm_pays = DB::table('sss_ssop_stm')
+            $stm_pays = DB::table('stm_sss_ssop')
                 ->whereIn('vn', $vns)
                 ->pluck('total', 'vn')
                 ->toArray();
@@ -6281,24 +6313,46 @@ class ClaimOpController extends Controller
         $visit->has_matching_category = !empty($intersect);
 
         $rep_feedbacks = [];
-        $rep_record = DB::table('sss_ssop_rep')
+        $rep_records = DB::table('rep_sss_ssop')
             ->where('vn', $vn)
-            ->first();
-        if ($rep_record && !empty($rep_record->error_codes)) {
-            $codes = array_filter(array_map('trim', explode(',', $rep_record->error_codes)));
-            $lookup = [];
-            $json_path = base_path('docs/lookup/sss_error_codes.json');
-            if (file_exists($json_path)) {
-                $lookup = json_decode(file_get_contents($json_path), true) ?: [];
-            }
-            foreach ($codes as $c) {
-                $desc = $lookup[$c] ?? 'ไม่พบข้อมูลในคู่มือ';
-                $is_warn = str_starts_with(strtoupper($c), 'W');
-                $rep_feedbacks[] = [
-                    'code' => $c,
-                    'type' => $is_warn ? 'warning' : 'error',
-                    'desc' => $desc
-                ];
+            ->whereIn('id', function($query) use ($vn) {
+                $query->select('id')
+                    ->from(DB::raw("(
+                        SELECT id, vn, station,
+                               ROW_NUMBER() OVER (
+                                   PARTITION BY vn, station 
+                                   ORDER BY 
+                                       COALESCE(rep_date, '1970-01-01') DESC, 
+                                       COALESCE(rep_time, '00:00:00') DESC, 
+                                       COALESCE(rep_no, '') DESC, 
+                                       COALESCE(rep_file, '') DESC, 
+                                       id DESC
+                               ) as rn
+                        FROM rep_sss_ssop
+                        WHERE vn = '" . $vn . "'
+                    ) t"))
+                    ->where('rn', 1);
+            })
+            ->get();
+
+        $lookup = [];
+        $json_path = base_path('docs/lookup/sss_error_codes.json');
+        if (file_exists($json_path)) {
+            $lookup = json_decode(file_get_contents($json_path), true) ?: [];
+        }
+
+        foreach ($rep_records as $rep_record) {
+            if ($rep_record && !empty($rep_record->error_codes)) {
+                $codes = array_filter(array_map('trim', explode(',', $rep_record->error_codes)));
+                foreach ($codes as $c) {
+                    $desc = $lookup[$c] ?? 'ไม่พบข้อมูลในคู่มือ';
+                    $is_warn = str_starts_with(strtoupper($c), 'W');
+                    $rep_feedbacks[] = [
+                        'code' => $c,
+                        'type' => $is_warn ? 'warning' : 'error',
+                        'desc' => '[' . $rep_record->stat . ' ' . $rep_record->station . '] ' . $desc
+                    ];
+                }
             }
         }
 
@@ -6371,6 +6425,17 @@ class ClaimOpController extends Controller
                     'status' => 'danger'
                 ];
             }
+        }
+
+        $latest_rep = DB::table('rep_sss_ssop')
+            ->where('vn', $vn)
+            ->orderByDesc('id')
+            ->first();
+        if ($latest_rep) {
+            $visit->rep_date = $latest_rep->rep_date;
+            $visit->rep_time = $latest_rep->rep_time;
+            $visit->rep_no = $latest_rep->rep_no;
+            $visit->rep_station = $latest_rep->station;
         }
 
         return response()->json([
@@ -6450,6 +6515,41 @@ class ClaimOpController extends Controller
         ", [$vn]);
 
         $rep_feedbacks = [];
+        $rep_records = DB::table('rep_ofc_csop')
+            ->where('vn', $vn)
+            ->whereIn('id', function($query) use ($vn) {
+                $query->select('id')
+                    ->from(DB::raw("(
+                        SELECT id, vn, station,
+                               ROW_NUMBER() OVER (
+                                   PARTITION BY vn, station 
+                                   ORDER BY 
+                                       COALESCE(rep_date, '1970-01-01') DESC, 
+                                       COALESCE(rep_time, '00:00:00') DESC, 
+                                       COALESCE(rep_no, '') DESC, 
+                                       COALESCE(rep_file, '') DESC, 
+                                       id DESC
+                               ) as rn
+                        FROM rep_ofc_csop
+                        WHERE vn = '" . $vn . "'
+                    ) t"))
+                    ->where('rn', 1);
+            })
+            ->get();
+
+        foreach ($rep_records as $rep_record) {
+            if ($rep_record && !empty($rep_record->error_codes)) {
+                $codes = array_filter(array_map('trim', explode(',', $rep_record->error_codes)));
+                foreach ($codes as $c) {
+                    $is_warn = str_starts_with(strtoupper($c), 'W');
+                    $rep_feedbacks[] = [
+                        'code' => $c,
+                        'type' => $is_warn ? 'warning' : 'error',
+                        'desc' => '[' . $rep_record->stat . ' ' . $rep_record->station . '] รหัสข้อผิดพลาด: ' . $c
+                    ];
+                }
+            }
+        }
         $pre_audits = [];
 
         if (empty($visit->cid) || strlen(trim($visit->cid)) !== 13) {
@@ -6468,6 +6568,17 @@ class ClaimOpController extends Controller
                 'desc' => 'กรุณาระบุรหัสโรคการวินิจฉัยหลัก (diagtype = 1) ในระบบ HOSxP',
                 'status' => 'danger'
             ];
+        }
+
+        $latest_rep = DB::table('rep_sss_ssop')
+            ->where('vn', $vn)
+            ->orderByDesc('id')
+            ->first();
+        if ($latest_rep) {
+            $visit->rep_date = $latest_rep->rep_date;
+            $visit->rep_time = $latest_rep->rep_time;
+            $visit->rep_no = $latest_rep->rep_no;
+            $visit->rep_station = $latest_rep->station;
         }
 
         return response()->json([
@@ -6942,11 +7053,43 @@ class ClaimOpController extends Controller
         $rep_records = [];
         $stm_pays = [];
         if (!empty($vns)) {
-            $rep_records = DB::table('rep_ofc_csop')
+            // Fetch latest REP records grouped by vn and station sorted chronologically for CSOP
+            $raw_rep_records = DB::table('rep_ofc_csop')
                 ->whereIn('vn', $vns)
-                ->get()
-                ->keyBy('vn')
-                ->toArray();
+                ->whereIn('id', function($query) use ($vns) {
+                    $query->select('id')
+                        ->from(DB::raw("(
+                            SELECT id, vn, station,
+                                   ROW_NUMBER() OVER (
+                                       PARTITION BY vn, station 
+                                       ORDER BY 
+                                           COALESCE(rep_date, '1970-01-01') DESC, 
+                                           COALESCE(rep_time, '00:00:00') DESC, 
+                                           COALESCE(rep_no, '') DESC, 
+                                           COALESCE(rep_file, '') DESC, 
+                                           id DESC
+                                   ) as rn
+                            FROM rep_ofc_csop
+                            WHERE vn IN ('" . implode("','", $vns) . "')
+                        ) t"))
+                        ->where('rn', 1);
+                })
+                ->get();
+
+            $rep_records = [];
+            foreach ($raw_rep_records as $rec) {
+                if (isset($rep_records[$rec->vn])) {
+                    // Combine error codes if multiple claim types exist for the same vn
+                    if (!empty($rec->error_codes)) {
+                        $existing_codes = array_filter(array_map('trim', explode(',', $rep_records[$rec->vn]->error_codes ?? '')));
+                        $new_codes = array_filter(array_map('trim', explode(',', $rec->error_codes)));
+                        $combined = array_unique(array_merge($existing_codes, $new_codes));
+                        $rep_records[$rec->vn]->error_codes = implode(',', $combined);
+                    }
+                } else {
+                    $rep_records[$rec->vn] = $rec;
+                }
+            }
 
             $stm_records = DB::table('stm_ofc_csop')
                 ->select('hn', 'vstdate', 'vsttime', 'amount')

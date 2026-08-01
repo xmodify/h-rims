@@ -1061,6 +1061,10 @@
                           <tr><th class="text-muted" >ชำระเงินสด</th><td class="text-dark" style="word-break: break-all;">${parseFloat(visit.rcpt_money).toFixed(2)} บาท${receiptText}</td></tr>
                           <tr><th class="text-muted" >ยอดเรียกเก็บ</th><td class="text-dark" style="word-break: break-all;">${parseFloat(visit.uc_money || 0).toFixed(2)} บาท</td></tr>
                           <tr><th class="text-muted" >สถานะปิดสิทธิ</th><td >${endpointBtn}</td></tr>
+                          ${visit.rep_no ? `
+                          <tr><th class="text-muted" >เลขที่ตอบรับ (REP)</th><td class="text-dark fw-bold" style="word-break: break-all;">${visit.rep_no}</td></tr>
+                          <tr><th class="text-muted" >วันที่ออกเลขตอบรับ</th><td class="text-dark" style="word-break: break-all;">${visit.rep_date ? visit.rep_date.split('-').reverse().join('/') : '-'} ${visit.rep_time ? visit.rep_time.substring(0, 5) : ''}</td></tr>
+                          ` : ''}
                         </table>
                       </div>
                     </div>

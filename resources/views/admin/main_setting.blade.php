@@ -220,6 +220,15 @@
                                 <span class="text-muted small">ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาล (SSOP Export)</span>
                             </div>
                         </div>
+                        <div class="list-group-item d-flex align-items-center gap-3 py-3 border-bottom">
+                            <div class="bg-warning bg-opacity-10 text-warning rounded-circle p-2 d-flex">
+                                <i class="bi bi-file-earmark-zip-fill fs-5"></i>
+                            </div>
+                            <div>
+                                <strong class="d-block text-dark">ระบบส่งออกข้อมูลสวัสดิการข้าราชการ (CSOP)</strong>
+                                <span class="text-muted small">ครอบคลุมการรวบรวม ตรวจสอบ และสร้างไฟล์ข้อมูลเคลมค่ารักษาพยาบาลข้าราชการ (CSOP Export)</span>
+                            </div>
+                        </div>
                         <div class="list-group-item d-flex align-items-center gap-3 py-3">
                             <div class="bg-info bg-opacity-10 text-info rounded-circle p-2 d-flex">
                                 <i class="bi bi-card-checklist fs-5"></i>

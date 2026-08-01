@@ -64,6 +64,42 @@ class ImportCsController extends Controller
                     }
 
                     $lines = explode("\n", $rawContent);
+                    $rep_date = null;
+                    $rep_time = null;
+                    $rep_no = null;
+                    $rep_station = null;
+
+                    foreach ($lines as $line) {
+                        $line = trim($line);
+                        if (str_contains($line, 'วันที่ออกเลขตอบรับ')) {
+                            $parts = explode('=', $line);
+                            if (isset($parts[1])) {
+                                $dt_val = trim($parts[1]);
+                                $dt_parts = preg_split('/\s+/', $dt_val);
+                                $raw_date = $dt_parts[0] ?? '';
+                                $date_parts = explode('/', $raw_date);
+                                if (count($date_parts) === 3) {
+                                    $d = (int)$date_parts[0];
+                                    $m = (int)$date_parts[1];
+                                    $y = (int)$date_parts[2] - 543;
+                                    $rep_date = sprintf('%04d-%02d-%02d', $y, $m, $d);
+                                }
+                                if (str_contains($line, 'เวลา:')) {
+                                    $time_parts = explode('เวลา:', $line);
+                                    $rep_time = trim($time_parts[1] ?? '');
+                                }
+                            }
+                        }
+                        if (str_contains($line, 'เลขที่ตอบรับ')) {
+                            $parts = explode('=', $line);
+                            $rep_no = trim($parts[1] ?? '');
+                        }
+                        if (str_contains($line, 'สถานี:')) {
+                            $parts = explode(':', $line);
+                            $rep_station = trim($parts[1] ?? '');
+                        }
+                    }
+
                     foreach ($lines as $line) {
                         $line = trim($line);
                         // Check for line header starting with *|
@@ -112,8 +148,19 @@ class ImportCsController extends Controller
                                             ->value('vn');
                                     }
 
+                                    $stat = null;
+                                    $station = null;
+                                    if (!empty($claim_type)) {
+                                        $claim_parts = explode(' ', $claim_type, 2);
+                                        $stat = trim($claim_parts[0]);
+                                        $station = isset($claim_parts[1]) ? trim($claim_parts[1]) : null;
+                                    }
+
                                     DB::table('rep_ofc_csop')->insert([
                                         'rep_file' => $fileName,
+                                        'rep_date' => $rep_date,
+                                        'rep_time' => $rep_time ? ($rep_time . ':00') : null,
+                                        'rep_no' => $rep_no,
                                         'repline' => is_numeric($repline) ? (int)$repline : null,
                                         'vn' => $vn,
                                         'hn' => $hn,
@@ -121,7 +168,8 @@ class ImportCsController extends Controller
                                         'dttran' => $dttran ? ($dttran . ' ' . ($time_raw ?: '00:00:00')) : null,
                                         'dttran_date' => $dttran,
                                         'dttran_time' => !empty($time_raw) ? $time_raw : null,
-                                        'claim_type' => $claim_type,
+                                        'stat' => $stat,
+                                        'station' => $station,
                                         'amount' => is_numeric($amount) ? (float)$amount : null,
                                         'error_codes' => $error_codes,
                                         'created_at' => now(),

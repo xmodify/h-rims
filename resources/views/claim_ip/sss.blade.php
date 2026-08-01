@@ -186,7 +186,7 @@
         if (!input || input.files.length === 0) return;
 
         const files = Array.from(input.files);
-        const uploadUrl = type === 'rep' ? "{{ url('claim_ip/sss_aipn_rep_import') }}" : "{{ url('claim_ip/sss_aipn_stm_import') }}";
+        const uploadUrl = type === 'rep' ? "{{ url('claim_ip/rep_sss_aipn_import') }}" : "{{ url('claim_ip/stm_sss_aipn_import') }}";
 
         let currentIdx = 0;
         let successCount = 0;

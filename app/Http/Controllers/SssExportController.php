@@ -84,7 +84,7 @@ class SssExportController extends Controller
         $vns_list = $visits->pluck('vn')->toArray();
         $rep_invs_by_vn = [];
         if (!empty($vns_list)) {
-            $rep_records = DB::table('sss_ssop_rep')
+            $rep_records = DB::table('rep_sss_ssop')
                 ->whereIn('vn', $vns_list)
                 ->select('vn', 'invno')
                 ->get();
@@ -602,7 +602,7 @@ class SssExportController extends Controller
         // Query REP invoices for validation matching
         $rep_invs_by_vn = [];
         if (!empty($vns)) {
-            $rep_records = DB::table('sss_ssop_rep')
+            $rep_records = DB::table('rep_sss_ssop')
                 ->whereIn('vn', $vns)
                 ->select('vn', 'invno')
                 ->get();

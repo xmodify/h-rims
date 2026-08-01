@@ -1994,8 +1994,8 @@ $search = DB::connection('hosxp')->select(
                 WHERE a.rcpno IS NULL
                 GROUP BY r.vn
             ) rc ON rc.an = i.an
-            LEFT JOIN hrims.sss_aipn_rep rep ON rep.an = i.an
-            LEFT JOIN hrims.sss_aipn_stm stm ON stm.an = i.an
+            LEFT JOIN hrims.rep_sss_aipn rep ON rep.an = i.an
+            LEFT JOIN hrims.stm_sss_aipn stm ON stm.an = i.an
             LEFT JOIN hrims.debtor_1102050101_302 d ON d.an = i.an
             LEFT JOIN hrims.debtor_1102050101_304 d1 ON d1.an = i.an
             LEFT JOIN hrims.debtor_1102050101_308 d2 ON d2.an = i.an 
@@ -2048,11 +2048,11 @@ $search = DB::connection('hosxp')->select(
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN (
                 SELECT * FROM (
-                    SELECT *, ROW_NUMBER() OVER (PARTITION BY an ORDER BY rep_date DESC, rep_time DESC, id DESC) as rn
-                    FROM hrims.sss_aipn_rep
+                    SELECT *, ROW_NUMBER() OVER (PARTITION BY an ORDER BY COALESCE(rep_date, \'1970-01-01\') DESC, COALESCE(rep_time, \'00:00:00\') DESC, COALESCE(repno, \'\') DESC, COALESCE(rep_file, \'\') DESC, id DESC) as rn
+                    FROM hrims.rep_sss_aipn
                 ) t1 WHERE t1.rn = 1
             ) rep ON rep.an = i.an
-            LEFT JOIN hrims.sss_aipn_stm stm ON stm.an = i.an
+            LEFT JOIN hrims.stm_sss_aipn stm ON stm.an = i.an
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("SSS","SSI") 
@@ -2097,11 +2097,11 @@ $search = DB::connection('hosxp')->select(
             LEFT JOIN ipt_coll_status_type ict ON ict.ipt_coll_status_type_id=ic.ipt_coll_status_type_id
             LEFT JOIN (
                 SELECT * FROM (
-                    SELECT *, ROW_NUMBER() OVER (PARTITION BY an ORDER BY rep_date DESC, rep_time DESC, id DESC) as rn
-                    FROM hrims.sss_aipn_rep
+                    SELECT *, ROW_NUMBER() OVER (PARTITION BY an ORDER BY COALESCE(rep_date, \'1970-01-01\') DESC, COALESCE(rep_time, \'00:00:00\') DESC, COALESCE(repno, \'\') DESC, COALESCE(rep_file, \'\') DESC, id DESC) as rn
+                    FROM hrims.rep_sss_aipn
                 ) t1 WHERE t1.rn = 1
             ) rep ON rep.an = i.an
-            LEFT JOIN hrims.sss_aipn_stm stm ON stm.an = i.an
+            LEFT JOIN hrims.stm_sss_aipn stm ON stm.an = i.an
             WHERE i.confirm_discharge = "Y" 
             AND i.dchdate BETWEEN ? AND ?
             AND p.hipdata_code IN ("SSS","SSI") 
@@ -2176,7 +2176,7 @@ $search = DB::connection('hosxp')->select(
         }
 
         $rep_feedbacks = [];
-        $rep_record = DB::table('sss_aipn_rep')
+        $rep_record = DB::table('rep_sss_aipn')
             ->where('an', $an)
             ->orderByDesc('rep_date')
             ->orderByDesc('rep_time')
@@ -2216,12 +2216,12 @@ $search = DB::connection('hosxp')->select(
                    rep.rep_file, rep.repno, rep.rep_date, rep.rep_time, rep.error_codes, rep.tcode
             FROM (
                 SELECT * FROM (
-                    SELECT *, ROW_NUMBER() OVER (PARTITION BY an ORDER BY rep_date DESC, rep_time DESC, id DESC) as rn
-                    FROM hrims.sss_aipn_rep
+                    SELECT *, ROW_NUMBER() OVER (PARTITION BY an ORDER BY COALESCE(rep_date, \'1970-01-01\') DESC, COALESCE(rep_time, \'00:00:00\') DESC, COALESCE(repno, \'\') DESC, COALESCE(rep_file, \'\') DESC, id DESC) as rn
+                    FROM hrims.rep_sss_aipn
                 ) t1 WHERE t1.rn = 1
             ) rep
             LEFT JOIN patient pt ON pt.hn = rep.hn
-            LEFT JOIN hrims.sss_aipn_stm stm ON stm.an = rep.an
+            LEFT JOIN hrims.stm_sss_aipn stm ON stm.an = rep.an
             WHERE rep.error_codes IS NOT NULL 
               AND rep.error_codes <> ""
               AND stm.an IS NULL

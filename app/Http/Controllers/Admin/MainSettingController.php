@@ -125,6 +125,19 @@ class MainSettingController extends Controller
                     \Illuminate\Support\Facades\Schema::dropIfExists('sss_chronic_feedback');
                     \Illuminate\Support\Facades\Schema::dropIfExists('lookup_adp_sss');
 
+                    // Rename old tables to new names if they exist at other hospitals
+                    $renames = [
+                        'sss_ssop_rep' => 'rep_sss_ssop',
+                        'sss_aipn_rep' => 'rep_sss_aipn',
+                        'sss_ssop_stm' => 'stm_sss_ssop',
+                        'sss_aipn_stm' => 'stm_sss_aipn'
+                    ];
+                    foreach ($renames as $old => $new) {
+                        if (\Illuminate\Support\Facades\Schema::hasTable($old) && !\Illuminate\Support\Facades\Schema::hasTable($new)) {
+                            \Illuminate\Support\Facades\Schema::rename($old, $new);
+                        }
+                    }
+
                     $output = new \Symfony\Component\Console\Output\BufferedOutput();
                     \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true], $output);
                     $migrate_result = $output->fetch();
@@ -156,6 +169,30 @@ class MainSettingController extends Controller
                     DB::table('users')->where('status', 'admin')->update(
                         array_fill_keys($permissionColumns, 'Y')
                     );
+
+                    // Backfill stat and station from claim_type if it was renamed but not cleaned up yet
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('rep_sss_ssop', 'claim_type')) {
+                        \Illuminate\Support\Facades\DB::statement("
+                            UPDATE rep_sss_ssop 
+                            SET stat = SUBSTRING_INDEX(claim_type, ' ', 1), 
+                                station = SUBSTRING_INDEX(claim_type, ' ', -1) 
+                            WHERE stat IS NULL AND claim_type IS NOT NULL
+                        ");
+                        \Illuminate\Support\Facades\Schema::table('rep_sss_ssop', function (\Illuminate\Database\Schema\Blueprint $table) {
+                            $table->dropColumn(['claim_type', 'rep_station']);
+                        });
+                    }
+                    if (\Illuminate\Support\Facades\Schema::hasColumn('rep_ofc_csop', 'claim_type')) {
+                        \Illuminate\Support\Facades\DB::statement("
+                            UPDATE rep_ofc_csop 
+                            SET stat = SUBSTRING_INDEX(claim_type, ' ', 1), 
+                                station = SUBSTRING_INDEX(claim_type, ' ', -1) 
+                            WHERE stat IS NULL AND claim_type IS NOT NULL
+                        ");
+                        \Illuminate\Support\Facades\Schema::table('rep_ofc_csop', function (\Illuminate\Database\Schema\Blueprint $table) {
+                            $table->dropColumn(['claim_type', 'rep_station']);
+                        });
+                    }
 
                     $msg = 'ตรวจสอบโครงสร้างทุกตารางสำเร็จ';
                     if (!empty($details)) {
@@ -953,12 +990,11 @@ class MainSettingController extends Controller
             'edc_approve_list' => ['cid'],
             'fdh_claim_status' => ['hn', 'an', 'seq'],
             'nhso_endpoint' => ['cid'],
-            'sss_aipn_rep' => ['an', 'hn'],
-            'sss_aipn_stm' => ['hn', 'an'],
+            'rep_ofc_csop' => ['vn', 'hn'],
+            'rep_sss_aipn' => ['an', 'hn'],
+            'rep_sss_ssop' => ['vn', 'hn'],
             'sss_chronic' => ['hn'],
             'sss_chronic_register' => ['cid'],
-            'sss_ssop_rep' => ['vn', 'hn'],
-            'sss_ssop_stm' => ['vn', 'hn'],
             'stm_bkk' => ['hn', 'an', 'cid'],
             'stm_bkk_kidney' => ['hn', 'an', 'cid'],
             'stm_bkk_kidneyexcel' => ['hn', 'an', 'cid'],
@@ -973,7 +1009,6 @@ class MainSettingController extends Controller
             'stm_lgoexcel' => ['hn', 'an', 'cid'],
             'stm_ofc' => ['hn', 'an', 'cid'],
             'stm_ofc_cipn' => ['an'],
-            'rep_ofc_csop' => ['vn', 'hn'],
             'stm_ofc_csop' => ['hn'],
             'stm_ofcexcel' => ['hn', 'an', 'cid'],
             'stm_pvt' => ['hn', 'an', 'cid'],
@@ -981,7 +1016,9 @@ class MainSettingController extends Controller
             'stm_seamless_dmis' => ['hn', 'an', 'cid'],
             'stm_srt' => ['hn', 'an', 'cid'],
             'stm_srtexcel' => ['hn', 'an', 'cid'],
+            'stm_sss_aipn' => ['hn', 'an'],
             'stm_sss_kidney' => ['hn', 'cid'],
+            'stm_sss_ssop' => ['vn', 'hn'],
             'stm_ucs' => ['hn', 'an', 'cid'],
             'stm_ucs_kidney' => ['hn', 'an', 'cid'],
             'stm_ucs_kidneyexcel' => ['hn', 'an', 'cid'],

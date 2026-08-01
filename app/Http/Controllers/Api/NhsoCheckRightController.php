@@ -148,23 +148,21 @@ class NhsoCheckRightController extends Controller
                         $this->saveLocalTokens($newAccessToken, $newRefreshToken);
                     }
 
-                    // บันทึกกลับลงตาราง nhso_token ใน HOSxP
-                    $cid = Auth::user()->cid ?? null;
-                    if (!empty($cid)) {
-                        try {
-                            DB::connection('hosxp')
-                                ->table('nhso_token')
-                                ->where('cid', $cid)
-                                ->update([
-                                    'token' => $newAccessToken,
-                                    'refresh_token' => $newRefreshToken,
-                                    'update_datetime' => now()->format('Y-m-d H:i:s'),
-                                    'access_token_expire' => $this->getJwtExpiryDate($newAccessToken),
-                                    'refresh_token_expire' => $this->getJwtExpiryDate($newRefreshToken),
-                                ]);
-                        } catch (\Throwable $e) {
-                            Log::warning('HOSxP nhso_token update failed: ' . $e->getMessage());
-                        }
+                    // บันทึกกลับลงตาราง nhso_token ใน HOSxP (ค้นหาตามคีย์เดิมที่มีเพื่อความถูกต้องของแถวผู้เป็นเจ้าของ)
+                    try {
+                        DB::connection('hosxp')
+                            ->table('nhso_token')
+                            ->where('refresh_token', $refreshToken)
+                            ->orWhere('token', $accessToken)
+                            ->update([
+                                'token' => $newAccessToken,
+                                'refresh_token' => $newRefreshToken,
+                                'update_datetime' => now()->format('Y-m-d H:i:s'),
+                                'access_token_expire' => $this->getJwtExpiryDate($newAccessToken),
+                                'refresh_token_expire' => $this->getJwtExpiryDate($newRefreshToken),
+                            ]);
+                    } catch (\Throwable $e) {
+                        Log::warning('HOSxP nhso_token update failed: ' . $e->getMessage());
                     }
 
                     // เรียกใช้ API สปสช. อีกครั้งด้วย Token ใหม่
@@ -267,18 +265,16 @@ class NhsoCheckRightController extends Controller
     }
 
     /**
-     * ดึง Token จากตาราง nhso_token ของ HOSxP สำหรับเจ้าหน้าที่ปัจจุบัน
+     * ดึง Token ล่าสุดที่มีการอัพเดทในโรงพยาบาลจากตาราง nhso_token ของ HOSxP
+     * เพื่อเอื้อให้ผู้ใช้ที่อยู่นอกโรงพยาบาลหรือล็อกอินบัญชีอื่นสามารถดึงสิทธิ์ร่วมกันได้
      */
-    private function getHosxpToken($cid, $env = 'production')
+    private function getHosxpToken($cid = null, $env = 'production')
     {
-        if (empty($cid)) {
-            return null;
-        }
-
         try {
+            // ดึงคีย์ล่าสุดที่มีในตารางโดยเรียงตามเวลาอัปเดตล่าสุด
             $hosxpToken = DB::connection('hosxp')
                 ->table('nhso_token')
-                ->where('cid', $cid)
+                ->orderBy('update_datetime', 'desc')
                 ->first();
 
             if ($hosxpToken) {
@@ -300,10 +296,10 @@ class NhsoCheckRightController extends Controller
                         $accessToken = $refreshResult['access-token'];
                         $refreshToken = $refreshResult['refresh-token'] ?? $possibleRefresh;
 
-                        // อัปเดตข้อมูลกลับลงฐานข้อมูล HOSxP
+                        // อัปเดตข้อมูลกลับลงฐานข้อมูล HOSxP ที่แถวเดิม (อ้างอิงตาม cid ของเจ้าของคีย์เดิมในตาราง)
                         DB::connection('hosxp')
                             ->table('nhso_token')
-                            ->where('cid', $cid)
+                            ->where('cid', $hosxpToken->cid)
                             ->update([
                                 'token' => $accessToken,
                                 'refresh_token' => $refreshToken,

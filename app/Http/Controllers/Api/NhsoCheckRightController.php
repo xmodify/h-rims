@@ -34,12 +34,28 @@ class NhsoCheckRightController extends Controller
      */
     public function loadLocalToken(Request $request)
     {
+        // 1. ลองอ่านไฟล์ในเครื่องก่อน (กรณีใช้งานแบบ Localhost)
         $localTokens = $this->getLocalTokens();
+        $accessToken = null;
+        $refreshToken = null;
+
         if ($localTokens && !empty($localTokens['access-token'])) {
             $accessToken = $localTokens['access-token'];
+            $refreshToken = $localTokens['refresh-token'] ?? '';
+        }
+
+        // 2. ถ้าไฟล์ไม่มี หรือเป็นคีย์ที่หมดอายุ -> ลองดึงจากฐานข้อมูล HOSxP ตาราง nhso_token ของผู้ใช้นี้
+        if (empty($accessToken) || $this->isJwtExpired($accessToken)) {
+            $cid = Auth::user()->cid ?? null;
+            $dbTokens = $this->getHosxpToken($cid, 'production');
+            if ($dbTokens) {
+                $accessToken = $dbTokens['access_token'];
+                $refreshToken = $dbTokens['refresh_token'];
+            }
+        }
+
+        if (!empty($accessToken)) {
             $expiresAt = null;
-            
-            // Parse JWT payload to extract expiration time (exp)
             $parts = explode('.', $accessToken);
             if (count($parts) === 3) {
                 $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1])), true);
@@ -51,13 +67,14 @@ class NhsoCheckRightController extends Controller
             return response()->json([
                 'status' => 'success',
                 'access_token' => $accessToken,
-                'refresh_token' => $localTokens['refresh-token'] ?? '',
+                'refresh_token' => $refreshToken,
                 'expires_at' => $expiresAt
             ]);
         }
+
         return response()->json([
             'status' => 'error',
-            'message' => 'ไม่พบไฟล์ token.txt หรือไม่สามารถอ่านไฟล์คีย์ในเครื่องท้องถิ่นได้'
+            'message' => 'ไม่พบคีย์ในเครื่องท้องถิ่น และไม่พบคีย์ที่พร้อมใช้งานในตาราง nhso_token ของ HOSxP'
         ], 404);
     }
 
@@ -74,27 +91,39 @@ class NhsoCheckRightController extends Controller
         $pid = $request->input('pid');
         $env = $request->input('environment');
         
-        // 1. ดึง Token: จาก request หรือจากไฟล์ในระบบ
         $accessToken = $request->input('access_token');
         $refreshToken = $request->input('refresh_token');
-        
-        $localTokens = $this->getLocalTokens();
-        
-        if (empty($accessToken) && $localTokens) {
-            $accessToken = $localTokens['access-token'] ?? null;
-        }
-        if (empty($refreshToken) && $localTokens) {
-            $refreshToken = $localTokens['refresh-token'] ?? null;
+        $tokenRefreshed = false;
+
+        // 1. ดึง Token: จาก request (ถ้ารับมาแล้วยังไม่หมดอายุ)
+        if (empty($accessToken) || $this->isJwtExpired($accessToken)) {
+            // 2. ถ้าไม่มี หรือคีย์หมดอายุ ให้ลองอ่านจากไฟล์ท้องถิ่น
+            $localTokens = $this->getLocalTokens();
+            if ($localTokens && !empty($localTokens['access-token']) && !$this->isJwtExpired($localTokens['access-token'])) {
+                $accessToken = $localTokens['access-token'];
+                $refreshToken = $localTokens['refresh-token'] ?? null;
+                $tokenRefreshed = true;
+            } else {
+                // 3. ถ้าในไฟล์ท้องถิ่นไม่มี หรือหมดอายุ ให้ดึงจากฐานข้อมูล HOSxP nhso_token
+                $cid = Auth::user()->cid ?? null;
+                $dbTokens = $this->getHosxpToken($cid, $env);
+                if ($dbTokens) {
+                    $accessToken = $dbTokens['access_token'];
+                    $refreshToken = $dbTokens['refresh_token'];
+                    $tokenRefreshed = true;
+                }
+            }
         }
 
         if (empty($accessToken)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'ไม่พบ Access Token ในระบบ กรุณาอัปโหลดหรือนำเข้าไฟล์ token.txt'
-            ], 400);
+                'error_type' => 'token_expired',
+                'message' => 'ไม่พบ Access Token ในระบบ กรุณาซิงค์คีย์เชื่อมต่อจากโปรแกรม SRM Smart Card'
+            ], 401);
         }
 
-        // 2. เรียกใช้งาน API สปสช.
+        // 4. เรียกใช้งาน API สปสช.
         $baseUrl = ($env === 'test') ? 'https://tsrm.nhso.go.th' : 'https://srm.nhso.go.th';
         $endpoint = "{$baseUrl}/api/ucws/v1/right-search";
 
@@ -103,7 +132,7 @@ class NhsoCheckRightController extends Controller
             ->timeout(10)
             ->get($endpoint, ['pid' => $pid]);
 
-        // 3. จัดการกรณี Token หมดอายุ (401 Unauthorized หรือ Response แจ้งว่า expired)
+        // 5. จัดการกรณี Token หมดอายุ (401 Unauthorized)
         if ($response->status() === 401 || (isset($response->json()['message']) && strpos(strtolower($response->json()['message']), 'token') !== false)) {
             if (!empty($refreshToken)) {
                 // พยายาม Refresh Token อัตโนมัติ
@@ -111,10 +140,31 @@ class NhsoCheckRightController extends Controller
                 if ($refreshResult && isset($refreshResult['access-token'])) {
                     $newAccessToken = $refreshResult['access-token'];
                     $newRefreshToken = $refreshResult['refresh-token'] ?? $refreshToken;
+                    $tokenRefreshed = true;
 
-                    // เขียนลงไฟล์ %userprofile% หากใช้งานไฟล์ในเครื่อง
+                    // บันทึกกลับลงไฟล์เครื่อง
+                    $localTokens = $this->getLocalTokens();
                     if ($localTokens) {
                         $this->saveLocalTokens($newAccessToken, $newRefreshToken);
+                    }
+
+                    // บันทึกกลับลงตาราง nhso_token ใน HOSxP
+                    $cid = Auth::user()->cid ?? null;
+                    if (!empty($cid)) {
+                        try {
+                            DB::connection('hosxp')
+                                ->table('nhso_token')
+                                ->where('cid', $cid)
+                                ->update([
+                                    'token' => $newAccessToken,
+                                    'refresh_token' => $newRefreshToken,
+                                    'update_datetime' => now()->format('Y-m-d H:i:s'),
+                                    'access_token_expire' => $this->getJwtExpiryDate($newAccessToken),
+                                    'refresh_token_expire' => $this->getJwtExpiryDate($newRefreshToken),
+                                ]);
+                        } catch (\Throwable $e) {
+                            Log::warning('HOSxP nhso_token update failed: ' . $e->getMessage());
+                        }
                     }
 
                     // เรียกใช้ API สปสช. อีกครั้งด้วย Token ใหม่
@@ -124,12 +174,20 @@ class NhsoCheckRightController extends Controller
                         ->get($endpoint, ['pid' => $pid]);
 
                     if ($retryResponse->successful()) {
+                        $expiresAt = null;
+                        $parts = explode('.', $newAccessToken);
+                        if (count($parts) === 3) {
+                            $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1])), true);
+                            $expiresAt = $payload['exp'] ?? null;
+                        }
+
                         return response()->json([
                             'status' => 'success',
                             'data' => $retryResponse->json(),
                             'token_refreshed' => true,
                             'access_token' => $newAccessToken,
-                            'refresh_token' => $newRefreshToken
+                            'refresh_token' => $newRefreshToken,
+                            'expires_at' => $expiresAt
                         ]);
                     }
                 }
@@ -150,10 +208,28 @@ class NhsoCheckRightController extends Controller
             ], $response->status() ?: 500);
         }
 
-        return response()->json([
+        // คืนค่าสำเร็จ
+        $responseData = [
             'status' => 'success',
             'data' => $response->json()
-        ]);
+        ];
+
+        // ถ้ามีการโหลด/รีเฟรช Token ใหม่ ให้ส่งกลับไปอัปเดตหน้าบ้านด้วย
+        if ($tokenRefreshed) {
+            $expiresAt = null;
+            $parts = explode('.', $accessToken);
+            if (count($parts) === 3) {
+                $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1])), true);
+                $expiresAt = $payload['exp'] ?? null;
+            }
+
+            $responseData['token_refreshed'] = true;
+            $responseData['access_token'] = $accessToken;
+            $responseData['refresh_token'] = $refreshToken;
+            $responseData['expires_at'] = $expiresAt;
+        }
+
+        return response()->json($responseData);
     }
 
     /**
@@ -188,6 +264,96 @@ class NhsoCheckRightController extends Controller
             'status' => 'error',
             'message' => 'ไม่สามารถต่ออายุ Token ได้ กรุณาเชื่อมต่อโปรแกรม Smart Card SSO ใหม่อีกครั้ง'
         ], 400);
+    }
+
+    /**
+     * ดึง Token จากตาราง nhso_token ของ HOSxP สำหรับเจ้าหน้าที่ปัจจุบัน
+     */
+    private function getHosxpToken($cid, $env = 'production')
+    {
+        if (empty($cid)) {
+            return null;
+        }
+
+        try {
+            $hosxpToken = DB::connection('hosxp')
+                ->table('nhso_token')
+                ->where('cid', $cid)
+                ->first();
+
+            if ($hosxpToken) {
+                $possibleAccess = $hosxpToken->token;
+                $possibleRefresh = $hosxpToken->refresh_token;
+
+                // 1. ถ้าคีย์หลักใน DB เป็น JWT และยังไม่หมดอายุ -> นำไปใช้ได้เลย
+                if (str_starts_with($possibleAccess, 'eyJ') && !$this->isJwtExpired($possibleAccess)) {
+                    return [
+                        'access_token' => $possibleAccess,
+                        'refresh_token' => $possibleRefresh
+                    ];
+                }
+
+                // 2. ถ้าคีย์หลักหมดอายุ/ไม่ใช่ JWT แต่มี Refresh Token ที่ยังไม่หมดอายุ -> ลองต่ออายุ
+                if (str_starts_with($possibleRefresh, 'eyJ') && !$this->isJwtExpired($possibleRefresh)) {
+                    $refreshResult = $this->performTokenRefresh($possibleRefresh, $env);
+                    if ($refreshResult && !empty($refreshResult['access-token'])) {
+                        $accessToken = $refreshResult['access-token'];
+                        $refreshToken = $refreshResult['refresh-token'] ?? $possibleRefresh;
+
+                        // อัปเดตข้อมูลกลับลงฐานข้อมูล HOSxP
+                        DB::connection('hosxp')
+                            ->table('nhso_token')
+                            ->where('cid', $cid)
+                            ->update([
+                                'token' => $accessToken,
+                                'refresh_token' => $refreshToken,
+                                'update_datetime' => now()->format('Y-m-d H:i:s'),
+                                'access_token_expire' => $this->getJwtExpiryDate($accessToken),
+                                'refresh_token_expire' => $this->getJwtExpiryDate($refreshToken),
+                            ]);
+
+                        return [
+                            'access_token' => $accessToken,
+                            'refresh_token' => $refreshToken
+                        ];
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::warning('HOSxP nhso_token lookup failed: ' . $e->getMessage());
+        }
+
+        return null;
+    }
+
+    private function isJwtExpired($token)
+    {
+        if (empty($token) || !str_starts_with($token, 'eyJ')) {
+            return true;
+        }
+        $parts = explode('.', $token);
+        if (count($parts) === 3) {
+            $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1])), true);
+            if (isset($payload['exp'])) {
+                return time() > ($payload['exp'] - 10); // ลบ 10 วินาทีกันเหนียว
+            }
+        }
+        return true;
+    }
+
+    private function getJwtExpiryDate($token)
+    {
+        if (empty($token) || !str_starts_with($token, 'eyJ')) {
+            return null;
+        }
+        $parts = explode('.', $token);
+        if (count($parts) === 3) {
+            $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1])), true);
+            if (isset($payload['exp'])) {
+                return date('Y-m-d H:i:s', $payload['exp']);
+            }
+        }
+        return null;
     }
 
     /**

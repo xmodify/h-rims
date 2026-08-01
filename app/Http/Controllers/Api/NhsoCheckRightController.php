@@ -515,35 +515,34 @@ class NhsoCheckRightController extends Controller
     {
         try {
             $tokens = DB::connection('hosxp')
-                ->table('nhso_token')
-                ->orderBy('update_datetime', 'desc')
+                ->table('nhso_token as t')
+                ->leftJoin('opduser as u', 'u.cid', '=', 't.cid')
+                ->select('t.*', 'u.name as staff_name')
+                ->orderBy('t.update_datetime', 'desc')
                 ->limit(5)
                 ->get();
 
             $formatted = [];
             foreach ($tokens as $row) {
                 $possibleAccess = $row->token ?? '';
-                $possibleRefresh = $row->refresh_token ?? '';
-
+                
                 $accessStatus = 'ไม่ใช่ JWT (รหัสสั้น)';
                 if (str_starts_with($possibleAccess, 'eyJ')) {
                     $accessStatus = $this->isJwtExpired($possibleAccess) ? 'หมดอายุ' : 'พร้อมใช้งาน';
-                }
-
-                $refreshStatus = 'ไม่มี';
-                if (str_starts_with($possibleRefresh, 'eyJ')) {
-                    $refreshStatus = $this->isJwtExpired($possibleRefresh) ? 'หมดอายุ' : 'พร้อมใช้งาน';
+                } else if (strlen($possibleAccess) === 16) {
+                    $updateDate = date('Y-m-d', strtotime($row->update_datetime));
+                    $today = date('Y-m-d');
+                    if ($updateDate === $today) {
+                        $accessStatus = 'พร้อมใช้งาน (SOAP)';
+                    } else {
+                        $accessStatus = 'หมดอายุ (SOAP)';
+                    }
                 }
 
                 $formatted[] = [
-                    'cid' => $row->cid,
+                    'staff_name' => $row->staff_name ?? 'ไม่พบชื่อเจ้าหน้าที่ (' . $row->cid . ')',
                     'update_datetime' => $row->update_datetime,
-                    'is_invalid' => $row->is_invalid ?? 'N',
-                    'token_preview' => strlen($possibleAccess) > 15 ? substr($possibleAccess, 0, 15) . '...' : $possibleAccess,
                     'access_status' => $accessStatus,
-                    'refresh_status' => $refreshStatus,
-                    'refresh_token_preview' => strlen($possibleRefresh) > 15 ? substr($possibleRefresh, 0, 15) . '...' : $possibleRefresh,
-                    'refresh_token_expire' => $row->refresh_token_expire ?? 'ไม่มี',
                 ];
             }
 

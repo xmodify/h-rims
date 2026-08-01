@@ -336,40 +336,36 @@
                 if (response.status === 'success' && response.data) {
                     let tableRows = '';
                     response.data.forEach((row, index) => {
-                        const bgAccess = row.access_status === 'พร้อมใช้งาน' ? 'bg-success' : (row.access_status === 'หมดอายุ' ? 'bg-danger' : 'bg-warning');
-                        const bgRefresh = row.refresh_status === 'พร้อมใช้งาน' ? 'bg-success' : (row.refresh_status === 'หมดอายุ' ? 'bg-danger' : 'bg-secondary');
+                        let bgAccess = 'bg-warning';
+                        if (row.access_status === 'พร้อมใช้งาน' || row.access_status === 'พร้อมใช้งาน (SOAP)') {
+                            bgAccess = 'bg-success';
+                        } else if (row.access_status === 'หมดอายุ' || row.access_status === 'หมดอายุ (SOAP)') {
+                            bgAccess = 'bg-danger';
+                        }
 
                         tableRows += `
                             <tr>
                                 <td>${index + 1}</td>
-                                <td class="font-monospace fw-bold">${row.cid || '-'}</td>
+                                <td class="fw-bold">${row.staff_name || '-'}</td>
                                 <td>${row.update_datetime || '-'}</td>
-                                <td class="font-monospace text-muted small">${row.token_preview || '-'}</td>
                                 <td><span class="badge ${bgAccess}">${row.access_status}</span></td>
-                                <td class="font-monospace text-muted small">${row.refresh_token_preview || '-'}</td>
-                                <td><span class="badge ${bgRefresh}">${row.refresh_status}</span></td>
-                                <td class="small">${row.refresh_token_expire || '-'}</td>
                             </tr>
                         `;
                     });
 
                     if (response.data.length === 0) {
-                        tableRows = '<tr><td colspan="8" class="text-center py-3 text-muted">ไม่พบข้อมูล Token ในตาราง nhso_token</td></tr>';
+                        tableRows = '<tr><td colspan="4" class="text-center py-3 text-muted">ไม่พบข้อมูล Token ในตาราง nhso_token</td></tr>';
                     }
 
                     const modalContent = `
                         <div class="table-responsive" style="max-height: 400px; text-align: left;">
-                            <table class="table table-hover table-striped align-middle small m-0" style="font-size: 0.82rem;">
+                            <table class="table table-hover table-striped align-middle small m-0" style="font-size: 0.85rem;">
                                 <thead class="table-dark">
                                     <tr>
-                                        <th>#</th>
-                                        <th>CID</th>
-                                        <th>เวลาอัปเดตล่าสุด</th>
-                                        <th>คีย์ย่อ (token)</th>
-                                        <th>สถานะ Access</th>
-                                        <th>คีย์ย่อ (refresh)</th>
-                                        <th>สถานะ Refresh</th>
-                                        <th>วันหมดอายุ Refresh</th>
+                                        <th style="width: 8%;">#</th>
+                                        <th>ชื่อ-สกุล เจ้าหน้าที่</th>
+                                        <th style="width: 30%;">เวลาอัปเดตล่าสุด</th>
+                                        <th style="width: 25%;">สถานะคีย์</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -382,7 +378,7 @@
                     Swal.fire({
                         title: 'ประวัติ Token ในฐานข้อมูล HOSxP',
                         html: modalContent,
-                        width: '900px',
+                        width: '650px',
                         confirmButtonText: 'ปิดหน้าจอ',
                         confirmButtonColor: '#6b7280'
                     });

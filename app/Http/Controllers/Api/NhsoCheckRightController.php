@@ -46,8 +46,9 @@ class NhsoCheckRightController extends Controller
             $refreshToken = $localTokens['refresh-token'] ?? '';
         }
 
-        // 2. ถ้าไฟล์ไม่มี หรือเป็นคีย์ที่หมดอายุ -> ลองดึงจากฐานข้อมูล HOSxP ตาราง nhso_token ของผู้ใช้นี้
-        if (empty($accessToken) || $this->isJwtExpired($accessToken)) {
+        // 2. ถ้าไฟล์ไม่มี หรือเป็นคีย์ที่หมดอายุ (สำหรับคีย์ยาว JWT) -> ลองดึงจากฐานข้อมูล HOSxP
+        // หมายเหตุ: ถ้าเป็นคีย์ 16 หลัก (SOAP Token) จะผ่านการตรวจสอบความยาวและข้ามการเช็ค JWT Expiry
+        if (empty($accessToken) || ($this->isJwtExpired($accessToken) && strlen($accessToken) !== 16)) {
             $cid = Auth::user()->cid ?? null;
             $dbTokens = $this->getHosxpToken($cid, 'production');
             if ($dbTokens) {
@@ -81,7 +82,7 @@ class NhsoCheckRightController extends Controller
     }
 
     /**
-     * ค้นหาสิทธิ์ผู้รับบริการผ่าน API สปสช. (SRM)
+     * ค้นหาสิทธิ์ผู้รับบริการผ่าน API สปสช. (SRM / SOAP)
      */
     public function search(Request $request)
     {
@@ -98,7 +99,7 @@ class NhsoCheckRightController extends Controller
         $tokenRefreshed = false;
 
         // 1. ดึง Token: จาก request (ถ้ารับมาแล้วยังไม่หมดอายุ)
-        if (empty($accessToken) || $this->isJwtExpired($accessToken)) {
+        if (empty($accessToken) || ($this->isJwtExpired($accessToken) && strlen($accessToken) !== 16)) {
             // 2. ถ้าไม่มี หรือคีย์หมดอายุ ให้ลองอ่านจากไฟล์ท้องถิ่น
             $localTokens = $this->getLocalTokens();
             if ($localTokens && !empty($localTokens['access-token']) && !$this->isJwtExpired($localTokens['access-token'])) {
@@ -125,7 +126,39 @@ class NhsoCheckRightController extends Controller
             ], 401);
         }
 
-        // 4. เรียกใช้งาน API สปสช.
+        // ตรวจสอบว่าเป็น SOAP Token (ความยาว 16 หลัก และไม่ใช่คีย์ JWT) หรือไม่
+        $isSoap = (strlen($accessToken) === 16 && !str_starts_with($accessToken, 'eyJ'));
+
+        if ($isSoap) {
+            // ค้นหา CID ของเจ้าของคีย์ 16 หลักในตาราง nhso_token เพื่อนำมาใช้สิทธิ์ยิง SOAP
+            $userCid = DB::connection('hosxp')
+                ->table('nhso_token')
+                ->where('token', $accessToken)
+                ->value('cid');
+
+            $soapResult = $this->queryRightViaSoap($accessToken, $userCid ?? $pid, $pid);
+            if ($soapResult && $soapResult['status'] === 'success') {
+                $responseData = [
+                    'status' => 'success',
+                    'data' => $soapResult['data']
+                ];
+                if ($tokenRefreshed) {
+                    $responseData['token_refreshed'] = true;
+                    $responseData['access_token'] = $accessToken;
+                    $responseData['refresh_token'] = $refreshToken;
+                    $responseData['expires_at'] = null;
+                }
+                return response()->json($responseData);
+            }
+
+            return response()->json([
+                'status' => 'error',
+                'error_type' => 'token_expired',
+                'message' => 'SOAP Token ตัวสั้นหมดอายุ หรือเซิร์ฟเวอร์สปสช. ปฏิเสธการเข้าถึง กรุณาล็อกอินเสียบบัตรหน้า HOSxP ใหม่'
+            ], 401);
+        }
+
+        // 4. เรียกใช้งาน API สปสช. (ระบบ REST JSON)
         $baseUrl = ($env === 'test') ? 'https://tsrm.nhso.go.th' : 'https://srm.nhso.go.th';
         $endpoint = "{$baseUrl}/api/ucws/v1/right-search";
 
@@ -268,7 +301,6 @@ class NhsoCheckRightController extends Controller
 
     /**
      * ดึง Token ล่าสุดที่มีการอัพเดทในโรงพยาบาลจากตาราง nhso_token ของ HOSxP
-     * เพื่อเอื้อให้ผู้ใช้ที่อยู่นอกโรงพยาบาลหรือล็อกอินบัญชีอื่นสามารถดึงสิทธิ์ร่วมกันได้
      */
     private function getHosxpToken($cid = null, $env = 'production')
     {
@@ -288,7 +320,18 @@ class NhsoCheckRightController extends Controller
                 $possibleRefresh = $hosxpToken->refresh_token;
                 $testPid = $hosxpToken->cid; // ใช้ CID ของผู้ครองคีย์ในแถวนั้นมาทำการทดลองยิงสิทธิ์เพื่อความแม่นยำ
 
-                // 1. ถ้าคีย์หลักในแถวนี้เป็น JWT และยังไม่หมดอายุตามเวลา -> ทดลองยิงจริงไปที่ สปสช. เพื่อตรวจเช็ค HTTP 200
+                // 1. ถ้าคีย์หลักในแถวนี้เป็น SOAP Token (รหัสสั้น 16 หลัก) -> ทดลองยิงจริงผ่าน SOAP XML
+                if (!empty($possibleAccess) && strlen($possibleAccess) === 16 && !str_starts_with($possibleAccess, 'eyJ')) {
+                    $soapTest = $this->queryRightViaSoap($possibleAccess, $testPid, $testPid);
+                    if ($soapTest && $soapTest['status'] === 'success') {
+                        return [
+                            'access_token' => $possibleAccess,
+                            'refresh_token' => $possibleRefresh
+                        ];
+                    }
+                }
+
+                // 2. ถ้าคีย์หลักในแถวนี้เป็น JWT และยังไม่หมดอายุตามเวลา -> ทดลองยิงจริงไปที่ สปสช. เพื่อตรวจเช็ค HTTP 200
                 if (str_starts_with($possibleAccess, 'eyJ') && !$this->isJwtExpired($possibleAccess)) {
                     $testResponse = Http::withoutVerifying()
                         ->withToken($possibleAccess)
@@ -303,7 +346,7 @@ class NhsoCheckRightController extends Controller
                     }
                 }
 
-                // 2. ถ้าคีย์หลักหมดอายุ/ไม่ใช่ JWT หรือทดลองยิงแล้วไม่ผ่าน -> ลองนำ Refresh Token ไปขอคีย์ใหม่และทดสอบ
+                // 3. ถ้าคีย์หลักหมดอายุ/ไม่ใช่ SOAP/ไม่ใช่ JWT หรือยิงไม่ผ่าน -> ลองนำ Refresh Token ไปต่ออายุ
                 if (str_starts_with($possibleRefresh, 'eyJ') && !$this->isJwtExpired($possibleRefresh)) {
                     $refreshResult = $this->performTokenRefresh($possibleRefresh, $env);
                     if ($refreshResult && !empty($refreshResult['access-token'])) {
@@ -514,5 +557,107 @@ class NhsoCheckRightController extends Controller
                 'message' => 'ไม่สามารถเชื่อมต่อฐานข้อมูล HOSxP ได้: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * ดึงสิทธิ์ผ่าน SOAP XML โดยตรงโดยใช้คีย์สั้น 16 หลัก (SMC Token)
+     */
+    private function queryRightViaSoap($smcToken, $userCid, $patientPid)
+    {
+        $xml = '<?xml version="1.0" encoding="utf-8"?>
+<S:Envelope xmlns:S="http://schemas.xmlsoap.org/soap/envelope/">
+   <S:Body>
+      <ns2:searchCurrentByPID xmlns:ns2="http://tokenws.ucws.nhso.go.th/">
+         <user_person_id>' . htmlspecialchars($userCid) . '</user_person_id>
+         <smctoken>' . htmlspecialchars($smcToken) . '</smctoken>
+         <person_id>' . htmlspecialchars($patientPid) . '</person_id>
+      </ns2:searchCurrentByPID>
+   </S:Body>
+</S:Envelope>';
+
+        $endpoint = "http://ucws.nhso.go.th/ucwstokenp1/UCWSTokenP1";
+        
+        try {
+            $response = Http::withoutVerifying()
+                ->withHeaders([
+                    'Content-Type' => 'text/xml; charset=utf-8',
+                    'SOAPAction' => '',
+                ])
+                ->timeout(5)
+                ->send('POST', $endpoint, [
+                    'body' => $xml
+                ]);
+
+            if ($response->status() === 200) {
+                $body = $response->body();
+                
+                // แปลง XML ของสปสช. เป็น JSON อาร์เรย์
+                $xmlObj = simplexml_load_string($body);
+                if ($xmlObj === false) {
+                    return null;
+                }
+                
+                $xmlObj->registerXPathNamespace('S', 'http://schemas.xmlsoap.org/soap/envelope/');
+                $xmlObj->registerXPathNamespace('ns2', 'http://tokenws.ucws.nhso.go.th/');
+                
+                $nodes = $xmlObj->xpath('//ns2:searchCurrentByPIDResponse/return');
+                if (empty($nodes)) {
+                    return null;
+                }
+                
+                $returnData = json_decode(json_encode($nodes[0]), true);
+                if (isset($returnData['ws_status']) && $returnData['ws_status'] !== 'NHSO-00000' && strpos($returnData['ws_status'], 'NHSO') !== false) {
+                    return [
+                        'status' => 'error',
+                        'message' => $returnData['ws_status_desc'] ?? 'สปสช. ปฏิเสธการสืบค้นข้อมูล'
+                    ];
+                }
+                
+                return [
+                    'status' => 'success',
+                    'data' => [
+                        'pid' => $returnData['person_id'] ?? $patientPid,
+                        'fname' => $returnData['fname'] ?? '',
+                        'lname' => $returnData['lname'] ?? '',
+                        'titleName' => $returnData['title_name'] ?? '',
+                        'birthDate' => $returnData['birth_date'] ?? '',
+                        'sex' => $returnData['sex'] ?? '',
+                        'transDate' => $returnData['trans_date'] ?? null,
+                        'mainInscl' => [
+                            'id' => $returnData['main_inscl'] ?? '',
+                            'name' => $returnData['main_inscl_name'] ?? '',
+                        ],
+                        'subInscl' => [
+                            'id' => $returnData['sub_inscl'] ?? '',
+                            'name' => $returnData['sub_inscl_name'] ?? '',
+                        ],
+                        'hospMain' => [
+                            'hcode' => $returnData['hosp_main'] ?? '',
+                            'hname' => $returnData['hosp_main_name'] ?? '',
+                        ],
+                        'hospSub' => [
+                            'hcode' => $returnData['hosp_sub'] ?? '',
+                            'hname' => $returnData['hosp_sub_name'] ?? '',
+                        ],
+                        'hospMainOp' => [
+                            'hcode' => $returnData['hosp_main_op'] ?? '',
+                            'hname' => $returnData['hosp_main_op_name'] ?? '',
+                        ],
+                        'startDateTime' => $returnData['start_date'] ?? '',
+                        'expireDateTime' => $returnData['exp_date'] ?? '',
+                        'claimTypes' => [
+                            [
+                                'claimType' => $returnData['main_inscl'] ?? '',
+                                'claimTypeName' => $returnData['main_inscl_name'] ?? '',
+                            ]
+                        ]
+                    ]
+                ];
+            }
+        } catch (\Throwable $e) {
+            Log::error('SOAP XML Right check exception: ' . $e->getMessage());
+        }
+        
+        return null;
     }
 }

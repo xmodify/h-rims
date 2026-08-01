@@ -48,7 +48,7 @@
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active" id="search-tab" data-bs-toggle="pill" data-bs-target="#search" type="button" role="tab">
                         <i class="bi bi-clock-history me-1"></i> รายการรับบริการ
-                    </button>
+                     <span class="badge bg-secondary ms-1 rounded-pill">{{ count($search) }}</span></button>
                 </li>       
             </ul>
         </div>
@@ -73,7 +73,8 @@
                                     <th class="text-end text-primary">เรียกเก็บ</th>
                                     <th class="text-end text-success">ชดเชย</th>
                                     <th class="text-end">ส่วนต่าง</th>
-                                </tr>
+                                                                    <th class="text-center" width="8%">Repno</th>
+</tr>
                             </thead> 
                             <tbody> 
                                 @php 
@@ -88,7 +89,7 @@
                                     <td class="text-center text-muted small">{{ $count }}</td>
                                     <td class="text-center" id="td-status-search-{{ $row->seq }}" data-order="{{ $row->endpoint_valid ? 1 : 0 }}">
                                         @if($row->endpoint_valid)
-                                            <button class="btn btn-sm btn-outline-primary px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ปิดสิทธิแล้ว | ดูรายละเอียด">
+                                            <button class="btn btn-sm btn-outline-success px-2 py-1 border-2 d-flex align-items-center justify-content-center" style="font-size:0.7rem; height: 26px; min-height: 26px; margin: 0 auto;" onclick="showDetails('{{ $row->seq }}')" title="ผ่านเงื่อนไข + ปิดสิทธิแล้ว | ดูรายละเอียด">
                                                 <i class="bi bi-eye-fill"></i>
                                             </button>
                                         @else
@@ -124,7 +125,8 @@
                                     <td class="text-end small fw-bold {{ ($row->receive_total-$row->claim_price) > 0 ? 'text-success' : (($row->receive_total-$row->claim_price) < 0 ? 'text-danger' : 'text-muted') }}">
                                         {{ number_format($row->receive_total-$row->claim_price,2) }}
                                     </td>
-                                </tr>
+                                                                    <td class="text-center small">{{ $row->repno ?? '-' }}</td>
+</tr>
                                 @php 
                                     $count++; 
                                     $sum_income += $row->income; 
@@ -146,7 +148,8 @@
                                     <th class="text-end small fw-bold {{ ($sum_receive_total-$sum_claim_price) > 0 ? 'text-success' : (($sum_receive_total-$sum_claim_price) < 0 ? 'text-danger' : 'text-muted') }}">
                                         {{ number_format($sum_receive_total-$sum_claim_price,2)}}
                                     </th>
-                                </tr>
+                                                                    <th></th>
+</tr>
                             </tfoot>
                         </table>
                     </div>          

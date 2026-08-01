@@ -188,7 +188,7 @@
                                     <th class="text-center">ค่ารักษา</th>
                                     <th class="text-center">ชำระเอง</th>
                                     <th class="text-center text-primary">เรียกเก็บ</th>
-                                    <th class="text-center" width="8%">REP ERROR</th>
+                                    
                                     <th class="text-center" width="8%">REP WARNING</th>
                                     <th class="text-center" width="8%">STM ชดเชย</th>
                                 </tr>
@@ -251,21 +251,10 @@
                                     <td class="text-end small">{{ number_format($row->income,2) }}</td>
                                     <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
                                     <td class="text-end fw-bold text-primary small">{{ number_format($row->claim_price,2) }}</td>
-                                    <td class="text-center small">
-                                        @if(!empty($row->rep_error))
-                                            <button class="btn btn-link p-0 badge bg-danger-soft text-danger fw-bold border-0" onclick="showRepDetails('{{ $row->an }}')" title="คลิกเพื่อดูรายละเอียดข้อผิดพลาด">{{ $row->rep_error }}</button>
-                                            @if(!empty($row->rep_repno))
-                                                <div class="text-muted" style="font-size: 0.65rem; margin-top: 2px;" title="เลขที่ตอบรับ: {{ $row->rep_repno }} ({{ DateThai($row->rep_rep_date) }})">
-                                                    REP: #{{ $row->rep_repno }}
-                                                </div>
-                                            @endif
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
+                                    
                                     <td class="text-center small">
                                         @if(!empty($row->rep_warning))
-                                            <button class="btn btn-link p-0 badge bg-warning-soft text-warning fw-bold border-0" onclick="showRepDetails('{{ $row->an }}')" title="คลิกเพื่อดูรายละเอียดข้อแนะนำ">{{ $row->rep_warning }}</button>
+                                            <button class="btn btn-link p-0 badge bg-warning-soft text-warning fw-bold border-0 text-decoration-underline" onclick="showRepDetails('{{ $row->an }}')" title="คลิกเพื่อดูรายละเอียดข้อแนะนำ">{{ $row->rep_warning }}</button>
                                             @if(!empty($row->rep_repno))
                                                 <div class="text-muted" style="font-size: 0.65rem; margin-top: 2px;" title="เลขที่ตอบรับ: {{ $row->rep_repno }} ({{ DateThai($row->rep_rep_date) }})">
                                                     REP: #{{ $row->rep_repno }}
@@ -297,7 +286,7 @@
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($sum_claim_price,2) }}</th>
-                                    <th colspan="3"></th>
+                                    <th colspan="2"></th>
                                 </tr>
                             </tfoot>
                         </table>
@@ -326,7 +315,7 @@
                                     <th class="text-center text-primary">เรียกเก็บ</th>
                                     <th class="text-center" width="8%">REP ERROR</th>
                                     <th class="text-center" width="8%">REP WARNING</th>
-                                    <th class="text-center" width="8%">STM ชดเชย</th>
+                                    
                                 </tr>
                             </thead> 
                             <tbody> 
@@ -395,7 +384,7 @@
                                     <td class="text-end fw-bold text-primary small">{{ number_format($row->claim_price,2) }}</td>
                                     <td class="text-center small">
                                         @if(!empty($row->rep_error))
-                                            <button class="btn btn-link p-0 badge bg-danger-soft text-danger fw-bold border-0" onclick="showRepDetails('{{ $row->an }}')" title="คลิกเพื่อดูรายละเอียดข้อผิดพลาด">{{ $row->rep_error }}</button>
+                                            <button class="btn btn-link p-0 badge bg-danger-soft text-danger fw-bold border-0 text-decoration-underline" onclick="showRepDetails('{{ $row->an }}')" title="คลิกเพื่อดูรายละเอียดข้อผิดพลาด">{{ $row->rep_error }}</button>
                                             @if(!empty($row->rep_repno))
                                                 <div class="text-muted" style="font-size: 0.65rem; margin-top: 2px;" title="เลขที่ตอบรับ: {{ $row->rep_repno }} ({{ DateThai($row->rep_rep_date) }})">
                                                     REP: #{{ $row->rep_repno }}
@@ -407,7 +396,7 @@
                                     </td>
                                     <td class="text-center small">
                                         @if(!empty($row->rep_warning))
-                                            <button class="btn btn-link p-0 badge bg-warning-soft text-warning fw-bold border-0" onclick="showRepDetails('{{ $row->an }}')" title="คลิกเพื่อดูรายละเอียดข้อแนะนำ">{{ $row->rep_warning }}</button>
+                                            <button class="btn btn-link p-0 badge bg-warning-soft text-warning fw-bold border-0 text-decoration-underline" onclick="showRepDetails('{{ $row->an }}')" title="คลิกเพื่อดูรายละเอียดข้อแนะนำ">{{ $row->rep_warning }}</button>
                                             @if(!empty($row->rep_repno))
                                                 <div class="text-muted" style="font-size: 0.65rem; margin-top: 2px;" title="เลขที่ตอบรับ: {{ $row->rep_repno }} ({{ DateThai($row->rep_rep_date) }})">
                                                     REP: #{{ $row->rep_repno }}
@@ -417,13 +406,7 @@
                                             <span class="text-muted">-</span>
                                         @endif
                                     </td>
-                                    <td class="text-end small fw-bold text-success">
-                                        @if($row->stm_pay !== null)
-                                            {{ number_format($row->stm_pay, 2) }}
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
+                                    
                                 </tr>
                                 @php 
                                     $w_count++; 
@@ -439,7 +422,7 @@
                                     <th class="text-end small">{{ number_format($w_sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($w_sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary small">{{ number_format($w_sum_claim_price,2) }}</th>
-                                    <th colspan="3"></th>
+                                    <th colspan="2"></th>
                                 </tr>
                             </tfoot>
                         </table>

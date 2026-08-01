@@ -2138,11 +2138,15 @@ $search = DB::connection('hosxp')->select(
         }
 
         $warning = [];
+        $claim_sent = [];
         foreach ($claim as $row) {
             if (($row->rep_tcode ?? null) === 'C' && $row->stm_pay === null) {
                 $warning[] = $row;
+            } else {
+                $claim_sent[] = $row;
             }
         }
+        $claim = $claim_sent;
         
         $table_html = view('claim_ip.sss_table', compact('budget_year', 'start_date', 'end_date', 'search', 'claim', 'warning'))->render();
 

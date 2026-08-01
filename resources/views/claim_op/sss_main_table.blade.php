@@ -99,9 +99,15 @@
                                     <th class="text-center">ค่ารักษา</th>
                                     <th class="text-center">ชำระเอง</th>
                                     <th class="text-center text-primary">เรียกเก็บ</th>
-                                    <th class="text-center" width="8%">Rep Error</th>
-                                    <th class="text-center" width="8%">Rep Warning</th>
-                                    <th class="text-center" width="8%">stm ชดเชย</th>
+                                    @if($tab['id'] === 'warning')
+                                        <th class="text-center" width="8%">Rep Error</th>
+                                    @endif
+                                    @if($tab['id'] !== 'search')
+                                        <th class="text-center" width="8%">Rep Warning</th>
+                                    @endif
+                                    @if($tab['id'] === 'claim')
+                                        <th class="text-center" width="8%">stm ชดเชย</th>
+                                    @endif
                                 </tr>
                             </thead>
                             <tbody>
@@ -155,27 +161,33 @@
                                     <td class="text-end small">{{ number_format($row->income,2) }}</td>
                                     <td class="text-end small">{{ number_format($row->rcpt_money,2) }}</td>
                                     <td class="text-end fw-bold text-primary">{{ number_format($row->claim_price,2) }}</td>
-                                    <td class="text-center small">
-                                        @if($row->rep_error)
-                                            <span class="badge bg-danger-soft text-danger fw-bold">{{ $row->rep_error }}</span>
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
-                                    <td class="text-center small">
-                                        @if($row->rep_warning)
-                                            <span class="badge bg-warning-soft text-warning fw-bold">{{ $row->rep_warning }}</span>
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
-                                    <td class="text-end small fw-bold text-success">
-                                        @if($row->stm_pay !== null)
-                                            {{ number_format($row->stm_pay, 2) }}
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
+                                    @if($tab['id'] === 'warning')
+                                        <td class="text-center small">
+                                            @if($row->rep_error)
+                                                <span class="badge bg-danger-soft text-danger fw-bold cursor-pointer text-decoration-underline" style="cursor: pointer;" onclick="showRepDetails('{{ $row->vn }}')" title="คลิกเพื่อดูรายละเอียดข้อผิดพลาด">{{ $row->rep_error }}</span>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
+                                    @endif
+                                    @if($tab['id'] !== 'search')
+                                        <td class="text-center small">
+                                            @if($row->rep_warning)
+                                                <span class="badge bg-warning-soft text-warning fw-bold cursor-pointer text-decoration-underline" style="cursor: pointer;" onclick="showRepDetails('{{ $row->vn }}')" title="คลิกเพื่อดูรายละเอียดข้อแนะนำ">{{ $row->rep_warning }}</span>
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
+                                    @endif
+                                    @if($tab['id'] === 'claim')
+                                        <td class="text-end small fw-bold text-success">
+                                            @if($row->stm_pay !== null)
+                                                {{ number_format($row->stm_pay, 2) }}
+                                            @else
+                                                <span class="text-muted">-</span>
+                                            @endif
+                                        </td>
+                                    @endif
                                 </tr>
                                 @php
                                     $sum_income += $row->income;
@@ -190,9 +202,15 @@
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary">{{ number_format($sum_claim_price,2) }}</th>
-                                    <th></th>
-                                    <th></th>
-                                    <th></th>
+                                    @if($tab['id'] === 'warning')
+                                        <th></th>
+                                    @endif
+                                    @if($tab['id'] !== 'search')
+                                        <th></th>
+                                    @endif
+                                    @if($tab['id'] === 'claim')
+                                        <th></th>
+                                    @endif
                                 </tr>
                             </tfoot>
                         </table>

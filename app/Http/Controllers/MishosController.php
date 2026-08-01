@@ -6316,15 +6316,20 @@ class MishosController extends Controller
         $visit->icd9 = implode(',', $procedures);
 
         $items = \Illuminate\Support\Facades\DB::connection('hosxp')->select('
-            SELECT op.vn, op.icode, op.qty, op.unitprice, op.sum_price,
+            SELECT op.vn, op.icode, IFNULL(n.name, d.name) AS name,
+                   op.qty, op.unitprice, op.sum_price,
                    li.ppfs, li.uc_cr, li.herb32, li.nhso_adp_code,
-                   IFNULL(n.name, d.name) AS name
+                   op.paidst AS paids, pst.name AS paids_name,
+                   op.pttype, ptt.name AS pttype_name,
+                   COALESCE(d3.ref_code, d.sks_drug_code) AS tmtid
             FROM opitemrece op
-            INNER JOIN hrims.lookup_icode li ON li.icode = op.icode
+            LEFT JOIN hrims.lookup_icode li ON li.icode = op.icode
             LEFT JOIN nondrugitems n ON n.icode = op.icode
             LEFT JOIN drugitems d ON d.icode = op.icode
-            WHERE op.vn = ?
-            AND (li.ppfs = "Y" OR li.uc_cr = "Y")', [$vn]);
+            LEFT JOIN drugitems_ref_code d3 ON d3.icode = op.icode AND d3.drugitems_ref_code_type_id = 3
+            LEFT JOIN paidst pst ON pst.paidst = op.paidst
+            LEFT JOIN pttype ptt ON ptt.pttype = op.pttype
+            WHERE op.vn = ?', [$vn]);
 
         $adpCodes = collect($items)->pluck('nhso_adp_code')->filter()->unique()->values()->toArray();
         $insUcsMap = [];
@@ -6603,7 +6608,7 @@ class MishosController extends Controller
             }
             
             $rawStm = DB::connection('hosxp')->select("
-                SELECT o.vn, SUM(stm.receive_pp) AS receive_pp
+                SELECT o.vn, SUM(stm.receive_pp) AS receive_pp, GROUP_CONCAT(DISTINCT stm.repno) AS repno
                 FROM ovst o
                 INNER JOIN patient pt ON pt.hn = o.hn
                 INNER JOIN hrims.stm_ucs stm ON stm.cid = pt.cid AND stm.vstdate = o.vstdate AND LEFT(stm.vsttime, 5) = LEFT(o.vsttime, 5)
@@ -6612,14 +6617,18 @@ class MishosController extends Controller
             ", $chunk);
             
             foreach ($rawStm as $stm) {
-                $stmMap[$stm->vn] = $stm->receive_pp;
+                $stmMap[$stm->vn] = [
+                    'receive_pp' => $stm->receive_pp,
+                    'repno' => $stm->repno
+                ];
             }
         }
         
         foreach ($rows as $row) {
             $vn = $row->{$vnField};
             $items = $itemsByVn[$vn] ?? [];
-            $receive_pp = floatval($stmMap[$vn] ?? 0);
+            $receive_pp = floatval($stmMap[$vn]['receive_pp'] ?? 0);
+            $row->repno = $stmMap[$vn]['repno'] ?? null;
             
             if (empty($items)) {
                 $row->receive_total = 0;

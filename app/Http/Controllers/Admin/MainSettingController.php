@@ -178,9 +178,18 @@ class MainSettingController extends Controller
                                 station = SUBSTRING_INDEX(claim_type, ' ', -1) 
                             WHERE stat IS NULL AND claim_type IS NOT NULL
                         ");
-                        \Illuminate\Support\Facades\Schema::table('rep_sss_ssop', function (\Illuminate\Database\Schema\Blueprint $table) {
-                            $table->dropColumn(['claim_type', 'rep_station']);
-                        });
+                        $colsToDrop = [];
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('rep_sss_ssop', 'claim_type')) {
+                            $colsToDrop[] = 'claim_type';
+                        }
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('rep_sss_ssop', 'rep_station')) {
+                            $colsToDrop[] = 'rep_station';
+                        }
+                        if (!empty($colsToDrop)) {
+                            \Illuminate\Support\Facades\Schema::table('rep_sss_ssop', function (\Illuminate\Database\Schema\Blueprint $table) use ($colsToDrop) {
+                                $table->dropColumn($colsToDrop);
+                            });
+                        }
                     }
                     if (\Illuminate\Support\Facades\Schema::hasColumn('rep_ofc_csop', 'claim_type')) {
                         \Illuminate\Support\Facades\DB::statement("
@@ -189,9 +198,18 @@ class MainSettingController extends Controller
                                 station = SUBSTRING_INDEX(claim_type, ' ', -1) 
                             WHERE stat IS NULL AND claim_type IS NOT NULL
                         ");
-                        \Illuminate\Support\Facades\Schema::table('rep_ofc_csop', function (\Illuminate\Database\Schema\Blueprint $table) {
-                            $table->dropColumn(['claim_type', 'rep_station']);
-                        });
+                        $colsToDrop = [];
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('rep_ofc_csop', 'claim_type')) {
+                            $colsToDrop[] = 'claim_type';
+                        }
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('rep_ofc_csop', 'rep_station')) {
+                            $colsToDrop[] = 'rep_station';
+                        }
+                        if (!empty($colsToDrop)) {
+                            \Illuminate\Support\Facades\Schema::table('rep_ofc_csop', function (\Illuminate\Database\Schema\Blueprint $table) use ($colsToDrop) {
+                                $table->dropColumn($colsToDrop);
+                            });
+                        }
                     }
 
                     $msg = 'ตรวจสอบโครงสร้างทุกตารางสำเร็จ';

@@ -346,26 +346,30 @@
                                 <td>${row.update_datetime || '-'}</td>
                                 <td class="font-monospace text-muted small">${row.token_preview || '-'}</td>
                                 <td><span class="badge ${bgAccess}">${row.access_status}</span></td>
+                                <td class="font-monospace text-muted small">${row.refresh_token_preview || '-'}</td>
                                 <td><span class="badge ${bgRefresh}">${row.refresh_status}</span></td>
+                                <td class="small">${row.refresh_token_expire || '-'}</td>
                             </tr>
                         `;
                     });
 
                     if (response.data.length === 0) {
-                        tableRows = '<tr><td colspan="6" class="text-center py-3 text-muted">ไม่พบข้อมูล Token ในตาราง nhso_token</td></tr>';
+                        tableRows = '<tr><td colspan="8" class="text-center py-3 text-muted">ไม่พบข้อมูล Token ในตาราง nhso_token</td></tr>';
                     }
 
                     const modalContent = `
                         <div class="table-responsive" style="max-height: 400px; text-align: left;">
-                            <table class="table table-hover table-striped align-middle small m-0" style="font-size: 0.85rem;">
+                            <table class="table table-hover table-striped align-middle small m-0" style="font-size: 0.82rem;">
                                 <thead class="table-dark">
                                     <tr>
                                         <th>#</th>
                                         <th>CID</th>
                                         <th>เวลาอัปเดตล่าสุด</th>
                                         <th>คีย์ย่อ (token)</th>
-                                        <th>Access</th>
-                                        <th>Refresh</th>
+                                        <th>สถานะ Access</th>
+                                        <th>คีย์ย่อ (refresh)</th>
+                                        <th>สถานะ Refresh</th>
+                                        <th>วันหมดอายุ Refresh</th>
                                     </tr>
                                 </thead>
                                 <tbody>

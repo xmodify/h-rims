@@ -499,6 +499,8 @@ class NhsoCheckRightController extends Controller
                     'token_preview' => strlen($possibleAccess) > 15 ? substr($possibleAccess, 0, 15) . '...' : $possibleAccess,
                     'access_status' => $accessStatus,
                     'refresh_status' => $refreshStatus,
+                    'refresh_token_preview' => strlen($possibleRefresh) > 15 ? substr($possibleRefresh, 0, 15) . '...' : $possibleRefresh,
+                    'refresh_token_expire' => $row->refresh_token_expire ?? 'ไม่มี',
                 ];
             }
 

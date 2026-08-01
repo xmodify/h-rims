@@ -29,6 +29,9 @@
                     <button class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm" onclick="syncSrmToken(true)">
                         <i class="bi bi-arrow-repeat me-1"></i> Sync SRM Token
                     </button>
+                    <button class="btn btn-outline-info btn-sm rounded-pill px-3 shadow-sm" onclick="showHosxpTokensHistory()">
+                        <i class="bi bi-database me-1"></i> ประวัติ Token ใน HOSxP
+                    </button>
                     <!-- Hidden File Input -->
                     <input type="file" id="tokenFileInput" class="d-none" accept=".txt">
                 </div>
@@ -310,6 +313,91 @@
                 });
             }
         }
+    }
+
+    // ฟังก์ชันดึงประวัติและแสดงตารางข้อมูลใน Modal
+    function showHosxpTokensHistory() {
+        Swal.fire({
+            title: 'กำลังดึงข้อมูล...',
+            html: 'ระบบกำลังดึงรายการ Token 5 ลำดับล่าสุดจากฐานข้อมูล HOSxP',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.ajax({
+            url: "{{ route('check.nhso_right.tokens_history') }}",
+            method: 'POST',
+            data: {
+                _token: "{{ csrf_token() }}"
+            },
+            success: function(response) {
+                if (response.status === 'success' && response.data) {
+                    let tableRows = '';
+                    response.data.forEach((row, index) => {
+                        const bgAccess = row.access_status === 'พร้อมใช้งาน' ? 'bg-success' : (row.access_status === 'หมดอายุ' ? 'bg-danger' : 'bg-warning');
+                        const bgRefresh = row.refresh_status === 'พร้อมใช้งาน' ? 'bg-success' : (row.refresh_status === 'หมดอายุ' ? 'bg-danger' : 'bg-secondary');
+
+                        tableRows += `
+                            <tr>
+                                <td>${index + 1}</td>
+                                <td class="font-monospace fw-bold">${row.cid || '-'}</td>
+                                <td>${row.update_datetime || '-'}</td>
+                                <td class="font-monospace text-muted small">${row.token_preview || '-'}</td>
+                                <td><span class="badge ${bgAccess}">${row.access_status}</span></td>
+                                <td><span class="badge ${bgRefresh}">${row.refresh_status}</span></td>
+                            </tr>
+                        `;
+                    });
+
+                    if (response.data.length === 0) {
+                        tableRows = '<tr><td colspan="6" class="text-center py-3 text-muted">ไม่พบข้อมูล Token ในตาราง nhso_token</td></tr>';
+                    }
+
+                    const modalContent = `
+                        <div class="table-responsive" style="max-height: 400px; text-align: left;">
+                            <table class="table table-hover table-striped align-middle small m-0" style="font-size: 0.85rem;">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>CID</th>
+                                        <th>เวลาอัปเดตล่าสุด</th>
+                                        <th>คีย์ย่อ (token)</th>
+                                        <th>Access</th>
+                                        <th>Refresh</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${tableRows}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+
+                    Swal.fire({
+                        title: 'ประวัติ Token ในฐานข้อมูล HOSxP',
+                        html: modalContent,
+                        width: '900px',
+                        confirmButtonText: 'ปิดหน้าจอ',
+                        confirmButtonColor: '#6b7280'
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'ดึงข้อมูลไม่สำเร็จ',
+                        text: response.message || 'ไม่สามารถอ่านประวัติคีย์ได้'
+                    });
+                }
+            },
+            error: function(xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เชื่อมต่อฐานข้อมูลล้มเหลว',
+                    text: xhr.responseJSON?.message || 'ไม่สามารถติดต่อฐานข้อมูล HOSxP ของโรงพยาบาลได้'
+                });
+            }
+        });
     }
 
     // ปรับปรุง Badge แสดงสถานะการเชื่อมต่อ Token

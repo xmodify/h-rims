@@ -462,4 +462,53 @@ class NhsoCheckRightController extends Controller
         }
         return false;
     }
+
+    /**
+     * ดึงประวัติ Token 5 ลำดับล่าสุดจาก HOSxP เพื่อแสดงบนหน้าจอตรวจเช็ค
+     */
+    public function getHosxpTokensHistory(Request $request)
+    {
+        try {
+            $tokens = DB::connection('hosxp')
+                ->table('nhso_token')
+                ->orderBy('update_datetime', 'desc')
+                ->limit(5)
+                ->get();
+
+            $formatted = [];
+            foreach ($tokens as $row) {
+                $possibleAccess = $row->token ?? '';
+                $possibleRefresh = $row->refresh_token ?? '';
+
+                $accessStatus = 'ไม่ใช่ JWT (รหัสสั้น)';
+                if (str_starts_with($possibleAccess, 'eyJ')) {
+                    $accessStatus = $this->isJwtExpired($possibleAccess) ? 'หมดอายุ' : 'พร้อมใช้งาน';
+                }
+
+                $refreshStatus = 'ไม่มี';
+                if (str_starts_with($possibleRefresh, 'eyJ')) {
+                    $refreshStatus = $this->isJwtExpired($possibleRefresh) ? 'หมดอายุ' : 'พร้อมใช้งาน';
+                }
+
+                $formatted[] = [
+                    'cid' => $row->cid,
+                    'update_datetime' => $row->update_datetime,
+                    'is_invalid' => $row->is_invalid ?? 'N',
+                    'token_preview' => strlen($possibleAccess) > 15 ? substr($possibleAccess, 0, 15) . '...' : $possibleAccess,
+                    'access_status' => $accessStatus,
+                    'refresh_status' => $refreshStatus,
+                ];
+            }
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $formatted
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'ไม่สามารถเชื่อมต่อฐานข้อมูล HOSxP ได้: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

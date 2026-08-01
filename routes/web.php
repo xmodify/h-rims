@@ -220,6 +220,7 @@ Route::post('check/nhso_right/open-folder', [CheckController::class, 'openFolder
 Route::post('check/nhso_right/load-local-token', [\App\Http\Controllers\Api\NhsoCheckRightController::class, 'loadLocalToken'])->name('check.nhso_right.load_local_token');
 Route::post('check/nhso_right/search', [\App\Http\Controllers\Api\NhsoCheckRightController::class, 'search'])->name('check.nhso_right.search');
 Route::post('check/nhso_right/refresh-token', [\App\Http\Controllers\Api\NhsoCheckRightController::class, 'refreshToken'])->name('check.nhso_right.refresh_token');
+Route::post('check/nhso_right/tokens-history', [\App\Http\Controllers\Api\NhsoCheckRightController::class, 'getHosxpTokensHistory'])->name('check.nhso_right.tokens_history');
 
 Route::match(['get', 'post'], 'check/nhso_endpoint', [CheckController::class, 'nhso_endpoint']);
 Route::match(['get', 'post'], 'check/fdh_claim_status', [CheckController::class, 'fdh_claim_status']);

@@ -278,41 +278,60 @@ class NhsoCheckRightController extends Controller
                 ->limit(5)
                 ->get();
 
+            $baseUrl = ($env === 'test') ? 'https://tsrm.nhso.go.th' : 'https://srm.nhso.go.th';
+            $endpoint = "{$baseUrl}/api/ucws/v1/right-search";
+
             foreach ($hosxpTokens as $hosxpToken) {
                 $possibleAccess = $hosxpToken->token;
                 $possibleRefresh = $hosxpToken->refresh_token;
+                $testPid = $hosxpToken->cid; // ใช้ CID ของผู้ครองคีย์ในแถวนั้นมาทำการทดลองยิงสิทธิ์เพื่อความแม่นยำ
 
-                // 1. ถ้าคีย์หลักในแถวนี้เป็น JWT และยังไม่หมดอายุ -> นำไปใช้ได้เลย
+                // 1. ถ้าคีย์หลักในแถวนี้เป็น JWT และยังไม่หมดอายุตามเวลา -> ทดลองยิงจริงไปที่ สปสช. เพื่อตรวจเช็ค HTTP 200
                 if (str_starts_with($possibleAccess, 'eyJ') && !$this->isJwtExpired($possibleAccess)) {
-                    return [
-                        'access_token' => $possibleAccess,
-                        'refresh_token' => $possibleRefresh
-                    ];
+                    $testResponse = Http::withoutVerifying()
+                        ->withToken($possibleAccess)
+                        ->timeout(3)
+                        ->get($endpoint, ['pid' => $testPid]);
+
+                    if ($testResponse->status() === 200) {
+                        return [
+                            'access_token' => $possibleAccess,
+                            'refresh_token' => $possibleRefresh
+                        ];
+                    }
                 }
 
-                // 2. ถ้าคีย์หลักหมดอายุ/ไม่ใช่ JWT แต่มี Refresh Token ที่ยังไม่หมดอายุ -> ลองขอคีย์ใหม่
+                // 2. ถ้าคีย์หลักหมดอายุ/ไม่ใช่ JWT หรือทดลองยิงแล้วไม่ผ่าน -> ลองนำ Refresh Token ไปขอคีย์ใหม่และทดสอบ
                 if (str_starts_with($possibleRefresh, 'eyJ') && !$this->isJwtExpired($possibleRefresh)) {
                     $refreshResult = $this->performTokenRefresh($possibleRefresh, $env);
                     if ($refreshResult && !empty($refreshResult['access-token'])) {
                         $accessToken = $refreshResult['access-token'];
                         $refreshToken = $refreshResult['refresh-token'] ?? $possibleRefresh;
 
-                        // อัปเดตข้อมูลกลับลงฐานข้อมูล HOSxP ที่แถวเดิมของเจ้าของคีย์ (เพื่อความถูกต้องของระบบ HOSxP)
-                        DB::connection('hosxp')
-                            ->table('nhso_token')
-                            ->where('cid', $hosxpToken->cid)
-                            ->update([
-                                'token' => $accessToken,
-                                'refresh_token' => $refreshToken,
-                                'update_datetime' => now()->format('Y-m-d H:i:s'),
-                                'access_token_expire' => $this->getJwtExpiryDate($accessToken),
-                                'refresh_token_expire' => $this->getJwtExpiryDate($refreshToken),
-                            ]);
+                        // ทดลองยิงเช็คสิทธิ์คนไข้จริงด้วยคีย์ใหม่เพื่อยืนยันว่าใช้งานได้
+                        $testResponse = Http::withoutVerifying()
+                            ->withToken($accessToken)
+                            ->timeout(3)
+                            ->get($endpoint, ['pid' => $testPid]);
 
-                        return [
-                            'access_token' => $accessToken,
-                            'refresh_token' => $refreshToken
-                        ];
+                        if ($testResponse->status() === 200) {
+                            // อัปเดตข้อมูลกลับลงฐานข้อมูล HOSxP ที่แถวเดิมของเจ้าของคีย์ (เพื่อความถูกต้องของระบบ HOSxP)
+                            DB::connection('hosxp')
+                                ->table('nhso_token')
+                                ->where('cid', $hosxpToken->cid)
+                                ->update([
+                                    'token' => $accessToken,
+                                    'refresh_token' => $refreshToken,
+                                    'update_datetime' => now()->format('Y-m-d H:i:s'),
+                                    'access_token_expire' => $this->getJwtExpiryDate($accessToken),
+                                    'refresh_token_expire' => $this->getJwtExpiryDate($refreshToken),
+                                ]);
+
+                            return [
+                                'access_token' => $accessToken,
+                                'refresh_token' => $refreshToken
+                            ];
+                        }
                     }
                 }
             }

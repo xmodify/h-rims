@@ -6319,27 +6319,24 @@ class ClaimOpController extends Controller
         $visit->has_matching_category = !empty($intersect);
 
         $rep_feedbacks = [];
-        $rep_records = DB::table('rep_sss_ssop')
+        $raw_records = DB::table('rep_sss_ssop')
             ->where('vn', $vn)
-            ->whereIn('id', function($query) use ($vn) {
-                $query->select('id')
-                    ->from(DB::raw("(
-                        SELECT id, vn, station,
-                               ROW_NUMBER() OVER (
-                                   PARTITION BY vn, station 
-                                   ORDER BY 
-                                       COALESCE(rep_date, '1970-01-01') DESC, 
-                                       COALESCE(rep_time, '00:00:00') DESC, 
-                                       COALESCE(rep_no, '') DESC, 
-                                       COALESCE(rep_file, '') DESC, 
-                                       id DESC
-                               ) as rn
-                        FROM rep_sss_ssop
-                        WHERE vn = '" . $vn . "'
-                    ) t"))
-                    ->where('rn', 1);
-            })
+            ->orderByRaw("COALESCE(rep_date, '1970-01-01') DESC")
+            ->orderByRaw("COALESCE(rep_time, '00:00:00') DESC")
+            ->orderByRaw("COALESCE(rep_no, '') DESC")
+            ->orderByRaw("COALESCE(rep_file, '') DESC")
+            ->orderByDesc('id')
             ->get();
+
+        $rep_records = [];
+        $seen_stations = [];
+        foreach ($raw_records as $rec) {
+            $station = $rec->station ?? '';
+            if (!in_array($station, $seen_stations)) {
+                $seen_stations[] = $station;
+                $rep_records[] = $rec;
+            }
+        }
 
         $lookup = [];
         $json_path = base_path('docs/lookup/sss_error_codes.json');
@@ -6524,27 +6521,24 @@ class ClaimOpController extends Controller
         ", [$vn]);
 
         $rep_feedbacks = [];
-        $rep_records = DB::table('rep_ofc_csop')
+        $raw_records = DB::table('rep_ofc_csop')
             ->where('vn', $vn)
-            ->whereIn('id', function($query) use ($vn) {
-                $query->select('id')
-                    ->from(DB::raw("(
-                        SELECT id, vn, station,
-                               ROW_NUMBER() OVER (
-                                   PARTITION BY vn, station 
-                                   ORDER BY 
-                                       COALESCE(rep_date, '1970-01-01') DESC, 
-                                       COALESCE(rep_time, '00:00:00') DESC, 
-                                       COALESCE(rep_no, '') DESC, 
-                                       COALESCE(rep_file, '') DESC, 
-                                       id DESC
-                               ) as rn
-                        FROM rep_ofc_csop
-                        WHERE vn = '" . $vn . "'
-                    ) t"))
-                    ->where('rn', 1);
-            })
+            ->orderByRaw("COALESCE(rep_date, '1970-01-01') DESC")
+            ->orderByRaw("COALESCE(rep_time, '00:00:00') DESC")
+            ->orderByRaw("COALESCE(rep_no, '') DESC")
+            ->orderByRaw("COALESCE(rep_file, '') DESC")
+            ->orderByDesc('id')
             ->get();
+
+        $rep_records = [];
+        $seen_stations = [];
+        foreach ($raw_records as $rec) {
+            $station = $rec->station ?? '';
+            if (!in_array($station, $seen_stations)) {
+                $seen_stations[] = $station;
+                $rep_records[] = $rec;
+            }
+        }
 
         foreach ($rep_records as $rep_record) {
             if ($rep_record->stat === 'A') {

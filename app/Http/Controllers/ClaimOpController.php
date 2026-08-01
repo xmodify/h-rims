@@ -6081,12 +6081,31 @@ class ClaimOpController extends Controller
 
         }
 
+        $search = [];
+        $claim_sent = [];
+        $warning = [];
+
+        foreach ($claim as $row) {
+            $has_rep = isset($rep_errors[$row->vn]);
+            
+            if ($row->rep_error) {
+                $warning[] = $row;
+            } elseif ($has_rep || $row->stm_pay !== null) {
+                $claim_sent[] = $row;
+            } else {
+                $search[] = $row;
+            }
+        }
+
+        $claim_data = $claim; // Keep original
+        $claim = $claim_sent; // Assign sent claim to $claim variable
+
         if ($request->ajax()) {
             $table_html = view('claim_op.sss_main_table', compact(
-                'budget_year', 'start_date', 'end_date', 'claim'
+                'budget_year', 'start_date', 'end_date', 'search', 'claim', 'warning'
             ))->render();
 
-            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim);
+            $patient_items = array_map(fn($row) => ['hn' => $row->hn, 'seq' => $row->seq, 'an' => ''], $claim_data);
 
             return response()->json([
                 'success' => true,
@@ -6101,7 +6120,7 @@ class ClaimOpController extends Controller
             ]);
         }
 
-        return view('claim_op.sss_main', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'claim'));
+        return view('claim_op.sss_main', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim', 'warning'));
     }
 
     public function sss_detail(Request $request)
@@ -6352,6 +6371,103 @@ class ClaimOpController extends Controller
                     'status' => 'danger'
                 ];
             }
+        }
+
+        return response()->json([
+            'visit' => $visit,
+            'diagnoses' => $diagnoses,
+            'drugs' => $drugs,
+            'rep_feedbacks' => $rep_feedbacks,
+            'pre_audits' => $pre_audits
+        ]);
+    }
+
+    public function csop_detail(Request $request)
+    {
+        $vn = $request->vn;
+        if (empty($vn)) {
+            return response()->json(['error' => 'Invalid VN'], 400);
+        }
+
+        $visit = DB::connection('hosxp')->selectOne('
+            SELECT o.vstdate, o.vsttime, pt.hn, pt.sex, v.age_y, CONCAT(pt.pname, pt.fname, SPACE(1), pt.lname) AS ptname, pt.cid,
+                   p.name AS pttype_name, p.hipdata_code, os.cc, v.pdx, v.income, v.uc_money, IFNULL(rc.rcpt_money, 0) AS rcpt_money,
+                   rc.rcpno_list, v.debt_id_list, osb.invno AS csop_invno, osb.billno AS csop_billno,
+                   vp.begin_date, vp.expire_date, vp.hospmain, vp.hospsub, vp.pttypeno, v.paid_money, v.remain_money,
+                   IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn = o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn = o.vn
+            LEFT JOIN pttype p ON p.pttype = vp.pttype
+            LEFT JOIN opdscreen os ON os.vn = o.vn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN ovst_sss_billtran osb ON osb.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money, GROUP_CONCAT(r.rcpno) AS rcpno_list
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            WHERE o.vn = ?
+        ', [$vn]);
+
+        if (!$visit) {
+            return response()->json(['error' => 'Visit not found'], 404);
+        }
+
+        $diagnoses = DB::connection('hosxp')->select('
+            SELECT icd10, diagtype 
+            FROM ovstdiag 
+            WHERE vn = ?
+        ', [$vn]);
+
+        $drugs = DB::connection('hosxp')->select("
+            SELECT op.icode, sd.name, op.qty, op.sum_price, COALESCE(nd.tmtid, sd.sks_drug_code) AS tmtid,
+                   gt.gpu_code, gg.gp_code, op.drugusage,
+                   CONCAT(IFNULL(du.name1,''), ' ', IFNULL(du.name2,''), ' ', IFNULL(du.name3,'')) AS drugusage_text,
+                   sd.sks_product_category_id, di.capacity_name, di.capacity_qty,
+                   op.paidst AS paids, pst.name AS paids_name,
+                   op.pttype, ptt.name AS pttype_name, ni.nhso_adp_code
+            FROM opitemrece op
+            INNER JOIN s_drugitems sd ON sd.icode = op.icode
+            LEFT JOIN drugitems di ON di.icode = op.icode
+            LEFT JOIN drugusage du ON du.drugusage = op.drugusage
+            LEFT JOIN nondrugitems ni ON ni.icode = op.icode
+            LEFT JOIN paidst pst ON pst.paidst = op.paidst
+            LEFT JOIN pttype ptt ON ptt.pttype = op.pttype
+            LEFT JOIN hrims.drugcat_chi nd ON nd.hospdrugcode = op.icode 
+                AND nd.date_approved = (
+                    SELECT MAX(nd1.date_approved) 
+                    FROM hrims.drugcat_chi nd1 
+                    WHERE nd.hospdrugcode = nd1.hospdrugcode 
+                    AND nd1.updateflag IN ('A','U','E')
+                )
+            LEFT JOIN tmt_gpu_to_tpu gt ON gt.tpu_code = COALESCE(nd.tmtid, sd.sks_drug_code)
+            LEFT JOIN tmt_gp_to_gpu gg ON gg.gpu_code = gt.gpu_code
+            WHERE op.vn = ?
+        ", [$vn]);
+
+        $rep_feedbacks = [];
+        $pre_audits = [];
+
+        if (empty($visit->cid) || strlen(trim($visit->cid)) !== 13) {
+            $pre_audits[] = [
+                'code' => 'C01',
+                'title' => 'ไม่มีสิทธิ สกส. / ข้อมูลสิทธิไม่สมบูรณ์',
+                'desc' => 'ไม่พบเลขบัตรประชาชน (CID) หรือความยาวเลขบัตรไม่ครบ 13 หลัก',
+                'status' => 'danger'
+            ];
+        }
+
+        if (empty($visit->pdx)) {
+            $pre_audits[] = [
+                'code' => 'C02',
+                'title' => 'ไม่มีการวินิจฉัยหลัก (PDX)',
+                'desc' => 'กรุณาระบุรหัสโรคการวินิจฉัยหลัก (diagtype = 1) ในระบบ HOSxP',
+                'status' => 'danger'
+            ];
         }
 
         return response()->json([
@@ -6678,5 +6794,226 @@ class ClaimOpController extends Controller
         ]);
     }
 
+    public function csop_31(Request $request)
+    {
+        ini_set('max_execution_time', 0);
 
+        $budget_year_select = DB::table('budget_year')
+            ->select('LEAVE_YEAR_ID', 'LEAVE_YEAR_NAME')
+            ->orderByDesc('LEAVE_YEAR_ID')
+            ->limit(7)
+            ->get();
+        $budget_year_now = DB::table('budget_year')
+            ->whereDate('DATE_END', '>=', date('Y-m-d'))
+            ->whereDate('DATE_BEGIN', '<=', date('Y-m-d'))
+            ->value('LEAVE_YEAR_ID');
+        $budget_year = $request->budget_year ?: $budget_year_now;
+        $year_data = DB::table('budget_year')
+            ->whereIn('LEAVE_YEAR_ID', [$budget_year, $budget_year - 4])
+            ->pluck('DATE_BEGIN', 'LEAVE_YEAR_ID');
+        $start_date_b = $year_data[$budget_year] ?? null;
+        if ($budget_year == $budget_year_now) {
+            $end_date_b = date('Y-m-d');
+        } else {
+            $end_date_b = DB::table('budget_year')
+                ->where('LEAVE_YEAR_ID', $budget_year)
+                ->value('DATE_END');
+        }
+
+        $start_date = $request->start_date ?: date('Y-m-d');
+        $end_date = $request->end_date ?: date('Y-m-d');
+
+        // Dynamic CSOP pttypes query
+        $csop_pttypes = DB::connection('hosxp')
+            ->table('pttype as p')
+            ->join('sks_benefit_plan_type as sks', 'sks.sks_benefit_plan_type_id', '=', 'p.sks_benefit_plan_type_id')
+            ->join('pttype_upp_type as put', 'put.pttype_upp_type_id', '=', 'p.pttype_upp_type_id')
+            ->where('sks.sks_code', 'CS')
+            ->where('put.pttype_upp_type_code', '31')
+            ->pluck('p.pttype')
+            ->toArray();
+
+        if (empty($csop_pttypes)) {
+            $csop_pttypes = [''];
+        }
+        $csop_pttypes_str = "'" . implode("','", array_map(function($x) { return str_replace("'", "\\'", $x); }, $csop_pttypes)) . "'";
+
+        if (!$request->ajax() && !$request->wantsJson()) {
+            return view('claim_op.csop_31', compact(
+                'budget_year_select',
+                'budget_year',
+                'start_date',
+                'end_date'
+            ));
+        }
+
+        session()->save();
+        ini_set('memory_limit', '1024M');
+
+        $month = [];
+        $claim_price = [];
+        $claim_sent_price = [];
+        $receive_total = [];
+
+        if (!$request->input('skip_chart')) {
+            $sum_month = DB::connection('hosxp')->select('
+            SELECT CASE WHEN MONTH(vstdate)=10 THEN CONCAT("ต.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=11 THEN CONCAT("พ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=12 THEN CONCAT("ธ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=1 THEN CONCAT("ม.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=2 THEN CONCAT("ก.พ. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=3 THEN CONCAT("มี.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=4 THEN CONCAT("เม.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=5 THEN CONCAT("พ.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=6 THEN CONCAT("มิ.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=7 THEN CONCAT("ก.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=8 THEN CONCAT("ส.ค. ", RIGHT(YEAR(vstdate)+543, 2))
+                WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
+                END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,SUM(IFNULL(receive_total,0)) AS receive_total
+            FROM (SELECT o.vstdate,o.vsttime,o.vn,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,
+                  IFNULL(csop.amount, 0) AS receive_total,
+                  CASE WHEN csop.hn IS NOT NULL THEN (v.income-IFNULL(rc.rcpt_money, 0)) ELSE 0 END AS claim_sent_price
+            FROM ovst o            
+            LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+            LEFT JOIN pttype p ON p.pttype=vp.pttype
+			LEFT JOIN vn_stat v ON v.vn = o.vn
+			LEFT JOIN (
+			    SELECT r.vn, SUM(r.total_amount) AS rcpt_money
+			    FROM rcpt_print r
+			    LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+			    WHERE a.rcpno IS NULL
+			    GROUP BY r.vn
+			) rc ON rc.vn = o.vn
+            LEFT JOIN (
+                SELECT hn, vstdate, LEFT(vsttime,5) AS vsttime, SUM(amount) AS amount
+                FROM hrims.stm_ofc_csop 
+                WHERE sys <> "HD" AND vstdate BETWEEN ? AND ?
+                GROUP BY hn, vstdate, LEFT(vsttime,5)
+            ) csop ON csop.hn = pt.hn AND csop.vstdate = o.vstdate AND csop.vsttime = LEFT(o.vsttime,5)
+            WHERE p.pttype IN (' . $csop_pttypes_str . ')
+                AND (o.an = "" OR o.an IS NULL)
+                AND o.vstdate BETWEEN ? AND ?
+                GROUP BY o.vn ) AS a
+			GROUP BY YEAR(vstdate), MONTH(vstdate)
+            ORDER BY YEAR(vstdate), MONTH(vstdate) ', [$start_date_b, $end_date_b, $start_date_b, $end_date_b]);
+            $month = array_column($sum_month, 'month');
+            $claim_price = array_column($sum_month, 'claim_price');
+            $claim_sent_price = array_column($sum_month, 'claim_sent_price');
+            $receive_total = array_column($sum_month, 'receive_total');
+        }
+
+        $claim = DB::connection('hosxp')->select('
+            SELECT o.vn AS seq,o.vn,o.vstdate,o.vsttime,o.oqueue,pt.hn,CONCAT(pt.pname,pt.fname,SPACE(1),pt.lname) AS ptname,p.`name` AS pttype,vp.hospmain, vp.pttype AS sss_pttype,
+            pt.cid, vp.begin_date, vp.expire_date,
+            os.cc,
+            MAX(CASE WHEN od.diagtype = "1" THEN od.icd10 END) AS pdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype NOT IN ("1", "2") THEN od.icd10 END) AS sdx,
+            GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
+            COALESCE((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND pttype = vp.pttype), v.income) AS income, v.uc_money, 
+            IFNULL((SELECT SUM(r.total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND r.pttype = vp.pttype AND a.rcpno IS NULL), 0) AS rcpt_money, 
+            COALESCE((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND pttype = vp.pttype), v.income) - IFNULL((SELECT SUM(r.total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND r.pttype = vp.pttype AND a.rcpno IS NULL), 0) AS claim_price,
+            d.receive AS receive_total,
+            v.debt_id_list, osb.invno AS csop_invno, osb.billno AS csop_billno,
+            IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint
+            FROM ovst o
+            LEFT JOIN patient pt ON pt.hn=o.hn
+            LEFT JOIN visit_pttype vp ON vp.vn=o.vn
+            LEFT JOIN pttype p ON p.pttype=vp.pttype
+            LEFT JOIN opdscreen os ON os.vn=o.vn
+            LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
+            LEFT JOIN vn_stat v ON v.vn = o.vn
+            LEFT JOIN ovst_sss_billtran osb ON osb.vn = o.vn
+            LEFT JOIN (
+                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
+                FROM rcpt_print r
+                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
+                WHERE a.rcpno IS NULL
+                GROUP BY r.vn
+            ) rc ON rc.vn = o.vn
+            LEFT JOIN hrims.debtor_1102050101_301 d ON d.vn=o.vn
+            LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
+            WHERE p.pttype IN (' . $csop_pttypes_str . ')
+            AND (o.an = "" OR o.an IS NULL)
+            AND o.vstdate BETWEEN ? AND ?
+            GROUP BY o.vn ORDER BY o.vstdate,o.vsttime', [$start_date, $end_date]);
+
+        $vns = array_column($claim, 'vn');
+        $rep_records = [];
+        $stm_pays = [];
+        if (!empty($vns)) {
+            $rep_records = DB::table('rep_csop')
+                ->whereIn('vn', $vns)
+                ->get()
+                ->keyBy('vn')
+                ->toArray();
+
+            $stm_records = DB::table('stm_ofc_csop')
+                ->select('hn', 'vstdate', 'vsttime', 'amount')
+                ->whereIn('hn', array_column($claim, 'hn'))
+                ->whereBetween('vstdate', [$start_date, $end_date])
+                ->get();
+            foreach ($stm_records as $rec) {
+                $key = $rec->hn . '_' . $rec->vstdate . '_' . substr($rec->vsttime, 0, 5);
+                $stm_pays[$key] = $rec->amount;
+            }
+        }
+
+        $search = [];
+        $claim_sent = [];
+        $warning = [];
+
+        // Audit check status
+        foreach ($claim as $row) {
+            $rep = $rep_records[$row->vn] ?? null;
+            $row->rep_error = $rep ? $rep->error_codes : null;
+            $row->rep_warning = null;
+            
+            $key = $row->hn . '_' . $row->vstdate . '_' . substr($row->vsttime, 0, 5);
+            $row->stm_pay = $stm_pays[$key] ?? null;
+            
+            $has_inv = (($row->csop_invno && $row->csop_invno !== '0') || ($row->debt_id_list && $row->debt_id_list !== '0'));
+            $has_pdx = !empty($row->pdx);
+            $has_cc = !empty($row->cc);
+            $has_cid = (!empty($row->cid) && strlen($row->cid) === 13);
+            
+            if (!$has_cid || !$has_pdx) {
+                $row->claim_status = 'red';
+            } elseif (!$has_inv) {
+                $row->claim_status = 'yellow';
+            } else {
+                $row->claim_status = 'green';
+            }
+
+            if ($row->rep_error) {
+                $warning[] = $row;
+            } elseif ($rep || $row->stm_pay) {
+                $claim_sent[] = $row;
+            } else {
+                $search[] = $row;
+            }
+        }
+
+        $claim_data = $claim; // Keep original for reference if needed
+        $claim = $claim_sent; // Assign sent claim to $claim variable
+
+        if ($request->ajax() || $request->wantsJson()) {
+            $table_html = view('claim_op.csop_31_table', compact(
+                'budget_year', 'start_date', 'end_date', 'search', 'claim', 'warning'
+            ))->render();
+
+            return response()->json([
+                'success' => true,
+                'table_html' => $table_html,
+                'chart_data' => !$request->input('skip_chart') ? [
+                    'month' => $month,
+                    'claim_price' => $claim_price,
+                    'claim_sent_price' => $claim_sent_price,
+                    'receive_total' => $receive_total
+                ] : null
+            ]);
+        }
+
+        return view('claim_op.csop_31', compact('budget_year_select', 'budget_year', 'start_date', 'end_date', 'month', 'claim_price', 'claim_sent_price', 'receive_total', 'search', 'claim', 'warning'));
+    }
 }

@@ -1,5 +1,5 @@
 @php
-    $is_ssop_licensed = \App\Services\LicenseVerificationService::isLicensed();
+    $is_csop_licensed = \App\Services\LicenseVerificationService::isLicensed();
     $tabs = [
         ['id' => 'search', 'title' => 'รอส่ง Claim', 'icon' => 'bi-clock-history', 'badge_class' => 'bg-secondary', 'data' => $search, 'show_checkbox' => true],
         ['id' => 'claim', 'title' => 'ส่ง Claim แล้ว', 'icon' => 'bi-send-check', 'badge_class' => 'bg-success', 'data' => $claim, 'show_checkbox' => false],
@@ -24,7 +24,7 @@
             <div class="d-flex justify-content-between align-items-end mb-3">
                 <div class="d-flex align-items-center gap-3">
                     <h6 class="fw-bold text-dark mb-0">
-                        <i class="bi bi-people-fill text-primary me-2"></i>รายชื่อผู้มารับบริการ SS-OP ประกันสังคม เครือข่าย
+                        <i class="bi bi-people-fill text-primary me-2"></i>รายชื่อผู้มารับบริการ OP-CSOP กกต.
                     </h6>
                     <span class="text-muted small">
                         วันที่ {{ DateThai($start_date) }} ถึง {{ DateThai($end_date) }}
@@ -50,12 +50,12 @@
                             <button onclick="fetchData()" type="submit" class="btn btn-success px-3 shadow-sm">
                                 <i class="bi bi-table me-1"></i> โหลด indiv
                             </button>
-                            <button type="button" class="btn btn-outline-primary px-3 shadow-sm" onclick="$('#importFeedbackModal').modal('show'); loadFeedbackList();">
+                            <button type="button" class="btn btn-outline-primary px-3 shadow-sm" onclick="$('#importFeedbackModal').modal('show');">
                                 <i class="bi bi-file-earmark-zip me-1"></i> นำเข้าข้อมูลตอบกลับ
                             </button>
-                            @if($is_ssop_licensed)
-                            <button type="button" class="btn btn-outline-success px-3 shadow-sm" onclick="exportSelectedSSOP()">
-                                <i class="bi bi-box-arrow-up-fill me-1"></i> ส่งออก SSOP (.zip)
+                            @if($is_csop_licensed)
+                            <button type="button" class="btn btn-outline-success px-3 shadow-sm" onclick="exportSelectedCSOP()">
+                                <i class="bi bi-box-arrow-up-fill me-1"></i> ส่งออก CSOP (.zip)
                             </button>
                             @endif
                         </div>
@@ -84,7 +84,7 @@
                         <table id="t_{{ $tab['id'] }}" class="table table-modern w-100">
                             <thead>
                                 <tr>
-                                    @if($is_ssop_licensed && $tab['show_checkbox'])
+                                    @if($is_csop_licensed && $tab['show_checkbox'])
                                     <th class="text-center" width="5%" style="min-width: 45px;"><input type="checkbox" class="select_all_claims"></th>
                                     @endif
                                     <th class="text-center">ตรวจสอบ</th>
@@ -112,10 +112,10 @@
                                 @endphp
                                 @foreach($tab['data'] as $row)
                                 @php
-                                    $has_invoice = (($row->sss_invno && $row->sss_invno !== '0') || ($row->debt_id_list && $row->debt_id_list !== '0')) ? 'true' : 'false';
+                                    $has_invoice = (($row->csop_invno && $row->csop_invno !== '0') || ($row->debt_id_list && $row->debt_id_list !== '0')) ? 'true' : 'false';
                                 @endphp
                                 <tr data-has-error="{{ $row->rep_error ? 'true' : 'false' }}" data-has-invoice="{{ $has_invoice }}">
-                                    @if($is_ssop_licensed && $tab['show_checkbox'])
+                                    @if($is_csop_licensed && $tab['show_checkbox'])
                                     <td class="text-center">
                                         <input type="checkbox" class="claim-select-check" value="{{ $row->vn }}" data-has-error="{{ $row->rep_error ? 'true' : 'false' }}">
                                     </td>
@@ -128,7 +128,7 @@
                                     </td>
                                     <td class="text-center small">
                                         @php
-                                            $invoice_no = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
+                                            $invoice_no = !empty($row->csop_invno) ? $row->csop_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
                                         @endphp
                                         @if($invoice_no && $invoice_no !== '0')
                                             <span class="badge bg-success-soft text-success fw-bold">{{ $invoice_no }}</span>
@@ -186,7 +186,7 @@
                             </tbody>
                             <tfoot class="bg-light-soft">
                                 <tr>
-                                    <th colspan="{{ $is_ssop_licensed && $tab['show_checkbox'] ? 10 : 9 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
+                                    <th colspan="{{ $is_csop_licensed && $tab['show_checkbox'] ? 10 : 9 }}" class="text-end text-muted small px-3">รวมงบประมาณที่ค้นพบ:</th>
                                     <th class="text-end small">{{ number_format($sum_income,2) }}</th>
                                     <th class="text-end small">{{ number_format($sum_rcpt_money,2) }}</th>
                                     <th class="text-end fw-bold text-primary">{{ number_format($sum_claim_price,2) }}</th>

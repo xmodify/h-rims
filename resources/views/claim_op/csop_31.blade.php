@@ -1,5 +1,5 @@
 @php
-    $is_ssop_licensed = \App\Services\LicenseVerificationService::isLicensed();
+    $is_csop_licensed = \App\Services\LicenseVerificationService::isLicensed();
 @endphp
 @extends('layouts.app')
 
@@ -60,7 +60,7 @@
         <div>
             <h4 class="text-primary mb-0 fw-bold">
                 <i class="bi bi-wallet2 me-2"></i>
-                สถิติการชดเชยค่าบริการ SS-OP ประกันสังคม เครือข่าย
+                สถิติการชดเชยค่าบริการ OP-CSOP กกต.
             </h4>
         </div>
         
@@ -134,7 +134,7 @@
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header bg-primary text-white py-3">
                     <h6 class="modal-title font-weight-bold" id="importFeedbackModalLabel">
-                        <i class="bi bi-file-earmark-zip me-2"></i>นำเข้าและตรวจสอบผลตอบกลับ สกส. (SSOP / โรคเรื้อรัง / STM)
+                        <i class="bi bi-file-earmark-zip me-2"></i>นำเข้าและตรวจสอบผลตอบกลับ สกส. (CSOP: REP)
                     </h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -149,114 +149,71 @@
                                     <i class="bi bi-file-earmark-arrow-up fs-5"></i> นำเข้าข้อมูล REP
                                 </button>
                             </div>
-                            <!-- ปุ่มที่ 2: นำเข้าข้อมูล STM -->
-                            <div>
-                                <input type="file" id="zip_file_stm" style="display: none;" accept=".zip" multiple onchange="uploadSssZip('stm')">
-                                <button type="button" class="btn btn-success px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" onclick="document.getElementById('zip_file_stm').click()">
-                                    <i class="bi bi-file-earmark-check fs-5"></i> นำเข้าข้อมูล STM
-                                </button>
-                            </div>
-                            <!-- ปุ่มที่ 3: นำเข้าข้อมูลโรคเรื้อรัง -->
-                            <div>
-                                <input type="file" id="zip_file_chronic" style="display: none;" accept=".zip" multiple onchange="uploadSssZip('chronic')">
-                                <button type="button" class="btn btn-info text-white px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" onclick="document.getElementById('zip_file_chronic').click()">
-                                    <i class="bi bi-file-medical fs-5"></i> นำเข้าข้อมูลโรคเรื้อรัง
-                                </button>
-                            </div>
-                            <!-- ปุ่มที่ 4: นำเข้าบัญชีโรคเรื้อรัง -->
-                            <div>
-                                <input type="file" id="zip_file_chronic_reg" style="display: none;" accept=".zip" multiple onchange="uploadSssZip('chronic_reg')">
-                                <button type="button" class="btn btn-warning text-dark px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" onclick="document.getElementById('zip_file_chronic_reg').click()">
-                                    <i class="bi bi-journal-medical fs-5"></i> นำเข้าบัญชีโรคเรื้อรัง
-                                </button>
-                            </div>
                         </div>
                     </div>
-                    
-                    <ul class="nav nav-tabs" id="feedbackTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active fw-bold text-danger" id="tab21-tab" data-bs-toggle="tab" data-bs-target="#tab21-panel" type="button" role="tab" aria-controls="tab21-panel" aria-selected="true">
-                                ตอนที่ 2.1 ผู้ป่วยอยู่ในบัญชีโรคเรื้อรังแล้ว (Dx หรือ Drug ไม่ตรง)
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link fw-bold text-warning" id="tab22-tab" data-bs-toggle="tab" data-bs-target="#tab22-panel" type="button" role="tab" aria-controls="tab22-panel" aria-selected="false">
-                                ตอนที่ 2.2 ผู้ป่วยยังไม่อยู่ในบัญชีโรคเรื้อรัง
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link fw-bold text-success" id="tab23-tab" data-bs-toggle="tab" data-bs-target="#tab23-panel" type="button" role="tab" aria-controls="tab23-panel" aria-selected="false">
-                                รายชื่อยาโรคเรื้อรัง (TMT Map)
-                            </button>
-                        </li>
-                    </ul>
-                    
-                    <div class="tab-content border border-top-0 p-3 bg-white rounded-bottom" id="feedbackTabsContent">
-                        <!-- Tab 2.1 -->
-                        <div class="tab-pane fade show active" id="tab21-panel" role="tabpanel" aria-labelledby="tab21-tab">
-                            <div class="table-responsive">
-                                <table class="table table-hover table-striped align-middle" id="table-feedback-21">
-                                    <thead class="table-dark small">
-                                        <tr>
-                                            <th>วันที่รับบริการ</th>
-                                            <th>HN</th>
-                                            <th>ชื่อ-สกุล</th>
-                                            <th>เลขบัตรประชาชน</th>
-                                            <th>รหัสวินิจฉัย (Dx)</th>
-                                            <th>รหัสยา (Drug)</th>
-                                            <th>ไฟล์อ้างอิง</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="feedback-21-body" class="small">
-                                        <tr>
-                                            <td colspan="7" class="text-center text-muted py-4">กำลังโหลดข้อมูล...</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
 
-                        <!-- Tab 2.2 -->
-                        <div class="tab-pane fade" id="tab22-panel" role="tabpanel" aria-labelledby="tab22-tab">
-                            <div class="table-responsive">
-                                <table class="table table-hover table-striped align-middle" id="table-feedback-22">
-                                    <thead class="table-dark small">
-                                        <tr>
-                                            <th>วันที่รับบริการ</th>
-                                            <th>HN</th>
-                                            <th>ชื่อ-สกุล</th>
-                                            <th>เลขบัตรประชาชน</th>
-                                            <th>รหัสวินิจฉัย (Dx)</th>
-                                            <th>รหัสยา (Drug)</th>
-                                            <th>ไฟล์อ้างอิง</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="feedback-22-body" class="small">
-                                        <tr>
-                                            <td colspan="7" class="text-center text-muted py-4">กำลังโหลดข้อมูล...</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                    <!-- ส่วนแสดงตารางรายชื่อคนไข้ที่ติด C แยกตามแท็บ -->
+                    <div class="mt-4 pt-3 border-top">
+                        <ul class="nav nav-pills mb-3 gap-2" id="modal-pills-tab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active btn-sm fw-bold px-3 py-2 shadow-sm" id="modal-errors-tab" data-bs-toggle="pill" data-bs-target="#modal-errors-pane" type="button" role="tab">
+                                    <i class="bi bi-exclamation-circle me-1"></i> ติด C (Error)
+                                    <span class="badge bg-danger text-white ms-1 rounded-pill" id="modal-errors-count">0</span>
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link btn-sm fw-bold px-3 py-2 shadow-sm" id="modal-warnings-tab" data-bs-toggle="pill" data-bs-target="#modal-warnings-pane" type="button" role="tab">
+                                    <i class="bi bi-exclamation-triangle me-1"></i> เฉพาะที่มีรหัสเตือน (Warning)
+                                    <span class="badge bg-warning text-dark ms-1 rounded-pill" id="modal-warnings-count">0</span>
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content" id="modal-pills-tabContent">
+                            <!-- แท็บย่อย 1: Errors -->
+                            <div class="tab-pane fade show active" id="modal-errors-pane" role="tabpanel">
+                                <div class="table-responsive">
+                                    <table id="t_modal_errors" class="table table-bordered table-striped align-middle w-100" style="font-size: 0.82rem;">
+                                        <thead class="table-light text-center">
+                                            <tr>
+                                                <th width="12%">VN</th>
+                                                <th width="12%">HN</th>
+                                                <th>ชื่อ-สกุลผู้ป่วย</th>
+                                                <th>เลขตอบรับ / ไฟล์</th>
+                                                <th width="25%">รหัสผิดพลาด (Error Code)</th>
+                                                <th width="8%">จัดการ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted py-4">ระบบกำลังรอโครงสร้างไฟล์อ้างอิง...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
-                        </div>
-                        <!-- Tab 2.3 -->
-                        <div class="tab-pane fade" id="tab23-panel" role="tabpanel" aria-labelledby="tab23-tab">
-                            <div class="table-responsive">
-                                <table class="table table-hover table-striped align-middle" id="table-feedback-23" style="width: 100%;">
-                                    <thead class="table-dark small">
-                                        <tr>
-                                            <th class="text-center" width="8%">กลุ่มโรค</th>
-                                            <th>ชื่อกลุ่มโรค</th>
-                                            <th class="text-center" width="15%">รหัสมาตรฐาน TMT</th>
-                                            <th>ชื่อยาในโรงพยาบาลที่เชื่อมโยง</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="feedback-23-body" class="small">
-                                        <tr>
-                                            <td colspan="4" class="text-center text-muted py-4">กำลังโหลดข้อมูล...</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+
+                            <!-- แท็บย่อย 2: Warnings -->
+                            <div class="tab-pane fade" id="modal-warnings-pane" role="tabpanel">
+                                <div class="table-responsive">
+                                    <table id="t_modal_warnings" class="table table-bordered table-striped align-middle w-100" style="font-size: 0.82rem;">
+                                        <thead class="table-light text-center">
+                                            <tr>
+                                                <th width="12%">VN</th>
+                                                <th width="12%">HN</th>
+                                                <th>ชื่อ-สกุลผู้ป่วย</th>
+                                                <th>เลขตอบรับ / ไฟล์</th>
+                                                <th width="25%">รหัสเตือนภัย (Warning Code)</th>
+                                                <th width="8%">จัดการ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted py-4">ระบบกำลังรอโครงสร้างไฟล์อ้างอิง...</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -268,13 +225,13 @@
         </div>
     </div>
 
-    <!-- SSOP Export Conditions Modal -->
-    <div class="modal fade" id="ssopExportModal" tabindex="-1" aria-labelledby="ssopExportModalLabel" aria-hidden="true" style="z-index: 1060;">
+    <!-- CSOP Export Conditions Modal -->
+    <div class="modal fade" id="csopExportModal" tabindex="-1" aria-labelledby="csopExportModalLabel" aria-hidden="true" style="z-index: 1060;">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content shadow border-0">
                 <div class="modal-header bg-success text-white py-3">
-                    <h5 class="modal-title fw-bold" id="ssopExportModalLabel">
-                        <i class="bi bi-box-arrow-up-fill me-2"></i> เงื่อนไขการส่งออกข้อมูล SSOP
+                    <h5 class="modal-title fw-bold" id="csopExportModalLabel">
+                        <i class="bi bi-box-arrow-up-fill me-2"></i> เงื่อนไขการส่งออกข้อมูล CSOP
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -301,7 +258,7 @@
                 </div>
                 <div class="modal-footer bg-light py-2 px-4 d-flex justify-content-between">
                     <button type="button" class="btn btn-secondary px-3" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="button" class="btn btn-success px-4" onclick="previewSSOPExport()">
+                    <button type="button" class="btn btn-success px-4" onclick="previewCSOPExport()">
                         <i class="bi bi-eye me-1"></i> ดำเนินการและพรีวิวข้อมูล
                     </button>
                 </div>
@@ -309,13 +266,13 @@
         </div>
     </div>
 
-    <!-- SSOP Export Preview Modal -->
-    <div class="modal fade" id="ssopPreviewModal" tabindex="-1" aria-labelledby="ssopPreviewModalLabel" aria-hidden="true" style="z-index: 1060;">
+    <!-- CSOP Export Preview Modal -->
+    <div class="modal fade" id="csopPreviewModal" tabindex="-1" aria-labelledby="csopPreviewModalLabel" aria-hidden="true" style="z-index: 1060;">
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content shadow border-0">
                 <div class="modal-header bg-success text-white py-3">
-                    <h5 class="modal-title fw-bold" id="ssopPreviewModalLabel">
-                        <i class="bi bi-file-earmark-check-fill me-2"></i> ตรวจสอบความถูกต้องของข้อมูลก่อนส่งออก SSOP
+                    <h5 class="modal-title fw-bold" id="csopPreviewModalLabel">
+                        <i class="bi bi-file-earmark-check-fill me-2"></i> ตรวจสอบความถูกต้องของข้อมูลก่อนส่งออก CSOP
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -603,11 +560,11 @@
                     </div>
                 </div>
                 <div class="modal-footer bg-light py-2 px-4 d-flex justify-content-between">
-                    <button type="button" class="btn btn-secondary px-3" onclick="$('#ssopPreviewModal').modal('hide'); $('#ssopExportModal').modal('show');">
+                    <button type="button" class="btn btn-secondary px-3" onclick="$('#csopPreviewModal').modal('hide'); $('#csopExportModal').modal('show');">
                         <i class="bi bi-arrow-left me-1"></i> ย้อนกลับ
                     </button>
-                    <button type="button" class="btn btn-success px-4" id="btnDownloadSSOP" onclick="downloadSSOPExportZip()">
-                        <i class="bi bi-download me-1"></i> ยืนยันการดาวน์โหลด SSOP (.zip)
+                    <button type="button" class="btn btn-success px-4" id="btnDownloadCSOP" onclick="downloadCSOPExportZip()">
+                        <i class="bi bi-download me-1"></i> ยืนยันการดาวน์โหลด CSOP (.zip)
                     </button>
                 </div>
             </div>
@@ -664,7 +621,7 @@
         }
 
         $.ajax({
-            url: "{{ url('claim_op/sss_main') }}",
+            url: "{{ url('claim_op/csop_31') }}",
             type: "POST",
             data: $.extend({ _token: "{{ csrf_token() }}" }, dataParams)
         })
@@ -719,7 +676,7 @@
                         extend: 'excelHtml5',
                         text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
                         className: 'btn btn-success btn-sm shadow-sm',
-                        title: 'รายชื่อผู้มารับบริการ SS-OP ประกันสังคม เครือข่าย (รอส่ง Claim) วันที่ ' + start_date_val + ' ถึง ' + end_date_val
+                        title: 'รายชื่อผู้มารับบริการ OP-CSOP กกต. (รอส่ง Claim) วันที่ ' + start_date_val + ' ถึง ' + end_date_val
                     }],
                     language: {
                         search: "ค้นหา:",
@@ -736,7 +693,7 @@
                         extend: 'excelHtml5',
                         text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
                         className: 'btn btn-success btn-sm shadow-sm',
-                        title: 'รายชื่อผู้มารับบริการ SS-OP ประกันสังคม เครือข่าย (ส่ง Claim แล้ว) วันที่ ' + start_date_val + ' ถึง ' + end_date_val
+                        title: 'รายชื่อผู้มารับบริการ OP-CSOP กกต. (ส่ง Claim แล้ว) วันที่ ' + start_date_val + ' ถึง ' + end_date_val
                     }],
                     language: {
                         search: "ค้นหา:",
@@ -753,7 +710,7 @@
                         extend: 'excelHtml5',
                         text: '<i class="bi bi-file-earmark-excel me-1"></i> Excel',
                         className: 'btn btn-success btn-sm shadow-sm',
-                        title: 'รายชื่อผู้มารับบริการ SS-OP ประกันสังคม เครือข่าย (ติด C) วันที่ ' + start_date_val + ' ถึง ' + end_date_val
+                        title: 'รายชื่อผู้มารับบริการ OP-CSOP กกต. (ติด C) วันที่ ' + start_date_val + ' ถึง ' + end_date_val
                     }],
                     language: {
                         search: "ค้นหา:",
@@ -857,7 +814,7 @@
         });
     }
 
-    // Custom showDetails function to display SSOP validation checks on the eye button
+    // Custom showDetails function to display CSOP validation checks on the eye button
     window.showDetails = function(vn) {
         const body = document.getElementById('detailsModalBody');
         if (!body) return;
@@ -871,7 +828,7 @@
         
         $('#detailsModal').modal('show');
 
-        $.get("{{ url('claim_op/sss_detail') }}", { vn: vn })
+        $.get("{{ url('claim_op/csop_detail') }}", { vn: vn })
             .done(function(data) {
                 const visit = data.visit;
                 const diagnoses = data.diagnoses;
@@ -906,7 +863,7 @@
                     ? ` (${visit.rcpno_list})` 
                     : '';
 
-                let invoice_no = visit.sss_invno && visit.sss_invno !== '0' ? visit.sss_invno : (visit.debt_id_list && visit.debt_id_list !== '0' ? visit.debt_id_list : '');
+                let invoice_no = visit.csop_invno && visit.csop_invno !== '0' ? visit.csop_invno : (visit.debt_id_list && visit.debt_id_list !== '0' ? visit.debt_id_list : '');
 
                 // Validation errors
                 const errors = [];
@@ -1312,262 +1269,22 @@
             });
         });
     };
-
-    window.pushNhsoData = function(cid, vstdate, vn) {
-        Swal.fire({
-            title: 'ยืนยันการส่งข้อมูล?',
-            text: "ระบบจะดึงข้อมูลจาก HOSxP และส่งไปปิดสิทธิที่ สปสช.",
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'ตกลง, ส่งข้อมูล!',
-            cancelButtonText: 'ยกเลิก'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                Swal.fire({
-                    title: 'กำลังดำเนินการ...',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading()
-                    }
-                });
-
-                $.ajax({
-                    url: "{{ route('api.nhso.push_indiv') }}",
-                    type: "POST",
-                    data: {
-                        _token: "{{ csrf_token() }}",
-                        cid: cid,
-                        vstdate: vstdate
-                    },
-                    success: function(response) {
-                        if (response.status == 'success') {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'สำเร็จ!',
-                                text: 'ปิดสิทธิเรียบร้อยแล้ว',
-                                timer: 1500,
-                                showConfirmButton: false
-                            }).then(() => {
-                                if (vn) {
-                                    showDetails(vn);
-                                } else {
-                                    location.reload();
-                                }
-                            });
-                        } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'ไม่สำเร็จ',
-                                text: response.message || 'เกิดข้อผิดพลาดในการส่งข้อมูล'
-                            });
-                        }
-                    },
-                    error: function(xhr) {
-                        let msg = 'ไม่สามารถเชื่อมต่อกับระบบได้';
-                        if(xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'เกิดข้อผิดพลาด',
-                            text: msg
-                        });
-                    }
-                });
-            }
-        });
-    };
-
-    // Show REP errors and warnings details via Swal.fire
-    window.showRepDetails = function(vn) {
-        Swal.fire({
-            title: 'กำลังโหลดข้อมูลผลตอบกลับ...',
-            allowOutsideClick: false,
-            didOpen: () => {
-                Swal.showLoading();
-            }
-        });
-
-        $.get("{{ url('claim_op/sss_detail') }}", { vn: vn })
-            .done(function(data) {
-                Swal.close();
-                const feedbacks = data.rep_feedbacks || [];
-                if (feedbacks.length === 0) {
-                    Swal.fire({
-                        icon: 'info',
-                        title: 'ไม่มีข้อมูลข้อผิดพลาด',
-                        text: 'ไม่พบประวัติข้อผิดพลาดตอบกลับสำหรับรายการนี้'
-                    });
-                    return;
-                }
-
-                let html = '<div class="text-start" style="font-size:0.85rem; max-height:400px; overflow-y:auto;">';
-                html += '<table class="table table-sm table-bordered align-middle">';
-                html += '<thead><tr class="table-light"><th>รหัส</th><th>ประเภท</th><th>รายละเอียด</th></tr></thead>';
-                html += '<tbody>';
-                feedbacks.forEach(f => {
-                    const badgeColor = f.type === 'error' ? 'danger' : 'warning';
-                    const typeText = f.type === 'error' ? 'ข้อผิดพลาด (Error)' : 'ข้อแนะนำ (Warning)';
-                    html += `<tr>
-                        <td class="fw-bold text-${badgeColor}">${f.code}</td>
-                        <td><span class="badge bg-${badgeColor}">${typeText}</span></td>
-                        <td>${f.desc}</td>
-                    </tr>`;
-                });
-                html += '</tbody></table></div>';
-
-                Swal.fire({
-                    title: 'รายละเอียดผลตอบกลับ (REP Feedbacks)',
-                    html: html,
-                    width: '650px',
-                    confirmButtonText: 'ปิด'
-                });
-            })
-            .fail(function() {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'เกิดข้อผิดพลาด',
-                    text: 'ไม่สามารถดึงข้อมูลผลตอบกลับได้'
-                });
-            });
-    };
-
-    // feedback lists & zip uploads
+                // feedback lists & zip uploads
     window.loadFeedbackList = function() {
-        const body21 = document.getElementById('feedback-21-body');
-        const body22 = document.getElementById('feedback-22-body');
-        const body23 = document.getElementById('feedback-23-body');
-        
-        if ($.fn.DataTable.isDataTable('#table-feedback-21')) {
-            $('#table-feedback-21').DataTable().destroy();
-        }
-        if ($.fn.DataTable.isDataTable('#table-feedback-22')) {
-            $('#table-feedback-22').DataTable().destroy();
-        }
-        if ($.fn.DataTable.isDataTable('#table-feedback-23')) {
-            $('#table-feedback-23').DataTable().destroy();
-        }
-
-        body21.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">กำลังโหลดข้อมูล...</td></tr>';
-        body22.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">กำลังโหลดข้อมูล...</td></tr>';
-        body23.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">กำลังโหลดข้อมูล...</td></tr>';
-        
-        const commonConfig = {
-            language: {
-                search: "ค้นหา:",
-                lengthMenu: "แสดง _MENU_ รายการ",
-                info: "แสดง _START_ ถึง _END_ จากทั้งหมด _TOTAL_ รายการ",
-                paginate: {
-                    first: "หน้าแรก",
-                    last: "หน้าสุดท้าย",
-                    next: "ถัดไป",
-                    previous: "ก่อนหน้า"
-                },
-                zeroRecords: "ไม่พบข้อมูล",
-                emptyTable: "ไม่พบข้อมูลในตาราง"
-            },
-            pageLength: 10,
-            lengthMenu: [10, 25, 50, 100],
-            order: []
-        };
-
-        // Fetch feedback lists
-        $.get("{{ url('claim_op/sss_chronic_feedback_list') }}")
-            .done(function(data) {
-                // Populate Tab 2.1
-                let h21 = '';
-                const items21 = data.feedback_21 || [];
-                if (items21.length === 0) {
-                    h21 = '<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบรายการผลตอบกลับ ตอนที่ 2.1</td></tr>';
-                } else {
-                    items21.forEach(row => {
-                        h21 += `<tr>
-                            <td>${row.dttran || '-'}</td>
-                            <td class="fw-bold text-primary">${row.hn || '-'}</td>
-                            <td>${row.ptname || '-'}</td>
-                            <td>${row.pid || '-'}</td>
-                            <td>${row.dx || '-'}</td>
-                            <td>${row.drug || '-'}</td>
-                            <td class="small text-muted">${row.rep_file || '-'}</td>
-                        </tr>`;
-                    });
-                }
-                body21.innerHTML = h21;
-
-                // Populate Tab 2.2
-                let h22 = '';
-                const items22 = data.feedback_22 || [];
-                if (items22.length === 0) {
-                    h22 = '<tr><td colspan="7" class="text-center text-muted py-3">ไม่พบรายการผลตอบกลับ ตอนที่ 2.2</td></tr>';
-                } else {
-                    items22.forEach(row => {
-                        h22 += `<tr>
-                            <td>${row.dttran || '-'}</td>
-                            <td class="fw-bold text-primary">${row.hn || '-'}</td>
-                            <td>${row.ptname || '-'}</td>
-                            <td>${row.pid || '-'}</td>
-                            <td class="text-danger fw-bold">${row.dx || '-'}</td>
-                            <td class="text-danger fw-bold">${row.drug || '-'}</td>
-                            <td class="small text-muted">${row.rep_file || '-'}</td>
-                        </tr>`;
-                    });
-                }
-                body22.innerHTML = h22;
-
-                if (items21.length > 0) {
-                    $('#table-feedback-21').DataTable(commonConfig);
-                }
-                if (items22.length > 0) {
-                    $('#table-feedback-22').DataTable(commonConfig);
-                }
-            })
-            .fail(function() {
-                body21.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">ผิดพลาดในการเชื่อมต่อข้อมูล</td></tr>';
-                body22.innerHTML = '<tr><td colspan="7" class="text-center text-danger py-3">ผิดพลาดในการเชื่อมต่อข้อมูล</td></tr>';
-            });
-
-        // Fetch Approved Chronic Disease Drug mapping (Tab 2.3)
-        $.get("{{ url('claim_op/sss_chronic_feedback_list') }}", { type: 'chronic_drugs' })
-            .done(function(res) {
-                let h23 = '';
-                const items23 = res.data || [];
-                if (items23.length === 0) {
-                    h23 = '<tr><td colspan="4" class="text-center text-muted py-3">ไม่พบข้อมูลรายชื่อยาโรคเรื้อรัง</td></tr>';
-                } else {
-                    items23.forEach(row => {
-                        h23 += `<tr>
-                            <td class="text-center fw-bold">${row.disease_id || '-'}</td>
-                            <td>${row.disease_name || '-'}</td>
-                            <td class="text-center font-monospace text-primary fw-bold">${row.tmt_code || '-'}</td>
-                            <td>${row.drug_names || '-'}</td>
-                        </tr>`;
-                    });
-                }
-                body23.innerHTML = h23;
-                if (items23.length > 0) {
-                    $('#table-feedback-23').DataTable(commonConfig);
-                }
-            })
-            .fail(function() {
-                body23.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-3">ผิดพลาดในการเชื่อมต่อข้อมูล</td></tr>';
-            });
+        // No chronic disease feedback to load for CSOP
     };
 
     window.uploadSssZip = function(type) {
-        const inputId = type === 'rep' ? 'zip_file_rep' : (type === 'stm' ? 'zip_file_stm' : (type === 'chronic' ? 'zip_file_chronic' : 'zip_file_chronic_reg'));
+        const inputId = type === 'rep' ? 'zip_file_rep' : 'zip_file_stm';
         const input = document.getElementById(inputId);
         if (!input || input.files.length === 0) return;
 
         const files = Array.from(input.files);
         let uploadUrl = '';
         if (type === 'rep') {
-            uploadUrl = "{{ url('claim_op/sss_rep_import') }}";
-        } else if (type === 'stm') {
-            uploadUrl = "{{ url('claim_op/sss_stm_import') }}";
-        } else if (type === 'chronic') {
-            uploadUrl = "{{ url('claim_op/sss_chronic_import') }}";
+            uploadUrl = "{{ url('import/csop_rep_save') }}";
         } else {
-            uploadUrl = "{{ url('claim_op/sss_chronic_register_import') }}";
+            uploadUrl = "{{ url('import/stm_ofc_csop_save') }}";
         }
 
         let currentIdx = 0;
@@ -1626,8 +1343,12 @@
 
             const formData = new FormData();
             formData.append('_token', "{{ csrf_token() }}");
-            formData.append('type', type);
-            formData.append('zip_file', currentFile);
+            if (type === 'rep') {
+                formData.append('type', type);
+                formData.append('zip_file', currentFile);
+            } else {
+                formData.append('files[]', currentFile);
+            }
 
             $.ajax({
                 url: uploadUrl,
@@ -1636,7 +1357,7 @@
                 processData: false,
                 contentType: false,
                 success: function(res) {
-                    if (res.success) {
+                    if (type === 'stm' || res.success) {
                         successCount++;
                         summaryHtml += `<span class="text-success">✔ [${currentFile.name}]</span> ${res.message || 'สำเร็จ'}<br>`;
                         currentIdx++;
@@ -1669,9 +1390,9 @@
         processNextFile();
     };
 
-    // export SSOP functions
+    // export CSOP functions
     let selectedVnsForExport = [];
-    window.exportSelectedSSOP = function() {
+    window.exportSelectedCSOP = function() {
         selectedVnsForExport = [];
         $('.claim-select-check:checked').each(function() {
             selectedVnsForExport.push(this.value);
@@ -1681,7 +1402,7 @@
             Swal.fire({
                 icon: 'warning',
                 title: 'กรุณาเลือกรายการ',
-                text: 'กรุณาติ๊กเลือกผู้ป่วยอย่างน้อย 1 รายการก่อนทำการส่งออก SSOP'
+                text: 'กรุณาติ๊กเลือกผู้ป่วยอย่างน้อย 1 รายการก่อนทำการส่งออก CSOP'
             });
             return;
         }
@@ -1694,10 +1415,10 @@
         document.getElementById('export_station_id').value = '01';
         document.getElementById('export_tflag').value = 'A';
 
-        $('#ssopExportModal').modal('show');
+        $('#csopExportModal').modal('show');
     };
 
-    window.previewSSOPExport = function() {
+    window.previewCSOPExport = function() {
         const sessionId = document.getElementById('export_session_id').value;
         const stationId = document.getElementById('export_station_id').value;
         const tflag = document.getElementById('export_tflag').value;
@@ -1723,7 +1444,7 @@
         if ($.fn.DataTable.isDataTable('#table-prev-opdiagnoses')) { $('#table-prev-opdiagnoses').DataTable().destroy(); }
 
         $.ajax({
-            url: "{{ url('claim_op/sss_export_preview') }}",
+            url: "{{ url('claim_op/csop_export_preview') }}",
             type: "POST",
             data: {
                 _token: "{{ csrf_token() }}",
@@ -1735,8 +1456,8 @@
             success: function(res) {
                 Swal.close();
                 if (res.success) {
-                    $('#ssopExportModal').modal('hide');
-                    $('#ssopPreviewModal').modal('show');
+                    $('#csopExportModal').modal('hide');
+                    $('#csopPreviewModal').modal('show');
 
                     // 0. Pre-Audit Tab population
                     let hAudit = '';
@@ -1989,14 +1710,14 @@
                         }
                     });
 
-                    const btnDownload = document.getElementById('btnDownloadSSOP');
+                    const btnDownload = document.getElementById('btnDownloadCSOP');
                     if (hasError) {
                         btnDownload.disabled = true;
                         btnDownload.innerHTML = `<i class="bi bi-x-circle me-1"></i> มีข้อผิดพลาด Pre-Audit (${errorCount} เคส)`;
                         btnDownload.className = 'btn btn-danger px-4';
                     } else {
                         btnDownload.disabled = false;
-                        btnDownload.innerHTML = `<i class="bi bi-download me-1"></i> ยืนยันการดาวน์โหลด SSOP (.zip)`;
+                        btnDownload.innerHTML = `<i class="bi bi-download me-1"></i> ยืนยันการดาวน์โหลด CSOP (.zip)`;
                         btnDownload.className = 'btn btn-success px-4';
                     }
                 } else {
@@ -2017,7 +1738,7 @@
         });
     };
 
-    window.downloadSSOPExportZip = function() {
+    window.downloadCSOPExportZip = function() {
         const sessionId = document.getElementById('export_session_id').value;
         const stationId = document.getElementById('export_station_id').value;
         const tflag = document.getElementById('export_tflag').value;
@@ -2029,13 +1750,13 @@
             station_id: stationId,
             tflag: tflag
         });
-        window.location.href = "{{ url('claim_op/sss_export_ssop') }}?" + queryParams;
+        window.location.href = "{{ url('claim_op/csop_export') }}?" + queryParams;
 
-        $('#ssopPreviewModal').modal('hide');
+        $('#csopPreviewModal').modal('hide');
         Swal.fire({
             icon: 'success',
             title: 'สร้างไฟล์นำส่งเรียบร้อยแล้ว!',
-            text: 'ดาวน์โหลดไฟล์นำส่ง SSOP สำเร็จแล้ว',
+            text: 'ดาวน์โหลดไฟล์นำส่ง CSOP สำเร็จแล้ว',
             timer: 2000,
             showConfirmButton: false
         }).then(() => {
@@ -2060,7 +1781,7 @@
             $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
         });
 
-        $(document).on('shown.bs.modal', '#ssopPreviewModal', function () {
+        $(document).on('shown.bs.modal', '#csopPreviewModal', function () {
             $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
         });
 

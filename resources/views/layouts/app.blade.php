@@ -913,6 +913,11 @@
                                                 <i class="bi bi-file-earmark-person-fill text-primary me-2"></i> OP-PVT ครูเอกชน
                                             </a>
                                         </li>
+                                        <li>
+                                            <a class="dropdown-item dropdown-item-modern " href="{{ url('claim_op/csop_31') }}">
+                                                <i class="bi bi-shield-check text-primary me-2"></i> OP-CSOP กกต.
+                                            </a>
+                                        </li>
                                         <!-- ชี้ขวา -->
                                         @php
                                             $is_ssop_licensed = \App\Services\LicenseVerificationService::isLicensed();

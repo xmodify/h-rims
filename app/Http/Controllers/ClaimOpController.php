@@ -5920,6 +5920,9 @@ class ClaimOpController extends Controller
             $rep_errors = [];
             foreach ($rep_records as $rec) {
                 if ($rec->stat === 'A') {
+                    if (!isset($rep_errors[$rec->vn])) {
+                        $rep_errors[$rec->vn] = ''; // Mark as has REP but no errors
+                    }
                     continue;
                 }
                 if (!empty($rec->error_codes)) {
@@ -7088,6 +7091,11 @@ class ClaimOpController extends Controller
             $rep_records = [];
             foreach ($raw_rep_records as $rec) {
                 if ($rec->stat === 'A') {
+                    if (!isset($rep_records[$rec->vn])) {
+                        $dummy = clone $rec;
+                        $dummy->error_codes = '';
+                        $rep_records[$rec->vn] = $dummy; // Mark as has REP but no errors
+                    }
                     continue;
                 }
                 if (isset($rep_records[$rec->vn])) {

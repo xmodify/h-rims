@@ -5914,11 +5914,14 @@ class ClaimOpController extends Controller
                         ) t"))
                         ->where('rn', 1);
                 })
-                ->select('vn', 'error_codes')
+                ->select('vn', 'stat', 'error_codes')
                 ->get();
 
             $rep_errors = [];
             foreach ($rep_records as $rec) {
+                if ($rec->stat === 'A') {
+                    continue;
+                }
                 if (!empty($rec->error_codes)) {
                     if (isset($rep_errors[$rec->vn])) {
                         $existing = array_filter(array_map('trim', explode(',', $rep_errors[$rec->vn])));
@@ -6342,6 +6345,9 @@ class ClaimOpController extends Controller
         }
 
         foreach ($rep_records as $rep_record) {
+            if ($rep_record->stat === 'A') {
+                continue;
+            }
             if ($rep_record && !empty($rep_record->error_codes)) {
                 $codes = array_filter(array_map('trim', explode(',', $rep_record->error_codes)));
                 foreach ($codes as $c) {
@@ -6538,6 +6544,9 @@ class ClaimOpController extends Controller
             ->get();
 
         foreach ($rep_records as $rep_record) {
+            if ($rep_record->stat === 'A') {
+                continue;
+            }
             if ($rep_record && !empty($rep_record->error_codes)) {
                 $codes = array_filter(array_map('trim', explode(',', $rep_record->error_codes)));
                 foreach ($codes as $c) {
@@ -7078,6 +7087,9 @@ class ClaimOpController extends Controller
 
             $rep_records = [];
             foreach ($raw_rep_records as $rec) {
+                if ($rec->stat === 'A') {
+                    continue;
+                }
                 if (isset($rep_records[$rec->vn])) {
                     // Combine error codes if multiple claim types exist for the same vn
                     if (!empty($rec->error_codes)) {

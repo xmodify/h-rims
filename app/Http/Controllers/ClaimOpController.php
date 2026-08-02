@@ -5792,7 +5792,6 @@ class ClaimOpController extends Controller
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
             COALESCE((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND pttype = vp.pttype), v.income) AS income, v.uc_money, 
             IFNULL((SELECT SUM(r.total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND r.pttype = vp.pttype AND a.rcpno IS NULL), 0) AS rcpt_money, 
-            COALESCE((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND pttype = vp.pttype), v.income) - IFNULL((SELECT SUM(r.total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND r.pttype = vp.pttype AND a.rcpno IS NULL), 0) AS claim_price,
             d.receive AS receive_total,
             v.debt_id_list, osb.invno AS sss_invno, osb.billno AS sss_billno,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint
@@ -5804,13 +5803,6 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN ovst_sss_billtran osb ON osb.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             LEFT JOIN hrims.debtor_1102050101_301 d ON d.vn=o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             WHERE p.hipdata_code = "SSS"
@@ -5926,15 +5918,17 @@ class ClaimOpController extends Controller
             $rep_by_visit = [];
             $passed_a_by_visit = [];
 
+            $rep_grouped = [];
+            foreach ($rep_records as $rec) {
+                $rec_time = substr($rec->dttran_time, 0, 5);
+                $key = "{$rec->pid}_{$rec->dttran_date}_{$rec_time}";
+                $rep_grouped[$key][] = $rec;
+            }
+
             foreach ($claim as $row) {
                 $row_time = substr($row->vsttime, 0, 5); // "09:20"
-                $matches = [];
-                foreach ($rep_records as $rec) {
-                    $rec_time = substr($rec->dttran_time, 0, 5); // "09:20"
-                    if ($rec->pid === $row->cid && $rec->dttran_date === $row->vstdate && $rec_time === $row_time) {
-                        $matches[] = $rec;
-                    }
-                }
+                $key = "{$row->cid}_{$row->vstdate}_{$row_time}";
+                $matches = $rep_grouped[$key] ?? [];
 
                 $latest_by_station = [];
                 $has_passed_a = false;
@@ -5984,15 +5978,26 @@ class ClaimOpController extends Controller
                 }
             }
 
-            // Fetch STM paid amount matching actual HOSxP vns
-            $stm_pays = DB::table('stm_sss_ssop')
-                ->whereIn('vn', $vns)
-                ->pluck('total', 'vn')
-                ->toArray();
+            // Fetch STM paid amount matching by pid, dttran_date, and dttran_time (prefix)
+            $stm_records = [];
+            if (!empty($cids) && !empty($dates)) {
+                $stm_records = DB::table('stm_sss_ssop')
+                    ->whereIn('pid', $cids)
+                    ->whereIn('dttran_date', $dates)
+                    ->get();
+            }
+
+            $stm_pays = [];
+            foreach ($stm_records as $rec) {
+                $rec_time = substr($rec->dttran_time, 0, 5);
+                $key = "{$rec->pid}_{$rec->dttran_date}_{$rec_time}";
+                $stm_pays[$key] = ($stm_pays[$key] ?? 0.0) + (float)$rec->total;
+            }
         }
 
         $validator = new \App\Services\ClaimValidator();
         foreach ($claim as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
             $invo_str = !empty($row->sss_invno) ? $row->sss_invno : (!empty($row->debt_id_list) ? $row->debt_id_list : '');
             if (isset($sss_debt_map[$row->vn])) {
                 $row->sss_invno = (string)$sss_debt_map[$row->vn];
@@ -6143,7 +6148,9 @@ class ClaimOpController extends Controller
                 $row->rep_error = !empty($err_codes) ? implode(', ', $err_codes) : null;
                 $row->rep_warning = !empty($warn_codes) ? implode(', ', $warn_codes) : null;
             }
-            $row->stm_pay = $stm_pays[$row->vn] ?? null;
+            $row_time = substr($row->vsttime, 0, 5);
+            $stm_key = "{$row->cid}_{$row->vstdate}_{$row_time}";
+            $row->stm_pay = $stm_pays[$stm_key] ?? null;
 
             // Check ICD-10 CHI validation (Validate ONLY primary diagnosis/PDX)
             $has_icd10_chi_error = false;
@@ -7082,7 +7089,6 @@ class ClaimOpController extends Controller
             GROUP_CONCAT(DISTINCT CASE WHEN od.diagtype = "2" THEN od.icd10 END) AS icd9,
             COALESCE((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND pttype = vp.pttype), v.income) AS income, v.uc_money, 
             IFNULL((SELECT SUM(r.total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND r.pttype = vp.pttype AND a.rcpno IS NULL), 0) AS rcpt_money, 
-            COALESCE((SELECT SUM(sum_price) FROM opitemrece WHERE vn = o.vn AND pttype = vp.pttype), v.income) - IFNULL((SELECT SUM(r.total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND r.pttype = vp.pttype AND a.rcpno IS NULL), 0) AS claim_price,
             d.receive AS receive_total,
             v.debt_id_list, osb.invno AS csop_invno, osb.billno AS csop_billno,
             IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint
@@ -7094,13 +7100,6 @@ class ClaimOpController extends Controller
             LEFT JOIN ovstdiag od ON od.vn = o.vn AND od.hn=o.hn
             LEFT JOIN vn_stat v ON v.vn = o.vn
             LEFT JOIN ovst_sss_billtran osb ON osb.vn = o.vn
-            LEFT JOIN (
-                SELECT r.vn, SUM(r.total_amount) AS rcpt_money
-                FROM rcpt_print r
-                LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno 
-                WHERE a.rcpno IS NULL
-                GROUP BY r.vn
-            ) rc ON rc.vn = o.vn
             LEFT JOIN hrims.debtor_1102050101_301 d ON d.vn=o.vn
             LEFT JOIN hrims.nhso_endpoint ep ON ep.cid = pt.cid AND ep.vstdate = o.vstdate
             WHERE p.pttype IN (' . $csop_pttypes_str . ')
@@ -7185,6 +7184,7 @@ class ClaimOpController extends Controller
 
         // Audit check status
         foreach ($claim as $row) {
+            $row->claim_price = floatval($row->income) - floatval($row->rcpt_money);
             $rep = $rep_records[$row->vn] ?? null;
             $row->rep_error = $rep ? $rep->error_codes : null;
             $row->rep_warning = null;

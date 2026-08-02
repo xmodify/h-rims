@@ -5748,10 +5748,11 @@ class ClaimOpController extends Controller
                 WHEN MONTH(vstdate)=9 THEN CONCAT("ก.ย. ", RIGHT(YEAR(vstdate)+543, 2))
                 END AS month,COUNT(vn) AS visit,SUM(IFNULL(claim_price,0)) AS claim_price,SUM(IFNULL(claim_sent_price,0)) AS claim_sent_price,SUM(IFNULL(receive_total,0)) AS receive_total
             FROM (SELECT o.vstdate,o.vsttime,o.vn,v.income-IFNULL(rc.rcpt_money, 0) AS claim_price,d.receive AS receive_total,
-                  CASE WHEN rep.vn IS NOT NULL THEN (v.income-IFNULL(rc.rcpt_money, 0)) ELSE 0 END AS claim_sent_price
+                  CASE WHEN rep.pid IS NOT NULL THEN (v.income-IFNULL(rc.rcpt_money, 0)) ELSE 0 END AS claim_sent_price
             FROM ovst o            
             LEFT JOIN visit_pttype vp ON vp.vn=o.vn
             LEFT JOIN pttype p ON p.pttype=vp.pttype
+            LEFT JOIN patient pt ON pt.hn=o.hn
 			LEFT JOIN vn_stat v ON v.vn = o.vn
 			LEFT JOIN (
 			    SELECT r.vn, SUM(r.total_amount) AS rcpt_money
@@ -5762,8 +5763,12 @@ class ClaimOpController extends Controller
 			) rc ON rc.vn = o.vn
             LEFT JOIN hrims.debtor_1102050101_301 d ON d.vn=o.vn
             LEFT JOIN (
-                SELECT vn FROM hrims.rep_sss_ssop GROUP BY vn
-            ) rep ON rep.vn = o.vn
+                SELECT pid, dttran_date, LEFT(dttran_time, 5) AS dttran_time_short
+                FROM hrims.rep_sss_ssop
+                GROUP BY pid, dttran_date, LEFT(dttran_time, 5)
+            ) rep ON rep.pid = pt.cid
+                AND rep.dttran_date = o.vstdate
+                AND LEFT(o.vsttime, 5) = rep.dttran_time_short
             WHERE p.hipdata_code = "SSS"
                 AND vp.hospmain IN (SELECT hospcode FROM hrims.lookup_hospcode WHERE hmain_sss = "Y")
                 AND p.pttype NOT IN (' . $exclude_pttypes_str . ')
@@ -5894,56 +5899,88 @@ class ClaimOpController extends Controller
             }
 
             // Fetch latest REP error codes grouped by vn and station sorted chronologically (rep_date, rep_time, rep_no, rep_file, id)
-            $rep_records = DB::table('rep_sss_ssop')
-                ->whereIn('vn', $vns)
-                ->whereIn('id', function($query) use ($vns) {
-                    $query->select('id')
-                        ->from(DB::raw("(
-                            SELECT id, vn, station,
-                                   ROW_NUMBER() OVER (
-                                       PARTITION BY vn, station 
-                                       ORDER BY 
-                                           COALESCE(rep_date, '1970-01-01') DESC, 
-                                           COALESCE(rep_time, '00:00:00') DESC, 
-                                           COALESCE(rep_no, '') DESC, 
-                                           COALESCE(rep_file, '') DESC, 
-                                           id DESC
-                                   ) as rn
-                            FROM rep_sss_ssop
-                            WHERE vn IN ('" . implode("','", $vns) . "')
-                        ) t"))
-                        ->where('rn', 1);
-                })
-                ->select('vn', 'stat', 'error_codes')
-                ->get();
+            // Fetch REP records matching CID (pid) and Date (dttran_date)
+            $cids = [];
+            $dates = [];
+            foreach ($claim as $row) {
+                if (!empty($row->cid)) {
+                    $cids[] = $row->cid;
+                }
+                if (!empty($row->vstdate)) {
+                    $dates[] = $row->vstdate;
+                }
+            }
+            $cids = array_unique($cids);
+            $dates = array_unique($dates);
 
-            // Fetch only VNs in this set that ever had status 'A' (using index is very fast)
-            $passed_a_vns = DB::table('rep_sss_ssop')
-                ->whereIn('vn', $vns)
-                ->where('stat', 'A')
-                ->distinct()
-                ->pluck('vn')
-                ->toArray();
-            
-            $passed_a_map = array_flip($passed_a_vns);
+            $rep_records = [];
+            if (!empty($cids) && !empty($dates)) {
+                $rep_records = DB::table('rep_sss_ssop')
+                    ->whereIn('pid', $cids)
+                    ->whereIn('dttran_date', $dates)
+                    ->orderByDesc('id') // Get latest records first
+                    ->get();
+            }
+
+            // Map each visit to its corresponding rep records and status 'A' in PHP
+            $rep_by_visit = [];
+            $passed_a_by_visit = [];
+
+            foreach ($claim as $row) {
+                $row_time = substr($row->vsttime, 0, 5); // "09:20"
+                $matches = [];
+                foreach ($rep_records as $rec) {
+                    $rec_time = substr($rec->dttran_time, 0, 5); // "09:20"
+                    if ($rec->pid === $row->cid && $rec->dttran_date === $row->vstdate && $rec_time === $row_time) {
+                        $matches[] = $rec;
+                    }
+                }
+
+                $latest_by_station = [];
+                $has_passed_a = false;
+                foreach ($matches as $rec) {
+                    if ($rec->stat === 'A') {
+                        $has_passed_a = true;
+                    }
+                    $station = $rec->station ?? '';
+                    if (!isset($latest_by_station[$station])) {
+                        $latest_by_station[$station] = $rec;
+                    }
+                }
+
+                $rep_by_visit[$row->vn] = $latest_by_station;
+                $passed_a_by_visit[$row->vn] = $has_passed_a;
+            }
 
             $rep_errors = [];
-            foreach ($rep_records as $rec) {
-                if ($rec->stat === 'A' || isset($passed_a_map[$rec->vn])) {
-                    if (!isset($rep_errors[$rec->vn])) {
-                        $rep_errors[$rec->vn] = ''; // Mark as has REP but no errors
-                    }
+            foreach ($claim as $row) {
+                $vn = $row->vn;
+                $latest_by_station = $rep_by_visit[$vn] ?? [];
+                $has_passed_a = $passed_a_by_visit[$vn] ?? false;
+
+                if (empty($latest_by_station)) {
                     continue;
                 }
-                if (!empty($rec->error_codes)) {
-                    if (isset($rep_errors[$rec->vn])) {
-                        $existing = array_filter(array_map('trim', explode(',', $rep_errors[$rec->vn])));
-                        $new_codes = array_filter(array_map('trim', explode(',', $rec->error_codes)));
-                        $combined = array_unique(array_merge($existing, $new_codes));
-                        $rep_errors[$rec->vn] = implode(',', $combined);
-                    } else {
-                        $rep_errors[$rec->vn] = $rec->error_codes;
+
+                if ($has_passed_a) {
+                    $rep_errors[$vn] = ''; // Mark as has REP but no errors
+                    continue;
+                }
+
+                $err_codes_accum = [];
+                foreach ($latest_by_station as $rec) {
+                    if (!empty($rec->error_codes)) {
+                        $codes = array_filter(array_map('trim', explode(',', $rec->error_codes)));
+                        foreach ($codes as $c) {
+                            $err_codes_accum[] = $c;
+                        }
                     }
+                }
+
+                if (!empty($err_codes_accum)) {
+                    $rep_errors[$vn] = implode(',', array_unique($err_codes_accum));
+                } else {
+                    $rep_errors[$vn] = ''; // Mark as has REP but no errors
                 }
             }
 
@@ -6330,7 +6367,9 @@ class ClaimOpController extends Controller
 
         $rep_feedbacks = [];
         $raw_records = DB::table('rep_sss_ssop')
-            ->where('vn', $vn)
+            ->where('pid', $visit->cid)
+            ->where('dttran_date', $visit->vstdate)
+            ->where(DB::raw("LEFT(dttran_time, 5)"), substr($visit->vsttime, 0, 5))
             ->orderByRaw("COALESCE(rep_date, '1970-01-01') DESC")
             ->orderByRaw("COALESCE(rep_time, '00:00:00') DESC")
             ->orderByRaw("COALESCE(rep_no, '') DESC")
@@ -6444,7 +6483,9 @@ class ClaimOpController extends Controller
         }
 
         $latest_rep = DB::table('rep_sss_ssop')
-            ->where('vn', $vn)
+            ->where('pid', $visit->cid)
+            ->where('dttran_date', $visit->vstdate)
+            ->where(DB::raw("LEFT(dttran_time, 5)"), substr($visit->vsttime, 0, 5))
             ->orderByDesc('id')
             ->first();
         if ($latest_rep) {
@@ -6587,7 +6628,9 @@ class ClaimOpController extends Controller
         }
 
         $latest_rep = DB::table('rep_sss_ssop')
-            ->where('vn', $vn)
+            ->where('pid', $visit->cid)
+            ->where('dttran_date', $visit->vstdate)
+            ->where(DB::raw("LEFT(dttran_time, 5)"), substr($visit->vsttime, 0, 5))
             ->orderByDesc('id')
             ->first();
         if ($latest_rep) {

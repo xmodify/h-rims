@@ -5917,9 +5917,19 @@ class ClaimOpController extends Controller
                 ->select('vn', 'stat', 'error_codes')
                 ->get();
 
+            // Fetch only VNs in this set that ever had status 'A' (using index is very fast)
+            $passed_a_vns = DB::table('rep_sss_ssop')
+                ->whereIn('vn', $vns)
+                ->where('stat', 'A')
+                ->distinct()
+                ->pluck('vn')
+                ->toArray();
+            
+            $passed_a_map = array_flip($passed_a_vns);
+
             $rep_errors = [];
             foreach ($rep_records as $rec) {
-                if ($rec->stat === 'A') {
+                if ($rec->stat === 'A' || isset($passed_a_map[$rec->vn])) {
                     if (!isset($rep_errors[$rec->vn])) {
                         $rep_errors[$rec->vn] = ''; // Mark as has REP but no errors
                     }
@@ -7082,9 +7092,19 @@ class ClaimOpController extends Controller
                 })
                 ->get();
 
+            // Fetch only VNs in this set that ever had status 'A' for CSOP (using index is very fast)
+            $passed_a_vns = DB::table('rep_ofc_csop')
+                ->whereIn('vn', $vns)
+                ->where('stat', 'A')
+                ->distinct()
+                ->pluck('vn')
+                ->toArray();
+            
+            $passed_a_map = array_flip($passed_a_vns);
+
             $rep_records = [];
             foreach ($raw_rep_records as $rec) {
-                if ($rec->stat === 'A') {
+                if ($rec->stat === 'A' || isset($passed_a_map[$rec->vn])) {
                     if (!isset($rep_records[$rec->vn])) {
                         $dummy = clone $rec;
                         $dummy->error_codes = '';

@@ -2137,10 +2137,23 @@ $search = DB::connection('hosxp')->select(
             }
         }
 
+        $ans = array_column($claim, 'an');
+        $passed_a_ans = [];
+        if (!empty($ans)) {
+            $passed_a_ans = DB::table('rep_sss_aipn')
+                ->whereIn('an', $ans)
+                ->where('tcode', 'A')
+                ->distinct()
+                ->pluck('an')
+                ->toArray();
+        }
+        $passed_a_map = array_flip($passed_a_ans);
+
         $warning = [];
         $claim_sent = [];
         foreach ($claim as $row) {
-            if (($row->rep_tcode ?? null) === 'C' && $row->stm_pay === null) {
+            $ever_passed_a = isset($passed_a_map[$row->an]);
+            if (($row->rep_tcode ?? null) === 'C' && $row->stm_pay === null && !$ever_passed_a) {
                 $warning[] = $row;
             } else {
                 $claim_sent[] = $row;

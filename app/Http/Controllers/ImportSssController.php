@@ -131,6 +131,19 @@ class ImportSssController extends Controller
             if ($vn) {
                 return $vn;
             }
+
+            // 2.5 Match directly if invno is actually the VN itself in HOSxP ovst (safeguarded by CID/PID)
+            if (!empty($pid)) {
+                $vnExists = DB::connection('hosxp')
+                    ->table('ovst as o')
+                    ->join('patient as pt', 'pt.hn', '=', 'o.hn')
+                    ->where('o.vn', $invno)
+                    ->where('pt.cid', $pid)
+                    ->exists();
+                if ($vnExists) {
+                    return $invno;
+                }
+            }
         }
 
         // 3. Match by PID (CID) and Date (and optional Time prefix)

@@ -1273,7 +1273,62 @@
             });
         });
     };
-                // feedback lists & zip uploads
+
+    // Show REP errors and warnings details via Swal.fire
+    window.showRepDetails = function(vn) {
+        Swal.fire({
+            title: 'กำลังโหลดข้อมูลผลตอบกลับ...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        $.get("{{ url('claim_op/csop_detail') }}", { vn: vn })
+            .done(function(data) {
+                Swal.close();
+                const feedbacks = data.rep_feedbacks || [];
+                if (feedbacks.length === 0) {
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'ไม่มีข้อมูลข้อผิดพลาด',
+                        text: 'ไม่พบประวัติข้อผิดพลาดตอบกลับสำหรับรายการนี้'
+                    });
+                    return;
+                }
+
+                let html = '<div class="text-start" style="font-size:0.85rem; max-height:400px; overflow-y:auto;">';
+                html += '<table class="table table-sm table-bordered align-middle">';
+                html += '<thead><tr class="table-light"><th>รหัส</th><th>ประเภท</th><th>รายละเอียด</th></tr></thead>';
+                html += '<tbody>';
+                feedbacks.forEach(f => {
+                    const badgeColor = f.type === 'error' ? 'danger' : 'warning';
+                    const typeText = f.type === 'error' ? 'ข้อผิดพลาด (Error)' : 'ข้อแนะนำ (Warning)';
+                    html += `<tr>
+                        <td class="fw-bold text-${badgeColor}">${f.code}</td>
+                        <td><span class="badge bg-${badgeColor}">${typeText}</span></td>
+                        <td>${f.desc}</td>
+                    </tr>`;
+                });
+                html += '</tbody></table></div>';
+
+                Swal.fire({
+                    title: 'รายละเอียดผลตอบกลับ (REP Feedbacks)',
+                    html: html,
+                    width: '650px',
+                    confirmButtonText: 'ปิด'
+                });
+            })
+            .fail(function() {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด',
+                    text: 'ไม่สามารถดึงข้อมูลผลตอบกลับได้'
+                });
+            });
+    };
+
+    // feedback lists & zip uploads
     window.loadFeedbackList = function() {
         // No chronic disease feedback to load for CSOP
     };

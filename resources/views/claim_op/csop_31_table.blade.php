@@ -164,7 +164,7 @@
                                     @if($tab['id'] === 'warning')
                                         <td class="text-center small">
                                             @if($row->rep_error)
-                                                <span class="badge bg-danger-soft text-danger fw-bold">{{ $row->rep_error }}</span>
+                                                <span class="badge bg-danger-soft text-danger fw-bold cursor-pointer text-decoration-underline" style="cursor: pointer;" onclick="showRepDetails('{{ $row->vn }}')" title="คลิกเพื่อดูรายละเอียดข้อผิดพลาด">{{ $row->rep_error }}</span>
                                             @else
                                                 <span class="text-muted">-</span>
                                             @endif
@@ -173,7 +173,7 @@
                                     @if($tab['id'] !== 'search')
                                         <td class="text-center small">
                                             @if($row->rep_warning)
-                                                <span class="badge bg-warning-soft text-warning fw-bold">{{ $row->rep_warning }}</span>
+                                                <span class="badge bg-warning-soft text-warning fw-bold cursor-pointer text-decoration-underline" style="cursor: pointer;" onclick="showRepDetails('{{ $row->vn }}')" title="คลิกเพื่อดูรายละเอียดข้อแนะนำ">{{ $row->rep_warning }}</span>
                                             @else
                                                 <span class="text-muted">-</span>
                                             @endif

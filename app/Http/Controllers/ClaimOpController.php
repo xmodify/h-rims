@@ -6598,6 +6598,17 @@ class ClaimOpController extends Controller
             }
         }
 
+        $lookup = [];
+        $json_path = base_path('docs/lookup/csop_error_codes.json');
+        if (file_exists($json_path)) {
+            $lookup = json_decode(file_get_contents($json_path), true) ?: [];
+        }
+        $sss_lookup = [];
+        $sss_json_path = base_path('docs/lookup/sss_error_codes.json');
+        if (file_exists($sss_json_path)) {
+            $sss_lookup = json_decode(file_get_contents($sss_json_path), true) ?: [];
+        }
+
         foreach ($rep_records as $rep_record) {
             if ($rep_record->stat === 'A') {
                 continue;
@@ -6605,11 +6616,12 @@ class ClaimOpController extends Controller
             if ($rep_record && !empty($rep_record->error_codes)) {
                 $codes = array_filter(array_map('trim', explode(',', $rep_record->error_codes)));
                 foreach ($codes as $c) {
+                    $desc = $lookup[$c] ?? ($sss_lookup[$c] ?? 'ไม่พบข้อมูลในคู่มือ');
                     $is_warn = str_starts_with(strtoupper($c), 'W');
                     $rep_feedbacks[] = [
                         'code' => $c,
                         'type' => $is_warn ? 'warning' : 'error',
-                        'desc' => 'รหัสข้อผิดพลาด: ' . $c
+                        'desc' => $desc
                     ];
                 }
             }

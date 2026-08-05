@@ -6509,6 +6509,28 @@ class ClaimOpController extends Controller
             ];
         }
 
+        // SvPID (S15) check for SSOP
+        $doc_name = !empty($visit->doctor_name) ? trim($visit->doctor_name) : 'ไม่ระบุชื่อแพทย์';
+        if (empty($visit->doctor_license)) {
+            $pre_audits[] = [
+                'code' => 'S15',
+                'title' => 'ไม่พบเลขใบประกอบวิชาชีพแพทย์ (SvPID)',
+                'desc' => "กรุณาระบุเลขใบประกอบวิชาชีพในระบบ HOSxP (แพทย์ผู้รักษา: {$doc_name})",
+                'status' => 'danger'
+            ];
+        } else {
+            $lic = trim($visit->doctor_license);
+            $is_valid_format = preg_match('/^(?:-|[วทภพ\-]\d+)$/u', $lic);
+            if (!$is_valid_format) {
+                $pre_audits[] = [
+                    'code' => 'S15',
+                    'title' => 'เลขที่ใบประกอบวิชาชีพ SvPID ไม่ถูกต้อง',
+                    'desc' => "เลขใบประกอบวิชาชีพแพทย์ '{$lic}' มีรูปแบบไม่ถูกต้อง (แพทย์ผู้รักษา: {$doc_name}) (ต้องขึ้นต้นด้วย ว, ท, ภ, พ หรือ - และตามด้วยตัวเลขเท่านั้น เช่น ว15245 หรือ -)",
+                    'status' => 'danger'
+                ];
+            }
+        }
+
         // 5. Audit BILLDISP: Pharmacist/Prescriber License and TMT ID for SSOP
         $has_dispense = !empty($drugs);
         if ($has_dispense) {

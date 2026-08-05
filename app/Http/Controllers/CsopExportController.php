@@ -540,6 +540,26 @@ class CsopExportController extends Controller
             $opdx_table[] = explode('|', $row);
         }
 
+        // Fetch doctor names by license
+        $licenses = [];
+        foreach ($opservices_table as $os) {
+            $lic = trim($os[11] ?? '');
+            if ($lic !== '' && $lic !== '-') {
+                $licenses[] = $lic;
+            }
+        }
+        $doctor_names_by_license = [];
+        if (!empty($licenses)) {
+            $docs = DB::connection('hosxp')
+                ->table('doctor')
+                ->whereIn('licenseno', $licenses)
+                ->select('licenseno', 'name')
+                ->get();
+            foreach ($docs as $d) {
+                $doctor_names_by_license[trim($d->licenseno)] = trim($d->name);
+            }
+        }
+
         // Basic Pre-Audit audit
         $validation = [];
         $vns_placeholders = implode(',', array_fill(0, count($vns), '?'));
@@ -618,7 +638,7 @@ class CsopExportController extends Controller
             // 3. OPSERVICE checks
             if ($op_row) {
                 $lic = trim($op_row[11] ?? '');
-                $doc_name = !empty($row->doctor_name) ? trim($row->doctor_name) : 'ไม่ระบุชื่อแพทย์';
+                $doc_name = $doctor_names_by_license[$lic] ?? (!empty($row->doctor_name) ? trim($row->doctor_name) : 'ไม่ระบุชื่อแพทย์');
                 if (empty($lic)) {
                     $errors['opservices'][] = "ไม่พบเลขใบอนุญาตประกอบวิชาชีพเวชกรรมผู้สั่งตรวจรักษา (แพทย์ผู้รักษา: {$doc_name})";
                 } else {

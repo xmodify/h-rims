@@ -610,6 +610,26 @@ class SssExportController extends Controller
             }
         }
 
+        // Fetch doctor names by license
+        $licenses = [];
+        foreach ($opservices_table as $os) {
+            $lic = trim($os[11] ?? '');
+            if ($lic !== '' && $lic !== '-') {
+                $licenses[] = $lic;
+            }
+        }
+        $doctor_names_by_license = [];
+        if (!empty($licenses)) {
+            $docs = DB::connection('hosxp')
+                ->table('doctor')
+                ->whereIn('licenseno', $licenses)
+                ->select('licenseno', 'name')
+                ->get();
+            foreach ($docs as $d) {
+                $doctor_names_by_license[trim($d->licenseno)] = trim($d->name);
+            }
+        }
+
         // Perform backend validation to detect missing required fields
         $validation = [];
         foreach ($data['visits_list'] as $row) {
@@ -705,7 +725,7 @@ class SssExportController extends Controller
             }
             if ($op_row) {
                 $lic = trim($op_row[11] ?? '');
-                $doc_name = !empty($rowObj->doctor_name) ? trim($rowObj->doctor_name) : 'ไม่ระบุชื่อแพทย์';
+                $doc_name = $doctor_names_by_license[$lic] ?? (!empty($rowObj->doctor_name) ? trim($rowObj->doctor_name) : 'ไม่ระบุชื่อแพทย์');
                 if (empty($lic)) {
                     $errors['opservices'][] = "ไม่พบเลขใบอนุญาตประกอบวิชาชีพเวชกรรมผู้สั่งตรวจรักษา (แพทย์ผู้รักษา: {$doc_name})";
                 } else {

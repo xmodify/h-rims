@@ -5982,10 +5982,12 @@ class ClaimOpController extends Controller
                 }
 
                 $err_codes_accum = array_unique($err_codes_accum);
-                $has_duplicate_pass = (in_array('S01', $err_codes_accum) || in_array('T02', $err_codes_accum));
+                $filtered_err_codes = array_filter($err_codes_accum, function($c) {
+                    return $c !== 'S01' && $c !== 'T02' && $c !== 'R01';
+                });
 
-                if (!empty($err_codes_accum) && !$has_duplicate_pass) {
-                    $rep_errors[$vn] = implode(',', $err_codes_accum);
+                if (!empty($filtered_err_codes)) {
+                    $rep_errors[$vn] = implode(',', $filtered_err_codes);
                 } else {
                     $rep_errors[$vn] = ''; // Mark as has REP but no errors
                 }
@@ -7554,10 +7556,11 @@ class ClaimOpController extends Controller
             foreach ($rep_records as $vn_key => $rep_rec) {
                 if (!empty($rep_rec->error_codes)) {
                     $codes = array_filter(array_map('trim', explode(',', $rep_rec->error_codes)));
-                    $upper_codes = array_map('strtoupper', $codes);
-                    if (in_array('S01', $upper_codes) || in_array('T02', $upper_codes)) {
-                        $rep_rec->error_codes = '';
-                    }
+                    $filtered_codes = array_filter($codes, function($c) {
+                        $u = strtoupper(trim($c));
+                        return $u !== 'S01' && $u !== 'T02' && $u !== 'R01';
+                    });
+                    $rep_rec->error_codes = !empty($filtered_codes) ? implode(',', $filtered_codes) : '';
                 }
             }
 

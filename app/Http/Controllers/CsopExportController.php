@@ -450,7 +450,7 @@ class CsopExportController extends Controller
                 $opdx_rows[] = "EC|{$row->vn}|{$d->diagtype}|{$icd_type}|{$clean_diag}|";
             }
             
-            $doc_license = !empty($row->doctor_license) ? $row->doctor_license : (!empty($row->rx_license_no) ? $row->rx_license_no : '-');
+            $doc_license = !empty($row->doctor_license) ? $row->doctor_license : '-';
             // Default ClaimCat to OP1
             $opservices_rows[] = "{$invoice_no}|{$row->vn}|EC|{$hcode}|{$row->hn}|{$row->cid}|1|01|9|9||{$doc_license}|99|{$start_dt}|{$end_dt}||||0.00|Y||OP1";
         }

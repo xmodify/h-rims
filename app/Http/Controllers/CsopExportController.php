@@ -611,6 +611,81 @@ class CsopExportController extends Controller
                 }
             }
 
+            // 4. OPDX / ICD-10 (S54) checks
+            $pdx_code = null;
+            foreach ($opdx_table as $dx) {
+                if (isset($dx[1]) && $dx[1] === $row->vn && isset($dx[2]) && $dx[2] === '1') {
+                    $pdx_code = trim($dx[4] ?? '');
+                    break;
+                }
+            }
+            if (empty($pdx_code)) {
+                $errors['opservices'][] = "ไม่พบรหัสวินิจฉัยโรคหลัก (PDX)";
+            } else {
+                $validator = new \App\Services\ClaimValidator();
+                $res = $validator->validateIcd10Chi($pdx_code, '1');
+                if (!$res['is_valid']) {
+                    $errors['opservices'][] = "รหัสวินิจฉัยหลัก {$pdx_code} ไม่ถูกต้องตามบัญชี สกส. (S54)";
+                }
+            }
+
+            // 5. CSOP rules (T72, T78, T84) checks
+            $has_op_service_fee = false;
+            $has_room_fee = false;
+            $other_groups = [];
+
+            foreach ($billitems_table as $item_row) {
+                if (isset($item_row[0]) && $item_row[0] === $invoice_no) {
+                    $muad = $item_row[2] ?? '';
+                    $std_code = trim($item_row[4] ?? '');
+                    
+                    if ($std_code === '55020' || $std_code === '55021') {
+                        $has_op_service_fee = true;
+                        continue;
+                    }
+                    
+                    if ($muad === '2') {
+                        $has_room_fee = true;
+                    }
+                    $other_groups[$muad] = true;
+                }
+            }
+
+            if ($has_op_service_fee) {
+                // Rule T72
+                if ($has_room_fee) {
+                    $errors['opservices'][] = "เบิกค่าบริการผู้ป่วยนอกร่วมกับค่าเตียงสังเกตอาการ (T72)";
+                }
+
+                // Rule T78
+                if (count($other_groups) === 1 && isset($other_groups['F'])) {
+                    $errors['opservices'][] = "เบิกค่าบริการผู้ป่วยนอกร่วมกับบริการฝังเข็มหมวด 15 เท่านั้น (T78)";
+                }
+
+                // Rule T84
+                $allowed_t84_groups = ['8', 'B', 'E', 'F'];
+                $only_t84_groups = true;
+                $has_any_item = !empty($other_groups);
+
+                foreach (array_keys($other_groups) as $g) {
+                    if (!in_array($g, $allowed_t84_groups)) {
+                        $only_t84_groups = false;
+                    }
+                }
+
+                $has_doctor = false;
+                if ($op_row) {
+                    $lic = strtoupper(trim($op_row[11] ?? ''));
+                    if (str_starts_with($lic, 'ว')) {
+                        $has_doctor = true;
+                    }
+                }
+
+                if ($has_any_item && $only_t84_groups && !$has_doctor) {
+                    $errors['opservices'][] = "เบิกค่าบริการผู้ป่วยนอกโดยไม่มีการพบแพทย์ (T84)";
+                }
+            }
+
             $validation[] = [
                 'vn' => $row->vn,
                 'hn' => $row->hn,

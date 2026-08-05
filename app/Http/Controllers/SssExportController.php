@@ -633,14 +633,10 @@ class SssExportController extends Controller
         // Perform backend validation to detect missing required fields
         $validation = [];
         foreach ($data['visits_list'] as $row) {
-            if (empty($row['sss_pttype'] ?? null)) {
-                // If it is array or object, handle both
-                $sss_pttype = is_array($row) ? ($row['sss_pttype'] ?? null) : ($row->sss_pttype ?? null);
-                if (empty($sss_pttype)) {
-                    continue;
-                }
-            }
             $rowObj = (object)$row;
+            if (empty($rowObj->sss_pttype)) {
+                continue;
+            }
             $vn = $rowObj->vn;
             $errors = [];
 

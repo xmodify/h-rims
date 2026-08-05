@@ -996,6 +996,21 @@
                     </div>`;
                 }
 
+                // Sync status back to the main table button
+                const btn = $(`button[onclick="showDetails('${vn}')"]`);
+                if (btn.length > 0) {
+                    if (errors.length > 0) {
+                        btn.removeClass('btn-outline-success btn-outline-warning').addClass('btn-outline-danger');
+                        btn.closest('td').attr('data-status', 'red').attr('data-order', '2');
+                    } else if (visit.endpoint !== 'Y' || warnings.length > 0) {
+                        btn.removeClass('btn-outline-success btn-outline-danger').addClass('btn-outline-warning');
+                        btn.closest('td').attr('data-status', 'yellow').attr('data-order', '1');
+                    } else {
+                        btn.removeClass('btn-outline-warning btn-outline-danger').addClass('btn-outline-success');
+                        btn.closest('td').attr('data-status', 'green').attr('data-order', '0');
+                    }
+                }
+
                 let html = `
                 <style>
                   .compact-info-table th, .compact-info-table td {

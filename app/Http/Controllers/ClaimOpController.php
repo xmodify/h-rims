@@ -6524,7 +6524,7 @@ class ClaimOpController extends Controller
                    rc.rcpno_list, v.debt_id_list, osb.invno AS csop_invno, osb.billno AS csop_billno,
                    vp.begin_date, vp.expire_date, vp.hospmain, vp.hospsub, vp.pttypeno, v.paid_money, v.remain_money,
                    IF((ep.claimCode LIKE "EP%" OR ep.claim_status IN ("success")),"Y",NULL) AS endpoint,
-                   doc.licenseno AS doctor_license
+                   doc.licenseno AS doctor_license, doc.name AS doctor_name
             FROM ovst o
             LEFT JOIN patient pt ON pt.hn = o.hn
             LEFT JOIN visit_pttype vp ON vp.vn = o.vn
@@ -6662,11 +6662,12 @@ class ClaimOpController extends Controller
         }
 
         // SvPID (S15) check
+        $doc_name = !empty($visit->doctor_name) ? trim($visit->doctor_name) : 'ไม่ระบุชื่อแพทย์';
         if (empty($visit->doctor_license)) {
             $pre_audits[] = [
                 'code' => 'S15',
                 'title' => 'ไม่พบเลขใบประกอบวิชาชีพแพทย์ (SvPID)',
-                'desc' => 'กรุณาระบุเลขใบประกอบวิชาชีพของแพทย์ผู้รักษาในระบบ HOSxP',
+                'desc' => "กรุณาระบุเลขใบประกอบวิชาชีพในระบบ HOSxP (แพทย์ผู้รักษา: {$doc_name})",
                 'status' => 'danger'
             ];
         } else {
@@ -6676,7 +6677,7 @@ class ClaimOpController extends Controller
                 $pre_audits[] = [
                     'code' => 'S15',
                     'title' => 'เลขที่ใบประกอบวิชาชีพ SvPID ไม่ถูกต้อง',
-                    'desc' => "เลขใบประกอบวิชาชีพแพทย์ '{$lic}' มีรูปแบบไม่ถูกต้อง (ต้องขึ้นต้นด้วย ว, ท, ภ, พ หรือ - และตามด้วยตัวเลขเท่านั้น เช่น ว15245 หรือ -)",
+                    'desc' => "เลขใบประกอบวิชาชีพแพทย์ '{$lic}' มีรูปแบบไม่ถูกต้อง (แพทย์ผู้รักษา: {$doc_name}) (ต้องขึ้นต้นด้วย ว, ท, ภ, พ หรือ - และตามด้วยตัวเลขเท่านั้น เช่น ว15245 หรือ -)",
                     'status' => 'danger'
                 ];
             }

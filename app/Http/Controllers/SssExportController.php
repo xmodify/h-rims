@@ -55,7 +55,7 @@ class SssExportController extends Controller
                    v.spclty, COALESCE(vp.hospmain, v.hospmain) AS hospmain, vp.pttype AS sss_pttype, v.debt_id_list, v.rx_license_no,
                    osb.invno AS sss_invno, osb.billno AS sss_billno,
                    pu.pttype_upp_type_code AS payplan,
-                   doc.licenseno AS doctor_license,
+                   doc.licenseno AS doctor_license, doc.name AS doctor_name,
                    o.pttype AS ovst_pttype,
                    (SELECT SUM(r.total_amount) FROM rcpt_print r LEFT JOIN rcpt_abort a ON a.rcpno = r.rcpno WHERE r.vn = o.vn AND r.pttype = vp.pttype AND a.rcpno IS NULL) AS sss_paid_amount
             FROM ovst o
@@ -705,12 +705,13 @@ class SssExportController extends Controller
             }
             if ($op_row) {
                 $lic = trim($op_row[11] ?? '');
+                $doc_name = !empty($rowObj->doctor_name) ? trim($rowObj->doctor_name) : 'ไม่ระบุชื่อแพทย์';
                 if (empty($lic)) {
-                    $errors['opservices'][] = "ไม่พบเลขใบอนุญาตประกอบวิชาชีพเวชกรรมผู้สั่งตรวจรักษา";
+                    $errors['opservices'][] = "ไม่พบเลขใบอนุญาตประกอบวิชาชีพเวชกรรมผู้สั่งตรวจรักษา (แพทย์ผู้รักษา: {$doc_name})";
                 } else {
                     $is_valid_format = preg_match('/^(?:-|[วทภพ\-]\d+)$/u', $lic);
                     if (!$is_valid_format) {
-                        $errors['opservices'][] = "เลขใบประกอบวิชาชีพแพทย์ '{$lic}' มีรูปแบบไม่ถูกต้อง (ต้องขึ้นต้นด้วย ว, ท, ภ, พ หรือ - และตามด้วยตัวเลขเท่านั้น) (S15)";
+                        $errors['opservices'][] = "เลขใบประกอบวิชาชีพแพทย์ '{$lic}' มีรูปแบบไม่ถูกต้อง (แพทย์ผู้รักษา: {$doc_name}) (ต้องขึ้นต้นด้วย ว, ท, ภ, พ หรือ - และตามด้วยตัวเลขเท่านั้น) (S15)";
                     }
                 }
             }

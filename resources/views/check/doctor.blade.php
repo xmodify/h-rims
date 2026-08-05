@@ -170,9 +170,10 @@
                             <thead>
                                 <tr>
                                     <th class="text-center" width="8%">รหัส</th>
-                                    <th class="text-start" width="22%">ชื่อ - สกุล</th>
-                                    <th class="text-center" width="15%">เลขใบประกอบวิชาชีพ</th>  
-                                    <th class="text-center" width="15%">เลขบัตรประชาชน</th>
+                                    <th class="text-start" width="20%">ชื่อ - สกุล</th>
+                                    <th class="text-center" width="12%">ตำแหน่ง</th>
+                                    <th class="text-center" width="12%">เลขใบประกอบวิชาชีพ</th>  
+                                    <th class="text-center" width="12%">เลขบัตรประชาชน</th>
                                     <th class="text-center" width="10%">สภาวิชาชีพ</th>
                                     <th class="text-center" width="8%">เพศ</th>
                                     <th class="text-center" width="10%">วันเกิด</th>
@@ -208,6 +209,13 @@
                                 <tr>
                                     <td class="text-center fw-bold text-muted">{{ $row->code }}</td>
                                     <td class="text-start font-medium text-dark">{{ $row->name }}</td>
+                                    <td class="text-center small">
+                                        @if (empty($row->position_name))
+                                            <span class="text-muted small">-</span>
+                                        @else
+                                            <span class="badge bg-info-soft text-info-dark border">{{ $row->position_name }}</span>
+                                        @endif
+                                    </td>
                                     <td class="text-center">
                                         @if (empty($lic))
                                             <span class="text-danger small fw-bold">ไม่มีข้อมูล</span>
@@ -277,7 +285,9 @@
     .bg-warning-soft { background-color: rgba(255, 193, 7, 0.08) !important; color: #ffc107 !important; }
     .bg-secondary-soft { background-color: rgba(108, 117, 125, 0.08) !important; color: #6c757d !important; }
     .bg-primary-soft { background-color: rgba(13, 110, 253, 0.08) !important; color: #0d6efd !important; }
+    .bg-info-soft { background-color: rgba(13, 202, 240, 0.08) !important; color: #0dcaf0 !important; }
     .text-warning-dark { color: #a1770b !important; }
+    .text-info-dark { color: #087990 !important; }
     .cursor-pointer { cursor: pointer; }
     
     /* Premium Tab-Card styles */

@@ -651,9 +651,11 @@ class CheckController extends Controller
     public function doctor()
     {
         $doctors = DB::connection('hosxp')->select('
-            SELECT code, name, licenseno, cid, active, council_code, provider_type_code, sex, birth_date
-            FROM doctor
-            ORDER BY active DESC, name ASC
+            SELECT d.code, d.name, d.licenseno, d.cid, d.active, d.council_code, d.provider_type_code, d.sex, d.birth_date,
+                   dp.name AS position_name
+            FROM doctor d
+            LEFT JOIN doctor_position dp ON dp.id = d.position_id
+            ORDER BY d.active DESC, d.name ASC
         ');
 
         return view('check.doctor', compact('doctors'));
